@@ -167,7 +167,7 @@ def test_missing_concern_cell(ub):
     assert broken(ub) == [("E315", "08-concerns/concern-security.md")]
     matrix = (ub / "08-concerns" / "08-concerns.md").read_text(encoding="utf-8")
     row = next(l for l in matrix.splitlines() if l.startswith("| [[website-building-blocks"))
-    assert "not looked at yet (no line for this app)" in row
+    assert "not reviewed yet (no line for this app)" in row
 
 
 def test_contract_with_no_tested_by(ub):

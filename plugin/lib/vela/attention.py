@@ -23,7 +23,7 @@ Every light carries its reasons, in words, so a page can say why something is li
 import datetime
 from dataclasses import dataclass, field
 
-from vela import model, override, pending, progress, slices, trace
+from vela import model, override, pending, plainwords, progress, say, slices, trace
 
 LEVELS = ("warning", "caution", "pending", "unexamined", "override", "dark")
 SETTLED = ("decided", "fact")
@@ -50,8 +50,10 @@ def days_until(as_of, date):
 
 
 def held_text(unknown, via, who, ask):
+    """The words a page falls back on when it can't name the question itself: the question's name, never its code."""
     through = " through " + " and ".join([", ".join(via[:-1]), via[-1]] if len(via) > 1 else via) if via else ""
-    return f"{unknown.id} {unknown.heading.split(' ', 1)[-1]} holds it{through}; ask {who} by {ask or 'no date'}"
+    by = f"by {say.date_words(ask)}" if progress.is_date(ask) else "(no date set to ask by)"
+    return f'"{unknown.name}" holds it up{through}; ask {who} {by}'
 
 
 def hold(light, unknown, as_of, via=""):
@@ -94,22 +96,30 @@ def await_review(light, marker):
     if marker is None:
         return
     light.reasons.append({"kind": "pending", "by": marker.by, "date": marker.date,
-                          "text": f"pending approval: decided by {marker.by} on {marker.date}, not yet reviewed by the owner"})
+                          "text": f"{say.person_words(marker.by)} decided this on {say.date_words(marker.date)}; the owner hasn't confirmed it yet"})
     light.raise_to("pending", 0.4)
 
 
+def skipped_check(rule):
+    """A set-aside rule said by what it protects (say's one list), never by its code."""
+    return say.GATE_WORDS.get(rule) or say.RULE_WORDS.get(rule) or "a check"
+
+
 def settle(light, state, unexamined=(), overrides=(), marker=None):
+    """The state and review reasons. Every state word is plainwords.state_word's, the table the dashboard's pills read,
+    so a reason never shows the vault's field value ("still at assumption" did, label sweep 2026-10-16)."""
     if not state:
-        light.reasons.append({"kind": "unexamined", "text": "no state recorded"})
+        light.reasons.append({"kind": "unexamined", "text": "nobody has said how sure this is yet"})
         light.raise_to("unexamined", 0.5)
     elif state not in SETTLED:
-        light.reasons.append({"kind": "state", "text": f"still at {state}"})
+        light.reasons.append({"kind": "state", "state": state, "text": plainwords.state_word(state)})
         light.raise_to("caution", 0.4)
     for concern in unexamined:
-        light.reasons.append({"kind": "unexamined", "text": f"{concern} never examined"})
+        light.reasons.append({"kind": "unexamined", "text": f"{concern}: {plainwords.cell_word('unexamined')}"})
         light.raise_to("unexamined", 0.5)
     for o in overrides:
-        light.reasons.append({"kind": "override", "text": f"override of {', '.join(o.rules)} by {o.by}"})
+        checks = " and ".join(dict.fromkeys(skipped_check(r) for r in o.rules)) or "a check"
+        light.reasons.append({"kind": "override", "text": f"{say.person_words(o.by)} chose to skip {checks} here"})
         light.raise_to("override", 0.15)
     await_review(light, marker)
 
@@ -151,8 +161,10 @@ def lights(vault, as_of):
         for unknown in blockers.get(flow.id, []):
             hold(light, unknown, as_of)
         for line, unknown_id in stale.get(flow.path, []):
-            light.reasons.append({"kind": "stale", "unknown": unknown_id,
-                                  "text": f"line {line} reads {unknown_id} as open; the record says resolved"})
+            answered = vault.item(unknown_id) if unknown_id else None
+            named = f'"{answered.name}"' if answered else "a question"
+            light.reasons.append({"kind": "stale", "unknown": unknown_id, "line": line,
+                                  "text": f"this page still treats {named} as open, but it's been answered; update the page"})
             light.raise_to("caution", 0.35)
         settle(light, str(flow.meta.get("state") or ""), marker=pending.pending_for(flow))
     for s in slices.read_slices(vault):  # a journey past its due date with nothing recorded needs the lead

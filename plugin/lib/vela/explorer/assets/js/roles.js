@@ -46,8 +46,7 @@ const Roles = (() => {
   }
   /* A handed-off item by its name: a page's title, a requirement's own words; a code only where the vault holds nothing to name it by. */
   const shortName = (id) => { const k = keyForId(id), e = ent(k); return e && e.title && e.title !== id ? shorten(e.title, 38) : id; };
-  const RELEASE_STATE = { assumption: "not decided yet", proposed: "proposed", decided: "decided", inkling: "early idea", fact: "as things are" };
-  const releaseState = (s) => RELEASE_STATE[s] || s || "no state yet";
+  const releaseState = (s) => (s ? STATE_WORD[s] || s : "no state yet");  // plainwords' words, the ones every pill uses
   const CHANGE_WORD = { new: "New app", changed: "Changed app", unchanged: "Unchanged app", retired: "App being retired" };
   const HANDED_KIND = { app: "the app", runtime: "runtime page", provides: "contracts it provides", consumes: "contracts it uses", requirement: "requirements",
     slice: "slices", flow: "journeys", unknown: "open questions", epic: "epics", decision: "decisions", party: "outside companies" };

@@ -32,7 +32,8 @@ const Sections = (() => {
 
   /* ------------------------------------------------------------ concerns: concern by app */
   /* A concern cell's state in words: "unexamined" means nobody has looked; "unknown" means someone looked and could not say. */
-  const CELL_WORD = (s) => (!s ? "not recorded" : s === "unexamined" ? "not reviewed" : s === "unknown" ? "not known yet" : stateWord(s));
+  const CELL_WORD = (s) => (!s ? "not recorded" : CELL_WORD_OF[s] ? cellWord(s) : stateWord(s));  // plainwords' cell words, else a state word
+  const CELL_WORD_OF = D.words.cell;
   function concerns(main) {
     main.append(head("Concerns", "Each cross-cutting concern (security, cost, privacy, ...) for each app. Blue means nobody has reviewed it yet; it only turns gray once someone has. \"Not known yet\" means someone looked and the answer is still open."));
     const sc = h("div", { class: "scroll pages" });

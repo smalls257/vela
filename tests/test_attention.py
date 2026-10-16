@@ -159,7 +159,7 @@ def test_an_unexamined_concern_is_named_by_its_title(tmp_path):
     page.write_text(text.replace(row, row.replace("| addressed |", "| unexamined |", 1), 1), encoding="utf-8")
     found, _ = lit(vault)
     texts = [r["text"] for r in found["APP-booking"].reasons if r["kind"] == "unexamined"]
-    assert texts == ["Cost never examined"], texts
+    assert texts == ["Cost: not reviewed yet"], texts
 
 
 def test_a_slice_whose_journey_is_past_due_with_nothing_recorded_is_a_warning_in_plain_words(tmp_path):

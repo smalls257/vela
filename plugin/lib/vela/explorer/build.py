@@ -28,8 +28,8 @@ import pathlib
 import re
 import uuid
 
-from vela import (allocation, attention, cli, completeness, handoff, ladder, links, model, override, pending, progress,
-                     reading, roles, schema, slices, terms, trace)
+from vela import (allocation, attention, cli, completeness, handoff, ladder, links, model, override, pending, plainwords,
+                     progress, reading, roles, schema, slices, terms, trace)
 from vela import search as vela_search
 from vela.edge import atomic
 from vela.parse import FENCE, closes_fence
@@ -577,7 +577,7 @@ def extract(vault, root, today, pins_path=None, designs=None, seed=None, plans=N
         "blockedBy": {k: [u.id for u in v] for k, v in blocked.items()},
         "progress": progress_data(vault, root, keys, today), "trace": trace_data(vault, keys),
         "backlinks": backlinks(vault, keys), "search": search_index(vault, keys), "ask": {"rules": list(serve.RULES)},
-        "terms": dict(terms.TERMS),
+        "terms": dict(terms.TERMS), "words": plainwords.reader_words(),
     }
     data["pending"] = pending_list(vault, keys)
     data["owners"] = owners(entities)
@@ -592,6 +592,9 @@ def extract(vault, root, today, pins_path=None, designs=None, seed=None, plans=N
     data.update(lights_data(vault, keys, today))
     data["asks"] = asks_data.asks(vault, keys, today)
     data["garden"] = asks_data.decisions(vault, keys)
+    # Every count a view shows comes from here or from Queue.needsYou, never from a view's own filter (E60).
+    data["counts"] = {"decisions": asks_data.settle_decisions(data["garden"], entities),
+                      "openQuestions": sum(1 for u in data["asks"] if u["state"] == "open")}
     data["sessions"] = {s.name: {"title": str(s.meta.get("title", s.name)), "date": str(s.meta.get("date", ""))}
                         for s in vault.sessions}
     data["reader"] = pages_data.readers(vault, keys)

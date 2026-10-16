@@ -297,3 +297,32 @@ def decisions(vault, keys):
         tree["buds"] = sorted({u for k in rests for u in blocked.get(k, ())} | {u for u in assumed if vault.item(u).fact("State") == "open"})
         tree["leaves"] = sorted({u for k in rests for u in resolved_on.get(k, ())} | {u for u in assumed if vault.item(u).fact("State") != "open"})
     return {"trees": list(trees.values()), "bare": bare}
+
+
+DECISION_STATES = ("pending", "proposed", "overridden", "decided")
+
+
+def decision_state(tree, entities):
+    """One decision's state, the one every view counts (the log, the Exec door): pending approval when a reader decided
+    it and the owner hasn't reviewed it, overridden when it stands on a set-aside check nobody has confirmed, decided
+    when a page carrying it says decided, else proposed. Computed here, once, so two views can't count it two ways
+    (E60: the Exec door counted decision pages and said 0 proposed beside the log's 1)."""
+    keys = [tree["adr"]["key"]] if tree.get("adr") else []
+    keys += [k for w in tree["carriedBy"] for k in (w["key"], w["page"])]
+    if any((entities.get(k) or {}).get("pending") for k in keys if k):
+        return "pending"
+    if sum(w.get("overrides", 0) for w in tree["carriedBy"]) and not any(w["confirmedBy"] for w in tree["carriedBy"]):
+        return "overridden"
+    return "decided" if any(w["state"] == "decided" for w in tree["carriedBy"]) else "proposed"
+
+
+def settle_decisions(garden, entities):
+    """Stamp each decision with its state and return the counts by state. The counts are over the decisions with their
+    options written down, the set the log lists until the reader asks for the bare ones too."""
+    counts = dict.fromkeys(DECISION_STATES, 0)
+    for tree in garden["trees"] + garden["bare"]:
+        tree["state"] = decision_state(tree, entities)
+    for tree in garden["trees"]:
+        counts[tree["state"]] += 1
+    counts["all"] = len(garden["trees"])
+    return counts

@@ -37,7 +37,6 @@ const Inside = (() => {
     [/^FLO-/, "Flow"], [/^CST-/, "Constraint"], [/^R-/, "Risk"], [/^PTY-/, "Outside party"], [/^APP-/, "App"], [/^INI-/, "Initiative"]];
   const idKind = (id) => (ID_KIND.find(([re]) => re.test(id)) || [null, "Item"])[1];
   const conNames = (text) => String(text || "").replace(/\bCON-\d{3}\b/g, (id) => (CONTRACT[id] ? `“${CONTRACT[id].title}”` : id));
-  const STATE_WORD = { assumption: "not decided yet", inkling: "early idea", proposed: "proposed", decided: "decided", confirmed: "confirmed" };
   const design = (k) => DES[k] || null;
   const base = (id) => id.split("@")[0];
   const appOfId = (id) => (APP_BY_ID[id] ? APP_BY_ID[id].key : null);

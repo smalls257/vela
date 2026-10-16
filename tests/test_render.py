@@ -72,7 +72,7 @@ def test_discard_edits_overwrites_and_prints_what_was_lost(mini):
 def test_missing_cell_renders_unexamined_no_row(mini):
     edit(mini / TESTING, "| [[stock-building-blocks\\|Stock]] | unchanged | Existing tests hold |\n", "")
     render(mini)
-    assert "| [[stock-building-blocks\\|Stock]] | not looked at yet (no line for this app) |" in (mini / MATRIX).read_text(encoding="utf-8")
+    assert "| [[stock-building-blocks\\|Stock]] | not reviewed yet (no line for this app) |" in (mini / MATRIX).read_text(encoding="utf-8")
 
 
 def test_new_empty_block_is_filled(mini):

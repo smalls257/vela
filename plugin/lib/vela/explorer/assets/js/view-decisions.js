@@ -47,12 +47,8 @@ const Decisions = (() => {
     const hit = keys.find((k) => E[k] && E[k].pending);
     return hit ? E[hit].pending : null;
   }
-  function stateOf(t) {
-    const d = deciders(t);
-    if (pendingOf(t)) return "pending";
-    if (d.overrides > 0 && !d.conf.length) return "overridden";
-    return t.carriedBy.some((w) => w.state === "decided") ? "decided" : "proposed";
-  }
+  /* The state is asks_data.decision_state's, stamped on the data, so this log and the Exec door count the same thing (E60). */
+  const stateOf = (t) => t.state;
   function dateOf(t) {
     const fromStatus = ISO.exec(t.carriedBy[0].status || "");  // a decision record: "Accepted, 2026-08-12, in a Grill session"
     if (fromStatus) return fromStatus[0];

@@ -142,7 +142,7 @@ const LIGHT = {
   warning: { color: "#ff5a48", ink: "#2a0703", word: "Overdue", say: "an open question blocking it has passed the date it needed an answer by" },
   caution: { color: "#ffb21e", ink: "#2b1a00", word: "Needs you", say: "not decided yet, or blocked by an open question" },
   pending: { color: "#b79cff", ink: "#150c33", word: "Pending approval", say: "someone decided this for the owner, and the owner hasn't confirmed it yet, so it isn't settled" },
-  unexamined: { color: "#52c8ff", ink: "#04202e", word: "Not reviewed", say: "nobody has looked at this yet; it only turns gray once someone has" },
+  unexamined: { color: "#52c8ff", ink: "#04202e", word: "Not reviewed yet", say: "nobody has reviewed this yet; it only turns gray once someone has" },
   override: { color: "#f2f1e8", ink: "#1d1d18", word: "Overridden", say: "the plan's lead chose to skip a rule here; shown for the record, not a problem" },
   dark: { color: "#2a3236", ink: "#9aa7ad", word: "Decided", say: "decided, and nothing is blocking it" },
 };
@@ -312,11 +312,13 @@ function gapsTag(gaps) {
   return h("b", {}, gaps.map((g) => h("span", { class: "nowrap" }, " " + g)));
 }
 /* A recorded state in plain words: the vault's values (inkling, assumption, fact, ...) are field values, not reader words.
-   An unknown value shows as written, so a new state is never hidden. */
-const STATE_WORD = { inkling: "Early idea", assumption: "Assumed", fact: "Confirmed", decided: "Decided", open: "Open", resolved: "Answered",
-  draft: "Draft", "in-progress": "In progress", complete: "Done", "complete-with-gaps": "Done, with gaps", new: "New app", changed: "Changed",
-  unchanged: "Unchanged", retired: "Retired", superseded: "Replaced", accepted: "Accepted", proposed: "Proposed" };
-const stateWord = (state) => STATE_WORD[String(state || "").toLowerCase()] || state;
+   The words are plainwords.py's, carried in the data, so a pill, a light's reason, a door and a generated page all
+   name a state the same way; there is no second list here. An unknown value shows as written, so a new state is never hidden. */
+const STATE_WORD = D.words.state, CELL_WORD = D.words.cell, STAGE_WORD = D.words.stage;
+const upFirst = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
+const stateWord = (state) => { const w = STATE_WORD[String(state || "").toLowerCase()]; return w ? upFirst(w) : state; };
+const cellWord = (cell) => CELL_WORD[String(cell || "").toLowerCase()] || cell;
+const stageWord = (stage) => STAGE_WORD[String(stage || "").toLowerCase()] || stage;
 function statePill(state) { return state ? h("span", { class: "pill" }, stateWord(state)) : null; }
 function levelPill(level, text) { return level === "pending" && !text ? pendingPill(null) : h("span", { class: "pill " + level }, text || LIGHT[level].word); }
 
