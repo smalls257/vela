@@ -28,6 +28,7 @@ One vault holds one initiative. Pages are numbered by arc42 section.
 | `sources.md` | The source register, `SRC-nn` |
 | `sessions/` | One record per session, `YYYY-MM-DD-<topic>.md` |
 | `voice/VOICE.md` | Optional. The owner's own rules for either voice (pages, conversation), in their own words. Committed. Never a source. |
+| `voice/DEFAULT.md` | The default page voice, written out for the owner to read. Ships with the template; edit `voice/VOICE.md` instead, which wins over it. Never a source. |
 | `voice/examples/` | House-voice passages and conversation exchanges. Never a source. Committed. |
 | `voice/local/` | The owner's passages that stay on one machine, same format as `voice/examples/`. Gitignored, never committed. `voice/corpus/` is gitignored too. |
 | `docs/` | The team's design and plan for a handed-off app, written by the user's `tech-design-grill` and `work-breakdown` skills when run from the vault root: `docs/tech-design/<slug>.md`, `docs/plan/<slug>-breakdown.md`, `docs/adr/`. Not vault pages: `vela check` does not read them, and `publish`, `open` and `propose` carry them like any other file. `CONTEXT.md` at the vault root is the design's glossary, also not a page. |
@@ -410,7 +411,7 @@ A harvest decline is one bare line, `Harvest declined: PR <n> <page> <hash>`, di
 
 House-voice passages live in `voice/examples/<voice type>/`, one per file named `VX-<voice type>-NNN.md`. The voice types are `diagnosis`, `decision` and `how-it-works` for pages, and `conversation` for how sessions talk to the lead. A `conversation` example is an exchange the owner liked, stored word for word under `voice/examples/conversation/` or `voice/local/conversation/`, in the same format. It has no public seed, so the template ships none. `vela check` never reads `voice/`.
 
-`voice/VOICE.md` is optional. It holds the owner's own rules in their own words, under `## Pages` and `## Conversation`. Both voices read it first, so it sits above the plugin's defaults and above the examples where they disagree. With no file and no examples, the defaults apply. The owner may override any default.
+`voice/VOICE.md` is optional. It holds the owner's own rules in their own words, under `## Pages` and `## Conversation`. Both voices read it first, so it sits above the plugin's defaults and above the examples where they disagree. With no file and no examples, the defaults apply; `voice/DEFAULT.md` spells out the page voice's. The owner may override any default.
 
 | Field | Rule |
 |---|---|

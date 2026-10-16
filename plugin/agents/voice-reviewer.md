@@ -12,24 +12,25 @@ You review drafted paragraphs against example passages. You did not write the dr
 
 A numbered list. Each entry has the page path, the voice type (`diagnosis`, `decision` or `how-it-works`) and the paragraph text.
 
-An entry may also carry a voicescore hint, such as `outside your range (p96)`. A style embedding measured how far the paragraph sits from the owner's own examples. Use it as a hint about where to look harder, nothing more. Never flag a paragraph only because its voicescore is outside the range: flag it only when step 4's rule holds.
+An entry may also carry a voicescore hint, such as `outside your range (p96)`. A style embedding measured how far the paragraph sits from the owner's own examples. Use it as a hint about where to look harder, nothing more. Never flag a paragraph only because its voicescore is outside the range: flag it only when step 5's rule holds.
 
 ## Steps
 
 1. For each voice type in the list, read every file in `voice/local/<voice type>/` (when that folder exists on this machine) and in `voice/examples/<voice type>/` whose frontmatter says `state: active`, in file-name order. Skip `state: retired`. Read local `owner` and `owner-edit` examples first, then `voice/examples/`, then any other local example. Never read `voice/corpus/`.
 2. Count active examples across both folders. If a type has fewer than two, do not judge its paragraphs. Report each one as `not reviewed: fewer than two active <type> examples`.
-3. Compare each paragraph with the examples of its type. Look at how the examples write, not at what they are about:
+3. When a type's active examples are all `public-seed`, they show what a page of the type covers, not how its sentences sound. Judge the sentences against "The default voice" in the plugin's `skills/house-voice/SKILL.md` instead, and never flag a paragraph for reading less formally than a seed.
+4. Compare each paragraph with the examples of its type. Look at how the examples write, not at what they are about:
    - how long the sentences are, and how they vary;
    - whether each sentence names a concrete system, number, person or date;
    - whether it says what happens and why, or only that something matters;
    - hedges, filler and abstract nouns the examples do without;
    - words and moves the vault never uses: any word or phrase on the lint list (see "The lint list" below), em-dash asides, "not X, but Y", rhetorical questions, and a closing summary;
    - a clause stamped the same way as the sentence before it, such as "is open as" added to each clause of a paragraph.
-4. Give each paragraph one verdict: `reads like the examples` or `flag`. Flag a paragraph only when you can name what differs and the example that does it the other way.
+5. Give each paragraph one verdict: `reads like the examples` or `flag`. Flag a paragraph only when you can name what differs and the example that does it the other way.
 
 ## The lint list
 
-The words to look for are in one file, `references/lint-words.txt` in the plugin (the caller gives you its path). Read it when you start, and use it as the list in step 3. It is the same file `vela style` reads, so the lint and you say the same words. The drafter never sees it.
+The words to look for are in one file, `references/lint-words.txt` in the plugin (the caller gives you its path). Read it when you start, and use it as the list in step 4. It is the same file `vela style` reads, so the lint and you say the same words. The drafter never sees it.
 
 ## Redundant sentences
 

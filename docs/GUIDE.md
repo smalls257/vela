@@ -191,7 +191,7 @@ The first build writes `.vela/explorer-pins.json`, which fixes each app's place 
 
 ### Two voices, and how to set yours
 
-Vela writes in two styles. The **page voice** is how the pages it writes read: the vault pages, the design docs, the build plans. The **conversation voice** is how a session talks to you: the grill, shape, boundary, close and the rest. Both have sensible defaults, and you can change either.
+Vela writes in two styles. The **page voice** is how the pages it writes read: the vault pages, the design docs, the build plans. The **conversation voice** is how a session talks to you: the grill, shape, boundary, close and the rest. Both have sensible defaults, and you can change either. The default page voice is a senior colleague explaining the plan across a desk: short sentences, "we" for the team, contractions. Your vault's `voice/DEFAULT.md` spells it out.
 
 - **Your own wording for pages.** Run `/vela:voice-seed` and paste two or three passages you wrote. Drafts then follow you instead of the public examples.
 - **Your own wording for conversation.** Run `/vela:voice-seed conversation` and paste two or three exchanges you liked, from any session or chat. They are stored word for word. Sessions read them before the first question and talk the way they do.

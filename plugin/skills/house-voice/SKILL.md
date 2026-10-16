@@ -7,15 +7,15 @@ disable-model-invocation: true
 
 # House voice
 
-Prose in this vault has one voice. Draft it from the example passages, not from rules alone. Prose is drafted only here, so every paragraph meets the examples.
+Prose in this vault has one voice. Draft it from the example passages and the default voice below, not from rules alone. Prose is drafted only here, so every paragraph meets them.
 
 ## Load the examples
 
-If the vault has `voice/VOICE.md`, read it first. It holds the owner's own rules, in their words, and wins over the rules below and the examples where they disagree. The owner may override any default. Run by hand, outside close, you also talk to the owner: read `${CLAUDE_PLUGIN_ROOT}/references/CONVERSATION-VOICE.md` too, as `START.md` step 6 says, before your first question.
+If the vault has `voice/VOICE.md`, read it first. It holds the owner's own rules, in their words, and wins over the default voice, the rules below and the examples where they disagree. The owner may override any default. Run by hand, outside close, you also talk to the owner: read `${CLAUDE_PLUGIN_ROOT}/references/CONVERSATION-VOICE.md` too, as `START.md` step 6 says, before your first question.
 
 Then run `vela voice examples --page <page> --json` for the page you are drafting. Read every example of that type it lists, in the order it lists them, before you write a word. The order is fixed so two drafts of one page start from the same context: active examples in file-name order, local `owner` and `owner-edit` examples first, then `voice/examples/`, then any other local example. A structured page lists none: it holds no voiced prose. When the command can't resolve the page, read `${CLAUDE_PLUGIN_ROOT}/skills/house-voice/TYPES.md` and run it with `--type` instead.
 
-An `owner` or `owner-edit` example is the owner's own writing; once `/vela:voice-seed` adds two of a type, that type's public seed retires.
+An `owner` or `owner-edit` example is the owner's own writing; once `/vela:voice-seed` adds two of a type, that type's public seed retires. Until then a type's examples are public seeds. Take from a seed what a page of its type covers and in what order, and take the sentences from the default voice below.
 
 When the command says the type has fewer than two active examples across both folders, say "No examples for <type>: drafted without examples" in the PR body, and draft from the defaults at the end of this file.
 
@@ -36,6 +36,35 @@ These keep the exact words they were written in. Do not restyle them:
 ## Prose that is already merged
 
 Merged prose belongs to the people who edited it. When a session changes a fact in a merged paragraph, change only that fact and the fewest words grammar needs. If the change makes the paragraph wrong as a whole, rewrite it, but first run `vela prose replace --page 05-building-blocks/till.md --line 12` with the page and any line of the paragraph: it copies the old paragraph byte for byte into the session record under `## Replaced prose`, with the page and the date, so whoever wrote it can find it. Never copy it by hand. Say so under **Prose drafted** in the pull request body. A page never carries two openings, and never a note to a reader about which paragraph to delete: those are editing notes, and a page with one ships as a draft.
+
+## The default voice
+
+Until the owner has examples of their own, pages read like a senior colleague explaining the plan across a desk. A line in the owner's `voice/VOICE.md` wins over any line here, and their `owner` and `owner-edit` examples win too. The vault's `voice/DEFAULT.md` says the same for the owner to read; this section is the one that drafts follow.
+
+Keep it short. A redraft comes out no longer than the paragraph it replaces, and usually shorter. Every sentence carries a fact or the reason for one; cut the rest.
+
+- **Say "we" for the team and the role for one person:** "we haven't checked this yet", "the solution lead picked it".
+- **Contract the way people talk, negatives too:** hasn't, won't, can't.
+- **Short sentences carry the facts.** The reason gets its own sentence right after the fact it explains, and only that one may run long.
+- **Answer the reader's next question, usually why, in the next sentence.** Say it as a statement, not as a question put to the reader.
+- **Let a period do the work** of a formal linking word, and open on the point, never on a phrase that clears the throat.
+- **End an open list with what happens next,** not a summary of it.
+- **Never hedge a point the record says is decided.**
+- **Be warm by being direct.** No jokes.
+- **"You" is the person reading the page.** Name a person who uses the system by their role.
+
+A list or a table is fine when there's more to take in than a paragraph holds (rule 7 below). These are the numbers a page lands inside, read over the whole page, since one short paragraph is too small to measure:
+
+| Measure | Target |
+|---|---|
+| Median sentence length | 10 to 16 words |
+| Three sentences in four | 22 words or fewer |
+| Contractions | 2 to 6 per 100 words |
+| "We" and "you" together | 1 to 6 per 100 words |
+| Passive sentences | 15 in 100 at most |
+| Formal linking words | 1 per 1,000 words at most |
+| Latin-rooted content words | 8% at most |
+| Reading grade (Flesch-Kincaid) | 8.5 at most |
 
 ## The rules
 
@@ -73,4 +102,4 @@ Unknowns and risks, concerns, decisions, sources and any page that is mostly a l
 
 ## When examples are thin
 
-Follow the rules above, rule 1 first. Name the system, the number and the date, say what happens and why, and use tables for facts and prose for reasons.
+Follow the default voice and the rules above, rule 1 first. Name the system, the number and the date, say what happens and why, and use tables for facts and prose for reasons.
