@@ -101,10 +101,21 @@ class Entry:
 
 
 @dataclass(frozen=True)
+class Kind:
+    """A kind of thing every plan needs (goals, people, money...), the running topic map's unit. `near` is symmetric:
+    the kinds this one lists and the kinds that list it."""
+    name: str
+    means: str
+    areas: tuple  # focus area codes whose questions fall under this kind
+    near: tuple  # kind names, in catalog order
+
+
+@dataclass(frozen=True)
 class Catalog:
     version: int
     areas: tuple  # ((code, label), ...) in file order
     entries: tuple  # of Entry, sorted by id
+    kinds: tuple = ()  # of Kind, in file order; () only in a test catalog that leaves `kinds` out
 
     def entry(self, entry_id):
         return next((e for e in self.entries if e.id == entry_id), None)
@@ -115,6 +126,13 @@ class Catalog:
 
     def area_label(self, code):
         return dict(self.areas).get(code, code)
+
+    def kind(self, name):
+        return next((k for k in self.kinds if k.name == name), None)
+
+    @property
+    def kind_names(self):
+        return tuple(k.name for k in self.kinds)
 
 
 EMPTY = Catalog(0, (), ())
@@ -299,6 +317,55 @@ def _entry(raw, n, areas, problems):
     return Entry(entry_id, area, scope, trigger, question, why, severity, blocks, creates or "", mentions, mention_why, exceptions)
 
 
+def _kind_list(raw, key, allowed, where, problems):
+    value = raw.get(key, [])
+    if not isinstance(value, list) or not all(isinstance(v, str) for v in value):
+        problems.append(f"{where}: '{key}' must be a list")
+        return ()
+    bad = [v for v in value if v not in allowed]
+    if bad:
+        problems.append(f"{where}: '{key}' has {', '.join(repr(v) for v in bad)} (use: {', '.join(allowed)})")
+    return tuple(v for v in value if v in allowed)
+
+
+def parse_kinds(raw_kinds, codes, problems):
+    """The Kinds `kinds:` describes, with `near` made symmetric. Every focus area must sit under some kind: the kinds
+    are the one list of what a plan covers, so an area no kind holds would be a second list nobody's map reads."""
+    if raw_kinds is None:
+        return ()
+    if not isinstance(raw_kinds, dict) or not raw_kinds:
+        problems.append("'kinds' must map each kind, such as money, to its means, areas and near")
+        return ()
+    names = [n for n in raw_kinds if isinstance(n, str) and WORD_RE.match(n)]
+    for name in raw_kinds:
+        if name not in names:
+            problems.append(f"kind {name!r} must be one lower-case word")
+    parsed = {}
+    for name in names:
+        raw, where = raw_kinds[name], f"kinds.{name}"
+        if not isinstance(raw, dict):
+            problems.append(f"{where} must be a mapping")
+            continue
+        unknown = sorted(str(k) for k in raw if k not in ("means", "areas", "near"))
+        if unknown:
+            problems.append(f"{where}: unknown field {', '.join(unknown)}")
+        means = _text(raw, "means", problems, where)
+        areas = _kind_list(raw, "areas", codes, where, problems)
+        near = _kind_list(raw, "near", names, where, problems)
+        if name in near:
+            problems.append(f"{where}: a kind is not near itself")
+        parsed[name] = (means, areas, set(near) - {name})
+    for name, (_, _, near) in parsed.items():
+        for other in near:
+            if other in parsed:
+                parsed[other][2].add(name)
+    held = {code for _, areas, _ in parsed.values() for code in areas}
+    for code in codes:
+        if code not in held:
+            problems.append(f"area {code} sits under no kind; add it to a kind's 'areas'")
+    return tuple(Kind(n, m, a, tuple(k for k in names if k in near)) for n, (m, a, near) in parsed.items())
+
+
 def parse_catalog(data):
     """The Catalog the YAML describes, or CatalogError listing every problem."""
     if not isinstance(data, dict):
@@ -320,6 +387,7 @@ def parse_catalog(data):
             else:
                 areas.append((code, " ".join(label.split())))
     codes = [code for code, _ in areas]
+    kinds = parse_kinds(data.get("kinds"), codes, problems)
     raw_entries = data.get("entries")
     entries = []
     if not isinstance(raw_entries, list) or not raw_entries:
@@ -340,4 +408,4 @@ def parse_catalog(data):
         seen.add(entry.id)
     if problems:
         raise CatalogError("; ".join(problems))
-    return Catalog(version, tuple(areas), tuple(sorted(entries, key=lambda e: e.id)))
+    return Catalog(version, tuple(areas), tuple(sorted(entries, key=lambda e: e.id)), kinds)
