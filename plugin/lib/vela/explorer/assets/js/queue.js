@@ -94,22 +94,35 @@ const Queue = (() => {
     const q = items().filter((x) => NEEDS.includes(x.level)), other = otherLit().filter((x) => NEEDS.includes(x.light.level));
     return { n: q.length + other.length, questions: q.length, other: other.length, late: q.filter((x) => x.level === "warning").length + other.filter((x) => x.light.level === "warning").length };
   }
-  /* What the number is made of, in words: "20 need you: 16 questions holding things up and 4 other things lit". */
-  function needsYouSays() {
+  /* What the number is made of, in words: "18 questions are blocking work and 3 other things aren't decided yet". The
+     top bar shows the number itself, so its tooltip says only the parts; a view away from the top bar says both. */
+  function needsYouParts() {
     const c = needsYou();
     if (!c.n) return "Nothing needs you";
-    const parts = [c.questions ? `${plural(c.questions, "open question")} blocking work` : null, c.other ? `${plural(c.other, "other item")} not decided yet` : null].filter(Boolean);
-    return `${c.n} need you: ${parts.join(", and ")}${c.late ? ` (${c.late} overdue)` : ""}`;
+    const parts = [c.questions ? `${plural(c.questions, "question")} ${c.questions === 1 ? "is" : "are"} blocking work` : null,
+      c.other ? `${plural(c.other, "other thing")} ${c.other === 1 ? "isn't" : "aren't"} decided yet` : null].filter(Boolean);
+    return `${parts.join(" and ")}${c.late ? ` (${c.late} overdue)` : ""}`;
+  }
+  function needsYouSays() {
+    const c = needsYou();
+    return c.n ? `${c.n} need you: ${needsYouParts()}` : "Nothing needs you";
+  }
+  /* The queue card's line: what to start with, not the top bar's number again. */
+  function startWith() {
+    const list = items().filter((x) => NEEDS.includes(x.level)), first = list[0];
+    if (!first) return otherLit().length ? "No question is blocking work." : "Nothing is waiting on an answer";
+    const due = isDate(first.askBy) ? `The first is due ${day(first.askBy)}: ${first.title}.` : `The most urgent: ${first.title}.`;
+    return `${plural(list.length, "question")} ${list.length === 1 ? "blocks" : "block"} work. ${due}`;
   }
   const total = () => needsYou().n;
 
   function row(it) {
     const late = it.level === "warning", when = isDate(it.askBy) ? relDueWords(it.askBy) : "no date";
-    return h("li", {}, h("button", { class: "q-row" + (App.focus === it.id ? " on" : ""), "data-ref": it.id, title: `${it.id}: ${it.question}` },
+    return h("li", {}, h("button", { class: "q-row" + (App.focus === it.id ? " on" : ""), "data-ref": it.id, title: it.question },
       lampEl(it.level),
       h("span", { class: "q-main" }, h("span", { class: "q-title" }, it.title),
         h("span", { class: "q-sub" }, `Blocks ${it.says}`),
-        h("span", { class: "q-ask" }, `Ask: ${it.who}${it.guess ? " (a guess)" : ""}`)),
+        h("span", { class: "q-ask" }, `Ask: ${it.who}${it.guess ? ", probably" : ""}`)),
       h("span", { class: "q-when" + (late ? " late" : "") }, h("b", {}, day(it.askBy)), h("i", {}, when))));
   }
   function grouped(list) {
@@ -146,9 +159,9 @@ const Queue = (() => {
   const folded = (width) => width < NARROW || Settings.read(FOLD_KEY) === "1";
   function card(width) {
     const list = items(), fold = folded(width);
-    const say1 = needsYou().n ? needsYouSays() : "Nothing is waiting on an answer";
+    const say1 = startWith();
     const el = h("section", { class: "q-card" + (fold ? "" : " open"), "aria-label": "What is waiting on an answer" },
-      h("div", { class: "q-head" }, h("span", { class: "q-kicker" }, "Waiting on an answer"), h("span", { class: "q-count" }, say1),
+      h("div", { class: "q-head" }, h("span", { class: "q-kicker" }, "Waiting on an answer"), h("span", { class: "q-count", "data-quantity": "needsYou.questions", "data-n": needsYou().questions }, say1),
         h("button", { class: "q-fold", "aria-expanded": String(!fold), title: "Hide the list so the map gets the full width", onclick: (ev) => {
           const open = !el.classList.contains("open");
           if (width >= NARROW) { Settings.write(FOLD_KEY, open ? "0" : "1"); rerender(); return; }  // the map refits to the room the fold gave or took
@@ -160,5 +173,5 @@ const Queue = (() => {
   }
   /* The row picked anywhere stays marked here. */
   function sync() { $$(".q-row").forEach((b) => b.classList.toggle("on", b.dataset.ref === App.focus)); }
-  return { items, card, folded, block, counts, needsYou, needsYouSays, total, sync, holdless, say, TOP, GROUPS, st, otherLit };
+  return { items, card, folded, block, counts, needsYou, needsYouSays, needsYouParts, startWith, total, sync, holdless, say, TOP, GROUPS, st, otherLit };
 })();

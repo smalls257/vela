@@ -4,29 +4,37 @@
 $("#brand-title").textContent = D.title || "Vault";
 /* The initiative's ID is a tag, not a name: it rides in the tooltip, and the line under the title says what date the plan is read at. */
 $("#brand-sub").textContent = `Plan as of ${day(D.today)}`;
-$("#brand-title").title = $("#brand-title").textContent; $("#brand-sub").title = `${D.initiative ? D.initiative + ": " : ""}the plan as it stood on ${day(D.today)}`;  // both cut with an ellipsis when the sidebar is narrow
-/* A copy opened long after it was built says so, quietly, above everything: when it was built. The commit is for whoever
-maintains the plan, so it rides in a data attribute, never in text or a tooltip a reader reads (no commit hashes in
-reader text). */
+$("#brand-title").title = $("#brand-title").textContent; $("#brand-sub").title = `The plan as it stood on ${day(D.today)}`;  // both cut with an ellipsis when the sidebar is narrow
+/* A copy opened a few days after it was built says so, quietly, above everything: when it was built. A fresh copy says
+nothing, because a second date beside "Plan as of" with no reason only puzzles the reader (label sweep). The commit is
+for whoever maintains the plan, so it rides in a data attribute, never in text or a tooltip a reader reads. */
+const STALE_AFTER_DAYS = 3;  // a copy shared on Monday and read on Wednesday is still this week's plan
 if (D.built) {
   const built = $("#built");
-  const on = isDate(D.built.date) ? `${day(D.built.date)} ${D.built.date.slice(0, 4)}` : D.built.date;
-  built.textContent = `Built ${on}. If the plan has changed since then, this page won't show it.`;
+  const on = isDate(D.built.date) ? day(D.built.date) : D.built.date;
+  built.textContent = `Built ${on}. Anything changed after that isn't here.`;
   if (D.built.commit) built.dataset.commit = D.built.commit;
-  built.hidden = false;
+  const age = isDate(D.built.date) ? (Date.now() - Date.parse(D.built.date)) / 86400000 : Infinity;
+  built.hidden = age < STALE_AFTER_DAYS;
 }
 $("#brand").addEventListener("click", () => Nav.home());
 if (STILL) document.documentElement.classList.add("still");
 
 function renderMasters() {
   const box = $("#masters"), counts = Queue.counts();  // a question counts once however many things it holds
-  const need = Queue.needsYou(), count = (lv) => (lv === "caution" ? need.n : counts[lv] || 0);  // "need you" is the one count the side door and the panel give; overdue is the part of it that is late
+  // "need you" is shown as a number here and only here (label sweep: the same 21 showed four times on Home); overdue is
+  // the part of it that is late. A lamp at zero is noise on every screen, so overdue and not-reviewed hide at zero.
+  const need = Queue.needsYou(), count = (lv) => (lv === "caution" ? need.n : counts[lv] || 0);
+  const QUANTITY = { warning: "overdue", caution: "needsYou", unexamined: "unreviewed" };
+  const tip = (lv, n) => (lv === "caution" ? `${n ? Queue.needsYouParts() + ". " : "Nothing needs you. "}Click to see them, most urgent first.`
+    : lv === "warning" ? `${plural(n, "question")} past the date ${n === 1 ? "it" : "they"} needed an answer by. Something goes red when a question blocking it misses its answer date.`
+    : `${plural(n, "thing")} with something nobody has reviewed yet. Each turns gray once someone has.`);
   box.innerHTML = "";
-  for (const [lv, word] of [["warning", "overdue"], ["caution", "need you"], ["unexamined", "not reviewed"]]) {
+  for (const [lv, word] of [["warning", "overdue"], ["caution", "need you"], ["unexamined", LIGHT.unexamined.word.toLowerCase()]]) {
     const n = count(lv);
-    if (lv === "unexamined" && !n) continue;
-    box.append(h("button", { class: `master ${lv}${n ? " on" : ""}`, title: lv === "caution" ? `${Queue.needsYouSays()}. Something needs you when it is ${LIGHT[lv].say}.` : lv === "warning" ? `${n ? n + " overdue" : "Nothing overdue"}. Something is overdue when ${LIGHT[lv].say}.` : `${n} not reviewed: ${LIGHT[lv].say}.`, onclick: () => { if (App.section !== "home") Nav.home(); go("lights", { reset: true }); } },
-      h("b", {}, n), h("span", {}, word)));
+    if (lv !== "caution" && !n) continue;
+    box.append(h("button", { class: `master ${lv}${n ? " on" : ""}`, title: tip(lv, n), onclick: () => { if (App.section !== "home") Nav.home(); go("lights", { reset: true }); } },
+      h("b", { "data-quantity": QUANTITY[lv], "data-n": n }, n), h("span", {}, word)));
   }
 }
 renderMasters();

@@ -16,7 +16,7 @@ const Nav = (() => {
     goals: [["goals", "Goals"]], constraints: [], context: [["context", "Today and after"]], strategy: [],
     capabilities: [["map", "Capability map"], ["trace", "Requirements to epics"]], releases: [["releases", "Timeline"]], slices: [["slices", "Slices"]],
     apps: [["map", "Map"], ["progress", "Progress"]], flows: [["flows", "Step through"]], concerns: [["concerns", "By app"]],
-    decisions: [["decisions", "Log"]], unknowns: [["asks", "Who to ask"]], glossary: [], epics: [["epics", "Epics"], ["trace", "Requirements to epics"]],
+    decisions: [["decisions", "Decision log"]], unknowns: [["asks", "Who to ask"]], glossary: [], epics: [["epics", "Epics"], ["trace", "Requirements to epics"]],
   };
   const read = (k, d) => { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { console.warn("[nav] this browser keeps no settings:", e.message); return d; } };
   const write = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { console.warn("[nav] this browser keeps no settings:", e.message); } };
@@ -41,7 +41,7 @@ const Nav = (() => {
   }
   /* The page that sits beside the visual in the panel: none when the page itself fills the main area. */
   function pageBeside() { return textLed(App.section) || App.view === "doc" ? "" : sectionPage(); }
-  function missingPage() { const s = sec(); return s ? `The ${s.label.toLowerCase()} page isn't written yet, so there is nothing to read here.` : "No page."; }
+  function missingPage() { const s = sec(); return s ? `The ${s.label.toLowerCase()} page isn't written yet. The plan's lead writes it in a planning session.` : "No page."; }
   /* The section's own controls on every view head: its visuals, and the page to read. */
   function pageActions(opts = {}) {
     const s = sec();
@@ -236,13 +236,18 @@ const Nav = (() => {
     if (s.id === "releases") return D.releases.count || "";
     return s.children.length || "";
   }
+  /* A section's count shows only beside a lit lamp: a dozen bare numbers down the side were a dozen things to hold. */
+  function sideCount(s) {
+    const n = count(s), open = s.id === "unknowns";
+    return h("span", { class: "side-n", title: open ? plural(n, "open question") : `${s.label}: ${n}`, ...(open ? { "data-quantity": "openQuestions", "data-n": n } : {}) }, n);
+  }
   function item(s) {
     const here = App.section === s.id, has = s.children.length > 0, openList = st.expanded.has(s.id);
     const lv = sectionLamp(s), missing = !s.page && !(s.id === "slices" && D.slicePlan.list.length);  // slices have no index page: each slice is one
     const row = h("div", { class: "side-row" + (here && !st.child ? " on" : here ? " in" : "") + (missing ? " missing" : "") },
       has ? h("button", { class: "side-caret", "aria-expanded": String(openList), "aria-label": `${openList ? "Hide" : "Show"} the ${s.label.toLowerCase()}`, onclick: () => { openList ? st.expanded.delete(s.id) : st.expanded.add(s.id); write(OPEN_KEY, [...st.expanded]); refresh(); } }, openList ? "▾" : "▸") : h("span", { class: "side-caret blank" }),
       h("button", { class: "side-link", "data-section": s.id, "aria-current": here && !st.child ? "page" : null, title: missing ? `The ${s.label.toLowerCase()} page isn't written yet` : s.id === "slices" ? `${s.title}. ${termTip("slice")}` : s.title, onclick: () => open(s.id) },
-        h("span", { class: "side-label" }, s.label), lv !== "dark" ? lampEl(lv) : null, h("span", { class: "side-n", title: count(s) ? `${count(s)} ${s.id === "unknowns" ? "open" : "in"} ${s.label.toLowerCase()}` : null }, count(s))));
+        h("span", { class: "side-label" }, s.label), lv !== "dark" ? lampEl(lv) : null, lv !== "dark" && count(s) ? sideCount(s) : null));
     const out = [row];
     if (has && openList) out.push(h("div", { class: "side-kids" }, s.children.map((k) => {
       const lvk = levelOf(k), cur = here && st.child === k;
@@ -256,10 +261,11 @@ const Nav = (() => {
     const side = $("#side");
     if (!side) return;
     side.innerHTML = "";
-    const lit = Queue.total();
+    const late = Queue.needsYou().late;
     side.append(h("div", { class: "side-group" }, h("div", { class: "side-h" }, "Start here"),
+      // the top bar carries the needs-you number; the side door shows only the overdue part, and only when there is one
       h("button", { class: "side-home" + (App.section === "home" ? " on" : ""), "aria-current": App.section === "home" ? "page" : null, title: Queue.needsYouSays(), onclick: home },
-        h("span", { class: "side-label" }, "What needs you"), lit ? h("span", { class: "side-n lit " + (litSubjects()[0] ? litSubjects()[0].light.level : "caution") }, lit) : null),
+        h("span", { class: "side-label" }, "What needs you"), late ? h("span", { class: "side-n lit warning", title: `${late} overdue`, "data-quantity": "overdue", "data-n": late }, late) : null),
       typeof Ask !== "undefined" && Ask.served() ? h("button", { class: "side-home side-ask" + (App.section === "ask" ? " on" : ""), "aria-current": App.section === "ask" ? "page" : null, title: "Ask Claude about the plan", onclick: () => Ask.open() },
         h("span", { class: "side-label" }, "Ask Claude"), Ask.count() ? h("span", { class: "side-n" }, Ask.count()) : null) : null,
       h("div", { class: "side-roles", role: "tablist", "aria-label": "Views by role" }, Roles.ROLES.slice(1).map(([id, label, say]) =>
@@ -267,7 +273,7 @@ const Nav = (() => {
     const vault = h("div", { class: "side-group" }, h("div", { class: "side-h" }, "Plan pages"));
     for (const s of D.sections) vault.append(...item(s));
     side.append(vault);
-    side.append(h("div", { class: "side-foot" }, h("span", { class: "muted", title: D.initiative ? `Initiative ${D.initiative}` : null }, `${plural(Object.keys(D.reader).length, "plan page")} in all`)));
+    side.append(h("div", { class: "side-foot" }, h("span", { class: "muted", title: D.initiative ? `Initiative ${D.initiative}` : null }, `Search all ${plural(Object.keys(D.reader).length, "page")} with /`)));
   }
   return { where, whereLabel, back, title, sectionPage, pageBeside, missingPage, pageActions, open, home, role, readWide, adopt, focusApp, trace, ripple, openRelease, syncHash, followHash, boot, refresh, st, VISUALS, SECTIONS };
 })();

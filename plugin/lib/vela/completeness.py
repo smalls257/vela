@@ -55,14 +55,14 @@ def cells(vault):
     seen = {(c.concern.id, c.app): c.state for c in vault.cells}
     total = len(apps) * len(concerns)
     done = sum(1 for p in concerns for a in apps if seen.get((p.id, a.name), "unexamined") != "unexamined")
-    return Share("cross-cutting concern checks made", done, total)
+    return Share("concerns checked", done, total)
 
 
 def owed_questions(vault):
     kept = questions.dispositions(vault)
     rows = questions.reviewer_rows(vault)
     done = sum(1 for d in kept if not d.pending) + sum(1 for r in rows if r.state not in ("open", "asked"))
-    return Share("standard questions dealt with", done, len(kept) + len(rows))
+    return Share("checklist questions answered", done, len(kept) + len(rows))
 
 
 def pages(vault):
