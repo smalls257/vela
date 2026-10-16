@@ -16,6 +16,51 @@ areas:
   REG: Regulation and liability
   OPS: Operations and people
 
+# The kinds of thing every plan needs, whatever its domain: the one list of "areas a plan must cover". A session's
+# running topic map (`vela map`) tags what the lead says to a kind and points the next question at the emptiest kind
+# near the last topic: the concern map of the 16 October elicitation research (OntoAgent, 2026, found 0.69 of
+# hidden requirements with a map re-ranked each turn, against 0.13 free-form). `areas` names the focus areas above
+# whose questions fall under the kind, so every area has a home here; `near` names the kinds a conversation on this
+# one most often leads to (read both ways).
+# A kind's name is what the lead hears ("nothing yet on money or dates"), so it is one plain word.
+kinds:
+  goals:
+    means: what the plan is for, and how anyone would tell it worked
+    areas: []
+    near: [people, money, dates, risks]
+  people:
+    means: the groups affected, who has to say yes, and who would push back
+    areas: [PTN, OPS]
+    near: [owners, rules, systems]
+  systems:
+    means: the tools, apps and outside services the plan touches or changes
+    areas: [OPS]
+    near: [data, owners, risks]
+  data:
+    means: what information moves or is kept, and whose it is
+    areas: [DAT]
+    near: [systems, rules, people]
+  rules:
+    means: laws, contracts, policies and the unwritten rules people follow
+    areas: [REG, PTN]
+    near: [money, dates]
+  dates:
+    means: fixed dates, deadlines, seasons and renewals
+    areas: []
+    near: [owners, money]
+  money:
+    means: who pays, what it costs to run, and any value held for someone else
+    areas: [FIN]
+    near: [owners, risks]
+  risks:
+    means: what could go wrong, what went wrong last time, and what happens when a step fails
+    areas: [REG]
+    near: [owners]
+  owners:
+    means: who owns each piece, and who decides when people disagree
+    areas: [OPS]
+    near: []
+
 entries:
   # ---------------------------------------------------------------- finance and liabilities
   - id: Q-FIN-01
