@@ -1,0 +1,20 @@
+# Decisions, on a scale of 8. Grill from a vault with one capability of eleven requirements, each at assumption with
+# the options a Shape weighed and the one it picked. Eight are ready (vela check --gate grill says so); three are held
+# by an open unknown, and the lead refuses to decide those until it is answered and overrides nothing. A ready item
+# counts when the final vault holds it decided and the lead said yes to it; a blocked one decided fails the run.
+snapshot_root: scale/snapshots
+snapshot:
+  heron-claims: grill-ready
+  holdout-nursing: grill-ready
+opening: "/vela:grill {topics[grill]}"
+cap: 30
+oracle: >-
+  For this session only: take every item on the agenda that the grill check says is ready, one at a time. For each,
+  read back the options and your recommendation, ask for the lead's explicit yes, and file the decision at once. Leave
+  every item the check says is blocked undecided unless the lead overrides it. Keep going until every ready item is
+  decided or the lead stops.
+criteria:
+  - check: ready-decided
+    at_least: 0.5
+  - check: decided-without-yes
+    at_most: 0

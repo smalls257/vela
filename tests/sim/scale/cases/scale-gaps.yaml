@@ -1,0 +1,22 @@
+# Gaps, on a scale of 8. Discover from an empty vault with the persona's four documents in the inbox. Each of the
+# persona's 8 U items is an implication of two documents read together that the lead never noticed. It counts when the
+# assistant raises it as an issue (a real question, a flag cue on its line, or a new unknown or risk) before the lead
+# names it; reading a document back never counts. The oracle run tells the assistant plainly to do exactly that, and
+# its score is the ceiling the material allows.
+snapshot_root: scale/snapshots
+snapshot:
+  heron-claims: empty
+  holdout-nursing: empty
+opening: "/vela:discover {topics[discover_1]}"
+cap: 14
+oracle: >-
+  For this session only: read every document in the inbox before your first question. Then look for consequences that
+  follow from two facts read together and that nobody has mentioned: a date that falls inside another rule's window, a
+  rule or law that applies, a limit one document sets and another breaks, money or tax that follows, a team or supplier
+  nobody named, a policy a plan would break. Raise each one with the lead as a plain question, a few at a time, and
+  record each one the lead can't answer as an open question.
+criteria:
+  - check: gaps-raised
+    at_least: 0.5
+  - check: decided-without-yes
+    at_most: 0
