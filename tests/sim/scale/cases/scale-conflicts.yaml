@@ -8,12 +8,16 @@ snapshot:
   heron-claims: empty
   holdout-nursing: empty
 opening: "/vela:discover {topics[discover_people]}"
-cap: 14
+# 24, not 14: the 2026-10-15 ceiling run hit a 14-turn cap on both personas, with discover's intake (naming the
+# initiative, ordering and labelling the sources, reading each group back) taking about 8 of them, so even the oracle
+# ran out of turns before it asked about each subject. The cap, not the skill, set that ceiling.
+cap: 24
 oracle: >-
   For this session only: find out who has a stake in this work and what each of them wants. Ask the lead, one subject
   at a time, what each group cares about: money and the budget, the customers, clients or patients served, audit and
   controls, staff and their representatives in every place they work, suppliers, purchasing and bookings, senior
-  leaders, timing and payment, and the people who do the work day to day. Whenever two positions pull against each other, say plainly that they
+  leaders, timing and payment, and the people who do the work day to day. Ask about these subjects as soon as the
+  sources are in, before you work through any clash between the documents themselves. Whenever two positions pull against each other, say plainly that they
   disagree, name who holds each side, and record the disagreement as an open question. Never pick a side.
 criteria:
   - check: positions-surfaced
