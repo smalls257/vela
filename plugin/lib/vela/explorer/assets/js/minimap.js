@@ -3,7 +3,7 @@
    map's orientation and is never rotated to the current page (Levine's you-are-here maps). "Here" is what the
    panel shows, or what the current view is about (the step being played, the strip being read). */
 const Minimap = (() => {
-  Legend.define("mini.party", [{ k: "clip", fill: "unlit", stroke: "rule-3", w: 1.4 }], "Square-cornered box: an outside service");
+  Legend.define("mini.party", [{ k: "clip", fill: "unlit", stroke: "rule-3", w: 1.4 }], "Clipped corners: an outside service");
   Legend.define("mini.link", [Legend.ln({ stroke: "track", w: 3 })], "Gray line: a connection between two boxes");
   Legend.define("mini.link.lit", [Legend.ln({ stroke: "caution", w: 3.5 })], "Colored line: a connection with a contract that needs you, in its most urgent color");
   Legend.define("mini.link.hot", [Legend.ln({ stroke: "focus", w: 4.5 })], "White line: a connection to what you picked");

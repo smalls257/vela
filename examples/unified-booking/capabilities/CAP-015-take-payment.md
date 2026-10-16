@@ -37,8 +37,8 @@ Takes a customer's card payment for a crossing by card without Harborline ever h
 
 ## Delivered by
 
-<!-- generated:delivered-by sha=140bedbf: do not edit, run vela render -->
-none
+<!-- generated:delivered-by sha=227c9e85: do not edit, run vela render -->
+No epics yet.
 <!-- /generated:delivered-by -->
 
 No epic changes this capability. [[EPC-031-holds-and-confirms|Booking holds and confirms crossings]] receives the payment outcome on [[booking-building-blocks#CON-007 Tidepay payment outcome|Tidepay payment outcome]].

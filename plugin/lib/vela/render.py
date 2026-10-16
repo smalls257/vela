@@ -6,7 +6,7 @@ holds links and numbers, dates and never ages, so two runs give equal bytes.
 import hashlib
 import re
 
-from vela import allocation, diagrams, parse, plainwords, progress, questions, schema, trace
+from vela import allocation, diagrams, parse, plainwords, progress, questions, say, schema, trace
 from vela.model import Finding, blocking_unknowns
 
 OPEN = "<!-- generated:{name} sha={sha}: " + parse.MARKER_TEXT + " -->"
@@ -71,7 +71,7 @@ def contracts_consumed(vault, page):
         rows.append(row(link(contract.page.name, trace.named(contract.name, contract.id), contract.heading), provider,
                         cell(contract.fact("Change policy")), plainwords.state_word(contract.fact("State"))))
     if not rows:
-        return "none"
+        return "This app doesn't use any contract yet."
     return "\n".join(["| Contract | Provided by | Who can change it, and how | How sure |", "|---|---|---|---|"] + rows)
 
 
@@ -92,7 +92,7 @@ def unknowns_index(vault, page):
                  plainwords.state_word(r.fact("State"))) for r in vault.risks]
     if risks:
         out += ([""] if out else []) + ["**Risks**", "", "| Risk | Owner | Status |", "|---|---|---|"] + risks
-    return "\n".join(out) if out else "none"
+    return "\n".join(out) if out else "No questions or risks yet."
 
 
 def cell_state(vault, concern, app):
@@ -106,7 +106,7 @@ def concern_matrix(vault, page):
     concerns = sorted(vault.of_type("concern"), key=lambda p: p.id)
     apps = vault.apps
     if not concerns or not apps:
-        return "none"
+        return "No concerns to check against the apps yet."
     header = row("App", *(link(c.name, title(c)) for c in concerns))
     lines = [header, "|---|" + "---|" * len(concerns)]
     for app in apps:
@@ -162,16 +162,21 @@ def where_it_stands(vault, page):
         out.append("**Open questions:** none")
     out.append("")
     dates = sorted(str(s.meta.get("date", "")) for s in vault.sessions if s.meta.get("date"))
-    out.append(f"**Last session:** {dates[-1] if dates else 'none recorded'}")
+    out.append(f"**Last session:** {say.date_words(dates[-1]) if dates else 'none yet'}")
     if vault.of_type("epic"):
         gaps = len(trace.report(vault).gaps)
         index = vault.by_id.get("epics")
-        where = f", listed on {plain_link(index[0].name, title(index[0]))}" if index else ""
+        where = f"; see {plain_link(index[0].name, title(index[0]))}" if index else ""
         out.append("")
-        out.append(f"**Gaps in the planned work:** {gaps}{where}")
+        out.append(f"**Gaps in the planned work:** {count_words(gaps)}{where}")
         out.append("")
-        out.append("**Build progress:** tracked in each team's tickets, not in this vault")
+        out.append("**Build progress:** each team tracks it in its own tickets, not here.")
     return "\n".join(out)
+
+
+def count_words(n):
+    """"five", "none": a small count said as a word, the way a person says it."""
+    return "none" if not n else say.NUMBER_WORDS[n] if n < len(say.NUMBER_WORDS) else str(n)
 
 
 def plain_link(target, label):
@@ -196,8 +201,9 @@ def id_link(vault, item_id):
 
 def epic_table(epics):
     if not epics:
-        return "none"
-    rows = [row(link(e.name, cell(f"{e.id} {title(e)}")), cell(str(e.meta.get("owner", ""))), str(e.meta.get("state", "")))
+        return "No epics yet."
+    rows = [row(link(e.name, cell(f"{e.id} {title(e)}")), cell(str(e.meta.get("owner", ""))),
+                plainwords.state_word(e.meta.get("state", "")))
             for e in epics]
     return "\n".join(["| Epic | Owner | State |", "|---|---|---|"] + rows)
 
@@ -231,14 +237,13 @@ def traceability(vault, page):
     result = trace.report(vault)
     if not result.checked:
         return "**Gaps in the planned work:** nothing to check yet."
-    passes = f"{result.passed} {'check passes' if result.passed == 1 else 'checks pass'}"
     if not result.gaps:
-        return f"**Gaps in the planned work:** none. {passes}."
+        return "**Gaps in the planned work:** none."
     count = len(result.gaps)
-    lines = [f"**Gaps in the planned work:** {count}. {passes}.", "",
-             "| Item | What is missing | Check |", "|---|---|---|"]
+    lines = [f"**Gaps in the planned work:** {count_words(count)}; the table below lists them.", "",
+             "| Item | What is missing |", "|---|---|"]
     for gap in result.gaps:
-        lines.append(row(link(gap.page.name, cell(gap.label or gap.subject), gap.anchor), cell(gap.message), gap.rule))
+        lines.append(row(link(gap.page.name, cell(gap.label or gap.subject), gap.anchor), cell(gap.message)))
     return "\n".join(lines)
 
 
@@ -281,7 +286,7 @@ def graph_block(graph, direction="LR", groups=(), reserved=0):
 def context_map(vault, page):
     graph = diagrams.context_graph(vault)
     if not graph.nodes and not graph.skipped:
-        return "none"
+        return "No apps or outside services yet."
     return "\n".join(graph_block(graph)).lstrip("\n")
 
 
@@ -289,7 +294,7 @@ def system_context(vault, page):
     graph = diagrams.context_graph(vault, after=True)
     retired = [a for a in vault.apps if a.meta.get("change") == "retired"]
     if not graph.nodes and not graph.skipped and not retired:
-        return "none"
+        return "No apps or outside services yet."
     scope = diagrams.safe_label(vault.config.get("title", ""), "In scope")
     apps = [n.key for n in graph.nodes if n.page is not None]
     out = graph_block(graph, groups=[("scope", scope, apps)], reserved=1)
@@ -318,7 +323,7 @@ def capability_block(groups):
 def capability_map(vault, page):
     groups = diagrams.capability_groups(vault)
     if not groups:
-        return "none"
+        return "No capabilities yet."
     if sum(len(members) for _, members in groups) + len(groups) <= schema.FLOWCHART_BUDGET:
         return "\n".join(capability_block(groups))
     out = []
@@ -332,16 +337,16 @@ def capability_map(vault, page):
 
 # The session `vela next` suggests, as the Next session column says it; "probe" is a mode name, not a reader's word.
 MODE_WORDS = {"probe": "Chase the answer to", "discover": "Discover", "shape": "Shape", "grill": "Grill",
-              "boundary": "Boundary", "epics": "Epics"}
+              "boundary": "Draw the boundaries of", "epics": "Write the epics for"}
 
 
 def subject_name(vault, item_id):
-    """What a reader calls the thing an ID names, with the ID as a tag; the bare ID when it names nothing."""
+    """What a reader calls the thing an ID names; the bare ID only when nothing names it."""
     pages = vault.by_id.get(item_id)
     if pages:
-        return trace.named(title(pages[0]), item_id)
+        return title(pages[0])
     item = vault.item(item_id)
-    return trace.named(item.name, item_id) if item is not None else item_id
+    return item.name if item is not None else item_id
 
 
 def next_cell(vault, entry):
@@ -351,14 +356,14 @@ def next_cell(vault, entry):
     if entry.mode == "none":
         return "none"
     word = MODE_WORDS.get(entry.mode, entry.mode)
-    return f"{word}: {cell(subject_name(vault, entry.subject))}" if entry.subject else word
+    return f"{word} {cell(subject_name(vault, entry.subject))}" if entry.subject else word
 
 
 def unknown_cell(entry):
     if entry.oldest is None:
         return "none"
-    target = link(entry.oldest.page.name, trace.named(entry.oldest.name, entry.oldest.id), entry.oldest.heading)
-    return f"{target}, open since {entry.opened}" if entry.opened else f"{target}, open since: not recorded"
+    target = link(entry.oldest.page.name, cell(entry.oldest.name), entry.oldest.heading)
+    return f"{target}, open since {say.date_words(entry.opened)}" if entry.opened else f"{target}, open since a date nobody wrote down"
 
 
 def progress_map(vault, page):
@@ -366,7 +371,7 @@ def progress_map(vault, page):
     rows = progress.grid(vault, as_of)
     if not rows:
         return "none"
-    when = (f"**How sure each app's items are,** as of {as_of} (the last session)" if as_of
+    when = (f"**How sure each app's items are,** as of the last session on {say.date_words(as_of)}" if as_of
             else "**How sure each app's items are:** no session yet, so no question counts as overdue")
     out = [when, "", "| App | Step reached | Early ideas | Assumed | Confirmed | Decided | Oldest open question | Next session |",
            "|---|---|---|---|---|---|---|---|"]
@@ -408,8 +413,8 @@ def allocation_block(vault, page):
         return "**Who does what:** no requirement is firm enough to split between the apps yet."
     open_ = sum(1 for _, shares in lines if not shares)
     noun = "requirement is" if len(lines) == 1 else "requirements are"
-    left = "none is waiting for an app" if not open_ else f"{open_} still {'has' if open_ == 1 else 'have'} no app"
-    head = f"**Who does what:** {len(lines)} {noun} firm enough to split between the apps (assumed or later); {left}."
+    left = ("and every one has an app" if len(lines) > 1 else "and it has an app") if not open_ else f"and {open_} still {'has' if open_ == 1 else 'have'} no app"
+    head = f"**Who does what:** {len(lines)} {noun} firm enough to split between the apps, {left}."
     out = [head, "", row("Requirement", *[link(a.name, cell(title(a))) for a in apps]) if apps else row("Requirement"),
            "|" + "---|" * (len(apps) + 1)]
     for req, shares in lines:

@@ -60,8 +60,8 @@ FERRYMASTER is a black box on this page. Nobody in this initiative changes it, a
 
 ## Contracts this app consumes
 
-<!-- generated:contracts-consumed sha=140bedbf: do not edit, run vela render -->
-none
+<!-- generated:contracts-consumed sha=51528a2d: do not edit, run vela render -->
+This app doesn't use any contract yet.
 <!-- /generated:contracts-consumed -->
 
 The mainframe team gives 2 days a week from January to March 2027 ([[11-unknowns-and-risks#UNK-003 Mainframe capacity in Q1|Mainframe capacity in Q1]]) and pairs with the Booking team in that time.

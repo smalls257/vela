@@ -23,7 +23,7 @@ sources: ["2026-01-10-shop-api"]
 
 ## Where it stands
 
-<!-- generated:where-it-stands sha=0fdf8dcb: do not edit, run vela render -->
+<!-- generated:where-it-stands sha=aa29744b: do not edit, run vela render -->
 **Where each app has got to**
 
 | App | Step reached | Open questions holding it up | Topics nobody has looked at | Contracts settled |
@@ -37,5 +37,5 @@ sources: ["2026-01-10-shop-api"]
 |---|---|---|---|
 | [[11-unknowns-and-risks#UNK-001 Till test rig\|Till test rig (UNK-001)]] | @mini-qa | 2026-02-01 | nothing yet |
 
-**Last session:** 2026-01-10
+**Last session:** 10 January 2026
 <!-- /generated:where-it-stands -->

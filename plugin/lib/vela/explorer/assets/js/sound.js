@@ -19,7 +19,7 @@ const Sound = {
     return this.ctx;
   },
   set(on) {
-    if (on && !this.ensure()) { toast("This browser has no Web Audio, so sound stays off."); on = false; }
+    if (on && !this.ensure()) { toast("This browser can't play sound, so sound stays off."); on = false; }
     this.enabled = on;
     const btn = $("#sound");
     btn.setAttribute("aria-pressed", String(on));

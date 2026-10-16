@@ -86,8 +86,8 @@ flowchart LR
 
 ## Contracts this app consumes
 
-<!-- generated:contracts-consumed sha=140bedbf: do not edit, run vela render -->
-none
+<!-- generated:contracts-consumed sha=51528a2d: do not edit, run vela render -->
+This app doesn't use any contract yet.
 <!-- /generated:contracts-consumed -->
 
 ## Epics

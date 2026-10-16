@@ -12,8 +12,8 @@ authored: mixed
 
 Every capability this initiative changes. Each capability page holds what provides it today and after.
 
-<!-- generated:capability-map sha=140bedbf: do not edit, run vela render -->
-none
+<!-- generated:capability-map sha=45b60e73: do not edit, run vela render -->
+No capabilities yet.
 <!-- /generated:capability-map -->
 
 ## Allocation

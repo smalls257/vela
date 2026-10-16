@@ -527,7 +527,7 @@ const MapGroups = (() => {
   }
   /* onCenter: what picking the app in the middle does besides open it in the panel (Inside this app goes in a level). */
   function focus(board, key, onCenter) {
-    if (!NODE[key]) { board.append(emptyState(`${key} is not on the map.`)); return; }
+    if (!NODE[key]) { board.append(emptyState("That app isn't on the map.")); return; }
     const { uses, usedBy } = neighbors(key);
     const left = [...usedBy.keys()].filter((k) => NODE[k].kind === "app" && !uses.has(k)).sort(byPin);
     const both = [...usedBy.keys()].filter((k) => uses.has(k)).sort(byPin);
@@ -577,7 +577,8 @@ const MapGroups = (() => {
       ids.forEach((id, i) => MapView.lamp(gLamps, { key: id, x: at.x - 60, y: at.y - 11 + (i - (ids.length - 1) / 2) * 27, w: 120, h: 22, rx: 3, label: CONTRACT[id].title, kind: "contract", title: `${id} ${CONTRACT[id].title}` }));
     }
     const hidden = D.nodes.length - Object.keys(boxes).length;
-    board.append(h("div", { class: "focus-note" }, `${titleOf(key)} and the ${plural(Object.keys(boxes).length - 1, "app")} it connects to directly. `, hidden ? `${plural(hidden, "box", "boxes")} with no contract to it ${hidden === 1 ? "isn't" : "aren't"} drawn.` : "Every connection is drawn."));
+    // the view's intro already says what this board is; the note only speaks when something is left off it
+    if (hidden) board.append(h("div", { class: "focus-note" }, `${plural(hidden, "box", "boxes")} with no contract to ${titleOf(key)} ${hidden === 1 ? "isn't" : "aren't"} drawn.`));
     MapView.startBreathing();
     board.dataset.shown = Object.keys(boxes).length;
   }

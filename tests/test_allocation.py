@@ -55,7 +55,7 @@ def test_the_allocation_block_shows_each_requirement_against_each_app(tmp_path):
     vault = vault_with(tmp_path, {"share": "holds the seat", "through": "CON-001", "state": "assumption"})
     run("render", "--vault", str(vault))
     page = (vault / "04a-capability-delta.md").read_text(encoding="utf-8")
-    assert "**Who does what:** 1 requirement is firm enough to split between the apps (assumed or later); none is waiting for an app." in page
+    assert "**Who does what:** 1 requirement is firm enough to split between the apps, and it has an app." in page
     assert "holds the seat (CON-001)" in page
 
 

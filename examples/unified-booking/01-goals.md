@@ -18,7 +18,7 @@ verified_by: "@hl-solution-lead"
 
 ## Where it stands
 
-<!-- generated:where-it-stands sha=970d4f76: do not edit, run vela render -->
+<!-- generated:where-it-stands sha=a3ceae23: do not edit, run vela render -->
 **Where each app has got to**
 
 | App | Step reached | Open questions holding it up | Topics nobody has looked at | Contracts settled |
@@ -39,17 +39,17 @@ verified_by: "@hl-solution-lead"
 | [[11-unknowns-and-risks#UNK-006 Finance on Booking events\|Finance on Booking events (UNK-006)]] | @hl-platform-lead (Platform lead) | 2027-03-01 | nothing yet |
 | [[11-unknowns-and-risks#UNK-008 Review of the customer data Booking holds\|Review of the customer data Booking holds (UNK-008)]] | @hl-solution-lead (solution lead) | 2026-12-15 | nothing yet |
 
-**Last session:** 2026-11-19
+**Last session:** 19 November 2026
 
-**Gaps in the planned work:** 0, listed on [[13-epics|Epics]]
+**Gaps in the planned work:** none; see [[13-epics|Epics]]
 
-**Build progress:** tracked in each team's tickets, not in this vault
+**Build progress:** each team tracks it in its own tickets, not here.
 <!-- /generated:where-it-stands -->
 
 ## Progress by app
 
-<!-- generated:progress-map sha=231431df: do not edit, run vela render -->
-**How sure each app's items are,** as of 2026-11-19 (the last session)
+<!-- generated:progress-map sha=302135ca: do not edit, run vela render -->
+**How sure each app's items are,** as of the last session on 19 November 2026
 
 | App | Step reached | Early ideas | Assumed | Confirmed | Decided | Oldest open question | Next session |
 |---|---|---|---|---|---|---|---|

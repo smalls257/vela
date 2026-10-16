@@ -12,12 +12,12 @@ authored: mixed
 
 ## Where it stands
 
-<!-- generated:where-it-stands sha=d70b02c2: do not edit, run vela render -->
+<!-- generated:where-it-stands sha=aa9ca7df: do not edit, run vela render -->
 **Where each app has got to:** no app is being built or changed yet
 
 **Open questions:** none
 
-**Last session:** none recorded
+**Last session:** none yet
 <!-- /generated:where-it-stands -->
 
 ## Progress by app

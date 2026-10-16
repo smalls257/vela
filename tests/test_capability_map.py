@@ -76,7 +76,7 @@ def test_one_domain_over_budget_lists_the_rest():
 
 
 def test_no_capability_renders_none():
-    assert render.capability_map(vault_of(), None) == "none"
+    assert render.capability_map(vault_of(), None) == "No capabilities yet."
 
 
 def test_bad_domain_is_e105_and_the_map_still_renders(mini):

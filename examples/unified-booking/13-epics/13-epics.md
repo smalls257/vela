@@ -26,8 +26,8 @@ Booking's own epics come first because every channel cutover needs a working Boo
 
 ## Traceability
 
-<!-- generated:traceability sha=20c63cd2: do not edit, run vela render -->
-**Gaps in the planned work:** none. 57 checks pass.
+<!-- generated:traceability sha=b6c635ed: do not edit, run vela render -->
+**Gaps in the planned work:** none.
 <!-- /generated:traceability -->
 
 ## Sequencing

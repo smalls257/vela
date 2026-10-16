@@ -240,10 +240,10 @@ def test_traceability_block_lists_a_gap_in_full(ub):
     edit(ub / "13-epics" / "EPC-031-holds-and-confirms.md", "delivers: [CAP-013, CAP-014, CON-001", "delivers: [CAP-013, CON-001")
     broken(ub)
     text = (ub / "13-epics" / "13-epics.md").read_text(encoding="utf-8")
-    assert "**Gaps in the planned work:** 1. 56 checks pass." in text
-    assert "| [[CAP-014-hold-a-seat\\|Hold a seat during payment (CAP-014)]] | No epic delivers Hold a seat during payment (CAP-014), which this initiative adds, so nobody is planned to build it. | T1 |" in text
+    assert "**Gaps in the planned work:** one; the table below lists them." in text
+    assert "| [[CAP-014-hold-a-seat\\|Hold a seat during payment (CAP-014)]] | No epic delivers Hold a seat during payment (CAP-014), which this initiative adds, so nobody is planned to build it. |" in text
     goals = (ub / "01-goals.md").read_text(encoding="utf-8")
-    assert "**Gaps in the planned work:** 1, listed on [[13-epics|Epics]]" in goals
+    assert "**Gaps in the planned work:** one; see [[13-epics|Epics]]" in goals
 
 
 def test_booking_is_handed_off_on_the_goals_page():

@@ -34,13 +34,15 @@ function h(tag, attrs, ...kids) {
   }
   return node;
 }
-/* The one empty state. A view with nothing to draw says what is missing, in plain words, and which vela step
-   writes it, so a reader on a live call can tell "not recorded yet" from "broken". `writer` is a slash command, or a list of them.
+/* The one empty state. A view with nothing to draw says what is missing, in plain words, and which planning session
+   writes it, so a reader on a live call can tell "not recorded yet" from "broken". `writer` is a slash command, or a list
+   of them; the reader sees the session's name ("the boundary session"), not the command (label sweep: names, not codes).
    Every view uses this; none writes its own "nothing here" block. */
+const sessionName = (cmd) => `the ${String(cmd).replace(/^\/vela:/, "").replace(/-/g, " ")} session`;
 function emptyState(missing, detail, writer, extraClass) {
   return h("div", { class: "empty-state" + (extraClass ? " " + extraClass : ""), "data-empty": missing },
     h("b", {}, missing), detail ? " " + detail : "",
-    writer ? h("div", { class: "es-writer" }, "The plan's lead adds this with ", [].concat(writer).flatMap((w, i) => [i ? " and " : "", h("code", {}, w)]), ".") : null);
+    writer ? h("div", { class: "es-writer", title: [].concat(writer).join(", ") }, "The plan's lead adds this in ", [].concat(writer).map(sessionName).join(" and "), ".") : null);
 }
 const SVGNS = "http://www.w3.org/2000/svg";
 function s(tag, attrs, parent) {
@@ -90,7 +92,7 @@ const reducedMotion = () => STILL || (typeof FX !== "undefined" && !FX.on) || ma
 /* Glow (halos, lit shadows) is part of the effects; Plain keeps every color and drops the glow. */
 const glowOn = () => typeof FX === "undefined" || FX.on;
 function dueText(iso) {
-  if (!isDate(iso)) return iso ? `ask by "${iso}"` : "no ask-by date";
+  if (!isDate(iso)) return iso ? `answer wanted by "${iso}"` : "no answer date yet";
   const d = dayNum(iso) - TODAY;
   if (d < 0) return `${plural(-d, "day")} overdue`;
   if (d === 0) return "due today";
@@ -139,7 +141,7 @@ const relDueWords = (iso) => { if (!isDate(iso)) return "no date"; const d = day
 // Color is never the only signal: each level has a word, and the maps add shape and motion. The colors here are
 // Console's; theme.js re-reads them from the theme's --warning, --caution, ... so a lamp means the same in every room.
 const LIGHT = {
-  warning: { color: "#ff5a48", ink: "#2a0703", word: "Overdue", say: "an open question blocking it has passed the date it needed an answer by" },
+  warning: { color: "#ff5a48", ink: "#2a0703", word: "Overdue", say: "a question blocking it missed its answer date" },
   caution: { color: "#ffb21e", ink: "#2b1a00", word: "Needs you", say: "not decided yet, or blocked by an open question" },
   pending: { color: "#b79cff", ink: "#150c33", word: "Pending approval", say: "someone decided this for the owner, and the owner hasn't confirmed it yet, so it isn't settled" },
   unexamined: { color: "#52c8ff", ink: "#04202e", word: "Not reviewed yet", say: "nobody has reviewed this yet; it only turns gray once someone has" },
@@ -155,13 +157,13 @@ const pulsePeriod = (urgency) => Math.round(5200 - 3400 * clamp(urgency || 0, 0,
 const ASK = Object.fromEntries(D.asks.map((u) => [u.id, u]));
 const unknownLevel = (id) => { const u = ASK[id]; if (!u) return "dark"; return u.state === "open" ? u.light.level : "resolved"; };
 /* The pending-approval mark in words: a clock glyph and the text, with who and when on hover, so color is never alone. */
-const pendingPill = (p) => h("span", { class: "pill pending", title: p ? `Decided by ${p.by} on ${p.date}; the owner hasn't confirmed it yet` : LIGHT.pending.say }, "◷ Pending approval");
+const pendingPill = (p) => h("span", { class: "pill pending", title: p ? `Decided by ${p.by} on ${day(p.date)}; the owner hasn't confirmed it yet` : LIGHT.pending.say }, "◷ Pending approval");
 function lampEl(level, title) { return h("span", { class: "lamp " + level, title: title || (LIGHT[level] ? LIGHT[level].word : level) }); }
 function reasonText(r) {
   if (r.kind === "held" && r.unknown && ASK[r.unknown]) {
     const u = ASK[r.unknown], e = E[r.unknown];
-    const who = r.ask || u.ask.name;
-    const via = r.via || [];
+    const who = u.ask.name || (String(r.ask || "").startsWith("@") ? personName(r.ask) : r.ask);  // a name, never a handle
+    const via = (r.via || []).map((k) => titleOf(keyForId(k) || k));  // the things it reaches by name, never by code
     return `${e ? e.title : r.unknown}: ask ${who} by ${day(u.askBy)}${via.length ? ", through " + (via.length > 1 ? via.slice(0, -1).join(", ") + " and " + via[via.length - 1] : via[0]) : ""}`;
   }
   return r.text;
@@ -284,15 +286,26 @@ function levelForKey(key) {
   if (UNKNOWN[key]) return unknownLevel(key);
   return lightOf(key) ? lightOf(key).level : null;
 }
+/* A person as a reader names them: the plan's own short name for the handle, else the handle said as words
+   ("@booking-senior" -> "Booking senior"), never the handle itself (say.LEAD_PATTERNS' "handle"). */
+function personName(handle) {
+  const o = D.owners[handle], said = o && o.names && o.names[0];
+  if (said && said.split(/\s+/).length <= 3 && !/^asking\b/i.test(said)) return said;
+  const w = String(handle || "").replace(/^@/, "").replace(/^[^/]*\//, "").replace(/-/g, " ");
+  return w.charAt(0).toUpperCase() + w.slice(1);
+}
+/* Free text a page wrote with handles and ISO dates in it ("@agent-lead, 2026-10-12, PR pending"), said as a reader
+   says it ("Agent lead, 12 Oct, PR pending"). The one rewrite: the decision log, Progress and the doors all call it. */
+const peopleWords = (text) => String(text || "").replace(/@[\w/-]+/g, personName).replace(/\b\d{4}-\d{2}-\d{2}\b/g, (d) => (isDate(d) ? day(d) : d));
 function refChip(key, extra) {
   const e = ent(key);
   if (!e) return h("span", { class: "ref-chip ref-dead", title: "Not a page or item in this plan" }, key);
   // a team's design question that challenges the item lights it "needs you" (inside.js), where attention leaves it dark
   const id = idOf(key), own = levelForKey(key), challenged = typeof Inside !== "undefined" && Inside.challenge(key);
   const lvl = challenged && (!own || own === "dark") ? "caution" : own;
-  return h("a", { class: "ref-chip", "data-ref": key, title: (KIND_WORD[e.kind] || "") + (challenged && lvl === "caution" && own !== "caution" ? ": challenged by a team's design" : "") },
-    lvl && lvl !== "dark" ? lampEl(lvl, challenged && own !== "caution" ? "Needs you: a team's design questions it" : null) : null,
-    e.title, id ? h("span", { class: "rid id-tag" }, id) : null, extra || null);
+  return h("a", { class: "ref-chip", "data-ref": key, title: (KIND_WORD[e.kind] || "") + (challenged && lvl === "caution" && own !== "caution" ? ": the app team's design questions it" : "") },
+    lvl && lvl !== "dark" ? lampEl(lvl, challenged && own !== "caution" ? "Needs you: the app team's design questions it" : null) : null,
+    e.kind === "owner" ? personName(e.title) : e.title, id ? h("span", { class: "rid id-tag" }, id) : null, extra || null);
 }
 /* Where a thing's work lives outside the vault (vela's links.py: a page's links:, an item's **Links:**). Each chip
    is a plain link that opens in a new tab; the page never fetches it. Only http(s) reaches an href: a file:// link is a
@@ -337,13 +350,13 @@ for (const f of D.flows) {
   for (const r of f.refs) { touch(r, f.key, "linked from the flow page"); if (RUNTIME_TO_APP[r]) touch(RUNTIME_TO_APP[r], f.key, "linked from the flow page"); }
   for (const st of f.steps) {
     for (const c of st.contracts) {
-      touch(c, f.key, `step ${st.n} uses it`);
+      touch(c, f.key, `step ${st.n} sends over it`);
       const con = CONTRACT[c];
-      if (con) { touch(con.provider, f.key, `step ${st.n} uses ${c}`); con.consumers.forEach((k) => touch(k, f.key, `step ${st.n} uses ${c}`)); }
+      if (con) { touch(con.provider, f.key, `step ${st.n} sends over ${con.title}`); con.consumers.forEach((k) => touch(k, f.key, `step ${st.n} sends over ${con.title}`)); }
     }
-    for (const k of st.linked) touch(k, f.key, `step ${st.n} links it`);
-    for (const k of st.named) touch(k, f.key, `step ${st.n} names it`);
-    for (const p of st.unknowns) touch(p.id, f.key, `pinned at step ${st.n}`);
+    for (const k of st.linked) touch(k, f.key, `step ${st.n} mentions it`);
+    for (const k of st.named) touch(k, f.key, `step ${st.n} mentions it`);
+    for (const p of st.unknowns) touch(p.id, f.key, `step ${st.n} raises this question`);
   }
   for (const u of f.unknowns) touch(u, f.key, "the flow page cites it");
 }

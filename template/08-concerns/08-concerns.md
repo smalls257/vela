@@ -10,8 +10,8 @@ authored: mixed
 
 One row per app, one column per topic every app must cover, such as security or cost.
 
-<!-- generated:concern-matrix sha=140bedbf: do not edit, run vela render -->
-none
+<!-- generated:concern-matrix sha=aed11f14: do not edit, run vela render -->
+No concerns to check against the apps yet.
 <!-- /generated:concern-matrix -->
 
 ## Concern pages

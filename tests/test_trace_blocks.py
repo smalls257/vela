@@ -72,7 +72,7 @@ def test_epics_for_app_with_no_epic_says_none(mini):
     edit(mini / SHOP, "## Contracts this app consumes", "## Epics\n\n" + NEW_BLOCK.format("epics-for-app") + "\n## Contracts this app consumes")
     render(mini)
     assert "<!-- generated:epics-for-app sha=" in (mini / SHOP).read_text(encoding="utf-8")
-    assert "\nnone\n<!-- /generated:epics-for-app -->" in (mini / SHOP).read_text(encoding="utf-8")
+    assert "\nNo epics yet.\n<!-- /generated:epics-for-app -->" in (mini / SHOP).read_text(encoding="utf-8")
 
 
 def test_traceability_block_on_an_index(mini):
@@ -81,10 +81,10 @@ def test_traceability_block_on_an_index(mini):
         "---\nid: epics\ntype: index\ntitle: Epics\nauthored: mixed\n---\n\n# Epics\n\n" + NEW_BLOCK.format("traceability"), encoding="utf-8")
     render(mini)
     text = (mini / "13-epics" / "13-epics.md").read_text(encoding="utf-8")
-    assert "**Gaps in the planned work:** 1. 2 checks pass." in text
-    assert "| [[concern-testing\\|Testing for Shop]] | Testing for Shop is covered, but no epic for Shop has a done-when check that does this work. | T4 |" in text
+    assert "**Gaps in the planned work:** one; the table below lists them." in text
+    assert "| [[concern-testing\\|Testing for Shop]] | Testing for Shop is covered, but no epic for Shop has a done-when check that does this work. |" in text
     goals = (mini / "01-goals.md").read_text(encoding="utf-8")
-    assert "**Gaps in the planned work:** 1, listed on [[13-epics|Epics]]" in goals
+    assert "**Gaps in the planned work:** one; see [[13-epics|Epics]]" in goals
 
 
 def test_traceability_block_with_nothing_to_trace(mini):

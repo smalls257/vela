@@ -8,13 +8,14 @@ const Freshness = (() => {
   const st = { report: D.freshness, live: false, fetches: 0, busy: false, last: 0, error: "" };
   let fetchFn = (...a) => window.fetch(...a), servedFn = () => location.protocol === "http:" || location.protocol === "https:";
   const served = () => servedFn();
-  const stamp = (r) => (r && r.checked_at ? r.checked_at.replace("T", " ").slice(0, 16) : "");
+  // "12 Oct, 9:40": the reader's words for when the page was built, not the stamp's ISO form
+  const stamp = (r) => (r && r.checked_at ? `${day(r.checked_at.slice(0, 10))}, ${String(+r.checked_at.slice(11, 13))}:${r.checked_at.slice(14, 16)}` : "");
 
   /* The banner's words for a report, or "" when nothing has changed. */
   function words(r) {
     if (!r) return "";
     if (r.role === "reader") {
-      return r.state === "newer" ? `A newer copy was published on ${r.latest && r.latest.date ? day(r.latest.date) + " " + r.latest.date.slice(0, 4) : "a later date"}; reopen it to update — your drafts carry over.` : "";
+      return r.state === "newer" ? `There's a newer copy from ${r.latest && r.latest.date ? day(r.latest.date) + " " + r.latest.date.slice(0, 4) : "a later date"}. Reload the page to get it; your drafts carry over.` : "";
     }
     if (r.role !== "owner") return "";
     const parts = [];
@@ -28,9 +29,9 @@ const Freshness = (() => {
     box.hidden = !text;
     box.textContent = "";
     if (!text) return;
-    const when = st.error ? `couldn't check just now; this is as of ${stamp(st.report)}, when this page was built` : st.live ? "checked just now" : st.report.checked_at ? `as of ${stamp(st.report)}, when this page was built` : "";
+    const when = st.error ? `couldn't check just now; this is from ${stamp(st.report)}, when the page was built` : st.live ? "checked just now" : st.report.checked_at ? `from ${stamp(st.report)}, when the page was built` : "";
     box.append(h("span", { class: "fresh-text" }, text), when ? h("span", { class: "fresh-when" }, ` (${when})`) : null);
-    box.title = st.error ? `The live check failed: ${st.error}` : "";
+    box.title = st.error ? `Couldn't reach the plan helper (${st.error}). The banner may be out of date; reload to try again.` : "";
     box.dataset.state = st.report.state;
   }
   async function poll(why) {

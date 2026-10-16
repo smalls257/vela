@@ -95,7 +95,7 @@ const Motion = (() => {
       });
     }
     const guessed = hops.filter((x) => x.inferred).length;
-    legend(FLOW[key] ? `Tracing ${E[key].title}: ${plural(drawn, "hop")}, numbered by step${guessed ? `; ${guessed} dashed where the step names no sender, so the direction is inferred from the contract` : ""}${inside ? `; ${plural(inside, "hop")} inside a closed cluster` : ""}.`
+    legend(FLOW[key] ? `Tracing ${E[key].title}: ${plural(drawn, "step")}, in order.${guessed ? " Dashed ones don't say who sends, so the arrow follows the contract." : ""}${inside ? ` ${plural(inside, "step")} ${inside === 1 ? "stays" : "stay"} inside a closed group.` : ""}`
       : `Tracing ${titleOf(key)}: from ${titleOf(CONTRACT[key].provider)} to ${plural(drawn, "consumer")}.`);
     return { hops: hops.length, drawn, inside };
   }
@@ -155,7 +155,8 @@ const Motion = (() => {
       });
     });
     const total = R.rings.reduce((n, r) => n + r.length, 0);
-    legend(`Ripple from ${titleOf(key)}: ${total ? `${plural(total, "app")} ${total === 1 ? "depends" : "depend"} on it, in ${plural(R.rings.length, "ring")}; ring 1 uses it directly` : "nothing consumes from it"}${R.via ? `. It starts from ${R.via} (heuristic)` : ""}.`);
+    const near = (R.rings[0] || []).length;
+    legend(`${total ? `If ${titleOf(key)} changes, ${plural(total, "app")} ${total === 1 ? "feels" : "feel"} it; the nearest ${near} ${near === 1 ? "uses" : "use"} it directly` : `Nothing uses ${titleOf(key)}, so a change to it reaches no other app`}${R.via ? `. It starts from ${R.via}, a guess from what its page links` : ""}.`);
     return { rings: R.rings.length, total, seed: R.seed.length };
   }
   /* Run whatever the chosen motion does for this key, if anything. */

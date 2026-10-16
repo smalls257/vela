@@ -55,7 +55,7 @@ const Layout = (() => {
     for (let i = 0; i < boxes.length; i++) {
       for (let j = i + 1; j < boxes.length && boxes[j].c - boxes[i].c < reach; j++) {
         const p = boxes[i], q = boxes[j];
-        if (clash([p.c, p.r], kinds[p.k], [q.c, q.r], kinds[q.k])) return `${nameOf(p.k)} and ${nameOf(q.k)} would overlap: boxes keep ${F.gap} px apart as drawn`;
+        if (clash([p.c, p.r], kinds[p.k], [q.c, q.r], kinds[q.k])) return `${nameOf(p.k)} and ${nameOf(q.k)} would overlap, so it stays put`;
       }
     }
     return "";
@@ -252,7 +252,8 @@ const Layout = (() => {
   function tools(what = "box") {
     const saving = canSave(), dirty = moved();
     const grab = `Drag a ${what} anywhere, or focus it and press an arrow key to nudge it a quarter of a cell (Shift and an arrow key: a whole cell). It stays where you put it; it stops short of another box rather than cover it.`;
-    const hint = saving ? `Drag a ${what} anywhere or use the arrow keys (Shift for a whole cell). Saved to the plan.` : `Drag a ${what} anywhere or use the arrow keys (Shift for a whole cell). Changes stay in this browser.`;
+    // how to move a box lives in the tooltip; the line under the map only speaks once there is a move to talk about
+    const hint = !dirty ? "" : saving ? "Your moves are saved to the plan." : "Your moves stay in this browser.";
     toolsFor = what;
     return h("span", { class: "tool-unit layout-tools", title: `${grab} ${saving ? "A move is saved to the plan for everyone." : "A move stays in this browser. To share it, download the layout and send it to the plan's owner."}` },
       h("span", { class: "tool-label sep" }, "Arrange"),

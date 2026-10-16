@@ -50,7 +50,7 @@ const Panel = (() => {
     if (key.startsWith("bundle:")) { root.append(...bundle(key)); return; }
     if (key.startsWith("inside:") && typeof Inside !== "undefined") { root.append(...Inside.panel(key)); root.scrollTop = 0; return; }
     const e = ent(key);
-    if (!e) { root.append(h("div", { class: "p-empty" }, `Nothing in the plan is called ${key}.`)); return; }
+    if (!e) { root.append(h("div", { class: "p-empty" }, `Nothing in the plan is called ${key}. Try the search box.`)); return; }
     root.append(head(e), h("div", { class: "p-body" }, ...detail(e)));
     root.scrollTop = 0;
   }
@@ -62,23 +62,26 @@ const Panel = (() => {
   function litWhy(light) {
     const held = new Set(light.reasons.filter((r) => r.kind === "held").map((r) => r.unknown));
     const other = [...new Set(light.reasons.filter((r) => r.kind !== "held").map((r) => r.text))];
-    return [held.size ? `blocked by ${plural(held.size, "open question")}` : null, other[0] || null].filter(Boolean).join("; ");
+    return [held.size ? `${plural(held.size, "open question")} ${held.size === 1 ? "holds" : "hold"} it up` : null, other[0] || null].filter(Boolean).join("; ");
   }
   function home() {
     const lit = litSubjects(), dark = darkSubjects(), queue = Queue.items();
     const beside = App.section === "home" && App.view === "map";  // the queue is on the page, beside the map
+    // Beside the map the queue card already says how many and what is due first, and the top bar's lamp carries the
+    // count, so the lede only says where to start; saying the count again made the same 21 show four times on Home.
     const lede = !queue.length && !lit.length ? "Nothing needs you. Every app, contract and flow is decided, and no open question is blocking any of them."
-      : `${Queue.needsYou().n ? Queue.needsYouSays() + ". " : ""}${beside ? "They are listed with the map. Pick one there, or a box on the map, to read it here." : queue.length ? "Pick one to read it here." : ""}`;
-    const out = [h("div", { class: "p-head" }, h("div", { class: "kind" }, `Status as of ${day(D.today)}`), h("h2", {}, "What needs you"),
-      lede ? h("p", { class: "p-lede" }, lede) : null)];
-    if (!beside && queue.length) out.push(section("Waiting on an answer", queue.length, Queue.block()));
+      : beside ? (queue.length ? "Start with the questions on the left, most urgent first. Pick one, or a box on the map, to read it here." : "Pick a box on the map to read it here.")
+      : `${Queue.needsYou().n ? Queue.needsYouSays() + ". " : ""}${queue.length ? "Most urgent first; pick one to read it here." : ""}`;
+    const out = [h("div", { class: "p-head" }, h("h2", {}, "What needs you"),
+      lede ? h("p", { class: "p-lede", ...(!beside && Queue.needsYou().n ? { "data-quantity": "needsYou", "data-n": Queue.needsYou().n } : {}) }, lede) : null)];
+    if (!beside && queue.length) out.push(section("Waiting on an answer", null, Queue.block()));
     // a slice is not on the map: one whose journey is past its due date needs you too, and is listed under its own heading
     const lightRows = (list) => h("ul", { class: "lights" }, list.map(({ key, light }) => h("li", {},
       h("button", { class: "light-row" + (key === App.focus ? " on" : ""), "data-ref": key, title: `${LIGHT[light.level].word}${idOf(key) ? ", " + idOf(key) : ""}` },
         lampEl(light.level), h("span", {}, h("span", { class: "what" }, titleOf(key)), h("span", { class: "why" }, litWhy(light) || LIGHT[light.level].say))))));
     const sliceLit = lit.filter((x) => ent(x.key).kind === "slice"), mapLit = lit.filter((x) => ent(x.key).kind !== "slice");
-    if (sliceLit.length) out.push(section("Slices with a journey past due", sliceLit.length, lightRows(sliceLit)));
-    out.push(section("Needs you on the map", mapLit.length, mapLit.length ? lightRows(mapLit) : empty("Nothing on the map needs you.")));
+    if (sliceLit.length) out.push(section("Slices whose ship date has passed", sliceLit.length, lightRows(sliceLit)));
+    out.push(section("Apps, contracts and flows waiting on you", null, mapLit.length ? lightRows(mapLit) : empty("No app, contract or flow is waiting on you.")));
     const challenged = typeof Inside !== "undefined" ? Inside.homeSection() : null;
     if (challenged) out.push(challenged);  // Element.append writes a null as the text "null"
     out.push(section("Decided", dark.length, h("p", { class: "p-note" }, dark.map((k) => titleOf(k)).join(", ") || "None.")));
@@ -106,7 +109,7 @@ const Panel = (() => {
     const actions = h("div", { class: "p-actions" });
     if (e.kind === "flow") {
       actions.append(h("button", { class: "btn primary", onclick: () => Flows.present(e.key, 0) }, "▶ Present"),
-        h("button", { class: "btn", onclick: () => { showView("flows"); Flows.select(e.key, -1); } }, "Play it"),
+        h("button", { class: "btn", onclick: () => { showView("flows"); Flows.select(e.key, -1); } }, "Step through"),
         h("button", { class: "btn", title: "Quiz yourself on this flow, step by step", onclick: () => Rehearse.open(e.key) }, "Rehearse this flow"));
     }
     if (onMap(e.key) && App.view !== "map") actions.append(h("button", { class: "btn", onclick: () => { showView("map"); viewDef("map").highlight(e.key); } }, "Show on the map"));
@@ -123,7 +126,7 @@ const Panel = (() => {
       h("h2", {}, NODE[e.key] ? Icons.forKey(e.key, "p-glyph") : null, e.title),
       h("div", { class: "p-meta" }, light && light.level !== "pending" ? levelPill(light.level) : null, e.pending ? pendingPill(e.pending) : null,
         u && isOpen(u) ? levelPill(ASK[e.key].light.level, dueText(u.askBy)) : null,
-        e.kind === "app" && e.change ? h("span", { class: "pill" }, e.change) : null, e.stage ? h("span", { class: "pill", title: "How far planning has got for it" }, "planned to: " + e.stage) : null,
+        e.kind === "app" && e.change ? h("span", { class: "pill" }, stateWord(e.change)) : null, e.stage ? h("span", { class: "pill", title: "How far planning has got for it" }, "Planned so far: " + stageWord(e.stage)) : null,
         e.state && e.kind !== "unknown" ? statePill(e.state) : u ? statePill(u.state) : null),
       linkChips(e.key),
       actions.childNodes.length ? actions : null);
@@ -152,7 +155,7 @@ const Panel = (() => {
     return section("Why it needs you", null, h("ul", { class: "reasons" }, light.reasons.map((r) => h("li", { class: "r-" + r.kind },
       lampEl(r.kind === "held" && r.unknown ? unknownLevel(r.unknown) : r.kind === "override" ? "override" : r.kind === "unexamined" ? "unexamined" : r.kind === "pending" ? "pending" : "caution"),
       h("span", {}, r.unknown ? named(r) : r.text)))),
-      h("div", { class: "p-note" }, `${LIGHT[light.level].word}: ${LIGHT[light.level].say}. The same rule applies on every view.`));
+      h("div", { class: "p-note" }, light.level === "caution" || light.level === "warning" ? "Answer the questions above, or decide it in a grill session, and it turns gray." : `${LIGHT[light.level].word}: ${LIGHT[light.level].say}.`));
   }
   function flowsSection(key) {
     const rows = flowsFor(key);
@@ -188,7 +191,7 @@ const Panel = (() => {
   /* What an open question holds, and what that holds in turn: the blocking chain, from Blocks and the model. */
   function chain(id) {
     const u = UNKNOWN[id];
-    if (!u || !u.blocks.length) return empty(`Nothing in the plan is linked as blocked by it${u && u.blocksText ? `; the question says it blocks "${u.blocksText}"` : "."}`);
+    if (!u || !u.blocks.length) return empty(`No page says it's blocked by this yet${u && u.blocksText ? `; the question itself says it blocks "${u.blocksText}".` : "."}`);
     return h("ul", { class: "chain" }, u.blocks.map((k) => {
       const below = [];
       if (CONTRACT[k]) below.push(`${titleOf(CONTRACT[k].provider)} → ${CONTRACT[k].consumers.map(titleOf).join(", ")}`);
@@ -216,7 +219,7 @@ const Panel = (() => {
       const fail = D.failure[k];
       if (fail) out.push(section("When something fails", fail.sections.length || null, fail.sections.length ? fail.sections.map((x) => h("div", { class: "fail" }, h("b", {}, x.heading), h("div", { class: "prose-text fail-text", html: x.html })))
         : h("div", { class: "gap" }, fail.runtime ? "No page says what this app does when something fails." : "Nothing says yet how this app runs, so nothing says what it does when something fails.")));
-      if (a.reached || a.needs.length) out.push(section("Planning stage", null, h("div", { class: "p-note" }, a.reached ? `Planned up to: ${a.reached}.` : "Not past the first planning stage yet.", a.needs.length ? h("ul", {}, a.needs.map((n) => h("li", {}, n))) : " Ready for the next stage.")));
+      if (a.reached || a.needs.length) out.push(section("Planning stage", null, h("div", { class: "p-note" }, a.reached ? `Planned so far: ${stageWord(a.reached)}.` : "Not past the first planning stage yet.", a.needs.length ? [" Still to settle:", h("ul", {}, a.needs.map((n) => h("li", {}, upFirst(n) + ".")))] : " Ready for the next planning session.")));
       if (a.runtime) out.push(section("How it runs", null, refChip(a.runtime)));
       if (typeof Plan !== "undefined") out.push(section("Build plan", null, h("div", { class: "plan-ready-row", "data-ready": Plan.readiness(k).id }, Plan.readinessPill(k), h("span", { class: "muted small" }, " " + Plan.readiness(k).counts),
         h("button", { class: "btn tiny", onclick: () => Inside.open(k, "plan") }, "Build plan"))));
@@ -238,7 +241,7 @@ const Panel = (() => {
       const provided = D.map.contracts.filter((c) => c.provider === k);
       const said = EXTERNAL[k] && EXTERNAL[k].said !== EXTERNAL[k].title ? EXTERNAL[k].said : "";
       if (said) out.push(section("As the contract words it", null, foldedText(h("div", { class: "prose-text" }, said)),
-        h("div", { class: "p-note" }, "This service isn't listed as an outside service yet, so the map shows the first words of the contract's description.")));
+        h("div", { class: "p-note" }, "This service isn't on the outside-services list yet, so its name comes from the contract. Add it to Context and scope to give it its own box.")));
       out.push(prose(e), flowsSection(k));
       out.push(section("Contracts it provides", provided.length, provided.length ? h("ul", { class: "mini-list" }, provided.map((c) => contractRow(c.id, "out"))) : empty("It doesn't provide any contract.")));
       out.push(section("Facts", null, factsGrid(e.facts, [])));
@@ -247,7 +250,7 @@ const Panel = (() => {
       const u = UNKNOWN[k], a = ASK[k], q = fact(e, "Question");
       if (q) out.push(h("div", { class: "big-q", html: q.html }));
       out.push(section("Who to ask", null, h("div", {}, a.ask.key.startsWith("@") ? refChip("owner:" + a.ask.key) : h("b", {}, a.ask.name), " ",
-        h("span", { class: a.ask.inferred ? "heuristic" : "muted" }, a.ask.rule)), h("div", { class: "ml-sub" }, "Owner: " + (u.owner || "not recorded"))));
+        h("span", { class: a.ask.inferred ? "heuristic" : "muted" }, a.ask.rule)), h("div", { class: "ml-sub" }, "Owner: " + (u.owner ? u.owner.replace(/@[\w/-]+/g, personName) : "not recorded"))));
       out.push(section("Answer needed by", null, h("div", {}, isDate(u.askBy) ? `${day(u.askBy)}, ${dueText(u.askBy)}` : dueText(u.askByText), u.opened ? h("span", { class: "muted" }, ` · opened ${day(u.opened)}`) : null)));
       out.push(section("What it blocks", u.blocks.length, chain(k)));
       out.push(flowsSection(k));
@@ -255,7 +258,7 @@ const Panel = (() => {
       out.push(prose(e));
       const notes = (e.facts || []).filter((f) => f.label === "Notes");
       out.push(section("Notes", notes.length, notes.map((n) => foldedText(h("div", { class: "prose-text", html: "<p>" + n.html + "</p>" })))));
-      out.push(section("Other facts", null, factsGrid(e.facts, ["Question", "Owner", "Ask by", "Opened", "Blocks", "Notes", "State", "Outcome", "Ask"])));
+      out.push(section("More about it", null, factsGrid(e.facts, ["Question", "Owner", "Ask by", "Opened", "Blocks", "Notes", "State", "Outcome", "Ask"])));
     } else if (e.kind === "epic") {
       const x = EPIC[k];
       out.push(prose(e), section("Apps", x.apps.length, x.apps.map((id) => APP_BY_ID[id] ? refChip(APP_BY_ID[id].key) : h("span", { class: "ref-chip" }, id))));
@@ -292,7 +295,7 @@ const Panel = (() => {
     } else if (e.kind === "owner") {
       const o = D.owners[e.title], owned = o.owns.map(ent).filter(Boolean);
       const openQ = owned.filter((x) => x.kind === "unknown" && isOpen(UNKNOWN[x.key])).sort((a, b) => cmp(UNKNOWN[a.key].askBy || "9999", UNKNOWN[b.key].askBy || "9999"));
-      if (o.names.length) out.push(h("div", { class: "note" }, "Described in the plan as: " + o.names.slice(0, 4).join("; ")));
+      if (o.names.length) out.push(h("div", { class: "note" }, "Also called: " + o.names.slice(0, 4).join("; ")));
       out.push(h("div", { class: "p-actions" }, h("button", { class: "btn", onclick: () => { showView("asks"); Asks.meet(e.title); } }, "Meet with them")));
       out.push(section("Open questions they own", openQ.length, openQ.length ? h("ul", { class: "mini-list" }, openQ.map((x) => unknownLine(x.key))) : empty("None open.")));
       const rest = owned.filter((x) => !(x.kind === "unknown" && isOpen(UNKNOWN[x.key])) && x.kind !== "session");
