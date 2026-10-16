@@ -27,7 +27,7 @@ import contextlib
 import re
 import statistics
 
-from vela import say
+from vela import cli, model, parse, say
 
 VOICE_FILE = "CONVERSATION-VOICE"
 HIGHER, LOWER = "higher", "lower"
@@ -250,33 +250,44 @@ def asked_in_line(item, spoken, probe, sim):
     return None
 
 
-ITEM_HEADING = re.compile(r"^#{2,4} (?P<id>[A-Z]{2,4}-\d+(?:\.FR\d+)?)\b", re.M)
-STATE_BULLET = re.compile(r"^\s*-\s*\*\*State:\*\*\s*(?P<state>[\w-]+)", re.M)
-FRONT_STATE = re.compile(r"^state:\s*(?P<state>[\w-]+)", re.M)
+def vela_vault(root):
+    """The vault as vela's own parser reads it (parse.parse_page, then model.build), without its config: the probe
+    reads states the way the plan's gates do, not by a regex of its own that could drift from the format."""
+    paths, others = cli.vault_files(root)
+    pages = [parse.parse_page(p.relative_to(root).as_posix(), p.read_text(encoding="utf-8")) for p in paths]
+    return model.build(pages, {}, others)
 
 
-def item_file(vault, item_id, sim):
-    for rel, text in sim.vault_pages(vault):
-        if any(m["id"] == item_id for m in ITEM_HEADING.finditer(text)) or re.search(
-                rf"^id:\s*{re.escape(item_id)}\s*$", text, re.M):
-            return rel
-    return None
+def _located(parsed, item_id):
+    """(page path, state or None) for a heading item (its **State:** fact) or a page (its `state:` front matter);
+    None when the vault does not hold the ID."""
+    item = parsed.item(item_id)
+    if item is not None:
+        return item.page.path, item.fact("State").lower() or None
+    pages = parsed.by_id.get(item_id)
+    if not pages:
+        return None
+    state = pages[0].meta.get("state")
+    return pages[0].path, str(state).strip().lower() if state else None
 
 
-def item_state(vault, item_id, sim):
-    """An item's state in a vault: the `**State:**` bullet under its own heading, or a page's `state:` front matter."""
-    for rel, text in sim.vault_pages(vault):
-        heads = list(ITEM_HEADING.finditer(text))
-        for n, head in enumerate(heads):
-            if head["id"] != item_id:
-                continue
-            end = heads[n + 1].start() if n + 1 < len(heads) else len(text)
-            found = STATE_BULLET.search(text, head.end(), end)
-            return found["state"] if found else None
-        if re.search(rf"^id:\s*{re.escape(item_id)}\s*$", text, re.M):
-            found = FRONT_STATE.search(text)
-            return found["state"] if found else None
-    return None
+def item_states(vault, ids):
+    """id -> its state, or None when the vault does not hold it or gives it none. The one state reader of the probe
+    loop: decided-items (probe.py, read after every turn) and ready-decided (here, the final vault) both call it."""
+    ids = list(ids)
+    if not ids:
+        return {}
+    parsed = vela_vault(vault)
+    return {i: (found[1] if (found := _located(parsed, i)) else None) for i in ids}
+
+
+def item_state(vault, item_id, sim=None):
+    return item_states(vault, [item_id])[item_id]
+
+
+def item_file(vault, item_id, sim=None):
+    found = _located(vela_vault(vault), item_id)
+    return found[0] if found else None
 
 
 # ------------------------------------------------------------------ mean, spread and the rule

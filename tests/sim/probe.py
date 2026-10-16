@@ -240,32 +240,9 @@ def explicit_yes(lead_message, asked):
     return bool(asked) and bool(YES.search(sim.normalize(lead_message)))
 
 
-FRONT_ID = re.compile(r"^id:\s*[\"']?(?P<id>[^\"'\s]+)", re.M)
-FRONT_STATE = re.compile(r"^state:\s*(?P<state>[\w-]+)", re.M)
-ITEM_STATE = re.compile(r"^\s*-\s*\*\*State:\*\*\s*(?P<state>[\w-]+)", re.M)
-SECTION_END = re.compile(r"^#{1,3} ", re.M)
-
-
 def item_states(vault, ids):
-    """id -> the state its own text gives it, or None when the vault does not hold it. An item under a heading
-    (`### CAP-001.FR4 ...`, `### CON-002 ...`) reads its section's **State:** bullet, so items that share a page are
-    told apart; a page-level item (`id: APP-x`) reads its frontmatter state."""
-    states = {i: None for i in ids}
-    if not ids:
-        return states
-    for _, text in sim.vault_pages(vault):
-        head = text.split("\n---", 2)[0] if text.startswith("---") else ""
-        front = FRONT_ID.search(head)
-        for item in ids:
-            heading = re.search(rf"^###\s+{re.escape(item)}(?=\s|$).*$", text, re.M)
-            if heading:
-                end = SECTION_END.search(text, heading.end())
-                found = ITEM_STATE.search(text[heading.end():end.start() if end else len(text)])
-                states[item] = found.group("state").lower() if found else states[item]
-            elif front and front.group("id") == item:
-                found = FRONT_STATE.search(head)
-                states[item] = found.group("state").lower() if found else states[item]
-    return states
+    """id -> its state, or None: probe_scale.item_states, the loop's one reader, which reads through vela's parser."""
+    return scale.item_states(vault, ids)
 
 
 class ProbeLedger(sim.Ledger):

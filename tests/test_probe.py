@@ -748,6 +748,23 @@ def test_item_states_read_each_requirement_under_its_own_heading_and_a_page_from
                       "CAP-009.FR1": None}
 
 
+def test_decided_items_and_ready_decided_read_the_same_state_from_the_same_vault(tmp_path):
+    """One reader: what decided-items sees after a turn (probe.item_states) and what ready-decided reads from the
+    final vault (probe_scale.item_state) agree item by item, including an ID the vault lacks and a stateless item."""
+    (tmp_path / "caps").mkdir()
+    (tmp_path / "caps" / "CAP-001-x.md").write_text(
+        "---\nid: CAP-001\nstate: Assumption\n---\n\n# X\n\n### CAP-001.FR1 One\n\n- **State:** decided\n\n"
+        "### CAP-001.FR2 Two\n\n- **State:** assumption\n\n### CAP-001.FR3 Three\n\nNo state yet.\n", encoding="utf-8")
+    (tmp_path / "11-unknowns-and-risks.md").write_text("### UNK-001 Who signs\n\n- **State:** open\n", encoding="utf-8")
+    ids = ["CAP-001.FR1", "CAP-001.FR2", "CAP-001.FR3", "CAP-001", "UNK-001", "CAP-009.FR1"]
+    turn_by_turn = probe.item_states(tmp_path, ids)
+    final = {i: probe.scale.item_state(tmp_path, i, probe.sim) for i in ids}
+    assert turn_by_turn == final == {"CAP-001.FR1": "decided", "CAP-001.FR2": "assumption", "CAP-001.FR3": None,
+                                     "CAP-001": "assumption", "UNK-001": "open", "CAP-009.FR1": None}
+    assert probe.scale.item_file(tmp_path, "CAP-001.FR2") == "caps/CAP-001-x.md"
+    assert probe.scale.item_file(tmp_path, "CAP-009.FR1") is None
+
+
 def test_decided_items_wants_the_ready_ones_with_a_yes_and_never_a_blocked_one(tmp_path):
     fn = probe.CHECKS["decided-items"][0]
     criterion = {"decidable": ["A", "B"], "blocked": ["C"], "at_least": 2}
@@ -847,17 +864,17 @@ def test_a_yes_counts_for_the_decision_filed_after_the_why_and_is_used_up(tmp_pa
     import types
     page = tmp_path / "vault" / "a.md"
     page.parent.mkdir()
-    page.write_text("### X-1 One\n\n- **State:** assumption\n", encoding="utf-8")
+    page.write_text("### CAP-001.FR1 One\n\n- **State:** assumption\n", encoding="utf-8")
     spoken = []
     run = probe.ProbeRun.__new__(probe.ProbeRun)
-    run.vault, run.watch, run.item_seen, run.item_decisions, run.decisions = tmp_path / "vault", ["X-1"], {}, [], []
+    run.vault, run.watch, run.item_seen, run.item_decisions, run.decisions = tmp_path / "vault", ["CAP-001.FR1"], {}, [], []
     run.seen, run.yes_pending, run.oracle = probe.decided_lines(run.vault), False, ""
     run.transcript = types.SimpleNamespace(turn=0, spoken=lambda: spoken)
     monkeypatch.setattr(probe.sim.Arm, "assistant_turn", lambda self, message, sid, cwd=None: (None, None))
 
     def turn(lead, reply, decide=False):
         if decide:
-            page.write_text("### X-1 One\n\n- **State:** decided\n", encoding="utf-8")
+            page.write_text("### CAP-001.FR1 One\n\n- **State:** decided\n", encoding="utf-8")
         run.assistant_turn(lead, "s")
         spoken.append({"speaker": "assistant", "text": reply})
         run.transcript.turn += 1
@@ -865,4 +882,4 @@ def test_a_yes_counts_for_the_decision_filed_after_the_why_and_is_used_up(tmp_pa
     turn("go", "Here is the read-back. Is that right?")
     turn("Yes, that's right.", "Why this one, in your words?")
     turn("Because people keep files everywhere.", "Filed.", decide=True)
-    assert run.item_decisions == [{"id": "X-1", "turn": 3, "with_yes": True}] and not run.yes_pending
+    assert run.item_decisions == [{"id": "CAP-001.FR1", "turn": 3, "with_yes": True}] and not run.yes_pending
