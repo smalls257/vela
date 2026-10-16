@@ -1077,28 +1077,94 @@ MONTHS = ("january", "february", "march", "april", "may", "june", "july", "augus
 ISO_DATE = re.compile(r"^(\d{4})-(\d{2})-(\d{2})$")
 
 
+# A written --ask often holds more than the lead said: "Ruth Okoye, Finance Operations" after the lead said yes to
+# Ruth, or "Brandt & Kessler, through Ruth Okoye". Any one part the lead confirmed confirms the value (T39).
+VALUE_PARTS = re.compile(r"\s*(?:[,;()]|\b(?:or|and|plus|through|via)\b)\s*")
+ARTICLE = re.compile(r"^(?:(?:the|a|an|our|to put to|whoever (?:runs|holds|owns))\s+)+")
+INITIALS_SKIP = {"of", "the", "and", "for", "&", "in", "on", "to"}
+
+
+def value_parts(flat):
+    """The names a written value holds, each without its article; a spelled-out role's initials ("chief
+    information security officer" is also "ciso", the way a lead says it); and a long name with one inner word left
+    out ("corrigan software account contact" is said as "corrigan account contact"). The first and last words
+    stay: "data protection officer" is never confirmed by "data protection"."""
+    parts = []
+    for part in VALUE_PARTS.split(flat):
+        part = ARTICLE.sub("", part.strip())
+        if len(part) < 3:
+            continue
+        parts.append(part)
+        words = part.split()
+        content = [w for w in words if w not in INITIALS_SKIP]
+        if len(content) >= 3:
+            parts.append("".join(w[0] for w in content))
+        if len(words) >= 4:
+            parts += [" ".join(words[:n] + words[n + 1:]) for n in range(1, len(words) - 1)]
+    return list(dict.fromkeys(parts))
+
+
+def ordinal(day):
+    return f"{day}{'th' if 10 <= day % 100 <= 20 else {1: 'st', 2: 'nd', 3: 'rd'}.get(day % 10, 'th')}"
+
+
 def value_forms(value):
-    """How a written value reads in a conversation: an ISO date as "29 october" or "october 29", a role without
-    its article ("the CIO" is confirmed by "CIO works"), else itself."""
-    flat = re.sub(r"^(?:the|a|an|our) ", "", sim.normalize(value.strip("\"'").lstrip("@")))
+    """How a written value reads in a conversation: an ISO date as "29 october", "october 29" or "the 29th" (the
+    month is the one under discussion), a name or role as any of its parts (value_parts), else itself. A shell
+    variable ($3) is no value the session chose, so it has no forms."""
+    flat = re.sub(r"^(?:the|a|an|our) ", "", plain(value.strip("\"'").lstrip("@")))
+    if not flat or flat.startswith("$"):
+        return []
     m = ISO_DATE.match(flat)
-    if not m or not 1 <= int(m[2]) <= 12:
-        return [flat] if flat else []
-    month, day = MONTHS[int(m[2]) - 1], str(int(m[3]))
-    return [flat, f"{day} {month}", f"{month} {day}", f"{day}th {month}", f"{month} {day}th"]
+    if not m:
+        return list(dict.fromkeys([flat] + value_parts(flat)))
+    if not 1 <= int(m[2]) <= 12:
+        return [flat]
+    month, day = MONTHS[int(m[2]) - 1], int(m[3])
+    nth = ordinal(day)
+    return [flat, f"{day} {month}", f"{month} {day}", f"{nth} {month}", f"{month} {nth}", f"{day}th {month}",
+            f"{month} {day}th", f"the {nth}"]
+
+
+def said_in(form, text):
+    """form said as whole words in text: "cio" is not confirmed by "precious"."""
+    return re.search(r"(?<!\w)" + re.escape(form) + r"(?!\w)", text) is not None
+
+
+def source_owner(text, at):
+    """The --owner at this offset belongs to `vela add source`: a document's author, read from the document, never
+    who to ask about an open question."""
+    start = text.rfind("vela ", 0, at)
+    return start >= 0 and text[start:at].startswith("vela add source")
+
+
+# "Those four work for me" agrees to a proposed person and date as plainly as "yes" does. Only this check reads it:
+# a decision still needs the yes word (explicit_yes).
+AGREES = re.compile(r"\b(?:works?|work for me|sounds (?:good|right)|agreed?|go with (?:that|those|it))\b")
+NOT_AGREED = re.compile(r"\b(?:not|no|doesnt|dont|wont|never|cant)\b\W+(?:\w+\W+){0,3}?(?:works?|agree)")
+
+
+def agrees(lead_message):
+    flat = sim.normalize(lead_message)
+    return bool(YES.search(flat)) or (bool(AGREES.search(flat)) and not NOT_AGREED.search(flat))
+
+
+def plain(text):
+    """normalize, with a possessive dropped: "Corrigan's account contact" says "corrigan account contact"."""
+    return sim.normalize(re.sub(r"(?<=\w)['’]s\b", "", str(text)))
 
 
 def confirmed_values(spoken, upto):
     """What the lead had confirmed before spoken[upto]: each lead message's own words, and each assistant turn
-    the lead's next message said yes to."""
+    the lead's next message agreed to."""
     said = []
     for i, e in enumerate(spoken[:upto]):
         if e["speaker"] != "lead":
             continue
-        said.append(sim.normalize(e["text"]))
+        said.append(plain(e["text"]))
         before = next((x for x in reversed(spoken[:i]) if x["speaker"] == "assistant"), None)
-        if before and explicit_yes(e["text"], bool(ASKS_FOR_YES.search(before["text"]))):
-            said.append(sim.normalize(before["text"]))
+        if before and ASKS_FOR_YES.search(before["text"]) and agrees(e["text"]):
+            said.append(plain(before["text"]))
     return said
 
 
@@ -1123,13 +1189,14 @@ def unsure_owner_asked(run, criterion):
             handled += ok
             detail.append(f"- T{entry['turn']}: lead unsure about an owner or date; {'proposed and asked' if ok else 'did not propose and ask'}")
         # A command retried after a failure writes the same value again: count each value once per turn.
-        writes = list({(m["flag"], m["value"]): m for m in WRITES.finditer(tools.get(entry["turn"], ""))}.values())
+        sent = tools.get(entry["turn"], "")
+        writes = list({(m["flag"], m["value"]): m for m in WRITES.finditer(sent)}.values())
         said = confirmed_values(spoken, i) if writes else []
         for m in writes:
             forms = value_forms(m["value"])
-            if not forms or (m["flag"] == "owner" and forms[0] == own):
+            if not forms or (m["flag"] == "owner" and (forms[0] == own or source_owner(sent, m.start()))):
                 continue
-            if not any(f in text for f in forms for text in said):
+            if not any(said_in(f, text) for f in forms for text in said):
                 unconfirmed.append(entry["turn"])
                 detail.append(f"- T{entry['turn']}: wrote --{m['flag']} the lead had not confirmed")
     passed = moments > 0 and handled == moments and len(unconfirmed) <= criterion["at_most"]
