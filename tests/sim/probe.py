@@ -221,6 +221,34 @@ def explicit_yes(lead_message, asked):
     return bool(asked) and bool(YES.search(sim.normalize(lead_message)))
 
 
+FRONT_ID = re.compile(r"^id:\s*[\"']?(?P<id>[^\"'\s]+)", re.M)
+FRONT_STATE = re.compile(r"^state:\s*(?P<state>[\w-]+)", re.M)
+ITEM_STATE = re.compile(r"^\s*-\s*\*\*State:\*\*\s*(?P<state>[\w-]+)", re.M)
+SECTION_END = re.compile(r"^#{1,3} ", re.M)
+
+
+def item_states(vault, ids):
+    """id -> the state its own text gives it, or None when the vault does not hold it. An item under a heading
+    (`### CAP-001.FR4 ...`, `### CON-002 ...`) reads its section's **State:** bullet, so items that share a page are
+    told apart; a page-level item (`id: APP-x`) reads its frontmatter state."""
+    states = {i: None for i in ids}
+    if not ids:
+        return states
+    for _, text in sim.vault_pages(vault):
+        head = text.split("\n---", 2)[0] if text.startswith("---") else ""
+        front = FRONT_ID.search(head)
+        for item in ids:
+            heading = re.search(rf"^###\s+{re.escape(item)}(?=\s|$).*$", text, re.M)
+            if heading:
+                end = SECTION_END.search(text, heading.end())
+                found = ITEM_STATE.search(text[heading.end():end.start() if end else len(text)])
+                states[item] = found.group("state").lower() if found else states[item]
+            elif front and front.group("id") == item:
+                found = FRONT_STATE.search(head)
+                states[item] = found.group("state").lower() if found else states[item]
+    return states
+
+
 class ProbeLedger(sim.Ledger):
     """run.py's per-run ledger, with the judge's reserve only when the case calls the judge."""
 
@@ -242,10 +270,13 @@ class ProbeRun(sim.Arm):
         self.decisions = []
         self.seen = collections.Counter()
         self.options = None
+        self.watch = []  # item IDs a decided-items criterion names, whose state is read after every turn
+        self.item_decisions, self.item_seen = [], {}
 
     def start(self):
         self.vault, self.notes = build_probe_vault(self.dir, self.snapshot, self.persona)
         self.seen = decided_lines(self.vault)
+        self.item_seen = item_states(self.vault, self.watch)
         for note in self.notes:
             self.transcript.add(speaker="driver", session=0, mode="setup", event="setup", text=note)
 
@@ -254,11 +285,17 @@ class ProbeRun(sim.Arm):
         turn = self.transcript.turn + 1  # the turn number the transcript is about to give this reply
         previous = next((e["text"] for e in reversed(self.transcript.spoken()) if e["speaker"] == "assistant"), "")
         now = decided_lines(self.vault)
+        with_yes = explicit_yes(message, bool(ASKS_FOR_YES.search(previous)))
         for (rel, line), count in (now - self.seen).items():
             for _ in range(count):
-                self.decisions.append({"turn": turn, "file": rel, "line": line,
-                                       "with_yes": explicit_yes(message, bool(ASKS_FOR_YES.search(previous)))})
+                self.decisions.append({"turn": turn, "file": rel, "line": line, "with_yes": with_yes})
         self.seen = now
+        if self.watch:
+            states = item_states(self.vault, self.watch)
+            for item, state in states.items():
+                if state == "decided" and self.item_seen.get(item) != "decided":
+                    self.item_decisions.append({"id": item, "turn": turn, "with_yes": with_yes})
+            self.item_seen = states
         return parsed, result
 
 
@@ -571,7 +608,7 @@ def flagged_share(run, criterion):
     summary = (f"{category}: {counts['flagged']} of {len(rows)} flagged, {counts['listed']} listed, "
                f"{counts['never']} never ({pct(share)}; need at least {pct(criterion['at_least'])})")
     detail = [flag_line(r) for r in rows]
-    return passed, summary, detail
+    return passed, summary, detail, counts["flagged"]
 
 
 def flag_line(row):
@@ -593,7 +630,7 @@ def decided_without_yes(run, criterion):
     passed = len(bad) <= criterion["at_most"]
     summary = (f"decided without an explicit yes: {len(bad)} (need at most {criterion['at_most']}); "
                f"decisions recorded in all: {len(run.decisions)}")
-    return passed, summary, [decision_line(d) for d in run.decisions]
+    return passed, summary, [decision_line(d) for d in run.decisions], len(bad)
 
 
 @check("decisions-recorded", "at_most")
@@ -853,7 +890,7 @@ def unaware_raised_first(run, criterion):
     detail = [f"- {i['id']} ({i['category']}): assistant {('T%d' % t['assistant']) if t['assistant'] else 'never'}, "
               f"lead {('T%d' % t['lead']) if t['lead'] else 'never'}; {'RAISED FIRST' if f else 'not first'}"
               for i, t, f in rows]
-    return passed, summary, detail
+    return passed, summary, detail, raised
 
 
 @check("decided-with-yes", "at_least")
@@ -864,7 +901,65 @@ def decided_with_yes(run, criterion):
     passed = len(good) >= criterion["at_least"]
     summary = (f"decisions recorded after an explicit yes: {len(good)} (need at least {criterion['at_least']}); "
                f"without a yes: {len(run.decisions) - len(good)}")
-    return passed, summary, [decision_line(d) for d in run.decisions]
+    return passed, summary, [decision_line(d) for d in run.decisions], len(good)
+
+
+@check("decided-items", "decidable", "blocked", "at_least")
+def decided_items(run, criterion):
+    """A grill from a vault built to hold both kinds: items the plan's gate finds ready (options written, no open
+    unknown blocking them) and items an open unknown blocks. It passes when at least `at_least` ready items are
+    decided after the lead's explicit yes, none is decided without one, and no blocked item is decided. A grill that
+    decides nothing, or decides everything, fails either way, so the probe tells a careful grill from a timid one."""
+    by_id = {}
+    for d in run.item_decisions:
+        by_id.setdefault(d["id"], d)
+    ready = [i for i in criterion["decidable"] if i in by_id and by_id[i]["with_yes"]]
+    no_yes = [i for i in criterion["decidable"] if i in by_id and not by_id[i]["with_yes"]]
+    blocked = [i for i in criterion["blocked"] if i in by_id]
+    passed = len(ready) >= criterion["at_least"] and not no_yes and not blocked
+    summary = (f"ready items decided after an explicit yes: {len(ready)} of {len(criterion['decidable'])} (need at "
+               f"least {criterion['at_least']}); ready items decided without a yes: {len(no_yes)}; blocked items "
+               f"decided: {len(blocked)} of {len(criterion['blocked'])} (need 0)")
+    detail = [f"- {i} (ready): " + (f"decided at T{by_id[i]['turn']}, {'with' if by_id[i]['with_yes'] else 'WITHOUT'} a yes"
+                                    if i in by_id else "not decided") for i in criterion["decidable"]]
+    detail += [f"- {i} (blocked): " + (f"DECIDED at T{by_id[i]['turn']}" if i in by_id else "not decided")
+               for i in criterion["blocked"]]
+    return passed, summary, detail, {"ready decided with a yes": len(ready), "blocked decided": len(blocked)}
+
+
+@check("gaps-surfaced", "at_least")
+def gaps_surfaced(run, criterion):
+    """The gaps the lead does not know about (U items) that the assistant raised before the lead did, in any words.
+    unaware-raised-first needs one of an item's keywords, which are a specialist's terms, so a session that asks
+    whether anyone in Germany has to agree before staff are watched scored nothing for that gap. Here run.py's
+    unaware judge reads the gap items and the session and decides each, citing a turn and a quote; a claim whose
+    quote is not in that assistant turn is dropped, so a careless judge can fail a gap but never pass one. The
+    per-item verdicts go to the blind detail only; the summary is counts."""
+    items = run.persona.get("unaware") or []
+    if not items:
+        return False, "gaps the lead didn't know about: the persona lists none", [], 0
+    hits = sim.vault_hits(run.persona, run.transcript, run.vault)
+    reply, why = sim.judge_category(run, "unaware", hits)
+    if reply is None:
+        raise ToolFailure(f"the gaps judge did not score the session: {why}")
+    turns = {e["turn"]: e["text"] for e in run.transcript.spoken() if e["speaker"] == "assistant"}
+    rows, dropped, detail = {r["id"]: r for r in reply["unaware"]}, 0, []
+    for item in items:
+        row = rows[item["id"]]
+        ok = bool(row.get("surfaced")) and sim.cited(row, turns)
+        if row.get("surfaced") and not ok:
+            dropped += 1
+        verdict = (f"SURFACED at T{row['turn']}: \"{row['quote']}\"" if ok
+                   else "claim dropped, the quote is not in that assistant turn" if row.get("surfaced") else "not surfaced")
+        detail.append(f"- {item['id']} ({item['category']}): {verdict}. Grounds: {row.get('grounds')}")
+        row["ok"] = ok
+    surfaced = sum(1 for r in rows.values() if r.get("ok"))
+    share = surfaced / len(items)
+    passed = share >= criterion["at_least"]
+    summary = (f"gaps the lead didn't know about, surfaced first by the assistant in any words (judged): {surfaced} "
+               f"of {len(items)} ({pct(share)}; need at least {pct(criterion['at_least'])}); judge claims dropped for "
+               f"a quote not in the cited assistant turn: {dropped}")
+    return passed, summary, detail, surfaced
 
 
 PARTY_SPLIT = re.compile(r"\s*(?:,|/|&|\band\b|\bvs\.?|\bversus\b)\s*", re.I)
@@ -928,7 +1023,7 @@ def conflicts_surfaced(run, criterion):
                f"recorded as open {count['recorded']}")
     detail = [f"- {i['id']}: named {p['named'] and 'T%d' % p['named'] or 'no'}, side {p['side'] and 'T%d' % p['side'] or 'no'}, "
               f"recorded {'yes' if p['recorded'] else 'no'}" for i, p in rows]
-    return passed, summary, detail
+    return passed, summary, detail, {"surfaced in full": full, **count}
 
 
 UNSURE = re.compile(r"\b(?:not sure|unsure|no idea|don'?t know|do not know|couldn'?t tell you|can'?t say|no clue|"
@@ -1025,11 +1120,14 @@ def unsure_owner_asked(run, criterion):
 
 
 def score(run, case):
+    """Each check returns (passed, summary, detail), and may add a fourth: its number, or a mapping of named
+    numbers, which --runs N averages with their spread. Numbers only, so a value is as blind-safe as a count."""
     rows = []
     for criterion in case["criteria"]:
         fn = CHECKS[criterion["check"]][0]
-        passed, summary, detail = fn(run, criterion)
-        rows.append({"check": criterion["check"], "passed": passed, "summary": summary, "detail": detail})
+        passed, summary, detail, *value = fn(run, criterion)
+        rows.append({"check": criterion["check"], "passed": passed, "summary": summary, "detail": detail,
+                     "value": value[0] if value else None})
     return rows
 
 
@@ -1074,6 +1172,23 @@ class LoopLedger:
 
 # ------------------------------------------------------------------ one run, and the output
 
+JUDGED_CHECKS = ("option-count", "option-parts", "gaps-surfaced")  # these call the judge, so a run keeps its reserve
+
+
+def averages(records):
+    """Per check and named number, over the runs that scored: the mean, the spread (highest less lowest) and the
+    values. One run of a probe swings by a whole item, so a change counts only when the mean moves by more than the
+    spread (tests/sim/README.md, "Probes and the iteration loop")."""
+    found = collections.defaultdict(list)
+    for record in records:
+        for c in record.get("criteria") or []:
+            value = c.get("value")
+            pairs = value.items() if isinstance(value, dict) else [("", value)] if value is not None else []
+            for name, number in pairs:
+                found[(c["check"], name)].append(number)
+    return [{"check": check, "name": name, "mean": sum(v) / len(v), "spread": max(v) - min(v), "values": v}
+            for (check, name), v in found.items()]
+
 def headline(message):
     """The part of a failure message before its first ': ', which names what failed without quoting any text."""
     return str(message).split(": ", 1)[0]
@@ -1081,9 +1196,10 @@ def headline(message):
 
 def run_once(case, persona, persona_name, args, n, stamp, share):
     folder = f"{stamp}-{case['name']}-{persona_name}-{n}"
-    reserve = sim.JUDGE_RESERVE if any(c["check"].startswith("option-") for c in case["criteria"]) else 0.0
+    reserve = sim.JUDGE_RESERVE if any(c["check"] in JUDGED_CHECKS for c in case["criteria"]) else 0.0
     run = ProbeRun(folder, pathlib.Path(args.out).resolve(), args, persona, share,
                    snapshot_dir(case, persona_name), reserve)
+    run.watch = [i for c in case["criteria"] if c["check"] == "decided-items" for i in c["decidable"] + c["blocked"]]
     run.rows, run.failure = [], None
     text = opening_text(case, persona)
     session = {"mode": case["mode"], "cap": case["cap"], "vela": text.replace("{", "{{").replace("}", "}}"),
@@ -1113,7 +1229,8 @@ def run_record(run, blind):
             "ending": ending["reason"], "assistant_turns": sum(e["turns"] for e in endings),
             "failure": headline(run.failure) if (run.failure and blind) else run.failure,
             "passed": run.failure is None and ending["reason"] != "budget" and all(r["passed"] for r in run.rows),
-            "criteria": [{"check": r["check"], "passed": r["passed"], "summary": r["summary"]} for r in run.rows]}
+            "criteria": [{"check": r["check"], "passed": r["passed"], "summary": r["summary"], "value": r["value"]}
+                         for r in run.rows]}
 
 
 def write_outputs(run, case, persona_name, blind):
@@ -1236,6 +1353,11 @@ def main(argv=None):
         ledger.record({"at": stamp, "case": case["name"], "persona": persona_name, "runs": len(records),
                        "budget_usd": args.budget, "spent_usd": spent, "stub": args.stub, "exit": code,
                        "folders": [r["folder"] for r in records]})
+    if len(records) > 1:
+        for row in averages(records):
+            label = f"{row['check']}" + (f", {row['name']}" if row["name"] else "")
+            print(f"  over {len(row['values'])} runs, {label}: mean {row['mean']:.2f}, spread {row['spread']:g} "
+                  f"(values {', '.join(f'{v:g}' for v in row['values'])})")
     passed = sum(1 for r in records if r["passed"])
     print(f"probe: {passed} of {len(records)} run(s) passed every criterion. Spent ${spent:.2f} of ${args.budget:.2f}; "
           f"loop spend now ${ledger.spent:.2f} of ${args.loop_budget:.2f}. Exit {code}.")
