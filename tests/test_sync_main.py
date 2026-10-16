@@ -311,3 +311,49 @@ def test_the_lead_s_files_still_block_and_are_named_whole(repos):
     assert "1 tracked files have uncommitted edits (01-goals.md)" in out, out
     assert "flowcheck-cache" not in out
     assert (lead / CACHE).read_text(encoding="utf-8") == '{"v": 2}\n'
+
+
+@pytest.fixture
+def subfolder_repos(tmp_path, monkeypatch):
+    """(lead's repository, other clone): the vault is plan/ inside a repository that holds other things too."""
+    for who in ("AUTHOR", "COMMITTER"):
+        monkeypatch.setenv(f"GIT_{who}_NAME", "Test Lead")
+        monkeypatch.setenv(f"GIT_{who}_EMAIL", "lead@example.com")
+    origin, seed = tmp_path / "origin.git", tmp_path / "seed"
+    git(tmp_path, "init", "--bare", "-b", "main", str(origin))
+    git(tmp_path, "init", "-b", "main", str(seed))
+    (seed / "plan").mkdir()
+    (seed / "plan" / "01-goals.md").write_text(page(), encoding="utf-8")
+    (seed / "README.md").write_text("the rest of the repository\n", encoding="utf-8")
+    git(seed, "add", "plan/01-goals.md", "README.md")
+    git(seed, "commit", "-m", "start")
+    git(seed, "remote", "add", "origin", str(origin))
+    git(seed, "push", "-q", "origin", "main")
+    lead, other = tmp_path / "lead", tmp_path / "other"
+    git(tmp_path, "clone", "-q", str(origin), str(lead))
+    git(tmp_path, "clone", "-q", str(origin), str(other))
+    git(lead, "checkout", "-q", "-b", "session/x")
+    return lead, other
+
+
+def test_c83_a_subfolder_vault_reads_its_conflicts_from_the_repository_top(subfolder_repos):
+    """C83: conflicted_text read `<vault>/<repository path>` (lead/plan/plan/01-goals.md), found nothing, and so a
+    conflict only in a generated block stopped the merge as if the lead's writing clashed."""
+    lead, other = subfolder_repos
+    commit(other, {"plan/01-goals.md": page(summary=["- theirs"], sha="22222222", outro="Main's closing.")}, "main",
+           push=True)
+    commit(lead, {"plan/01-goals.md": page(summary=["- ours"], sha="11111111", intro="Our intro.")}, "session")
+    code, out = sync(lead / "plan")
+    assert code == 0, out
+    merged = (lead / "plan" / "01-goals.md").read_text(encoding="utf-8")
+    assert "Our intro." in merged and "Main's closing." in merged and "<<<<<<<" not in merged
+    assert state(lead / "plan")["status"] == closestate.MERGED_GENERATED
+
+
+def test_c83_a_subfolder_vault_conflict_in_writing_names_the_page_and_its_lines(subfolder_repos):
+    lead, other = subfolder_repos
+    commit(other, {"plan/01-goals.md": page(intro="Main's intro.")}, "main", push=True)
+    commit(lead, {"plan/01-goals.md": page(intro="Our intro.")}, "session")
+    code, out = sync(lead / "plan")
+    assert code == 1, out
+    assert state(lead / "plan")["files"] == [{"path": "plan/01-goals.md", "title": "Goals", "lines": ["9"]}]
