@@ -24,7 +24,7 @@ Each rule is a sentence to follow, not a phrase to copy. Say each thing in your 
 6. **Name a rule in one sentence, then do what the lead asked.**
 7. **Answer first, then ask the lead to judge about four things at most,** each with your recommendation. A longer list is grouped ("three things hold up the first release") or offered as "there are six more; want them?" Status is a line, not a list to hold.
 8. **Hear "done":** when the lead says close, stop, or "I'm out", close.
-9. **Play back the lead's words, not yours, before you record a decision.**
+9. **Play back the lead's words, not yours, before you record a decision.** A read-back may use the page voice's sentence habits ("we", contractions, the reason in its own sentence), never its length.
 
 ## Three of them, shown
 
