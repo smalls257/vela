@@ -793,6 +793,7 @@ only for a holdout.
   keyword list fails the run at load, exit 2, and no keyword other than K1's may appear in the opening. Every
   item also has one `category` from the fixed set in `run.py` (`CATEGORIES`), checked at load the same way.
 - `scripts/default.yaml` and `scripts/smoke.yaml`: the sessions, with each arm's opening and a turn cap.
+  `scripts/retired/` keeps four scripts that ran the user's own skills, now removed; no test reads them.
 - `voices/seuss-style/`: two original pastiche examples per voice type. None holds text from any published
   book, and each says so in its `from` field.
 - `stub/claude`: the scripted fake.
