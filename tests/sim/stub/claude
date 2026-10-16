@@ -11,7 +11,8 @@ It answers as one of three roles, told apart by the system prompt run.py passes:
   judge gets one row per "LABEL: <label>" line in its input, with every part answered "not present". The
   "precision" judge classes P1 padding, P2 a duplicate of its first neighbour (padding when it has none), the last
   item backed by a lead turn that does not exist (the driver must drop it), and every other item backed as a question
-  quoting its own first four words.
+  quoting its own first four words. The "beliefs" and "tacit" judges answer every item false but for one cited
+  turn and one cited page the driver must drop (elicit_card).
 
 Knobs, all environment variables:
   SIM_STUB_COST   total_cost_usd of every assistant and persona call (default 0.01); the judge costs 0.01
@@ -173,6 +174,9 @@ def judge(stdin, argv, category):
         print(json.dumps(result(json.dumps(card), "judge", argv, cost=0.01)))
         return
     ids = [i.strip() for i in re.search(rf"^IDS {category}: ?(.*)$", stdin, re.M).group(1).split(",") if i.strip()]
+    if category in ("beliefs", "tacit"):
+        print(json.dumps(result(json.dumps(elicit_card(category, ids, note)), "judge", argv, cost=0.01)))
+        return
     flag = {"unaware": "surfaced", "wrong": "challenged", "knows": "captured", "decisions": "decided",
             "conflicts": "surfaced"}[category]
     if category == "knows":
@@ -191,6 +195,27 @@ def judge(stdin, argv, category):
         rows[0].update(captured=True, where="01-goals.md")
         rows[1].update(captured=True, where="no-such-page.md")
     print(json.dumps(result(json.dumps({category: rows}), "judge", argv, cost=0.01)))
+
+
+def elicit_card(category, ids, note):
+    """The elicitation probes' judges (tests/sim/probe_elicit.py): every verdict false, except one claim per call
+    the driver must drop: the first item cited at a turn that does not exist, the second recorded on a page the
+    vault does not hold."""
+    if category == "beliefs":
+        rows = [{"id": i, **note, "challenged": False, "turn": None, "quote": None, "recorded": False, "where": None,
+                 "record_quote": None, "source": False, "date": False, "warning": False} for i in ids]
+    else:
+        rows = [{"id": i, **note, "surfaced": False, "turn": None, "quote": None, "recorded": False, "where": None,
+                 "record_quote": None} for i in ids]
+    if rows:
+        rows[0].update({"challenged" if category == "beliefs" else "surfaced": True, "turn": 999,
+                        "quote": "a quote no turn holds?"})
+    if len(rows) >= 2:
+        rows[1].update(recorded=True, where="no-such-page.md", record_quote="a quote no page holds")
+    card = {category: rows}
+    if category == "beliefs":
+        card["lectured"] = [{"turn": 999, "quote": "a quote no turn holds"}]
+    return card
 
 
 def precision_rows(stdin, note):

@@ -1,0 +1,32 @@
+# Wrong beliefs, on a scale of 6. Discover from an empty vault with the persona's four documents in the inbox. The
+# overlay (brief:) replaces the lead's beliefs with six outdated ones: about other teams, rules, a dependency and a
+# date. The lead states each as settled when its subject comes up, and gives where it came from, when it was last
+# confirmed, how it would work and what would show it no longer holds only when asked. Judged, every claim cited:
+# challenged by asking (the quote must be a question), recorded as not yet confirmed with its source (and, as its own
+# measure, with a date and a warning sign too), and the turns that told the lead a belief was wrong instead of asking.
+# Run it by path: python3 tests/sim/probe.py tests/sim/scale/elicit/cases/scale-beliefs.yaml --persona ...
+snapshot_root: scale/snapshots
+brief: scale/elicit/briefs/scale-beliefs
+snapshot:
+  heron-claims: empty
+  holdout-nursing: empty
+  civic-permits: empty
+  holdout-freight: empty
+opening: "/vela:discover {topics[discover_1]}"
+# 24, as scale-conflicts: discover's intake takes about 8 turns before the first question about the work itself.
+cap: 24
+oracle: >-
+  For this session only: as soon as the sources are in, ask the lead about the other systems, other teams, rules and
+  dates the plan depends on. Whenever the lead states something as settled, don't argue and don't tell them it is
+  wrong. Ask where it comes from and when it was last confirmed, and ask them to walk through how it would actually
+  work. Then write it down as an assumption, never as a fact, with its source, the date it was last confirmed, and a
+  warning sign that would show it no longer holds.
+criteria:
+  - check: beliefs-challenged
+    at_least: 0.5
+  - check: beliefs-recorded
+    at_least: 0.5
+  - check: beliefs-lectured
+    at_most: 0
+  - check: decided-without-yes
+    at_most: 0

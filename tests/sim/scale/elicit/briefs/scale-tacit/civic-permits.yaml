@@ -1,0 +1,83 @@
+# scale-tacit overlay for civic-permits. Adds eight tacit facts to the persona's `knows:` for this probe only
+# (probe_elicit.py): two dates, two owners, two unwritten rules and two past incidents (`tacit:` names the kind).
+# The lead never volunteers one. Each is given only to its kind's own question (a sweep of dates, owners, unwritten
+# rules or past incidents), to "what would a newcomer get wrong?" (dates, owners and rules), or to "what happened the
+# last time?" (incidents). No keyword here is in a document, the opening or another item.
+add:
+  knows:
+    - id: K60
+      tacit: date
+      category: timeline
+      keywords: ["every 1 July", "reload every fee"]
+      fact: >-
+        Only if the assistant asks whether any other dates, deadlines or busy times matter beyond the go-live date,
+        or about the traps someone new here would fall into, say that the fee schedule's yearly update takes effect every 1 July, and
+        staff have to reload every fee in the system that day. Never offer it otherwise, even when the talk comes
+        near it: it is so normal to you that it doesn't seem worth saying.
+      owner: Permit Center supervisor
+    - id: K61
+      tacit: date
+      category: timeline
+      keywords: ["hardware support", "31 August"]
+      fact: >-
+        Only if the assistant asks whether any other dates, deadlines or busy times matter beyond the go-live date,
+        or about the traps someone new here would fall into, say that the hardware support contract for the old permit database's
+        server ends on 31 August 2027, and after that IT won't fix it if it breaks. Never offer it otherwise, even
+        when the talk comes near it: it is so normal to you that it doesn't seem worth saying.
+      owner: IT applications lead
+    - id: K62
+      tacit: owner
+      category: unnamed-stakeholder
+      keywords: ["Brecken", "Building Official"]
+      fact: >-
+        Only if the assistant asks whose call each piece really is, or who has to approve it, or about the traps someone new here would fall into, say
+        that the one who decides which permit types count as simple is the Building Official, Hal Brecken, by code,
+        not the Director. Never offer it otherwise, even when the talk comes near it: it is so normal to you that it
+        doesn't seem worth saying.
+      owner: Building Official
+    - id: K63
+      tacit: owner
+      category: unnamed-stakeholder
+      keywords: ["Deputy City Manager", "waiver request"]
+      fact: >-
+        Only if the assistant asks whose call each piece really is, or who has to approve it, or about the traps someone new here would fall into, say
+        that fee waivers are signed off by the Deputy City Manager's office, not the Permit Center, and a waiver
+        request sits there about two weeks. Never offer it otherwise, even when the talk comes near it: it is so
+        normal to you that it doesn't seem worth saying.
+      owner: Deputy City Manager
+    - id: K64
+      tacit: rule
+      category: fact
+      keywords: ["standing account", "reviewed first"]
+      fact: >-
+        Only if the assistant asks about the traps someone new here would fall into, or about the unwritten rules of the place, say that contractors with a standing account get their applications reviewed first,
+        unofficially, because they phone the supervisor directly. Never offer it otherwise, even when the talk comes
+        near it: it is so normal to you that it doesn't seem worth saying.
+      owner: Permit Center supervisor
+    - id: K65
+      tacit: rule
+      category: fact
+      keywords: ["Land Use Committee", "gets pulled"]
+      fact: >-
+        Only if the assistant asks about the traps someone new here would fall into, or about the unwritten rules of the place, say that nothing goes to council without a briefing for the chair of the Land Use Committee
+        first; skip it and the item gets pulled from the agenda. Never offer it otherwise, even when the talk comes
+        near it: it is so normal to you that it doesn't seem worth saying.
+      owner: Director of Building and Planning
+    - id: K66
+      tacit: incident
+      category: fact
+      keywords: ["booking pilot", "four days"]
+      fact: >-
+        Only if the assistant asks how earlier attempts at a change like this went, or about things that went badly before, say that in 2022 an online inspection booking pilot crashed on its first Monday,
+        the phones were swamped, and the Director shut it down after four days. Never offer it otherwise, even when
+        the talk comes near it: it is so normal to you that it doesn't seem worth saying.
+      owner: Chief Building Inspector
+    - id: K67
+      tacit: incident
+      category: finance-liability
+      keywords: ["entered twice", "2011"]
+      fact: >-
+        Only if the assistant asks how earlier attempts at a change like this went, or about things that went badly before, say that when the old permit database was installed in 2011, three months of
+        permits were entered twice and the refunds took a year to untangle. Never offer it otherwise, even when the
+        talk comes near it: it is so normal to you that it doesn't seem worth saying.
+      owner: Permit Center supervisor

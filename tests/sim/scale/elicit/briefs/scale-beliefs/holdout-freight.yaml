@@ -1,0 +1,63 @@
+# scale-beliefs overlay for holdout-freight (sealed: never read while iterating on the skills). Replaces the
+# persona's `wrong:` list for this probe only (probe_elicit.py): six beliefs the lead states as settled, each outdated.
+# Where a belief came from, how it would work and what would show it no longer holds, the lead gives only when asked.
+# No document, fact or other item gives a truth away.
+replace:
+  wrong:
+    - id: W90
+      category: third-party-contract
+      keywords: ["dock wi-fi", "docks survey"]
+      belief: >-
+        Every big customer's receiving dock has dock Wi-Fi that drivers can use, so photos upload right at the stop.
+        You are sure of this. Say it as settled, in your own words, the first time the talk turns to photos, the
+        stop or the receiving dock, before anyone asks whether it is true. Only if the assistant wants to know the origin of this, or how fresh it is: a docks survey of the top customers in 2023, and nobody has checked
+        since; hearing that, say it may be worth checking, but keep believing it unless given a reason. Only if pressed to go step by step through the mechanics: say you don't know whether a handheld can join a customer's
+        network. Only if asked what sign would tell you it had stopped being true: drivers reporting photos stuck waiting to send.
+      truth: Most of those docks now block guest networks; uploads rely on the cellular signal.
+    - id: W91
+      category: legal-regulatory
+      keywords: ["electronic proof", "webinar"]
+      belief: >-
+        Canada accepts an electronic proof of delivery everywhere, exactly as the US does. You are sure of this. Say
+        it as settled, in your own words, the first time the talk turns to Canada, the Ontario or Quebec depots, or
+        proof of delivery, before anyone asks whether it is true. Only if the assistant wants to know the origin of this, or how fresh it is: a trucking association webinar in 2022, and nobody has checked since; hearing
+        that, say it may be worth checking, but keep believing it unless given a reason. Only if pressed to go step by step through the mechanics: say you aren't sure what a customs broker needs on a cross-border load.
+        Only if asked what sign would tell you it had stopped being true: a Canadian customer asking for a paper copy.
+      truth: Cross-border loads still need the signed paper copy for customs on the Canadian side.
+    - id: W92
+      category: timeline
+      keywords: ["handhelds' data plan", "fixed until 2029"]
+      belief: >-
+        The handhelds' data plan with the carrier is fixed until 2029, so data costs won't move with all the photos.
+        You are sure of this. Say it as settled, in your own words, the first time the talk turns to the handhelds,
+        data or running costs, before anyone asks whether it is true. Only if the assistant wants to know the origin of this, or how fresh it is: the old IT manager told you in 2023, and nobody has checked since; hearing
+        that, say it may be worth checking, but keep believing it unless given a reason. Only if pressed to go step by step through the mechanics: say you don't know how much data a photo uses. Only if asked what sign would tell you it had stopped being true: overage charges on the carrier's invoice.
+      truth: The carrier plan renews in March 2027 with a cap per gigabyte.
+    - id: W93
+      category: unnamed-stakeholder
+      keywords: ["no say", "only bargain"]
+      belief: >-
+        The drivers' union in Ontario has no say over a new app; they only bargain over pay. You are sure of this.
+        Say it as settled, in your own words, the first time the talk turns to the drivers, the union or the depots
+        in Canada, before anyone asks whether it is true. Only if the assistant wants to know the origin of this, or how fresh it is: a depot manager told you in 2024, and nobody has checked since; hearing that, say it may
+        be worth checking, but keep believing it unless given a reason. Only if pressed to go step by step through the mechanics: say you aren't sure what the collective agreement says about new equipment. Only if asked what sign would tell you it had stopped being true: Labour Relations asking to see the rollout plan.
+      truth: The Ontario agreement requires 60 days' notice of any new in-cab technology.
+    - id: W94
+      category: unnamed-stakeholder
+      keywords: ["Customer Service", "signature screen"]
+      belief: >-
+        Customer Service can answer receivers' questions about the new signature screen; they already handle
+        delivery queries. You are sure of this. Say it as settled, in your own words, the first time the talk turns
+        to receivers, customers' staff or questions about the app, before anyone asks whether it is true. Only if the assistant wants to know the origin of this, or how fresh it is: you assumed it from how they handled
+        the customer portal launch in 2021, and nobody has asked them since; hearing that, say it may be worth
+        checking, but keep believing it unless given a reason. Only if pressed to go step by step through the mechanics: say you don't know their hours or how many calls they take. Only if asked what sign would tell you it had stopped being true: Customer Service not having been told.
+      truth: Customer Service now works office hours only, with no one on nights.
+    - id: W95
+      category: data-identity
+      keywords: ["isn't personal information", "sales rep"]
+      belief: >-
+        A receiver's signature isn't personal information, so receivers don't need telling how it's stored. You are
+        sure of this. Say it as settled, in your own words, the first time the talk turns to signatures, receivers or
+        privacy, before anyone asks whether it is true. Only if the assistant wants to know the origin of this, or how fresh it is: the vendor's sales rep said so in the demo last summer, and nobody has checked since;
+        hearing that, say it may be worth checking, but keep believing it unless given a reason. Only if pressed to go step by step through the mechanics: say you aren't sure where the signature goes after the stop. Only if asked what sign would tell you it had stopped being true: Legal or a customer's privacy team asking.
+      truth: A signature with a name is personal information in both countries.

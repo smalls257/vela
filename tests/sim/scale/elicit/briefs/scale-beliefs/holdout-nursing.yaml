@@ -1,0 +1,64 @@
+# scale-beliefs overlay for holdout-nursing (sealed: never read while iterating on the skills). Replaces the
+# persona's `wrong:` list for this probe only (probe_elicit.py): six beliefs the lead states as settled, each outdated.
+# Where a belief came from, how it would work and what would show it no longer holds, the lead gives only when asked.
+# No document, fact or other item gives a truth away.
+replace:
+  wrong:
+    - id: W90
+      category: third-party-contract
+      keywords: ["every hour", "user group"]
+      belief: >-
+        The rostering system can send Tidewell a fresh file every hour if we ask; its supplier already does that for
+        the hospitals. You are sure of this. Say it as settled, in your own words, the first time the talk turns to
+        the rota or rostering, before anyone asks whether it is true. Only if the assistant wants to know the origin of this, or how fresh it is: the rostering supplier's account manager said so at a user group in 2023, and
+        nobody has checked since; hearing that, say it may be worth checking, but keep believing it unless given a
+        reason. Only if pressed to go step by step through the mechanics: say you don't know who at Fenmoor would
+        ask for it. Only if asked what sign would tell you it had stopped being true: the supplier quoting a change request.
+      truth: Hourly files need a paid upgrade Fenmoor hasn't bought; the hospitals run a newer version.
+    - id: W91
+      category: legal-regulatory
+      keywords: ["student nurses", "placement handbook"]
+      belief: >-
+        Student nurses on placement can use any app the trust approves, the same as staff. You are sure of this. Say
+        it as settled, in your own words, the first time the talk turns to students, placements or who uses the app,
+        before anyone asks whether it is true. Only if the assistant wants to know the origin of this, or how fresh it is: the university's placement handbook from 2022, and nobody has checked since; hearing that, say it
+        may be worth checking, but keep believing it unless given a reason. Only if pressed to go step by step through the mechanics: say you aren't sure students get a trust login at all. Only if asked what sign would tell you it had stopped being true: the practice education team asking about student access.
+      truth: The 2025 placement agreement bars students from holding patient data on any device.
+    - id: W92
+      category: timeline
+      keywords: ["referral system", "newsletter"]
+      belief: >-
+        The GP practices' new referral system doesn't arrive until 2028, so referrals won't change before Tidewell is
+        in. You are sure of this. Say it as settled, in your own words, the first time the talk turns to referrals or
+        the GP practices, before anyone asks whether it is true. Only if the assistant wants to know the origin of this, or how fresh it is: the local health board's newsletter in spring 2024, and nobody has checked since;
+        hearing that, say it may be worth checking, but keep believing it unless given a reason. Only if pressed to go step by step through the mechanics: say you don't know how referrals would reach Tidewell. Only if asked what sign would tell you it had stopped being true: a practice mentioning the new system.
+      truth: Two practices go live with the new referral system in January 2027.
+    - id: W93
+      category: unnamed-stakeholder
+      keywords: ["away day", "scheduler themselves"]
+      belief: >-
+        The coordinators are keen to stop building the day by hand; they asked for a scheduler themselves. You are
+        sure of this. Say it as settled, in your own words, the first time the talk turns to the coordinators or how
+        the day is built, before anyone asks whether it is true. Only if the assistant wants to know the origin of this, or how fresh it is: the coordinators' away day in 2022, and nobody has asked them since; hearing
+        that, say it may be worth checking, but keep believing it unless given a reason. Only if pressed to go step by step through the mechanics: say you aren't sure what they would do with the time. Only if asked what sign would tell you it had stopped being true: the coordinators not having been asked.
+      truth: Two of the six coordinators are new since 2022, and the team now fears the scheduler will cut their jobs.
+    - id: W94
+      category: timeline
+      keywords: ["mandatory training", "February"]
+      belief: >-
+        The training team will put all 340 nurses through Tidewell on the mandatory training days in February. You
+        are sure of this. Say it as settled, in your own words, the first time the talk turns to training or go-live,
+        before anyone asks whether it is true. Only if the assistant wants to know the origin of this, or how fresh it is: the training lead said so in early 2024, and nobody has checked since; hearing that, say it may be
+        worth checking, but keep believing it unless given a reason. Only if pressed to go step by step through the mechanics: say you don't know how many sessions that is. Only if asked what sign would tell you it had stopped being true: the February training calendar already being full.
+      truth: Mandatory training moved to two days a year, in May and November.
+    - id: W95
+      category: finance-liability
+      keywords: ["log their miles", "planned routes"]
+      belief: >-
+        Nurses won't need to log their miles once Tidewell plans the routes; Finance can pay mileage from the planned
+        routes. You are sure of this. Say it as settled, in your own words, the first time the talk turns to mileage,
+        travel or expenses, before anyone asks whether it is true. Only if the assistant wants to know the origin of this, or how fresh it is: the finance business partner said it at a meeting in 2023, and nobody has
+        checked since; hearing that, say it may be worth checking, but keep believing it unless given a reason. Only if pressed to go step by step through the mechanics: say you aren't sure what happens when a nurse takes a
+        detour for a patient. Only if asked what sign would tell you it had stopped being true: Payroll asking for the miles actually
+        driven.
+      truth: Mileage must be paid on the miles each nurse actually drove and claimed, for tax.

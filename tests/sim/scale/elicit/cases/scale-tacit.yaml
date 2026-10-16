@@ -1,0 +1,29 @@
+# Tacit facts, on a scale of 8. Discover from an empty vault with the persona's four documents in the inbox. The
+# overlay (brief:) adds eight facts the lead knows but never volunteers: two dates, two owners, two unwritten rules
+# and two past incidents. Each is given only to its kind's own question (a sweep of dates, owners, unwritten rules or
+# past incidents), to "what would a newcomer get wrong?", or, for an incident, to "what happened the last time?".
+# Judged, every claim cited: surfaced (a lead turn states it) and recorded (a page the session changed holds it).
+# Run it by path: python3 tests/sim/probe.py tests/sim/scale/elicit/cases/scale-tacit.yaml --persona ...
+snapshot_root: scale/snapshots
+brief: scale/elicit/briefs/scale-tacit
+snapshot:
+  heron-claims: empty
+  holdout-nursing: empty
+  civic-permits: empty
+  holdout-freight: empty
+opening: "/vela:discover {topics[discover_people]}"
+# 24, as scale-conflicts: discover's intake takes about 8 turns before the first question about the work itself.
+cap: 24
+oracle: >-
+  For this session only: find out what the lead knows but has never written down. As soon as the sources are in, ask
+  what happened the last time something like this was tried or changed, and what a newcomer would get wrong. Then go
+  through each kind of fact in turn: other dates, deadlines and busy times that matter; who really owns or signs off
+  each part; the unwritten rules of how things really work; and past problems or incidents. Write each fact the lead
+  gives into the plan, saying who it came from.
+criteria:
+  - check: tacit-surfaced
+    at_least: 0.5
+  - check: tacit-recorded
+    at_least: 0.5
+  - check: decided-without-yes
+    at_most: 0
