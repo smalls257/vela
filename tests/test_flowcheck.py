@@ -366,7 +366,7 @@ def test_the_cli_exits_0_on_a_pass_1_on_findings_and_prints_plain_words(tmp_path
     code, out = run("check-slice", "Release one", "--vault", str(clean))
     assert code == 0 and "passes" in out.splitlines()[0]
     code, out = run("check-slice", "FLO-004", "--vault", str(early))
-    assert code == 1 and "F8 Not final" in out and "Billing has no retries left" in out
+    assert code == 1 and "F8 Stops halfway" in out and "Billing has no retries left" in out
     code, out = run("check-slice", "Release one", "--vault", str(clean), "--max-states", "5")
     assert code == 1 and "not fully checked" in out
 
@@ -696,7 +696,7 @@ def test_the_default_budget_is_200000_states_and_10_seconds_and_the_clock_is_fro
 def test_check_warns_w391_for_a_drawn_slice_with_open_findings_and_stays_quiet_on_a_pass():
     _, out = run("check", "--vault", str(FIXTURES / "05-hold-never-released"), "--today", TODAY)
     lines = [line for line in out.splitlines() if " W391 " in line]
-    assert lines == ['04b-releases.md:13: W391 Release one: pilot fails: 1 open finding (not final). Fix: Run vela '
+    assert lines == ['04b-releases.md:13: W391 Release one: pilot fails: 1 open finding (stops halfway). Fix: Run vela '
                      'check-slice "Release one: pilot" for the traces and owners, and fix or override each.']
     _, out = run("check", "--vault", str(FIXTURES / "12-clean-tracer"), "--today", TODAY)
     assert " W391 " not in out

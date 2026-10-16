@@ -29,7 +29,8 @@ CHECK_STATES = 20_000
 # Paths walked while looking for one branch's path; past it the branch says it could not be drawn, never a guess.
 PATH_BUDGET = 5_000
 SYNTHETIC_WORDS = {"timeout": "Times out", "gave_up": "Gives up after its retries"}
-NOT_DRAWN_NOTE = "Error cases aren't drawn yet: this flow has no checked sequence diagram with alt branches."
+NOT_DRAWN_NOTE = ("What happens when something fails isn't drawn for this flow yet. Its page needs a checked diagram of "
+                  "what goes wrong; the next session on it can add one.")
 
 
 def case_words(key):
@@ -102,6 +103,11 @@ class Walker:
         found = self.case(item, key)
         return key in SYNTHETIC_WORDS or bool(found and found.is_error)
 
+    def item_title(self, item):
+        """An event's or a contract's name, for a step a person reads; the ID only when the catalog names neither."""
+        found = self.catalog.events.get(item) or self.catalog.contracts.get(item)
+        return found.title if found and found.title else item
+
     def entity_title(self, name):
         found = self.catalog.entity(name)
         return found.title if found else name
@@ -125,7 +131,7 @@ class Walker:
         if kind == "call":
             yield from self.call(node, rules)
         elif kind == "await":
-            head = Path((step("note", line, f"Waits for {parts[1]}", over=[actor], tag="wait", item=parts[1]),))
+            head = Path((step("note", line, f"Waits for {self.item_title(parts[1])}", over=[actor], tag="wait", item=parts[1]),))
             keys = list(dict.fromkeys(k for b in node.branches or () for k in b.keys))
             yield from self.choose(node, rules, parts[1], None, [(k, EMPTY) for k in keys], head)
         elif kind == "reply":
@@ -137,8 +143,10 @@ class Walker:
             arrow = Path((step("event", line, f"{evt} {words}".strip(), **{"from": frm, "to": to, "item": evt}),))
             yield from self.with_handler(arrow, node, f"When {evt} reaches {self.title(to)}", to)
         elif kind == "timer":
-            yield from self.with_handler(Path((step("note", line, f"Timer {parts[1]}, {parts[2]}", over=[actor], tag="timer"),)),
-                                         node, f"When the {parts[1]} timer fires", actor)
+            # the timer's name is the diagram's identifier; the reader hears how long, and who stops waiting
+            yield from self.with_handler(Path((step("note", line, f"After {parts[2]}, {self.title(actor)} gives up waiting", over=[actor],
+                                                    tag="timer", timer=parts[1]),)),
+                                         node, f"When {parts[2]} passes", actor)
         elif kind == "contract":
             keys = tuple(parts[1] or ())
             said = "Answers from its contract" + (f": {keys_words(keys)}" if keys else "")
@@ -153,7 +161,7 @@ class Walker:
         elif kind == "finish":
             yield Path((self.end_step(line, actor, parts[1], parts[2]),), ended=True)
         elif kind == "on":
-            yield Path((step("note", line, f"If a later call {keys_words(parts[1])}: ends, {parts[2].replace('_', ' ')}",
+            yield Path((step("note", line, f"If a later call {keys_words(parts[1])}, the flow ends: {parts[2].replace('_', ' ')}.",
                              over=[actor], tag="rule"),))
 
     def end_step(self, line, actor, outcome, leaves):
@@ -329,7 +337,7 @@ def entity_keys(catalog, vault, keys):
 # --- the played view: one diagram, so a branch is drawn as the flow's own steps, in plain words ---------------------
 
 QUIET_TAGS = ("set", "given", "rule", "handler", "handler_end", "contract")  # the checker's bookkeeping, not steps a person reads
-NO_ENDING = "This branch doesn't say what happens next."
+NO_ENDING = "This branch doesn't say what happens next; the flow page needs an ending for it."
 
 
 def answer_words(item, key, answers):
@@ -610,7 +618,7 @@ def marks_of(findings, not_checked):
     if any(f["severity"] == "error" for f in findings):
         marks.append("finding")
     elif any(f["severity"] == "warning" for f in findings):
-        marks.append("warning")
+        marks.append("worth a look")  # a warning, said as what the reader does about it
     if not_checked:
         marks.append("not fully checked")
     return marks
@@ -693,7 +701,7 @@ def flow_branches(flow, catalog, vault, keys, answers, today):
         "check": {"status": result.status, "states": result.states, "notChecked": not_checked, "surveyed": surveyed},
         "counts": {"branches": sum(1 for o in options if o["drawn"]), "notDrawn": sum(1 for o in options if not o["drawn"]),
                    "withFindings": sum(1 for o in options + [{"marks": marks_of([found[i] for i in happy_hits], False)}]
-                                       if {"finding", "warning"} & set(o["marks"])),
+                                       if {"finding", "worth a look"} & set(o["marks"])),
                    "notChecked": (1 + len(options)) if not_checked else 0},
     }
 

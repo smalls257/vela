@@ -13,7 +13,7 @@ Nothing is explored here, so a reader pays milliseconds.
 """
 from dataclasses import dataclass
 
-from vela import flowcheck
+from vela import flowcheck, say
 from vela.flowcheck import record
 from vela.flowcheck.findings import NOT_CHECKED, TITLES
 
@@ -33,31 +33,43 @@ class Standing:
         return self.state == PASSED
 
     def line(self):
-        """The standing in one line: "passed, recorded 2026-10-14", "2 findings (invariant broken), recorded
-        2026-10-14", "not checked since 2026-10-12. What its check reads has changed since, or the checker has.\""""
+        """The standing in one line a reader hears: "passed on 14 Oct", "2 findings (an answer nobody handles), checked
+        on 14 Oct", "Last checked 12 Oct; the flow or the checker has changed since, so run the flow check again.",
+        "Nobody has run the flow check on it yet." No ISO date: this line reaches the handoff and the dashboard."""
         said = self.words + (f" ({', '.join(self.open)})" if self.open else "")
         if self.state in (PASSED, FINDINGS, NOT_FULLY):
-            return f"{said}, recorded {self.checked}" if self.checked else said
-        return f"{said}. {self.why}" if self.why else said
+            if not self.checked:
+                return said
+            return f"{said} on {short_day(self.checked)}" if self.state == PASSED else f"{said}, checked on {short_day(self.checked)}"
+        if self.state == STALE and self.checked:
+            return f"Last checked {short_day(self.checked)}; {self.why[:1].lower()}{self.why[1:]}" if self.why else f"Last checked {short_day(self.checked)}."
+        return self.why or said
+
+
+def short_day(iso):
+    """'2026-10-14' -> '14 Oct'; anything that isn't a date as written."""
+    words = say.date_words(iso)
+    parts = words.split()
+    return f"{parts[0]} {parts[1][:3]}" if len(parts) >= 2 and parts[0].isdigit() else words
 
 
 def standing(catalog, store, key, today, version):
     """The Standing of the slice recorded under `key` (a slice's ID or release heading, or a flow ID checked alone)."""
     kept = (store.get("slices") or {}).get(key)
     if not isinstance(kept, dict) or "fingerprint" not in kept:
-        return Standing(MISSING, "not checked", why="No full flow check of it has been recorded yet.")
+        return Standing(MISSING, "not checked", why="Nobody has run the flow check on it yet.")
     checked = str(kept.get("checked") or "")
     states, seconds = budget_of(kept)
     try:
         prepared = flowcheck.prepare(catalog, key, today, kept.get("journeys"))
     except (flowcheck.SliceNotFound, ValueError):
-        return stale(checked, "The slice it was recorded for is no longer in the plan.")
+        return stale(checked, "The slice it was checked for isn't in the plan anymore.")
     if record.fingerprint(prepared, states, seconds, version) != kept["fingerprint"]:
-        return stale(checked, "What its check reads has changed since, or the checker has.")
+        return stale(checked, "The flow or the checker has changed since, so run the flow check again.")
     try:
         explored = record.explored_of(kept)
     except ValueError:
-        return stale(checked, "Its record does not read.")
+        return stale(checked, "Its saved result can't be read, so run the flow check again.")
     result = flowcheck.finish(catalog, prepared, explored, today)
     errors = [f for f in result.open if f.code not in NOT_CHECKED]
     names = tuple(sorted({TITLES.get(f.code, f.code).lower() for f in errors}))

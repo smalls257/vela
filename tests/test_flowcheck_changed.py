@@ -213,7 +213,7 @@ def test_a_reused_failing_slice_still_fails_and_overrides_are_applied_fresh():
     assert first.exit_code == 1
     again = changed.check_slices(catalog, TODAY, first.store, impact.Walk())
     assert again.lines[1].reused and again.exit_code == 1
-    assert again.lines[1].words().startswith(f"SLC-002 Pay for it: unchanged since {TODAY}, fails, 1 open finding (unhandled case)")
+    assert again.lines[1].words().startswith(f"SLC-002 Pay for it: unchanged since {TODAY}, fails, 1 open finding (an answer nobody handles)")
     flow = "06-runtime/flows/FLO-502-pay.md"
     files[flow] += '\n## History\n\n- **Override:** "F1 CON-503 held_back until 2026-12-01" by @lead on 2026-10-14: next sprint\n'
     covered = changed.check_slices(readers.read_vault(files), TODAY, first.store, impact.Walk())
@@ -324,7 +324,7 @@ def test_cli_a_corrupt_record_warns_and_checks_afresh(repo):
 def test_cli_exits_1_on_an_open_finding_and_on_not_fully_checked(repo):
     edit(repo, BILLING, "| declined |  | 402 | declined |  |  |\n", "| declined |  | 402 | declined |  |  |\n| held_back |  | 409 | held back |  |  |\n")
     code, out = changed_run(repo, "--changed")
-    assert code == 1 and "SLC-002 Pay for it: fails, 1 open finding (unhandled case)." in out and "F1 Unhandled case" in out
+    assert code == 1 and "SLC-002 Pay for it: fails, 1 open finding (an answer nobody handles)." in out and "F1 An answer nobody handles" in out
     code, out = changed_run(repo, "--changed")
     assert code == 1  # reused, and still failing
     code, out = changed_run(repo, "--all", "--max-states", "1")

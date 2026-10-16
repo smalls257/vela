@@ -33,7 +33,7 @@ const Rehearse = (() => {
         h("button", { class: "btn", onclick: close }, "Close (Esc)")),
       h("main", { class: "rh-main" }, h("div", { class: "rh-board", id: "rh-board" }, h("div", { class: "rh-rail", id: "rh-rail" }), s("svg", { class: "rh-overlay", id: "rh-svg" }), h("div", { class: "rh-rows", id: "rh-rows" })),
         h("aside", { class: "rh-side", id: "rh-side" })),
-      h("footer", { class: "rh-tray" }, h("h3", {}, "Apps and outside companies"), h("div", { class: "shelf", id: "rh-tiles" }), h("h3", {}, "Contracts"), h("div", { class: "shelf", id: "rh-cables" })));
+      h("footer", { class: "rh-tray" }, h("h3", {}, "Apps and outside services"), h("div", { class: "shelf", id: "rh-tiles" }), h("h3", {}, "Contracts"), h("div", { class: "shelf", id: "rh-cables" })));
     reset(false);
     new ResizeObserver(() => root && root.classList.contains("rehearse") && renderBoard()).observe(q("#rh-board"));
     cancelAnimationFrame(raf); raf = requestAnimationFrame(swing);
@@ -50,7 +50,7 @@ const Rehearse = (() => {
     if (url) return `<span class="em" style="background:${color}"><img alt="" src="${url}"></span>`;
     return `<span class="em ${lane.kind}" style="background:${color};border-color:${color};color:${lane.kind === "partner" ? color : Theme.c("room")}">${esc(lane.name[0])}</span>`;
   }
-  const tileHtml = (lane, extra = "") => `<div class="tile ${extra}" data-lane="${esc(lane.id)}" tabindex="0" title="${esc(lane.name)}">${emblem(lane)}<span>${esc(lane.name)}<small>${lane.kind === "app" ? "app" : "outside company"}</small></span></div>`;
+  const tileHtml = (lane, extra = "") => `<div class="tile ${extra}" data-lane="${esc(lane.id)}" tabindex="0" title="${esc(lane.name)}">${emblem(lane)}<span>${esc(lane.name)}<small>${lane.kind === "app" ? "app" : "outside service"}</small></span></div>`;
   function railGeom() {
     const rail = q("#rh-rail"), board = q("#rh-board"), rb = board.getBoundingClientRect();
     const slots = [...rail.children].map((el) => { const r = el.getBoundingClientRect(); return { x: r.left - rb.left + board.scrollLeft + r.width / 2, w: r.width, top: r.top - rb.top + board.scrollTop, bottom: r.bottom - rb.top + board.scrollTop }; });
@@ -80,9 +80,9 @@ const Rehearse = (() => {
   }
   function renderTray() {
     q("#rh-tiles").innerHTML = lanes.map((l) => tileHtml(l, st.slots.includes(l.id) ? "used" : "")).join("");
-    q("#rh-cables").innerHTML = cables().map((c) => `<div class="cable" data-contract="${esc(c.id)}" tabindex="0" title="${esc(c.title)}">
+    q("#rh-cables").innerHTML = cables().map((c) => `<div class="cable" data-contract="${esc(c.id)}" tabindex="0" title="${esc(c.title)} (${esc(c.id)})">
         <svg viewBox="0 0 26 18"><rect x="1" y="5" width="7" height="8" rx="2" fill="currentColor"/><path d="M8 9c5 0 5 6 10 6" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round"/><rect x="18" y="11" width="7" height="7" rx="2" fill="currentColor"/></svg>
-        <b>${esc(c.id)}</b><i>${esc(c.title)}</i></div>`).join("") + `<div class="cable" data-self="1" tabindex="0" title="A step that stays inside one app">
+        <i>${esc(c.title)}</i></div>`).join("") + `<div class="cable" data-self="1" tabindex="0" title="A step that stays inside one app">
         <svg viewBox="0 0 26 18"><path d="M6 4c14 0 14 10 0 10" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round"/><path d="M9 11l-4 3 4 3" stroke="currentColor" stroke-width="2" fill="none"/></svg><b class="self">Inside one app</b></div>`;
   }
   const el = (tag, attrs, parent) => s(tag, attrs, parent);
@@ -111,7 +111,7 @@ const Rehearse = (() => {
     if (!st.revealed && !st.steps.length && !st.carry) {
       hit.append(h("div", { class: "empty-hint", style: `top:${g.railBottom + 26}px`, html: st.slots.some(Boolean)
         ? "<b>Now the steps, in order.</b><br>Drag a contract from the tray onto the lane that sends, then click the lane that receives. A step that stays inside one app uses the loop."
-        : "<b>First, the apps.</b><br>Drag each app or partner this flow touches into a lane, left to right. Leave out the ones it does not touch." }));
+        : "<b>First, the apps.</b><br>Drag each app or outside service this flow touches into a lane, left to right. Leave out the ones it doesn't touch." }));
     }
     if (st.revealed) { renderReveal(svg, g); return; }
     st.steps.forEach((step, i) => drawAttemptRow(svg, g, step, rowY(i, g), i));
@@ -188,14 +188,14 @@ const Rehearse = (() => {
     if (st.revealed) { side.innerHTML = resultHtml(); bindResult(); return; }
     const lanesDone = st.slots.some(Boolean), stepsDone = st.steps.length > 0, hist = tries(f.id);
     side.innerHTML = `<p class="lede">Rebuild it before you look. Getting it wrong first and then seeing the real flow fixes it better than reading it twice.</p>
-      <ol class="how"><li class="${lanesDone ? "done" : ""}">Put the apps and outside companies this flow touches into lanes.</li>
+      <ol class="how"><li class="${lanesDone ? "done" : ""}">Put the apps and outside services this flow touches into lanes.</li>
         <li class="${stepsDone ? "done" : ""}">Connect the lanes in the order they talk to each other: drag a contract from one lane to another, one step at a time.</li><li>Reveal the real flow over yours.</li></ol>
       <button class="reveal" id="rh-reveal" ${stepsDone ? "" : "disabled"}>Reveal the real flow<span>${plural(st.steps.length, "step")} so far</span></button>
       <div class="row-actions"><button class="btn" id="rh-undo" ${stepsDone ? "" : "disabled"}>Undo last step</button><button class="btn" id="rh-clear">Start over</button></div>
       ${hist.length ? `<div class="hist-row"><div class="history">${hist.slice(-8).map((x) => `<i style="height:${Math.max(4, (x.got / Math.max(1, x.of)) * 34)}px" title="${x.got} of ${x.of}"></i>`).join("")}</div><span>Your tries on this flow. Last: ${hist[hist.length - 1].got} of ${hist[hist.length - 1].of}.</span></div>` : ""}
       <details class="kbd"><summary>Add a step with the keyboard</summary><form id="rh-form">
         <select name="from" aria-label="From">${st.slots.filter(Boolean).map((id) => `<option value="${esc(id)}">${esc(laneOf(id).name)}</option>`).join("")}</select>
-        <select name="what" aria-label="Over">${cables().map((c) => `<option value="${esc(c.id)}">over ${esc(c.id)} ${esc(c.title)}</option>`).join("")}<option value="self">inside the app</option></select>
+        <select name="what" aria-label="Over">${cables().map((c) => `<option value="${esc(c.id)}">over ${esc(c.title)}</option>`).join("")}<option value="self">inside the app</option></select>
         <select name="to" aria-label="To">${st.slots.filter(Boolean).map((id) => `<option value="${esc(id)}">to ${esc(laneOf(id).name)}</option>`).join("")}</select>
         <button class="btn">Add the step</button></form></details>`;
     q("#rh-reveal").onclick = reveal;
@@ -230,7 +230,7 @@ const Rehearse = (() => {
       if (!st.slots.some(Boolean)) { cable.classList.add("shake"); setTimeout(() => cable.classList.remove("shake"), 400); return toast("Put the apps into lanes first, then connect them with contracts."); }
       st.carry = cable.dataset.self ? { self: true } : { contract: cable.dataset.contract };
       root.querySelectorAll(".cable").forEach((c) => c.classList.toggle("carrying", c === cable));
-      const ghost = h("div", { class: "tile ghost cable-ghost", html: cable.dataset.self ? "Inside one app" : `<b>${esc(cable.dataset.contract)}</b>` });
+      const ghost = h("div", { class: "tile ghost cable-ghost", html: cable.dataset.self ? "Inside one app" : esc((CONTRACT[cable.dataset.contract] || { title: cable.dataset.contract }).title) });
       root.appendChild(ghost);
       drag = { kind: "cable", ghost, dx: 20, dy: 19 };
       moveGhost(e);
@@ -329,7 +329,7 @@ const Rehearse = (() => {
     }
     if (a.contract === r.contract) {
       if (a.from === r.from && a.to === r.to) return [3, "right"];
-      if (a.from === r.to && a.to === r.from) return r.direction === "inferred" ? [3, "right", "The vault does not say which way this goes, so either way counts."] : [2, "near", `Reversed: ${laneOf(r.from).name} sends to ${laneOf(r.to).name}.`];
+      if (a.from === r.to && a.to === r.from) return r.direction === "inferred" ? [3, "right", "The flow page doesn't say which way this goes, so either way counts."] : [2, "near", `Reversed: ${laneOf(r.from).name} sends to ${laneOf(r.to).name}.`];
       return [1, "near", `Right contract, between ${laneOf(r.from).name} and ${laneOf(r.to).name}.`];
     }
     const same = (a.from === r.from && a.to === r.to) || (a.from === r.to && a.to === r.from);
@@ -383,7 +383,7 @@ const Rehearse = (() => {
         const xs = [...FlowKit.touchedLanes(flow())].map((id) => realLaneX(id, g)).filter((x) => x !== null);
         const x0 = (xs.length ? Math.min(...xs) : 80) - 60, x1 = (xs.length ? Math.max(...xs) : 400) + 60;
         el("rect", { x: x0, y: y - 15, width: x1 - x0, height: 30, rx: 8, fill: "none", stroke: Theme.c("rule-3"), "stroke-dasharray": "4 4" }, gRow);
-        el("text", { x: (x0 + x1) / 2, y: y + 5, "text-anchor": "middle", class: "ctx-text" }, gRow).textContent = p.r.ref ? `Step ${p.r.n} repeats ${E[p.r.ref].id}; not scored` : shorten(p.r.short, 90);
+        el("text", { x: (x0 + x1) / 2, y: y + 5, "text-anchor": "middle", class: "ctx-text" }, gRow).textContent = p.r.ref ? `Step ${p.r.n} repeats “${E[p.r.ref].title}”; not scored` : shorten(p.r.short, 90);
       }
       numberBadge(gRow, p.r ? p.r.n : "+", y);
       if (p.verdict && p.verdict !== "context") {
@@ -421,12 +421,12 @@ const Rehearse = (() => {
       const link = p.r && p.r.kind === "msg" ? `${laneOf(p.r.from).name} to ${laneOf(p.r.to).name} over “${CONTRACT[p.r.contract].title}”.` : p.r && p.r.kind === "self" ? `Inside ${laneOf(p.r.lane).name}.` : "";
       const what = p.r ? `<span class="t">Step ${p.r.n}. ${esc(p.r.short)}<small>${esc(link)}${p.note ? " " + esc(p.note) : ""}</small></span>`
         : `<span class="t">${p.a.self ? `Inside ${esc(laneOf(p.a.self).name)}` : `${esc(laneOf(p.a.from).name)} to ${esc(laneOf(p.a.to).name)} over ${esc(p.a.contract)}`}<small>The real flow has no step like this.</small></span>`;
-      return `<li><span class="v ${p.verdict}">${{ right: "Right", near: "Nearly", missed: "Missed", extra: "Extra" }[p.verdict]}</span>${what}</li>`;
+      return `<li><span class="v ${p.verdict}">${{ right: "Right", near: "Nearly", missed: "Missed", extra: "Not in the flow" }[p.verdict]}</span>${what}</li>`;
     };
     return `<div class="score"><svg viewBox="0 0 92 92"><circle cx="46" cy="46" r="38" fill="none" stroke="var(--rule)" stroke-width="7"/>
         <circle cx="46" cy="46" r="38" fill="none" stroke="var(--ink)" stroke-width="7" stroke-linecap="round" transform="rotate(-90 46 46)" stroke-dasharray="${Cc}" stroke-dashoffset="${R.done ? Cc * (1 - frac) : Cc}" id="rh-ring" data-to="${Cc * (1 - frac)}" style="transition: stroke-dashoffset ${R.pairs.length * 0.75}s cubic-bezier(.2,.8,.2,1)"></circle></svg>
         <div><div class="big">${got} of ${R.scored}</div><div class="of">steps recalled, in order${by("near").length ? "; nearly counts half" : ""}</div></div></div>
-      ${R.missingLanes.length || R.extraLanes.length ? `<p class="lede">${R.missingLanes.length ? `You left out ${R.missingLanes.map((id) => esc(laneOf(id).name)).join(" and ")}; it now sits in a dashed lane. ` : ""}${R.extraLanes.length ? `${R.extraLanes.map((id) => esc(laneOf(id).name)).join(" and ")} ${R.extraLanes.length > 1 ? "are" : "is"} not in this flow.` : ""}</p>` : ""}
+      ${R.missingLanes.length || R.extraLanes.length ? `<p class="lede">${R.missingLanes.length ? `You left out ${R.missingLanes.map((id) => esc(laneOf(id).name)).join(" and ")}; it's shown in a dashed lane. ` : ""}${R.extraLanes.length ? `${R.extraLanes.map((id) => esc(laneOf(id).name)).join(" and ")} ${R.extraLanes.length > 1 ? "aren't" : "isn't"} in this flow.` : ""}</p>` : ""}
       <ul class="verdicts">${[...by("missed"), ...by("near"), ...by("extra"), ...by("right")].map(line).join("")}</ul>
       <button class="reveal" id="rh-again">Try again<span>from empty lanes</span></button>
       <div class="row-actions"><button class="btn" id="rh-again-lanes">Try again, keep my lanes</button></div>`;

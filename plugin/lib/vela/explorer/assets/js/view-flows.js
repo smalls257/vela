@@ -3,6 +3,10 @@
    view and one drives present mode, both on FlowKit's renderer. Save clip records the same frames as MP4 or WebM in
    the browser. Heuristics are labeled where they show: an inferred direction says so under its arrow. */
 const Flows = (() => {
+  /* A contract's state and light in one sentence: "Not decided yet, and it needs you". */
+  const LIGHT_SAYS = { warning: "it's overdue", caution: "it needs you", pending: "it's waiting on the owner's approval", unexamined: "nobody has reviewed it yet",
+    override: "a check was skipped on it", dark: "nothing is blocking it" };
+  const contractSays = (id) => `${CONTRACT[id].state ? stateWord(CONTRACT[id].state) : "Nobody has given it a state yet"}, and ${LIGHT_SAYS[levelOf(id)] || LIGHT[levelOf(id)].word.toLowerCase()}`;
   const TRAVEL = 0.8;
   const st = { key: D.flows.length ? D.flows[0].key : null, cur: -1, speed: 1 };
   let player = null, presenter = null, recording = false;
@@ -56,8 +60,8 @@ const Flows = (() => {
       const t = hitAt(e);
       canvas.style.cursor = t ? "pointer" : "default";
       if (t && t.type === "unknown") { const q = ASK[t.id]; showTip(e, `<b>${esc(E[t.id] ? E[t.id].title : t.id)}</b>${esc(q.state === "open" ? q.question : "Answered: " + (q.outcome || q.question))}`); }
-      else if (t && t.type === "lane") showTip(e, `<b>${esc(FlowKit.laneName(t.id))}</b>${FlowKit.touchedLanes(FlowKit.flowOf(p.key)).has(t.id) ? "in this flow" : "not in this flow; its column stays in place"}`);
-      else if (t && t.type === "contract") showTip(e, `<b>${esc(CONTRACT[t.id].title)}</b>${esc(stateWord(CONTRACT[t.id].state) || "status not recorded")}; ${esc(LIGHT[levelOf(t.id)].word.toLowerCase())}`);
+      else if (t && t.type === "lane") showTip(e, `<b>${esc(FlowKit.laneName(t.id))}</b>${FlowKit.touchedLanes(FlowKit.flowOf(p.key)).has(t.id) ? "in this flow" : "not in this flow"}`);
+      else if (t && t.type === "contract") showTip(e, `<b>${esc(CONTRACT[t.id].title)}</b>${esc(contractSays(t.id))}`);
       else hideTip();
     });
     canvas.addEventListener("mouseleave", hideTip);
@@ -118,7 +122,7 @@ const Flows = (() => {
     const btn = (spec) => Nodes.wire(h("button", { class: "flow-node", type: "button" }, spec.text), spec);
     const group = (title, kids) => (kids.length ? h("div", { class: "fn-group" }, h("b", {}, title), kids) : null);
     return h("details", { class: "flow-nodes", "data-flow-nodes": flowKey },
-      h("summary", {}, "The same flow as a list: steps, contracts, apps and open questions"),
+      h("summary", {}, "The flow as a list"),
       group("Steps", f.steps.map((x) => btn({ text: `${x.n}. ${x.short}`, label: `Step ${x.n}: ${x.short}`, open: () => { const p = playerOf(); if (p) { p.pause(); p.go(f.steps.indexOf(x)); } go(stepNote(flowKey, x), { reset: true }); } }))),
       group("Apps and outside services", lanes.filter((k) => ent(k)).map((k) => btn({ text: titleOf(k), label: titleOf(k), key: k }))),
       group("Contracts", contracts.map((c) => btn({ text: CONTRACT[c].title, label: `${CONTRACT[c].title} (${c})`, key: c }))),
@@ -138,7 +142,7 @@ const Flows = (() => {
     box.innerHTML = "";
     if (st.cur === -1) {
       const e = E[st.key];
-      box.append(h("div", { class: "cap-where" }, h("span", {}, idTag(e.id), ` ${e.state ? stateWord(e.state) : "Status not recorded"} · ${plural(f.steps.length, "step")}`), h("span", { class: "muted" }, "Press space to play, or pick a step")),
+      box.append(h("div", { class: "cap-where" }, h("span", {}, `${e.state ? stateWord(e.state) : "Nobody has given this flow a state yet"} · ${plural(f.steps.length, "step")}`), h("span", { class: "muted" }, "Press space to play, or pick a step")),
         h("div", { class: "cap-title" }, e.title), e.text ? h("p", { class: "cap-intro" }, shorten(e.text, 360)) : "",
         h("ol", { class: "cap-steps" }, f.steps.map((stp, i) => h("li", {}, h("button", { onclick: () => { player.pause(); player.go(i); } }, stp.short)))), ...[inferredLine()].filter(Boolean));  // native append prints a null as "null"
       return;
@@ -155,18 +159,20 @@ const Flows = (() => {
       const c = CONTRACT[m.contract];
       facts.append(h("li", {}, h("i", { class: "lane-dot", style: `background:${FlowKit.laneColor(m.from)}` }),
         h("span", {}, h("b", {}, `${titleOf(m.from)} to ${m.to.map(titleOf).join(", ")}`), " over ", refChip(m.contract), m.kind === "request" ? ", and the answer comes back." : ".",
-          m.direction === "inferred" ? h("span", { class: "heuristic" }, ` (Arrow direction guessed from who provides the contract: ${titleOf(c.provider)}${m.to.length > 1 ? `; the step doesn't say who receives it, so all ${m.to.length} users are drawn` : ""}.)`) : null,
+          m.direction === "inferred" ? h("span", { class: "heuristic", title: `The arrow is drawn from ${titleOf(c.provider)}, the contract's provider${m.to.length > 1 ? `, to all ${m.to.length} of its users` : ""}` }, " (The page doesn't say who sends this; fix the step text to say.)") : null,
           c.crosses ? h("div", { class: "muted crosses-line", html: "Carries: " + c.crosses }) : null)));
     }
     if (!stp.messages.length && stp.self) facts.append(h("li", {}, h("i", { class: "lane-dot", style: `background:${FlowKit.laneColor(stp.self)}` }),
-      h("span", {}, "Inside ", h("b", {}, titleOf(stp.self)), "; no contract is used. ", h("span", { class: "heuristic" }, "(Shown in the first app the step names.)"))));
+      h("span", {}, "Inside ", h("b", {}, titleOf(stp.self)), "; no other app is involved.")));
     for (const pin of stp.unknowns) {
       const q = ASK[pin.id]; if (!q) continue;
       const lv = unknownLevel(pin.id);
-      facts.append(h("li", {}, lampEl(lv === "resolved" ? "resolved" : lv), h("span", {}, refChip(pin.id), " ", E[pin.id] ? E[pin.id].title + ". " : "",
+      // the chip names the question once; what it holds up is said by name, never by the contract's code
+      const holds = pin.why.startsWith("holds") ? pin.why.replace(/^holds\s*/, "").replace(/[A-Z][A-Z0-9]*-[\w.-]+/g, (id) => titleOf(keyForId(id) || id)) : "";
+      facts.append(h("li", {}, lampEl(lv === "resolved" ? "resolved" : lv), h("span", {}, refChip(pin.id), " ",
         q.state === "open" ? h("span", { class: "pill " + lv }, `Open, ask ${q.ask.name} by ${day(q.askBy)}`) : h("span", { class: "pill" }, "Answered"),
-        pin.why.startsWith("holds") ? h("span", { class: "muted" }, ` Shown at this step because it ${pin.why.replace(/^holds/, "blocks")}.`) : null,
-        q.state !== "open" && pin.textSaysOpen ? h("div", { class: "heuristic" }, "The flow text still calls this open, but the question has been answered, so it shows as answered.") : null)));
+        holds ? h("span", { class: "muted" }, ` Holds up ${holds}.`) : null,
+        q.state !== "open" && pin.textSaysOpen ? h("div", { class: "heuristic" }, "Answered, but the flow page still calls it open; update the page.") : null)));
     }
     const ends = stepEnds(stp), named = stp.named.filter((k) => !ends.has(k));
     if (named.length) facts.append(h("li", {}, h("i", { class: "lane-dot named" }), h("span", { class: "heuristic" }, "Also mentioned in the step: ", named.map((k) => refChip(k)))));
@@ -215,12 +221,12 @@ const Flows = (() => {
     else { player.pause(); player.go(st.cur, step >= 0); }
     history.replaceState(null, "", `#flows&open=${encodeURIComponent(key)}${st.cur >= 0 ? `&step=${st.cur + 1}` : ""}${Branches.hashPart(key)}`);
   }
-  function clipNote() { const fmt = FlowKit.clipFormat(); return fmt ? `Records a ${fmt.ext.toUpperCase()} video, 1280 by 720${Sound.enabled ? ", with sound" : ""}, in the browser` : "Recording a video doesn't work in this browser"; }
+  function clipNote() { const fmt = FlowKit.clipFormat(); return fmt ? "Saves this flow as a video you can drop into slides" : "Recording a video doesn't work in this browser; try Chrome"; }
   async function saveClip() {
     await (document.fonts ? document.fonts.ready : Promise.resolve());
     if (recording) return;
     const f = FlowKit.flowOf(st.key), btn = $("#clip-btn");
-    if (!FlowKit.clipFormat()) { toast("This browser cannot record video, so no clip was saved."); return; }
+    if (!FlowKit.clipFormat()) { toast("This browser can't record video. Try Chrome."); return; }
     recording = true; if (btn) btn.disabled = true;
     try {
       const total = Math.round(FlowKit.clipPlan(f).total);
@@ -232,10 +238,10 @@ const Flows = (() => {
     } catch (err) {
       console.error("[flows] the clip was not saved", err);
       window.__clipResult = { ok: false, error: String(err.message || err) };
-      toast(`The clip was not saved: ${err.message}`);
+      toast(`The video didn't save: ${err.message}`);
     } finally {
       recording = false;
-      const b = $("#clip-btn"); if (b) { b.disabled = false; b.lastChild.textContent = "Save clip"; }
+      const b = $("#clip-btn"); if (b) { b.disabled = false; b.lastChild.textContent = "Save as video"; }
     }
   }
 
@@ -253,7 +259,7 @@ const Flows = (() => {
       h("button", { class: "key", "aria-label": "Next step", onclick: () => { presenter.pause(); presenter.go(presenter.cur + 1); }, html: '<svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2"/></svg>' }),
       h("div", { class: "pr-dots", id: "pr-dots" }),
       h("span", { class: "hints" }, h("kbd", {}, "←"), " ", h("kbd", {}, "→"), " or ", h("kbd", {}, "Space"), " · ", h("kbd", {}, "Esc"), " to leave"),
-      h("button", { class: "btn", onclick: closePresent }, "Leave present"));
+      h("button", { class: "btn", onclick: closePresent }, "Exit (Esc)"));
     root.append(h("div", { class: "present-top" }, h("div", {}, h("div", { class: "pt-kicker" }, `${e.id} · ${D.title}`), h("h1", {}, e.title))), canvas, cap, bar);
     const paint = (p) => {
       const f = FlowKit.flowOf(p.key), stp = f.steps[p.cur];
@@ -265,7 +271,7 @@ const Flows = (() => {
       btn.innerHTML = p.playing ? '<svg viewBox="0 0 24 24"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z" fill="currentColor"/></svg>' : '<svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></svg>';
       root.dataset.step = stp ? stp.n : "";
     };
-    presenter = makePlayer(canvas, { key, cur: -1, present: true, onStep: paint, onPlay: paint, onFlow: paint, onPick: (t) => toast(`${t.id}: leave present mode to open it`) });
+    presenter = makePlayer(canvas, { key, cur: -1, present: true, onStep: paint, onPlay: paint, onFlow: paint, onPick: (t) => toast(`Press Esc to leave, then open ${titleOf(keyForId(t.id) || t.id)}`) });
     presenter.go(step ?? 0);
     paint(presenter);
     let idle = 0;

@@ -71,13 +71,13 @@ def test_a_link_naming_a_branch_opens_it_with_its_marks_in_words(tmp_path, chrom
     assert '<option value="happy">Happy path (not fully checked)</option>' in out
     # with no Can time out written, the check stops at F10 before it judges a missing branch (R0): not drawn, not passed
     assert '<option value="CON-001.refused_dependency_down" disabled="">Booking API: Refused dependency down (not drawn, not fully checked)</option>' in out
-    assert ("3 ways this flow can go: the happy path and 2 branches. None has a finding, 5 weren't fully checked, and 2 answers "
-            "aren't drawn at all.") in out
+    assert ("This flow can go wrong 2 ways, and none of them breaks the flow. 5 weren't fully checked, and 2 replies "
+            "aren't drawn yet.") in out
     assert re.search(r'<div class="br-picker" data-branches="FLO-009"><label for="br-pick-FLO-009" class="fp-kind">Show</label>', out)
     assert out.count('class="stage-canvas"') == 1 and "<svg class=\"br-svg" not in out  # one diagram
     # a flow drawn the old way keeps the played view and one line
     out = html.unescape(dom(chrome_path, page, "flows&open=FLO-001&still"))
-    assert "Error cases aren't drawn yet" in out and 'class="br-pick"' not in out
+    assert "What happens when something fails isn't drawn for this flow yet" in out and 'class="br-pick"' not in out
 
 
 @pytest.mark.browser

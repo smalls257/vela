@@ -32,14 +32,14 @@ def test_a_slice_with_no_record_is_not_checked_never_passed():
     catalog = readers.read_vault(files_of())
     found = standing.standing(catalog, {"format": 1, "slices": {}}, "SLC-001", TODAY, "v1")
     assert (found.state, found.words, found.passed) == (standing.MISSING, "not checked", False)
-    assert found.line() == "not checked. No full flow check of it has been recorded yet."
+    assert found.line() == "Nobody has run the flow check on it yet."
 
 
 def test_a_record_that_holds_says_passed_with_its_date():
     catalog = readers.read_vault(files_of())
     found = standing.standing(catalog, recorded(catalog, "SLC-001"), "SLC-001", TODAY, "v1")
     assert (found.state, found.words, found.checked) == (standing.PASSED, "passed", TODAY)
-    assert found.line() == f"passed, recorded {TODAY}"
+    assert found.line() == "passed on 14 Oct"
 
 
 def test_a_record_of_a_slice_that_changed_since_is_not_checked_since_its_date():
@@ -89,8 +89,8 @@ def test_the_handoff_record_lists_each_slice_s_check_and_still_reads():
         def __init__(self, key, label):
             self.key, self.label = key, label
     lines = handoff.check_lines([Slice("SLC-001", "SLC-001 Hold an item"), Slice("SLC-002", "SLC-002 Pay for it")], found)
-    assert lines == [f"- SLC-001 Hold an item: passed, recorded {TODAY}",
-                     "- SLC-002 Pay for it: not checked. No full flow check of it has been recorded yet."]
+    assert lines == ["- SLC-001 Hold an item: passed on 14 Oct",
+                     "- SLC-002 Pay for it: Nobody has run the flow check on it yet."]
     entry = handoff.Entry("APP-x", "app", "05-building-blocks/x.md", "decided", "0123456789ab")
     text = handoff.write("APP-x", [entry], "abc1234", TODAY, (), "X", lines)
     assert handoff.CHECKS_HEADING in text and lines[1] in text

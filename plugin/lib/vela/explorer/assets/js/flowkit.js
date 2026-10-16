@@ -36,7 +36,7 @@ const FlowKit = (() => {
   }
   /* A flow whose steps never say who sends: every arrow is drawn from the contract's provider. On a call an arrow
      reads as fact, so such a flow carries one line saying so (a flow with some named senders is labeled per arrow). */
-  const INFERRED_NOTE = "Arrow directions are guessed from who provides each contract";
+  const INFERRED_NOTE = "The flow page doesn't say who sends each step, so the arrows are a guess. Say who sends in the step text.";
   function inferredNote(key) {
     const msgs = FLOW[key].steps.flatMap((stp) => stp.messages);
     return msgs.length && msgs.every((m) => m.direction === "inferred") ? INFERRED_NOTE : "";
@@ -292,7 +292,7 @@ const FlowKit = (() => {
       if (step.differs && st.seen) st.seen.add("flow.differs");
       const ref = u.ref && FLOW[u.ref];
       ctx.font = `400 ${12.5 * k}px ${SERIF}`; ctx.fillStyle = C.ink; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-      ctx.fillText(fitText(ctx, ref ? `Repeats “${E[u.ref].title}” (${E[u.ref].id})` : step.short, x1 - x0 - 24 * k), (x0 + x1) / 2, y + 0.5 * k);
+      ctx.fillText(fitText(ctx, ref ? `Repeats “${E[u.ref].title}”` : step.short, x1 - x0 - 24 * k), (x0 + x1) / 2, y + 0.5 * k);
       ctx.globalAlpha = 1;
       hits.push({ type: ref ? "ref" : "row", id: ref && u.ref, si: r.si, x: x0, y: y - bh / 2, w: x1 - x0, h: bh });
     }
@@ -355,7 +355,7 @@ const FlowKit = (() => {
     });
     ctx.globalAlpha = clamp(T / 0.4, 0, 1); ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
     ctx.fillStyle = C.muted; ctx.font = `500 ${22 * k * b}px ${UI}`;
-    ctx.fillText(`${flow.state ? stateWord(flow.state) : "Status not recorded"} · ${D.title}`, 96 * k, 250 * k);
+    ctx.fillText(`${flow.state ? stateWord(flow.state) : "Nobody has given this flow a state yet"} · ${D.title}`, 96 * k, 250 * k);
     ctx.fillStyle = C.ink; ctx.font = `400 ${64 * k * Math.min(b, 1.3)}px ${SERIF}`;
     const lines = wrap(ctx, flow.title, 680 * k);
     lines.forEach((l, i) => ctx.fillText(l, 92 * k, 330 * k + i * 72 * k));
@@ -383,12 +383,12 @@ const FlowKit = (() => {
     open.slice(0, 3).forEach((id) => {
       const q = ASK[id], color = markerColor(id) || C.muted;
       ctx.fillStyle = color; ctx.beginPath(); ctx.arc(104 * k, y - 8 * k, 8 * k, 0, 7); ctx.fill();
-      ctx.fillStyle = C.ink; ctx.font = `600 ${24 * k}px ${UI}`; ctx.fillText(`${id} ${E[id] ? E[id].title : ""}`, 128 * k, y);
+      ctx.fillStyle = C.ink; ctx.font = `600 ${24 * k}px ${UI}`; ctx.fillText(E[id] ? E[id].title : id, 128 * k, y);  // a slide for an audience: the name, not the code
       ctx.font = `400 ${21 * k}px ${SERIF}`; ctx.fillStyle = C.ink2;
       const lines = wrap(ctx, q.question || "", 1000 * k).slice(0, 3);
       lines.forEach((l, i) => ctx.fillText(l, 128 * k, y + 36 * k + i * 29 * k));
       ctx.font = `500 ${18 * k}px ${UI}`; ctx.fillStyle = color;
-      ctx.fillText(`Ask ${q.ask.name}${q.ask.inferred ? " (a guess)" : ""} by ${day(q.askBy)}`, 128 * k, y + 36 * k + lines.length * 29 * k + 8 * k);
+      ctx.fillText(`Ask ${q.ask.name}${q.ask.inferred ? " (our guess at who)" : ""} by ${day(q.askBy)}`, 128 * k, y + 36 * k + lines.length * 29 * k + 8 * k);
       y += 36 * k + lines.length * 29 * k + 64 * k;
     });
     if (open.length > 3) { ctx.fillStyle = C.muted; ctx.font = `400 ${20 * k}px ${UI}`; ctx.fillText(`And ${open.length - 3} more in the plan.`, 128 * k, y); y += 44 * k; }
@@ -436,7 +436,7 @@ const FlowKit = (() => {
      scheduled up front on the audio clock and recorded with it. Failure raises; it never returns an empty file. */
   async function recordClip(flow, { onProgress } = {}) {
     const fmt = clipFormat();
-    if (!fmt) throw new Error("This browser cannot record video (no MediaRecorder with an MP4 or WebM type).");
+    if (!fmt) throw new Error("This browser can't record video. Try Chrome.");
     const canvas = document.createElement("canvas");
     canvas.width = CLIP.W; canvas.height = CLIP.H;
     canvas.style.cssText = "position:fixed;left:-9999px;top:0;width:640px;height:360px";
@@ -466,7 +466,7 @@ const FlowKit = (() => {
     if (audioDest) Sound.comp.disconnect(audioDest);
     stream.getTracks().forEach((t) => t.stop());
     canvas.remove();
-    if (!chunks.length) throw new Error("The recorder produced no data.");
+    if (!chunks.length) throw new Error("The recording came out empty; try again.");
     const blob = new Blob(chunks, { type: fmt.mime.split(";")[0] });
     return { blob, ext: fmt.ext, mime: fmt.mime, seconds: plan.total, name: `${slug(flow.title)}.${fmt.ext}` };
   }
@@ -486,10 +486,10 @@ const FlowKit = (() => {
   Legend.define("flow.reply", [ln({ stroke: "ink-2", w: 1.8, head: "open", dash: "4 3" })], "Dashed arrow: the answer coming back");
   Legend.define("flow.self", [bx({ stroke: "ink-2", w: 1.8, x: 9, y: 3, width: 14, height: 10, rx: 5 })], "Loop on one column: an app doing this step on its own");
   Legend.define("flow.band", [bx({ stroke: "ink-3", w: 1.2, dash: "3 3", rx: 4, y: 3.5, height: 9 })], "Dashed band: a step with no sender, a note, or a repeat of another flow");
-  Legend.define("flow.future", [ln({ stroke: "ink-4", w: 1.8, dash: "2 4.5" })], "Dotted line: a step that has not been played yet");
+  Legend.define("flow.future", [ln({ stroke: "ink-4", w: 1.8, dash: "2 4.5" })], "Dotted line: a step that hasn't played yet");
   Legend.define("flow.chip", [bx({ fill: "deck", stroke: "ink-3", w: 1.2, rx: 4, y: 4, height: 8 })], "Pill on an arrow: the contract used, outlined in its status color");
   Legend.define("flow.pin", [{ k: "dot", fill: "caution", r: 4.5 }], "Glowing dot at a step: an open question about this step, in its status color");
-  Legend.define("flow.pin.settled", [{ k: "dot", fill: "room", stroke: "ink-3", w: 1.3, r: 5 }, { k: "text", t: "✓", fill: "ink-3", y: 11, size: 8 }], "Ring with a tick: a question about this step that has been answered");
+  Legend.define("flow.pin.settled", [{ k: "dot", fill: "room", stroke: "ink-3", w: 1.3, r: 5 }, { k: "text", t: "✓", fill: "ink-3", y: 11, size: 8 }], "Ring with a check mark: a question about this step that's been answered");
   Legend.define("flow.lane", [bx({ fill: "deck-2", stroke: "ink-3", w: 1.2, rx: 4.5, y: 3.5, height: 9 }), { k: "dot", fill: "ink-2", x: 9, r: 2 }], "Pill at the top: one app or outside service, in its own color");
   Legend.define("flow.lane.idle", [bx({ fill: "deck-2", stroke: "ink-3", w: 1.2, rx: 4.5, y: 3.5, height: 9, opacity: 0.4 })], "Faded pill: this app or service takes no part in the flow");
   Legend.define("flow.differs", [ln({ stroke: "caution", w: 2.2, head: "fill" }), bx({ stroke: "caution", w: 1.4, rx: 4, x: 9, y: 1, width: 14, height: 5 })], "Amber: differs from the happy path, on the branch chosen in Show");

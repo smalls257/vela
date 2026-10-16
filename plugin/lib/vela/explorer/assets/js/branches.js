@@ -56,14 +56,16 @@ const Branches = (() => {
     return { key, id: e.id, title: e.title, state: e.state || "", steps, unknowns: FLOW[key].unknowns, branch: o.id };
   }
 
-  /* "6 ways this flow can go: the happy path and 5 branches. 1 has a finding, and 1 wasn't fully checked." */
+  /* The answer first: "One of the 5 ways this flow can go wrong has a problem; pick it under Show to see what and who
+     owns it." Then what the check couldn't see: branches it didn't finish, replies nobody drew. */
   function countLine(d) {
     const n = d.counts.branches, f = d.counts.withFindings, gap = d.counts.notDrawn, unchecked = d.counts.notChecked;
-    const said = [f ? `${f} ${f === 1 ? "has" : "have"} a finding` : "None has a finding", unchecked ? `${unchecked} ${unchecked === 1 ? "wasn't" : "weren't"} fully checked` : "",
-      gap ? `${gap} ${gap === 1 ? "answer isn't" : "answers aren't"} drawn at all` : ""].filter(Boolean);
+    const ways = `${n === 1 ? "way" : "ways"} this flow can go wrong`;
+    const lead = f ? `${f === 1 ? "One" : f} of the ${n} ${ways} ${f === 1 ? "has a problem" : "have problems"}; pick ${f === 1 ? "it" : "one"} under Show to see what and who owns it.`
+      : `This flow can go wrong ${plural(n, "way")}, and ${n === 1 ? "it doesn't" : "none of them"} ${n === 1 ? "break" : "breaks"} the flow.`;
+    const more = [unchecked ? `${unchecked} ${unchecked === 1 ? "wasn't" : "weren't"} fully checked` : "", gap ? `${gap} ${gap === 1 ? "reply isn't" : "replies aren't"} drawn yet` : ""].filter(Boolean);
     const tail = !unchecked && d.check.status === "passes" ? " The flow check passes." : "";
-    const joined = said.length > 1 ? said.slice(0, -1).join(", ") + ", and " + said[said.length - 1] : said[0];
-    return `${n + 1} ways this flow can go: the happy path and ${plural(n, "branch", "branches")}. ${joined}.${tail}`;
+    return `${lead}${more.length ? " " + upFirst(more.join(", and ")) + "." : ""}${tail}`;
   }
 
   /* The picker, for the header row, styled as the flow picker's button is. */
@@ -102,15 +104,15 @@ const Branches = (() => {
     const title = E[key] ? E[key].title : key;
     return h("div", { class: "br-findings", "data-branches-findings": key },
       ix.map((i) => findingNote(d.findings[i], title, d.flowWide.includes(i))),
-      unchecked ? h("p", { class: "br-unchecked" }, "Not fully checked: the flow check stopped before the end, so this branch is not shown as passing.") : null);
+      unchecked ? h("p", { class: "br-unchecked" }, "The flow check stopped partway, so we can't say this branch works yet.") : null);
   }
   function findingNote(f, title, wide) {
-    const head = `${f.severity === "warning" ? "Warning" : "Finding"}${wide ? ", about the whole flow" : ""}`;
+    const head = wide ? "Problem with the whole flow" : "Problem";
     const owners = f.owners.length ? ` ${f.owners.length === 1 ? "Owner" : "Owners"}: ${f.owners.join(", ")}.` : "";
     const trace = f.trace.length ? h("ol", { class: "br-trace" }, f.trace.map((t) => h("li", {}, t))) : null;
-    const note = Nodes.note({ diagram: `Flow ${title}, error cases`, name: `${head}: ${shorten(f.summary, 60)}`, kind: f.severity === "warning" ? "Flow-check warning" : "Flow-check finding",
+    const note = Nodes.note({ diagram: `Flow ${title}, error cases`, name: `${head}: ${shorten(f.summary, 60)}`, kind: "Problem the flow check found",
       text: f.summary, facts: [["Owners", f.owners.join(", ") || "not named"], ...(f.trace.length ? [["How it happens", h("ol", { class: "br-trace" }, f.trace.map((t) => h("li", {}, t)))]] : []),
-        ...(f.covered ? [["Covered", `by an override until ${f.covered}`]] : [])],
+        ...(f.covered ? [["Accepted for now", `until ${isDate(f.covered) ? day(f.covered) : f.covered}`]] : [])],
       relates: f.items.filter((k) => ent(k)) });
     const open = Nodes.wire(h("button", { class: "linkish br-open", type: "button" }, "Open in the panel"), { label: `${head}: ${f.title}`, note });
     return h("div", { class: "br-finding " + f.severity },

@@ -68,7 +68,7 @@
       const d = D.branches[key];
       Nav.open("flows", key); Flows.select(key, -1); await frames();
       if (d.state !== "drawn") {
-        ok($(`[data-branches-note="${CSS.escape(key)}"]`) && !$(".br-pick") && $(".br-note").textContent.includes("aren't drawn yet") && $$("canvas.stage-canvas").length === 1,
+        ok($(`[data-branches-note="${CSS.escape(key)}"]`) && !$(".br-pick") && $(".br-note").textContent.includes("isn't drawn for this flow yet") && $$("canvas.stage-canvas").length === 1,
           `branches, ${key}: one line says its error cases aren't drawn yet, no picker, one diagram`, `branches, ${key}: the not-drawn line is missing, or a picker or a second diagram shows`);
         continue;
       }
@@ -80,7 +80,7 @@
         `branches, ${key}: "Show" in the header row beside the flow picker, Happy path first and chosen, ${plural(all.length - 1, "branch", "branches")} under ${plural(groups.length, "call")}, one diagram`,
         `branches, ${key}: the picker has ${opts.length} options for ${all.length}, groups ${JSON.stringify(groups)}, chosen ${sel && sel.value}, ${$$("canvas.stage-canvas").length} canvases`);
       const sum = $(`[data-branches-summary="${CSS.escape(key)}"]`);
-      ok(!!sum && sum.previousElementSibling === head && / ways this flow can go: the happy path and /.test(sum.textContent), `branches, ${key}: the summary line sits under the header row`, `branches, ${key}: the summary line is missing or out of place`);
+      ok(!!sum && sum.previousElementSibling === head && /this flow can go wrong /i.test(sum.textContent), `branches, ${key}: the summary line sits under the header row`, `branches, ${key}: the summary line is missing or out of place`);
       ok(!d.check.notChecked || opts.every((o) => o.textContent.includes("not fully checked")), `branches, ${key}: ${d.check.notChecked ? "every option says not fully checked" : "the check reached the end"}`,
         `branches, ${key}: the check did not reach the end, but an option does not say so`);
       ok(all.every((o) => o.marks.every((m) => opts.find((x) => x.value === o.id).textContent.includes(m))), `branches, ${key}: every option says its flow-check marks in words`, `branches, ${key}: an option drops its marks`);
