@@ -675,6 +675,10 @@ How the material keeps the scale honest:
 - A decision with `item:` names a requirement on the grill-ready snapshot; `blocked: true` ones are held there by an
   open unknown, and the lead's `refuse_until` keeps them undecided. `vela check --gate grill` on the snapshot says
   exactly the other eight are ready, and `tests/test_probe_scale.py` holds it to that.
+- A loose end counts in `scale-unsure` when its turn proposes who or by when and asks about it anywhere later in that
+  turn, so one closing question can confirm a batch. Until 2026-10-16 the question had to sit within 200 characters
+  of the proposal (the unsure-owner check's window, which that check keeps), and a dev baseline run that proposed and
+  asked for all six in one turn scored 0.
 - Checks read items by kind, category and those flags only. Summaries hold counts; item IDs go to the detail file.
 
 **The ceiling.** Each scaled case has an `oracle:`, a plain instruction to do exactly the measured behavior. `--oracle`

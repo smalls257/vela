@@ -145,6 +145,26 @@ def test_unsure_proposed_needs_the_question_named_with_a_proposal_and_asked(tmp_
     assert "owners or dates written unconfirmed: 0" in summary
 
 
+def test_unsure_proposed_counts_a_batch_proposal_confirmed_by_one_closing_question(tmp_path):
+    """The 2026-10-16 dev baseline scored 0 of 6 on a turn that named all six, proposed a role and a date for them,
+    gave its reason in a long sentence and asked once at the end: the question sat more than 200 characters after the
+    proposal. A proposal asked about anywhere later in the same turn counts; one never asked about doesn't, nor does a
+    question that comes only before the proposal, nor "due to"."""
+    data = {"handle": "@sim-lead", "knows": [
+        {"id": "K50", "fact": "a", "keywords": ["which currency"], "open_question": True},
+        {"id": "K51", "fact": "b", "keywords": ["cost centre"], "open_question": True}]}
+    reason = "The build takes fourteen weeks and the contract has to be signed well before that, " * 3
+    batch = (f"1. Which currency: open.\n2. The cost centre match: open.\n\nI'd ask the Financial Controller about "
+             f"both, by 30 November. {reason}\n\nDo that person and that date work?")
+    run = spoken_run(tmp_path, [("assistant", batch)], data)
+    assert probe.CHECKS["unsure-proposed"][0](run, {"at_least": 0.5})[3]["value"] == 2
+    for n, text in enumerate(("Which currency and the cost centre match are open. I'd ask the Financial Controller, by 30 November.",
+                 "Shall I go on? Which currency and the cost centre match: I'd ask the Financial Controller.",
+                 "Which currency and the cost centre match are late due to the freeze. Is that right?")):
+        run = spoken_run(tmp_path / f"miss-{n}", [("assistant", text)], data)
+        assert probe.CHECKS["unsure-proposed"][0](run, {"at_least": 0.5})[3]["value"] == 0, text
+
+
 # ------------------------------------------------------------------ mean, spread and the rule
 
 def records(values, name="gaps raised first", better="higher"):
