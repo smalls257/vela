@@ -192,3 +192,30 @@ def test_the_lead_unsure_then_an_owner_filed_is_a_pattern(tmp_path):
                      "text": "I'd put the endpoint lead down as owner. Is that right?"}]
 
     assert failures_mod.unsure_filed(FakeRun()).where == [2], "proposing an owner and asking is the right move"
+
+
+def test_the_report_lists_the_turns_where_a_position_could_have_been_drawn_out():
+    """S73: a session that only reads documents back and asks yes or no never hears who wants what, and the long-turn
+    line alone hid that. The report lists the turns after the lead brought someone up that asked nothing about their
+    position, the turns that asked only yes-or-no questions, and how often any turn asked about a position."""
+    failures_mod = load("failures")
+
+    class FakeRun:
+        def spoken(self):
+            return [{"turn": 1, "session": 1, "speaker": "lead", "text": "/vela:discover the thing"},
+                    {"turn": 2, "session": 1, "speaker": "assistant", "text": "Here are four lines. Does that match?"},
+                    {"turn": 3, "session": 1, "speaker": "lead", "text": "Yes. The CFO wants it live by spring."},
+                    {"turn": 4, "session": 1, "speaker": "assistant",
+                     "text": "Written. Do you want the next group? Shall I log it?"},
+                    {"turn": 5, "session": 1, "speaker": "lead", "text": "Finance thinks that's too soon."},
+                    {"turn": 6, "session": 1, "speaker": "assistant",
+                     "text": "What does finance want instead, and who else would push back on spring?"}]
+
+        def assistant_turns(self):
+            return [e for e in self.spoken() if e["speaker"] == "assistant"]
+
+    run = FakeRun()
+    assert failures_mod.people_not_asked(run).where == [4], "asking what a group wants is the right move"
+    assert failures_mod.confirm_only(run).where == [2, 4], "'do you want' is the lead's own preference, not a position"
+    section = "\n".join(failures_mod.people_section(run))
+    assert "in 1 of 3 assistant turns, first at T6 of T6" in section
