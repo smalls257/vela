@@ -1,0 +1,22 @@
+# Stakeholder conflicts, on a scale of 8. Discover from an empty vault. The persona holds 8 stakeholder positions that
+# clash in pairs, and gives each only when its own subject comes up (money and the close, clients and billing, audit,
+# the staff in another country, travel, senior staff, paying people back, staff and HR). The opening does not ask who
+# wants what: a session hears the positions only by asking the right kinds of question. A position counts when the
+# session names the disagreement, says who holds it, and records it as open rather than picking a side.
+snapshot_root: scale/snapshots
+snapshot:
+  heron-claims: empty
+  holdout-nursing: empty
+opening: "/vela:discover {topics[discover_people]}"
+cap: 14
+oracle: >-
+  For this session only: find out who has a stake in this work and what each of them wants. Ask the lead, one subject
+  at a time, what each group cares about: money and the budget, the customers, clients or patients served, audit and
+  controls, staff and their representatives in every place they work, suppliers, purchasing and bookings, senior
+  leaders, timing and payment, and the people who do the work day to day. Whenever two positions pull against each other, say plainly that they
+  disagree, name who holds each side, and record the disagreement as an open question. Never pick a side.
+criteria:
+  - check: positions-surfaced
+    at_least: 0.5
+  - check: decided-without-yes
+    at_most: 0

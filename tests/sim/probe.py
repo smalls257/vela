@@ -57,10 +57,12 @@ def _load_driver():
 
 sim = _load_driver()
 seal = sim.load_sim_module("seal")
+scale = sim.load_sim_module("probe_scale")
 
 ToolFailure = sim.ToolFailure
 SNAPSHOTS = HERE / "snapshots"
 PROBES = HERE / "probes"
+SCALE_CASES = HERE / "scale" / "cases"  # the scaled cases and their snapshots (probe_scale.py); a case may name its root
 PROBE_RESULTS = sim.RESULTS / "probes"
 DETAIL_NAME = "detail-DO-NOT-READ-WHEN-BLIND.md"
 EXCERPT = 200
@@ -78,11 +80,17 @@ def load_persona(ref):
 
 
 CHECKS = {}  # name -> (function, the parameters it requires)
+JUDGED_CHECKS = set()  # checks that call the judge, so a run that scores one keeps the judge's reserve
+measure, HIGHER, LOWER = scale.measure, scale.HIGHER, scale.LOWER
 
 
-def check(name, *params):
+def check(name, *params, judged=False):
+    """Register a check. `judged=True` for any check that calls the judge (here or in probe_scale), so the run's
+    budget keeps the judge's reserve; a judged check without it could spend the share dry before the judge runs."""
     def register(fn):
         CHECKS[name] = (fn, params)
+        if judged:
+            JUDGED_CHECKS.add(name)
         return fn
     return register
 
@@ -91,13 +99,15 @@ def case_problems(case):
     if not isinstance(case, dict):
         return ["the case must be a mapping"]
     problems = []
-    snapshots = case.get("snapshot")
+    snapshots, root = case.get("snapshot"), snapshot_root(case)
     if not isinstance(snapshots, dict) or not snapshots:
         problems.append("'snapshot' must map each persona name to a snapshot name")
     else:
         for persona, name in snapshots.items():
-            if not (SNAPSHOTS / str(persona) / str(name)).is_dir():
-                problems.append(f"snapshot {persona}/{name} is not a folder in {SNAPSHOTS}")
+            if not (root / str(persona) / str(name)).is_dir():
+                problems.append(f"snapshot {persona}/{name} is not a folder in {root}")
+    if "oracle" in case and not (isinstance(case["oracle"], str) and case["oracle"].strip()):
+        problems.append("'oracle' must be the plain instruction a ceiling run passes the assistant, or left out")
     problems += sim.news_problems(case.get("news"))
     if not isinstance(case.get("opening"), str) or not case["opening"].startswith("/vela:"):
         problems.append("'opening' must be a /vela: command")
@@ -126,8 +136,16 @@ def case_problems(case):
     return problems
 
 
+def snapshot_root(case):
+    """SNAPSHOTS, or the folder a case names with `snapshot_root:` (relative to tests/sim), such as scale/snapshots."""
+    root = case.get("snapshot_root") if isinstance(case, dict) else None
+    return HERE / root if root else SNAPSHOTS
+
+
 def load_case(ref):
     path = pathlib.Path(ref) if str(ref).endswith(".yaml") else PROBES / f"{ref}.yaml"
+    if not path.is_file() and not str(ref).endswith(".yaml") and (SCALE_CASES / f"{ref}.yaml").is_file():
+        path = SCALE_CASES / f"{ref}.yaml"
     case = sim.load_yaml(path)
     problems = case_problems(case)
     if problems:
@@ -150,7 +168,7 @@ def snapshot_dir(case, persona_name):
     name = (case.get("snapshot") or {}).get(persona_name)
     if not name:
         raise ToolFailure(f"case {case['name']} has no snapshot for persona {persona_name}")
-    return SNAPSHOTS / persona_name / name
+    return snapshot_root(case) / persona_name / name
 
 
 def inbox_problems(vault, persona):
@@ -167,7 +185,8 @@ def build_probe_vault(run_dir, snapshot, persona):
     A plugin inside the snapshot is removed first: the probe exists to test the skills as they are now."""
     vault, origin = run_dir / "vault", run_dir / "origin.git"
     shutil.copytree(snapshot, vault, symlinks=True, ignore=shutil.ignore_patterns(".git"))
-    label = snapshot.relative_to(SNAPSHOTS).as_posix() if snapshot.is_relative_to(SNAPSHOTS) else str(snapshot)
+    label = snapshot.relative_to(SNAPSHOTS).as_posix() if snapshot.is_relative_to(SNAPSHOTS) else \
+        snapshot.relative_to(HERE).as_posix() if snapshot.is_relative_to(HERE) else str(snapshot)
     notes = [f"vault copied from snapshot {label}"]
     skills = vault / ".claude" / "skills"
     if skills.exists():
@@ -273,6 +292,7 @@ class ProbeRun(sim.Arm):
         self.watch = []  # item IDs a decided-items criterion names, whose state is read after every turn
         self.item_decisions, self.item_seen = [], {}
         self.yes_pending = False  # the lead said yes to a question, and no decision has used that yes yet
+        self.oracle = ""  # a ceiling run's plain instruction, appended to the assistant's system prompt
 
     def start(self):
         self.vault, self.notes = build_probe_vault(self.dir, self.snapshot, self.persona)
@@ -282,7 +302,8 @@ class ProbeRun(sim.Arm):
             self.transcript.add(speaker="driver", session=0, mode="setup", event="setup", text=note)
 
     def assistant_turn(self, message, session_id, cwd=None):
-        parsed, result = super().assistant_turn(message, session_id, cwd)
+        with scale.oracle_argv(sim, self.oracle):
+            parsed, result = super().assistant_turn(message, session_id, cwd)
         turn = self.transcript.turn + 1  # the turn number the transcript is about to give this reply
         previous = next((e["text"] for e in reversed(self.transcript.spoken()) if e["speaker"] == "assistant"), "")
         now = decided_lines(self.vault)
@@ -618,7 +639,7 @@ def flagged_share(run, criterion):
     summary = (f"{category}: {counts['flagged']} of {len(rows)} flagged, {counts['listed']} listed, "
                f"{counts['never']} never ({pct(share)}; need at least {pct(criterion['at_least'])})")
     detail = [flag_line(r) for r in rows]
-    return passed, summary, detail, counts["flagged"]
+    return passed, summary, detail, measure(f"{category} flagged", counts["flagged"], len(rows))
 
 
 def flag_line(row):
@@ -640,7 +661,8 @@ def decided_without_yes(run, criterion):
     passed = len(bad) <= criterion["at_most"]
     summary = (f"decided without an explicit yes: {len(bad)} (need at most {criterion['at_most']}); "
                f"decisions recorded in all: {len(run.decisions)}")
-    return passed, summary, [decision_line(d) for d in run.decisions], len(bad)
+    return (passed, summary, [decision_line(d) for d in run.decisions],
+            measure("decided without a yes", len(bad), better=LOWER))
 
 
 @check("decisions-recorded", "at_most")
@@ -712,7 +734,7 @@ def categories_raised_first(run, criterion):
     return passed, summary, detail
 
 
-@check("option-count", "between")
+@check("option-count", "between", judged=True)
 def option_count(run, criterion):
     found = analyze_options(run)
     low, high = criterion["between"]
@@ -724,7 +746,7 @@ def option_count(run, criterion):
     return low <= n <= high, summary, detail
 
 
-@check("option-parts", "parts")
+@check("option-parts", "parts", judged=True)
 def option_parts(run, criterion):
     found = analyze_options(run)
     options = found["options"]
@@ -900,7 +922,7 @@ def unaware_raised_first(run, criterion):
     detail = [f"- {i['id']} ({i['category']}): assistant {('T%d' % t['assistant']) if t['assistant'] else 'never'}, "
               f"lead {('T%d' % t['lead']) if t['lead'] else 'never'}; {'RAISED FIRST' if f else 'not first'}"
               for i, t, f in rows]
-    return passed, summary, detail, raised
+    return passed, summary, detail, measure("gaps raised first, by keyword", raised, len(rows))
 
 
 @check("decided-with-yes", "at_least")
@@ -911,7 +933,7 @@ def decided_with_yes(run, criterion):
     passed = len(good) >= criterion["at_least"]
     summary = (f"decisions recorded after an explicit yes: {len(good)} (need at least {criterion['at_least']}); "
                f"without a yes: {len(run.decisions) - len(good)}")
-    return passed, summary, [decision_line(d) for d in run.decisions], len(good)
+    return passed, summary, [decision_line(d) for d in run.decisions], measure("decided with a yes", len(good))
 
 
 @check("decided-items", "decidable", "blocked", "at_least")
@@ -934,10 +956,13 @@ def decided_items(run, criterion):
                                     if i in by_id else "not decided") for i in criterion["decidable"]]
     detail += [f"- {i} (blocked): " + (f"DECIDED at T{by_id[i]['turn']}" if i in by_id else "not decided")
                for i in criterion["blocked"]]
-    return passed, summary, detail, {"ready decided with a yes": len(ready), "blocked decided": len(blocked)}
+    return passed, summary, detail, [measure("watched ready items decided with a yes", len(ready),
+                                             len(criterion["decidable"])),
+                                     measure("watched blocked items decided", len(blocked), len(criterion["blocked"]),
+                                             LOWER)]
 
 
-@check("gaps-surfaced", "at_least")
+@check("gaps-surfaced", "at_least", judged=True)
 def gaps_surfaced(run, criterion):
     """The gaps the lead does not know about (U items) that the assistant raised before the lead did, in any words.
     unaware-raised-first needs one of an item's keywords, which are a specialist's terms, so a session that asks
@@ -947,7 +972,8 @@ def gaps_surfaced(run, criterion):
     per-item verdicts go to the blind detail only; the summary is counts."""
     items = run.persona.get("unaware") or []
     if not items:
-        return False, "gaps the lead didn't know about: the persona lists none", [], 0
+        return (False, "gaps the lead didn't know about: the persona lists none", [],
+                measure("gaps surfaced first, judged", 0, 0))
     hits = sim.vault_hits(run.persona, run.transcript, run.vault)
     reply, why = sim.judge_category(run, "unaware", hits)
     if reply is None:
@@ -969,7 +995,7 @@ def gaps_surfaced(run, criterion):
     summary = (f"gaps the lead didn't know about, surfaced first by the assistant in any words (judged): {surfaced} "
                f"of {len(items)} ({pct(share)}; need at least {pct(criterion['at_least'])}); judge claims dropped for "
                f"a quote not in the cited assistant turn: {dropped}")
-    return passed, summary, detail, surfaced
+    return passed, summary, detail, measure("gaps surfaced first, judged", surfaced, len(items))
 
 
 PARTY_SPLIT = re.compile(r"\s*(?:,|/|&|\band\b|\bvs\.?|\bversus\b)\s*", re.I)
@@ -1033,7 +1059,11 @@ def conflicts_surfaced(run, criterion):
                f"recorded as open {count['recorded']}")
     detail = [f"- {i['id']}: named {p['named'] and 'T%d' % p['named'] or 'no'}, side {p['side'] and 'T%d' % p['side'] or 'no'}, "
               f"recorded {'yes' if p['recorded'] else 'no'}" for i, p in rows]
-    return passed, summary, detail, {"surfaced in full": full, **count}
+    of = len(rows)
+    return passed, summary, detail, [measure("conflicts surfaced in full", full, of),
+                                     measure("conflicts: disagreement named", count["named"], of),
+                                     measure("conflicts: holder named", count["side"], of),
+                                     measure("conflicts: recorded as open", count["recorded"], of)]
 
 
 UNSURE = re.compile(r"\b(?:not sure|unsure|no idea|don'?t know|do not know|couldn'?t tell you|can'?t say|no clue|"
@@ -1129,15 +1159,31 @@ def unsure_owner_asked(run, criterion):
     return passed, summary, detail
 
 
+class _ThisModule:
+    """This module's names, read when used: loaded by path (as tests do), probe.py may not be in sys.modules."""
+
+    def __getattr__(self, name):
+        try:
+            return globals()[name]
+        except KeyError:
+            raise AttributeError(name) from None
+
+
+THIS = _ThisModule()
+scale.register(THIS)
+
+
 def score(run, case):
-    """Each check returns (passed, summary, detail), and may add a fourth: its number, or a mapping of named
-    numbers, which --runs N averages with their spread. Numbers only, so a value is as blind-safe as a count."""
+    """Each criterion's row. A check may return a fourth value: its measure (probe_scale.measure, a count of N), or a
+    list of them. probe_scale.summarize is the one place a measure is averaged over the runs; a row holds no other
+    number, so nothing is averaged twice."""
     rows = []
     for criterion in case["criteria"]:
         fn = CHECKS[criterion["check"]][0]
-        passed, summary, detail, *value = fn(run, criterion)
+        passed, summary, detail, *rest = fn(run, criterion)
+        found = rest[0] if rest else []
         rows.append({"check": criterion["check"], "passed": passed, "summary": summary, "detail": detail,
-                     "value": value[0] if value else None})
+                     "measures": found if isinstance(found, list) else [found]})
     return rows
 
 
@@ -1182,35 +1228,20 @@ class LoopLedger:
 
 # ------------------------------------------------------------------ one run, and the output
 
-JUDGED_CHECKS = ("option-count", "option-parts", "gaps-surfaced")  # these call the judge, so a run keeps its reserve
-
-
-def averages(records):
-    """Per check and named number, over the runs that scored: the mean, the spread (highest less lowest) and the
-    values. One run of a probe swings by a whole item, so a change counts only when the mean moves by more than the
-    spread (tests/sim/README.md, "Probes and the iteration loop")."""
-    found = collections.defaultdict(list)
-    for record in records:
-        for c in record.get("criteria") or []:
-            value = c.get("value")
-            pairs = value.items() if isinstance(value, dict) else [("", value)] if value is not None else []
-            for name, number in pairs:
-                found[(c["check"], name)].append(number)
-    return [{"check": check, "name": name, "mean": sum(v) / len(v), "spread": max(v) - min(v), "values": v}
-            for (check, name), v in found.items()]
-
 def headline(message):
     """The part of a failure message before its first ': ', which names what failed without quoting any text."""
     return str(message).split(": ", 1)[0]
 
 
 def run_once(case, persona, persona_name, args, n, stamp, share):
-    folder = f"{stamp}-{case['name']}-{persona_name}-{n}"
+    # A ceiling run is named apart, so it can run beside its baseline and is never read as one.
+    folder = f"{stamp}-{case['name']}-{persona_name}{'-oracle' if getattr(args, 'oracle', False) else ''}-{n}"
     reserve = sim.JUDGE_RESERVE if any(c["check"] in JUDGED_CHECKS for c in case["criteria"]) else 0.0
     run = ProbeRun(folder, pathlib.Path(args.out).resolve(), args, persona, share,
                    snapshot_dir(case, persona_name), reserve)
     run.watch = [i for c in case["criteria"] if c["check"] == "decided-items" for i in c["decidable"] + c["blocked"]]
     run.rows, run.failure = [], None
+    run.oracle = case.get("oracle", "") if getattr(args, "oracle", False) else ""
     text = opening_text(case, persona)
     session = {"mode": case["mode"], "cap": case["cap"], "vela": text.replace("{", "{{").replace("}", "}}"),
                "baseline": text.replace("{", "{{").replace("}", "}}")}
@@ -1239,8 +1270,18 @@ def run_record(run, blind):
             "ending": ending["reason"], "assistant_turns": sum(e["turns"] for e in endings),
             "failure": headline(run.failure) if (run.failure and blind) else run.failure,
             "passed": run.failure is None and ending["reason"] != "budget" and all(r["passed"] for r in run.rows),
-            "criteria": [{"check": r["check"], "passed": r["passed"], "summary": r["summary"], "value": r["value"]}
-                         for r in run.rows]}
+            "criteria": [{"check": r["check"], "passed": r["passed"], "summary": r["summary"]} for r in run.rows],
+            "oracle": bool(run.oracle), "measures": run_measures(run)}
+
+
+def run_measures(run):
+    """The criteria's measures, then the voice on the lead-facing turns. Counts only, so blind-safe. A voice sensor
+    that breaks is a tool failure (exit 2), never a quiet zero that would read as a clean voice."""
+    found = [m for r in run.rows for m in r["measures"]] + scale.voice_measures(run, THIS, sim)
+    twice = sorted(n for n, c in collections.Counter(m["name"] for m in found).items() if c > 1)
+    if twice:  # two numbers under one name would be averaged as one measure, a mean of two different things
+        raise ToolFailure(f"measures named twice in one run: {', '.join(twice)}")
+    return found
 
 
 def write_outputs(run, case, persona_name, blind):
@@ -1273,6 +1314,8 @@ def print_run(record, run, n, runs, blind):
         if not blind:
             for line in row["detail"]:
                 print(f"      {line}")
+    for m in record.get("measures") or []:
+        print(f"  measure {m['name']}: {m['value']:g}" + (f" of {m['of']}" if m.get("of") else ""))
     if blind:
         print(f"  blind: item detail is in {DETAIL_NAME} in the run folder; do not read it while iterating")
 
@@ -1283,7 +1326,11 @@ def parse_args(argv):
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("case", help="case name in tests/sim/probes/, or a .yaml path")
     parser.add_argument("--persona", required=True, help="persona name in tests/sim/personas/")
-    parser.add_argument("--runs", type=int, default=1, help="how many runs of the case, one after another; default 1")
+    parser.add_argument("--runs", type=int, default=5,
+                        help="how many runs of the case, one after another; default 5, enough for a spread")
+    parser.add_argument("--oracle", action="store_true",
+                        help="the ceiling run: pass the case's oracle: text to the assistant as an appended system "
+                             "prompt, for this probe only; it measures the material, never a skill")
     parser.add_argument("--model", required=True, help="assistant model, pinned")
     parser.add_argument("--persona-model", required=True, help="persona model, pinned")
     parser.add_argument("--judge-model", required=True, help="judge model, pinned; only option checks call it")
@@ -1329,6 +1376,8 @@ def main(argv=None):
         persona = sim.with_news(persona, case.get("news"))
         snapshot_dir(case, persona_name)
         opening_text(case, persona)
+        if args.oracle and not case.get("oracle"):
+            raise ToolFailure(f"case {case['name']} has no oracle: text, so it has no ceiling run")
         ledger = LoopLedger(args.loop_ledger)
     except ToolFailure as exc:
         print(f"probe: {exc}", file=sys.stderr)
@@ -1338,7 +1387,7 @@ def main(argv=None):
               f"invocation's --budget ${args.budget:.2f} would take it to ${ledger.spent + args.budget:.2f}.")
         return 1
     print(f"probe {case['name']}, persona {persona_name}, {args.runs} run(s), budget ${args.budget:.2f}"
-          f"{', blind' if blind else ''}. Loop spend so far ${ledger.spent:.2f} of ${args.loop_budget:.2f}.")
+          f"{', blind' if blind else ''}{', ORACLE (ceiling run)' if args.oracle else ''}. Loop spend so far ${ledger.spent:.2f} of ${args.loop_budget:.2f}.")
     stamp = f"{datetime.datetime.now():%Y-%m-%d-%H%M%S}"
     share = args.budget / args.runs
     records, failed, current = [], False, None
@@ -1360,14 +1409,18 @@ def main(argv=None):
     finally:
         spent = round(sum(r["spent_usd"] for r in records), 4)
         code = 2 if failed else 0 if all(r["passed"] for r in records) else 1
+        summary = scale.summarize(records)
         ledger.record({"at": stamp, "case": case["name"], "persona": persona_name, "runs": len(records),
                        "budget_usd": args.budget, "spent_usd": spent, "stub": args.stub, "exit": code,
-                       "folders": [r["folder"] for r in records]})
-    if len(records) > 1:
-        for row in averages(records):
-            label = f"{row['check']}" + (f", {row['name']}" if row["name"] else "")
-            print(f"  over {len(row['values'])} runs, {label}: mean {row['mean']:.2f}, spread {row['spread']:g} "
-                  f"(values {', '.join(f'{v:g}' for v in row['values'])})")
+                       "oracle": args.oracle, "folders": [r["folder"] for r in records], "summary": summary})
+        out = pathlib.Path(args.out)
+        out.mkdir(parents=True, exist_ok=True)
+        (out / f"{stamp}-{case['name']}-{persona_name}{'-oracle' if args.oracle else ''}-summary.json").write_text(
+            json.dumps({"case": case["name"], "persona": persona_name, "oracle": args.oracle, "blind": blind,
+                        "runs": len(records), "folders": [r["folder"] for r in records], "measures": summary},
+                       indent=2), encoding="utf-8")
+    for line in scale.summary_lines(summary, args.oracle):
+        print(line)
     passed = sum(1 for r in records if r["passed"])
     print(f"probe: {passed} of {len(records)} run(s) passed every criterion. Spent ${spent:.2f} of ${args.budget:.2f}; "
           f"loop spend now ${ledger.spent:.2f} of ${args.loop_budget:.2f}. Exit {code}.")

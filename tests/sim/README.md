@@ -403,6 +403,9 @@ wrong, rather than producing a quietly wrong score.
    the Agent tool, which `--allowedTools` now lists. Whether a `-p` call with `--permission-prompts none` lets a
    subagent run shows in the transcript: a denied dispatch makes close write "Voice review: not run" and the
    checkpoint write `did not run` for each area, and `area-coverage` with `require: ran` then fails.
+9. **The oracle reaches the model.** `claude --help` lists `--append-system-prompt`, and the stub test sees it on
+   every assistant call of an `--oracle` probe and on no persona or judge call. Whether a resumed (`--resume`) turn
+   keeps it is what the first ceiling run shows: its transcript should follow the instruction after the first turn.
 
 ## What it can't tell you
 
@@ -440,6 +443,10 @@ next real lead, so the loop never lets a key reach a skill:
    holdout run. They are sealed: scores only, never per-item results, never their failure patterns (`--failures`
    gives a holdout's scores only). A change that lifts the dev persona and not the holdouts learned the dev
    persona, not the job: undo it.
+5. **Keep a change only when the keep rule says so** (`probe_keep.py`, below under "Scaled probes, the ceiling and
+   the keep rule"): dev accuracy improves beyond the spread, the holdout doesn't get worse, no voice measure gets
+   worse beyond its spread, and the voice-loading, leak and conversation-voice tests pass. A change that helps
+   accuracy but hurts the voice is reverted.
 
 The keys are sealed three ways. Every persona file says `split: dev` or `split: holdout`, and a persona that says
 neither, or a run that names none, is treated as holdout (`seal.py`, `compare_runs.persona_sealed`, `probe.py`).
@@ -470,14 +477,16 @@ and the loop ledger are its own.
 ### The commands
 
 One per case and persona. `--budget` is for the whole invocation and is split evenly over `--runs`, so with
-`--runs 3` give three times the per-run figure. Keep one `--loop-ledger` file for one loop.
+`--runs 3` give three times the per-run figure. `--runs` defaults to 5 since 2026-10-15: one or three runs could not
+tell a change from noise. Keep one `--loop-ledger` file for one loop.
 
 One run of a probe swings by a whole item or more, so a single before and after cannot tell a change from noise.
-With `--runs 2` or more, the probe ends by printing each check's number over the runs: the mean, the spread (the
-highest less the lowest) and the values, such as `over 3 runs, conflicts-surfaced, surfaced in full: mean 1.33,
-spread 1 (values 1, 2, 1)`. Run the before and the after with `--runs 3`, and count a change as real only when the
-dev mean moves by more than the larger of the two spreads, and the holdout mean does not fall by more than its
-spread. The numbers are counts, so they print blind too.
+The probe ends by printing each check's measure over the runs (probe_scale.summarize, the only averaging): the
+mean, the spread (the sample standard deviation) and the values, such as `conflicts surfaced in full: 1.333 of 4 ±
+0.577  (1, 2, 1; higher is better)`. A check returns its measure, or a list of them, as its fourth value; a measure
+name used twice in one run is a tool failure, never a merged mean. Count a change as real only when the dev mean
+moves by more than the larger of the two spreads, and the holdout mean does not fall by more than its spread
+(`probe_keep.py`). The numbers are counts, so they print blind too.
 
 ```
 L="--loop-ledger tests/sim/results/probes/loop-ledger.json --loop-budget 60"
@@ -637,6 +646,84 @@ A probe session is short, so the context stays near the 30k floor and the person
 No probe has been run with a real model yet. The first paid probes settle these figures, and `probe.json` holds
 each run's real spend.
 
+### Scaled probes, the ceiling and the keep rule
+
+Round two of the probe loop (2026-10-15) could not show an improvement where one might exist: the scales were too
+short (decisions topped out at 2, the hospitals holdout had 4 conflicts, most scores sat at the floor or the
+ceiling), one to three runs could not separate a change from noise, and nobody knew what score a probe could reach.
+The rebuild fixes each in its own place.
+
+**Bigger scales.** `scale/cases/` holds four cases, each scored on 6 to 8 items, for the dev persona `heron-claims`
+and the holdout `holdout-nursing` (sealed: never read it while iterating). Their snapshots are in `scale/snapshots/`,
+named by the case's `snapshot_root:`. `probe.py <case>` finds a case in `probes/` first, then `scale/cases/`.
+
+| Case | Starts from | Opening | Cap | Measure (of N) |
+|---|---|---|---|---|
+| `scale-gaps` | `empty` | `/vela:discover {topics[discover_1]}` | 14 | gaps raised as an issue (a real question on the line, a flag cue, or a new unknown or risk) before the lead names them, of 8 |
+| `scale-conflicts` | `empty` | `/vela:discover {topics[discover_people]}` | 14 | stakeholder positions surfaced in full (disagreement named, holder named, recorded as open), of 8 |
+| `scale-unsure` | `empty`, with unsure-owner's news | `/vela:discover {topics[loose_ends]}` | 14 | the lead's loose ends named in a turn that proposes who or by when and asks, of 6; any owner or date written unconfirmed fails the run |
+| `scale-decisions` | `grill-ready` | `/vela:grill {topics[grill]}` | 30 | ready items decided after the lead's yes, of 8; any of the 3 blocked items decided fails the run |
+
+How the material keeps the scale honest:
+
+- A gap's keywords name the document facts it rests on, so reading a document back (LISTED) never counts; seeing what
+  two facts imply and asking about it does.
+- The stakeholder positions are facts, not C items. The persona relays C items whenever asked "who wants what"; a
+  fact is given only when its own subject comes up ("Only if you are asked about audit..."). So the opening does not
+  hand the positions over, and a session hears one only by asking the right kind of question. No position's keyword
+  is in a document or another fact.
+- A decision with `item:` names a requirement on the grill-ready snapshot; `blocked: true` ones are held there by an
+  open unknown, and the lead's `refuse_until` keeps them undecided. `vela check --gate grill` on the snapshot says
+  exactly the other eight are ready, and `tests/test_probe_scale.py` holds it to that.
+- Checks read items by kind, category and those flags only. Summaries hold counts; item IDs go to the detail file.
+
+**The ceiling.** Each scaled case has an `oracle:`, a plain instruction to do exactly the measured behavior. `--oracle`
+passes it to every assistant call of that probe as `--append-system-prompt`, never through `plugin/**`, so it
+measures the material, not a skill. Run it once per case and persona before any baseline: its score is the reachable
+maximum. A low ceiling means the persona or the snapshot is broken; fix the material, never the skill. An oracle names
+nothing from any brief (`tests/test_probe_scale.py` scans it with the seal's terms).
+
+**Power.** Every check that has a scale returns a measure, and every probe ends with a summary over its runs: each
+measure's mean, its spread (the sample standard deviation; 0 for one run) and its values. The same numbers go to
+`<stamp>-<case>-<persona>[-oracle]-summary.json` in `--out` and to the loop ledger entry. **A change is real only when
+its mean moves by more than the larger of the two spreads.**
+
+**The voice.** Every probe, old cases too, also measures the voice on the lead-facing turns (the assistant's own text,
+not tool output or subagents), each with mean and spread:
+
+- codes and IDs per turn, counted with `vela.say.LEAD_PATTERNS` (the patterns `--for-lead` refuses), overlapping
+  matches once;
+- the voice score: the share of turns with none, of 100;
+- turns that told rather than asked: a turn that settles something ("I've gone with", "the answer is", "you should")
+  and asks nothing. A mechanical stand-in for the full run's judge measure of the same name;
+- turns offering more than four things (`say.LEAD_LIMIT`): top-level list items and table rows, or questions,
+  whichever is more;
+- whether the voice-loading step ran: the share of sessions that read `CONVERSATION-VOICE.md` before their first
+  question (START step 0).
+
+A voice sensor that breaks is a tool failure, exit 2, never a quiet zero.
+
+**The keep rule.** After a skill change, with the dev and holdout summaries before and after it:
+
+```
+python3 tests/sim/probe_keep.py --dev-before <A> --dev-after <B> --holdout-before <C> --holdout-after <D>
+```
+
+It prints each measure's move against its spread and KEEP (exit 0) only when all four hold: a dev accuracy measure
+is a real gain and none a real loss; no holdout accuracy measure is a real loss; no voice measure, dev or holdout, is
+a real loss; and `tests/test_conversation_voice.py` (the conversation voice and the voice-loading order),
+`tests/test_lead_voice.py`, `tests/test_sim_seal.py` (the leak seal) and `tests/test_skill_load.py` pass. Otherwise
+REVERT (exit 1) with the reasons. An oracle summary, a holdout in the dev pair, or a before and after of different
+cases is a tool failure (exit 2).
+
+**Cost.** From round one's real spend (a discover probe of 12 turns cost $1.80 to $3.90, about $2.60), at the caps
+above: a discover case is about $3 a run ($2.20 to $4.50), `scale-unsure` about $2.40, and `scale-decisions`, a grill
+of up to 30 turns that files eight decisions, about $7 ($4 to $10; not yet measured). One ceiling run and a 5-run
+baseline per case on each persona is 12 runs a case: about $36 for gaps, $36 for conflicts, $29 for unsure owners and
+$84 for decisions, about **$185 in all ($120 to $260)**. Run the eight ceiling runs first (about $31): a low ceiling
+saves the baselines for material that works. Give `--budget` as $5 a run for a discover case and $12 a run for the
+grill, so 5 runs take `--budget 25` or `--budget 60`.
+
 ## Tests
 
 `tests/test_sim.py` runs the driver end to end against `stub/claude`, with every arm and a two-session
@@ -652,6 +739,13 @@ over the snapshot's, every snapshot passing `vela check` with its persona's inbo
 detection (a question, a cue, an unknown, a read-back list counted as listed), decisions pinned to a turn, the
 options and the judge's quotes, blind output holding no ID, keyword or brief text, the holdout always blind, the
 ledger refusing to start, and every exit code. Holdout tests assert on counts only. It costs nothing.
+
+`tests/test_probe_scale.py` pins the rebuild, also on the stub: each scaled check and its measure, the voice
+measures, mean and spread and the "real change" rule, the keep rule (a gain that hurts the voice is reverted; an
+oracle summary or a holdout in the dev pair is refused), the oracle reaching every assistant call and nothing else,
+5 runs by default, the scaled snapshots (clean, their persona's inbox, 0 errors), each persona's scale and splits,
+positions heard only when asked, the grill-ready vaults' eight ready and three blocked items, oracles naming no key
+term, and every scaled case running on both personas with the holdout's output holding counts only.
 
 `tests/test_sim_compare.py` runs `compare_runs.py` on runs it builds from a few pages and turns: lines copied from a
 run recorded before the rename (`legacy_lines.py`) count the same as their hand-renamed twins, and an old arm folder
@@ -680,7 +774,12 @@ only for a holdout.
 - `seal.py`: the dev/holdout split, the key-term list, redaction and the plugin leak scan.
   `seal-known-leaks.txt`: the plugin's known leaks, to remove (empty since 2026-10-15).
 - `probe.py`: one-session probes from a snapshot, for the iteration loop.
-- `probes/`: the probe cases. `snapshots/`: the starting vaults.
+- `probe_scale.py`: the scaled checks and their measures, the oracle, the voice measures, and mean, spread and the
+  "real change" rule. `probe_keep.py`: the keep rule over two pairs of probe summaries.
+- `probes/`: the probe cases. `snapshots/`: the starting vaults. `scale/cases/` and `scale/snapshots/`: the scaled
+  cases and theirs.
+- `personas/heron-claims.yaml`: the scaled probes' dev persona. `personas/holdout-nursing.yaml`: their holdout. Do
+  not read it while iterating.
 - `personas/heron-desk.yaml`: the dev persona, with the `heron-*` personas its runs bring in.
 - `personas/holdout-hospitals.yaml`: a holdout. Do not read it while iterating.
 - `personas/coastal-merger.yaml`: a holdout since 2026-10-15, and the default persona of the smoke and default

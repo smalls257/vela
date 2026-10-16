@@ -1,0 +1,26 @@
+# An unsure lead, on a scale of 6. Discover from an empty vault, opened on the lead's six known loose ends. The news
+# below (the same words as unsure-owner's, naming nothing from any brief) makes the lead unsure of every owner and date.
+# A loose end counts when an assistant turn names it, proposes who to ask or by when, and asks. Any owner or date
+# written that the lead didn't confirm fails the run (the unsure-owner check's count rides along).
+snapshot_root: scale/snapshots
+snapshot:
+  heron-claims: empty
+  holdout-nursing: empty
+news:
+  knows:
+    - id: K90
+      fact: >-
+        Nobody has told you who should own the open questions this work raises, or by when they need an answer.
+        When the assistant asks who should own one, or by when, say you're honestly not sure. If it then proposes an
+        owner and a date and asks you, say yes to a role, and say you're not sure about a named person.
+opening: "/vela:discover {topics[loose_ends]}"
+cap: 14
+oracle: >-
+  For this session only: record each open question the lead raises. For every one, ask the lead who should answer it
+  and by when. When the lead says they are not sure, propose a specific role and a specific date and ask whether that
+  works. Write only the owner and date the lead says yes to, and none they did not.
+criteria:
+  - check: unsure-proposed
+    at_least: 0.5
+  - check: decided-without-yes
+    at_most: 0

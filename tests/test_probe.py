@@ -753,8 +753,9 @@ def test_decided_items_wants_the_ready_ones_with_a_yes_and_never_a_blocked_one(t
     criterion = {"decidable": ["A", "B"], "blocked": ["C"], "at_least": 2}
     run = spoken_run(tmp_path, [])
     run.item_decisions = [{"id": "A", "turn": 4, "with_yes": True}, {"id": "B", "turn": 6, "with_yes": True}]
-    passed, summary, _, value = fn(run, criterion)
-    assert passed and value == {"ready decided with a yes": 2, "blocked decided": 0}
+    passed, summary, _, measures = fn(run, criterion)
+    assert passed and [(m["name"], m["value"], m["of"], m["better"]) for m in measures] == [
+        ("watched ready items decided with a yes", 2, 2, "higher"), ("watched blocked items decided", 0, 1, "lower")]
     run.item_decisions.append({"id": "C", "turn": 8, "with_yes": True})
     passed, summary, *_ = fn(run, criterion)
     assert not passed and "blocked items decided: 1 of 1" in summary
@@ -800,17 +801,45 @@ def test_a_gap_judge_quote_from_a_lead_turn_is_dropped(tmp_path, monkeypatch):
     reply = {"unaware": [{"id": "U1", "grounds": "T2", "surfaced": True, "turn": 2, "quote": "the night shift worries me"}]}
     monkeypatch.setattr(probe.sim, "judge_category", lambda arm, category, hits: (reply, ""))
     monkeypatch.setattr(probe.sim, "vault_hits", lambda persona, transcript, vault: {})
-    passed, summary, detail, value = probe.CHECKS["gaps-surfaced"][0](run, {"at_least": 0.5})
-    assert not passed and value == 0 and "dropped for a quote not in the cited assistant turn: 1" in summary
+    passed, summary, detail, found = probe.CHECKS["gaps-surfaced"][0](run, {"at_least": 0.5})
+    assert not passed and (found["value"], found["of"]) == (0, 1) and "dropped for a quote not in the cited assistant turn: 1" in summary
 
 
-def test_runs_are_averaged_with_their_spread(tmp_path):
-    rows = probe.averages([{"criteria": [{"check": "x", "value": 1}, {"check": "y", "value": {"a": 2}}]},
-                           {"criteria": [{"check": "x", "value": 3}, {"check": "y", "value": {"a": 2}}]},
-                           {"criteria": [{"check": "x", "value": None}]}])
-    assert {(r["check"], r["name"]): (r["mean"], r["spread"]) for r in rows} == {("x", ""): (2.0, 2), ("y", "a"): (2.0, 0)}
+def test_a_checks_number_is_averaged_exactly_once(tmp_path):
+    """Round 2 and the rebuild each brought an averaging of their own; probe_scale.summarize is now the only one. A
+    check's measure reaches it once per run, and the printed summary is its only mean."""
+    assert not hasattr(probe, "averages")
     code, out, err, runs = run_probe(tmp_path, "grill-ready", "heron-desk", "--runs", "2", budget="2")
-    assert "over 2 runs, decided-items, ready decided with a yes: mean 0.00, spread 0 (values 0, 0)" in out
+    assert len(runs) == 2, err
+    for folder in runs:
+        record = json.loads((folder / "probe.json").read_text(encoding="utf-8"))
+        assert all("value" not in c for c in record["criteria"])
+        names = [m["name"] for m in record["measures"]]
+        assert names.count("watched ready items decided with a yes") == 1 and len(names) == len(set(names))
+    summary = json.loads(next((tmp_path / "out").glob("*-summary.json")).read_text(encoding="utf-8"))["measures"]
+    assert summary["watched ready items decided with a yes"]["values"] == [0, 0]
+    assert summary["watched blocked items decided"]["better"] == "lower"
+    assert all(len(row["values"]) == 2 for row in summary.values())
+    means = [line for line in out.splitlines() if "±" in line and "watched ready items decided with a yes" in line]
+    assert means == ["  watched ready items decided with a yes: 0 of 2 ± 0  (0, 0; higher is better)"]
+    assert "over 2 runs" not in out
+
+
+def test_one_measure_name_twice_in_a_run_is_a_tool_failure_not_a_merged_mean(tmp_path, monkeypatch):
+    import types
+    monkeypatch.setattr(probe.scale, "voice_measures", lambda run, this, sim: [])
+    rows = [{"measures": [probe.measure("x", 1)]}, {"measures": [probe.measure("x", 3)]}]
+    with pytest.raises(probe.ToolFailure, match="named twice in one run: x"):
+        probe.run_measures(types.SimpleNamespace(rows=rows))
+
+
+def test_every_check_that_calls_the_judge_keeps_the_judges_reserve():
+    """Registration marks a judged check, so a judged check in probe_scale gets the reserve the same way."""
+    import inspect
+    calls_judge = {name for name, (fn, _) in probe.CHECKS.items()
+                   if any(call in inspect.getsource(fn) for call in ("judge_category", "analyze_options"))}
+    assert calls_judge == probe.JUDGED_CHECKS == {"option-count", "option-parts", "gaps-surfaced"}
+    assert {"gaps-raised", "positions-surfaced", "ready-decided", "unsure-proposed"} <= set(probe.CHECKS)
 
 
 def test_a_yes_counts_for_the_decision_filed_after_the_why_and_is_used_up(tmp_path, monkeypatch):
@@ -822,7 +851,7 @@ def test_a_yes_counts_for_the_decision_filed_after_the_why_and_is_used_up(tmp_pa
     spoken = []
     run = probe.ProbeRun.__new__(probe.ProbeRun)
     run.vault, run.watch, run.item_seen, run.item_decisions, run.decisions = tmp_path / "vault", ["X-1"], {}, [], []
-    run.seen, run.yes_pending = probe.decided_lines(run.vault), False
+    run.seen, run.yes_pending, run.oracle = probe.decided_lines(run.vault), False, ""
     run.transcript = types.SimpleNamespace(turn=0, spoken=lambda: spoken)
     monkeypatch.setattr(probe.sim.Arm, "assistant_turn", lambda self, message, sid, cwd=None: (None, None))
 
