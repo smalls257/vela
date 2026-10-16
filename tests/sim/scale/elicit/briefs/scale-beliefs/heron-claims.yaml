@@ -1,0 +1,74 @@
+# scale-beliefs overlay for heron-claims. Replaces the persona's `wrong:` list for this probe only (probe_elicit.py):
+# six beliefs the lead states as settled, each outdated: two about another team, two rules, a dependency and a date.
+# Where a belief came from, how it would work and what would show it no longer holds, the lead gives only when asked,
+# so a session hears them only by asking. No document, fact or other item gives a truth away.
+replace:
+  wrong:
+    - id: W90
+      category: third-party-contract
+      keywords: ["daily feed", "relationship manager"]
+      belief: >-
+        The bank already sends the corporate card statements to the firm as a daily feed, so matching card spend in
+        Ledgerline is solved. You are sure of this. Say it as settled, in your own words, the first time the talk
+        turns to corporate cards or card statements, before anyone asks whether it is true. Only if the assistant wants to know the origin of this, or how fresh it is: the bank's relationship manager told you over lunch
+        in spring 2024, and nobody has checked since; hearing that, say it may be worth checking, but keep believing
+        it unless given a reason. Only if pressed to go step by step through the mechanics: say you don't know which
+        system the feed lands in today. Only if asked what sign would tell you it had stopped being true: if Treasury can't say
+        where the daily file goes, it isn't running.
+      truth: The bank offers a daily feed, but the firm's card programme was never switched to it; Treasury still gets one statement a month.
+    - id: W91
+      category: finance-liability
+      keywords: ["under 25 pounds", "staff handbook"]
+      belief: >-
+        Anything under 25 pounds needs no receipt at all; that's firm policy. You are sure of this. Say it as
+        settled, in your own words, the first time the talk turns to receipts or what a claim has to include, before
+        anyone asks whether it is true. Only if the assistant wants to know the origin of this, or how fresh it is: the 2019 staff handbook said so, and you haven't read the current expenses policy; hearing that,
+        say it may be worth checking, but keep believing it unless given a reason. Only if pressed to go step by step through the mechanics: say you aren't sure whether Finance reclaims VAT on those. Only if asked what sign would tell you it had stopped being true: Finance Operations sending a small claim back for a missing receipt.
+      truth: The 2024 expenses policy dropped the threshold; every claim needs a receipt so Finance can reclaim VAT.
+    - id: W92
+      category: unnamed-stakeholder
+      keywords: ["within a day", "room-booking app"]
+      belief: >-
+        The identity team registers a new app for sign-in within a day; that has never held anything up. You are
+        sure of this. Say it as settled, in your own words, the first time the talk turns to sign-in, Entra ID or
+        the identity team, before anyone asks whether it is true. Only if the assistant wants to know the origin of this, or how fresh it is: that's how fast they did it for the room-booking app three years ago, and you
+        haven't asked them since; hearing that, say it may be worth checking, but keep believing it unless given a
+        reason. Only if pressed to go step by step through the mechanics: say you don't know who in the identity
+        team takes the request or what form it needs. Only if asked what sign would tell you it had stopped being true: the
+        identity team asking for a change request or a review reference first.
+      truth: Since last year every app registration goes through the monthly change board, about four weeks.
+    - id: W93
+      category: timeline
+      keywords: ["fortnight", "e-learning"]
+      belief: >-
+        Learning and Development can get every member of staff through Ledgerline training in the last fortnight
+        before go-live; they always run mandatory e-learning in two weeks. You are sure of this. Say it as settled,
+        in your own words, the first time the talk turns to training, the rollout or go-live, before anyone asks
+        whether it is true. Only if the assistant wants to know the origin of this, or how fresh it is: the
+        former head of Learning and Development said so in 2023, when the security e-learning went out, and she has
+        since left; hearing that, say it may be worth checking, but keep believing it unless given a reason. Only if pressed to go step by step through the mechanics: say you don't know who would build the course. Only if asked what sign would tell you it had stopped being true: their spring calendar already being booked.
+      truth: Learning and Development now needs eight weeks' notice and books its spring calendar in January.
+    - id: W94
+      category: unnamed-stakeholder
+      keywords: ["launch campaign", "every firm-wide system"]
+      belief: >-
+        Internal Communications will run the launch campaign for Ledgerline; they do it for every firm-wide system.
+        You are sure of this. Say it as settled, in your own words, the first time the talk turns to the launch,
+        telling staff, or communications, before anyone asks whether it is true. Only if the assistant wants to know the origin of this, or how fresh it is: it's how the PeopleHub launch worked in 2021, and nobody has asked
+        them about Ledgerline; hearing that, say it may be worth checking, but keep believing it unless given a
+        reason. Only if pressed to go step by step through the mechanics: say you aren't sure who would write the
+        messages or who pays for them. Only if asked what sign would tell you it had stopped being true: Internal Communications
+        asking for a project code or a budget line.
+      truth: Internal Communications now only publishes; each project writes and pays for its own campaign.
+    - id: W95
+      category: finance-liability
+      keywords: ["delegated authority", "authorized signature"]
+      belief: >-
+        A manager's approval in the app counts as the authorized signature under the delegated authority schedule,
+        whatever the amount. You are sure of this. Say it as settled, in your own words, the first time the talk
+        turns to approvals or who signs off a claim, before anyone asks whether it is true. Only if the assistant wants to know the origin of this, or how fresh it is: you read the delegated authority schedule when you
+        joined in 2022, and nobody has checked since; hearing that, say it may be worth checking, but keep believing
+        it unless given a reason. Only if pressed to go step by step through the mechanics: say you aren't sure what
+        happens above a manager's own limit. Only if asked what sign would tell you it had stopped being true: Finance asking who
+        signs above a manager's limit.
+      truth: The 2025 schedule caps a manager's approval at 2,000 pounds; above that a Head of Practice signs.

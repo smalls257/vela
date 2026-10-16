@@ -58,6 +58,7 @@ def _load_driver():
 sim = _load_driver()
 seal = sim.load_sim_module("seal")
 scale = sim.load_sim_module("probe_scale")
+elicit = sim.load_sim_module("probe_elicit")  # the belief and tacit-fact probes, and the overlays their cases name
 
 ToolFailure = sim.ToolFailure
 SNAPSHOTS = HERE / "snapshots"
@@ -1218,6 +1219,7 @@ class _ThisModule:
 
 THIS = _ThisModule()
 scale.register(THIS)
+elicit.register(THIS)
 
 
 def score(run, case):
@@ -1421,6 +1423,7 @@ def main(argv=None):
         case = load_case(args.case)
         # A case's news changes the lead for this probe only, such as an override the persona would otherwise give.
         persona = sim.with_news(persona, case.get("news"))
+        persona = elicit.with_overlay(case, persona, persona_name, HERE, sim)
         snapshot_dir(case, persona_name)
         opening_text(case, persona)
         if args.oracle and not case.get("oracle"):

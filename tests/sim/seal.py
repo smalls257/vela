@@ -235,11 +235,34 @@ def strings(value):
         yield value
 
 
+def overlay_files(stem, personas=PERSONAS):
+    """A persona's case overlays (scale/<set>/briefs/<case>/<persona>.yaml, merged by probe_elicit for one probe).
+    Their beliefs and facts are that persona's key as much as its own file is, so the seal reads them too. Only the
+    real personas folder has overlays; a test's own personas folder has none."""
+    if pathlib.Path(personas).resolve() != PERSONAS.resolve():
+        return []
+    return sorted(HERE.glob(f"scale/*/briefs/*/{stem}.yaml"))
+
+
+def with_overlays(persona, stem, personas=PERSONAS):
+    """The persona with every overlay's items added, whether the overlay adds or replaces them: for the seal, a
+    term in either is a key term."""
+    if not isinstance(persona, dict):
+        return persona
+    out = dict(persona)
+    for path in overlay_files(stem, personas):
+        data = load(path) or {}
+        for part in (data.get("add") or {}, data.get("replace") or {}):
+            for kind, items in part.items():
+                out[kind] = list(out.get(kind) or []) + list(items or [])
+    return out
+
+
 def lower_words(personas):
     """Every word any persona writes in lower case: a word some persona writes as an ordinary word ("consent",
     "regulation") is not a coined name when another capitalizes it."""
     return {w.lower() for path in sorted(pathlib.Path(personas).glob("*.yaml"))
-            for w in re.findall(r"\b[a-z][\w-]*", "\n".join(strings(load(path))))}
+            for w in re.findall(r"\b[a-z][\w-]*", "\n".join(strings(with_overlays(load(path), path.stem, personas))))}
 
 
 def coined_names(persona, lower=frozenset()):
@@ -302,10 +325,10 @@ def _all_terms(personas, include_brief):
 
     lower = lower_words(personas)
     for path in sorted(pathlib.Path(personas).glob("*.yaml")):
-        persona = load(path)
+        who = path.stem
+        persona = with_overlays(load(path), who, personas)
         if not isinstance(persona, dict):
             continue
-        who = path.stem
         for name in person_names(persona) | coined_names(persona, lower):
             add(name, "name", who)
         for word in keyword_candidates(persona):

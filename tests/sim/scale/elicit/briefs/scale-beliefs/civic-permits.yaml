@@ -1,0 +1,72 @@
+# scale-beliefs overlay for civic-permits. Replaces the persona's `wrong:` list for this probe only (probe_elicit.py):
+# six beliefs the lead states as settled, each outdated: two about another team, two rules, a dependency and a date.
+# Where a belief came from, how it would work and what would show it no longer holds, the lead gives only when asked,
+# so a session hears them only by asking. No document, fact or other item gives a truth away.
+replace:
+  wrong:
+    - id: W90
+      category: third-party-contract
+      keywords: ["straight into the city", "vendor fair"]
+      belief: >-
+        Any vendor's card processor can pay straight into the city's bank account without a new agreement with
+        Treasury. You are sure of this. Say it as settled, in your own words, the first time the talk turns to
+        payments, fees or the card processor, before anyone asks whether it is true. Only if the assistant wants to know the origin of this, or how fresh it is: a Treasury analyst said so at a vendor fair in 2023, and
+        nobody has checked since; hearing that, say it may be worth checking, but keep believing it unless given a
+        reason. Only if pressed to go step by step through the mechanics: say you don't know who reconciles the
+        deposits. Only if asked what sign would tell you it had stopped being true: Treasury asking for a merchant agreement.
+      truth: Since 2024 every processor needs a merchant services agreement approved by the Treasurer, about three months.
+    - id: W91
+      category: legal-regulatory
+      keywords: ["electronic affidavit", "sales rep"]
+      belief: >-
+        Owner-builders can sign their affidavit online with a checkbox; the state allows an electronic affidavit.
+        You are sure of this. Say it as settled, in your own words, the first time the talk turns to owner-builders
+        or signatures, before anyone asks whether it is true. Only if the assistant wants to know the origin of this, or how fresh it is: the vendor's sales rep said so in the August demo, and nobody at the city has
+        checked since; hearing that, say it may be worth checking, but keep believing it unless given a reason. Only if pressed to go step by step through the mechanics: say you aren't sure who checks that the owner really
+        lives there. Only if asked what sign would tell you it had stopped being true: the city attorney's office asking to see the
+        state rule.
+      truth: The state requires the owner-builder affidavit to be signed in person or notarized.
+    - id: W92
+      category: timeline
+      keywords: ["energy code", "until 2029"]
+      belief: >-
+        The state's new energy code doesn't take effect until 2029, so the application checklists won't change
+        during the rollout. You are sure of this. Say it as settled, in your own words, the first time the talk turns
+        to checklists, codes or what an applicant has to show, before anyone asks whether it is true. Only if the assistant wants to know the origin of this, or how fresh it is: a building official said so at a conference
+        in 2023, and nobody has checked since; hearing that, say it may be worth checking, but keep believing it
+        unless given a reason. Only if pressed to go step by step through the mechanics: say you don't know who
+        updates the checklists when a code changes. Only if asked what sign would tell you it had stopped being true: the state
+        building commission's adoption calendar showing an earlier date.
+      truth: The state moved the energy code to 1 January 2028, inside PermitPath's first year.
+    - id: W93
+      category: unnamed-stakeholder
+      keywords: ["asked for tablets", "2021 survey"]
+      belief: >-
+        The building inspectors are keen on tablets; they asked for tablets years ago. You are sure of this. Say it
+        as settled, in your own words, the first time the talk turns to inspectors or inspections, before anyone asks
+        whether it is true. Only if the assistant wants to know the origin of this, or how fresh it is: a 2021
+        survey of the inspectors, and nobody has asked them since; hearing that, say it may be worth checking, but
+        keep believing it unless given a reason. Only if pressed to go step by step through the mechanics: say you
+        aren't sure who would carry or charge them. Only if asked what sign would tell you it had stopped being true: the inspections
+        supervisor not having heard of the plan.
+      truth: Half the inspectors are new since 2021, and the inspectors now resist tablets.
+    - id: W94
+      category: unnamed-stakeholder
+      keywords: ["into Spanish", "water bill"]
+      belief: >-
+        The Communications Office will translate the whole portal into Spanish at no cost to the department; they
+        translate everything the city puts out. You are sure of this. Say it as settled, in your own words, the first
+        time the talk turns to residents, the public or languages, before anyone asks whether it is true. Only if the assistant wants to know the origin of this, or how fresh it is: it's what they did for the water bill
+        redesign in 2020, and nobody has asked them about PermitPath; hearing that, say it may be worth checking, but
+        keep believing it unless given a reason. Only if pressed to go step by step through the mechanics: say you
+        don't know who keeps the translation up to date when the portal changes. Only if asked what sign would tell you it had stopped being true: the Communications Office asking which budget pays.
+      truth: Translation is now a paid contract charged to the department asking for it, and portal text is not covered.
+    - id: W95
+      category: legal-regulatory
+      keywords: ["clock pauses", "training slide"]
+      belief: >-
+        The review clock pauses by itself whenever the city sends corrections; state law says so. You are sure of
+        this. Say it as settled, in your own words, the first time the talk turns to plan review, corrections or the
+        ten days, before anyone asks whether it is true. Only if the assistant wants to know the origin of this, or how fresh it is: you remember it from a training slide in 2019, and nobody has checked since; hearing
+        that, say it may be worth checking, but keep believing it unless given a reason. Only if pressed to go step by step through the mechanics: say you aren't sure what starts it again. Only if asked what sign would tell you it had stopped being true: the city attorney's office reading the law differently.
+      truth: The state law's clock does not pause for corrections; only a written notice that the application is incomplete resets it.

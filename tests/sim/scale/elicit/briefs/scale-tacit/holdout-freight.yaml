@@ -1,0 +1,83 @@
+# scale-tacit overlay for holdout-freight (sealed: never read while iterating on the skills). Adds eight tacit facts
+# to the persona's `knows:` for this probe only (probe_elicit.py): two dates, two owners, two unwritten rules and two
+# past incidents (`tacit:` names the kind). The lead never volunteers one; each is given only to its kind's own
+# question, to "what would a newcomer get wrong?" (dates, owners and rules), or to "what happened the last time?"
+# (incidents). No keyword here is in a document, the opening or another item.
+add:
+  knows:
+    - id: K60
+      tacit: date
+      category: timeline
+      keywords: ["CVSA", "safety blitz"]
+      fact: >-
+        Only if the assistant asks whether any other dates, deadlines or busy times matter beyond the go-live date,
+        or about the traps someone new here would fall into, say that the CVSA roadside safety blitz is one week every May, and no new
+        in-cab tool goes out that week. Never offer it otherwise, even when the talk comes near it: it is so normal
+        to you that it doesn't seem worth saying.
+      owner: Safety Director
+    - id: K61
+      tacit: date
+      category: timeline
+      keywords: ["Teamsters", "August 2027"]
+      fact: >-
+        Only if the assistant asks whether any other dates, deadlines or busy times matter beyond the go-live date,
+        or about the traps someone new here would fall into, say that the Teamsters contract at the Ohio depots is renegotiated in
+        August 2027, and any new driver tool before then becomes a bargaining item. Never offer it otherwise, even
+        when the talk comes near it: it is so normal to you that it doesn't seem worth saying.
+      owner: Labor Relations
+    - id: K62
+      tacit: owner
+      category: unnamed-stakeholder
+      keywords: ["Russ Kemper", "Fleet Maintenance"]
+      fact: >-
+        Only if the assistant asks whose call each piece really is, or who has to approve it, or about the traps someone new here would fall into, say
+        that anything in the cab is really decided by the Fleet Maintenance Director, Russ Kemper, because he owns
+        the mounts and the handhelds. Never offer it otherwise, even when the talk comes near it: it is so normal to
+        you that it doesn't seem worth saying.
+      owner: Fleet Maintenance Director
+    - id: K63
+      tacit: owner
+      category: unnamed-stakeholder
+      keywords: ["logistics VP", "how receipts reach"]
+      fact: >-
+        Only if the assistant asks whose call each piece really is, or who has to approve it, or about the traps someone new here would fall into, say
+        that Brightwell Foods' logistics VP has to approve any change in how receipts reach them, whatever their
+        contract says. Never offer it otherwise, even when the talk comes near it: it is so normal to you that it
+        doesn't seem worth saying.
+      owner: Key Accounts Director
+    - id: K64
+      tacit: rule
+      category: fact
+      keywords: ["paper list", "Detroit-area customers"]
+      fact: >-
+        Only if the assistant asks about the traps someone new here would fall into, or about the unwritten rules of the place, say that drivers phone dispatch before every drop at the Detroit-area customers, because
+        dispatch keeps the gate codes on a paper list. Never offer it otherwise, even when the talk comes near it: it
+        is so normal to you that it doesn't seem worth saying.
+      owner: Director of Dispatch
+    - id: K65
+      tacit: rule
+      category: fact
+      keywords: ["door pocket", "shuttler"]
+      fact: >-
+        Only if the assistant asks about the traps someone new here would fall into, or about the unwritten rules of the place, say that night drivers leave the receipts in the truck's door pocket and the morning
+        shuttler collects them; nobody hands them in themselves. Never offer it otherwise, even when the talk comes
+        near it: it is so normal to you that it doesn't seem worth saying.
+      owner: Director of Dispatch
+    - id: K66
+      tacit: incident
+      category: fact
+      keywords: ["e-log rollout", "parked for a day"]
+      fact: >-
+        Only if the assistant asks how earlier attempts at a change like this went, or about things that went badly before, say that the 2022 e-log rollout went to every depot at once and 90 drivers were
+        parked for a day when the handhelds wouldn't sync. Never offer it otherwise, even when the talk comes near
+        it: it is so normal to you that it doesn't seem worth saying.
+      owner: IT field systems lead
+    - id: K67
+      tacit: incident
+      category: finance-liability
+      keywords: ["depot flood", "Toledo"]
+      fact: >-
+        Only if the assistant asks how earlier attempts at a change like this went, or about things that went badly before, say that in 2020 the Toledo depot flood destroyed a month of receipts, and a
+        customer refused to pay for those deliveries. Never offer it otherwise, even when the talk comes near it: it
+        is so normal to you that it doesn't seem worth saying.
+      owner: Billing Manager

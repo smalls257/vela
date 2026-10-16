@@ -1,0 +1,84 @@
+# scale-tacit overlay for heron-claims. Adds eight tacit facts to the persona's `knows:` for this probe only
+# (probe_elicit.py): two dates, two owners, two unwritten rules and two past incidents (`tacit:` names the kind).
+# The lead never volunteers one. Each is given only to its kind's own question (a sweep of dates, owners, unwritten
+# rules or past incidents), to "what would a newcomer get wrong?" (dates, owners and rules), or to "what happened the
+# last time?" (incidents). No keyword here is in a document, the opening or another item.
+add:
+  knows:
+    - id: K60
+      tacit: date
+      category: timeline
+      keywords: ["partners' conference", "second week of March"]
+      fact: >-
+        Only if the assistant asks whether any other dates, deadlines or busy times matter beyond the go-live date,
+        or about the traps someone new here would fall into, say that the partners' conference is the second week of March every year:
+        nobody takes on anything new that week, and the Managing Partner signs nothing. Never offer it otherwise,
+        even when the talk comes near it: it is so normal to you that it doesn't seem worth saying.
+      owner: Managing Partner
+    - id: K61
+      tacit: date
+      category: timeline
+      keywords: ["testing window", "first week of June"]
+      fact: >-
+        Only if the assistant asks whether any other dates, deadlines or busy times matter beyond the go-live date,
+        or about the traps someone new here would fall into, say that the external auditors arrive in the first week of June and hold
+        a three-week testing window in which nothing about claims may change. Never offer it otherwise, even when the
+        talk comes near it: it is so normal to you that it doesn't seem worth saying.
+      owner: Financial Controller
+    - id: K62
+      tacit: owner
+      category: unnamed-stakeholder
+      keywords: ["Imran Sethi", "Payroll Manager"]
+      fact: >-
+        Only if the assistant asks whose call each piece really is, or who has to approve it, or about the traps someone new here would fall into, say
+        that anything touching pay is really decided by the Payroll Manager, Imran Sethi, not by HR, although HR's
+        name is on the policy. Never offer it otherwise, even when the talk comes near it: it is so normal to you
+        that it doesn't seem worth saying.
+      owner: Payroll Manager
+    - id: K63
+      tacit: owner
+      category: unnamed-stakeholder
+      keywords: ["Lorna Pike", "card programme"]
+      fact: >-
+        Only if the assistant asks whose call each piece really is, or who has to approve it, or about the traps someone new here would fall into, say
+        that the corporate card programme belongs to the Treasurer's deputy, Lorna Pike, and nothing about card data
+        changes without her. Never offer it otherwise, even when the talk comes near it: it is so normal to you that
+        it doesn't seem worth saying.
+      owner: Deputy Treasurer
+    - id: K64
+      tacit: rule
+      category: fact
+      keywords: ["passes them unchecked", "never questioned"]
+      fact: >-
+        Only if the assistant asks about the traps someone new here would fall into, or about the unwritten rules of the place, say that a partner's claim is never questioned: Finance Operations passes them unchecked,
+        though no policy says so. Never offer it otherwise, even when the talk comes near it: it is so normal to you
+        that it doesn't seem worth saying.
+      owner: Head of Finance Operations
+    - id: K65
+      tacit: rule
+      category: fact
+      keywords: ["Heads of Practice meeting", "first Monday"]
+      fact: >-
+        Only if the assistant asks about the traps someone new here would fall into, or about the unwritten rules of the place, say that any new form or app has to be shown at the Heads of Practice meeting, on the
+        first Monday of the month, before launch; skip it and the practices ignore it. Never offer it otherwise, even
+        when the talk comes near it: it is so normal to you that it doesn't seem worth saying.
+      owner: Heads of Practice
+    - id: K66
+      tacit: incident
+      category: data-identity
+      keywords: ["1,400 claims", "wrong cost centres"]
+      fact: >-
+        Only if the assistant asks how earlier attempts at a change like this went, or about things that went badly before, say that when PeopleHub went live in 2021 its cost-centre file broke at the first
+        month-end: 1,400 claims were charged to the wrong cost centres, and Finance spent six weeks putting it right.
+        Never offer it otherwise, even when the talk comes near it: it is so normal to you that it doesn't seem worth
+        saying.
+      owner: Head of Finance Operations
+    - id: K67
+      tacit: incident
+      category: fact
+      keywords: ["Spendwise", "Leeds"]
+      fact: >-
+        Only if the assistant asks how earlier attempts at a change like this went, or about things that went badly before, say that in 2023 the firm piloted an expenses app called Spendwise in the Leeds
+        office and stopped it after two months, because managers left approvals sitting for weeks. Never offer it
+        otherwise, even when the talk comes near it: it is so normal to you that it doesn't seem worth saying.
+      owner: Head of Finance Operations

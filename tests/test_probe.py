@@ -892,8 +892,11 @@ def test_every_check_that_calls_the_judge_keeps_the_judges_reserve():
     """Registration marks a judged check, so a judged check in probe_scale gets the reserve the same way."""
     import inspect
     calls_judge = {name for name, (fn, _) in probe.CHECKS.items()
-                   if any(call in inspect.getsource(fn) for call in ("judge_category", "analyze_options"))}
-    assert calls_judge == probe.JUDGED_CHECKS == {"option-count", "option-parts", "gaps-surfaced"}
+                   if any(call in inspect.getsource(fn) for call in ("judge_category", "analyze_options",
+                                                                     "verified_beliefs", "verified_tacit"))}
+    assert calls_judge == probe.JUDGED_CHECKS == {"option-count", "option-parts", "gaps-surfaced", "beliefs-challenged",
+                                                  "beliefs-recorded", "beliefs-lectured", "tacit-surfaced",
+                                                  "tacit-recorded"}
     assert {"gaps-raised", "positions-surfaced", "ready-decided", "unsure-proposed"} <= set(probe.CHECKS)
 
 
