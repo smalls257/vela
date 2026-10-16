@@ -444,9 +444,11 @@ next real lead, so the loop never lets a key reach a skill:
    gives a holdout's scores only). A change that lifts the dev persona and not the holdouts learned the dev
    persona, not the job: undo it.
 5. **Keep a change only when the keep rule says so** (`probe_keep.py`, below under "Scaled probes, the ceiling and
-   the keep rule"): dev accuracy improves beyond the spread, the holdout doesn't get worse, no voice measure gets
-   worse beyond its spread, and the voice-loading, leak and conversation-voice tests pass. A change that helps
-   accuracy but hurts the voice is reverted.
+   the keep rule"): a change counts only if both dev personas (`heron-claims` and `civic-permits`) improve beyond
+   the spread and neither holdout (`holdout-nursing`, `holdout-freight`) gets worse, no voice measure gets worse
+   beyond its spread, and the voice-loading, leak and conversation-voice tests pass. A change that lifts one dev
+   persona and not the other learned that brief, not the job. A change that helps accuracy but hurts the voice is
+   reverted.
 
 The keys are sealed three ways. Every persona file says `split: dev` or `split: holdout`, and a persona that says
 neither, or a run that names none, is treated as holdout (`seal.py`, `compare_runs.persona_sealed`, `probe.py`).
@@ -653,9 +655,21 @@ short (decisions topped out at 2, the hospitals holdout had 4 conflicts, most sc
 ceiling), one to three runs could not separate a change from noise, and nobody knew what score a probe could reach.
 The rebuild fixes each in its own place.
 
-**Bigger scales.** `scale/cases/` holds four cases, each scored on 6 to 8 items, for the dev persona `heron-claims`
-and the holdout `holdout-nursing` (sealed: never read it while iterating). Their snapshots are in `scale/snapshots/`,
-named by the case's `snapshot_root:`. `probe.py <case>` finds a case in `probes/` first, then `scale/cases/`.
+**Bigger scales.** `scale/cases/` holds four cases, each scored on 6 to 8 items, for two dev personas and two
+holdouts (sealed: never read a holdout while iterating). Their snapshots are in `scale/snapshots/`, named by the case's
+`snapshot_root:`. `probe.py <case>` finds a case in `probes/` first, then `scale/cases/`.
+
+| Split | Persona | Field | Difficulty |
+|---|---|---|---|
+| dev | `heron-claims` | expense claims at a professional-services firm | normal |
+| dev | `civic-permits` | residential building permits at a city | hard: gaps buried in staff shorthand, two resting on a remark the lead makes only in passing; positions held by groups the lead meant to consult late; owners mostly unclear, every loose end between two groups |
+| holdout | `holdout-nursing` | sealed | sealed |
+| holdout | `holdout-freight` | sealed | normal |
+
+Every persona has the same scale: 8 gaps, 8 positions, 6 loose ends, and a grill-ready vault with 8 ready items and
+3 blocked. The second dev persona (2026-10-16) is there so a change has to help two briefs in different fields, one
+of them hard in the generic ways a holdout can be, before it counts; the second holdout widens what "didn't get
+worse" covers.
 
 | Case | Starts from | Opening | Cap | Measure (of N) |
 |---|---|---|---|---|
@@ -707,18 +721,23 @@ not tool output or subagents), each with mean and spread:
 
 A voice sensor that breaks is a tool failure, exit 2, never a quiet zero.
 
-**The keep rule.** After a skill change, with the dev and holdout summaries before and after it:
+**The keep rule.** After a skill change, with a before and an after summary for every persona the case maps (each
+flag once per persona; the n-th before pairs with the n-th after):
 
 ```
-python3 tests/sim/probe_keep.py --dev-before <A> --dev-after <B> --holdout-before <C> --holdout-after <D>
+python3 tests/sim/probe_keep.py \
+  --dev-before <heron-claims A> --dev-after <heron-claims B> --dev-before <civic-permits A> --dev-after <civic-permits B> \
+  --holdout-before <nursing C> --holdout-after <nursing D> --holdout-before <freight C> --holdout-after <freight D>
 ```
 
-It prints each measure's move against its spread and KEEP (exit 0) only when all four hold: a dev accuracy measure
-is a real gain and none a real loss; no holdout accuracy measure is a real loss; no voice measure, dev or holdout, is
-a real loss; and `tests/test_conversation_voice.py` (the conversation voice and the voice-loading order),
-`tests/test_lead_voice.py`, `tests/test_sim_seal.py` (the leak seal) and `tests/test_skill_load.py` pass. Otherwise
-REVERT (exit 1) with the reasons. An oracle summary, a holdout in the dev pair, or a before and after of different
-cases is a tool failure (exit 2).
+A change counts only if both dev personas improve beyond the spread and neither holdout gets worse. It prints each
+persona's measures, each move against its spread, and KEEP (exit 0) only when all four hold: for each dev persona, an
+accuracy measure is a real gain and none a real loss; no accuracy measure of either holdout is a real loss; no voice
+measure, dev or holdout, is a real loss; and `tests/test_conversation_voice.py` (the conversation voice and the
+voice-loading order), `tests/test_lead_voice.py`, `tests/test_sim_seal.py` (the leak seal) and
+`tests/test_skill_load.py` pass. Otherwise REVERT (exit 1) with the reasons. An oracle summary, a holdout in the dev
+pairs, summaries of different cases, a persona given twice, or a persona the case maps with no pair is a tool failure
+(exit 2): a missing holdout is never read as "didn't get worse".
 
 **Cost.** From round one's real spend (a discover probe of 12 turns cost $1.80 to $3.90, about $2.60), at the caps
 above: a discover case is about $3 a run ($2.20 to $4.50), `scale-unsure` about $2.40, and `scale-decisions`, a grill
@@ -726,7 +745,9 @@ of up to 30 turns that files eight decisions, about $7 ($4 to $10; not yet measu
 baseline per case on each persona is 12 runs a case: about $36 for gaps, $36 for conflicts, $29 for unsure owners and
 $84 for decisions, about **$185 in all ($120 to $260)**. Run the eight ceiling runs first (about $31): a low ceiling
 saves the baselines for material that works. Give `--budget` as $5 a run for a discover case and $12 a run for the
-grill, so 5 runs take `--budget 25` or `--budget 60`.
+grill, so 5 runs take `--budget 25` or `--budget 60`. The second pair of personas (`civic-permits` and
+`holdout-freight`, 2026-10-16) costs the same again: about $185 ($120 to $260) for their ceilings and 5-run baselines
+on all four cases, $31 of it the eight ceiling runs. Their material is checked on the stub only; no paid run yet.
 
 ## Tests
 
@@ -749,7 +770,9 @@ measures, mean and spread and the "real change" rule, the keep rule (a gain that
 oracle summary or a holdout in the dev pair is refused), the oracle reaching every assistant call and nothing else,
 5 runs by default, the scaled snapshots (clean, their persona's inbox, 0 errors), each persona's scale and splits,
 positions heard only when asked, the grill-ready vaults' eight ready and three blocked items, oracles naming no key
-term, and every scaled case running on both personas with the holdout's output holding counts only.
+term, every scaled case and its ceiling run on the stub for all four personas with a holdout's output holding counts
+only, and the keep rule needing both dev personas to gain, neither holdout to fall, and a pair for every persona the
+case maps.
 
 `tests/test_sim_compare.py` runs `compare_runs.py` on runs it builds from a few pages and turns: lines copied from a
 run recorded before the rename (`legacy_lines.py`) count the same as their hand-renamed twins, and an old arm folder
@@ -779,11 +802,12 @@ only for a holdout.
   `seal-known-leaks.txt`: the plugin's known leaks, to remove (empty since 2026-10-15).
 - `probe.py`: one-session probes from a snapshot, for the iteration loop.
 - `probe_scale.py`: the scaled checks and their measures, the oracle, the voice measures, and mean, spread and the
-  "real change" rule. `probe_keep.py`: the keep rule over two pairs of probe summaries.
+  "real change" rule. `probe_keep.py`: the keep rule over a before and after pair for every persona a case maps.
 - `probes/`: the probe cases. `snapshots/`: the starting vaults. `scale/cases/` and `scale/snapshots/`: the scaled
   cases and theirs.
-- `personas/heron-claims.yaml`: the scaled probes' dev persona. `personas/holdout-nursing.yaml`: their holdout. Do
-  not read it while iterating.
+- `personas/heron-claims.yaml` and `personas/civic-permits.yaml`: the scaled probes' dev personas, the second one
+  hard. `personas/holdout-nursing.yaml` and `personas/holdout-freight.yaml`: their holdouts. Do not read them while
+  iterating.
 - `personas/heron-desk.yaml`: the dev persona, with the `heron-*` personas its runs bring in.
 - `personas/holdout-hospitals.yaml`: a holdout. Do not read it while iterating.
 - `personas/coastal-merger.yaml`: a holdout since 2026-10-15, and the default persona of the smoke and default

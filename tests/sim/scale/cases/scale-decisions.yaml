@@ -6,6 +6,8 @@ snapshot_root: scale/snapshots
 snapshot:
   heron-claims: grill-ready
   holdout-nursing: grill-ready
+  civic-permits: grill-ready
+  holdout-freight: grill-ready
 opening: "/vela:grill {topics[grill]}"
 cap: 30
 oracle: >-

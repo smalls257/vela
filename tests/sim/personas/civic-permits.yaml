@@ -1,0 +1,410 @@
+# The second dev persona of the scaled probes (built 2026-10-16): the lead taking residential building permits online
+# at the City of Calderford. Everything here is made up: Calderford, PermitPath, Tallis Civic Systems, PALS, Eastgate,
+# Millbrook, Local 412 and every named person are fictional. WCAG, the DOJ's Title II rule and NFPA 13D are real, and
+# the rules the gaps rest on are real, simplified.
+#
+# Built in the same shape as heron-claims (8 gaps, 8 positions, 6 loose ends, 11 decisions, 3 of them blocked), and
+# harder than it in three generic ways, so a change that only helps an easy brief does not pass the keep rule:
+# - implications buried deeper. The documents write their facts as staff shorthand inside long, noisy notes (a
+#   statute in a parenthesis, a routing rule in jargon, a standard by its policy number), and two gaps rest on a
+#   document fact plus a remark the lead makes only in passing, when its own subject comes up (K9, K10). Those two
+#   are found only by a session that asks about plans and records and then connects the remark to the vendor's terms.
+#   No U keyword is in a knows fact or the opening, so the lead never names a gap.
+# - positions held by people the lead meant to consult late. Each position fact says the lead had not planned to
+#   bring that group in until testing, the fee setup or sign-off, and each is given only when its narrow subject comes
+#   up, so a session that waits for the lead to list the stakeholders hears none of them.
+# - ownership uncertain more often. Most knows facts have no clear owner (owner says so), and every loose end sits
+#   between two groups that have each assumed the other has it, so proposing an owner takes a real suggestion.
+split: dev  # may be read while iterating on the skills; see tests/sim/README.md, "Iterating without teaching to the test"
+name: Theo Varga
+role: solution lead for PermitPath, the portal taking residential building permits online
+org: the City of Calderford's Department of Building and Planning, a city of 310,000 with a downtown permit counter and two satellite offices
+handle: "@sim-lead"
+style: >-
+  Friendly, busy and a little scattered. Answers in two or three sentences, and often mentions something in passing
+  without saying it matters. Says "honestly not sure" when they don't know, and never guesses. Assumes someone else has
+  most things in hand until asked who. Changes their mind once when given a good reason, and says so plainly. Never
+  writes lists unless asked to confirm one.
+opening: >-
+  The Director wants residential building permits online by next June: one portal, PermitPath, and plan review done in
+  ten business days. I've been made solution lead. I have her memo, the Permit Center's notes for new staff, the
+  vendor's proposal and a note from IT. Where do I start?
+
+topics:
+  discover_1: what the Director's memo, the Permit Center's notes, the vendor's proposal and IT's note mean for Calderford
+  discover_people: how a homeowner or a builder should get a residential permit in Calderford, from the first question to the final inspection
+  loose_ends: >-
+    the loose ends I already know about: the open paper applications on go-live day, whether the old permit history
+    back to 1998 is moved or kept read-only, who answers the portal's chat after the counter closes, whether the parcel
+    numbers match the GIS addresses, how refunds for withdrawn applications are paid, and who trains the contractors'
+    office staff
+  grill: the requirements for applying for a residential permit
+  # for the generic full-run scripts (scripts/default.yaml), which every persona must be able to play
+  discover_2: how PermitPath would reach the old permit database, the city's payment processor and the GIS maps
+  shape_1: what the first release of PermitPath covers and for whom
+  shape_2: how an application is reviewed and a permit issued
+  grill_2: how inspections are booked and their results recorded
+  epics: the Permit Center team
+
+knows:
+  - id: K1
+    category: fact
+    keywords: ["PermitPath", "ten business days"]
+    fact: The Director's mandate is that every residential permit is applied for, paid for and tracked in PermitPath from 1 June 2027, with plan review done within ten business days of a complete application.
+    owner: Director of Building and Planning
+  - id: K2
+    category: fact
+    keywords: ["14,000", "a year"]
+    fact: The city issues about 14,000 residential permits a year, across the downtown counter and the Eastgate and Millbrook satellite offices.
+    owner: honestly not sure; the Permit Center keeps the counts, but the numbers in the council report came from Finance
+  - id: K3
+    category: fact
+    keywords: ["24 business days", "takes about"]
+    fact: Today residential plan review takes about 24 business days from intake.
+    owner: Chief Plans Examiner, probably
+  - id: K4
+    category: finance-liability
+    keywords: ["1.2 million", "technology surcharge"]
+    fact: The budget is 1.2 million dollars over three years, from the permit technology surcharge fund. You think the Director holds it, but Finance may have to release it each year.
+    owner: unclear between the Director and the Finance Department
+  - id: K5
+    category: unnamed-stakeholder
+    keywords: ["product owner", "Permit Center"]
+    fact: The product owner is Marisela Quint, the Permit Center supervisor (@permit-center). Her team runs the counter today and will run PermitPath.
+    owner: Director of Building and Planning
+  - id: K6
+    category: legal-regulatory
+    keywords: ["city attorney", "terms of use"]
+    fact: The city attorney's office has to approve the portal's terms of use before it opens to the public. You don't know who sends it to them.
+  - id: K7
+    category: third-party-contract
+    keywords: ["not signed", "January"]
+    fact: The contract with Tallis Civic Systems is not signed. Purchasing hopes to take it to council in January.
+    owner: honestly not sure; Purchasing or the Director's office
+  - id: K8
+    category: fact
+    keywords: ["most permits", "contractors file"]
+    fact: Contractors file most permits; homeowners doing their own work file about a fifth.
+    owner: Permit Center
+  # Remarks the lead makes only in passing, when their own subject comes up. Each is half of a gap: the other half is
+  # in the vendor's proposal, and neither half names the gap.
+  - id: K9
+    category: fact
+    keywords: ["couple of hundred sheets", "as one file"]
+    fact: Only if you are asked about architects, plans or drawings, mention in passing, as an aside, that an architect's plan set for an addition is often a couple of hundred sheets, and they like to send it as one file.
+  - id: K10
+    category: fact
+    keywords: ["records clerk", "sign-off before"]
+    fact: Only if you are asked about records, public records requests or who can see an application, mention in passing, as an aside, that the records clerk always gets the owner's sign-off before releasing house plans to anyone.
+
+  # Stakeholder positions, heard only when their own subject comes up, each held by a group the lead meant to bring in
+  # late. They clash in pairs: K20/K21, K22/K23, K24/K25, K26/K27.
+  - id: K20
+    category: stakeholder-conflict
+    who: Budget Officer
+    keywords: ["non-refundable", "paid at submission"]
+    fact: Only if you are asked about the budget, money or the fees, say that the Budget Officer wants the whole fee paid at submission and non-refundable, so the city never reviews plans it hasn't been paid for. Add that you hadn't planned to talk to the Budget Office until the fee setup next spring.
+    owner: Budget Officer
+  - id: K21
+    category: stakeholder-conflict
+    who: Housing Equity Office
+    keywords: ["pay nothing", "low-income homeowners"]
+    fact: Only if you are asked about the homeowners or residents who apply, say that the Housing Equity Office wants low-income homeowners to pay nothing until their permit is issued, and wants fee waivers granted inside the portal. Add that you had only planned to show them the portal at user testing.
+    owner: Housing Equity Office
+  - id: K22
+    category: stakeholder-conflict
+    who: City Auditor
+    keywords: ["location stamp", "at the site"]
+    fact: Only if you are asked about audit, fraud or controls, say that the City Auditor wants every inspection result entered on the tablet at the site, with a location stamp, never typed in later at the office. Add that the Auditor usually only sees a system once it is live.
+    owner: City Auditor
+  - id: K23
+    category: stakeholder-conflict
+    who: Local 412
+    keywords: ["Local 412", "location tracking"]
+    fact: Only if you are asked about the inspectors in the field, the union or staff representatives, say that Local 412, the inspectors' union, has told HR it will grieve any location tracking of inspectors' tablets or phones. Add that you had planned to brief the union only before go-live.
+    owner: HR, or maybe the union steward; you're not sure who speaks for them
+  - id: K24
+    category: stakeholder-conflict
+    who: Purchasing Manager
+    keywords: ["cooperative contract", "its own bid"]
+    fact: Only if you are asked about purchasing, the contract or what the vendor will build, say that the Purchasing Manager wants everything done under the state cooperative contract Tallis is on, with no custom development, because custom work over 50,000 dollars needs its own bid.
+    owner: Purchasing Manager
+  - id: K25
+    category: stakeholder-conflict
+    who: City Manager's office
+    keywords: ["311", "unpermitted work"]
+    fact: Only if you are asked what the City Manager, the Mayor or senior leaders want, say that the City Manager's office wants PermitPath to take every 311 complaint about unpermitted work and open an enforcement case by itself. Add that you assumed they would only want a demo near launch.
+    owner: City Manager's office
+  - id: K26
+    category: stakeholder-conflict
+    who: Calderford Builders Association
+    keywords: ["issued instantly", "water heaters"]
+    fact: Only if you are asked about contractors, builders or how fast a permit is issued, say that the Calderford Builders Association wants simple permits, such as re-roofs, fences and water heaters, issued instantly online the minute they are paid.
+    owner: Calderford Builders Association
+  - id: K27
+    category: stakeholder-conflict
+    who: Chief Plans Examiner
+    keywords: ["plans examiner", "property line"]
+    fact: Only if you are asked about the people who review applications day to day, say that the Chief Plans Examiner wants every application, simple ones too, seen by a plans examiner before it is issued, because last year's same-day counter permits put three fences over the property line. Add that you had planned to bring the examiners in at sign-off.
+    owner: Chief Plans Examiner
+
+  # The lead's known loose ends: open questions with no owner yet, each between two groups that assume the other has it.
+  - id: K40
+    category: timeline
+    open_question: true
+    keywords: ["open paper applications", "900 in review"]
+    fact: An open question you know of, with nobody to answer it yet, is who moves the open paper applications into PermitPath on go-live day; there are usually about 900 in review. The Permit Center thinks IT has it, and IT thinks the Permit Center does.
+  - id: K41
+    category: data-identity
+    open_question: true
+    keywords: ["back to 1998", "read-only"]
+    fact: An open question you know of, with nobody to answer it yet, is whether the old permit history back to 1998 is moved into PermitPath or kept read-only in the old database. Nobody has said whether that is IT's call or the records clerk's.
+  - id: K42
+    category: unnamed-stakeholder
+    open_question: true
+    keywords: ["portal's chat", "after the counter closes"]
+    fact: An open question you know of, with nobody to answer it yet, is who answers the portal's chat after the counter closes to walk-ins. It could be the Permit Center or the city's resident call center.
+  - id: K43
+    category: data-identity
+    open_question: true
+    keywords: ["parcel numbers", "GIS addresses"]
+    fact: An open question you know of, with nobody to answer it yet, is whether the county's parcel numbers that PermitPath uses match the city's GIS addresses. It sits somewhere between the GIS team and the county assessor.
+  - id: K44
+    category: finance-liability
+    open_question: true
+    keywords: ["refunds", "withdrawn applications"]
+    fact: An open question you know of, with nobody to answer it yet, is how refunds for withdrawn applications are paid, back to the card or by check, and who signs them off. Finance and the Permit Center each assume the other one does.
+  - id: K45
+    category: third-party-contract
+    open_question: true
+    keywords: ["office staff", "trains the"]
+    fact: An open question you know of, with nobody to answer it yet, is who trains the contractors' office staff, the people who actually file most permits. Tallis's training covers city staff only.
+
+wrong:
+  - id: W1
+    category: timeline
+    keywords: ["20 weeks", "first permit types"]
+    belief: Every residential permit type can go online on 1 June 2027 at once.
+    truth: Tallis needs 20 weeks from signature to configure the permit types, and the contract goes to council in January, so only the first permit types can be ready by June; the rest follow.
+  - id: W2
+    category: finance-liability
+    keywords: ["data migration", "separate statement of work", "180 dollars"]
+    belief: Tallis's price includes moving the data out of the old permit database.
+    truth: The proposal prices data migration as a separate statement of work, at 180 dollars an hour.
+
+unaware:
+  - id: U1
+    category: legal-regulatory
+    keywords: ["deemed approved", "marked complete"]
+    gap: PermitPath marks an application complete by itself once every field is filled and the fee is paid, and under the state Permit Streamlining Act a complete application not acted on in 30 days is deemed approved.
+    why: The clock that today starts when a permit tech signs intake would start at submission, so a filled-in but wrong application could be approved by default.
+  - id: U2
+    category: finance-liability
+    keywords: ["2.75%", "council adoption", "Ordinance 2019-41"]
+    gap: Tallis adds a 2.75% card charge to the applicant's total, and under Ordinance 2019-41 any amount charged to an applicant is a fee that needs council adoption.
+    why: The Director wants the city to keep the whole fee and the fees to stay as the schedule sets them; either council adopts a new fee or the city pays the card charge out of the budget.
+  - id: U3
+    category: unnamed-stakeholder
+    keywords: ["Fire Marshal", "paper only"]
+    gap: Jobs on three or more dwelling units, or with a home sprinkler system, are routed to the Fire Marshal, who takes paper only, and the Director's residential scope runs to four units.
+    why: Part of the residential flow goes through an office nobody named, which cannot take an online plan set.
+  - id: U4
+    category: data-identity
+    keywords: ["self-register", "license card"]
+    gap: Anyone can self-register on PermitPath with an email address, and today a permit tech checks the contractor's state license card at the counter.
+    why: Online, nothing stops an unlicensed contractor from pulling a permit, so the license check needs a new home.
+  - id: U5
+    category: cross-source-mismatch
+    keywords: ["50 MB", "per file"]
+    gap: PermitPath takes uploads of 50 MB per file, and an architect's plan set for an addition is a couple of hundred sheets sent as one file.
+    why: The largest applications, the ones that most need review, would bounce at upload.
+  - id: U6
+    category: legal-regulatory
+    keywords: ["search by address", "full application", "uploaded plans"]
+    gap: Anyone can search PermitPath by address and see the full application with its uploaded plans, and the city releases house plans only with the owner's sign-off.
+    why: The portal would publish what the records clerk withholds today.
+  - id: U7
+    category: timeline
+    keywords: ["April to August", "60%"]
+    gap: The counter closes to walk-ins on 1 June, in the middle of the April to August season that brings in 60% of residential permits.
+    why: Staff and applicants learn a new system at the busiest time of year, with no counter to fall back on.
+  - id: U8
+    category: legal-regulatory
+    keywords: ["2.1 AA", "Level A"]
+    gap: PermitPath conforms to WCAG 2.0 Level A, and the city's public web services must meet WCAG 2.1 AA since April 2026.
+    why: The portal would break the city's own accessibility rule, which the DOJ's Title II rule stands behind, the day the counter closes.
+
+conflicts: []
+
+decisions:
+  # Each is an item on the grill-ready snapshot. The first eight are ready to decide; the last three are held by an
+  # open unknown there. The lead's choice is the option the vault already marks as picked.
+  - id: D1
+    category: fact
+    item: CAP-001.FR1
+    keywords: ["upload the plan set", "as PDFs"]
+    question: How does an applicant hand in their plans?
+    options: ["Upload the plan set as PDFs in the portal", "Drop paper at the counter to be scanned"]
+    choice: Upload the plan set as PDFs in the portal
+    reason: the counter is closing to walk-ins, and scanning paper is the work the portal is meant to remove
+  - id: D2
+    category: fact
+    item: CAP-001.FR2
+    keywords: ["checklist", "permit type"]
+    question: How does an applicant know they have everything before sending?
+    options: ["A checklist for each permit type, ticked before it can be sent", "Staff check it after it arrives"]
+    choice: A checklist for each permit type, ticked before it can be sent
+    reason: most applications bounce today for a missing document, and the checklist catches that before anyone's time is spent
+  - id: D3
+    category: fact
+    item: CAP-001.FR3
+    keywords: ["changed sheets", "list of corrections"]
+    question: How does an applicant answer a reviewer's corrections?
+    options: ["Upload only the changed sheets against the list of corrections", "Send the whole plan set again"]
+    choice: Upload only the changed sheets against the list of corrections
+    reason: a whole set again means the reviewer starts over
+  - id: D4
+    category: fact
+    item: CAP-001.FR4
+    keywords: ["inspection slot", "next business day"]
+    question: How is an inspection booked?
+    options: ["The applicant books a slot online, from the next business day", "They phone the inspections line"]
+    choice: The applicant books a slot online, from the next business day
+    reason: the inspections line is the second busiest phone in the department
+  - id: D5
+    category: fact
+    item: CAP-001.FR5
+    keywords: ["email when it moves", "status page"]
+    question: What does the applicant see while an application is in progress?
+    options: ["Each step, with an email when it moves", "A status page they check themselves"]
+    choice: Each step, with an email when it moves
+    reason: most counter questions today are someone asking where their permit is
+  - id: D6
+    category: timeline
+    item: CAP-001.FR6
+    keywords: ["150 days", "180 days"]
+    question: What happens to a permit with no inspection for a long time?
+    options: ["A warning at 150 days, and it expires at 180", "It expires at 180 days with no warning"]
+    choice: A warning at 150 days, and it expires at 180
+    reason: the 180-day rule is in the building code, and a warning saves the argument
+  - id: D7
+    category: fact
+    item: CAP-001.FR7
+    keywords: ["property owner", "told when"]
+    question: Who is told when a permit is issued?
+    options: ["The applicant and the property owner", "The applicant only"]
+    choice: The applicant and the property owner
+    reason: when a contractor applies, the owner should know work is permitted on their house
+  - id: D8
+    category: finance-liability
+    item: CAP-001.FR8
+    keywords: ["renew", "half the fee"]
+    question: What can an applicant do with a permit that expired?
+    options: ["Renew it once online for half the fee", "Apply again from the start"]
+    choice: Renew it once online for half the fee
+    reason: the fee schedule already allows one renewal at half the fee
+  - id: D9
+    category: legal-regulatory
+    item: CAP-001.FR9
+    blocked: true
+    keywords: ["review clock", "when it starts"]
+    question: When does the review clock start?
+    options: ["When the applicant sends the application", "When a permit tech accepts it as complete"]
+    choice: When the applicant sends the application
+    reason: it is the fastest reading of the Director's ten business days
+    refuse_until: someone says whether an online application starts the state's review clock by itself
+  - id: D10
+    category: finance-liability
+    item: CAP-001.FR10
+    blocked: true
+    keywords: ["pays the fee", "card charge"]
+    question: When and how does the applicant pay the fee?
+    options: ["By card, in full when they send the application", "At issue, by card or check"]
+    choice: By card, in full when they send the application
+    reason: paying up front keeps unpaid applications out of the queue
+    refuse_until: someone says who pays the card charge and whether council has to vote on it
+  - id: D11
+    category: data-identity
+    item: CAP-001.FR11
+    blocked: true
+    keywords: ["license number", "state register"]
+    question: How does a contractor show they are licensed?
+    options: ["Their license number is checked against the state register when they sign up", "They upload a photo of their license"]
+    choice: Their license number is checked against the state register when they sign up
+    reason: a photo is the paper check again, and it can be faked
+    refuse_until: someone confirms the city may use the state register's lookup, and says who keeps it running
+
+docs:
+  - name: director-memo.md
+    text: |
+      # PermitPath: what I need
+
+      From Odette Kranz, Director of Building and Planning, to the solution lead. 1 October 2026.
+
+      Council has funded PermitPath, from Tallis Civic Systems, to take residential permits online. Residential here
+      means the building code's own sense: houses, townhouses and small buildings of one to four dwelling units. What I
+      need from it:
+
+      - Every residential permit applied for, paid for and tracked online, from 1 June 2027. The downtown counter
+        closes to residential walk-ins that day, and Eastgate and Millbrook close at the end of June.
+      - Plan review done within ten business days of a complete application, against about 24 today.
+      - Applicants pay online by card. The city keeps the whole fee, and fees stay exactly as the fee schedule sets
+        them.
+      - Budget: 1.2 million dollars over three years, from the permit technology surcharge fund.
+      - Marisela Quint's team at the Permit Center will run it. Talk to her about anything the counter does today.
+
+      I've promised council a launch before the summer.
+  - name: permit-center-notes.md
+    text: |
+      # Residential permits: notes for new Permit Center staff
+
+      Permit Center, revised September 2026. Read with the fee schedule and the routing sheet.
+
+      - Volume: about 14,000 residential permits a year across downtown, Eastgate and Millbrook. April to August is the
+        busy season, about 60% of the year's residential applications. Plan your leave around it.
+      - Intake: check the application against the checklist for its permit type, take the plan set (two copies, 24 x
+        36) and log it in PALS, the permit database. An application is complete only when a permit tech signs the
+        intake sheet. (The state Permit Streamlining Act clock starts at that signature: a complete application not
+        acted on within 30 days is deemed approved. Don't sign intake on anything you haven't checked.)
+      - Contractors: ask for the state license card and check the expiry date before you take the application.
+        Owner-builders sign the owner-builder affidavit at the counter.
+      - Routing: R-3 work goes to plan review. Copy the routing sheet for 3+ dwelling units or any NFPA 13D system to
+        the Fire Marshal; FM reviews paper only and returns red-lined sets by interoffice mail.
+      - Fees: per the schedule in Ordinance 2019-41. Anything we collect from an applicant counts as a fee under it, so
+        nothing gets added at the counter without council adoption, not even a copy charge.
+      - Corrections: the reviewer writes a corrections list; the applicant brings back the changed sheets.
+      - Inspections: booked by phone on the inspections line, next business day at the earliest.
+      - Expiry: a permit with no passed inspection in 180 days expires. We mail a reminder at 150 days.
+      - Renewals: one renewal at half the fee, per the schedule.
+      - PALS goes down for maintenance the first Sunday of each month.
+  - name: vendor-proposal.md
+    text: |
+      # PermitPath for the City of Calderford
+
+      Tallis Civic Systems, proposal of 15 September 2026.
+
+      - Price: 310,000 dollars a year for up to 120 named city staff users. Applicant accounts are free and unlimited.
+      - Configuration: 20 weeks from contract signature, permit types configured in waves. Data migration from your
+        current system is a separate statement of work, at 180 dollars an hour.
+      - Applicant accounts: anyone can self-register with an email address. Signatures are click-to-accept.
+      - Applications: when every required field is filled and the fee is paid, the application is marked complete
+        automatically and enters the review queue, with no staff step.
+      - Uploads: PDF only, up to 50 MB per file, up to 20 files per application.
+      - Payments: card only, through our processor. A 2.75% card charge is added to the applicant's total at checkout,
+        so the city receives the full fee.
+      - Public search: anyone can search by address and see the full application, including uploaded plans, once a
+        permit is issued.
+      - Accessibility: the applicant portal conforms to WCAG 2.0 Level A.
+      - Hosting: our cloud, US regions only. Training for city staff is included; four sessions.
+  - name: it-note.md
+    text: |
+      # Note from IT on PermitPath
+
+      From the city's IT applications lead, 25 September 2026.
+
+      - Sign-in for city staff through the city directory is fine. Applicants use their own accounts.
+      - PALS can export its records as CSV; nobody has tried a full export.
+      - The GIS team publishes the address layer every night.
+      - Public web services must follow AR 7.2, the city's accessibility standard (WCAG 2.1 AA since April 2026, to
+        meet the DOJ's Title II rule).
+      - Any new service holding residents' data needs IT security sign-off, about four weeks.
