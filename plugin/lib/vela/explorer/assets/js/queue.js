@@ -161,7 +161,7 @@ const Queue = (() => {
     const list = items(), fold = folded(width);
     const say1 = startWith();
     const el = h("section", { class: "q-card" + (fold ? "" : " open"), "aria-label": "What is waiting on an answer" },
-      h("div", { class: "q-head" }, h("span", { class: "q-kicker" }, "Waiting on an answer"), h("span", { class: "q-count", "data-quantity": "needsYou.questions", "data-n": needsYou().questions }, say1),
+      h("div", { class: "q-head" }, h("span", { class: "q-kicker" }, "Waiting on an answer"), h("span", { class: "q-count", ...(needsYou().questions ? { "data-quantity": "needsYou.questions", "data-n": needsYou().questions } : {}) }, say1),
         h("button", { class: "q-fold", "aria-expanded": String(!fold), title: "Hide the list so the map gets the full width", onclick: (ev) => {
           const open = !el.classList.contains("open");
           if (width >= NARROW) { Settings.write(FOLD_KEY, open ? "0" : "1"); rerender(); return; }  // the map refits to the room the fold gave or took

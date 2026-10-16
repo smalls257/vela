@@ -101,7 +101,7 @@ def test_who_to_ask_marks_a_guess(trading):
     for u in data["asks"]:
         assert u["ask"]["key"], u["id"]
         if u["ask"]["inferred"]:
-            assert u["ask"]["rule"].startswith("our guess"), u["id"]
+            assert u["ask"]["rule"].startswith("A guess"), u["id"]
         if u["state"] == "open":
             assert u["light"]["level"] in ("warning", "caution"), u["id"]
 
@@ -438,7 +438,7 @@ def test_designs_are_embedded_and_checked_against_the_vault(designed):
     assert "minute 12" in booking["challenges"][0]["scenario"]
     # each Integration point meets the component that cites its contract, and names the boxes it reaches on the map
     stubs = {s["system"]: s for s in booking["stubs"]}
-    assert stubs["FERRYMASTER"]["component"] == "Ledger adapter" and stubs["FERRYMASTER"]["how"] == "it delivers CON-006"
+    assert stubs["FERRYMASTER"]["component"] == "Ledger adapter" and stubs["FERRYMASTER"]["how"] == "it delivers Ledger transactions"
     assert set(stubs["Channels via Platform gateway"]["nodes"]) == {"APP-website", "APP-call-center", "APP-kiosks"}
     assert next(s for s in D["APP-pricing"]["stubs"] if s["system"] == "Fare rules store")["how"] == "the design's data table says it reads from it"
     assert [s["how"] for s in D["APP-notifications"]["stubs"]] == ["it depends on it, though the design doesn't list it as an outside system"]
@@ -618,7 +618,7 @@ def test_release_less_vault_says_where_releases_go(tmp_path):
     """No 04b-releases.md: the Releases view, lens and doors print the one empty state naming the page."""
     page, data = built(tmp_path, COASTAL_S2, "2026-10-10", "no-releases")
     assert data["releases"]["count"] == 0
-    assert 'emptyState("No releases recorded yet."' in page and "04b-releases.md" in page
+    assert 'emptyState("No releases yet, so this shows today' in page and "04b-releases.md" in page
     assert page.count("function emptyState(") == 1, "one empty-state helper, not one per view"
     assert 'class: "empty-state"' not in page.replace('class: "empty-state" + (extraClass', ""), "a view writes its own empty block"
 

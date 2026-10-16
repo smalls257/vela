@@ -805,7 +805,7 @@ const SelfTest = (() => {
     $(".sl-c-status", r0).click(); await frames();
     const openClick = r0.getAttribute("aria-expanded") === "true" && !more().hidden;
     const labels = $$(".sl-l", more()).map((l) => l.textContent);
-    ok(openEnter && foldSpace && openClick && ["Flows", "Contracts it uses", "Journey", "Flow check"].every((w) => labels.includes(w)),
+    ok(openEnter && foldSpace && openClick && ["Flows", "Contracts it uses", "Journey", "Quick flow check"].every((w) => labels.includes(w)),
       `slices table: Enter opens a row, Space folds it, a click opens it, and the open row shows ${labels.join(", ")}`, `slices table: Enter ${openEnter}, Space ${foldSpace}, click ${openClick}, lines ${labels.join(", ")}`);
     go("lights", { reset: true }); await frames();
     $(".sl-name", r0).click(); await frames();
@@ -854,7 +854,7 @@ const SelfTest = (() => {
     ok($$(".sl-tr").length === L.length && $(".sl-find").value === "", "slices: Clear filters shows every slice again", `slices clear: ${$$(".sl-tr").length} rows`);
     const late = L.filter((x) => x.overdue).length, needs = $(".sl-fgroup[data-group=needs] button");
     needs.click(); await frames();
-    ok(+$(".ct", $(".sl-fgroup[data-group=needs] button")).textContent === late && (late ? $$(".sl-tr").length === late && $$(".sl-tr .sl-due").length === late : !!$(".sl-empty")),
+    ok(+$(".ct", $(".sl-fgroup[data-group=needs] button")).textContent === late && (late ? $$(".sl-tr").length === late && $$(".sl-tr .sl-due").length === late : needs.disabled && $$(".sl-tr").length === L.length),
       `slices: Needs you only shows the ${late} with a journey past its due date`, `slices needs you: ${$$(".sl-tr").length} rows, want ${late}`);
     Slices.clear(); Slices.st.open = new Set(); Slices.st.layout = null;
     if (was === null) localStorage.removeItem(KEYL); else Settings.write(KEYL, was);
@@ -968,21 +968,21 @@ const SelfTest = (() => {
     } else out.push("skip group buttons: vault has no apps");
     if (!D.releases.count) {
       Nav.open("releases"); await frames();
-      ok(has($("#main"), "No releases recorded yet.") && !/04b-releases\.md/.test($("#main").textContent) && (!D.nodes.length || !!$("#main .rel-grid")),
+      ok(has($("#main"), "No releases yet, so this shows today against where every app ends up.") && !/04b-releases\.md/.test($("#main").textContent) && (!D.nodes.length || !!$("#main .rel-grid")),
         "releases: the empty state says none are recorded, names no file, and the Today against end-state comparison renders under it", "releases: no empty state, or no comparison under it");
-      if (D.map.apps.length) { MapView.st.lens = "releases"; showView("map"); rerender(); await frames(); ok(has($("#board"), "No releases recorded yet."), "map Releases lens: the same empty state above the comparison", "map Releases lens has no empty state"); MapView.st.lens = null; }
+      if (D.map.apps.length) { MapView.st.lens = "releases"; showView("map"); rerender(); await frames(); ok(has($("#board"), "No releases yet, so this shows today against where every app ends up."), "map Releases lens: the same empty state above the comparison", "map Releases lens has no empty state"); MapView.st.lens = null; }
     } else out.push("skip releases empty state: the vault records releases");
     if (D.map.apps.length) {
       Nav.role("exec"); await frames();
-      ok(D.releases.count || has($(".door"), "No releases recorded yet."), "exec door: release timeline says no releases are recorded", "exec door: no releases and no empty state");
-      ok(D.releases.count || await doorHas("product", "No releases recorded yet."), "product door: what each release delivers names 04b-releases.md", "product door: no empty state for releases");
-      if (!D.trace.requirements.length && D.trace.capabilities.length) ok(await doorHas("product", "No requirement rows yet."), "product door: the requirement cards name /vela:requirements and /vela:allocate", "product door: no empty state for requirements");
+      ok(D.releases.count || has($(".door"), "No releases yet."), "exec door: release timeline says no releases are recorded", "exec door: no releases and no empty state");
+      ok(D.releases.count || await doorHas("product", "No releases yet."), "product door: what each release delivers names 04b-releases.md", "product door: no empty state for releases");
+      if (!D.trace.requirements.length && D.trace.capabilities.length) ok(await doorHas("product", "No requirements written yet"), "product door: the requirement cards name /vela:requirements and /vela:allocate", "product door: no empty state for requirements");
       if (!D.trace.epics.length) ok(await doorHas("qa", "No epics yet."), "QA door: criteria cards name /vela:epics", "QA door: no empty state for epics");
     }
-    if (!D.trace.requirements.length) { showView("trace"); await frames(); ok(has($("#main"), "No requirements written yet.") && /allocate/.test($("#main .empty-state").textContent), "trace: requirement level says no requirements are written and which steps write them", "trace: no empty state for missing requirement rows"); }
+    if (!D.trace.requirements.length) { showView("trace"); await frames(); ok(has($("#main"), "No requirements yet, so each capability goes straight to its epics.") && /allocate/.test($("#main .empty-state").textContent), "trace: requirement level says no requirements are written and which steps write them", "trace: no empty state for missing requirement rows"); }
     if (!D.flows.length) {
       showView("flows"); await frames();
-      ok(has($("#main"), "No flows yet.") && $("#main .es-writer").textContent.includes("/vela:boundary"), "flows view: 'No flows yet', written by /vela:boundary", "flows view: no empty state");
+      ok(has($("#main"), "No flows yet.") && $("#main .es-writer").textContent.includes("the boundary session"), "flows view: 'No flows yet', written in the boundary session", "flows view: no empty state");
       Search.type("how does it work"); await frames();
       ok(has($("#results"), "No flows yet.") && !$("#results").hidden, "search 'how does ...': says there are no flows rather than return nothing", "search 'how does': nothing said about missing flows"); Search.type("");
     } else {
@@ -1173,8 +1173,8 @@ const SelfTest = (() => {
     ok(ranked && q.every((x) => x.level === ASK[x.id].light.level), `queue: ${q.length} open questions that hold something, in attention's order (level, then urgency), each lamp the question's own light`, "queue: the order or a lamp is not attention's");
     const held = new Set([...D.above.map((a) => a.unknown), ...Object.values(D.blockedBy).flat()].filter((u) => isOpen(ASK[u])));
     ok(held.size === q.length && [...held].every((u) => q.some((x) => x.id === u)), `queue: every open question that holds something is listed once (${held.size}), not once per thing it holds (${D.above.length} held above the map)`, `queue: ${q.length} listed for ${held.size} holding questions`);
-    ok(rows().length === top && rows().every((r) => !/^[A-Z]+-\d+/.test($(".q-title", r).textContent) && !/\b(UNK|CAP|EPC|CON|APP)-\d/.test(r.textContent) && r.title.startsWith(r.dataset.ref)),
-      `queue: the top ${top} show in plain words, with what each holds up and who to ask; the ID is in the tooltip only`, "queue: a row shows an ID or lacks its tooltip");
+    ok(rows().length === top && rows().every((r) => !/^[A-Z]+-\d+/.test($(".q-title", r).textContent) && !/\b(UNK|CAP|EPC|CON|APP)-\d/.test(r.textContent) && r.title === ASK[r.dataset.ref].question && r.dataset.ref),
+      `queue: the top ${top} show in plain words, with what each holds up and who to ask; the tooltip is the question, the ID rides in data-ref only`, "queue: a row shows an ID or its tooltip isn't the question");
     ok(rows().every((r) => /^Blocks /.test($(".q-sub", r).textContent) && /^Ask: /.test($(".q-ask", r).textContent) && $(".q-when b", r).textContent.trim()), "queue: each row says what it holds up, who to ask and by when", "queue: a row lacks what it holds, who to ask or when");
     ok(rows().every((r, i) => $(".lamp", r).classList.contains(q[i].level)) && $$(".home-stage .q-row .lamp").length === rows().length, "queue: a small lamp, not a painted row, carries the level", "queue: a row's lamp is not its level");
     const card = $(".q-card"), map = $(".home-map"), a = card.getBoundingClientRect(), b = map.getBoundingClientRect();
@@ -1201,12 +1201,14 @@ const SelfTest = (() => {
     const need = Queue.needsYou(), counts = Queue.counts(), masters = Object.fromEntries($$("#masters .master").map((m) => [m.className.split(" ").find((c) => LEVELS.includes(c)), +$("b", m).textContent]));
     ok(masters.caution === need.n && (masters.warning || 0) === need.late && Object.entries(masters).every(([lv, n]) => lv === "caution" || n === counts[lv]),
       `top bar: ${need.n} need you, ${need.late} of them overdue; ${Object.entries(masters).filter(([lv]) => lv !== "caution" && lv !== "warning").map(([lv, n]) => `${n} ${lv}`).join(", ") || "nothing else lit"}`, `top bar ${JSON.stringify(masters)} against needs-you ${JSON.stringify(need)}`);
-    // one number for "needs you": the top bar, the side door, the waiting card and the panel's opening line agree, and each says what it counts
+    // "needs you" is shown as a number once on Home, in the top bar (label sweep: the same 21 showed four times). The
+    // side door shows only the overdue part, the waiting card says what to start with, and the panel doesn't repeat either.
     Nav.home(); go("lights", { reset: true }); await frames();
-    const door = $(".side-home .side-n"), words = Queue.needsYouSays(), qcount = $(".q-card .q-count"), lede = $("#panel .p-lede");
-    ok((need.n ? +door.textContent === need.n : !door) && (!need.n || (qcount && qcount.textContent === words)) && (!need.n || (lede && lede.textContent.startsWith(words))) && $("#masters .master.caution").title.startsWith(words),
-      `needs you: one count, ${need.n}, in the top bar, the side door, the waiting card and the panel, each saying what it is made of ("${words}")`,
-      `needs you: top bar ${masters.caution}, side door ${door && door.textContent}, card "${qcount && qcount.textContent}", panel "${lede && lede.textContent.slice(0, 60)}", against ${need.n}`);
+    const door = $(".side-home .side-n"), qcount = $(".q-card .q-count"), lede = $("#panel .p-lede"), says = Queue.needsYouSays();
+    const homeText = [$("#main"), $("#side"), $("#panel")].map((x) => (x ? x.textContent : "")).join(" ");
+    ok((need.late ? door && +door.textContent === need.late : !door) && (!need.n || (qcount && qcount.textContent === Queue.startWith())) && !homeText.includes(says) && !(lede && /\d+ need you/.test(lede.textContent)),
+      `needs you: ${need.n} in the top bar only; the side door shows ${need.late ? need.late + " overdue" : "no number"}, the waiting card says "${Queue.startWith()}", and the panel doesn't repeat the count`,
+      `needs you: side door ${door && door.textContent} (want ${need.late || "none"}), card "${qcount && qcount.textContent}", panel "${lede && lede.textContent.slice(0, 80)}", "${says}" ${homeText.includes(says) ? "repeated on the page" : "not repeated"}`);
     Nav.home(); go("lights", { reset: true }); await frames();
   }
 
@@ -1662,14 +1664,14 @@ const SelfTest = (() => {
     // freshness: the banner follows the stamped report, shown only when something changed
     const newer = { role: "reader", state: "newer", latest: { date: "2026-10-20", commit: "4d1e8a0" }, have: {}, checked_at: "2026-10-18T09:12:00" };
     const owner = { role: "owner", state: "newer", behind: 2, ahead: 0, uncommitted: 1, checked_at: "2026-10-18T09:12:00" };
-    ok(/^A newer copy was published on 20 Oct 2026; reopen it to update/.test(Freshness.words(newer)) && /your drafts carry over/.test(Freshness.words(newer))
+    ok(/^There's a newer copy from 20 Oct 2026\. Reload the page to get it/.test(Freshness.words(newer)) && /your drafts carry over/.test(Freshness.words(newer))
       && Freshness.words({ ...newer, state: "current" }) === "" && Freshness.words({ ...newer, state: "unreachable" }) === "" && Freshness.words(null) === ""
       && Freshness.words(owner) === "2 updates on the shared copy aren't in yours yet; 1 changed file isn't shared yet." && Freshness.words({ ...owner, behind: 0, uncommitted: 0, state: "current" }) === "",
       "freshness: the banner words say a newer copy was published, or updates not pulled and changes not shared, and nothing otherwise", "freshness: Freshness.words gave " + JSON.stringify([Freshness.words(newer), Freshness.words(owner)]));
     const kept = { report: Freshness.st.report, live: Freshness.st.live };
     ok($("#fresh").hidden === !Freshness.words(Freshness.st.report), `freshness: this page's banner is ${$("#fresh").hidden ? "hidden" : "shown"} to match its stamp`, "freshness: the banner does not match the stamped report");
     Freshness.st.report = newer; Freshness.st.live = false; Freshness.render();
-    const shown = !$("#fresh").hidden && /as of 2026-10-18 09:12, when this page was built/.test($("#fresh").textContent);
+    const shown = !$("#fresh").hidden && /from 18 Oct, 9:12, when the page was built/.test($("#fresh").textContent);
     Freshness.st.report = { ...newer, state: "current" }; Freshness.render();
     const hidden = $("#fresh").hidden;
     Freshness.st.report = kept.report; Freshness.st.live = kept.live; Freshness.render();
@@ -1698,7 +1700,7 @@ const SelfTest = (() => {
     console.warn = warn;
     const said = $("#fresh").textContent;
     Object.assign(Freshness.st, saved); broken(); Freshness.render();
-    ok(/couldn't check just now; this is as of 2026-10-18 09:12/.test(said) && !/checked just now/.test(said), "freshness: after a failed live check the banner says it could not check, and when it was built", `freshness: after a failed check the banner says "${said}"`);
+    ok(/couldn't check just now; this is from 18 Oct, 9:12/.test(said) && !/checked just now/.test(said), "freshness: after a failed live check the banner says it could not check, and when it was built", `freshness: after a failed check the banner says "${said}"`);
   }
   SelfTest.run = async () => {
     const report = await base(), lines = [], errors = window.__errors.length;
@@ -1894,14 +1896,110 @@ const TextFit = (() => {
   return { textFits, clippedText, bareLabels, builderWords, KINDS };
 })();
 
+/* ------------------------------------------------------------ The voice gate: codes in reader text, a count said twice, two counts for one thing
+   Three sensors over the text a reader sees, swept with TextFit's views. Each exists for one failure the label sweep
+   (2026-10-16) found by eye and no check saw:
+   - leaks(root): builder plumbing in reader text, by say.LEAD_PATTERNS (the one copy, carried in the selftest build as
+     D.leadPatterns), less item IDs, which ride in a small tag on purpose. Words someone wrote are theirs and left out.
+   - repeats(root): the same count sentence twice on one screen ("21 need you: 18 open questions blocking work..." on the
+     banner and in the panel beside it). A count said once is information; said twice it is a second thing to hold.
+   - quantities(): every element marked data-quantity="<name>" data-n="<n>" must give the one source's number for that
+     name, and every view must agree (E60: the Managers door said 27 open questions, the top bar 21, the Exec door 0
+     proposed beside the log's 1). A view that shows a shared count marks it; the sources are Queue.needsYou and D.counts. */
+const VoiceGate = (() => {
+  const SKIP = ".r-text, .prose-text, .authored, .dpage, .id-tag, .idsuf, .dl-trace, code, pre, script, style, svg, [hidden], .sr-only, .tour, #selftest-out";
+  const ROOTS = "header.top, #side, #main, #panel";
+  const patterns = () => Object.entries(D.leadPatterns || {}).map(([kind, src]) => [kind, new RegExp(src)]);
+  const shown = (el) => !!el && !el.closest(SKIP) && el.getClientRects().length > 0 && getComputedStyle(el).visibility !== "hidden";
+  function textNodes(root) {
+    const out = [], hosts = root.matches && root.matches(ROOTS) ? [root] : [...root.querySelectorAll(ROOTS)];
+    for (const host of hosts) {
+      const walk = document.createTreeWalker(host, NodeFilter.SHOW_TEXT);
+      for (let n = walk.nextNode(); n; n = walk.nextNode()) if (n.nodeValue.trim() && shown(n.parentElement)) out.push(n);
+    }
+    return out;
+  }
+  function leaks(root = document) {
+    const bad = [], seen = new Set(), list = patterns();
+    for (const n of textNodes(root)) {
+      const text = n.nodeValue.replace(/\b(?:https?|file):\/\/\S+/g, "");
+      for (const [kind, re] of list) {
+        const m = text.match(re);
+        if (!m || seen.has(kind + m[0])) continue;
+        seen.add(kind + m[0]);
+        bad.push({ text: text.trim().slice(0, 60), kind, hit: m[0] });
+        break;
+      }
+    }
+    return bad;
+  }
+  /* A block's own words, joined across its inline children, so "18 questions block work." is one sentence however it is marked up. */
+  const BLOCK = /^(block|flex|grid|list-item|table-cell|table-caption|flow-root)/;
+  function blockOf(el) { for (let a = el; a && a !== document.body; a = a.parentElement) if (BLOCK.test(getComputedStyle(a).display)) return a; return document.body; }
+  /* A count sentence says how many of something there are: "18 questions block work", "21 need you". A date, a time
+     or a name with a number in it ("the 7:30 digest") is not a count. Rows of a list or table say the same words about
+     different things by design, so a row is not compared with its siblings. */
+  const COUNT = /\b\d+ (?:[a-z-]+ ){0,2}?(?:questions?|things?|items?|decisions?|apps?|contracts?|flows?|steps?|stor(?:y|ies)|points?|pages?|requirements?|criteri(?:on|a)|releases?|slices?|epics?|risks?|concerns?|options?|people|persons?|teams?|need you|overdue|of the plan)\b/i;
+  const isCount = (s) => COUNT.test(s) && s.split(/\s+/).length >= 3;
+  const ROW = "li, tr, [role=row], [data-row], .light-row, .q-row";  // data-row: a card in a list of cards
+  function sentences(root = document) {
+    const blocks = new Map();
+    for (const n of textNodes(root)) { if (n.parentElement.closest(ROW)) continue; const b = blockOf(n.parentElement); blocks.set(b, (blocks.get(b) || "") + n.nodeValue); }
+    const out = [];
+    for (const text of blocks.values()) for (const s of text.replace(/\s+/g, " ").trim().split(/(?<=[.!?])\s+(?=[A-Z0-9])/)) if (isCount(s)) out.push(s.replace(/[.!?]+$/, ""));
+    return out;
+  }
+  function repeats(root = document) {
+    const seen = new Map();
+    for (const s of sentences(root)) seen.set(s, (seen.get(s) || 0) + 1);
+    return [...seen].filter(([, n]) => n > 1).map(([s, n]) => ({ text: s.slice(0, 90), n }));
+  }
+  /* The one source for each shared quantity. A name not here is a typo, and fails like a wrong number. */
+  function sources() {
+    const need = Queue.needsYou(), counts = Queue.counts(), out = { needsYou: need.n, "needsYou.questions": need.questions, overdue: need.late, unreviewed: counts.unexamined || 0, openQuestions: D.counts.openQuestions };
+    for (const [state, n] of Object.entries(D.counts.decisions)) out["decisions." + state] = n;
+    return out;
+  }
+  function quantities(root = document) {
+    const want = sources(), bad = [];
+    for (const el of root.querySelectorAll("[data-quantity]")) {
+      if (!el.getClientRects().length) continue;
+      const name = el.dataset.quantity, n = +el.dataset.n;
+      if (!(name in want)) bad.push({ name, n, why: "names no known quantity" });
+      else if (n !== want[name]) bad.push({ name, n, why: `says ${n}, the source says ${want[name]}` });
+      else if (!String(el.textContent).includes(String(n))) bad.push({ name, n, why: `is marked ${n} but reads "${el.textContent.trim().slice(0, 40)}"` });
+    }
+    return bad;
+  }
+  /* Across views: the numbers each view gave for each quantity, so two views that disagree are named together. */
+  const given = new Map();
+  function record(view, root = document) {
+    for (const el of root.querySelectorAll("[data-quantity]")) {
+      if (!el.getClientRects().length) continue;
+      const m = given.get(el.dataset.quantity) || new Map();
+      m.set(+el.dataset.n, (m.get(+el.dataset.n) || []).concat(view)); given.set(el.dataset.quantity, m);
+    }
+  }
+  function disagreements() { return [...given].filter(([, m]) => m.size > 1).map(([name, m]) => `${name}: ${[...m].map(([n, views]) => `${n} in ${views.slice(0, 3).join(", ")}`).join(" vs ")}`); }
+  return { leaks, repeats, sentences, quantities, record, disagreements, given, sources };
+})();
+
 (() => {
   const base = SelfTest.run;
   const found = new Map();  // "text (class)" -> { view, why, more }: the first view a label failed in, and how many others it failed in
+  const voice = { on: false, leaks: new Map(), repeats: new Map(), quantities: new Map() };  // the words don't change with the theme: read once
+  const keep = (map, id, view, why) => { const seen = map.get(id); if (seen) seen.more++; else map.set(id, { view, why, more: 0 }); };
   const note = (view, root) => {
     for (const b of [...TextFit.textFits(root || document), ...TextFit.clippedText(root || document), ...TextFit.bareLabels(root || document),
       ...TextFit.builderWords(root || document)]) {
       const id = `"${b.text}" (${b.cls})`, seen = found.get(id);
       if (seen) seen.more++; else found.set(id, { view, why: b.why, more: 0 });
+    }
+    if (voice.on) {
+      for (const b of VoiceGate.leaks(root || document)) keep(voice.leaks, `"${b.text}"`, view, `shows ${b.kind} "${b.hit}"`);
+      for (const b of VoiceGate.repeats(root || document)) keep(voice.repeats, `"${b.text}"`, view, `said ${b.n} times on one screen`);
+      for (const b of VoiceGate.quantities(root || document)) keep(voice.quantities, `${b.name}`, view, b.why);
+      VoiceGate.record(view, root || document);
     }
   };
   /* Every view the page has, drawn once; each is swept for labels that do not fit. */
@@ -1993,15 +2091,50 @@ const TextFit = (() => {
       "reader text: the sensor flags a file path, a folder and a commit hash, and passes plain words and the plan's own page text",
       `reader text: the path sensor flagged ${JSON.stringify(seen)}`);
   }
+  /* The voice sensors must see what they are for: a check code, a flag and an ISO date in reader text are flagged, the same
+     words in the plan's own page text and an ID in its small tag are not; a count sentence said twice is flagged, once is
+     not, and a date is not a count; a marked count that disagrees with its source, or names nothing, is flagged. */
+  function sensorSeesVoice(ok) {
+    const host = h("div", { id: "main-probe", style: "position:absolute;left:0;top:0;width:600px" });
+    const panel = $("#panel");
+    host.append(h("p", {}, "Set aside by E316."), h("p", {}, "Answer due 2026-11-06."), h("p", {}, "Run it with --force."), h("p", { class: "r-text" }, "E316 and 2026-11-06 as the page wrote them."),
+      h("p", {}, "Digest as client record", h("span", { class: "id-tag" }, "UNK-064")));
+    panel.append(host);
+    const mine = (b) => host.textContent.includes(b.text.slice(0, 16));
+    const leaks = VoiceGate.leaks(panel).filter(mine).map((b) => b.kind);
+    host.replaceChildren(h("p", {}, "18 questions block work. The first is due 29 Oct."), h("p", {}, "18 questions block work."), h("p", {}, "Due 29 Oct 2026 for the product owner."), h("p", {}, "Due 29 Oct 2026 for the product owner."));
+    const twice = VoiceGate.repeats(panel).filter(mine).map((b) => b.text);
+    const want = VoiceGate.sources();
+    host.replaceChildren(h("b", { "data-quantity": "openQuestions", "data-n": want.openQuestions + 1 }, String(want.openQuestions + 1)), h("b", { "data-quantity": "openQuestion", "data-n": 1 }, "1"),
+      h("b", { "data-quantity": "openQuestions", "data-n": want.openQuestions }, String(want.openQuestions)));
+    const wrong = VoiceGate.quantities(host).map((b) => b.name);
+    host.remove();
+    ok(leaks.includes("check code") && leaks.includes("flag") && leaks.includes("ISO date") && leaks.length === 3,
+      "voice: the leak sensor flags a check code, a flag and an ISO date in reader text, and passes the page's own words and an ID in its tag", `voice: the leak sensor flagged ${JSON.stringify(leaks)}`);
+    ok(twice.length === 1 && twice[0] === "18 questions block work", "voice: the repeat sensor flags a count sentence said twice on one screen, and passes a date said twice", `voice: the repeat sensor flagged ${JSON.stringify(twice)}`);
+    ok(wrong.length === 2 && wrong.includes("openQuestions") && wrong.includes("openQuestion"), "voice: the count sensor flags a marked count that disagrees with its source and one that names no quantity", `voice: the count sensor flagged ${JSON.stringify(wrong)}`);
+  }
   async function checks(ok) {
     sensorSeesOverflow(ok);
     sensorSeesCutProseAndCodes(ok);
     sensorSeesBuilderWords(ok);
+    sensorSeesVoice(ok);
     if (!D.map.apps.length) return;
     const was = Theme.id, fx = FX.on, themes = [...Theme.LIST.map((t) => [t.id, t.label, true]), [was, "Plain", false]];
     for (const [id, label, motion] of themes) {
       found.clear(); Theme.set(id); FX.set(motion);
+      voice.on = id === themes[0][0] && motion;
       try { await sweep(); } catch (e) { found.set(`the sweep threw: ${e.message} ${(e.stack || "").split("\n")[1]}`, { view: "sweep", why: "", more: 0 }); }
+      if (voice.on) {
+        const said = (map) => [...map].map(([id, f]) => `${f.view}: ${id} ${f.why}${f.more ? ` (and in ${plural(f.more, "other view")})` : ""}`);
+        const leaks = said(voice.leaks), twice = said(voice.repeats), counts = [...said(voice.quantities), ...VoiceGate.disagreements()];
+        ok(!leaks.length, "voice: no view shows a check code, gate, command, flag, file path, branch, session name, ISO date, handle or commit hash in reader text (say.LEAD_PATTERNS)",
+          `voice: ${plural(leaks.length, "leak")} in reader text: ${leaks.slice(0, 12).join(" | ")}`);
+        ok(!twice.length, "voice: no view says the same count sentence twice", `voice: ${plural(twice.length, "count sentence")} said twice on one screen: ${twice.slice(0, 10).join(" | ")}`);
+        ok(!counts.length && VoiceGate.given.size >= 3, `voice: every view gives the same number for the same quantity (${[...VoiceGate.given.keys()].join(", ")}), each the one source's`,
+          `voice: counts that disagree: ${counts.slice(0, 10).join(" | ")}${VoiceGate.given.size < 3 ? `; only ${VoiceGate.given.size} quantities were marked anywhere` : ""}`);
+        voice.on = false;
+      }
       const list = [...found].map(([id, f]) => `${f.view}: ${id} ${f.why}${f.more ? ` (and in ${plural(f.more, "other view")})` : ""}`);
       ok(!list.length, `text fits: in ${label}, no label in any view runs past its box, no prose is cut off without a Show more, no title is a bare ID (window ${innerWidth}x${innerHeight})`,
         `text fits in ${label} at ${innerWidth}x${innerHeight}: ${list.length} problems, ${list.slice(0, 14).join(" | ")}`);

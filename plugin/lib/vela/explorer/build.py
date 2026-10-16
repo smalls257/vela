@@ -29,7 +29,7 @@ import re
 import uuid
 
 from vela import (allocation, attention, cli, completeness, handoff, ladder, links, model, override, pending, plainwords,
-                     progress, reading, roles, schema, slices, terms, trace)
+                     progress, reading, roles, say, schema, slices, terms, trace)
 from vela import search as vela_search
 from vela.edge import atomic
 from vela.parse import FENCE, closes_fence
@@ -393,7 +393,8 @@ def overrides_awaiting(vault, keys):
             if behalf is not None and not behalf.confirmed_by:
                 awaiting.append({"key": key, "by": behalf.by, "owners": list(behalf.owners)})
             for o in override.valid_overrides(page, scope):
-                recorded.append({"key": key, "rules": list(o.rules), "by": o.by, "date": o.date, "reason": o.reason,
+                recorded.append({"key": key, "rules": list(o.rules), "skipped": [attention.skipped_check(r) for r in o.rules],
+                                 "by": o.by, "date": o.date, "reason": o.reason,
                                  "confirmed": bool(behalf and behalf.confirmed_by)})
     return awaiting, recorded
 
@@ -631,7 +632,20 @@ def safe_json(value):
     return json.dumps(value, ensure_ascii=False, separators=(",", ":")).replace("<", "\\u003c")
 
 
+# The lead patterns the page's own voice check sweeps every view for: say.LEAD_PATTERNS, the one copy, less the item
+# and goal IDs (the page shows those on purpose, in a small tag beside the name; TextFit.bareLabels guards the names).
+PAGE_LEAK_KINDS = tuple(k for k in say.LEAD_PATTERNS if k not in ("item", "goal"))
+
+
+def lead_patterns():
+    """{kind: JavaScript regex source} for the selftest. Python and JavaScript read these patterns alike (lookbehind,
+    \\b, non-capturing groups), so the page checks the same rule `--for-lead` enforces."""
+    return {k: say.LEAD_PATTERNS[k].pattern for k in PAGE_LEAK_KINDS}
+
+
 def render(data, assets=None, selftest=False):
+    if selftest:
+        data = {**data, "leadPatterns": lead_patterns()}
     shell = (HERE / "assets" / "shell.html").read_text(encoding="utf-8")
     css = "\n".join((HERE / "assets" / "css" / f"{m}.css").read_text(encoding="utf-8") for m in CSS_MODULES)
     js = "\n".join(f"/* ---- {m}.js ---- */\n" + (HERE / "assets" / "js" / f"{m}.js").read_text(encoding="utf-8")

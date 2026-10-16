@@ -40,7 +40,7 @@ const Roles = (() => {
     return h("ol", { class: "mini-time" }, S.map((x, j) => h("li", {}, h("button", { onclick: () => Nav.openRelease(j) },
       h("b", {}, j === 0 ? "Today" : x.fromChange ? "End state" : `Release ${j}`), h("span", {}, j === 0 ? day(D.today) : x.target ? day(x.target) : "no date"),
       j > 0 ? h("small", {}, x.fromChange ? "after every app's change lands" : `${plural((x.rows || []).length, "requirement")}, ${releaseState(x.state)}`) : h("small", {}, "where things stand now")))),
-      !D.releases.count ? h("li", { class: "none" }, missing("No releases recorded yet.", "Until releases are planned, the timeline runs from today to the end state.")) : null);
+      !D.releases.count ? h("li", { class: "none" }, missing("No releases yet.", "Until releases are planned, the timeline runs from today to where every app ends up.")) : null);
   }
   function qRow(u) {
     const a = ASK[u.id];
@@ -102,7 +102,7 @@ const Roles = (() => {
     grid.append(card("What each release delivers", ["Releases", () => Nav.open("releases")], D.releases.count ? list(Releases.STATES.slice(1), 4, (x) => h("li", {},
       h("b", {}, `Release ${Releases.STATES.indexOf(x)}: `), shorten((x.heading || x.name).replace(/^[^:]*:\s*/, ""), 40), h("span", { class: "muted small" }, x.target ? ` · ${day(x.target)}` : ""),
       h("div", { class: "chips" }, (x.rows || []).map((r) => refChip(r.requirement, r.criteria.length ? h("span", { class: "rid", title: `acceptance ${r.criteria.length === 1 ? "criterion" : "criteria"} ${r.criteria.length > 1 ? r.criteria.slice(0, -1).join(", ") + " and " + r.criteria[r.criteria.length - 1] : r.criteria[0]}` }, (r.criteria.length === 1 ? "criterion " : "criteria ") + r.criteria.join(", ")) : null)))))
-      : missing("No releases recorded yet.", "Once releases are planned, each one lists the requirements it delivers.", ["/vela:requirements", "/vela:allocate"])));
+      : missing("No releases yet.", "Once releases are planned, each one lists the requirements it delivers.", ["/vela:requirements", "/vela:allocate"])));
     const biz = openQs().filter((u) => holdsKinds(UNKNOWN[u.id], ["goal", "capability", "requirement", "flow"]) || D.above.some((a) => a.unknown === u.id));
     grid.append(card("Business questions", ["Who to ask", () => Nav.open("unknowns")], biz.length ? list(biz.sort((a, b) => cmp(a.askBy || "9", b.askBy || "9")), 5, (u) => qRow(UNKNOWN[u.id])) : empty("No open question is blocking a goal, capability, requirement or flow."),
       rule("Questions that hold up a goal, capability, requirement or flow.")));
@@ -162,7 +162,7 @@ const Roles = (() => {
       h("button", { class: "btn tiny", onclick: () => Flows.present(r.flow, firstStepTouching(FLOW[r.flow], k)) }, "▶ Present"))) : empty("No flow goes through it."),
       h("h3", {}, "Open questions blocking it"), a.questions.length ? list(a.questions.map((q) => UNKNOWN[q.id]).filter(Boolean), 4, qRow) : empty("Nothing is blocking it.")));
     const slice = D.handoffList[k] || [];
-    grid.append(card("Handoff", null, h("div", { class: "small" }, ho && (ho.manifest || ho.handedOff) ? [ho.handedOff ? h("div", {}, "Handed off: ", ho.handedOff) : null,
+    grid.append(card("Handoff", null, h("div", { class: "small" }, ho && (ho.manifest || ho.handedOff) ? [ho.handedOff ? h("div", {}, "Handed off: ", peopleWords(ho.handedOff)) : null,
       ho.manifest ? h("div", { class: ho.changed + ho.removed ? "gap" : "muted" }, ho.problem ? "The handoff file can't be read: " + ho.problem : ho.changed + ho.removed ? `${plural(ho.changed + ho.removed, "change")} since the app team's lead accepted it (${ho.changed} changed, ${ho.removed} removed)` : "Nothing the app team's lead accepted has changed.") : null] : h("div", { class: "muted" }, "Not handed off yet. The handoff session does it once the app reaches handoff.")),
       h("h3", {}, `What this app was handed, ${plural(slice.length, "item")}`),
       h("ul", { class: "door-list" }, [...new Set(slice.map((x) => x.kind))].map((kind) => { const of = slice.filter((x) => x.kind === kind); return h("li", {}, h("span", { class: "muted small slice-k" }, (HANDED_KIND[kind] || kind) + " "), of.slice(0, 6).map((x) => h("a", { class: "slice-id", "data-ref": keyForId(x.id), title: x.id }, shortName(x.id))), of.length > 6 ? h("span", { class: "muted small" }, ` +${of.length - 6}`) : null); })),

@@ -5,6 +5,8 @@
    person. Nothing here writes to the vault: every change becomes a proposed line in the tray, to record by hand.
    This absorbs the old "What's holding things up" view; its chains are on each strip's flip side and in the panel. */
 const Asks = (() => {
+  /* "@product-owner (Product owner)" is how a page writes an owner; a reader hears the name in the brackets. */
+  const ownerSaid = (raw) => { const m = String(raw || "").match(/^(@[\w/-]+)\s*\(([^)]+)\)\s*$/); return !raw ? "nobody yet" : m ? m[2] : peopleWords(raw); };
   const CRIT = "__critical";
   const store = `asks:${D.vaultId}`;
   const st = { days: null, widened: false, q: "", holdingOnly: false, meeting: "", expandedLater: new Set(), expandedDone: new Set(), flipped: new Set() };
@@ -78,7 +80,7 @@ const Asks = (() => {
         <dt>Holds up</dt><dd class="chain-cell">${chainHtml(u)}</dd>
         <dt>Who to ask</dt><dd>${who}</dd>
         ${resolved && u.outcome ? `<dt>Answer</dt><dd class="clamp">${esc(u.outcome)}</dd>` : `<dt>Question</dt><dd class="clamp">${esc(q)}</dd>`}
-        <dt>Owner</dt><dd>${esc(u.ownerRaw || "nobody yet")}</dd>
+        <dt>Owner</dt><dd>${esc(ownerSaid(u.ownerRaw))}</dd>
         <dt>Dates</dt><dd>opened ${esc(day(u.opened))}${u.askBy ? `, answer needed by ${esc(day(u.askBy))}` : u.askByRaw ? `, answer needed by "${esc(u.askByRaw)}", which isn't a date` : ""}</dd></dl>
         ${resolved ? "" : `<div class="actions"><button data-act="open">Details</button><button data-act="crit">${crit ? "Not critical" : "Mark critical"}</button>
           <button data-act="cock">${marks.cocked[u.id] ? "Put back" : "Pull forward"}</button><button data-act="asked">${marks.asked[u.id] ? "Not asked yet" : "Mark asked"}</button>
@@ -120,7 +122,7 @@ const Asks = (() => {
     const worst = b.open.map((u) => u.light.level).sort((x, y) => rank(y) - rank(x))[0];
     const head = isCrit
       ? `<h2>Critical</h2><div class="who-meta">Drag a question here to put it first in the next session.</div>${b.open.length ? `<div class="counts"><b>${b.open.length}</b> marked${b.failing ? `, <b>${b.failing}</b> not blocking anything` : ""}</div>` : ""}`
-      : `<h2>${worst && worst !== "dark" ? `<i class="lamp ${worst}"></i>` : ""}${esc(b.person.name)}</h2><div class="who-meta">${esc(b.person.handle || "no contact recorded")}${b.person.inferred ? `, ${b.person.inferred} here by our guess` : ""}</div>${notAsked(b.person)}
+      : `<h2>${worst && worst !== "dark" ? `<i class="lamp ${worst}"></i>` : ""}${esc(b.person.name)}</h2><div class="who-meta"${b.person.handle ? ` title="${esc(b.person.handle)}"` : ""}>${b.person.handle ? "" : "No contact recorded"}${b.person.inferred ? `${b.person.handle ? "" : ", "}${b.person.inferred} here by our guess` : ""}</div>${notAsked(b.person)}
          <div class="counts">${first ? `First due <b>${esc(day(first.askBy))}</b>` : b.open.length ? "No answer date set" : "Nothing open"}${b.done.length ? `, ${b.done.length} answered` : ""}</div>
          <button class="meet" data-meet="${esc(b.key)}" title="Go through this person's questions with them">${st.meeting === b.key ? "End meeting" : "Meet"}</button>`;
     let body = b.shown.map(stripHtml).join("");

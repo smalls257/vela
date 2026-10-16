@@ -15,11 +15,8 @@ const Decisions = (() => {
   const st = { sort: "state", flip: false, q: "", state: "", waiting: false, bare: false, mode: "log", open: "" };
   const sessionTitle = (id) => (D.sessions[id] && D.sessions[id].title) || id;
   const sessionDate = (id) => (D.sessions[id] && D.sessions[id].date) || (ISO.exec(id) || [""])[0];
-  /* A handle as a person reads it: the name the vault gives the role, else the handle without its @ and team prefix. */
-  const person = (text) => String(text || "").replace(/@[\w/-]+/g, (m) => {
-    const said = D.owners[m] && D.owners[m].names[0], named = said && said.split(/\s+/).length <= 3 && !/^asking\b/i.test(said) ? said : "", w = named || m.replace(/^@/, "").replace(/^[^/]*\//, "").replace(/-/g, " ");
-    return w.charAt(0).toUpperCase() + w.slice(1);
-  });
+  /* A handle as a person reads it, and a date in words: core.js's one rewrite. */
+  const person = (text) => peopleWords(text);
   const longDate = (iso) => (isDate(iso) ? `${day(iso)} ${iso.slice(0, 4)}` : "");
   const sentence = (text) => { const t = String(text || "").trim(), m = t.match(/^.*?[.!?](?=\s|$)/); return m ? m[0] : t; };
 
