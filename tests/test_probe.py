@@ -95,7 +95,7 @@ def test_the_snapshots_are_the_ones_the_cases_name():
     assert names == {"coastal-merger/empty", "coastal-merger/after-s2", "coastal-merger/after-s4", "coastal-merger/after-v3-s8",
                      "coastal-merger/after-complete-s21", "coastal-merger/after-cio-s4", "coastal-merger/after-boundary-s2",
                      "trading-coach/after-handoff-grill-s25", "trading-coach/after-s12", "trading-coach/after-full-26", "trading-coach/after-handoff-2", "trading-coach/after-complete-s10", "trading-coach/after-finish", "trading-coach/after-final", "trading-coach/after-80", "trading-coach/after-80b", "trading-coach/after-capture", "trading-coach/after-capture-boundary",  # where scripts start, not probes
-                     "trading-coach/empty", "heron-desk/empty", "heron-desk/after-full-1", "heron-desk/after-handoff-1", "heron-desk/after-design-2", "holdout-hospitals/empty", "holdout-hospitals/after-dump", "holdout-hospitals/after-discover"}
+                     "trading-coach/empty", "heron-desk/empty", "heron-desk/after-full-1", "heron-desk/after-handoff-1", "heron-desk/after-design-2", "heron-desk/grill-ready", "holdout-hospitals/empty", "holdout-hospitals/after-dump", "holdout-hospitals/after-discover"}
     for case_path in sorted((SIM / "probes").glob("*.yaml")):
         case = probe.load_case(str(case_path))
         # The dev persona (heron-desk) or coastal-merger runs every case; a holdout only where it has a vault that far along.
@@ -646,7 +646,7 @@ def test_unaware_raised_first_counts_a_gap_only_when_the_assistant_names_it_befo
                         {"id": "U3", "category": "fact", "keywords": ["tax year"]}]}
     run = spoken_run(tmp_path, [("lead", "spare parts worry me"), ("assistant", "Who covers the night shift? And spare parts?")],
                      data)
-    passed, summary, _ = probe.CHECKS["unaware-raised-first"][0](run, {"at_least": 0.5})
+    passed, summary, *_ = probe.CHECKS["unaware-raised-first"][0](run, {"at_least": 0.5})
     assert not passed and summary.startswith("gaps the lead didn't know about, raised first by the assistant: 1 of 3")
 
 
@@ -672,7 +672,7 @@ def test_a_conflict_is_surfaced_in_full_only_when_named_with_its_holder_and_reco
                                 ("assistant", "I'll note it.")], data)
     (run.vault / "11-unknowns-and-risks.md").write_text("### UNK-001 Weekly report or none\n\nFinance want a weekly report.\n",
                                                         encoding="utf-8")
-    passed, summary, _ = probe.CHECKS["conflicts-surfaced"][0](run, {"at_least": 0.5})
+    passed, summary, *_ = probe.CHECKS["conflicts-surfaced"][0](run, {"at_least": 0.5})
     assert passed
     assert "surfaced in full: 1 of 2" in summary and "disagreement named 2, holder named 2, recorded as open 1" in summary
 
@@ -682,12 +682,12 @@ def test_unsure_owner_asked_wants_a_proposal_and_counts_unconfirmed_writes(tmp_p
              ("assistant", "I'd put the procurement lead down as owner, due 30 November. Does that work?"),
              ("lead", "Yes."), ("assistant", "Done.")]
     run = spoken_run(tmp_path, turns)
-    passed, summary, _ = probe.CHECKS["unsure-owner-asked"][0](run, {"at_most": 0})
+    passed, summary, *_ = probe.CHECKS["unsure-owner-asked"][0](run, {"at_most": 0})
     assert passed and "unsure of an owner or date: 1; the session proposed one and asked: 1 of 1" in summary
     bad = spoken_run(tmp_path, [("assistant", "Who should own the supplier question?"), ("lead", "Honestly not sure."),
                                 ("assistant", "Filed it with the CFO as owner.")])
     bad.transcript.spoken()[2]["tool_calls"] = [{"name": "Bash", "input": "vela add unknown --name x --owner @cfo --due 2026-11-30"}]
-    passed, summary, _ = probe.CHECKS["unsure-owner-asked"][0](bad, {"at_most": 0})
+    passed, summary, *_ = probe.CHECKS["unsure-owner-asked"][0](bad, {"at_most": 0})
     assert not passed and "proposed one and asked: 0 of 1" in summary and "confirmation: 2" in summary
 
 
@@ -718,7 +718,7 @@ def test_a_conflict_said_in_other_words_counts_by_its_holder_and_a_disagreement_
     run = spoken_run(tmp_path, [("assistant", "Finance wants numbers every Monday while Ops rules it out.")], data)
     (run.vault / "11-unknowns-and-risks.md").write_text("### UNK-001 Who breaks the tie\n\nFinance and Ops disagree.\n",
                                                         encoding="utf-8")
-    passed, summary, _ = probe.CHECKS["conflicts-surfaced"][0](run, {"at_least": 1.0})
+    passed, summary, *_ = probe.CHECKS["conflicts-surfaced"][0](run, {"at_least": 1.0})
     assert passed, summary
     quiet = spoken_run(tmp_path / "q", [("assistant", "Finance sent the numbers.")], data)
     assert not probe.CHECKS["conflicts-surfaced"][0](quiet, {"at_least": 1.0})[0]
@@ -731,6 +731,109 @@ def test_a_proposed_role_and_date_the_lead_said_yes_to_earlier_count_as_confirme
     run = spoken_run(tmp_path, turns, {"handle": "@lead"})
     run.transcript.spoken()[6]["tool_calls"] = [{"name": "Bash", "input": 'vela add unknown --owner @lead --ask "the CIO" '
                                                  "--ask-by 2026-11-06 && vela add unknown --ask \"the CIO\" --ask-by 2026-11-06"}]
-    passed, summary, _ = probe.CHECKS["unsure-owner-asked"][0](run, {"at_most": 0})
+    passed, summary, *_ = probe.CHECKS["unsure-owner-asked"][0](run, {"at_most": 0})
     assert passed, summary
     assert probe.value_forms("2026-11-06")[1:3] == ["6 november", "november 6"]
+
+
+# ------------------------------------------------------------------ round 2 of the loop: judged gaps, ready items, spread
+
+def test_item_states_read_each_requirement_under_its_own_heading_and_a_page_from_its_frontmatter(tmp_path):
+    (tmp_path / "caps").mkdir()
+    (tmp_path / "caps" / "CAP-001-x.md").write_text(
+        "---\nid: CAP-001\nstate: assumption\n---\n\n# X\n\n### CAP-001.FR1 One\n\n- **State:** decided\n\n"
+        "### CAP-001.FR2 Two\n\n- **State:** assumption\n", encoding="utf-8")
+    states = probe.item_states(tmp_path, ["CAP-001.FR1", "CAP-001.FR2", "CAP-001", "CAP-009.FR1"])
+    assert states == {"CAP-001.FR1": "decided", "CAP-001.FR2": "assumption", "CAP-001": "assumption",
+                      "CAP-009.FR1": None}
+
+
+def test_decided_items_wants_the_ready_ones_with_a_yes_and_never_a_blocked_one(tmp_path):
+    fn = probe.CHECKS["decided-items"][0]
+    criterion = {"decidable": ["A", "B"], "blocked": ["C"], "at_least": 2}
+    run = spoken_run(tmp_path, [])
+    run.item_decisions = [{"id": "A", "turn": 4, "with_yes": True}, {"id": "B", "turn": 6, "with_yes": True}]
+    passed, summary, _, value = fn(run, criterion)
+    assert passed and value == {"ready decided with a yes": 2, "blocked decided": 0}
+    run.item_decisions.append({"id": "C", "turn": 8, "with_yes": True})
+    passed, summary, *_ = fn(run, criterion)
+    assert not passed and "blocked items decided: 1 of 1" in summary
+    run.item_decisions = [{"id": "A", "turn": 4, "with_yes": False}, {"id": "B", "turn": 6, "with_yes": True}]
+    assert not fn(run, criterion)[0], "a ready item decided without a yes fails"
+    run.item_decisions = []
+    assert not fn(run, criterion)[0], "a grill that decides nothing fails"
+
+
+def test_the_grill_ready_snapshot_holds_two_ready_items_and_blocked_ones():
+    """The case's lists must match what the plan's own gate says, or the probe scores the wrong thing."""
+    case = probe.load_case("grill-ready")
+    criterion = next(c for c in case["criteria"] if c["check"] == "decided-items")
+    vault = SIM / "snapshots" / "heron-desk" / "grill-ready"
+    for item in criterion["decidable"] + criterion["blocked"]:
+        done = subprocess.run([sys.executable, str(sim.VELA), "check", "--vault", str(vault), "--gate", "grill",
+                               "--item", item, "--for-lead"], capture_output=True, text=True, timeout=120)
+        ready = "is ready to decide" in done.stdout
+        assert ready is (item in criterion["decidable"]), (item, done.stdout[:200])
+        if not ready:
+            assert "waits on an open question" in done.stdout, item
+
+
+def test_a_grill_probe_records_which_watched_item_was_decided(tmp_path):
+    code, out, err, runs = run_probe(tmp_path, "grill-ready", "heron-desk")
+    assert runs, err
+    assert "FAIL decided-items: ready items decided after an explicit yes: 0 of 2" in out
+
+
+def test_gaps_surfaced_is_judged_and_keeps_only_a_quote_from_an_assistant_turn(tmp_path):
+    """The stub judge marks the first gap surfaced with the first assistant turn's opening words: a real quote."""
+    code, out, err, runs = run_probe(tmp_path, "discover-implications", "heron-desk", "--blind")
+    assert runs, err
+    assert "gaps-surfaced: gaps the lead didn't know about, surfaced first by the assistant in any words (judged): 1 of 8" in out
+    assert any("judge-unaware" in p.name for p in (runs[0] / "raw").iterdir())
+    detail = (runs[0] / probe.DETAIL_NAME).read_text(encoding="utf-8")
+    assert "U1 (legal-regulatory): SURFACED at T" in detail and "U1" not in out
+
+
+def test_a_gap_judge_quote_from_a_lead_turn_is_dropped(tmp_path, monkeypatch):
+    data = {"unaware": [{"id": "U1", "category": "fact", "keywords": ["night shift"], "gap": "g", "why": "w"}]}
+    run = spoken_run(tmp_path, [("assistant", "Hello there."), ("lead", "the night shift worries me")], data)
+    reply = {"unaware": [{"id": "U1", "grounds": "T2", "surfaced": True, "turn": 2, "quote": "the night shift worries me"}]}
+    monkeypatch.setattr(probe.sim, "judge_category", lambda arm, category, hits: (reply, ""))
+    monkeypatch.setattr(probe.sim, "vault_hits", lambda persona, transcript, vault: {})
+    passed, summary, detail, value = probe.CHECKS["gaps-surfaced"][0](run, {"at_least": 0.5})
+    assert not passed and value == 0 and "dropped for a quote not in the cited assistant turn: 1" in summary
+
+
+def test_runs_are_averaged_with_their_spread(tmp_path):
+    rows = probe.averages([{"criteria": [{"check": "x", "value": 1}, {"check": "y", "value": {"a": 2}}]},
+                           {"criteria": [{"check": "x", "value": 3}, {"check": "y", "value": {"a": 2}}]},
+                           {"criteria": [{"check": "x", "value": None}]}])
+    assert {(r["check"], r["name"]): (r["mean"], r["spread"]) for r in rows} == {("x", ""): (2.0, 2), ("y", "a"): (2.0, 0)}
+    code, out, err, runs = run_probe(tmp_path, "grill-ready", "heron-desk", "--runs", "2", budget="2")
+    assert "over 2 runs, decided-items, ready decided with a yes: mean 0.00, spread 0 (values 0, 0)" in out
+
+
+def test_a_yes_counts_for_the_decision_filed_after_the_why_and_is_used_up(tmp_path, monkeypatch):
+    """Read-back, yes, why, then the decision: the yes two messages back still counts, once."""
+    import types
+    page = tmp_path / "vault" / "a.md"
+    page.parent.mkdir()
+    page.write_text("### X-1 One\n\n- **State:** assumption\n", encoding="utf-8")
+    spoken = []
+    run = probe.ProbeRun.__new__(probe.ProbeRun)
+    run.vault, run.watch, run.item_seen, run.item_decisions, run.decisions = tmp_path / "vault", ["X-1"], {}, [], []
+    run.seen, run.yes_pending = probe.decided_lines(run.vault), False
+    run.transcript = types.SimpleNamespace(turn=0, spoken=lambda: spoken)
+    monkeypatch.setattr(probe.sim.Arm, "assistant_turn", lambda self, message, sid, cwd=None: (None, None))
+
+    def turn(lead, reply, decide=False):
+        if decide:
+            page.write_text("### X-1 One\n\n- **State:** decided\n", encoding="utf-8")
+        run.assistant_turn(lead, "s")
+        spoken.append({"speaker": "assistant", "text": reply})
+        run.transcript.turn += 1
+
+    turn("go", "Here is the read-back. Is that right?")
+    turn("Yes, that's right.", "Why this one, in your words?")
+    turn("Because people keep files everywhere.", "Filed.", decide=True)
+    assert run.item_decisions == [{"id": "X-1", "turn": 3, "with_yes": True}] and not run.yes_pending

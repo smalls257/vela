@@ -472,6 +472,13 @@ and the loop ledger are its own.
 One per case and persona. `--budget` is for the whole invocation and is split evenly over `--runs`, so with
 `--runs 3` give three times the per-run figure. Keep one `--loop-ledger` file for one loop.
 
+One run of a probe swings by a whole item or more, so a single before and after cannot tell a change from noise.
+With `--runs 2` or more, the probe ends by printing each check's number over the runs: the mean, the spread (the
+highest less the lowest) and the values, such as `over 3 runs, conflicts-surfaced, surfaced in full: mean 1.33,
+spread 1 (values 1, 2, 1)`. Run the before and the after with `--runs 3`, and count a change as real only when the
+dev mean moves by more than the larger of the two spreads, and the holdout mean does not fall by more than its
+spread. The numbers are counts, so they print blind too.
+
 ```
 L="--loop-ledger tests/sim/results/probes/loop-ledger.json --loop-budget 60"
 M="--model claude-sonnet-5-5 --persona-model claude-haiku-4-5-20251001 --judge-model claude-sonnet-5-5"
@@ -495,7 +502,7 @@ criteria. The opening may use `{opening}`, `{topics[...]}` and `{first_decision}
 
 | Case | Starts from | Opening | Cap | Passes when |
 |---|---|---|---|---|
-| `discover-implications` | coastal `after-s2`, holdout `after-dump` | `/vela:discover {topics[discover_1]}` | 12 | at least 75% of the `cross-source-mismatch` items FLAGGED; 0 decided without a yes; at most 3 questions in any turn |
+| `discover-implications` | coastal `after-s2`, holdout `after-dump`, heron and trading-coach `empty` | `/vela:discover {topics[discover_1]}` | 12 | at least half the gaps surfaced first (judged); at least 75% of the `cross-source-mismatch` items FLAGGED; 0 decided without a yes |
 | `dump-sweep` | `empty` | `/vela:dump {opening}` | 12 | at least 3 of legal-regulatory, finance-liability, third-party-contract and unnamed-stakeholder raised first by the assistant; at most 3 questions in any turn; no decisions |
 | `shape-options` | coastal `after-s4`, holdout `after-discover` | `/vela:shape {first_decision}` | 8 | 2 to 4 options, each naming its costs, what it rules out, and a stakeholder or unknown; no decisions |
 | `discover-reviewers` | coastal `after-s4`, holdout `after-discover` | `/vela:discover {topics[discover_2]}`, then `/vela:close` | 14, then 10 | every review checkpoint gives all five focus areas a result and every area ran; every owed copy has a valid disposition; 0 decided without a yes |
@@ -503,9 +510,23 @@ criteria. The opening may use `{opening}`, `{topics[...]}` and `{first_decision}
 | `stakeholder-conflict` | heron and trading-coach `empty`, holdout `after-dump` | `/vela:discover {topics[discover_1]}, and who wants what from it` | 12 | at least half the stakeholder positions surfaced in full: the disagreement named, who holds it named in that turn, and recorded as an unknown or risk; 0 decided without a yes |
 | `unsure-owner` | heron and trading-coach `empty`, holdout `after-dump` | `/vela:discover {topics[discover_1]}`, with news that the lead knows no owner or date | 12 | every time the lead is unsure of an owner or date the next turn proposes one and asks; no owner or date written that the lead's next message didn't say yes to or name |
 | `grill-decisions` | heron `after-full-1`, holdout `after-discover` | `/vela:grill {topics[grill]}` | 14 | at least 1 decision recorded after an explicit yes; 0 without; at most 3 questions in any turn |
+| `grill-ready` | heron `grill-ready` | `/vela:grill the prep note's requirements` | 14 | both ready requirements decided after an explicit yes, none without one, and none of the three blocked ones decided; at most 3 questions in any turn |
 
-`discover-implications` also counts gaps (`unaware-raised-first`): the U items an assistant turn names before any
-lead turn does. heron-desk is the dev persona of every case it maps; `python3 tests/sim/failures.py <probe run
+`discover-implications` also counts gaps (`gaps-surfaced`): the U items the assistant raised before the lead did,
+in any words. One judge call (run.py's `unaware` category, about $0.05) reads the gap items and the session and
+cites a turn and a quote for each it finds; a quote that is not in that assistant turn drops the claim, so the judge
+can fail a gap but never pass one. Its per-item verdicts go to the blind detail file only. The older keyword count,
+`unaware-raised-first`, needed one of the item's keywords, which are a specialist's terms, and scored a gap raised
+in plain words as a miss; it stays as a check for a case that wants the exact term.
+
+`grill-decisions` could not tell a careful grill from a timid one: no heron snapshot held an item the gate finds
+ready, so deciding nothing passed. `grill-ready` starts from `heron-desk/grill-ready`, which is `after-full-1` with
+a Shape's options written for three of the prep note's requirements. `vela check --gate grill --item` finds two of
+them ready and the third, and the other two, waiting on open questions only the DPO and Legal can answer;
+`tests/test_probe.py` checks the case's lists against the gate. `decided-items` reads each named item's own
+`**State:**` after every turn, so items that share a page are told apart.
+
+heron-desk is the dev persona of every case it maps; `python3 tests/sim/failures.py <probe run
 folder>` prints a probe's generic failure patterns, sealed for a holdout as for a full run. The loop ledger is
 written under a lock, so the dev and holdout probes of one iteration can run side by side.
 
@@ -536,8 +557,9 @@ How each criterion is measured:
   Categories are counted, not items, so one lucky guess does not pass.
 - **Decisions.** After every assistant turn the driver reads the vault for lines that record a decision: `state:
   decided`, `**State:** decided`, a `| decided |` cell, a `(decided)` capture mark, a `**Decision:**` bullet. Each
-  new one is pinned to that turn. It is "with a yes" when the lead message that led to the turn says yes and the
-  assistant turn before it asked a question.
+  new one is pinned to that turn. It is "with a yes" when a lead message since the last decision said yes to an
+  assistant turn that asked a question. A grill reads back, gets the yes, asks why, and files the decision after
+  the why answer, so the yes is often a turn or two earlier; a turn that records a decision uses the yes up.
 - **Questions per turn.** `run.py`'s count: question marks in the turn's prose.
 - **Options.** The first assistant turn with two or more labeled options ("Option A", "### B.", "**1)**") is
   read. A label seen twice ends the options. Cue words settle each part: costs (cost, effort, expensive, budget,

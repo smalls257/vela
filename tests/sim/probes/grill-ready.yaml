@@ -1,0 +1,20 @@
+# Grill from a vault that holds both kinds of item: some the plan's own gate finds ready (options written, no open
+# unknown blocking them) and some an open unknown blocks. Does the session decide the ready ones, each after the
+# lead's explicit yes, and leave the blocked ones undecided rather than deciding them or stalling on everything?
+# grill-decisions could not tell: heron's after-full-1 held no ready item, so a grill that decided nothing passed.
+# heron-desk/grill-ready is after-full-1 with a Shape's options written for three of the prep note's requirements
+# (FR2, FR4, FR5). `vela check --gate grill --item` finds FR4 and FR5 ready; FR2 waits on the DPO's and Legal's
+# open questions, and FR1 and FR3 on theirs, which the lead cannot answer. The lead overrides nothing here.
+snapshot:
+  heron-desk: grill-ready
+opening: "/vela:grill the prep note's requirements"
+cap: 14
+criteria:
+  - check: decided-items
+    decidable: [CAP-001.FR4, CAP-001.FR5]
+    blocked: [CAP-001.FR1, CAP-001.FR2, CAP-001.FR3]
+    at_least: 2
+  - check: decided-without-yes
+    at_most: 0
+  - check: questions-per-turn
+    at_most: 3
