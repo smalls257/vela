@@ -293,10 +293,10 @@ def finish(state, model_key):
     """The closing events, from the result claude printed: done with cost and session, or the error it reported."""
     result = state.get("result")
     if result is None:
-        return [{"type": "error", "message": "claude ended without an answer (no result event); run `claude -p` in the vault to see why"}]
+        return [{"type": "error", "message": "Claude didn't send an answer. Run claude -p in the plan's folder to see why."}]
     if result.get("is_error"):
         reason = result.get("result") or "; ".join(map(str, result.get("errors") or [])) or result.get("subtype", "unknown")
-        return [{"type": "error", "message": f"claude reported an error: {reason}"}]
+        return [{"type": "error", "message": f"Claude reported an error: {reason}"}]
     out = []
     if not state["text"] and result.get("result"):
         out.append({"type": "delta", "text": result["result"]})
@@ -310,7 +310,7 @@ def stream_answer(vault, model_key, prompt, session_id, timeout=ASK_TIMEOUT, hom
     deadline: a timer kills it, and the reason reaches the page."""
     claude = shutil.which("claude")
     if claude is None:
-        yield {"type": "error", "message": "claude is not on PATH, so nothing can answer. Install Claude Code, or open the page as a file and use the copied prompt."}
+        yield {"type": "error", "message": "Claude Code isn't installed here, so nothing can answer; install it, or open the page as a file and use the copied prompt."}
         return
     argv = claude_argv(MODELS[model_key], prompt, home or pathlib.Path.home(), session_id, confined=confines_files(claude))
     with tempfile.TemporaryFile(mode="w+", encoding="utf-8") as errors:
@@ -344,7 +344,7 @@ def stream_answer(vault, model_key, prompt, session_id, timeout=ASK_TIMEOUT, hom
         if code != 0:
             errors.seek(0)
             tail = errors.read().strip()[-400:] or "no message on stderr"
-            yield {"type": "error", "message": f"Claude stopped with an error (exit status {code}): {tail}"}
+            yield {"type": "error", "message": f"Claude stopped with an error (code {code}): {tail}"}
             return
         yield from finish(state, model_key)
 

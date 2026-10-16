@@ -175,14 +175,14 @@ def test_a_missing_claude_is_a_visible_error(helper, monkeypatch):
     server, _, _ = helper
     monkeypatch.setenv("PATH", "/nonexistent")
     events = ask(server)
-    assert events[-1]["type"] == "error" and "claude is not on PATH" in events[-1]["message"]
+    assert events[-1]["type"] == "error" and "Claude Code isn't installed here" in events[-1]["message"]
 
 
 def test_a_non_zero_exit_is_a_visible_error_with_the_reason(helper, monkeypatch):
     server, _, _ = helper
     monkeypatch.setenv("EXPLORE_STUB_MODE", "fail")
     last = ask(server)[-1]
-    assert last["type"] == "error" and "status 3" in last["message"] and "authentication failed" in last["message"]
+    assert last["type"] == "error" and "code 3" in last["message"] and "authentication failed" in last["message"]
 
 
 def test_a_timeout_is_a_visible_error_and_stops_claude(helper, monkeypatch):
@@ -197,7 +197,7 @@ def test_an_error_result_and_a_missing_result_are_visible_errors(helper, monkeyp
     monkeypatch.setenv("EXPLORE_STUB_MODE", "error")
     assert "Reached maximum budget" in ask(server)[-1]["message"]
     monkeypatch.setenv("EXPLORE_STUB_MODE", "silent")
-    assert "no result event" in ask(server)[-1]["message"]
+    assert "Claude didn't send an answer" in ask(server)[-1]["message"]
 
 
 REPORT = {"role": "reader", "state": "newer", "checked_at": "2026-10-18T09:12:00", "have": {"commit": "9f3c2ab", "date": "2026-10-11"},

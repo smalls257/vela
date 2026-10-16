@@ -8,9 +8,9 @@
 const Decisions = (() => {
   const trees = [...D.garden.trees, ...D.garden.bare];
   const ISO = /\d{4}-\d{2}-\d{2}/;
-  const STATES = [["decided", "Decided"], ["proposed", "Proposed"], ["pending", "Pending approval"], ["overridden", "Overridden"]];
+  const STATES = [["decided", "Decided"], ["proposed", "Proposed"], ["pending", "Pending approval"], ["overridden", "Decided without checks"]];
   const STATE_ORDER = { pending: 0, proposed: 1, overridden: 2, decided: 3 };  // what a lead should look at first
-  const STATE_SAY = { decided: "Decided, with the usual checks done", proposed: "Written down, not decided", pending: "Someone reading the plan decided this, and the owner hasn't reviewed it yet", overridden: "Decided before the usual checks were done, and nobody has confirmed it since" };
+  const STATE_SAY = { decided: "Decided, with the usual checks done", proposed: "Written down, not decided", pending: "Someone reading the plan decided this, and the owner hasn't reviewed it yet", overridden: "Decided without the usual checks, and nobody has confirmed it since. Confirm it in the next session." };
   const SORTS = [["state", "State"], ["name", "Name"], ["date", "Decided"], ["waits", "Open questions"]];
   const st = { sort: "state", flip: false, q: "", state: "", waiting: false, bare: false, mode: "log", open: "" };
   const sessionTitle = (id) => (D.sessions[id] && D.sessions[id].title) || id;
@@ -76,7 +76,7 @@ const Decisions = (() => {
       bare: !!t.bare, recordedIn: recordedOn(t)[0] ? recordedOn(t)[0].label : "" };
   });
   /* Who decided, when the page says; when it does not, the owner, said as the owner and not as the decider. */
-  const whoSaid = (e) => (e.by ? e.by : e.owner ? `Owner ${e.owner}` : "Nobody recorded");
+  const whoSaid = (e) => (e.by ? e.by : e.owner ? `owned by ${e.owner}` : "nobody named");
   const withOptions = entries.filter((e) => !e.bare), bareOnes = entries.filter((e) => e.bare);
   const haystack = (e) => [e.name, e.chosen.label, e.chosen.said, e.by, e.recordedIn, ...e.rejected.flatMap((o) => [o.label, o.reason]), ...e.affects.map((a) => a.label), ...e.waits.map(titleOf)].join(" ").toLowerCase();
   const worstWait = (e) => e.waits.map(unknownLevel).sort((a, b) => rank(b) - rank(a))[0] || "dark";
@@ -102,13 +102,13 @@ const Decisions = (() => {
   /* ------------------------------------------------------------ the log */
   const stateMark = (e) => (e.state === "pending" ? pendingPill(e.pending) : h("span", { class: "pill dl-" + e.state, title: STATE_SAY[e.state] }, STATES.find(([id]) => id === e.state)[1]));
   function waitsLine(e) {
-    if (!e.waits.length) return h("span", { class: "muted" }, "No open question waits on it");
+    if (!e.waits.length) return h("span", { class: "muted" }, "Nothing open holds it up");
     return h("span", { class: "dl-waits" }, lampEl(worstWait(e)), `Waits on ${plural(e.waits.length, "open question")}`);
   }
   function rejectedList(e, max) {
-    if (!e.rejected.length) return h("span", { class: "muted" }, e.bare ? "No options recorded" : "No alternatives recorded");
-    const items = e.rejected.slice(0, max).map((o) => h("li", { title: `${o.label}: ${o.reason || "no reason recorded"}` }, h("span", { class: "dl-x", "aria-hidden": "true" }, o.forNow ? "◌" : "✕"),
-      h("b", {}, o.label), h("span", { class: "dl-why" }, o.reason ? ` ${o.reason.replace(/^["“]|["”]$/g, "")}` : " no reason recorded")));
+    if (!e.rejected.length) return h("span", { class: "muted" }, "No other options written down");
+    const items = e.rejected.slice(0, max).map((o) => h("li", { title: `${o.label}: ${o.reason || "no reason given"}` }, h("span", { class: "dl-x", "aria-hidden": "true" }, o.forNow ? "◌" : "✕"),
+      h("b", {}, o.label), h("span", { class: "dl-why" }, o.reason ? ` ${o.reason.replace(/^["“]|["”]$/g, "")}` : " no reason given")));
     if (e.rejected.length > max) items.push(h("li", { class: "dl-more" }, `and ${e.rejected.length - max} more`));
     return h("ul", { class: "dl-rej" }, items);
   }
@@ -118,10 +118,10 @@ const Decisions = (() => {
       onclick: open, onkeydown: (ev) => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); open(); } } },
       h("div", { class: "dl-c dl-state", role: "cell", "data-label": "State" }, stateMark(e)),
       h("div", { class: "dl-c dl-what", role: "cell", "data-label": "Decision" }, h("b", { class: "dl-name" }, e.name),
-        e.chosen.said ? h("span", { class: "dl-chosen" }, e.chosen.said) : null, e.recordedIn && e.recordedIn !== e.name ? h("span", { class: "dl-in" }, `Written down in ${e.recordedIn}`) : null),
+        e.chosen.said ? h("span", { class: "dl-chosen" }, e.chosen.said) : null, e.recordedIn && e.recordedIn !== e.name ? h("span", { class: "dl-in" }, `from ${e.recordedIn}`) : null),
       h("div", { class: "dl-c dl-not", role: "cell", "data-label": "Turned down" }, rejectedList(e, 2)),
-      h("div", { class: "dl-c dl-when", role: "cell", "data-label": "Decided" }, h("span", {}, e.date ? longDate(e.date) : "No date recorded"), h("span", { class: "muted" }, whoSaid(e))),
-      h("div", { class: "dl-c dl-fx", role: "cell", "data-label": "What it affects and waits on" }, h("span", {}, e.affects.length ? `Affects ${e.affects.slice(0, 2).map((a) => a.label).join(", ")}${e.affects.length > 2 ? ` and ${e.affects.length - 2} more` : ""}` : "Affects nothing recorded"), waitsLine(e)));
+      h("div", { class: "dl-c dl-when", role: "cell", "data-label": "Decided" }, h("span", {}, e.date ? longDate(e.date) : "No date yet"), h("span", { class: "muted" }, whoSaid(e))),
+      h("div", { class: "dl-c dl-fx", role: "cell", "data-label": "What it affects and waits on" }, h("span", {}, e.affects.length ? `Affects ${e.affects.slice(0, 2).map((a) => a.label).join(", ")}${e.affects.length > 2 ? ` and ${e.affects.length - 2} more` : ""}` : "Doesn't name what it affects"), waitsLine(e)));
   }
   function head() {
     const col = (id, label) => h("button", { class: "dl-th" + (st.sort === id ? " on" : ""), role: "columnheader", "aria-sort": st.sort === id ? (st.flip ? "descending" : "ascending") : "none", "data-sort": id,
@@ -143,7 +143,7 @@ const Decisions = (() => {
       h("i", { class: "dl-dot dl-" + e.state, title: STATES.find(([id]) => id === e.state)[1] }), h("span", { class: "dl-tl-d" }, e.date ? day(e.date) : "no date"), h("b", {}, e.name),
       h("span", { class: "dl-tl-s" }, STATES.find(([id]) => id === e.state)[1])));
     const out = months.map((ym) => h("section", { class: "dl-month" }, h("h3", {}, month(ym)), h("ol", {}, dated.filter((e) => e.date.startsWith(ym)).map(item))));
-    if (undated.length) out.push(h("section", { class: "dl-month" }, h("h3", {}, "No date recorded"), h("ol", {}, undated.map(item))));
+    if (undated.length) out.push(h("section", { class: "dl-month" }, h("h3", {}, "No date yet"), h("ol", {}, undated.map(item))));
     return h("div", { class: "dl-time", "aria-label": "Decisions by date" }, out);
   }
 
@@ -162,14 +162,14 @@ const Decisions = (() => {
     const c = e.chosen, items = [h("li", { class: "chosen" }, h("span", { class: "dl-mark", "aria-hidden": "true" }, "✓"), h("div", {}, h("b", {}, c.label), h("span", { class: "dl-tag" }, "Chosen"),
       c.condition ? h("p", {}, `On condition that ${c.condition}`) : null))];
     for (const o of e.rejected) items.push(h("li", { class: "rejected" }, h("span", { class: "dl-mark", "aria-hidden": "true" }, o.forNow ? "◌" : "✕"),
-      h("div", {}, h("b", {}, o.label), h("span", { class: "dl-tag" }, o.forNow ? "Set aside for now" : "Turned down"), h("p", {}, o.reason ? o.reason.replace(/^["“]|["”]$/g, "") : "No reason recorded."))));
+      h("div", {}, h("b", {}, o.label), h("span", { class: "dl-tag" }, o.forNow ? "Set aside for now" : "Turned down"), h("p", {}, o.reason ? o.reason.replace(/^["“]|["”]$/g, "") : "No reason given."))));
     return h("ul", { class: "dl-options" }, items);
   }
   function chips(list) { return h("div", { class: "dl-chips" }, list.map((k) => refChip(k))); }
   function detail(e) {
     const t = e.t, w = proseCarrier(t), d = e.decider, adr = t.adr ? t.adr.key : "";
     const context = (adr && readerSection(adr, "context")) || (w.text && h("p", { class: "dl-p" }, shorten(w.text, 600)));
-    const decision = (adr && readerSection(adr, "decision")) || (e.chosen.said || w.text ? h("p", { class: "dl-p" }, shorten(t.adr ? t.adr.decision : w.text, 600)) : h("p", { class: "muted" }, `The page records the pick as ${e.chosen.label}.`));
+    const decision = (adr && readerSection(adr, "decision")) || (e.chosen.said || w.text ? h("p", { class: "dl-p" }, shorten(t.adr ? t.adr.decision : w.text, 600)) : h("p", { class: "muted" }, `Chosen: ${e.chosen.label}.`));
     const consequences = adr ? readerSection(adr, "consequences") : null;
     const status = adr ? readerSection(adr, "status") : null;
     const idx = visible().findIndex((x) => x.id === e.id), list = visible();
@@ -178,13 +178,13 @@ const Decisions = (() => {
       h("button", { class: "icon-btn", "aria-label": "The decision after", disabled: idx >= 0 && idx < list.length - 1 ? null : true, onclick: () => select(list[idx + 1].id) }, "›"),
       h("button", { class: "icon-btn dl-close", "aria-label": "Close the record", onclick: () => select("") }, "✕"));
     const hist = [status, d.sessions.length ? h("ul", { class: "dl-hist" }, d.sessions.map((s) => h("li", {}, h("span", { class: "dl-tl-d" }, sessionDate(s) ? day(sessionDate(s)) : ""), ent(s) ? refChip(s) : sessionTitle(s)))) : null,
-      e.pending ? h("p", { class: "dl-p" }, pendingPill(e.pending), ` ${person(e.pending.by)}, ${e.pending.date}: the owner has not reviewed it.`) : null,
-      d.conf.length ? h("p", { class: "dl-p" }, `Confirmed by ${d.conf.join("; ")}.`) : h("p", { class: "dl-p" + (d.overrides ? " warn" : " muted") }, d.overrides ? `Not confirmed yet, and it stands on ${plural(d.overrides, "override")}.` : "No confirmation is recorded.")];
+      e.pending ? h("p", { class: "dl-p" }, pendingPill(e.pending), ` ${person(e.pending.by)} decided this on ${longDate(e.pending.date) || "a date not given"}; the owner hasn't reviewed it yet.`) : null,
+      d.conf.length ? h("p", { class: "dl-p" }, `Confirmed by ${d.conf.join("; ")}.`) : h("p", { class: "dl-p" + (d.overrides ? " warn" : " muted") }, d.overrides ? `Nobody has confirmed it yet, and it skipped ${plural(d.overrides, "check")}. Confirm it in the next session.` : "Nobody has confirmed it yet.")];
     const trace = [t.adr ? t.adr.id : null, t.adr ? null : w.key].filter(Boolean);
     return h("article", { class: "dl-detail", "aria-label": `Decision: ${e.name}` }, nav,
-      h("p", { class: "dl-kicker" }, t.adr ? "Decision record" : e.bare ? "Decided, no options recorded" : `Decision recorded in ${e.recordedIn}`),
+      h("p", { class: "dl-kicker" }, t.adr ? "Decision record" : e.bare ? "Decided, no other options written down" : `Decision from ${e.recordedIn}`),
       h("h2", {}, e.name),
-      h("div", { class: "dl-meta" }, stateMark(e), h("span", {}, e.date ? `Decided ${longDate(e.date)}` : "No decision date recorded"), h("span", {}, e.by ? `by ${e.by}` : e.owner ? `owned by ${e.owner}` : "")),
+      h("div", { class: "dl-meta" }, stateMark(e), h("span", {}, e.date ? `Decided ${longDate(e.date)}` : "No date yet"), h("span", {}, e.by ? `by ${e.by}` : e.owner ? `owned by ${e.owner}` : "")),
       sec("Context", context), sec("Options considered", e.bare ? null : options(e)), sec("Decision", decision),
       sec("Consequences", consequences, e.affects.length ? h("div", { class: "dl-fx-row" }, h("span", { class: "dl-l" }, "What it affects"), chips(e.affects.map((a) => a.key))) : null,
         e.waits.length ? h("div", { class: "dl-fx-row" }, h("span", { class: "dl-l" }, "Still waits on"), chips(e.waits)) : null,
@@ -196,13 +196,16 @@ const Decisions = (() => {
 
   /* ------------------------------------------------------------ the page */
   function bar() {
-    const all = matching(true), seg = (id, label, n) => h("button", { "aria-pressed": String(st.state === id), "data-state": id, disabled: id && !n ? true : null,
-      onclick: () => { st.state = st.state === id ? "" : id; refresh(); } }, label, h("span", { class: "dl-n" }, String(n)));
+    const all = matching(true), whole = !st.q.trim() && !st.waiting && !st.bare;
+    const seg = (id, label, n) => (id && !n && st.state !== id ? null : h("button", { "aria-pressed": String(st.state === id), "data-state": id,
+      ...(whole ? { "data-quantity": "decisions." + (id || "all"), "data-n": String(n) } : {}),
+      onclick: () => { st.state = st.state === id ? "" : id; refresh(); } }, label, h("span", { class: "dl-n" }, String(n))));
     const search = h("input", { type: "search", class: "dl-find", placeholder: "Find a decision, an option, a person", "aria-label": "Find a decision", value: st.q, autocomplete: "off", spellcheck: "false" });
     search.addEventListener("input", () => { st.q = search.value; refresh({ keepBar: true }); });
     return h("div", { class: "dl-bar" },
       search,
-      h("div", { class: "seg small", role: "group", "aria-label": "State" }, seg("", "All", all.length), STATES.map(([id, label]) => seg(id, label, all.filter((e) => e.state === id).length))),
+      h("div", { class: "seg small", role: "group", "aria-label": "State" }, seg("", "All", whole ? D.counts.decisions.all : all.length),
+        STATES.map(([id, label]) => seg(id, label, whole ? D.counts.decisions[id] : all.filter((e) => e.state === id).length))),
       h("button", { class: "chip" + (st.waiting ? " on" : ""), "aria-pressed": String(st.waiting), "data-filter": "waiting", title: "Only decisions an open question still waits on", onclick: () => { st.waiting = !st.waiting; refresh(); } }, "Waiting on a question"),
       bareOnes.length ? h("button", { class: "chip" + (st.bare ? " on" : ""), "aria-pressed": String(st.bare), "data-filter": "bare", title: "Decisions with no options written down", onclick: () => { st.bare = !st.bare; refresh(); } },
         `${st.bare ? "Hide" : "Include"} ${plural(bareOnes.length, "decision")} with no options written down`) : null,
@@ -213,15 +216,22 @@ const Decisions = (() => {
         h("button", { "aria-pressed": String(st.mode === id), "data-mode": id, onclick: () => { st.mode = id; refresh(); } }, label))));
   }
   function summary(list) {
-    const waiting = new Set(list.flatMap((e) => e.waits)).size, turned = list.reduce((n, e) => n + e.rejected.length, 0);
-    return `${list.length === pool().length ? plural(list.length, "decision") : `${list.length} of ${plural(pool().length, "decision")}`}, ${plural(turned, "option")} turned down, ${waiting ? `${plural(waiting, "open question")} still to answer before they're final` : "no open question still to answer"}.`;
+    const waiting = new Set(list.flatMap((e) => e.waits)).size;
+    const stands = waiting ? `${plural(waiting, "open question")} ${waiting === 1 ? "stands" : "stand"} between them and final` : "no open question stands between them and final";
+    if (list.length !== pool().length) return `Showing ${list.length} of ${plural(pool().length, "decision")}; ${stands}.`;
+    const n = (state) => list.filter((e) => e.state === state).length, over = n("overridden"), prop = n("proposed"), pend = n("pending");
+    const parts = [[over, "was made without the usual checks", "were made without the usual checks"], [prop, "is only proposed", "are only proposed"], [pend, "waits on the owner", "wait on the owner"]].filter(([k]) => k);
+    // the first part names what is counted ("2 decisions were made ..."), the rest lean on it ("and 1 is only proposed")
+    const open = parts.map(([k, one, many], i) => `${i ? k : plural(k, "decision")} ${k === 1 ? one : many}`);
+    const lead = open.length ? open.length > 1 ? `${open.slice(0, -1).join(", ")} and ${open[open.length - 1]}` : open[0] : `${list.length === 1 ? "It is" : "All of them are"} decided`;
+    return `${upFirst(lead)}; ${stands}.`;
   }
   function render(main) {
     const stage = h("div", { class: "dl-stage" });
     main.append(h("div", { class: "view-head" }, h("div", {}, h("h1", {}, Nav.title("Decisions")),
-      h("p", {}, "Every decision the plan records: what was chosen, what was turned down and why, who decided and when, and which open questions it still waits on. Pick one to read it as a decision record.")),
+      h("p", {}, "Pick a decision to see what was chosen, what was turned down and why, and what it still waits on.")),
       h("div", { class: "spacer" }), Nav.pageActions()));
-    if (!trees.length) { main.append(emptyState("No decision records its options yet.", "An Options considered line, or a decision record with an Alternatives considered table, is listed here.", "/vela:shape")); return; }
+    if (!trees.length) { main.append(emptyState("No decisions written down yet.", "Shape the plan and the choices you make show up here.", "/vela:shape")); return; }
     main.append(h("div", { class: "dl-wrap" }, h("div", { class: "dl-barhost" }, bar()), h("p", { class: "dl-count", id: "dl-count", "aria-live": "polite" }), stage));
     paint();
   }
@@ -244,7 +254,8 @@ const Decisions = (() => {
     if (host && !opts.keepBar) host.replaceChildren(bar());
     else if (host) {
       const all = matching(true);
-      $$("button[data-state]", host).forEach((b) => { const n = b.dataset.state ? all.filter((e) => e.state === b.dataset.state).length : all.length; $(".dl-n", b).textContent = String(n); b.disabled = !!b.dataset.state && !n; });
+      $$("button[data-state]", host).forEach((b) => { const n = b.dataset.state ? all.filter((e) => e.state === b.dataset.state).length : all.length; $(".dl-n", b).textContent = String(n); b.disabled = !!b.dataset.state && !n;
+        if (st.q.trim() || st.waiting || st.bare) { b.removeAttribute("data-quantity"); b.removeAttribute("data-n"); } else b.dataset.n = String(n); });
     }
     paint();
   }

@@ -44,7 +44,7 @@ const Asks = (() => {
 
   function holdsHtml(u) {
     const holds = holdsOf(u.id);
-    if (!holds.length) return `<span class="label">blocks</span><span class="none">nothing recorded</span>`;
+    if (!holds.length) return `<span class="label">blocks</span><span class="none">doesn't say</span>`;
     const first = holds[0], more = holds.length > 1 ? ` <span class="more">+${holds.length - 1}</span>` : "";
     return `<span class="label">blocks${more}</span><span class="tag-word hl" title="${esc(shortId(first) || titleOf(first))}">${esc(titleOf(first))}</span>`;
   }
@@ -64,26 +64,26 @@ const Asks = (() => {
     const resolved = u.state !== "open", lvl = resolved ? "done" : u.light.level, crit = !!marks.critical[u.id], fails = crit && !holdsOf(u.id).length;
     const cls = ["strip", resolved ? "resolved" : "", marks.cocked[u.id] ? "cocked" : "", st.flipped.has(u.id) ? "flipped" : "", marks.asked[u.id] ? "asked" : "", fails ? "fails-check" : ""].filter(Boolean).join(" ");
     const title = E[u.id] ? E[u.id].title : u.id, q = u.question || title;
-    const inferred = u.ask.inferred && !marks.moved[u.id] ? `<span class="mark inferred" title="Who to ask is a guess: ${esc(u.ask.rule)}">?</span>` : "";
+    const inferred = u.ask.inferred && !marks.moved[u.id] ? `<span class="mark inferred" title="${esc(u.ask.rule)}">?</span>` : "";
     const front = resolved
-      ? `<div class="front"><div class="edge"></div><div class="cellbox idbox"><div class="rel">answered</div><div class="uid" title="${u.id}">${u.id}</div></div>
+      ? `<div class="front"><div class="edge"></div><div class="cellbox idbox" title="${u.id}"><div class="rel">answered</div></div>
           <div class="cellbox qbox"><div class="q">${esc(q)}</div></div><div class="cellbox holdbox">${holdsHtml(u)}</div></div>`
       : `<div class="front"><div class="edge"></div>
-          <div class="cellbox idbox"><div class="due">${esc(day(u.askBy))}</div><div class="rel">${relDue(u.askBy)}</div><div class="uid" title="${u.id}">${u.id}</div></div>
+          <div class="cellbox idbox" title="${u.id}"><div class="due">${esc(day(u.askBy))}</div><div class="rel">${relDueWords(u.askBy)}</div></div>
           <div class="cellbox qbox"><div class="q">${esc(q)}</div></div><div class="cellbox holdbox">${holdsHtml(u)}</div>
           <div class="timebar" title="Opened ${esc(day(u.opened))}, answer needed by ${esc(day(u.askBy))}"><i style="width:${(fill(u) * 100).toFixed(1)}%"></i></div>
-          ${inferred}${fails ? `<span class="mark critical-note" title="A critical question should be blocking a decision; this one doesn't say what it blocks">Not blocking anything</span>` : ""}${marks.asked[u.id] ? `<span class="mark tick">✓</span>` : ""}</div>`;
+          ${inferred}${fails ? `<span class="mark critical-note" title="Critical, but it doesn't say what it holds up. Add that in the next session, or unmark it.">Not blocking anything</span>` : ""}${marks.asked[u.id] ? `<span class="mark tick">✓</span>` : ""}</div>`;
     const who = marks.moved[u.id] ? `moved here by you; the plan ${u.ask.inferred ? "guessed" : "says"} <i>${esc(u.ask.name)}</i>` : u.ask.inferred ? `<span class="inferred-why">${esc(u.ask.rule)}</span>` : esc(u.ask.rule);
     const back = `<div class="face back"><h4>${esc(title)}<span class="id-tag">${u.id}</span></h4><dl>
         <dt>Holds up</dt><dd class="chain-cell">${chainHtml(u)}</dd>
         <dt>Who to ask</dt><dd>${who}</dd>
-        ${resolved && u.outcome ? `<dt>Answer</dt><dd class="clamp">${esc(u.outcome)}</dd>` : `<dt>Asks</dt><dd class="clamp">${esc(q)}</dd>`}
-        <dt>Owner</dt><dd>${esc(u.ownerRaw || "none")}</dd>
+        ${resolved && u.outcome ? `<dt>Answer</dt><dd class="clamp">${esc(u.outcome)}</dd>` : `<dt>Question</dt><dd class="clamp">${esc(q)}</dd>`}
+        <dt>Owner</dt><dd>${esc(u.ownerRaw || "nobody yet")}</dd>
         <dt>Dates</dt><dd>opened ${esc(day(u.opened))}${u.askBy ? `, answer needed by ${esc(day(u.askBy))}` : u.askByRaw ? `, answer needed by "${esc(u.askByRaw)}", which isn't a date` : ""}</dd></dl>
         ${resolved ? "" : `<div class="actions"><button data-act="open">Details</button><button data-act="crit">${crit ? "Not critical" : "Mark critical"}</button>
           <button data-act="cock">${marks.cocked[u.id] ? "Put back" : "Pull forward"}</button><button data-act="asked">${marks.asked[u.id] ? "Not asked yet" : "Mark asked"}</button>
           <button data-act="flip">Turn back over</button></div>`}</div>`;
-    return `<div class="${cls}" data-id="${u.id}" data-level="${lvl}" style="--u:${resolved ? 0 : u.light.urgency}" tabindex="0" role="button" aria-label="${u.id}: ${esc(q)}. ${resolved ? "Answered" : "Answer needed by " + esc(day(u.askBy))}.">
+    return `<div class="${cls}" data-id="${u.id}" data-level="${lvl}" style="--u:${resolved ? 0 : u.light.urgency}" tabindex="0" role="button" aria-label="${esc(q)}. ${resolved ? "Answered" : "Answer needed by " + esc(day(u.askBy))}.">
       <div class="card"><div class="face front-face">${front}</div>${back}</div></div>`;
   }
   function bays() {
@@ -113,18 +113,18 @@ const Asks = (() => {
   function notAsked(p) {
     if (!p.unrecorded) return "";
     const all = p.unrecorded === p.total;
-    return `<div class="not-asked" title="Nobody recorded who to ask, so these sit with the owner (or with our guess); it doesn't mean anyone was asked">${all ? "<b>No one named to ask</b>, so these sit with the owner" : `${p.unrecorded} of ${p.total} have no one named to ask, so they sit with the owner`}</div>`;
+    return `<div class="not-asked" title="Nobody is named to answer these, so they sit with the owner (or with our guess); it doesn't mean anyone was asked">${all ? "<b>Nobody's named to answer these</b>, so they sit with the owner" : `${p.unrecorded} of ${p.total} have nobody named to answer them, so they sit with the owner`}. Name someone in the next session.</div>`;
   }
   function bayHtml(b) {
-    const isCrit = b.key === CRIT, soon = b.open.filter((u) => daysTo(u) !== null && daysTo(u) <= 14).length;
+    const isCrit = b.key === CRIT, first = b.open.find((u) => isDate(u.askBy));
     const worst = b.open.map((u) => u.light.level).sort((x, y) => rank(y) - rank(x))[0];
     const head = isCrit
-      ? `<h2>Critical</h2><div class="who-meta">you marked these; each should block a decision</div><div class="counts"><b>${b.open.length}</b> marked${b.failing ? `, <b>${b.failing}</b> not blocking anything recorded` : ""}</div>`
-      : `<h2>${worst && worst !== "dark" ? `<i class="lamp ${worst}"></i>` : ""}${esc(b.person.name)}</h2><div class="who-meta">${esc(b.person.handle || "no handle in the plan")}${b.person.inferred ? `, ${b.person.inferred} placed here by our guess` : ""}</div>${notAsked(b.person)}
-         <div class="counts"><b>${b.open.length}</b> open, <b>${soon}</b> due within 14 days${b.done.length ? `, ${b.done.length} answered` : ""}</div>
-         <button class="meet" data-meet="${esc(b.key)}" title="Pull this rack forward for a meeting">${st.meeting === b.key ? "End meeting" : "Meet"}</button>`;
+      ? `<h2>Critical</h2><div class="who-meta">Drag a question here to put it first in the next session.</div>${b.open.length ? `<div class="counts"><b>${b.open.length}</b> marked${b.failing ? `, <b>${b.failing}</b> not blocking anything` : ""}</div>` : ""}`
+      : `<h2>${worst && worst !== "dark" ? `<i class="lamp ${worst}"></i>` : ""}${esc(b.person.name)}</h2><div class="who-meta">${esc(b.person.handle || "no contact recorded")}${b.person.inferred ? `, ${b.person.inferred} here by our guess` : ""}</div>${notAsked(b.person)}
+         <div class="counts">${first ? `First due <b>${esc(day(first.askBy))}</b>` : b.open.length ? "No answer date set" : "Nothing open"}${b.done.length ? `, ${b.done.length} answered` : ""}</div>
+         <button class="meet" data-meet="${esc(b.key)}" title="Go through this person's questions with them">${st.meeting === b.key ? "End meeting" : "Meet"}</button>`;
     let body = b.shown.map(stripHtml).join("");
-    if (isCrit && !b.shown.length) body = `<div class="empty-hint">Drag a question here to mark it critical. Its answer goes to the top of the next session.</div>`;
+    if (isCrit && !b.shown.length) body = `<div class="empty-hint">Nothing marked critical yet.</div>`;
     if (b.later.length) {
       const open = st.expandedLater.has(b.key);
       if (open) body += b.later.map(stripHtml).join("");
@@ -148,16 +148,16 @@ const Asks = (() => {
     }
     const { list, totals } = bays();
     main.append(h("div", { class: "view-head asks-head" },
-      h("div", {}, h("h1", {}, "Who to ask"), h("p", {}, "Every open question, grouped by who can answer it. The colored edge shows how urgent it is; the bar fills as the answer-needed-by date gets close. Drag a question to someone else, or click it to turn it over and see what it holds up.")),
+      h("div", {}, h("h1", {}, "Who to ask"), h("p", {}, "Who you need answers from, and by when. Start with the person at the left: their questions fall due first. Click a question to see what it holds up.")),
       h("div", { class: "spacer" }),
-      h("input", { type: "search", class: "board-find", placeholder: "Find a question, ID or person", value: st.q, oninput: (e) => { st.q = e.target.value.trim(); repaint(); } }),
-      h("div", { class: "seg", role: "group", "aria-label": "Due within" }, [[7, "7 days"], [14, "14 days"], [30, "30 days"], [9999, "All"]].map(([d, label]) =>
+      h("input", { type: "search", class: "board-find", placeholder: "Find a question or a person", value: st.q, oninput: (e) => { st.q = e.target.value.trim(); repaint(); } }),
+      h("div", { class: "seg", role: "group", "aria-label": "Due within" }, [[7, "Due in 7 days"], [14, "14 days"], [30, "30 days"], [9999, "Any time"]].map(([d, label]) =>
         h("button", { "aria-pressed": String(st.days === d), onclick: () => { st.days = d; st.widened = false; rerender(); } }, label))),
       h("button", { class: "chip" + (st.holdingOnly ? " on" : ""), onclick: () => { st.holdingOnly = !st.holdingOnly; rerender(); }, title: "Only questions that say what they block" }, "Blocking something"),
       h("label", { class: "meet-pick" }, "Meeting with ", h("select", { onchange: (e) => meet(e.target.value) },
-        h("option", { value: "" }, "no one"), list.filter((b) => b.key !== CRIT && b.open.length).map((b) => h("option", { value: b.key, selected: st.meeting === b.key ? "" : null }, `${b.person.name} (${b.open.length})`))))));
+        h("option", { value: "" }, "pick a person"), list.filter((b) => b.key !== CRIT && b.open.length).map((b) => h("option", { value: b.key, selected: st.meeting === b.key ? "" : null }, `${b.person.name} (${b.open.length})`))))));
     main.append(h("div", { class: "countline", id: "asks-tally" }, tally(list, totals)));
-    main.append(h("nav", { class: "rack-index", id: "rack-index" }, list.map((b) => h("button", { "data-jump": b.key, class: (b.key === CRIT ? "crit " : "") + (b.open.some((u) => u.light.level === "warning") ? "late" : "") },
+    main.append(h("nav", { class: "rack-index", id: "rack-index" }, list.filter((b) => b.key !== CRIT || b.open.length).map((b) => h("button", { "data-jump": b.key, class: (b.key === CRIT ? "crit " : "") + (b.open.some((u) => u.light.level === "warning") ? "late" : "") },
       b.key === CRIT ? "Critical" : b.person.name, h("b", {}, b.open.length)))));
     if (st.meeting) {
       const b = list.find((x) => x.key === st.meeting);
@@ -168,15 +168,19 @@ const Asks = (() => {
     const wrap = h("div", { class: "board-wrap", id: "asks-wrap" }, h("div", { class: "strip-board", id: "strip-board", html: list.map(bayHtml).join("") }));
     main.append(wrap, tray());
     renderTray();
-    if (!D.asks.length) wrap.append(emptyState("This plan has no open questions yet.", "Nobody is waiting to be asked anything.", "/vela:grill"));
+    if (!D.asks.length) wrap.append(emptyState("No open questions yet.", "Nobody is waiting on an answer. A grill session finds them.", "/vela:grill"));
     const tex = Assets.texture("strip-board");
     if (tex) wrap.style.setProperty("--texture", `url("${tex}")`);
   }
+  /* The answer first: how many, with how many people, and when. The open count is D.counts.openQuestions, the number every
+     view gives (E60); a search or the Blocking filter narrows it, and then it is this board's own and not tagged. */
   function tally(list, t) {
-    return [st.widened ? h("span", { class: "hidden-note" }, "Nothing open falls due in the next 14 days, so every open question is shown. ") : null, h("b", {}, String(t.open)), ` open across ${plural(list.length - 1, "person", "people")}. Showing `, h("b", {}, String(t.shown)),
-      st.days > 999 ? ": every one, at any date. " : ` due within ${st.days} days, plus any overdue, pulled forward or critical. `,
-      t.later + t.done + t.filtered ? h("span", { class: "hidden-note" }, [t.later ? `${t.later} later` : "", t.done ? `${t.done} answered` : ""].filter(Boolean).join(" and ") + (t.later + t.done ? `${t.later + t.done === 1 ? " is" : " are"} tucked away in their groups` : "") + (t.filtered ? `${t.later + t.done ? "; " : ""}${t.filtered} hidden by the filter` : "") + ". ") : null,
-      D.risks.length ? `Risks aren't shown here (${D.risks.length}): they have no answer-needed-by date.` : ""];
+    const whole = !t.filtered, n = whole ? D.counts.openQuestions : t.open, people = list.filter((b) => b.key !== CRIT).length;
+    const when = st.widened ? ", none due in the next two weeks" : st.days > 999 ? "" : `; ${t.shown} due within ${st.days} days, plus any overdue, pulled forward or critical, are shown`;
+    const folded = [t.later ? `${plural(t.later, "later one")}` : "", t.done ? `${plural(t.done, "answered question")}` : ""].filter(Boolean).join(" and ");
+    return [h("b", whole ? { "data-quantity": "openQuestions", "data-n": String(n) } : {}, plural(n, "open question")), ` with ${plural(people, "person", "people")}${when}. `,
+      folded || t.filtered ? h("span", { class: "hidden-note" }, (folded ? `${upFirst(folded)} ${t.later + t.done === 1 ? "is" : "are"} folded under ${t.later + t.done === 1 ? "its person" : "their people"}` : "") + (t.filtered ? `${folded ? "; " : ""}${t.filtered} hidden by the filter` : "") + ". ") : null,
+      D.risks.length ? "Risks are on the Unknowns and risks page." : ""];
   }
   function repaint() {
     const { list, totals } = bays();
@@ -187,7 +191,7 @@ const Asks = (() => {
   }
   function tray() {
     const box = h("aside", { class: "changes-tray", id: "changes-tray" },
-      h("header", { onclick: () => box.classList.toggle("open") }, h("span", {}, h("b", {}, "Changes to record"), " ", h("span", { id: "tray-count" })), h("span", { class: "muted" }, "nothing is saved to the plan")),
+      h("header", { onclick: () => box.classList.toggle("open") }, h("span", {}, h("b", {}, "Changes to note"), " ", h("span", { id: "tray-count" })), h("span", { class: "muted" }, "copy them into the plan yourself")),
       h("div", { class: "lines", id: "tray-lines" }),
       h("div", { class: "tray-actions" }, h("button", { class: "btn", onclick: copy, title: "Copy the changes as lines to paste into the plan" }, "Copy the changes as text"), h("button", { class: "btn", onclick: () => { marks = fresh(); save(); repaint(); toast("Undid every change on the board."); } }, "Undo all")));
     return box;
@@ -195,15 +199,18 @@ const Asks = (() => {
   /* The lines a change proposes. Who to ask is vela's own **Ask:** field; the rest are session notes, because
      vela has no field for "critical" or "asked in a meeting" (yet). */
   function trayLines() {
-    const out = [];
-    for (const [id, key] of Object.entries(marks.moved)) { const u = U(id); if (u) out.push({ text: `<code>${id}</code> add <code>- **Ask:** ${esc(key)}</code> <span class="muted">(${u.ask.inferred ? "was a guess" : "the record said"}: ${esc(u.ask.name)})</span>`, raw: `${id}: - **Ask:** ${key}` }); }
+    const out = [], ppl = people();
+    const named = (id) => esc(E[id] ? E[id].title : id), whoIs = (key) => esc((ppl.get(key) || {}).name || human(key));
+    for (const [id, key] of Object.entries(marks.moved)) { const u = U(id); if (u) out.push({ text: `<b>${named(id)}</b>: ask ${whoIs(key)} <span class="muted">(${u.ask.inferred ? "was a guess" : "the plan said"}: ${esc(u.ask.name)})</span>`, raw: `${id}: - **Ask:** ${key}` }); }
     for (const id of Object.keys(marks.critical)) { const u = U(id); if (!u) continue;
-      out.push({ text: `<code>${id}</code> marked critical on ${esc(day(D.today))} (a note for the next session)${holdsOf(id).length ? "" : ` <span class="warn">It doesn't say what it blocks, and a critical question should be blocking a decision.</span>`}`, raw: `${id}: session note, declared critical on ${D.today}` }); }
-    for (const id of Object.keys(marks.asked)) out.push({ text: `<code>${id}</code> asked ${esc(U(id) ? U(id).ask.name : "")} on ${esc(day(D.today))}, waiting for the answer (a note for the next session)`, raw: `${id}: session note, asked on ${D.today}, answer pending` });
+      out.push({ text: `<b>${named(id)}</b>: marked critical on ${esc(day(D.today))} (a note for the next session)${holdsOf(id).length ? "" : ` <span class="warn">It doesn't say what it holds up, and a critical question should hold up a decision.</span>`}`, raw: `${id}: session note, declared critical on ${D.today}` }); }
+    for (const id of Object.keys(marks.asked)) out.push({ text: `<b>${named(id)}</b>: asked ${esc(U(id) ? U(id).ask.name : "")} on ${esc(day(D.today))}, waiting for the answer (a note for the next session)`, raw: `${id}: session note, asked on ${D.today}, answer pending` });
     const cocked = Object.keys(marks.cocked).length;
     if (cocked) out.push({ text: `<span class="muted">${plural(cocked, "question")} pulled forward: a mark on this board only, not saved.</span>`, raw: "" });
     return out;
   }
+  /* "@legal-counsel" said as a person reads it: "Legal counsel". */
+  const human = (key) => { const w = String(key || "").replace(/^@/, "").replace(/-/g, " "); return w.charAt(0).toUpperCase() + w.slice(1); };
   function renderTray() {
     const lines = trayLines(), box = $("#tray-lines"); if (!box) return;
     $("#tray-count").textContent = lines.filter((l) => l.raw).length ? `(${lines.filter((l) => l.raw).length})` : "";

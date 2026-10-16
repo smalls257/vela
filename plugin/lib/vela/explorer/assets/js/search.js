@@ -132,10 +132,10 @@ const Search = (() => {
       (byGroup[g] = byGroup[g] || []).push({ key: x.r.key, snip: x.r.snip, heading: x.r.heading, flows: x.r.flows });
     }
     const noFlows = /\bhow\b/.test(q.toLowerCase()) && !D.flows.length;  // "how does X" is a flow's question; say so rather than return nothing
-    if (noFlows) box.append(emptyState("No flows yet.", "A \"how does ...\" question is answered by a flow, and the plan has none yet.", "/vela:boundary", "small"));
+    if (noFlows) box.append(emptyState("No flows yet, so a \"how does…\" question has nothing to answer it.", "The plan's lead adds flows in the boundary session.", "/vela:boundary", "small"));
     if (!hits.length && !links.length && !exact.length) {
       if (noFlows) { box.hidden = false; return; }
-      box.append(h("div", { class: "r-more" }, wanted.length ? `No matches for ${wanted.join(", ")}. Search looks in titles, headings and page text; try a more specific word.`
+      box.append(h("div", { class: "r-more" }, wanted.length ? `Nothing matches ${wanted.join(", ")}. Try a name, like an app or a person.`
         : "Type a word that carries meaning; words such as how, the and does are skipped."));
       box.hidden = false; return;
     }
@@ -153,7 +153,7 @@ const Search = (() => {
           h("div", {},
             h("div", { class: "r-head" }, h("span", { class: "kind" }, KIND_WORD[e.kind] || e.kind), h("span", { class: "r-title" }, e.title), id ? h("span", { class: "r-id" }, id) : null,
               FLOW[r.key] ? h("span", { class: "r-id" }, plural(FLOW[r.key].steps.length, "step")) : null),
-            h("div", { class: "r-snip" }, c ? `${titleOf(c.provider)} → ${c.consumers.map(titleOf).join(", ")} · ${c.state || "no state"}` : marked(r.snip, wanted)),
+            h("div", { class: "r-snip" }, c ? `${titleOf(c.provider)} → ${c.consumers.map(titleOf).join(", ")} · ${c.state ? stateWord(c.state).toLowerCase() : "state not set"}` : marked(r.snip, wanted)),
             crossing.length ? h("div", { class: "r-flows" }, "▶ crossed by ", crossing.map((f) => E[f].title).join(", ")) : null,
             linkChips(r.key, { small: true }),
             i === at ? h("div", { class: "r-go" }, goesTo(r.key)) : null)));

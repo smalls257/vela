@@ -36,7 +36,7 @@ const Ask = (() => {
       const body = res.ok ? await res.json() : null;
       if (!body || body.ok !== true) throw new Error(`/health answered ${res.status}`);
       st.health = body; st.mode = "served";
-      $("#q").placeholder = "Search the vault, or press Enter to ask Claude";
+      $("#q").placeholder = "Search the plan, or press Enter to ask Claude";
     } catch (e) {
       st.mode = "static";
       console.warn("[ask] served from this machine, but the helper did not answer /health:", e.message);
@@ -309,7 +309,7 @@ const Ask = (() => {
     box.setAttribute("aria-busy", String(live));
     const kids = [];
     if (msg.a) kids.push(rendered(msg.a, live));
-    else if (live) kids.push(h("span", { class: "ask-wait" }, "Reading the vault"));
+    else if (live) kids.push(h("span", { class: "ask-wait" }, "Reading the plan"));
     if (live && msg.tool) kids.push(h("div", { class: "ask-tool" }, shorten(msg.tool, 80)));
     if (msg.state === "error") kids.push(h("div", { class: "ask-error", role: "alert" }, h("b", {}, "No answer. "), msg.error));
     if (msg.state === "stopped") kids.push(h("div", { class: "ask-tool" }, "Stopped."));
@@ -358,7 +358,7 @@ const Ask = (() => {
     const conv = st.cur;
     const live = served();
     const box = h("textarea", { class: "ask-input", rows: "1", "aria-label": live ? "Question" : "Question, to copy as a prompt",
-      placeholder: live ? (conv && conv.msgs.length ? "Ask a follow-up" : "Ask the vault in plain words") : "Write the question, then Enter copies it as a prompt" });
+      placeholder: live ? (conv && conv.msgs.length ? "Ask a follow-up" : "Ask about the plan in plain words") : "Write the question, then Enter copies it as a prompt" });
     box.value = st.draft;
     const grow = () => { box.style.height = "auto"; box.style.height = Math.min(box.scrollHeight + 2, Math.round(innerHeight * 0.24)) + "px"; };  // the box follows what is typed, up to a quarter of the window
     box.addEventListener("input", () => { st.draft = box.value; grow(); });
@@ -382,8 +382,8 @@ const Ask = (() => {
     return sel;
   }
   function emptyLog() {
-    if (served()) return h("div", { class: "ask-empty" }, h("b", {}, "Ask the vault in plain words."), " Claude reads its pages and answers with citations. Click a citation to read the source in the panel beside this conversation.");
-    return emptyState("Claude is not reachable from this page.", st.mode === "file" ? "A page opened as a file asks nothing of the network." : st.mode === "pending" ? "Looking for the local Claude connection." : "The local Claude connection didn't answer.",
+    if (served()) return h("div", { class: "ask-empty" }, h("b", {}, "Ask about the plan in plain words."), " Claude reads its pages and answers with citations. Click a citation to read the source in the panel beside this conversation.");
+    return emptyState("Claude isn't connected to this page.", st.mode === "file" ? "Open it with /vela:explore to ask questions." : st.mode === "pending" ? "Looking for Claude on this computer." : "Claude on this computer didn't answer. Open the page again with /vela:explore.",
       "/vela:explore", "ask-empty");
   }
   function renderView(main) {
