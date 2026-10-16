@@ -26,6 +26,7 @@ This is what a grill is for; the other sections only set the agenda and file wha
 - Check each answer against what the plan already holds and what the lead said earlier. Say so when they disagree.
 - Keep your recommendation when the user pushes back without a reason. Change it only for a reason, and say what the reason was.
 - Never answer your own question.
+- Keep the running map as `MODES.md` says under "The running map": park what an answer raises with `vela map open` instead of chasing it mid-answer, and before the grill ends, read back with `vela map show --for-lead` so every waiting item is settled, recorded as open, or set aside.
 - Answer first, then put about four things at most to the lead to judge. Show an agenda of more than about seven items in groups; the lead may take it in two sessions.
 
 **Say names, not IDs, in your own words too.** Most codes a lead reads are ones the model typed in a parenthetical, not ones a command printed. IDs go in the commands; say one only where the lead must act on it (a PR to open, a page to find). A read-back by name:

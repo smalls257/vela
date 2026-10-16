@@ -94,3 +94,16 @@ def test_modes_says_team_lead_and_grill_in_lower_case():
     assert "senior" not in MODES
     prose = "\n".join(line for line in MODES.splitlines() if not line.startswith("| Grill (`grill`)"))
     assert not re.search(r"\bGrill\b", prose)
+
+
+def test_the_running_map_is_kept_silently_and_settled_by_the_read_back():
+    """Batch A (S73, research 7.1): the map holds groups, positions and parked items in a file, so a dropped item
+    can't pass for a finished interview, and dump, discover and grill point here."""
+    body = section("The running map")
+    for call in ("vela map add --kind", "vela map add --group", "vela map open --type gap", "vela map next --json",
+                 "vela map show --for-lead", "vela map open --type conflict --topic"):
+        assert call in body, call
+    assert "never let it interrupt the lead" in body and "Never raise a clash while only one side is known." in body
+    assert "By about the third turn" in body and "once three wait it's the only move" in body
+    assert "which of these is wrong?" in body and "Never pick a side." in body
+    assert "don't ask \"what follows from that?\"" in body

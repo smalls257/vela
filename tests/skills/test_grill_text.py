@@ -374,3 +374,8 @@ def test_new_unknown_goes_through_add_unknown():
     five = section(text("skills/grill/SKILL.md"), "## 5.", "## Ends when")
     assert "vela add unknown --name" in five and "--blocks <ID>" in five
     assert "re-run GATE-4 for every other agenda item" not in five
+
+
+def test_grill_parks_on_the_running_map_and_reads_it_back():
+    grill = text("skills/grill/SKILL.md")
+    assert '"The running map"' in grill and "`vela map open`" in grill and "`vela map show --for-lead`" in grill
