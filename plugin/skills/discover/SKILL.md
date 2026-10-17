@@ -9,7 +9,7 @@ disable-model-invocation: true
 
 Find out what exists before anyone designs anything. Every fact this session writes cites a source in `sources.md`.
 
-Every `vela` below is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela`. Relay its `--for-lead` lines; reason over its `--json`. When a command can't express what the lead wants, say so and stop. Name sources by title when you talk ("the 2025 booking spec") and things by name; an ID only where the lead must act on one.
+Every `vela` below is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela`. Relay its `--for-lead` lines; reason over its `--json`. When a command can't express what the lead wants, say so and stop. Name sources by title when you talk ("the 2025 booking spec") and things by name; an ID only where the lead must act on one. Record each answer with its `--kind` and a `--group "<group>"` for any group named, then ask the question its `next:` line suggests, in the voice; while the lead is mid-account, let them finish first.
 
 1. Run the steps in `${CLAUDE_PLUGIN_ROOT}/references/START.md` with mode `discover`, including its step that asks once for the initiative's short name. Read the Discover row of `${CLAUDE_PLUGIN_ROOT}/references/MODES.md`.
 2. List `.inbox/` and `sources.md`. Grep earlier session records for `to fetch:` captures and ask whether each document has arrived; one that has not stays an unknown.

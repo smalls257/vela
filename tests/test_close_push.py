@@ -83,7 +83,7 @@ def add_yes(vault, words="Yes, send it.", origin="@lead", commit=True, record_id
     if commit:
         git(vault, "add", "sessions")
         git(vault, "commit", "-q", "-m", f"Checkpoint {record_id}")
-    return out.strip()
+    return out.splitlines()[0]  # the number; the topic map's lines follow it
 
 
 def remote_has(bare, branch):

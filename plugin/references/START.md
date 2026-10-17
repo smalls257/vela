@@ -99,7 +99,7 @@ Close is a skill you may start, and only on the lead's word: any plain way of sa
 
 ## Captures during the session
 
-Capture each point with `vela record add --origin <who> --tag <tag> "<their words>"`; it numbers them. Leave the mark off until close, except in the modes that mark at once with `--mark`: a grill marks the deciding capture `→ keep: [[<page>#<heading>|<ID>]] (decided)` when it writes the item decided; a Discover marks each fact it writes `(fact)`; Boundary, Requirements, Allocate and Releases mark each line they write `(assumption)`. Close leaves a mark already written alone.
+Capture each point with `vela record add --origin <who> --tag <tag> "<their words>"`; it numbers them. Record each answer with its `--kind` (goals, people, systems, data, rules, dates, money, risks or owners) and a `--group "<group>"` for any group named (`--topic` and `--position` for where that group stands), then ask the question its `next:` line suggests, in the voice; while the lead is mid-account, let them finish first. Leave the mark off until close, except in the modes that mark at once with `--mark`: a grill marks the deciding capture `→ keep: [[<page>#<heading>|<ID>]] (decided)` when it writes the item decided; a Discover marks each fact it writes `(fact)`; Boundary, Requirements, Allocate and Releases mark each line they write `(assumption)`. Close leaves a mark already written alone.
 
 - A person's words are quoted verbatim, with their name, role or handle as the origin.
 - Claude's own idea has origin `claude`, and close parks it by default.

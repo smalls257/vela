@@ -8,6 +8,10 @@
     vela map next                                                    what to raise next, best first
     vela map show --for-lead                                         the read-back, about four at a time
 
+`vela record add --kind K --group G --topic T --position P` tags the capture onto the same map through `steer`
+below and prints the first `next` move after the number: sessions call `record add` for nearly every lead answer and
+rarely called `map` (probe batch A, 2026-10-16), so the map rides on the call that already happens.
+
 The core is `vela/topicmap.py`; this module only finds the open record, reads and writes the map file, and prints
 through `say`. The map lives in `.vela/map/<session>.json`, so it survives a long session and a restart and anyone can
 open it; it is never only in the model's memory, and never staged (guard.py's tool-state rule). Exit codes: 0 done;
@@ -15,6 +19,7 @@ open it; it is never only in the model's memory, and never staged (guard.py's to
 written; 3 several open sessions here (pick with `--record`).
 """
 import pathlib
+from dataclasses import dataclass
 
 from vela import commands, say, topicmap
 from vela.commands import record
@@ -103,14 +108,12 @@ def load(root, session):
 def run(args, out, change):
     """Find the session, load its map, apply `change(state, kinds)` -> (lines, data, answer, closing) and write the
     map back when the change altered it. Every refusal and failure is said, never read as an empty map."""
-    from vela import cli  # the catalog's kinds; imported here as every command module does
+    from vela import cli  # its ToolError; imported here as every command module does
     root = pathlib.Path(args.vault).resolve()
     name = name_of(args)
     try:
         session = session_of(root, args)
-        kinds = cli.load_catalog().kinds
-        if not kinds:
-            raise cli.ToolError("the question catalog lists no kinds, so the topic map has nothing to tag to")
+        kinds = catalog_kinds()
         state = load(root, session)
         before = topicmap.dumps(state)
         lines, data, answer, closing = change(state, kinds)
@@ -145,23 +148,63 @@ def cmd_add(args, out):
             raise topicmap.MapRefused("a --position needs the --group that holds it and the --topic it is on")
         if args.kind and not args.text:
             raise topicmap.MapRefused("a --kind needs the words the lead said")
-        said, data = [], {}
-        if args.position:
-            data["position"] = topicmap.add_position(state, args.group, args.topic, args.position, args.reason,
-                                                     args.basis)
-            said.append(f"{args.group} on {args.topic}: {args.position}")
-        elif args.group:
-            group = topicmap.name_group(state, args.group)
-            data["group"] = group
-            said.append(f"group {group['name']} (named {group['named']})")
-        if args.kind:
-            data["note"] = topicmap.add_note(state, kinds, args.kind, args.text, args.topic)
-            said.append(f"{args.kind}: {data['note']['text']}")
-        elif args.topic and not args.position:
-            topicmap.set_topic(state, args.topic)
-            said.append(f"topic: {args.topic}")
+        said, tagged = topicmap.tag(state, kinds, args.text, [args.kind] if args.kind else [],
+                                    [args.group] if args.group else [], args.topic, args.position, args.reason,
+                                    args.basis)
+        data = {k: v for k, v in (("position", tagged.get("position")), ("group", (tagged["groups"] or [None])[0]),
+                                  ("note", (tagged["notes"] or [None])[0])) if v is not None}
         return [model_line("added " + "; ".join(said))], data, "", ""
     return run(args, out, change)
+
+
+def catalog_kinds():
+    from vela import cli  # imported here as every command module does
+    kinds = cli.load_catalog().kinds
+    if not kinds:
+        raise cli.ToolError("the question catalog lists no kinds, so the topic map has nothing to tag to")
+    return kinds
+
+
+@dataclass
+class Steer:
+    """The map as one capture leaves it: loaded and tagged in memory before the capture is written, so a tag the map
+    refuses stops the capture too (a half-tagged answer would look tagged), and saved after it."""
+    session: str
+    kinds: tuple
+    state: dict
+    before: str
+    said: list
+    tagged: bool
+
+    def save(self, root):
+        if topicmap.dumps(self.state) == self.before:
+            return []
+        return [sessiongit.write_text(root, map_path(self.session), topicmap.dumps(self.state))]
+
+    def lines(self):
+        """What the model reads after the capture's number: what went on the map or that nothing did, then the one
+        next move. Model-only: the lead never hears map bookkeeping."""
+        out = [model_line("map: added " + "; ".join(self.said))] if self.tagged else [model_line(
+            f"{UNTAGGED} (kinds: {', '.join(k.name for k in self.kinds)})")]
+        first = topicmap.moves(self.state, self.kinds)[:1]
+        return out + [model_line(f"next: {m.text}") for m in first]
+
+    def data(self):
+        first = topicmap.moves(self.state, self.kinds)[:1]
+        return {"map": map_path(self.session), "tagged": self.tagged, "next": first[0].as_json() if first else None}
+
+
+UNTAGGED = "not tagged: the map can't steer from this answer"
+
+
+def steer(root, session, text, kind_names, groups, topic, position):
+    """Load the session's map and tag one answer onto it in memory (see Steer). Raises MapRefused for a tag the map
+    won't take, and MapUnreadable, ToolError or OSError when the map or the catalog can't be read."""
+    kinds = catalog_kinds()
+    state = load(root, session)
+    before = topicmap.dumps(state)
+    said, _ = topicmap.tag(state, kinds, text, kind_names, groups, topic, position)
+    return Steer(session, kinds, state, before, said, bool(kind_names or groups))
 
 
 def cmd_open(args, out):

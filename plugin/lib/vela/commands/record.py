@@ -22,12 +22,20 @@ Which record: `.vela/session.json` (written by `session start`) while it names a
 record in the working tree's `sessions/`. Exit codes: 0 added (the number is printed); 1 no open record, or a line
 that would not parse; 2 the record or git failed; 3 several open records in this folder (pick with `--record`).
 
+The topic map rides on the capture (`--kind`, `--group`, `--topic`, `--position`; see commands/map.py `steer`): the tags
+go on the session's map and the output ends with the map's next move, model-only. A second Silent Fallback is the
+reason for the shape: an untagged capture would leave the map silently empty while the session looks steered, so a
+capture with no --kind and no --group says so in one line. Tags are checked before the capture is written, so a tag
+the map refuses writes nothing; a map that can't be read stops a tagged capture (exit 2) and is said, never skipped,
+under an untagged one.
+
 A reader copy writes in place and runs no git: the history is not read there, and the record's text and the
 session file still hold every number this copy used.
 """
 import pathlib
 
-from vela import commands, records, say, sessions
+from vela import commands, records, say, sessions, topicmap
+from vela.commands import map as map_cmd
 from vela.commands import whoami
 from vela.edge import sessiongit
 from vela.edge.vaultgit import GitUnavailable
@@ -49,6 +57,13 @@ def register(sub):
     adder.add_argument("--tag", required=True, help="idea, thought, unknown, wild or worry (or the mode's own tag)")
     adder.add_argument("--mark", default="", help="a mark written at once, for the modes that mark as they go")
     adder.add_argument("--record", default="", metavar="ID", help="the open record to add to, when several are open")
+    adder.add_argument("--kind", action="append", default=[], metavar="K",
+                       help="the topic map's kind this answer is about (goals, people, systems, data, rules, dates, "
+                            "money, risks, owners); repeat for more than one")
+    adder.add_argument("--group", action="append", default=[], metavar="G",
+                       help="a group the lead named in this answer; repeat for each")
+    adder.add_argument("--topic", default="", help="the topic the answer is about; becomes the map's current topic")
+    adder.add_argument("--position", default="", help="with one --group and --topic: where that group stands on it")
     adder.add_argument("text", help="the words of the capture")
     say.add_output_flags(adder)
     adder.set_defaults(func=cmd_add)
@@ -66,6 +81,10 @@ def cmd_add(args, out):
         result = add(root, args, sessiongit.is_read_copy(root))
     except Stop as stop:
         result = stop.result
+    except topicmap.MapRefused as exc:
+        result = say.Result(NAME, exit=say.REFUSED, refusals=[say.Refusal(
+            "topic map", f"I didn't add the note: the map didn't take the tags ({exc}).",
+            "fix the tags and run it again", "nothing to override: the map only records", audience=say.MODEL)])
     except (GitUnavailable, ValueError, OSError) as exc:
         result = say.Result(NAME, exit=say.FAILED, lines=[
             say.Line(f"vela: {exc}", plain=f"I couldn't add the note to the record: {exc}")])
@@ -107,6 +126,7 @@ def add(root, args, reader):
     state = sessiongit.read_json(root, sessiongit.STATE_FILE)
     rel, record_id = open_record(root, state, args.record)
     origin, wrote = (args.origin.strip(), []) if args.origin.strip() else lead_origin(root)
+    steered, unread = map_for(root, record_id, args)
     path = root / rel
     text = path.read_text(encoding="utf-8")
     remembered = {int(state.get("last_capture") or 0)} if state and state.get("id") == record_id else set()
@@ -123,5 +143,26 @@ def add(root, args, reader):
     kept["last_capture"] = number
     wrote.append(sessiongit.write_state(root, kept))
     label = records.label(number)
-    return say.Result(NAME, wrote=wrote, data={"number": label, "line": line, "record": rel},
-                      lines=[say.Line(label, plain="Noted in the session record.")])
+    data, lines = {"number": label, "line": line, "record": rel}, [say.Line(label, plain="Noted in the session record.")]
+    if steered:
+        wrote += steered.save(root)
+        data.update(steered.data())
+        lines += steered.lines()
+    else:
+        data.update({"tagged": False, "map_unread": unread})
+        lines.append(say.Line(f"{map_cmd.UNTAGGED}, and the map couldn't be read: {unread}", plain="",
+                              audience=say.MODEL))
+    return say.Result(NAME, wrote=wrote, data=data, lines=lines)
+
+
+def map_for(root, record_id, args):
+    """(Steer, "") with the tags on the map in memory, or (None, why) when an untagged capture finds the map or the
+    catalog unreadable: the capture still goes in and the reason is printed. A tagged one raises instead (exit 2), and
+    a tag the map refuses raises MapRefused (exit 1); both before anything is written."""
+    from vela import cli  # the catalog's ToolError, imported here as every command module does
+    try:
+        return map_cmd.steer(root, record_id, args.text, args.kind, args.group, args.topic, args.position), ""
+    except (topicmap.MapUnreadable, cli.ToolError, OSError) as exc:
+        if args.kind or args.group:
+            raise ValueError(f"the topic map couldn't be read, so the tags weren't kept: {exc}") from exc
+        return None, str(exc)

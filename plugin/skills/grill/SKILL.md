@@ -40,7 +40,7 @@ A state said to the lead is a word: just an idea, not decided yet, proposed, dec
 
 Silence, "ok", "next", "sure" with nothing else, or a change of subject do not count as acceptance. Before you close a branch, ask for an explicit yes or for an alternative. Before you write `decided`, read the final wording back and get a yes; for several items that close together, one read-back of about five and one yes to them is enough (`START.md` defines a yes).
 
-Capture each answer, and your read-back, with `vela record add --origin <who> --tag thought "<words>"`; it prints the number section 4 hands to `vela decide`. The user's own words take their name as origin; your recommendation accepted as it stands is `claude, from <name>`; your read-back is `claude`.
+Capture each answer, and your read-back, with `vela record add --origin <who> --tag thought "<words>"`; it prints the number section 4 hands to `vela decide`. The user's own words take their name as origin; your recommendation accepted as it stands is `claude, from <name>`; your read-back is `claude`. Record each answer with its `--kind` and a `--group "<group>"` for any group named, then ask the question its `next:` line suggests, in the voice; while the lead is mid-account, let them finish first.
 
 ## 2. Start
 
