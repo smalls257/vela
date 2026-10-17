@@ -283,30 +283,3 @@ def test_relaying_a_command_says_more_and_what_to_do_on_my_side():
     assert "never say that line or the command's own text" in relay
     assert "run the same command again with `--more` added" in relay
     assert '"Relaying a command" below' in section("0. Read how to talk")
-
-
-# The topic map rides on `vela record add` (probe batch A, 2026-10-16: sessions never ran `vela map next` and barely
-# ran `vela map add`, so skill prose about the map changed nothing). One line says it; batch A's multi-step map prose
-# coming back fails the rule-deletion test, since steps the sessions skipped only look like steering.
-RECORD_MAP_LINE = ("then ask the question its `next:` line suggests, in the voice; while the lead is mid-account, let "
-                   "them finish")
-OLD_MAP_PROSE = ("vela map add", "vela map next", "vela map open", "vela map close", "vela map show",
-                 "## The running map", "Tag as you go", "Park, don't interrupt", "Pick the next question from the map",
-                 "Who has a say.", "A clash, side by side.", "A gap, named.", "Confirm in batches.",
-                 "The read-back settles everything.")
-
-
-def test_start_says_the_record_map_line_once():
-    body = START
-    assert body.count(RECORD_MAP_LINE) == 1
-    assert "`--kind`" in body and '`--group "<group>"`' in body
-
-
-def test_start_has_no_multi_step_map_prose():
-    body = START
-    for phrase in OLD_MAP_PROSE:
-        assert phrase not in body, phrase
-
-
-def test_start_names_the_kinds_the_record_tags_take():
-    assert "`--kind` (goals, people, systems, data, rules, dates, money, risks or owners)" in START

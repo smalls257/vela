@@ -13,4 +13,4 @@ def run(ctx):
     ctx.outputs["close push --for-lead (notice)"] = out
     code, number = ctx.vela("record", "add", "--origin", "@replay-lead", "--tag", "decision", "--mark",
                             "drop: the yes to send this for review", "Yes, send it for review.")
-    ctx.outputs["push yes"] = number.splitlines()[0]  # the number; the map's lines follow
+    ctx.outputs["push yes"] = number.strip()

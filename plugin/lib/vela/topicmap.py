@@ -143,31 +143,6 @@ def add_position(state, name, topic, position, reason="", basis=STATED):
     return entry
 
 
-def tag(state, kinds, text, kind_names=(), groups=(), topic="", position="", reason="", basis=STATED):
-    """One answer onto the map: the lead's words under each kind, each group named on the roster, or one group's
-    position on the topic. The one implementation behind `vela map add` and `vela record add --kind/--group`, so a
-    capture and a map entry can't drift into two meanings of "tagged". Returns (what was added, said short; data)."""
-    if position and (len(groups) != 1 or not topic):
-        raise MapRefused("a --position needs the one --group that holds it and the --topic it is on")
-    said, data = [], {"groups": [], "notes": []}
-    if position:
-        data["position"] = add_position(state, groups[0], topic, position, reason, basis)
-        said.append(f"{groups[0]} on {topic}: {position}")
-    else:
-        for name in groups:
-            group = name_group(state, name)
-            data["groups"].append(group)
-            said.append(f"group {group['name']} (named {group['named']})")
-    for kind in kind_names:
-        note = add_note(state, kinds, kind, text, topic)
-        data["notes"].append(note)
-        said.append(f"{kind}: {note['text']}")
-    if topic and not kind_names and not position:
-        set_topic(state, topic)
-        said.append(f"topic: {topic}")
-    return said, data
-
-
 def open_item(state, kinds, kind_of_item, text, kind="", topic=""):
     """A waiting item (a gap, conflict, belief or fact to raise later). Always written, even past `SUMMARIZE_AT`:
     refusing would drop it, the Silent Fallback this map exists to stop; `moves` holds the timing instead. A conflict

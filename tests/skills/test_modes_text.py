@@ -94,19 +94,3 @@ def test_modes_says_team_lead_and_grill_in_lower_case():
     assert "senior" not in MODES
     prose = "\n".join(line for line in MODES.splitlines() if not line.startswith("| Grill (`grill`)"))
     assert not re.search(r"\bGrill\b", prose)
-
-
-# The topic map rides on `vela record add` (probe batch A, 2026-10-16: sessions never ran `vela map next` and barely
-# ran `vela map add`, so skill prose about the map changed nothing). One line says it; batch A's multi-step map prose
-# coming back fails the rule-deletion test, since steps the sessions skipped only look like steering.
-RECORD_MAP_LINE = ("then ask the question its `next:` line suggests, in the voice; while the lead is mid-account, let "
-                   "them finish")
-OLD_MAP_PROSE = ("vela map add", "vela map next", "vela map open", "vela map close", "vela map show",
-                 "## The running map", "Tag as you go", "Park, don't interrupt", "Pick the next question from the map",
-                 "Who has a say.", "A clash, side by side.", "A gap, named.", "Confirm in batches.",
-                 "The read-back settles everything.")
-
-
-def test_modes_has_no_multi_step_map_prose():
-    for phrase in OLD_MAP_PROSE:
-        assert phrase not in MODES, phrase
