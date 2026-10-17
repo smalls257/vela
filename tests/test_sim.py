@@ -119,7 +119,9 @@ def test_the_gh_stub_is_first_on_path_records_a_pr_and_fails_everything_else(ful
     assistant = [e for e in entries(full_run["run"] / "vela") if e["speaker"] == "assistant"]
     assert "https://github.invalid/sim/heron/pull/1" in assistant[0]["text"]
     gh = full_run["run"] / "vela" / "bin" / "gh"
-    for other in (["api", "user"], ["auth", "status"], ["pr", "merge", "1"]):
+    login = subprocess.run([str(gh), "api", "user", "-q", ".login"], capture_output=True, text=True, timeout=30)
+    assert login.returncode == 0 and login.stdout.strip() == "sim-lead"  # so vela whoami never asks the lead
+    for other in (["auth", "status"], ["pr", "merge", "1"]):
         done = subprocess.run([str(gh), *other], capture_output=True, text=True, timeout=30)
         assert done.returncode == 1 and sim.GH_MESSAGE in done.stderr, other
 

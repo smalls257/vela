@@ -945,6 +945,11 @@ def record(row):
         out.write(json.dumps(row) + "\\n")
 
 
+# `gh api user` answers with the simulated lead's login, as a logged-in gh would, so `vela whoami` finds the handle
+# without the session asking the lead for it (a real lead is never asked when gh is logged in).
+if args[:2] == ["api", "user"]:
+    print("sim-lead" if "-q" in args or "--jq" in args else json.dumps({{"login": "sim-lead"}}))
+    sys.exit(0)
 if args[:1] != ["pr"] or len(args) < 2:
     fail({message!r})
 verb, (opts, loose) = args[1], flags(args[2:])
