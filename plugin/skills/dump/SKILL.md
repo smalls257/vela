@@ -14,7 +14,7 @@ The user has a hunch, a one-liner or nothing yet. Collect everything as captures
 1. Run the steps in `${CLAUDE_PLUGIN_ROOT}/references/START.md` with mode `dump`, including its step that asks once for the initiative's short name. Read the Dump & Diverge row of `${CLAUDE_PLUGIN_ROOT}/references/MODES.md`.
 2. Read `01-goals.md`, `11-unknowns-and-risks.md` and the parked captures in earlier session records (`→ park`), to build on what is there. Do not repeat a parked idea as new.
 3. Let the user talk. Capture each point as its own line, in their words, with their name or role as the origin and a tag of `idea`, `thought`, `unknown`, `worry` or `wild`: `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela record add --origin "<name>" --tag idea "<their words>"`. It numbers the line; never number one yourself. If it stops, say why in plain words and stop.
-   Keep the running map as `MODES.md` says under "The running map", silently: put each group the lead names on it, and never interrupt the lead to ask. Once the first account is out, by about the third turn, ask who has to say yes to this and who would push back; then ask one group a turn where it stands, and put two that pull apart side by side.
+   Keep the running map as `MODES.md` says under "The running map", silently: tag each point and put each group the lead names on it, and never interrupt the lead to ask. Once the first account is out, by about the third turn, ask who has to say yes to this and who would push back; then ask one group a turn where it stands, and put two that pull apart side by side.
 4. Build on what they say. For each idea, offer one "what if" that removes a constraint, borrows from another domain, or turns it around. Capture each with origin `claude`; tag the far-fetched ones `wild`. Never judge an idea, and never say one will not work.
 5. Capture questions as `unknown`, unanswered for now.
 6. When the user slows down, run the pre-mortem: ask them to imagine it is six months on and the initiative has failed, and ask what went wrong. It makes people say the risks they were too polite to raise. Put it in your own words, and capture every answer as a `worry`.
@@ -23,7 +23,7 @@ The user has a hunch, a one-liner or nothing yet. Collect everything as captures
 9. On a yes to an existence question (stored value, an outside party), capture one `thought` that starts with the copy ID and ends with the subject note: `- [thought] (<name>) Q-FIN-01@INI-001: yes, <what>. type at close: SV`. Use `type at close: PTY` for an outside party. Dump writes no pages, so close types the subject and writes the copy's ledger row. To the lead, say it plainly: "Noted: the plan holds money or points on customers' behalf."
 10. After about every ten captures, commit a checkpoint with `vela close stage --checkpoint --for-lead`.
 
-11. Before the session ends, run the map's read-back (`vela map show --for-lead`): every waiting item settled, captured as an `unknown`, or set aside.
+11. Before the session ends, run the map's read-back (`vela map show --for-lead`): about four implications with "which of these is wrong?", and every waiting item settled, captured as an `unknown`, or set aside.
 
 ## Ends when
 
