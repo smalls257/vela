@@ -158,9 +158,3 @@ def test_discover_says_the_audit_wording():
 
 def test_discover_stops_when_a_command_cant_say_it():
     assert "When a command can't express what the lead wants, say so and stop." in DISCOVER
-
-
-def test_discover_keeps_the_running_map_and_asks_who_has_a_say_before_the_read_back():
-    assert '"The running map"' in DISCOVER and '"Who has a say"' in DISCOVER
-    assert "Ask for the yes once per group, never line by line" in DISCOVER
-    assert "`vela map show --for-lead`" in DISCOVER and "which of these is wrong?" in DISCOVER

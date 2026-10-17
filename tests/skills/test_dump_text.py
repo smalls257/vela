@@ -124,9 +124,3 @@ def test_capture_numbering_is_the_commands_not_the_models():
 def test_dump_says_a_yes_to_the_lead_in_words():
     assert "Noted: the plan holds money or points on customers' behalf." in DUMP
     assert "noted, there is stored value" not in DUMP
-
-
-def test_dump_keeps_the_running_map_silently_and_reads_it_back():
-    dump = text("skills/dump/SKILL.md")
-    assert '"The running map", silently' in dump and "never interrupt the lead to ask" in dump
-    assert "`vela map show --for-lead`" in dump

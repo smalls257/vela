@@ -63,24 +63,6 @@ Any question nobody present can answer becomes an unknown: write it with `vela a
 
 When two sources or two people disagree, write an unknown that names both. Don't pick one.
 
-## The running map
-
-Dump, Discover and a grill keep a running map of the talk with `vela map`, so what's covered, who has a say and what waits to be raised sits in a file, not in your memory. It's working state: never read it aloud or name it, and never let it interrupt the lead. While the lead is telling you something, the next turn follows them (at most a one-line check on a word you don't know); the map work happens in the commands, silently.
-
-- **Tag as you go.** After each lead turn, tag what they said to its kind: `vela map add --kind <kind> "<their words>"`, where the kind is one of goals, people, systems, data, rules, dates, money, risks or owners (`--topic "<topic>"` sets the topic in hand). A group the lead names goes on at once: `vela map add --group "<group>"`. What a group wants goes on with its holder: `vela map add --group "<group>" --topic "<topic>" --position "<what they want>" --reason "<why>"`, with `--basis guess` when the lead is guessing at it.
-- **Park, don't interrupt.** Something to raise later (an implication, a clash, a claim that looks shaky, a missing fact) is `vela map open --type gap "<it>"`, or `conflict`, `belief` or `fact`. Settle each once it's dealt with: `vela map close 1 --as settled --how "<a line>"` (its number as `open` printed it), or `--as recorded` once it's an open question in the plan, or `--as set-aside` when the lead sets it aside.
-- **Pick the next question from the map.** At each pause, run `vela map next --json` and take its first move. `summarize`: a collecting summary that settles or sets aside each waiting item and opens no new thread; once three wait it's the only move. `side-by-side`: a clash to put to the lead. `ask-group`: a group not yet heard on the topic in hand. `ask-kind`: the least-covered kind near the last answer.
-
-**Who has a say.** By about the third turn, ask who has to say yes to this and who would push back, and put each group on the map. Then, one group a turn, ask where it stands on the topic in hand, as an open question: "Where does the city's transport team stand on docks on the pavement?" A question about what someone wants needs no recommendation. Never raise a clash while only one side is known.
-
-**A clash, side by side.** Once two groups want things on the same topic that pull apart, say both with their holders and reasons, and ask when both can't hold: "Operations wants the docks emptied every night, because of theft; the city wants bikes left out so riders find them at dawn. Is there a night when both can't be true?" Never pick a side. Run `vela map open --type conflict --topic "<topic>" "<both sides>"`, record it as one open question naming both sides and who settles it, as "Unknowns" says (propose who decides, and ask), and close it on the map as recorded. Dump writes no pages, so it captures the clash as an `unknown`.
-
-**A gap, named.** On an `ask-kind` move, don't ask "what follows from that?". Name one concrete consequence or precondition of what's been said, say it's your own reasoning, and ask whether it holds: "If the docks go in before the permit, the first bike out is parked where it isn't allowed, as far as I can tell. Has anyone checked the order?" Park each one the lead can't answer.
-
-**Confirm in batches.** A turn that only asks "yes to this?" spends the lead's time. Hold lines to confirm until a natural pause (the lead finishes, the topic changes, or about five lines wait) and confirm them in one read-back with one yes. Between those, ask what the map suggests.
-
-**The read-back settles everything.** Before the session closes, run `vela map show --for-lead`. In your words, read back about four implications the session drew and ask "which of these is wrong?", then settle every waiting item: settled, recorded as open, or set aside by the lead. Last, ask what you should have asked and didn't.
-
 ## Owed questions
 
 What a session must ask comes from code: `vela questions` lists what the question catalog owes, and a review checkpoint (`REVIEW.md`) adds what one focused reviewer per area finds. Dump runs one after its pre-mortem, Discover after its read-back, Shape before it shows its options, Requirements once a capability's requirements are written, Boundary once its app pages are written, Allocate once its rows are written, and a grill on its agenda. No question is dropped and none is owed a quota: the lead is shown at most three at a time, once per session, and the rest stay open in the ledger. Between checkpoints, ask whatever the work needs.
