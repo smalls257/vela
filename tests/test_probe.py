@@ -95,12 +95,12 @@ def test_the_snapshots_are_the_ones_the_cases_name():
     assert names == {"coastal-merger/empty", "coastal-merger/after-s2", "coastal-merger/after-s4", "coastal-merger/after-v3-s8",
                      "coastal-merger/after-complete-s21", "coastal-merger/after-cio-s4", "coastal-merger/after-boundary-s2",
                      "trading-coach/after-handoff-grill-s25", "trading-coach/after-s12", "trading-coach/after-full-26", "trading-coach/after-handoff-2", "trading-coach/after-complete-s10", "trading-coach/after-finish", "trading-coach/after-final", "trading-coach/after-80", "trading-coach/after-80b", "trading-coach/after-capture", "trading-coach/after-capture-boundary",  # where scripts start, not probes
-                     "trading-coach/empty", "heron-desk/empty", "heron-desk/after-full-1", "heron-desk/after-handoff-1", "heron-desk/after-design-2", "heron-desk/grill-ready", "holdout-hospitals/empty", "holdout-hospitals/after-dump", "holdout-hospitals/after-discover"}
+                     "trading-coach/empty", "heron-desk/empty", "heron-desk/after-full-1", "heron-desk/after-handoff-1", "heron-desk/after-design-2", "heron-desk/grill-ready", "heron-agent-lead/handoff", "holdout-hospitals/empty", "holdout-hospitals/after-dump", "holdout-hospitals/after-discover"}
     for case_path in sorted((SIM / "probes").glob("*.yaml")):
         case = probe.load_case(str(case_path))
         # The dev persona (heron-desk) or coastal-merger runs every case; a holdout only where it has a vault that far along.
-        assert {"coastal-merger", "heron-desk"} & set(case["snapshot"]), case_path
-        assert set(case["snapshot"]) <= {"coastal-merger", "holdout-hospitals", "heron-desk", "trading-coach"}, case_path
+        assert {"coastal-merger", "heron-desk", "heron-agent-lead"} & set(case["snapshot"]), case_path
+        assert set(case["snapshot"]) <= {"coastal-merger", "holdout-hospitals", "heron-desk", "trading-coach", "heron-agent-lead"}, case_path
 
 
 @pytest.mark.parametrize("snapshot", SNAPSHOT_DIRS, ids=lambda p: p.relative_to(SIM / "snapshots").as_posix())
@@ -121,7 +121,7 @@ def test_the_snapshot_inboxes_are_in_git_although_a_vault_ignores_them():
     if not tracked.strip():
         pytest.skip("the snapshots are not committed yet")
     for snapshot in SNAPSHOT_DIRS:
-        for doc in (snapshot / ".inbox").iterdir():
+        for doc in (snapshot / ".inbox").iterdir() if (snapshot / ".inbox").is_dir() else []:
             assert doc.relative_to(REPO).as_posix() in tracked.split(), doc.name
 
 
@@ -240,6 +240,20 @@ def test_a_decision_written_during_a_probe_fails_decisions_recorded(tmp_path):
     assert code == 1, err
     assert "FAIL decisions-recorded: decisions recorded: 1" in out
     assert "T2 sessions/stub.md" in out, "the decision is pinned to the turn that wrote it"
+
+
+def test_design_claims_are_judged_and_an_unfounded_citation_counts_unsupported(tmp_path):
+    """The stub judge cites a quote no turn holds for the last sampled line, so exactly that line is unsupported."""
+    text = "\n".join(f"- The agent keeps component number {n} behind its own interface and never shares state" for n in range(4))
+    env = {"SIM_STUB_WRITE": json.dumps({"docs/tech-design/stub.md": text + "\n"})}
+    code, out, err, runs = run_probe(tmp_path, "design-yes", "heron-agent-lead", env=env)
+    assert "claims-unsupported: design lines stated as fact that nobody gave: 1 of 4 sampled" in out, out + err
+    assert [c for c in (runs[0] / "raw").iterdir() if "judge-claims" in c.name]
+
+
+def test_design_claims_with_no_design_written_judge_nothing(tmp_path):
+    code, out, err, runs = run_probe(tmp_path, "design-yes", "heron-agent-lead")
+    assert "PASS claims-unsupported: design lines written under docs/: 0" in out, out + err
 
 
 OPTIONS = """Three options.
@@ -893,10 +907,10 @@ def test_every_check_that_calls_the_judge_keeps_the_judges_reserve():
     import inspect
     calls_judge = {name for name, (fn, _) in probe.CHECKS.items()
                    if any(call in inspect.getsource(fn) for call in ("judge_category", "analyze_options",
-                                                                     "verified_beliefs", "verified_tacit"))}
+                                                                     "verified_beliefs", "verified_tacit", "precision.ask"))}
     assert calls_judge == probe.JUDGED_CHECKS == {"option-count", "option-parts", "gaps-surfaced", "beliefs-challenged",
                                                   "beliefs-recorded", "beliefs-lectured", "tacit-surfaced",
-                                                  "tacit-recorded"}
+                                                  "tacit-recorded", "claims-unsupported"}
     assert {"gaps-raised", "positions-surfaced", "ready-decided", "unsure-proposed"} <= set(probe.CHECKS)
 
 
