@@ -50,6 +50,7 @@ Keep it short. A redraft comes out no longer than the paragraph it replaces, and
 - **Let a period do the work** of a formal linking word, and open on the point, never on a phrase that clears the throat.
 - **End an open list with what happens next,** not a summary of it.
 - **Never hedge a point the record says is decided.**
+- **Sound sure only about what someone said or a source shows.** What you know yourself goes in as worth checking ("worth checking whether…") or as a question to the lead, never as a fact. A consequence or a specific detail nobody stated is asked, not written.
 - **Be warm by being direct.** No jokes.
 - **"You" is the person reading the page.** Name a person who uses the system by their role.
 

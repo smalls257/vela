@@ -45,7 +45,7 @@ If the vault has no releases page at all, propose a skeleton from the app's firs
 
 ## 4. Write as you go
 
-Write each answer into `docs/tech-design/<slug>.md` as its section settles, and commit it on the branch with `vela team commit --about "<the section>"`, naming the section. Batching loses work when a session is cut off; the branch is the resume point.
+Write a choice in only after the person says yes to it: propose it with its reason ("I'd keep the key behind a small interface, so it can move later. OK?") and wait. Your own expertise is a recommendation, not a decision. Write each answer into `docs/tech-design/<slug>.md` as its section settles, and commit it on the branch with `vela team commit --about "<the section>"`, naming the section. Batching loses work when a session is cut off; the branch is the resume point.
 
 - The doc follows `TECH-DESIGN-FORMAT.md`, its frontmatter `FRONTMATTER-FORMAT.md`: a summary first, then full detail, each topic under about 120 words.
 - An ADR only when a decision is hard to reverse, surprising without context and a real trade-off: `ADR-FORMAT.md`.
