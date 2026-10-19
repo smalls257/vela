@@ -122,7 +122,7 @@ const Asks = (() => {
     const worst = b.open.map((u) => u.light.level).sort((x, y) => rank(y) - rank(x))[0];
     const head = isCrit
       ? `<h2>Critical</h2><div class="who-meta">Drag a question here to put it first in the next session.</div>${b.open.length ? `<div class="counts"><b>${b.open.length}</b> marked${b.failing ? `, <b>${b.failing}</b> not blocking anything` : ""}</div>` : ""}`
-      : `<h2>${worst && worst !== "dark" ? `<i class="lamp ${worst}"></i>` : ""}${esc(b.person.name)}</h2><div class="who-meta"${b.person.handle ? ` title="${esc(b.person.handle)}"` : ""}>${b.person.handle ? "" : "No contact recorded"}${b.person.inferred ? `${b.person.handle ? "" : ", "}${b.person.inferred} here by our guess` : ""}</div>${notAsked(b.person)}
+      : `<h2>${worst && worst !== "dark" ? `<i class="lamp ${worst}"></i>` : ""}<button class="bay-name" data-person="${esc(b.key)}" title="Their questions, in the panel">${esc(b.person.name)}</button></h2><div class="who-meta"${b.person.handle ? ` title="${esc(b.person.handle)}"` : ""}>${b.person.handle ? "" : "No contact recorded"}${b.person.inferred ? `${b.person.handle ? "" : ", "}${b.person.inferred} here by our guess` : ""}</div>${notAsked(b.person)}
          <div class="counts">${first ? `First due <b>${esc(day(first.askBy))}</b>` : b.open.length ? "No answer date set" : "Nothing open"}${b.done.length ? `, ${b.done.length} answered` : ""}</div>
          <button class="meet" data-meet="${esc(b.key)}" title="Go through this person's questions with them">${st.meeting === b.key ? "End meeting" : "Meet"}</button>`;
     let body = b.shown.map(stripHtml).join("");
@@ -257,7 +257,7 @@ const Asks = (() => {
   document.addEventListener("pointerup", (e) => {
     if (!drag) return;
     const d = drag; drag = null;
-    if (!d.started) { flip(d.id); go(d.id, { quiet: true }); return; }
+    if (!d.started) { flip(d.id); go(d.id, { reset: true, quiet: true }); return; }
     finishDrag(d);
   });
   function startDrag() {
@@ -307,14 +307,17 @@ const Asks = (() => {
     if (act) {
       const id = act.closest(".strip").dataset.id, a = act.dataset.act;
       if (a === "flip") { flip(id); return; }
-      if (a === "open") { go(id, { quiet: true }); return; }
+      if (a === "open") { go(id, { reset: true, quiet: true }); return; }
       if (a === "crit") { if (marks.critical[id]) delete marks.critical[id]; else moveTo(id, CRIT); }
       if (a === "cock") { if (marks.cocked[id]) delete marks.cocked[id]; else marks.cocked[id] = true; }
       if (a === "asked") { if (marks.asked[id]) delete marks.asked[id]; else marks.asked[id] = true; }
       save(); repaint(); return;
     }
     const done = e.target.closest(".strip.resolved");
-    if (done) { flip(done.dataset.id); go(done.dataset.id, { quiet: true }); return; }
+    if (done) { flip(done.dataset.id); go(done.dataset.id, { reset: true, quiet: true }); return; }
+    const person = e.target.closest("[data-person]");
+    if (person) { DetailsPanel.show(PlanDetails.personKey(person.dataset.person), { reset: true }); return; }
+    if (e.target.closest("#asks-wrap") && !e.target.closest(".strip, .bay-head, button, a, input, select, .later, .empty-hint")) { DetailsPanel.clear(); return; }  // empty space: back to the page's summary
     const later = e.target.closest("[data-later]");
     if (later) { const k = later.dataset.later; st.expandedLater.has(k) ? st.expandedLater.delete(k) : st.expandedLater.add(k); repaint(); return; }
     const dn = e.target.closest("[data-done]");
@@ -351,6 +354,24 @@ const Asks = (() => {
     elx.scrollIntoView({ block: "nearest" });
     elx.animate([{ boxShadow: `0 0 0 3px ${Theme.c("focus")}` }, { boxShadow: "0 0 0 0 transparent" }], { duration: 1400 });
   }
+  /* ---------- the Details panel (detailspanel.js) */
+  const jumpToRack = (key) => { const b = $(`.bay[data-bay="${CSS.escape(key)}"]`), w = $("#asks-wrap"); if (b && w) w.scrollLeft = Math.max(0, b.offsetLeft - 24); };
+  function summaryNodes() {
+    const open = D.asks.filter((u) => isOpen(u)), ppl = [...people().values()].map((p) => ({ p, qs: open.filter((u) => u.ask.key === p.key).sort(PlanDetails.byDue) })).filter((x) => x.qs.length)
+      .sort((a, b) => cmp((a.qs[0].askBy || "9999"), (b.qs[0].askBy || "9999")) || b.qs.length - a.qs.length);
+    const first = open.filter((u) => isDate(u.askBy)).sort(PlanDetails.byDue)[0];
+    return [PlanDetails.head("Who to ask", plural(open.length, "open question"), first ? h("span", { class: "pill" }, "First due " + day(first.askBy)) : null),
+      h("div", { class: "p-body" },
+        PlanDetails.sec("The people waiting to be asked", ppl.length || null, ppl.length ? PlanDetails.bullets(ppl.map(({ p, qs }) => [PlanDetails.link(PlanDetails.personKey(p.key), p.name),
+          h("span", { class: "muted" }, " " + plural(qs.length, "question") + (isDate(qs[0].askBy) ? ", first due " + day(qs[0].askBy) : ""))])) : PlanDetails.quiet("No open question is waiting on an answer.")),
+        h("div", { class: "p-note" }, "Pick a question to see what it holds up, or a person for the questions waiting on them."), PlanDetails.aboutSection())];
+  }
+  DetailsPanel.register("asks", {
+    view: "asks", live: () => true, rootLabel: "Who to ask", summary: summaryNodes,
+    owns: PlanDetails.owns, detail: (k) => PlanDetails.detail(k, "asks"), label: PlanDetails.label, open: (k) => PlanDetails.openFor(k, "asks"),
+    waiting: (k) => PlanDetails.waitingTab(k, "asks"), waitingCount: () => PlanDetails.waitingCount("asks"),
+    focus: (k) => { if (k && U(k)) highlight(k); else if (k && PlanDetails.whoOf(k)) jumpToRack(PlanDetails.whoOf(k)); },
+  });
   function here() {
     if (App.view !== "asks" || !App.focus || !UNKNOWN[App.focus]) return null;
     return mapAnchors(App.focus);
