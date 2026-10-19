@@ -11,6 +11,7 @@ Pages read like a senior colleague explaining the plan across a desk. They're sh
 - A period does the work of a formal linking word, and a page opens on its point.
 - An open list ends with what happens next, not a summary.
 - A point the record says is decided is never hedged.
+- We sound sure only about what someone said or a source shows. Anything we know ourselves is written as worth checking, or asked.
 - Warmth comes from being direct, not from jokes.
 - "You" is the person reading the page; a person who uses the system is named by their role.
 
