@@ -195,6 +195,36 @@
     Nav.st.expanded.delete("apps"); Nav.home(); Nav.refresh(); await tick();
   }
 
+  /* A window that is not tall enough never hides what sits under a diagram: the column scrolls (or the diagram shrinks to a
+     floor), and every piece under it exists, has a size, is not hidden, and can be scrolled to and hit at a point inside the window. */
+  const reachable = (el) => {
+    if (!el) return "is not in the page";
+    const cs = getComputedStyle(el);
+    if (cs.display === "none" || cs.visibility === "hidden") return "is hidden";
+    el.scrollIntoView({ block: "end" });
+    const r = el.getBoundingClientRect();
+    if (r.width < 1 || r.height < 1) return "has no size";
+    if (r.bottom > innerHeight + 1 || r.top < -1) return `sits at ${Math.round(r.top)} to ${Math.round(r.bottom)} in a ${innerHeight} px window after scrolling`;
+    const hit = document.elementFromPoint(r.left + r.width / 2, r.top + Math.min(r.height / 2, 20));
+    return hit && el.contains(hit) ? "" : `is covered by ${hit ? hit.tagName + "." + hit.className : "nothing"}`;
+  };
+  async function underTheDiagram(ok) {
+    const bad = [], parts = [[".flow-nodes", "the flow as a list"], ["#caption", "the current step"], ["#transport", "the player bar"]];
+    Nav.open("flows"); await tick();
+    for (const [sel, name] of parts) { const why = reachable($(sel)); if (why) bad.push(`Flows: ${name} ${why}`); }
+    const dia = rect("#main .dia");
+    if (dia.height < 150) bad.push(`Flows: the diagram is squeezed to ${Math.round(dia.height)} px`);
+    $("#main").scrollTop = 0;
+    for (const id of ["apps", "capabilities", "decisions", "unknowns", "releases", "slices"].filter((x) => Nav.SECTIONS[x])) {
+      Nav.open(id); await tick();
+      const last = [...$("#main").children].filter((c) => c.offsetParent !== null && c.getBoundingClientRect().height > 0).pop(), why = last ? reachable(last) : "";
+      if (why && !/covered/.test(why)) bad.push(`${id} (${App.view}): the last thing in the column ${why}`);
+      $("#main").scrollTop = 0;
+    }
+    Nav.home(); await tick();
+    ok(!bad.length, `short window, ${innerWidth}x${innerHeight}: on Flows the list, the step line and the player bar are there and can be scrolled to, and the diagram keeps a usable height`, `short window: ${bad.join(" | ")}`);
+  }
+
   /* Finding 12: a few slices open without search and filter rows, the Key is a ? in the bar, and "Comes after" says
      "the first slice" with the name on hover. */
   async function slicesQuiet(ok) {
@@ -314,7 +344,7 @@
     const only = HASH.get("only") === "qol";
     const report = only ? ["head"] : await base(), lines = [], errors = window.__errors.length;
     const ok = (cond, good, bad) => { lines.push(cond ? "ok " + good : "FAIL " + (bad || good)); if (HASH.has("trace")) console.log("[selftest] " + lines[lines.length - 1]); };
-    try { if (!wide()) await compact(ok); else { await appPanel(ok); await searchRows(ok); await oneNumber(ok); await onceEach(ok); await gear(ok); await sideNames(ok); await slicesQuiet(ok); await overviewAndNames(ok); await waitingOnYou(ok); } await menusOnTop(ok); } catch (e) { lines.push("FAIL the quality-of-life checks threw: " + e.message + " " + (e.stack || "").split("\n")[1]); }
+    try { if (!wide()) await compact(ok); else { await appPanel(ok); await searchRows(ok); await oneNumber(ok); await onceEach(ok); await gear(ok); await sideNames(ok); await slicesQuiet(ok); await overviewAndNames(ok); await waitingOnYou(ok); } await underTheDiagram(ok); await menusOnTop(ok); } catch (e) { lines.push("FAIL the quality-of-life checks threw: " + e.message + " " + (e.stack || "").split("\n")[1]); }
     Nav.home(); go("lights", { reset: true });
     if (window.__errors.length > errors) lines.push("FAIL JS ERRORS in the quality-of-life checks: " + window.__errors.slice(errors).join(" | "));
     const body = report.slice(1).concat(lines), fails = body.filter((l) => l.startsWith("FAIL")).length;

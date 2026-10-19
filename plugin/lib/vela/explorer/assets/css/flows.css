@@ -89,3 +89,6 @@ ul.cap-facts .muted { font-size: 12.5px; }
 .pr-dots button.done { background: var(--ink-3); }
 .pr-dots button.on { background: var(--ink); border-color: var(--ink); transform: scale(1.3); }
 .crosses-line { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+/* A short window scrolls the column instead of clipping it: the diagram keeps a floor and what sits under it stays reachable. */
+#main[data-view="flows"] { overflow-y: auto; }
+#main[data-view="flows"] > .dia { flex: 1 0 340px; }

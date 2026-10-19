@@ -166,3 +166,11 @@ def test_only_a_page_built_for_one_person_carries_a_handle(tmp_path):
     assert "me" not in json.loads(re.search(pattern, shared, re.S).group(1))  # a boolean: the page is large and a failed `in` on it would diff it
     mine = json.loads(re.search(pattern, built("--person", "product-owner"), re.S).group(1))
     assert mine["me"] == {"handle": "product-owner"}
+
+
+@pytest.mark.browser
+@pytest.mark.parametrize("width,height", [(1440, 600), (1440, 700), (1280, 600), (800, 600)])
+def test_everything_under_the_flow_diagram_is_reachable_in_a_short_window(chrome, heron, width, height):
+    """The list, the step line and the player bar exist, show, and scroll into the window when it is not tall; the diagram never takes all the room."""
+    lines = selftest(chrome, heron, width, hash_="s=flows", height=height)
+    need(lines, "short window, ")
