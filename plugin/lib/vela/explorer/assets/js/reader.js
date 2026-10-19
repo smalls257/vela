@@ -51,11 +51,20 @@ const Reader = (() => {
     box.append(text);
     return box;
   }
+  /* Scroll the nearest scroller that can move (the panel's, or the wide page's own column) and nothing above it:
+     scrollIntoView also scrolls every ancestor, so a jump inside the side panel moved the whole page up. */
+  function bring(el) {
+    let box = el.parentElement;
+    while (box && box !== document.body && !(/(auto|scroll)/.test(getComputedStyle(box).overflowY) && box.scrollHeight > box.clientHeight)) box = box.parentElement;
+    if (!box || box === document.body) { el.scrollIntoView({ block: "start", behavior: reducedMotion() ? "auto" : "smooth" }); return; }
+    const top = box.scrollTop + el.getBoundingClientRect().top - box.getBoundingClientRect().top - 8;
+    box.scrollTo({ top: Math.max(0, top), behavior: reducedMotion() ? "auto" : "smooth" });
+  }
   function scrollTo(root, anchor) {
     if (!anchor) return false;
     const el = root.querySelector(`[id="${CSS.escape(anchor)}"]`);
     if (!el) return false;
-    el.scrollIntoView({ block: "start", behavior: reducedMotion() ? "auto" : "smooth" });
+    bring(el);
     el.classList.add("r-here");
     setTimeout(() => el.classList.remove("r-here"), 1800);
     return true;

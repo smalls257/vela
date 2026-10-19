@@ -213,6 +213,18 @@ ol.in-problems b { color: var(--ink); font-weight: 600; }
 .wq b { display: block; font-size: 13.5px; font-weight: 600; color: var(--ink); }
 .wq small { display: block; margin-top: 2px; font-size: 12px; color: var(--ink-3); }
 a.vid.named { font-family: inherit; font-size: inherit; text-decoration: underline dotted; }
+
+/* the Details panel on Flows, the map, Who to ask and Decisions (detailspanel.js, PlanDetails) */
+.dp-ways { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; font-size: 13px; }
+.dp-ways li { padding-left: 9px; border-left: 3px solid var(--rule-3); min-width: 0; overflow-wrap: anywhere; }
+.dp-ways li.err { border-left-color: var(--caution); }
+.dp-ways .pill { margin-left: 6px; }
+.dp-contract + .dp-contract { margin-top: 12px; }
+.dp-open-row { margin-left: 8px; }
+.bay-name { all: unset; cursor: pointer; border-radius: 4px; }
+.bay-name:hover { text-decoration: underline; }
+.bay-name:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+#scrub .tick.held { outline: 2px solid var(--caution); outline-offset: 2px; border-radius: 3px; }
 .d-state { max-width: 100%; }
 /* what a pick lights in the drawing */
 .in-node { transition: opacity .15s; }

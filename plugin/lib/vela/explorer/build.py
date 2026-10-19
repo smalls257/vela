@@ -54,7 +54,7 @@ class ExplorerError(Exception):
 JS_MODULES = ("core", "theme", "fx", "menus", "assets", "icons", "layout", "pan", "geometry", "search", "minimap", "reader", "queue", "panel", "panelsize", "detailspanel", "motion", "view-map",
               "wires", "mapgroups", "releases", "slices", "flowkit", "flowpicker", "branches", "view-flows", "rehearse", "view-asks", "view-decisions", "view-progress",
               "view-trace", "sections", "roles", "onboard", "nav", "markdown", "ask", "inside", "plan", "drafts", "freshness", "main")
-SELFTEST_MODULES = ("selftest", "selftest-branches", "selftest-qol", "selftest-inside", "selftest-onboard")  # 120 KB of checks: bundled only when asked (`vela explore --selftest`), not shipped to every reader
+SELFTEST_MODULES = ("selftest", "selftest-branches", "selftest-qol", "selftest-inside", "selftest-onboard", "selftest-details")  # 120 KB of checks: bundled only when asked (`vela explore --selftest`), not shipped to every reader
 CSS_MODULES = ("base", "menus", "nav", "panel", "compact", "map", "queue", "flows", "rehearse", "asks", "decisions", "pages", "reader", "roles", "onboard",
                "releases", "slices", "branches", "ask", "inside", "plan", "pending", "drafts", "themes", "plain")
 
@@ -640,6 +640,7 @@ def extract(vault, root, today, pins_path=None, designs=None, seed=None, plans=N
     data["designs"] = inside_data.inside(vault, keys, designs or {})
     data["plans"] = plan_data.inside(vault, keys, plans or {}, data["designs"])
     data["insidePanel"] = panel_data.panels(vault, data)
+    data["contractAnswers"] = panel_data.contract_answers(vault)
     data["themes"] = [{"id": i, "label": label, "say": say} for i, label, say in THEMES]
     data["theme"] = THEME_IDS[0]
     data["onboard"] = onboard_data.extract(data, root, onboard_mine, onboard_me)

@@ -120,5 +120,9 @@ const Branches = (() => {
       f.expression || trace ? h("details", { class: "br-details" }, h("summary", {}, "Details"), f.expression ? h("p", { class: "br-expr" }, f.expression) : null, trace) : null);
   }
 
-  return { picker, summary, findings, flowFor, hashPart, current, data, words };
+  /* A branch picked from the panel rather than the Show menu. */
+  function choose(key, id) { chosen[key] = id; keepInHash(key); }
+  const say = (key) => { const d = data(key); return d && d.state === "drawn" ? countLine(d) : d ? d.note : null; };
+
+  return { choose, say, picker, summary, findings, flowFor, hashPart, current, data, words };
 })();

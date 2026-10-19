@@ -32,7 +32,9 @@
    and it calls DetailsPanel.show(key) to pick (reset: true starts a new trail), .clear() for empty space, and
    .link(key, text) for an inline link that pushes onto the trail.
 
-   Used by: Inside this app (inside.js). Flows, the Apps map, What's waiting and Decisions can register the same way. */
+   Used by: Inside this app (inside.js), Flows, the Apps map, Who to ask and Decisions (their view-*.js files). The
+   things those four pages share (a contract, a question, a person, an outside service, an app, the What's waiting
+   tab, what a pick holds up, and which thing has an Open) are in PlanDetails below, so they are written once. */
 const DetailsPanel = (() => {
   const pages = {};
   const st = { tab: "details", seen: "" };
@@ -97,7 +99,8 @@ const DetailsPanel = (() => {
     if (!o) return nodes;
     const btn = h("button", { class: "btn dp-open", type: "button", title: o.title || null, onclick: () => o.run() }, o.label || "Open");
     const header = nodes.find((n) => n && n.classList && n.classList.contains("p-head"));
-    if (header) header.append(h("div", { class: "p-actions" }, btn)); else nodes.unshift(btn);
+    const actions = header && header.querySelector(".p-actions");  // a header that has buttons already keeps them, Open first
+    if (actions) actions.prepend(btn); else if (header) header.append(h("div", { class: "p-actions" }, btn)); else nodes.unshift(btn);
     return nodes;
   }
 
@@ -123,4 +126,211 @@ const DetailsPanel = (() => {
   });
 
   return { register, active, current, render, show, back, clear, trailTo, setTab, link, refresh, reset, get tab() { return st.tab; } };
+})();
+
+/* What Flows, the Apps map, Who to ask and Decisions say about the same few things, written once.
+
+   The Violation this exists to prevent is a Distributed Monolith of wording: four pages each describing "a contract"
+   or "a question" in their own copy, so a fix to one (say, listing every way a contract can answer) misses three.
+   A Leaky Narrative is the other risk: a contract shown as CON-004 sends the reader to the vault. Every name here is
+   a title or a person's name; an ID only travels as a key, never as text.
+
+   Each builder answers one key and says "Not recorded" where the plan is silent; nothing is made up to fill a section. */
+const PlanDetails = (() => {
+  const NEEDS = ["warning", "caution"];
+  const sec = (title, n, ...kids) => Panel.section(title, n, ...kids);
+  const quiet = (text) => Panel.empty(text);
+  const link = (key, text) => DetailsPanel.link(key, text || titleOf(key));
+  const joined = (nodes) => nodes.flatMap((n, i) => (i ? [", ", n] : [n]));
+  const head = (kind, title, ...meta) => { const m = meta.filter(Boolean); return h("div", { class: "p-head" }, h("div", { class: "kind" }, kind), h("h2", {}, title), m.length ? h("div", { class: "p-meta" }, ...m) : null); };
+  const bullets = (rows) => h("ul", { class: "mini-list" }, rows.map((r) => h("li", {}, ...[].concat(r))));
+  /* A prose block that may be taller than its room folds with Show more, so no sentence just stops. */
+  const prose = (content, isHtml) => { const t = h("div", { class: "prose-text", ...(isHtml ? { html: content } : {}) }, isHtml ? null : content); return foldProse(h("div", { class: "prose" }, t), t); };
+  /* The section's own page, beside the page's visual, under the page's summary; its header carries the one Read full page. */
+  function aboutSection() {
+    const pk = typeof Nav !== "undefined" ? Nav.pageBeside() : "";
+    if (!pk || !D.reader[pk]) return null;
+    return h("section", { class: "p-sec dp-about" }, h("h3", {}, "About this section"), ...Panel.keyNodes("read:" + pk));
+  }
+  /* A flow in a list: its name (details), its Open, and Present from the first step that touches `key`. */
+  function flowRow(flow, key, view) {
+    const at = firstStepTouching(FLOW[flow], key);
+    return h("div", { class: "flow-chip" }, ...openRow(flow, view), " ",
+      h("button", { class: "btn primary present-btn tiny", type: "button", title: "Present this flow full screen", onclick: () => Flows.present(flow, at) }, at > 0 ? `▶ Present from step ${FLOW[flow].steps[at].n}` : "▶ Present"));
+  }
+  const readLink = (key) => { const pk = typeof Reader !== "undefined" ? Reader.keyFor(key) : ""; return pk ? h("div", { class: "p-note" }, link("read:" + pk, `Read ${titleOf(key)}'s page`)) : null; };
+
+  /* ---- keys the shared builders own */
+  const stepKey = (flow, i) => `flowstep:${encodeURIComponent(flow)}|${i}`;
+  const isStep = (k) => k.startsWith("flowstep:");
+  const parseStep = (k) => { const [f, i] = k.slice(9).split("|"); return { flow: decodeURIComponent(f), i: +i }; };
+  const personKey = (who) => "person:" + who;
+  const whoOf = (k) => (k.startsWith("person:") ? k.slice(7) : k.startsWith("owner:") ? k.slice(6) : "");
+  const askedOf = (who) => D.asks.filter((u) => u.ask.key === who || (u.ask.owner || "") === who);
+  const personLabel = (who) => { const u = askedOf(who)[0]; return u ? u.ask.name : personName(who); };
+  const isQuestion = (k) => !!(UNKNOWN[k] && ASK[k]);
+  const kindOf = (k) => (ent(k) || {}).kind;
+  const isOutside = (k) => ["party", "external"].includes(kindOf(k));
+  const owns = (k) => isStep(k) || !!whoOf(k) || !!CONTRACT[k] || isQuestion(k) || isOutside(k) || !!APPS[k];
+  const label = (k) => {
+    if (whoOf(k)) return personLabel(whoOf(k));
+    if (isStep(k)) { const p = parseStep(k), s = FlowKit.flowOf(p.flow).steps[p.i]; return s ? `Step ${s.n}: ${s.short}` : "A step"; }
+    return titleOf(k);
+  };
+
+  /* ---- what a pick holds up, for the page to light: the apps, contracts and flows on its drawing */
+  function held(key) {
+    const out = { apps: new Set(), contracts: new Set(), flows: new Set() };
+    const add = (k) => {
+      if (CONTRACT[k]) { out.contracts.add(k); [CONTRACT[k].provider, ...CONTRACT[k].consumers].forEach((x) => out.apps.add(x)); }
+      else if (NODE[k]) out.apps.add(k);
+      else if (FLOW[k]) { out.flows.add(k); flowStations(FLOW[k]).forEach((x) => out.apps.add(x)); }
+    };
+    if (!key) return out;
+    if (isQuestion(key)) {
+      const u = UNKNOWN[key];
+      [...u.blocks, ...u.holds].forEach(add);
+      for (const [app, a] of Object.entries(D.apps)) if (a.questions.some((q) => q.id === key)) out.apps.add(app);
+    } else if (whoOf(key)) askedOf(whoOf(key)).forEach((u) => held(u.id).apps.forEach((x) => out.apps.add(x)));
+    else add(key);
+    return out;
+  }
+
+  /* ---- which thing has a view of its own, and where the Open button goes. Null means this page is that view. */
+  function openFor(key, view) {
+    if (APPS[key] && typeof Inside !== "undefined") return { label: "Open", title: `Go inside ${titleOf(key)}`, run: () => Inside.open(key, "context", {}) };
+    const jump = (title, to) => ({ label: "Open", title, run: () => go(to || key, { reset: true, reveal: true }) });
+    if (FLOW[key]) return view === "flows" ? null : jump("Play it on the Flows view");
+    if (CONTRACT[key]) {
+      if (view !== "map") return jump("Show it on the map");
+      const flow = flowsFor(key).find((r) => FLOW[r.flow]);
+      return flow ? jump(`Play ${titleOf(flow.flow)}, a flow that uses it`, flow.flow) : null;
+    }
+    if (isQuestion(key)) return view === "asks" ? null : jump("See it in Who to ask");
+    if (whoOf(key)) return view === "asks" || typeof Asks === "undefined" ? null : { label: "Open", title: "Go to their place on Who to ask", run: () => Asks.meet(whoOf(key)) };
+    if (kindOf(key) === "decision") return view === "decisions" ? null : jump("See it in the decision log");
+    return null;
+  }
+  /* A link that shows details, and beside it the Open that jumps, for a list of things each with a view of its own. */
+  function openRow(key, view, text) {
+    const o = openFor(key, view);
+    return [link(key, text), o ? h("button", { class: "btn tiny dp-open-row", type: "button", title: o.title || null, "aria-label": `${o.label} ${text || titleOf(key)}`, onclick: () => o.run() }, o.label) : null];
+  }
+
+  /* ---- an app: the panel's own account of it (In these flows and Talks to lead), with the Open in its header */
+  function appNodes(key) {
+    const nodes = Panel.keyNodes(key);
+    for (const n of nodes) if (n.classList && n.classList.contains("p-head")) {
+      const actions = n.querySelector(".p-actions");
+      if (actions) { actions.querySelectorAll(".inside-btn").forEach((b) => b.remove()); if (!actions.children.length) actions.remove(); }
+    }
+    return nodes;
+  }
+
+  /* ---- a contract: who provides it and calls it, every way it can answer, what it carries, what waits on it */
+  function contractNodes(key, view) {
+    const c = CONTRACT[key], ways = (D.contractAnswers || {})[key] || [], blocked = D.blockedBy[key] || [];
+    const flows = flowsFor(key).filter((r) => FLOW[r.flow]);
+    const level = levelOf(key);
+    const answers = ways.length ? h("ul", { class: "dp-ways" }, ways.map((w) => h("li", { class: w.error ? "err" : "" },
+      h("b", {}, w.case), w.error ? h("span", { class: "pill" }, "error") : null, h("div", { class: "ml-sub" }, [w.when ? `When ${w.when}. ` : "", w.says || ""].join("")))))
+      : quiet("Not recorded: the contract has no table of how it can answer yet.");
+    return [head("Contract", c.title, h("span", { class: "pill" }, `${titleOf(c.provider)} → ${c.consumers.map(titleOf).join(", ") || "no one recorded"}`),
+      level !== "dark" ? levelPill(level) : null, statePill(c.state)),
+    h("div", { class: "p-body" },
+      sec("Who provides it, who calls it", null, bullets([[h("b", {}, "Provided by: "), link(c.provider)],
+        [h("b", {}, "Called by: "), ...(c.consumers.length ? joined(c.consumers.map((k) => link(k))) : ["Not recorded"])]])),
+      sec("Ways it can answer", ways.length || null, answers),
+      sec("What it carries", null, c.crosses ? h("div", { class: "crosses", html: c.crosses }) : quiet("Not recorded: nothing says yet what data this contract carries.")),
+      sec("What's waiting on it", blocked.length || null, blocked.length ? bullets(blocked.map((id) => [lampEl(unknownLevel(id)), " ", link(id)])) : quiet("Nothing is waiting on it.")),
+      sec("Flows that use it", flows.length || null, flows.length ? flows.map((r) => flowRow(r.flow, key, view)) : quiet("No flow uses it yet.")),
+      readLink(key))];
+  }
+
+  /* ---- an outside service: no status of its own, so what it provides and where it appears */
+  function outsideNodes(key, view) {
+    const provided = D.map.contracts.filter((c) => c.provider === key), flows = flowsFor(key).filter((r) => FLOW[r.flow]);
+    const said = EXTERNAL[key] && EXTERNAL[key].said !== EXTERNAL[key].title ? EXTERNAL[key].said : "";
+    return [head("Outside service", titleOf(key)),
+      h("div", { class: "p-body" },
+        said ? sec("As the contract words it", null, prose(said)) : null,
+        sec("Contracts it provides", provided.length || null, provided.length ? bullets(provided.map((c) => openRow(c.id, view, c.title))) : quiet("It doesn't provide any contract.")),
+        sec("Flows it appears in", flows.length || null, flows.length ? flows.map((r) => flowRow(r.flow, key, view)) : quiet("No flow names it yet.")),
+        h("div", { class: "p-note" }, "An outside service has no status of its own. Check the contracts that connect to it."),
+        readLink(key))];
+  }
+
+  /* ---- a question: what is asked, who answers and by when, and what it holds up */
+  function questionNodes(key, view) {
+    const u = UNKNOWN[key], a = ASK[key], open = isOpen(u), title = titleOf(key), flows = flowsFor(key).filter((r) => FLOW[r.flow]);
+    const knock = u.holds.length - u.blocks.length;
+    return [head(open ? "Open question" : "Answered question", title, open ? levelPill(a.light.level, dueText(u.askBy)) : h("span", { class: "pill" }, "Answered")),
+      h("div", { class: "p-body" },
+        a.question && a.question !== title ? h("div", { class: "big-q" }, a.question) : null,
+        sec("Who to ask", null, h("div", {}, link(personKey(a.ask.key), a.ask.name), " ", h("span", { class: a.ask.inferred ? "heuristic" : "muted" }, a.ask.rule.startsWith(a.ask.name) ? a.ask.rule.slice(a.ask.name.length).replace(/^[,:\s]+/, "") : a.ask.rule)),
+          h("div", { class: "ml-sub" }, "Owner: " + (u.owner ? peopleWords(u.owner) : "Not recorded"))),
+        open ? sec("Answer needed by", null, h("div", {}, isDate(u.askBy) ? `${day(u.askBy)}, ${dueText(u.askBy)}` : dueText(u.askByText), u.opened ? h("span", { class: "muted" }, ` · opened ${day(u.opened)}`) : null)) : null,
+        sec("It holds up", u.blocks.length || null, u.blocks.length ? [bullets(u.blocks.map((k) => openRow(k, view))), knock > 0 ? h("div", { class: "ml-sub" }, `Through these it holds up ${plural(knock, "more thing")}.`) : null]
+          : quiet(`Not recorded: it doesn't say what it holds up${u.blocksText ? `; the question itself says it blocks "${u.blocksText}"` : ""}.`)),
+        flows.length ? sec("Flows it touches", flows.length, flows.map((r) => flowRow(r.flow, key, view))) : null,
+        a.outcome ? sec("Answer", null, prose(a.outcome)) : null,
+        readLink(key))];
+  }
+
+  /* ---- a person: the questions waiting on them, each opening its own details */
+  function questionRow(id) {
+    const holds = (UNKNOWN[id] || { blocks: [] }).blocks;
+    return h("button", { class: "wq", type: "button", "data-oq": id, onclick: () => DetailsPanel.show(id, { reset: true }) },
+      h("b", {}, lampEl(unknownLevel(id)), " ", titleOf(id)), h("small", {}, holds.length ? "Holds up " + holds.map(titleOf).join(", ") : "Doesn't say what it holds up"));
+  }
+  const byDue = (a, b) => cmp(a.askBy || "9999", b.askBy || "9999") || cmp(a.id, b.id);
+  function personNodes(key, view) {
+    const who = whoOf(key), all = askedOf(who), open = all.filter(isOpen).sort(byDue), done = all.filter((u) => !isOpen(u));
+    const first = open.find((u) => isDate(u.askBy));
+    return [head("Who to ask", personLabel(who), h("span", { class: "pill" }, plural(open.length, "open question")), first ? h("span", { class: "pill" }, `First due ${day(first.askBy)}`) : null),
+      h("div", { class: "p-body" },
+        sec("Their open questions", open.length || null, open.length ? open.map((u) => questionRow(u.id)) : quiet("Nothing is waiting on them.")),
+        done.length ? sec("Answered", done.length, bullets(done.map((u) => link(u.id)))) : null)];
+  }
+
+  /* ---- the What's waiting tab: what holds up the pick first, then the rest. "queue" is the one count every page gives
+     (Queue.needsYou, E60); "asks" is Who to ask's own board, which lists every open question. */
+  function relatedQuestions(key) {
+    if (!key) return [];
+    if (isStep(key)) {
+      const p = parseStep(key), s = FlowKit.flowOf(p.flow).steps[p.i];
+      return s ? [...new Set([...s.unknowns.map((x) => x.id), ...s.contracts.flatMap((c) => D.blockedBy[c] || [])])] : [];
+    }
+    if (isQuestion(key)) return [key];
+    if (whoOf(key)) return askedOf(whoOf(key)).filter(isOpen).map((u) => u.id);
+    const ids = [...(D.blockedBy[key] || [])];
+    if (D.apps[key]) ids.push(...D.apps[key].questions.map((q) => q.id));
+    if (FLOW[key]) ids.push(...FLOW[key].unknowns, ...FLOW[key].steps.flatMap((s) => s.unknowns.map((x) => x.id)));
+    return [...new Set(ids)];
+  }
+  const queueIds = () => Queue.items().filter((x) => NEEDS.includes(x.level)).map((x) => x.id);
+  const openIds = () => D.asks.filter(isOpen).sort((a, b) => rank(b.light.level) - rank(a.light.level) || b.light.urgency - a.light.urgency || cmp(a.id, b.id)).map((u) => u.id);
+  const lit = () => Queue.otherLit().filter((x) => NEEDS.includes(x.light.level));
+  const waitingCount = (scope) => (scope === "asks" ? D.counts.openQuestions : Queue.needsYou().n);
+  function waitingTab(key, scope) {
+    const ids = scope === "asks" ? openIds() : queueIds(), things = scope === "asks" ? [] : lit();
+    if (!ids.length && !things.length) return [quiet(scope === "asks" ? "No open question is waiting on an answer." : "Nothing is waiting.")];
+    const mine = relatedQuestions(key).filter((id) => ids.includes(id)), rest = ids.filter((id) => !mine.includes(id));
+    const thingRow = (x) => h("button", { class: "wq", type: "button", "data-thing": x.key, onclick: () => DetailsPanel.show(x.key, { reset: true }) },
+      h("b", {}, lampEl(x.light.level), " ", titleOf(x.key)), h("small", {}, (x.light.reasons.find((r) => r.text) || {}).text || LIGHT[x.light.level].say));
+    return [mine.length ? h("div", { class: "gl" }, `Holding up ${label(key)}`) : null, ...mine.map(questionRow),
+      (mine.length && rest.length) ? h("div", { class: "gl" }, "Others") : (rest.length ? h("div", { class: "gl" }, "Open questions") : null), ...rest.map(questionRow),
+      things.length ? h("div", { class: "gl" }, "Not decided yet") : null, ...things.map(thingRow)].filter(Boolean);
+  }
+
+  /* Detail for any key this file owns; a page calls it from its own detail(). */
+  function detail(key, view) {
+    if (whoOf(key)) return personNodes(key, view);
+    if (CONTRACT[key]) return contractNodes(key, view);
+    if (isQuestion(key)) return questionNodes(key, view);
+    if (isOutside(key)) return outsideNodes(key, view);
+    return appNodes(key);
+  }
+
+  return { prose, aboutSection, owns, detail, label, held, openFor, openRow, waitingTab, waitingCount, relatedQuestions, questionRow, stepKey, parseStep, isStep, personKey, whoOf, askedOf, head, sec, bullets, quiet, link, joined, readLink, isQuestion, NEEDS, byDue };
 })();

@@ -99,6 +99,7 @@ const MapView = (() => {
     const col = queued ? h("div", { class: "home-map" }) : main;
     if (App.section === "capabilities" && !hasCapabilities()) col.append(emptyState("No requirements tied to a capability yet,", "so there's nothing to group by.", "/vela:requirements", "inline"));
     const board = h("div", { class: "board board-" + (lens() === "cockpit" && mode !== "cockpit" ? "cockpit board-" + mode : lens()), id: "board" });
+    wireEmptySpace(board);
     // The matrix's key sits beside (or, in a narrow window, under) the scrolling board and not inside it, so nothing
     // after the table adds scroll room and pushes the frozen head and row names out with the table's edge.
     const stage = lens() === "matrix" ? h("div", { class: "matrix-stage" }, board) : null;
@@ -747,9 +748,12 @@ const MapView = (() => {
     const board = $("#board"); if (!board) return;
     const anchors = new Set(key ? mapAnchors(key) : []);
     if (key && CONTRACT[key]) { anchors.add(CONTRACT[key].provider); CONTRACT[key].consumers.forEach((k) => anchors.add(k)); }
+    // a question or a person holds up what its Blocks lines name: those apps, and the contracts between them, light too
+    const holds = key && (UNKNOWN[key] || PlanDetails.whoOf(key)) ? PlanDetails.held(key) : null;
+    if (holds) { holds.apps.forEach((k) => anchors.add(k)); holds.contracts.forEach((k) => anchors.add(k)); }
     $$("g.hit, g.station", board).forEach((g) => g.classList.toggle("picked", anchors.has(g.dataset.key) || g.dataset.key === key));
     if (lens() === "cockpit" && LAY) {
-      const cors = new Set(Object.values(LAY.corridors).filter((c) => (key && c.contracts.includes(key)) || (anchors.size > 1 && anchors.has(c.a) && anchors.has(c.b) && FLOW[key])).map((c) => c.key));
+      const cors = new Set(Object.values(LAY.corridors).filter((c) => (key && c.contracts.includes(key)) || (holds && c.contracts.some((x) => holds.contracts.has(x))) || (anchors.size > 1 && anchors.has(c.a) && anchors.has(c.b) && FLOW[key])).map((c) => c.key));
       $$("path.duct", board).forEach((p) => p.classList.toggle("picked", cors.has(p.dataset.corridor)));
     }
     if (lens() === "matrix" && key) { const cur = $(".grid-wrap"); if (cur) { const w = $("#board"), top = w.scrollTop, left = w.scrollLeft; rerender(); Object.assign($("#board"), { scrollTop: top, scrollLeft: left }); } }
@@ -758,6 +762,25 @@ const MapView = (() => {
     const focusBtn = $("#focus-btn"), fresh = focusButton();
     if (focusBtn && fresh) focusBtn.replaceWith(fresh);  // "Show <the app you picked> and its neighbors"
   }
+  /* Empty space on the map goes back to the page's summary, as in a design; a drag that panned the map does not. */
+  function wireEmptySpace(board) {
+    let down = null;
+    board.addEventListener("pointerdown", (ev) => { down = { x: ev.clientX, y: ev.clientY }; });
+    board.addEventListener("click", (ev) => {
+      if (ev.target.closest("[data-node], button, a, summary, input, select, .dmenu, .legend, td, th")) return;
+      if (down && Math.hypot(ev.clientX - down.x, ev.clientY - down.y) > 4) return;
+      DetailsPanel.clear();
+    });
+  }
+  DetailsPanel.register("map", {
+    view: "map", live: () => D.nodes.length > 0,
+    rootLabel: () => (App.section === "home" ? "What's waiting" : "The map"),
+    summary: () => {
+      return [...Panel.homeNodes({ queue: false }), PlanDetails.aboutSection()].filter(Boolean);
+    },
+    owns: PlanDetails.owns, detail: (k) => PlanDetails.detail(k, "map"), label: PlanDetails.label, open: (k) => PlanDetails.openFor(k, "map"),
+    waiting: (k) => PlanDetails.waitingTab(k, "queue"), waitingCount: () => PlanDetails.waitingCount("queue"), focus: (k) => highlight(k || ""),
+  });
   const mode = () => (lens() === "cockpit" ? (st.focus ? "focus" : group() === "none" ? "cockpit" : group()) : lens());
   function here() { return App.focus ? mapAnchors(App.focus) : []; }
   return { LOOKS: { cockpit: COCKPIT_LOOKS, focus: () => ({ ...COCKPIT_LOOKS(), ...MapGroups.LOOKS_FOCUS }) }, render, highlight, here, lens, group, viewItems, st, lamp, fitSvg, shortWhy, startBreathing: () => breathe.start(), big, COCKPIT, markDrop, clearDrop, justDropped, resetPulses: () => { pulses = []; }, CLUSTER_PAST };

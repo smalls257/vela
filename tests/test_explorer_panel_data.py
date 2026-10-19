@@ -158,3 +158,28 @@ def test_a_depends_on_naming_an_outside_system_with_and_in_its_name_stays_one_sy
     gate = next(c for c in design["components"] if c["name"] == "ConsentGate")
     assert gate["depends_on_other"] == ["Consent and identity over CON-003"], "'Consent and identity' is one system, not 'Consent' and 'identity'"
     assert not [p for p in design["problems"] if "'Consent'" in p["message"] or "'identity" in p["message"]]
+
+
+BOOKING = REPO / "examples" / "unified-booking"
+
+
+def test_a_contract_lists_every_way_it_can_answer_and_which_are_errors():
+    """Paper Tiger guard: the Details of a contract on Flows says what a caller must handle, not only the success."""
+    vault = cli.load_vault(BOOKING)
+    hold = panel_data.contract_answers(vault)["CON-001"]
+    assert [a["case"] for a in hold][:3] == ["Held", "Confirming", "Refused ledger unavailable"]
+    assert [a["error"] for a in hold] == [False, False, True, True, True], "an error status is marked, a success is not"
+    assert all(a["says"] for a in hold), "each answer says what it does, in words"
+
+
+def test_a_contract_with_no_case_table_has_no_entry_rather_than_a_made_up_one():
+    """Silent Fallback guard: a vault whose contracts have no case table must not get a tidy default answer list."""
+    _, data = extract(HERON)
+    assert data["contractAnswers"] == {}, "the page says Not recorded; it never fills in 'success' and 'failure'"
+
+
+def test_the_answers_travel_in_the_page_data_under_the_contract_id():
+    vault = cli.load_vault(BOOKING)
+    data = build.extract(vault, BOOKING, "2026-11-20", None, {}, None, None)
+    assert set(data["contractAnswers"]) <= {c["id"] for c in data["map"]["contracts"]}
+    assert "CON-001" in data["contractAnswers"]

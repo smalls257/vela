@@ -65,9 +65,9 @@ const SelfTest = (() => {
     const path = [app.key];
     const click = (k) => { const a = $(`#panel [data-ref="${CSS.escape(k)}"]`); if (a) { a.click(); path.push(k); return true; } return false; };
     click(q); if (owner) click(owner);
-    const crumbs = $$("#panel .crumbs a, #panel .crumbs .cur").length;
+    const crumbs = $$("#panel .crumbs a, #panel .crumbs button, #panel .crumbs .cur").length;
     ok(path.length >= 2 && crumbs === path.length + 1, `thread ${path.join(" › ")}: crumbs ${crumbs} (Lights + ${path.length}), panel "${($("#panel h2") || {}).textContent}"`, `thread broke at ${path.join(" › ")}; crumbs ${crumbs}`);
-    $("#panel .crumbs a").click(); await frames();
+    $("#panel .crumbs a, #panel .crumbs button").click(); await frames();
     ok(($("#panel h2") || {}).textContent === "What's waiting", "the Lights crumb returns the panel to its home, the lights", "the Lights crumb did not return home");
   }
   async function views() {
