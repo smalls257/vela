@@ -271,6 +271,19 @@ const Nav = (() => {
     const n = count(s), open = s.id === "unknowns";
     return h("span", { class: "side-n", title: open ? `${plural(n, "open question")} in all; ${Queue.needsYou().n} of the plan's things need you` : `${s.label}: ${n}`, ...(open ? { "aria-label": `${plural(n, "open question")} in all` } : {}), ...(open ? { "data-quantity": "openQuestions", "data-n": n } : {}) }, n);
   }
+  /* Flow names often start alike ("A person switches Heron on", "A person gets the 7:30 digest"), and a narrow bar cuts every one
+     to the same stub. The two words most of them share are left off in the bar (the hover keeps the whole name). */
+  const READ = ["constraints", "context", "strategy", "glossary"];  // pages that are mostly words: one folded heading, not four rows between the diagrams
+  function sharedLead(titles) {
+    const lead = (t) => t.split(/\s+/).slice(0, 2).join(" "), tally = {};
+    for (const t of titles) tally[lead(t)] = (tally[lead(t)] || 0) + 1;
+    const [best, n] = Object.entries(tally).sort((a, b) => b[1] - a[1])[0] || ["", 0];
+    return titles.length >= 3 && n >= 3 && n * 2 > titles.length ? best + " " : "";
+  }
+  function kidLabel(s, k) {
+    const title = E[k].title, lead = s.id === "flows" ? sharedLead(s.children.map((x) => E[x].title)) : "";
+    return lead && title.startsWith(lead) && title.length > lead.length ? title.slice(lead.length) : title;
+  }
   function item(s) {
     const here = App.section === s.id, has = s.children.length > 0, openList = st.expanded.has(s.id);
     const lv = sectionLamp(s), missing = !s.page && !(s.id === "slices" && D.slicePlan.list.length);  // slices have no index page: each slice is one
@@ -283,9 +296,18 @@ const Nav = (() => {
       const lvk = levelOf(k), cur = here && st.child === k;
       return h("button", { class: "side-kid" + (cur ? " on" : ""), "data-section": s.id, "data-child": k, "aria-current": cur ? "page" : null, onclick: () => open(s.id, k), title: E[k].title },
         s.id === "apps" && NODE[k] ? Icons.forKey(k, "side-glyph") : null,
-        h("span", { class: "side-label" }, s.id === "capabilities" || s.id === "epics" || s.id === "decisions" ? [E[k].title, idTag(E[k].id)] : E[k].title), lvk !== "dark" && D.lights[k] ? lampEl(lvk) : null);
+        h("span", { class: "side-label" }, s.id === "capabilities" || s.id === "epics" || s.id === "decisions" ? [E[k].title, idTag(E[k].id)] : kidLabel(s, k)), lvk !== "dark" && D.lights[k] ? lampEl(lvk) : null);
     }).flatMap((kid) => (s.id === "apps" && here && st.child === kid.dataset.child && typeof Inside !== "undefined" ? [kid, Inside.sideEntry(kid.dataset.child)] : [kid]))));
     return out;
+  }
+  /* "Read": the text-first pages under one heading that stays folded until it is opened, or until one of them is the page. */
+  function readGroup(reads) {
+    const inside = reads.some((s) => s.id === App.section), open = st.expanded.has("read") || inside;
+    const toggle = () => { st.expanded.has("read") ? st.expanded.delete("read") : st.expanded.add("read"); write(OPEN_KEY, [...st.expanded]); refresh(); };
+    return [h("div", { class: "side-row side-read-row" + (inside ? " in" : "") },
+        h("button", { class: "side-caret", "aria-expanded": String(open), "aria-controls": "side-read", "aria-label": `${open ? "Hide" : "Show"} the pages to read`, onclick: toggle }, open ? "▾" : "▸"),
+        h("button", { class: "side-link", "data-group": "read", title: "Pages that are mostly words: " + reads.map((s) => s.label).join(", "), onclick: toggle }, h("span", { class: "side-label" }, "Read"))),
+      h("div", { class: "side-kids side-read", id: "side-read", hidden: !open }, reads.flatMap((s) => item(s)))];
   }
   function refresh() {
     const side = $("#side");
@@ -301,7 +323,9 @@ const Nav = (() => {
       h("div", { class: "side-roles", role: "tablist", "aria-label": "Views by role" }, Roles.ROLES.slice(1).map(([id, label, say]) =>
         h("button", { role: "tab", "aria-selected": String(App.section === "role:" + id), title: say, onclick: () => role(id) }, label)))));
     const vault = h("div", { class: "side-group" }, h("div", { class: "side-h" }, "Plan pages"));
-    for (const s of D.sections) vault.append(...item(s));
+    const reads = D.sections.filter((s) => READ.includes(s.id));
+    for (const s of D.sections) if (!READ.includes(s.id)) vault.append(...item(s));
+    if (reads.length) vault.append(...readGroup(reads));
     side.append(vault);
     side.append(h("div", { class: "side-foot" }, h("span", { class: "muted", title: D.initiative ? `Initiative ${D.initiative}` : null }, `Search all ${plural(Object.keys(D.reader).length, "page")} with /`)));
   }

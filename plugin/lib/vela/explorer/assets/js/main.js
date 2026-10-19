@@ -37,6 +37,9 @@ function renderMasters() {
       h("b", { "data-quantity": QUANTITY[lv], "data-n": n }, n), h("span", {}, word)));
   }
 }
+/* The things set once and left: the theme, in one gear at the far right (the sound button and the Animation switch are gone). */
+$("#settings").append(Menus.menu({ id: "settings", kind: "icon", glyph: "gear", label: "Settings: theme", align: "right",
+  items: () => [{ heading: "Theme" }, ...Theme.LIST.map((t) => ({ id: t.id, label: t.label, say: t.say, checked: Theme.id === t.id, run: () => Theme.set(t.id) }))] }));
 renderMasters();
 Drafts.badges();
 Freshness.start();

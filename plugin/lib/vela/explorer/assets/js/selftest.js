@@ -170,7 +170,8 @@ const SelfTest = (() => {
     const order = ["goals", "constraints", "context", "strategy", "capabilities", "releases", "slices", "apps", "flows", "concerns", "decisions", "unknowns", "glossary", "epics"];
     Nav.refresh();
     const shown = [...new Set($$("#side .side-link").map((b) => b.dataset.section))];
-    ok(JSON.stringify(shown) === JSON.stringify(order), `sidebar: ${shown.length} sections in the vault's order, with What needs you and ${Roles.ROLES.length - 1} front doors above`, `sidebar order ${shown.join(",")}`);
+    const sideOrder = [...order.filter((id) => !["constraints", "context", "strategy", "glossary"].includes(id)), "constraints", "context", "strategy", "glossary"];  // the text-first pages sit last, under Read
+    ok(JSON.stringify(shown.filter((x) => x)) === JSON.stringify(sideOrder), `sidebar: ${shown.length} sections in the vault's order, the text pages folded under Read, with What needs you and ${Roles.ROLES.length - 1} front doors above`, `sidebar order ${shown.join(",")}`);
     const kids = $$("#side .side-kid[data-section=apps]").length, flowKids = $$("#side .side-kid[data-section=flows]").length;
     ok((kids === D.map.apps.length || !Nav.st.expanded.has("apps")) && (flowKids === D.flows.length || !Nav.st.expanded.has("flows")), `sidebar lists each app (${kids}) and each flow (${flowKids})`, `sidebar lists ${kids} apps of ${D.map.apps.length}, ${flowKids} flows of ${D.flows.length}`);
     const bad = [], seen = [];

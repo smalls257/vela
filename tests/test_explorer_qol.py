@@ -101,3 +101,17 @@ def test_buttons_appear_once_and_the_percent_is_gone(chrome, heron):
     """Findings 8, 9 and 14: one Read full page, the doors only in the sidebar, no done-sounding percent, one timeline."""
     lines = selftest(chrome, heron, 1440)
     need(lines, "one Read full page:", "role doors:", "no percent that reads as done")
+
+
+@pytest.mark.browser
+def test_theme_is_one_gear_at_the_far_right(chrome, heron):
+    """Finding 10: the Theme select and the Animation switch leave the top bar for one gear menu."""
+    lines = selftest(chrome, heron, 1440)
+    need(lines, "top bar: one gear at the far right", "gear: opens", "gear: choosing")
+
+
+@pytest.mark.browser
+def test_left_menu_names_and_a_folded_read_group(chrome, heron):
+    """Finding 11: flow names drop what they share; the text-first pages fold under Read."""
+    lines = selftest(chrome, heron, 1440)
+    need(lines, "menu: ", "menu: Constraints, Context, Strategy and Glossary sit under one Read heading", "menu: Read opens", "menu: Read stays open")

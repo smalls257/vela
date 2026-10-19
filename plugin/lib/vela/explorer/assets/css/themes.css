@@ -108,7 +108,3 @@
 :root[data-theme="vaporwave"] #side { background: linear-gradient(180deg, var(--room-2), #2a0f44); }
 
 /* ------------------------------------------------ the picker, beside Effects */
-.theme-pick { display: inline-flex; align-items: center; gap: 2px; background: var(--room); border: 1px solid var(--rule-3); border-radius: 999px; padding: 2px 4px 2px 2px; flex: none; }
-.theme-pick select { border: 0; background: transparent; color: var(--ink); font-size: 12.5px; padding: 3px 4px; border-radius: 999px; cursor: pointer; }
-.theme-pick select option { background: var(--deck); color: var(--ink); }
-@media (max-width: 1180px) { .theme-pick .fx-label { display: none; } }

@@ -146,6 +146,42 @@
     Nav.home(); await tick();
   }
 
+  /* Finding 10: the theme is one gear at the far right of the top bar, after the need-you button; no Theme select, no Animation. */
+  async function gear(ok) {
+    const btn = $("#settings .dmenu-btn"), top = $(".top"), need = $("#masters .master.caution");
+    ok(!!btn && !$("#theme") && !$(".theme-pick") && !/Animation|Theme\b/.test(top.textContent.replace(/Theme\s*$/, "")) && need && need.compareDocumentPosition(btn) & Node.DOCUMENT_POSITION_FOLLOWING && btn.getBoundingClientRect().right > innerWidth - 60,
+      "top bar: one gear at the far right replaces the Theme select and the Animation switch, after the need-you button", `top bar: gear ${!!btn}, theme select ${!!$("#theme")}, top text "${top.textContent.trim().slice(0, 80)}"`);
+    const was = Theme.id, other = Theme.LIST.find((t) => t.id !== was);
+    btn.click(); await tick();
+    const pop = document.getElementById(btn.getAttribute("aria-controls")), items = $$("[role=menuitemradio]", pop), r = pop.getBoundingClientRect();
+    const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+    ok(items.length === Theme.LIST.length && items.filter((x) => x.getAttribute("aria-checked") === "true").length === 1 && pop.contains(hit) && r.right <= innerWidth && btn.getAttribute("aria-expanded") === "true",
+      `gear: opens ${items.length} themes, the current one checked, inside the window and on top`, `gear: ${items.length} radio items, ${items.filter((x) => x.getAttribute("aria-checked") === "true").length} checked`);
+    items.find((x) => x.textContent.includes(other.label)).click(); await tick();
+    ok(Theme.id === other.id && document.documentElement.dataset.theme === other.id, `gear: choosing ${other.label} changes the theme`, `gear: theme ${Theme.id}`);
+    Theme.set(was);
+  }
+
+  /* Finding 11: flow names in the menu lose the words they share, and the text-first pages sit under one folded Read. */
+  async function sideNames(ok) {
+    Nav.st.expanded.add("flows"); Nav.st.expanded.delete("read"); Nav.home(); Nav.refresh(); await tick();
+    const kids = $$("#side .side-kid[data-section=flows]"), full = kids.map((k) => k.title), shown = kids.map((k) => k.querySelector(".side-label").textContent);
+    const lead = (t) => t.split(" ").slice(0, 2).join(" "), tally = {};
+    for (const t of full) tally[lead(t)] = (tally[lead(t)] || 0) + 1;
+    const [word, n] = Object.entries(tally).sort((x, y) => y[1] - x[1])[0] || ["", 0], shared = kids.length >= 3 && n >= 3 && n * 2 > kids.length;
+    const right = shown.every((t, i) => full[i].endsWith(t)) && (shared ? shown.filter((t, i) => t.length < full[i].length).length === n && shown.every((t) => !t.startsWith(word)) : shown.every((t, i) => t === full[i]));
+    ok(right, `menu: ${kids.length} flow names ${shared ? `lose the "${word}" most of them start with` : "start differently, so none is cut"} (${shown.slice(0, 2).join(" | ")}), and the hover keeps the whole name`, `menu: flow names ${shown.join(" | ")}`);
+    const read = $("#side .side-link[data-group=read]"), box = $("#side-read"), members = $$("#side-read .side-link").map((b) => b.dataset.section);
+    ok(!!read && box.hidden && read.parentElement.querySelector("[aria-expanded]").getAttribute("aria-expanded") === "false" && ["constraints", "strategy", "glossary"].every((id) => members.includes(id)) && !$$("#side > .side-group:last-of-type > .side-row .side-link").some((b) => ["constraints", "strategy", "glossary"].includes(b.dataset.section)),
+      "menu: Constraints, Context, Strategy and Glossary sit under one Read heading, folded", `menu: read group ${!!read}, folded ${box && box.hidden}, members ${members}`);
+    read.click(); await tick();
+    ok(!$("#side-read").hidden, "menu: Read opens to its pages", "menu: Read did not open");
+    $("#side .side-link[data-group=read]").click(); await tick();
+    Nav.open("glossary"); await tick();
+    ok(!$("#side-read").hidden && $("#side .side-link[data-section=glossary]").getAttribute("aria-current") === "page", "menu: Read stays open on one of its pages, with that page marked", "menu: Read closed on its own page");
+    Nav.st.expanded.delete("read"); Nav.home(); await tick();
+  }
+
   /* A menu opened from a diagram bar or a page head is the topmost thing at its middle and its two ends, in every section
      and every map view, so no view's own layers (the matrix's frozen corner, a canvas) are ever drawn over it. */
   const GRID = [0.06, 0.3, 0.5, 0.7, 0.94].flatMap((x) => [0.06, 0.3, 0.5, 0.7, 0.94].map((y) => [x, y]));  // a corner of the frozen head sits over one part of a menu, not its middle
@@ -188,7 +224,7 @@
     const only = HASH.get("only") === "qol";
     const report = only ? ["head"] : await base(), lines = [], errors = window.__errors.length;
     const ok = (cond, good, bad) => { lines.push(cond ? "ok " + good : "FAIL " + (bad || good)); if (HASH.has("trace")) console.log("[selftest] " + lines[lines.length - 1]); };
-    try { if (!wide()) await compact(ok); else { await appPanel(ok); await searchRows(ok); await oneNumber(ok); await onceEach(ok); } await menusOnTop(ok); } catch (e) { lines.push("FAIL the quality-of-life checks threw: " + e.message + " " + (e.stack || "").split("\n")[1]); }
+    try { if (!wide()) await compact(ok); else { await appPanel(ok); await searchRows(ok); await oneNumber(ok); await onceEach(ok); await gear(ok); await sideNames(ok); } await menusOnTop(ok); } catch (e) { lines.push("FAIL the quality-of-life checks threw: " + e.message + " " + (e.stack || "").split("\n")[1]); }
     Nav.home(); go("lights", { reset: true });
     if (window.__errors.length > errors) lines.push("FAIL JS ERRORS in the quality-of-life checks: " + window.__errors.slice(errors).join(" | "));
     const body = report.slice(1).concat(lines), fails = body.filter((l) => l.startsWith("FAIL")).length;
