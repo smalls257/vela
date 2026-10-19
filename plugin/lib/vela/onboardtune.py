@@ -57,6 +57,7 @@ def parse(text):
     text = text.lstrip("\ufeff").replace("\r\n", "\n").replace("\r", "\n")  # an editor on Windows adds a BOM and CRLF; neither is the lead's
     roles, problems = {}, []
     audience, fields, fence = None, {}, None
+    seen = set()  # roles already given a section; a later one for the same role is reported and ignored, the first stands
 
     def close():
         if audience is not None:
@@ -76,7 +77,12 @@ def parse(text):
         if head:
             close()
             audience, fields = BY_LABEL.get(head.group(1).casefold()), {}
-            if audience is None:
+            if audience in seen:
+                problems.append(Problem(number, f"{onboarding.AUDIENCE_LABELS[audience]} is listed twice", "Keep one section per role."))
+                audience = None
+            elif audience is not None:
+                seen.add(audience)
+            else:
                 problems.append(Problem(number, f"'{head.group(1)}' is not a role",
                                         "Use one of: " + ", ".join(onboarding.AUDIENCE_LABELS[a] for a in onboarding.AUDIENCES)))
             continue
@@ -99,7 +105,10 @@ def _read_bullet(audience, field, value, number, fields, problems):
         fields["note"] = value
         return
     found = fields.setdefault(field, [])
-    for name in [n.strip() for n in re.split(r"[,;]", value) if n.strip()]:
+    names = [n.strip() for n in re.split(r"[,;]", value) if n.strip()]
+    if not names:
+        problems.append(Problem(number, f"the {label} '{field.replace('_', ' ').capitalize()}' line names no module", "Name at least one module, or delete the line."))
+    for name in names:
         module = onboarding.BY_NAME.get(name.casefold())
         if module is None:
             near = difflib.get_close_matches(name.casefold(), list(onboarding.BY_NAME), n=1, cutoff=0.6)

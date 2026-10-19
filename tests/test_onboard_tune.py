@@ -86,3 +86,15 @@ def test_a_page_saved_on_windows_with_a_byte_order_mark_and_crlf_reads_the_same_
 def test_a_role_heading_is_read_in_any_letter_case_and_with_trailing_hashes():
     tuning = onboardtune.parse("## engineering ##\n- hide: apps\n## QA\n- STRESS: Contracts\n")
     assert tuning.problems == () and tuning.for_audience("eng").hide == ("apps",) and tuning.for_audience("qa").stress == ("contracts",)
+
+
+def test_a_second_section_for_a_role_is_reported_and_the_first_stands():
+    tuning = onboardtune.parse("## Engineering\n- Hide: Apps\n## engineering\n- Hide: Dates\n- Note: later\n")
+    assert [(p.line, p.text) for p in tuning.problems] == [(3, "Engineering is listed twice")]
+    assert tuning.for_audience("eng") == onboardtune.RoleTuning((), (), ("apps",), "")
+
+
+def test_a_line_that_names_no_module_is_a_problem_not_a_quiet_nothing():
+    for line in ("- Hide:", "- Stress: ,"):
+        found = problems("## Engineering\n" + line + "\n")
+        assert len(found) == 1 and found[0].line == 2 and "names no module" in found[0].text and found[0].fix
