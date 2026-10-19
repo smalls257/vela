@@ -18,7 +18,7 @@ SECTION_OF_KIND = {"app": "apps", "capability": "capabilities", "epic": "epics",
                    "slice": "slices", "concern": "concerns"}
 NOUN = {"lead": "a solution lead", "exec": "an exec", "product": "a product owner", "qa": "a QA lead", "eng": "an engineer", "mgr": "a manager"}
 OPEN_LISTED = 4  # open questions listed under Where things stand: about four things at a time
-LEVEL_WORD = {"warning": "overdue", "caution": "needs you"}
+LEVEL_WORD = {"warning": "overdue", "caution": "waiting"}
 TONE_OF_STATE = {"decided": "ok", "fact": "ok", "confirmed": "ok", "resolved": "ok", "mitigated": "ok", "open": "open",
                  "proposed": "open", "assumption": "open", "inkling": "open", "draft": "open"}
 TITLES = {
@@ -27,7 +27,7 @@ TITLES = {
     "standing": ("Where things stand", "What is decided and why, what was ruled out, and what is still open."),
     "fit": ("Where you fit", "What your role touches here, and what matters most for it."),
     "people": ("Who to talk to", "The people who own what you will touch, and who holds each open answer."),
-    "needs-you": ("What needs you", "The things the plan is waiting on its lead for, most urgent first."),
+    "needs-you": ("What's waiting", "The things the plan is waiting on its lead for, most urgent first."),
     "open-questions": ("Open questions", "What nobody has answered yet, who can, and by when."),
     "risks": ("Risks", "What could go wrong, and what is being done about it."),
     "dates": ("Dates", "The dates the plan commits to."),
@@ -47,7 +47,7 @@ TRY = {
     "approach": ("slices", "Open Slices and switch to Path to see what can be built side by side."),
     "standing": ("garden", "Open the decision log and pick a decision to see what it ruled out."),
     "open-questions": ("asks", "Open Who to ask and find the person with the most open questions."),
-    "needs-you": ("ranked", "Open What needs you; the most urgent thing is first."),
+    "needs-you": ("ranked", "Open What's waiting; the most urgent thing is first."),
     "journeys": ("flows", "Open a journey and press Present to watch it step by step."),
     "contracts": ("contracts", "Open the map and pick a line to see the contract behind it."),
     "slices": ("slices", "Open Slices and open a row to see what it is done when."),
@@ -172,6 +172,10 @@ def not_recorded(f, mid, what, page_key=""):
     return make(mid, f"Not recorded yet: {what}.", [f"Ask {who}."], missing={"what": what, "ask": who})
 
 
+def verb(n, one, many):
+    return one if n == 1 else many
+
+
 def of_them(n, total, word):
     return f"all {word}" if n == total else f"{n} of them {word}"
 
@@ -188,13 +192,22 @@ def goal(f):
         return not_recorded(f, "goal", "what this initiative is for", section_page(f, "goals"))
     first = cut(say_text(rows[0]["goalText"]), 180)
     releases = f["releases"]["states"]
-    due = next((s["target"] for s in releases[1:] if s["target"]), "")
-    why_now = f"The first release is aimed at {date_phrase(due)}." if due else ""
+    why_now = release_sentence(releases[1:])
     items = [item(cut(say_text(g["goalText"]), 140), plainwords.state_word(g["state"]),
                   say_text(g["measure"]) if g["measure"] and g["measure"] != "not set" else "No measure yet",
                   "#s=goals", "", TONE_OF_STATE.get(g["state"], "")) for g in rows]
     return make("goal", f"The first goal: {first}", [opening(f, section_page(f, "goals")), why_now], items,
                 [link("The goals, as written", "#s=goals"), link("The timeline", "#s=releases" if f["releases"]["count"] else "")])
+
+
+def release_sentence(later):
+    """The first release's date when it has one; else the next dated release, named, so a date is never given to the wrong release."""
+    if later and later[0]["target"]:
+        return f"The first release is aimed at {date_phrase(later[0]['target'])}."
+    dated = next((s for s in later if s["target"]), None)
+    if not dated:
+        return ""
+    return f"The next dated release, {say_text(dated.get('heading') or dated['name'])}, is due {date_phrase(dated['target'])}."
 
 
 def approach(f):
@@ -207,7 +220,7 @@ def approach(f):
     if slices and strategy:
         body.append(f"The work is cut into {count_phrase(len(slices), 'slice')}, each one journey built end to end.")
     if tracer:
-        body.append(f"The tracer is the first slice: {say_text(tracer['name'])}.")
+        body.append(f"The tracer is {say_text(tracer['name'])}.")
     items = [item(say_text(s["name"]), s["status"] or "not planned yet", "The tracer" if s["tracer"] else "",
                   route(f, s["key"]) or "#s=slices", s["key"]) for s in slices]
     gist = first_sentence(strategy) or f"The work is cut into {count_phrase(len(slices), 'slice')}."
@@ -306,10 +319,10 @@ def who_holds(f):
 def needs_you(f):
     lit = [k for k in f["ranked"] if entity(f, k) and f["lights"][k]["level"] in LEVEL_WORD]
     if not lit:
-        return make("needs-you", "Nothing is waiting on the lead right now.", [], [], [link("What needs you", "#home")])
+        return make("needs-you", "Nothing is waiting on the lead right now.", [], [], [link("What's waiting", "#home")])
     late = [k for k in lit if f["lights"][k]["level"] == "warning"]
     items = [item(title(f, k), LEVEL_WORD[f["lights"][k]["level"]], "", route(f, k), k, "late" if f["lights"][k]["level"] == "warning" else "open") for k in lit]
-    return make("needs-you", f"{count_phrase(len(lit), 'thing')} need the lead" + (f", {of_them(len(late), len(lit), 'overdue')}" if late else "") + ".", [], items, [link("What needs you", "#home")])
+    return make("needs-you", f"{count_phrase(len(lit), 'thing')} {verb(len(lit), 'needs', 'need')} the lead" + (f", {of_them(len(late), len(lit), 'overdue')}" if late else "") + ".", [], items, [link("What's waiting", "#home")])
 
 
 def open_questions(f):
@@ -387,7 +400,7 @@ def slices(f):
     done = sum(1 for s in rows if s["status"] in ("journey passes", "live but off", "on"))
     items = [item(say_text(s["name"]), s["status"] or "not planned yet", say_text(s["overdue"]) if s["overdue"] else ("The tracer" if s["tracer"] else ""),
                   route(f, s["key"]) or "#s=slices", s["key"], "late" if s["overdue"] else "ok" if s["status"] in ("journey passes", "on") else "") for s in rows]
-    return make("slices", f"{done} of {count_phrase(len(rows), 'slice')} have passed their journey.", [], items, [link("The slices", "#s=slices")], terms=["slice"])
+    return make("slices", f"{done} of {count_phrase(len(rows), 'slice')} {verb(done, 'has', 'have')} passed {verb(done, 'its', 'their')} journey.", [], items, [link("The slices", "#s=slices")], terms=["slice"])
 
 
 def apps(f):
@@ -426,7 +439,7 @@ def failure(f):
         return not_recorded(f, "failure", "how any app behaves when something fails", section_page(f, "apps"))
     items = [item(title(f, k), "written down" if v["sections"] else "not written yet", cut(say_text(v["sections"][0]["heading"]), 90) if v["sections"] else "",
                   route(f, k), k, "ok" if v["sections"] else "open") for k, v in sorted(rows)]
-    return make("failure", f"{sum(1 for _, v in rows if v['sections'])} of {count_phrase(len(rows), 'app')} say what happens on failure.", [], items, [link("The apps", "#s=apps")])
+    return make("failure", f"{sum(1 for _, v in rows if v['sections'])} of {count_phrase(len(rows), 'app')} {verb(sum(1 for _, v in rows if v['sections']), 'says', 'say')} what happens on failure.", [], items, [link("The apps", "#s=apps")])
 
 
 def handoff(f):
@@ -459,7 +472,7 @@ def blocked(f):
     for name, mine in held:
         late = sum(1 for a in mine if a["light"]["level"] == "warning")
         items.append(item(name, count_phrase(len(mine), "open question"), f"{late} overdue" if late else "", "#asks", "", "late" if late else "open"))
-    return make("blocked", f"{count_phrase(len(held), 'person', 'people')} hold answers the plan is waiting on.", [], items, [link("Who to ask", "#asks")])
+    return make("blocked", f"{count_phrase(len(held), 'person', 'people')} {verb(len(held), 'holds', 'hold')} answers the plan is waiting on.", [], items, [link("Who to ask", "#asks")])
 
 
 BUILDERS = {"goal": goal, "approach": approach, "standing": standing, "needs-you": needs_you, "open-questions": open_questions,

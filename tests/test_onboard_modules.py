@@ -150,3 +150,57 @@ def test_people_are_named_as_people_with_what_they_own_and_who_holds_open_answer
 
 def test_the_depth_rule_is_one_table_the_page_and_the_command_share():
     assert onboardmodules.DEPTHS == {"gist": {"body": 0, "items": 3}, "normal": {"body": 2, "items": 6}, "everything": {"body": None, "items": None}}
+
+
+def test_the_tracer_is_named_without_claiming_an_order_the_plan_does_not_show():
+    approach = onboardmodules.build_all(data("booking-example"))["approach"]
+    assert any(re.match(r"The tracer is [^:]+\.$", b) for b in approach["body"]) and not any("first slice" in b for b in approach["body"])
+
+
+def test_a_date_is_only_given_to_the_release_it_belongs_to():
+    import copy
+    facts = copy.deepcopy(data("heron-after-full-1"))
+    states = facts["releases"]["states"]
+    later = copy.deepcopy(states[1])
+    later["name"] = later["heading"] = "Release two"
+    states[1]["target"] = ""
+    states.append(later)
+    body = onboardmodules.build_all(facts)["goal"]["body"]
+    assert "The next dated release, Release two, is due 2 February 2027." in body
+    assert not any(b.startswith("The first release") for b in body)
+    states.pop()
+    assert not any("release" in b for b in onboardmodules.build_all(facts)["goal"]["body"])
+
+
+def test_counts_of_one_agree_with_their_verb():
+    import copy
+    facts = copy.deepcopy(data("booking-example"))
+    facts["slicePlan"]["list"] = facts["slicePlan"]["list"][:1]
+    facts["slicePlan"]["list"][0]["status"] = "journey passes"
+    assert onboardmodules.slices(facts)["gist"] == "1 of 1 slice has passed its journey."
+    key = next(iter(facts["failure"]))
+    facts["failure"] = {key: facts["failure"][key]}
+    gist = onboardmodules.failure(facts)["gist"]
+    assert gist.startswith("1 of 1 app says") or gist.startswith("0 of 1 app say"), gist
+    facts["asks"] = [a for a in facts["asks"] if a["state"] == "open"][:1]
+    assert onboardmodules.blocked(facts)["gist"] == "1 person holds answers the plan is waiting on."
+    for name in sorted(VAULTS):
+        waiting = copy.deepcopy(data(name))
+        lit = [k for k in waiting["ranked"] if k in waiting["entities"] and waiting["lights"][k]["level"] in onboardmodules.LEVEL_WORD]
+        if lit:
+            waiting["ranked"] = lit[:1]
+            assert onboardmodules.needs_you(waiting)["gist"].startswith("1 thing needs the lead"), name
+            return
+    pytest.fail("no vault in the table has anything waiting")
+
+
+def test_every_control_a_try_prompt_names_is_a_label_the_dashboard_has():
+    assets = "\n".join(p.read_text(encoding="utf-8").lower() for p in (REPO / "plugin" / "lib" / "vela" / "explorer" / "assets").rglob("*") if p.suffix in (".js", ".html", ".css"))
+    named = {"approach": ["slices", "path"], "standing": ["decision log"], "open-questions": ["who to ask"], "needs-you": ["what's waiting"],
+             "journeys": ["present"], "contracts": ["map"], "slices": ["slices"], "apps": ["map"], "progress": ["progress"]}
+    assert set(named) == set(onboardmodules.TRY)
+    for mid, controls in named.items():
+        prompt = onboardmodules.TRY[mid][1].lower()
+        for control in controls:
+            assert control in prompt and control in assets, (mid, control)
+    assert "needs you" not in " ".join(p[1] for p in onboardmodules.TRY.values()).lower()
