@@ -3,7 +3,8 @@
    any diagram; every color is a theme variable, so every theme and Plain gets its own. Nothing here needs a sideways scroll. */
 .dia { display: flex; flex-direction: column; flex: 1; min-height: 0; min-width: 0; position: relative; }
 .dia > .board, .dia > .matrix-stage, .dia > .rel-body, .dia > .sl-body, .dia > .board-wrap, .dia > .stage { flex: 1; min-height: 0; }
-.dia-bar { position: relative; z-index: 20; flex: none; display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; padding: 6px 24px; background: var(--room); border-top: 1px solid var(--rule); }
+/* above every view's own layers (the matrix's frozen corner is at 200): a menu opened from this bar is never drawn under the chart */
+.dia-bar { position: relative; z-index: 250; flex: none; display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; padding: 6px 24px; background: var(--room); border-top: 1px solid var(--rule); }
 .dia-l, .dia-r { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-width: 0; }
 .dia-r { margin-left: auto; justify-content: flex-end; }
 .dia-mid { flex: 1 1 14rem; min-width: 0; display: flex; gap: 10px; align-items: baseline; overflow: hidden; order: 2; }
@@ -22,7 +23,7 @@
 .dmenu-btn.primary:hover { background: color-mix(in srgb, var(--ink) 80%, var(--focus)); }
 .dmenu-btn svg { width: 15px; height: 15px; }
 .dmenu-btn .dbtn-ico { width: 18px; height: 18px; flex: none; }
-.dmenu-pop { position: absolute; top: calc(100% + 4px); z-index: 40; width: max-content; min-width: 190px; max-width: min(330px, calc(100vw - 32px)); max-height: min(70vh, 460px); overflow-y: auto;
+.dmenu-pop { position: absolute; top: calc(100% + 4px); z-index: 40; width: max-content; min-width: 190px; max-width: min(330px, calc(100vw - 32px)); max-height: max(160px, min(70vh, 460px, calc(100vh - 230px))); overflow-y: auto;
   background: var(--room-2); color: var(--ink); border: 1px solid var(--rule-3); border-radius: 10px; padding: 6px; font-size: 13px; box-shadow: 0 10px 30px rgba(0, 0, 0, .45); }
 .dmenu-pop[hidden] { display: none; }
 .dmenu-pop.wide { min-width: min(520px, calc(100vw - 32px)); max-width: min(620px, calc(100vw - 32px)); padding: 4px 12px; }

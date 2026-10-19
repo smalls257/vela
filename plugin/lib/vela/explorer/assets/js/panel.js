@@ -229,9 +229,11 @@ const Panel = (() => {
     if (typeof Inside !== "undefined") out.push(Inside.challengeSection(k));
     if (e.kind === "app") {
       const a = D.apps[k];
-      const lit = lightOf(k) && lightOf(k).level !== "dark";
+      // "Why it needs you" already names the questions that light the app; this list only adds the ones it does not
+      const lit = lightOf(k) && lightOf(k).level !== "dark", named = new Set(((lightOf(k) || {}).reasons || []).map((r) => r.unknown).filter(Boolean));
+      const rest = a.questions.filter((q) => !named.has(q.id));
       out.push(appLinks(k), whyLit(k), prose(e));
-      if (!lit) out.push(section("Open questions blocking it", a.questions.length, a.questions.length ? h("ul", { class: "mini-list" }, a.questions.map((q) => unknownLine(q.id, q.via))) : empty("No open question is blocking this app.")));
+      if (rest.length || !lit) out.push(section("Open questions blocking it", rest.length, rest.length ? h("ul", { class: "mini-list" }, rest.map((q) => unknownLine(q.id, q.via))) : empty("No open question is blocking this app.")));
       out.push(section("Epics", a.epics.length, a.epics.length ? h("div", {}, a.epics.map((x) => refChip(x))) : empty("No epic lists this app.")));
       const caps = D.appCaps[k];
       out.push(section("Business area and capabilities", null, h("div", { class: "p-note" }, D.domains[k] === "No domain" ? "Business area: not recorded yet." : `Business area: ${D.domains[k]}.`),

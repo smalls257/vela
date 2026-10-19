@@ -145,11 +145,22 @@ const FlowPicker = (() => {
       if (el) { input.setAttribute("aria-activedescendant", el.id); if (scroll) el.scrollIntoView({ block: "nearest" }); }
       else input.removeAttribute("aria-activedescendant");
     }
+    /* A box that clips its overflow (the line map's board) cuts off a list that runs past it, and so does the window. The
+       list opens below the picker, or above it when the clipping box has more room there, and scrolls inside itself. */
+    const clipper = () => { for (let e = pop.parentElement; e && e !== document.body; e = e.parentElement) if (getComputedStyle(e).overflowY !== "visible") return e; return document.body; };
+    function fit() {
+      pop.style.top = ""; pop.style.bottom = ""; list.style.maxHeight = "";
+      const host = pop.parentElement.getBoundingClientRect(), box = clipper().getBoundingClientRect(), want = pop.getBoundingClientRect().height;
+      const chrome = want - list.getBoundingClientRect().height, bottom = Math.min(innerHeight, box.bottom), top = Math.max(0, box.top);
+      const below = bottom - host.bottom - 14, above = host.top - top - 14, up = want > below && above > below, room = up ? above : below;
+      if (up) { pop.style.top = "auto"; pop.style.bottom = "calc(100% + 6px)"; }
+      if (want > room) list.style.maxHeight = `${Math.max(48, room - chrome)}px`;
+    }
     function show() {
       if (open) return;
       open = true; query = ""; input.value = "";
       pop.hidden = false; trigger.setAttribute("aria-expanded", "true"); input.setAttribute("aria-expanded", "true");
-      paintList(); input.focus();
+      paintList(); fit(); input.focus();
       document.addEventListener("pointerdown", outside, true);
     }
     function hide(refocus) {

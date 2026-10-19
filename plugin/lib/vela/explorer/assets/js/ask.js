@@ -128,17 +128,13 @@ const Ask = (() => {
   }
 
   /* ---------------------------------------------------------------- the box's own row in the results */
-  /* The row above the search results: Ask when served, Copy as a prompt when not. Null for an empty box. */
+  /* The row above the search results: Ask Claude, when Claude is attached. A page opened as a file has no Claude to ask, so
+     it has no row at all: a row that only copies a prompt put a dead end first in every result list. Null otherwise. */
   function row(q) {
-    if (!q.trim() || st.mode === "pending") return null;
-    if (served()) {
-      return h("div", { class: "r-ask" }, h("button", { class: "ask-btn", type: "button", onmousedown: (ev) => { ev.preventDefault(); send(q); closeSearch(); } },
-        h("b", {}, "Ask Claude"), h("span", { class: "ask-q" }, shorten(q, 70)), h("kbd", {}, "Enter"),
-        h("span", { class: "ask-m" }, nextModel())));
-    }
-    return h("div", { class: "r-ask" }, h("button", { class: "ask-btn", type: "button", onmousedown: (ev) => { ev.preventDefault(); copyPrompt(q); } },
-      h("b", {}, "Copy as a Claude Code prompt"), h("span", { class: "ask-q" }, shorten(q, 60))),
-    h("div", { class: "r-more" }, st.mode === "file" ? "Search only: this page was opened as a file. To ask Claude, open it with /vela:explore." : "Search only: Claude couldn't be reached. To ask Claude, open the page with /vela:explore."));
+    if (!q.trim() || st.mode === "pending" || !served()) return null;
+    return h("div", { class: "r-ask" }, h("button", { class: "ask-btn", type: "button", onmousedown: (ev) => { ev.preventDefault(); send(q); closeSearch(); } },
+      h("b", {}, "Ask Claude"), h("span", { class: "ask-q" }, shorten(q, 70)), h("kbd", {}, "Enter"),
+      h("span", { class: "ask-m" }, nextModel())));
   }
   function closeSearch() { const q = $("#q"); q.value = ""; q.dispatchEvent(new Event("input")); q.blur(); }
   const enterAsks = (q) => served() && !!q.trim();

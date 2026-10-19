@@ -58,6 +58,17 @@ const Search = (() => {
     if (k === "unknown") return isOpen(UNKNOWN[key]) ? "question" : "closed";
     return "other";
   }
+  /* The apps a result is about, for the little pills on its row: a flow's apps, a contract's two ends, a question's or
+     a requirement's apps. An app is about itself, so it shows none. */
+  function appsOf(key) {
+    const out = new Set();
+    for (const k of mapAnchors(key)) {
+      if (k === key && NODE[k]) continue;
+      const c = CONTRACT[k];
+      for (const x of c ? [c.provider, ...c.consumers] : [k]) if (NODE[x] && NODE[x].kind === "app") out.add(x);
+    }
+    return [...out];
+  }
   /* Two apps or parties named in the query: the contracts between them, straight from the map's typed edges. */
   function connections(q) {
     const low = " " + q.toLowerCase().replace(/[^a-z0-9]+/g, " ") + " ";
@@ -88,7 +99,7 @@ const Search = (() => {
   function goesTo(key) {
     const e = ent(key);
     if (!e) return "";
-    if (e.kind === "flow") return "Enter plays it, ready to present";
+    if (e.kind === "flow") return "Enter plays it with its apps lit, ready to present";
     if (e.kind === "contract") { const f = flowsFor(key); return f.length ? `Enter shows it on the map, with ${plural(f.length, "flow")} to present from` : "Enter shows it on the map"; }
     if (e.kind === "unknown") return "Enter opens it in Who to ask";
     if (e.kind === "decision") return "Enter opens it in the decision log";
@@ -97,7 +108,7 @@ const Search = (() => {
 
   let at = 0, results = [], moved = false;  // moved: the reader arrowed into the results, so Enter opens one rather than asks
   const input = $("#q"), box = $("#results");
-  /* The results, with the Ask Claude row (or, on a file, the Copy as a prompt row) above them. */
+  /* The results, with the Ask Claude row above them when Claude is attached; a page with no Claude has no such row. */
   function show() {
     renderResults();
     const row = Ask.row(input.value);
@@ -120,7 +131,8 @@ const Search = (() => {
     box.innerHTML = ""; results = [];
     if (!q.trim()) { box.hidden = true; return; }
     const { wanted, hits } = rank(q), byGroup = {};
-    const exact = exactMatches(q);
+    const exact = exactMatches(q), seen = new Set();  // one row per thing: a flow that matches in three paragraphs is one flow
+    const once = (list) => list.filter((x) => !seen.has(x.key) && seen.add(x.key));
     if (exact.length) byGroup.exact = exact.map((key) => ({ key, snip: (E[key] && E[key].text) || "", flows: [] }));
     const links = connections(q);
     if (links.length) byGroup.link = links.map((c) => ({ key: c.id, link: true, flows: flowsFor(c.id).map((f) => f.flow) }));
@@ -131,6 +143,7 @@ const Search = (() => {
       if (g === "flow" && x.matched.length < wanted.length && x.score < hits[0].score) g = "flow-part";
       (byGroup[g] = byGroup[g] || []).push({ key: x.r.key, snip: x.r.snip, heading: x.r.heading, flows: x.r.flows });
     }
+    for (const g of Object.keys(byGroup)) byGroup[g] = once(byGroup[g]);
     const noFlows = /\bhow\b/.test(q.toLowerCase()) && !D.flows.length;  // "how does X" is a flow's question; say so rather than return nothing
     if (noFlows) box.append(emptyState("No flows yet, so a \"how does…\" question has nothing to answer it.", "", "/vela:boundary", "small"));
     if (!hits.length && !links.length && !exact.length) {
@@ -146,15 +159,16 @@ const Search = (() => {
       box.append(h("div", { class: "r-group" }, label, h("span", { class: "ct" }, list.length > cap ? ` · ${cap} of ${list.length}` : ` · ${list.length}`)));
       for (const r of list.slice(0, cap)) {
         const i = results.length; results.push(r);
-        const e = ent(r.key), id = idOf(r.key), c = r.link ? CONTRACT[r.key] : null, lvl = levelForKey(r.key);
-        const crossing = [...new Set((r.flows || []).filter((f) => f !== r.key && E[f]))];
+        const e = ent(r.key), id = idOf(r.key), lvl = levelForKey(r.key);
+        const pills = appsOf(r.key);
         box.append(h("div", { class: "result" + (i === at ? " on" : ""), role: "option", id: "res-" + i, "aria-selected": String(i === at), "data-key": r.key, onmousedown: (ev) => { ev.preventDefault(); pick(i); } },
           h("span", { class: "r-lamp lamp " + (lvl || "dark") }),
           h("div", {},
             h("div", { class: "r-head" }, h("span", { class: "kind" }, KIND_WORD[e.kind] || e.kind), h("span", { class: "r-title" }, e.title), id ? h("span", { class: "r-id" }, id) : null,
               FLOW[r.key] ? h("span", { class: "r-id" }, plural(FLOW[r.key].steps.length, "step")) : null),
-            h("div", { class: "r-snip" }, c ? `${titleOf(c.provider)} → ${c.consumers.map(titleOf).join(", ")} · ${c.state ? stateWord(c.state).toLowerCase() : "state not set"}` : marked(r.snip, wanted)),
-            crossing.length ? h("div", { class: "r-flows" }, "▶ crossed by ", crossing.map((f) => E[f].title).join(", ")) : null,
+            pills.length ? h("div", { class: "r-apps", "aria-label": "Apps it touches" }, pills.slice(0, 4).map((k) => h("span", { class: "r-app", "data-app": k }, titleOf(k))),
+              pills.length > 4 ? h("span", { class: "r-app more", title: pills.slice(4).map(titleOf).join(", ") }, `+${pills.length - 4}`) : null)
+              : h("div", { class: "r-snip" }, marked(r.snip, wanted)),
             linkChips(r.key, { small: true }),
             i === at ? h("div", { class: "r-go" }, goesTo(r.key)) : null)));
       }

@@ -4,6 +4,7 @@
    the older checks were written for a wide window. */
 (() => {
   const base = SelfTest.run, tick = () => Promise.resolve();
+  const headText = () => ($("#panel .p-head h2") || { textContent: "" }).textContent;
   const wide = () => innerWidth >= COMPACT_BELOW;
   const rect = (sel) => { const el = typeof sel === "string" ? $(sel) : sel; return el ? el.getBoundingClientRect() : { left: 0, right: 0, top: 0, bottom: 0, width: 0, height: 0 }; };
   const shown = (sel) => { const el = $(sel); return !!el && el.offsetParent !== null || (!!el && getComputedStyle(el).position === "fixed" && getComputedStyle(el).display !== "none"); };
@@ -11,6 +12,7 @@
   /* A narrow window: the diagram has the whole width, the panel and the menu are slide-overs that open on a pick and
      close on Esc, and nothing scrolls sideways. */
   async function compact(ok) {
+    PanelSize.hide(true); SideSize.hide(true);  // earlier checks leave them as they like
     const saved0 = Settings.read("explorer.panel.hidden"); Nav.home(); await tick();
     const side = rect("#side"), panel = rect("#panel"), main = rect("#main");
     ok(document.body.classList.contains("compact") && !shown("#side") && !shown("#panel") && main.width >= innerWidth - 1,
@@ -25,7 +27,7 @@
     const key = D.nodes.find((n) => n.kind === "app");
     if (key) {
       go(key.key, { reset: true }); await tick();
-      ok(shown("#panel") && getComputedStyle($("#panel")).position === "fixed" && rect("#panel").right <= innerWidth + 1 && $("#panel .p-head h2").textContent.includes(titleOf(key.key)),
+      ok(shown("#panel") && getComputedStyle($("#panel")).position === "fixed" && rect("#panel").right <= innerWidth + 1 && headText().includes(titleOf(key.key)),
         `compact: picking ${titleOf(key.key)} slides the panel over the diagram`, `compact: panel shown ${shown("#panel")} after a pick`);
       document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }));
       await tick();
@@ -46,7 +48,7 @@
       const flowN = flowsFor(k).filter((r) => FLOW[r.flow]).length, a = D.apps[k], talkN = [...a.consumes, ...a.provides].filter((id) => CONTRACT[id]).length;
       if (titles.join("|") !== "In these flows|Talks to") bad.push(`${titleOf(k)}: rows ${titles.join("|")}`);
       if ($$("#panel [data-flow]").length !== flowN || $$("#panel [data-contract]").length !== talkN) bad.push(`${titleOf(k)}: ${$$("#panel [data-flow]").length} of ${flowN} flows, ${$$("#panel [data-contract]").length} of ${talkN} contracts`);
-      const links = $("#panel .p-links"), why = $$("#panel .p-sec").find((x) => /Why it needs you/.test($("h3", x).textContent));
+      const links = $("#panel .p-links"), why = $$("#panel .p-sec").find((x) => $("h3", x) && /Why it needs you/.test($("h3", x).textContent));
       if (links && why && !(links.compareDocumentPosition(why) & Node.DOCUMENT_POSITION_FOLLOWING)) bad.push(`${titleOf(k)}: the questions come before the chips`);
       if ($$("#panel .p-sec h3").some((x) => /^(Flows that cross this|Provides|Consumes)/.test(x.textContent.trim()))) bad.push(`${titleOf(k)}: the panel still relists flows or contracts`);
       if ($$("#panel .p-chip").some((x) => x.tagName !== "BUTTON" || /\b(APP|FLO|CON)-\d/.test(x.textContent))) bad.push(`${titleOf(k)}: a chip is not a button or shows a code`);
@@ -57,22 +59,84 @@
       Nav.open("apps"); go(withFlow, { reset: true }); await tick();
       const chip = $("#panel [data-flow]"), want = chip.dataset.flow;
       chip.click(); await tick();
-      ok(App.view === "flows" && Flows.st.key === want && $("#panel .p-head h2").textContent.includes(titleOf(want)), `app panel: the flow chip plays ${titleOf(want)} in one click`, `app panel: the flow chip left view ${App.view}, flow ${Flows.st.key}`);
+      ok(App.view === "flows" && Flows.st.key === want && ($("#panel .p-head h2") || { textContent: "" }).textContent.includes(titleOf(want)), `app panel: the flow chip plays ${titleOf(want)} in one click`, `app panel: the flow chip left view ${App.view}, flow ${Flows.st.key}`);
     }
     const withContract = apps.find((k) => D.apps[k].provides.length || D.apps[k].consumes.length);
     if (withContract) {
       Nav.open("apps"); go(withContract, { reset: true }); await tick();
       const chip = $("#panel [data-contract]"), want = chip.dataset.contract;
       chip.click(); await tick();
-      ok($("#panel .p-head h2").textContent.includes(titleOf(want)) && App.focus === want, `app panel: the contract chip opens ${titleOf(want)}`, `app panel: the contract chip opened ${$("#panel .p-head h2").textContent}`);
+      ok(headText().includes(titleOf(want)) && App.focus === want, `app panel: the contract chip opens ${titleOf(want)}`, `app panel: the contract chip opened ${headText()}`);
     }
+  }
+
+  /* Finding 5: search lists one row per thing, with the apps it touches as pills, no Claude row unless Claude is attached,
+     and Enter on a flow plays it with its apps lit. */
+  async function searchRows(ok) {
+    const word = D.flows.length ? (E[D.flows[0].key].title.toLowerCase().match(/[a-z]{4,}/g) || ["flow"]).pop() : "app";
+    for (const q of [word, "digest", "consent", "agent"]) {
+      const keys = Search.type(q), dup = keys.filter((k, i) => keys.indexOf(k) !== i);
+      const rows = $$("#results .result");
+      const clutter = rows.filter((r) => $(".r-flows", r) || ($(".r-snip", r) && $(".r-apps", r)));
+      ok(!dup.length && rows.length === keys.length && !clutter.length && !(location.protocol === "file:" && $("#results .r-ask")),
+        `search "${q}": ${rows.length} rows, one per thing, no Claude row on a file`, `search "${q}": duplicates ${dup.join(",")}, rows ${rows.length} of ${keys.length}, clutter ${clutter.length}, ask row ${!!$("#results .r-ask")}`);
+    }
+    const flow = D.flows[0] && D.flows[0].key;
+    if (flow) {
+      const keys = Search.type(E[flow].title), at = keys.indexOf(flow), row = $$("#results .result")[at], pills = row ? $$(".r-app", row).filter((x) => !x.classList.contains("more")).map((x) => x.textContent) : [];
+      const want = flowStations(FLOW[flow]).filter((k) => NODE[k] && NODE[k].kind === "app").map(titleOf);
+      ok(pills.length > 0 && pills.every((x) => want.includes(x)), `search: the ${titleOf(flow)} row shows the apps it touches as pills (${pills.join(", ")})`, `search: pills ${pills.join(",")} of ${want.join(",")}`);
+      Search.pick(at); await tick();
+      const lit = $$("#panel-mini .mini-ring").length;
+      ok(App.view === "flows" && Flows.st.key === flow && lit === mapAnchors(flow).filter((k) => NODE[k]).length && lit > 0 && !!$("#present-btn"),
+        `search: Enter on ${titleOf(flow)} plays the flow with ${lit} of its apps lit on the overview`, `search: Enter left view ${App.view}, flow ${Flows.st.key}, ${lit} apps lit`);
+    }
+    Search.type(""); Nav.home(); await tick();
+  }
+
+  /* A menu opened from a diagram bar or a page head is the topmost thing at its middle and its two ends, in every section
+     and every map view, so no view's own layers (the matrix's frozen corner, a canvas) are ever drawn over it. */
+  const GRID = [0.06, 0.3, 0.5, 0.7, 0.94].flatMap((x) => [0.06, 0.3, 0.5, 0.7, 0.94].map((y) => [x, y]));  // a corner of the frozen head sits over one part of a menu, not its middle
+  async function menusOnTop(ok) {
+    const trials = [["Home", () => Nav.home()], ...D.sections.map((x) => [x.label, () => Nav.open(x.id)]),
+      ["Who uses whom", () => { Nav.open("apps"); MapView.st.lens = "matrix"; rerender(); }], ["Flow lines", () => { Nav.open("apps"); MapView.st.lens = "transit"; rerender(); }],
+      ["Before and after", () => { Nav.open("apps"); MapView.st.lens = "releases"; rerender(); }]];
+    const was = { lens: MapView.st.lens, theme: Theme.id }, bad = [];
+    for (const el of [document.scrollingElement, document.body, $("#main")]) if (el) { el.scrollTop = 0; el.scrollLeft = 0; }  // earlier checks scroll things into view
+    let menus = 0;
+    for (const theme of [was.theme, ...Theme.LIST.map((t) => t.id).filter((t) => t !== was.theme)]) {
+      Theme.set(theme);
+      for (const [name, show] of trials) {
+        if (theme !== was.theme && name !== "Who uses whom" && name !== "Epics") continue;  // the other themes are checked where the layers are heaviest
+        show(); await tick();
+        for (const btn of $$("#main [aria-haspopup]:not([disabled]):not([aria-disabled='true'])")) {
+          if (btn.offsetParent === null) continue;  // a control a narrow bar folds away is not on the page
+          btn.click(); await tick();
+          const pop = document.getElementById(btn.getAttribute("aria-controls"));
+          if (!pop || pop.hidden) continue;  // a button that is not a menu right now (a focus control with nothing picked)
+          menus++;
+          const r = pop.getBoundingClientRect();
+          for (const [fx, fy] of GRID) {
+            const x = r.left + r.width * fx, y = r.top + r.height * fy;
+            if (y > innerHeight || x > innerWidth) continue;  // the part below the window is reported once, below
+            const el = document.elementFromPoint(x, y);
+            if (!el || !pop.contains(el)) bad.push(`${name}, ${theme}, "${btn.title}": covered by ${el ? el.tagName + "." + el.className : "nothing"} at ${fx},${fy} (menu ${Math.round(r.left)},${Math.round(r.top)} ${Math.round(r.width)}x${Math.round(r.height)})`);
+          }
+          if (r.right > innerWidth + 1 || r.left < -1 || r.bottom > innerHeight + 1) bad.push(`${name}, "${btn.title}": runs off the window (${Math.round(r.top)} to ${Math.round(r.bottom)} of ${innerHeight} high, page scrolled ${scrollY})`);
+          Menus.close();
+          if (btn.getAttribute("aria-expanded") === "true") btn.click();  // the flow picker keeps its own list open
+        }
+      }
+    }
+    Theme.set(was.theme); MapView.st.lens = was.lens; Nav.home(); await tick();
+    ok(!bad.length && menus > 10, `menus on top: ${menus} open menus across every section, map view and theme are the topmost thing at 25 points across them`, `menus on top: ${bad.slice(0, 6).join(" | ")} (${menus} menus)`);
   }
 
   SelfTest.run = async () => {
     const only = HASH.get("only") === "qol";
     const report = only ? ["head"] : await base(), lines = [], errors = window.__errors.length;
     const ok = (cond, good, bad) => { lines.push(cond ? "ok " + good : "FAIL " + (bad || good)); if (HASH.has("trace")) console.log("[selftest] " + lines[lines.length - 1]); };
-    try { if (!wide()) await compact(ok); else await appPanel(ok); } catch (e) { lines.push("FAIL the quality-of-life checks threw: " + e.message + " " + (e.stack || "").split("\n")[1]); }
+    try { if (!wide()) await compact(ok); else { await appPanel(ok); await searchRows(ok); } await menusOnTop(ok); } catch (e) { lines.push("FAIL the quality-of-life checks threw: " + e.message + " " + (e.stack || "").split("\n")[1]); }
     Nav.home(); go("lights", { reset: true });
     if (window.__errors.length > errors) lines.push("FAIL JS ERRORS in the quality-of-life checks: " + window.__errors.slice(errors).join(" | "));
     const body = report.slice(1).concat(lines), fails = body.filter((l) => l.startsWith("FAIL")).length;

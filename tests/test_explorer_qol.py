@@ -71,3 +71,19 @@ def test_app_click_shows_its_flows_and_neighbors_first(chrome, heron):
     """Finding 4: the panel for an app opens on In these flows and Talks to, each chip a button that goes there."""
     lines = selftest(chrome, heron, 1440)
     need(lines, "app panel: clicking any of", "app panel: the flow chip plays", "app panel: the contract chip opens")
+
+
+@pytest.mark.browser
+@pytest.mark.parametrize("width", [1440, 800])
+def test_open_menus_are_above_every_view(chrome, heron, width):
+    """The user: on Who uses whom the chart drew over the open View menu. Every menu is the topmost element at its middle
+    and corners (document.elementFromPoint), in every section, map view and theme, and stays inside the window."""
+    lines = selftest(chrome, heron, width)
+    need(lines, "menus on top:")
+
+
+@pytest.mark.browser
+def test_search_is_one_row_per_thing_with_app_pills(chrome, heron):
+    """Finding 5: no Claude row on a file, one row per thing, pills for the apps it touches, Enter lights those apps."""
+    lines = selftest(chrome, heron, 1440)
+    need(lines, 'search "digest":', "search: the", "shows the apps it touches as pills", "search: Enter on")

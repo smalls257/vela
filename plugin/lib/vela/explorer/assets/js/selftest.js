@@ -781,6 +781,7 @@ const SelfTest = (() => {
      60% of the window, the choice is in storage as a reload would read it, and the views that fit the main area
      (the map, the matrix's frozen edges) still hold after every change. */
   async function panelRoom() {
+    if (isCompact()) { out.push("skip the panel room: under " + COMPACT_BELOW + " px it is a slide-over, checked by the compact group"); return; }
     const hidden0 = PanelSize.hidden, want0 = PanelSize.wanted;
     const mainW = () => $("#main").getBoundingClientRect().width, panelW = () => $("#panel").getBoundingClientRect().width;
     const stored = () => ({ hidden: Settings.read("explorer.panel.hidden"), width: Number(Settings.read("explorer.panel.width")) || null });
@@ -837,6 +838,7 @@ const SelfTest = (() => {
      main area widens, the handle's drag and arrow keys stay between the minimum and a third of the window, both choices
      are in storage as a reload reads them, and the page never scrolls sideways at the window it was opened in. */
   async function sideRoom() {
+    if (isCompact()) { out.push("skip the sections bar room: under " + COMPACT_BELOW + " px it is a slide-over, checked by the compact group"); return; }
     const hidden0 = SideSize.hidden, want0 = SideSize.wanted;
     const mainW = () => $("#main").getBoundingClientRect().width, sideW = () => $("#side").getBoundingClientRect().width;
     const stored = () => ({ hidden: Settings.read("explorer.side"), width: Number(Settings.read("explorer.side.width")) || null });
@@ -1122,8 +1124,8 @@ const SelfTest = (() => {
       window.fetch = realFetch;
       ok(Ask.st.mode === "file" && real.fetches === 0 && !seen.length && !Ask.served() && document.documentElement.dataset.ask === "file",
         "ask on a file: the helper is not looked for, no request is made, Enter asks nothing", `ask on a file: mode ${Ask.st.mode}, ${real.fetches} fetches at boot, ${seen.length} during, served ${Ask.served()}`);
-      ok(/Copy as a Claude Code prompt/.test(rowText) && /\/vela:explore/.test(rowText) && !$("#results .ask-btn b").textContent.includes("Ask Claude"),
-        "ask on a file: the box offers Copy as a Claude Code prompt and says to run /vela:explore, with no Ask button", `ask on a file: row says "${rowText}"`);
+      ok(!$("#results .r-ask") && !rowText && !/Claude/.test($("#results").textContent),
+        "ask on a file: the results have no Claude row at all, so no dead end sits first", `ask on a file: row says "${rowText}"`);
       const prompt = Ask.promptFor("What does the demo deliver?");
       ok(prompt.startsWith("What does the demo deliver?") && prompt.includes("[[ID]]") && prompt.includes("Never create, edit or delete"),
         "ask on a file: the copied prompt is the question plus the citation rules", `ask on a file: prompt "${prompt.slice(0, 80)}"`);
