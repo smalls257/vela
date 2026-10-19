@@ -64,3 +64,10 @@ def test_narrow_window_gives_the_diagram_the_width(chrome, heron):
     lines = selftest(chrome, heron, 800)
     need(lines, "compact, 800 px: the menu and the panel start closed", "the hamburger slides the menu over the diagram",
          "choosing a section closes the menu", "slides the panel over the diagram", "Esc closes the panel", "nothing scrolls sideways")
+
+
+@pytest.mark.browser
+def test_app_click_shows_its_flows_and_neighbors_first(chrome, heron):
+    """Finding 4: the panel for an app opens on In these flows and Talks to, each chip a button that goes there."""
+    lines = selftest(chrome, heron, 1440)
+    need(lines, "app panel: clicking any of", "app panel: the flow chip plays", "app panel: the contract chip opens")

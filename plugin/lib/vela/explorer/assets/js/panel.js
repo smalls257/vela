@@ -115,7 +115,7 @@ const Panel = (() => {
     if (onMap(e.key) && App.view !== "map") actions.append(h("button", { class: "btn", onclick: () => { showView("map"); viewDef("map").highlight(e.key); } }, "Show on the map"));
     if (e.kind === "unknown" && App.view !== "asks") actions.append(h("button", { class: "btn", onclick: () => { showView("asks"); viewDef("asks").highlight(e.key); } }, "Show in Who to ask"));
     const readKey = Reader.keyFor(e.key);
-    if (readKey) actions.append(h("button", { class: "btn open-page", title: "Read it here, in the plan's own words", onclick: () => go(readKey, {}) }, "Open the page"));
+    if (readKey) actions.append(h("button", { class: "btn open-page", title: "Read it here, in the plan's own words", onclick: () => go(readKey, {}) }, "Read the page"));
     if (e.kind === "app" && typeof MapView !== "undefined") actions.append(h("button", { class: "btn", onclick: () => Nav.focusApp(e.key) }, "Focus on the map"));
     if (e.kind === "app" && typeof Inside !== "undefined") actions.append(h("button", { class: "btn inside-btn", title: "How this app is built, and the team's plan for building it", onclick: () => Inside.open(e.key, "containers") }, "Inside this app"));
     if ((e.kind === "flow" || e.kind === "contract") && typeof Motion !== "undefined") actions.append(h("button", { class: "btn", title: "Show the route it takes on the map, step by step", onclick: () => Nav.trace(e.key) }, "Show its path on the map"));
@@ -151,10 +151,32 @@ const Panel = (() => {
     if (!light || light.level === "dark") return null;
     // a question reads by its name, with its ID as a small tag; the rest of the reason follows the name
     const named = (r) => { const t = titleOf(r.unknown), text = reasonText(r); return [h("a", { "data-ref": r.unknown }, t), idTag(idOf(r.unknown)), text.startsWith(t) ? text.slice(t.length) : " " + text]; };
-    return section("Why it needs you", null, h("ul", { class: "reasons" }, light.reasons.map((r) => h("li", { class: "r-" + r.kind },
-      lampEl(r.kind === "held" && r.unknown ? unknownLevel(r.unknown) : r.kind === "override" ? "override" : r.kind === "unexamined" ? "unexamined" : r.kind === "pending" ? "pending" : "caution"),
-      h("span", {}, r.unknown ? named(r) : r.text)))),
+    // Five "X: not reviewed yet" lines say one thing; they read as one line naming the five.
+    const unseen = light.reasons.filter((r) => r.kind === "unexamined" && / not reviewed yet$/.test(r.text || "")), merged = unseen.length > 1;
+    const rows = light.reasons.filter((r) => !(merged && unseen.includes(r)));
+    const lamp = (r) => lampEl(r.kind === "held" && r.unknown ? unknownLevel(r.unknown) : r.kind === "override" ? "override" : r.kind === "unexamined" ? "unexamined" : r.kind === "pending" ? "pending" : "caution");
+    return section("Why it needs you", null, h("ul", { class: "reasons" }, rows.map((r) => h("li", { class: "r-" + r.kind }, lamp(r), h("span", {}, r.unknown ? named(r) : r.text))),
+      merged ? h("li", { class: "r-unexamined" }, lampEl("unexamined"), h("span", {}, "Not reviewed yet: " + unseen.map((r) => r.text.replace(/:? ?not reviewed yet$/, "")).join(", "))) : null),
       h("div", { class: "p-note" }, light.level === "caution" || light.level === "warning" ? "Answer the questions above, or decide it in a grill session, and it turns gray." : `${LIGHT[light.level].word}: ${LIGHT[light.level].say}.`));
+  }
+  /* What an app is for on a call, before anything else: the flows it takes part in (a click plays the flow at the step
+     that uses it) and the apps and outside services it talks to (a click opens the contract). Each chip is a button, so
+     the keyboard has them too. */
+  function appLinks(k) {
+    const a = D.apps[k], flows = flowsFor(k).filter((r) => FLOW[r.flow]);
+    const flowChips = flows.map((r) => {
+      const at = firstStepTouching(FLOW[r.flow], k);
+      return h("button", { class: "chip p-chip", "data-flow": r.flow, title: `Play it from step ${FLOW[r.flow].steps[at] ? FLOW[r.flow].steps[at].n : 1}, where ${titleOf(k)} first comes in`,
+        onclick: () => { go(r.flow, { reset: true, reveal: true }); if (at > 0) Flows.select(r.flow, at); } }, titleOf(r.flow));
+    });
+    const contracts = [...a.consumes, ...a.provides].filter((id) => CONTRACT[id]);
+    const talks = contracts.map((id) => {
+      const c = CONTRACT[id], others = c.provider === k ? c.consumers : [c.provider];
+      return h("button", { class: "chip p-chip", "data-contract": id, title: `${titleOf(id)}: ${c.provider === k ? "it provides this to" : "it uses this from"} ${others.map(titleOf).join(", ")}`,
+        onclick: () => go(id, { reset: true, reveal: true }) }, others.map(titleOf).join(", "), h("span", { class: "ct" }, titleOf(id)));
+    });
+    const row = (title, chips, none) => section(title, null, chips.length ? h("div", { class: "p-chips" }, chips) : empty(none));
+    return h("div", { class: "p-links" }, row("In these flows", flowChips, "No flow uses this app yet."), row("Talks to", talks, "This app doesn't talk to any other app or service yet."));
   }
   function flowsSection(key) {
     const rows = flowsFor(key);
@@ -207,10 +229,9 @@ const Panel = (() => {
     if (typeof Inside !== "undefined") out.push(Inside.challengeSection(k));
     if (e.kind === "app") {
       const a = D.apps[k];
-      out.push(whyLit(k), prose(e), flowsSection(k));
-      out.push(section("Provides", a.provides.length, a.provides.length ? h("ul", { class: "mini-list" }, a.provides.map((id) => contractRow(id, "out"))) : empty("This app doesn't provide any contract.")));
-      out.push(section("Consumes", a.consumes.length, a.consumes.length ? h("ul", { class: "mini-list" }, a.consumes.map((id) => contractRow(id, "in"))) : empty("This app doesn't use any other app's contract.")));
-      out.push(section("Open questions blocking it", a.questions.length, a.questions.length ? h("ul", { class: "mini-list" }, a.questions.map((q) => unknownLine(q.id, q.via))) : empty("No open question is blocking this app.")));
+      const lit = lightOf(k) && lightOf(k).level !== "dark";
+      out.push(appLinks(k), whyLit(k), prose(e));
+      if (!lit) out.push(section("Open questions blocking it", a.questions.length, a.questions.length ? h("ul", { class: "mini-list" }, a.questions.map((q) => unknownLine(q.id, q.via))) : empty("No open question is blocking this app.")));
       out.push(section("Epics", a.epics.length, a.epics.length ? h("div", {}, a.epics.map((x) => refChip(x))) : empty("No epic lists this app.")));
       const caps = D.appCaps[k];
       out.push(section("Business area and capabilities", null, h("div", { class: "p-note" }, D.domains[k] === "No domain" ? "Business area: not recorded yet." : `Business area: ${D.domains[k]}.`),

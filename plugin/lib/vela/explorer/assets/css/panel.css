@@ -106,3 +106,11 @@ ol.ac-list .ac-head { display: block; color: var(--ink); font-weight: 600; }
 ol.ac-list li.struck { text-decoration: line-through; color: var(--ink-4); }
 .marker { display: inline-block; font-size: 10.5px; font-family: var(--mono); padding: 0 6px; margin-left: 5px; border-radius: 4px; background: var(--deck-3); color: var(--ink-2); vertical-align: 1px; }
 .ends .ref-chip { white-space: normal; overflow-wrap: anywhere; max-width: 100%; }
+
+/* an app's two chip rows: the flows it is in, and what it talks to (panel.js appLinks) */
+.p-links .p-sec:first-child { margin-top: 12px; }
+.p-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.p-chip { max-width: 100%; white-space: normal; text-align: left; font-size: 13px; padding: 3px 11px; }
+.p-chip:hover { background: var(--deck-3); color: var(--ink); }
+.p-chip .ct { color: var(--ink-3); margin-left: 4px; }
+.p-chip .ct::before { content: "· "; }
