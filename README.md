@@ -30,6 +30,7 @@ The repo is private, so your colleague needs access to it on GitHub first, and g
    - Only `/vela:grill` can mark an item `decided`, and only after your explicit yes.
    - `/vela:ask` answers questions from the vault. It is read-only, and anything the vault doesn't hold comes back as `Not recorded:`.
    - `/vela:find` finds where something is, in seconds, mid-conversation: "how does coach talk to brightwater" gives the best place to look and the flows that cross it.
+   - `/vela:onboard` gets someone who has just joined up to speed: it asks their role, what they need and whether they like diagrams or explanations, then sets up a path through the plan in the dashboard. Everything on it comes from the plan, and what the plan doesn't hold says "Not recorded yet" and who to ask.
    - `/vela:explore` builds the dashboard, one offline page of the whole initiative (map, flows played, who holds each answer), and opens it in your browser.
    - Discover, Shape and Grill each run a review checkpoint too. Between sessions, `python3 .claude/skills/vela/scripts/vela questions --digest` shows what is still owed. See "What v3 adds" below.
 5. **Before each PR,** run `python3 .claude/skills/vela/scripts/vela check`. CI runs it too. If you make it a required check, a broken vault can't merge.
