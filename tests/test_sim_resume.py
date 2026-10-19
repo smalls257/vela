@@ -11,7 +11,7 @@ import sys
 import pytest
 import yaml
 
-from conftest import REPO
+from conftest import REPO, built_once
 
 SIM = REPO / "tests" / "sim"
 spec = importlib.util.spec_from_file_location("sim_run_resume", SIM / "run.py")
@@ -64,10 +64,11 @@ def run_json(run_dir):
 
 @pytest.fixture(scope="module")
 def uninterrupted(tmp_path_factory):
-    tmp = tmp_path_factory.mktemp("whole")
-    code, err, run_dir = start(tmp)
-    assert code == 0, err
-    return run_dir
+    """The whole three-session stub run, built once per session; tests read it and copy it before changing it."""
+    def build(folder):
+        code, err, _ = start(folder)
+        assert code == 0, err
+    return sorted((built_once(tmp_path_factory, "resume-uninterrupted", build) / "results").iterdir())[0]
 
 
 def killed(tmp_path, at):

@@ -3,14 +3,16 @@ model or spends money: every run passes --stub, and --out keeps results in tmp_p
 import importlib.util
 import json
 import os
+import pathlib
 import re
+import shutil
 import subprocess
 import sys
 
 import pytest
 import yaml
 
-from conftest import REPO
+from conftest import REPO, built_once
 
 SIM = REPO / "tests" / "sim"
 spec = importlib.util.spec_from_file_location("sim_run", SIM / "run.py")
@@ -23,13 +25,13 @@ TWO_SESSIONS = {"name": "two", "sessions": [
     {"mode": "close", "cap": 3, "vela": "/vela:close", "baseline": "Close out this session."}]}
 
 
-def simulate(tmp_path, *extra, env=None, arms="vela", script_data=None):
+def simulate(tmp_path, *extra, env=None, arms="vela", script_data=None, sim_dir=SIM):
     """One stub run. Returns (exit code, stderr, run folder or None, stub call log)."""
     script = tmp_path / "two.yaml"
     script.write_text(yaml.safe_dump(script_data or TWO_SESSIONS), encoding="utf-8")
     out, log = tmp_path / "results", tmp_path / "stub-log.jsonl"
     full_env = {**os.environ, "SIM_STUB_LOG": str(log), **(env or {})}
-    done = subprocess.run([sys.executable, str(SIM / "run.py"), "coastal-merger", "--stub", "--script", str(script),
+    done = subprocess.run([sys.executable, str(sim_dir / "run.py"), "coastal-merger", "--stub", "--script", str(script),
                            "--arms", arms, "--out", str(out), *MODELS, *extra],
                           capture_output=True, text=True, env=full_env, timeout=600)
     runs = sorted(out.iterdir()) if out.is_dir() else []
@@ -41,19 +43,19 @@ def entries(arm_dir):
     return [json.loads(line) for line in (arm_dir / "transcript.jsonl").read_text(encoding="utf-8").splitlines()]
 
 
-def repo_state():
-    status = subprocess.run(["git", "status", "--porcelain"], cwd=REPO, capture_output=True, text=True, timeout=60).stdout
-    results = sorted(p.name for p in (SIM / "results").iterdir()) if (SIM / "results").is_dir() else []
-    return status, results
+def _build_full_run(folder):
+    tmp = folder / "run"
+    tmp.mkdir()
+    code, err, run_dir, calls = simulate(tmp, "--budget", "5", arms="vela,vela-seuss,baseline")
+    (folder / "meta.json").write_text(json.dumps({"code": code, "err": err, "run": str(run_dir), "calls": calls}), encoding="utf-8")
 
 
 @pytest.fixture(scope="module")
 def full_run(tmp_path_factory):
-    """All three arms over the two-session script, with the repo's state taken before and after."""
-    tmp = tmp_path_factory.mktemp("sim")
-    before = repo_state()
-    code, err, run_dir, calls = simulate(tmp, "--budget", "5", arms="vela,vela-seuss,baseline")
-    return {"code": code, "err": err, "run": run_dir, "calls": calls, "tmp": tmp, "before": before, "after": repo_state()}
+    """All three arms over the two-session script, built once per session however many workers ask. Read-only."""
+    folder = built_once(tmp_path_factory, "sim-full-run", _build_full_run)
+    meta = json.loads((folder / "meta.json").read_text(encoding="utf-8"))
+    return {**meta, "run": pathlib.Path(meta["run"]), "tmp": folder / "run"}
 
 
 def test_full_run_exits_0_and_writes_every_output(full_run):
@@ -226,12 +228,31 @@ def test_scorecard_drops_claims_without_a_valid_citation(full_run):
     assert "## Dropped claims" in md and "no-such-page.md" in md
 
 
-def test_nothing_is_written_outside_the_run_folder(full_run):
-    assert full_run["before"] == full_run["after"], "the repo changed during a run"
+def a_repo_of_its_own(destination):
+    """The parts of this repo a stub run reads, as a fresh git repo that nothing else is editing. The test checks that
+    repo, not the shared working tree: another session's edit to the real tree is not a write by the run."""
+    ignore = shutil.ignore_patterns("snapshots", "scale", "results", "__pycache__", "*.pyc")
+    for part in ("tests/sim", "tests/evals", "tools", "plugin", "template"):
+        shutil.copytree(REPO / part, destination / part, ignore=ignore)
+    for step in (["init", "-q", "-b", "main"], ["add", "-A"], ["-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "base"]):
+        subprocess.run(["git", *step], cwd=destination, check=True, capture_output=True, timeout=120)
+    return destination
+
+
+def test_nothing_is_written_outside_the_run_folder(full_run, tmp_path):
     assert sorted(p.name for p in full_run["tmp"].iterdir()) == ["results", "stub-log.jsonl", "two.yaml"]
     run_dir = str(full_run["run"]) + os.sep
     for call in full_run["calls"]:
         assert call["cwd"].startswith(run_dir) and call["tmpdir"].startswith(run_dir)
+    repo = a_repo_of_its_own(tmp_path / "repo")
+    out = tmp_path / "elsewhere"
+    out.mkdir()
+    code, err, _, _ = simulate(out, "--budget", "5", arms="vela,baseline", sim_dir=repo / "tests" / "sim",
+                               env={"PYTHONDONTWRITEBYTECODE": "1"})  # a .pyc is the interpreter's write, not the run's
+    assert code == 0, err
+    status = subprocess.run(["git", "status", "--porcelain"], cwd=repo, capture_output=True, text=True, timeout=60).stdout
+    assert status == "", f"the run changed its repo:\n{status}"
+    assert not (repo / "tests" / "sim" / "results").exists(), "a run with --out wrote to the default results folder"
 
 
 def test_budget_stop_exits_1_and_still_writes_the_scorecard(tmp_path):

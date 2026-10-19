@@ -2,8 +2,6 @@
 calls a model: the one run is --stub."""
 import importlib.util
 import json
-import os
-import pathlib
 import re
 import shutil
 import subprocess

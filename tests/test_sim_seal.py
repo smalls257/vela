@@ -5,8 +5,8 @@ learned that persona's names, keywords or brief, while real leads see no change.
 term, the failure report may not carry one, and a holdout's per-item results stay sealed unless --reveal is given.
 Nothing here calls a model. A failure names files and counts, never a holdout's term.
 """
+import hashlib
 import importlib.util
-import json
 import os
 import re
 import subprocess
@@ -14,7 +14,7 @@ import sys
 
 import pytest
 
-from conftest import REPO
+from conftest import REPO, built_once, value_built_once
 
 SIM = REPO / "tests" / "sim"
 MODELS = ["--model", "test-model", "--persona-model", "test-persona", "--judge-model", "test-judge"]
@@ -84,8 +84,9 @@ def test_redaction_removes_every_kind_of_term_and_counts_it(terms):
 # ------------------------------------------------------------------ the leak scan of plugin/**
 
 @pytest.fixture(scope="module")
-def plugin_leaks():
-    return seal.plugin_leaks()
+def plugin_leaks(tmp_path_factory):
+    """The scan of plugin/** (about 55 s), done once per session, not once per worker."""
+    return value_built_once(tmp_path_factory, "seal-plugin-leaks", seal.plugin_leaks)
 
 
 def test_the_plugin_gains_no_persona_term(plugin_leaks):
@@ -115,16 +116,19 @@ def test_the_scan_finds_a_planted_term_and_skips_vendored_files(tmp_path):
 
 # ------------------------------------------------------------------ the failure report
 
-def stub_run(tmp_path, persona, reply):
-    """A stub run of the smoke script whose assistant says `reply` first in every session."""
-    reply_file = tmp_path / "reply.txt"
-    reply_file.write_text(reply, encoding="utf-8")
-    env = {**os.environ, "SIM_STUB_REPLY": str(reply_file)}
-    done = subprocess.run([sys.executable, str(SIM / "run.py"), persona, "--stub", *MODELS, "--budget", "5",
-                           "--arms", "vela", "--script", "smoke", "--out", str(tmp_path / "out")],
-                          capture_output=True, text=True, env=env, timeout=600)
-    assert done.returncode == 0, done.stderr[-2000:]
-    return next((tmp_path / "out").iterdir())
+def stub_run(tmp_path_factory, persona, reply):
+    """A stub run of the smoke script whose assistant says `reply` first in every session. The same persona and reply
+    give the same run, so it is built once per session and the tests read it without changing it."""
+    def build(folder):
+        reply_file = folder / "reply.txt"
+        reply_file.write_text(reply, encoding="utf-8")
+        env = {**os.environ, "SIM_STUB_REPLY": str(reply_file)}
+        done = subprocess.run([sys.executable, str(SIM / "run.py"), persona, "--stub", *MODELS, "--budget", "5",
+                               "--arms", "vela", "--script", "smoke", "--out", str(folder / "out")],
+                              capture_output=True, text=True, env=env, timeout=600)
+        assert done.returncode == 0, done.stderr[-2000:]
+    key = f"seal-stub-run-{persona}-{hashlib.sha1(reply.encode()).hexdigest()[:10]}"
+    return next((built_once(tmp_path_factory, key, build) / "out").iterdir())
 
 
 LEAKY_REPLY = ("Priya Menon, the works council at Marlowe will want to read Heron's design. Who owns the DPIA? "
@@ -138,8 +142,8 @@ def failures(run_dir, *extra):
     return done.stdout
 
 
-def test_the_failure_report_names_behaviors_and_turns_and_no_key_term(tmp_path, terms):
-    run_dir = stub_run(tmp_path, "heron-desk", LEAKY_REPLY)
+def test_the_failure_report_names_behaviors_and_turns_and_no_key_term(tmp_path_factory, terms):
+    run_dir = stub_run(tmp_path_factory, "heron-desk", LEAKY_REPLY)
     out = failures(run_dir)
     assert "asked the lead more than 3 questions in one turn" in out
     assert re.search(r"showed the lead internal codes, IDs, file paths or tool commands \(\d+ times?: T\d", out)
@@ -150,15 +154,15 @@ def test_the_failure_report_names_behaviors_and_turns_and_no_key_term(tmp_path, 
     assert "Priya" not in out and "works council" not in out.lower()
 
 
-def test_run_py_failures_is_the_same_report(tmp_path):
-    run_dir = stub_run(tmp_path, "heron-desk", LEAKY_REPLY)
+def test_run_py_failures_is_the_same_report(tmp_path_factory):
+    run_dir = stub_run(tmp_path_factory, "heron-desk", LEAKY_REPLY)
     done = subprocess.run([sys.executable, str(SIM / "run.py"), "--failures", str(run_dir)],
                           capture_output=True, text=True, timeout=300)
     assert done.returncode == 0 and done.stdout.strip() == failures(run_dir).strip()
 
 
-def test_a_holdout_gets_scores_only_unless_revealed(tmp_path, terms):
-    run_dir = stub_run(tmp_path, "coastal-merger", LEAKY_REPLY)
+def test_a_holdout_gets_scores_only_unless_revealed(tmp_path_factory, terms):
+    run_dir = stub_run(tmp_path_factory, "coastal-merger", LEAKY_REPLY)
     sealed = failures(run_dir)
     assert "Sealed: coastal-merger is a holdout persona" in sealed and "## Scores" in sealed
     assert "What went wrong" not in sealed
