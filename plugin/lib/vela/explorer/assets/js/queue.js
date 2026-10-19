@@ -84,7 +84,7 @@ const Queue = (() => {
   function me() {
     const handle = D.me && D.me.handle ? "@" + D.me.handle.toLowerCase() : "";
     if (handle) return { kind: "handle", waiting: (a) => [a.ask.key, a.ask.owner].some((k) => String(k || "").toLowerCase() === handle) };
-    const role = typeof Roles !== "undefined" && Roles.st.chosen ? Roles.st.role : "";
+    const role = typeof Onboard !== "undefined" ? Onboard.myRole().role : "";  // one answer to "which role is reading" for the whole page
     if (ROLE_WORDS[role]) return { kind: "role", role, waiting: (a) => ROLE_WORDS[role].test(`${a.ask.name || ""} ${a.ownerRaw || ""}`) };
     return null;
   }
