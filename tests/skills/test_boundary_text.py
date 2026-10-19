@@ -220,3 +220,10 @@ def test_no_skill_or_reference_tells_the_model_to_write_an_unexamined_row():
 def test_pages_names_the_line_the_code_writes():
     pages = read("skills/boundary/PAGES.md")
     assert "Not looked at yet:" in pages
+
+
+
+def test_boundary_says_what_to_do_with_the_ready_to_decide_hand_off():
+    from conftest import REPO
+    text = (REPO / "plugin/skills/boundary/SKILL.md").read_text(encoding="utf-8")
+    assert "run `vela decide` on it" in text and "ready to decide, offer the lead a short grill" in text

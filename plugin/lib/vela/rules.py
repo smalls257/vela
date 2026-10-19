@@ -1148,6 +1148,17 @@ def stage_rules(vault, today):
 
 # ------------------------------------------------------------------ concerns
 
+NOT_LOOKED_LINE = re.compile(r"^Not looked at yet:\s*(?P<apps>.+)$", re.M)
+LINK_TARGET = re.compile(r"\[\[([^\]|\\#]+)")
+
+
+def not_looked_at(concern):
+    """Lower-cased page names of the apps a concern page names on its "Not looked at yet:" line: the one plain line
+    `add app-stub` writes in place of an empty row per app. They count as unexamined, which is what E315 asks for."""
+    found = NOT_LOOKED_LINE.search(concern.text)
+    return {t.strip().lower() for t in LINK_TARGET.findall(found["apps"])} if found else set()
+
+
 def concern_rules(vault, today):
     app_names = {a.name.lower(): a for a in vault.apps}
     for concern in sorted(vault.of_type("concern"), key=lambda p: p.id):
@@ -1178,8 +1189,9 @@ def concern_rules(vault, today):
                 yield _f(concern, cell.line, "E301", f"Cell for {label} is unknown but links no unknown.",
                          "Link the unknown, for example [[11-unknowns-and-risks#UNK-004 Kiosk authentication|UNK-004]].")
         line = cell_table(concern).line if cell_table(concern) else 1
+        covered = not_looked_at(concern)
         for name, app in sorted(app_names.items()):
-            if name not in seen:
+            if name not in seen and name not in covered:
                 yield _f(concern, line, "E315", f"No cell for {app.id} on this concern page, so it counts as unexamined.",
                          f"Add a row for [[{app.name}|{str(app.meta.get('title') or app.name)}]] with its state.")
 
