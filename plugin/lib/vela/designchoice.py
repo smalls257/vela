@@ -18,6 +18,7 @@ CHOICE = re.compile(r"\bwe(?:'ll|’ll| will| are going to)\s+(?:use|build|adopt
                     r"|^\s*(?:[-*+]\s+)?(?:\*\*)?(?:decision|chosen option|choice)(?:\*\*)?\s*:", re.I)
 DECISIONS_HEAD = re.compile(r"^\s*(?:#{2,4}\s+decisions?\b|>?\s*\*\*decisions\b[^*]*\*\*)", re.I)
 BULLET = re.compile(r"^\s*>?\s*[-*+]\s+\S")
+NO_CHOICE = re.compile(r"^\s*>?\s*[-*+]\s+(?:\*\*)?(?:none|nothing|n/?a|tbd|no decisions?)\b", re.I)  # "- None yet" records no choice
 
 _WORD = re.compile(r"[a-z0-9]+")
 _FILLER = {"that", "this", "with", "from", "will", "well", "have", "into", "than", "then", "they", "them", "when",
@@ -38,7 +39,7 @@ def choice_lines(rel, text):
                 listing = True
             elif listing and not BULLET.match(line) and line.strip():
                 listing = False
-            hit = (listing and bool(BULLET.match(line))) or bool(CHOICE.search(line))
+            hit = (listing and bool(BULLET.match(line)) and not NO_CHOICE.match(line)) or bool(CHOICE.search(line))
         if hit:
             found[line.strip()] += 1
     return found

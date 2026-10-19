@@ -132,3 +132,8 @@ def test_the_detector_reads_adr_titles_decision_bullets_and_we_will_lines():
     doc = "We'll use SQLite for the cache.\n\n### Decisions\n\n- Key stays local\n\nProse.\n"
     assert designchoice.added_choices("docs/x.md", "", doc) == ["We'll use SQLite for the cache.", "- Key stays local"]
     assert designchoice.added_choices("docs/x.md", doc, doc) == []
+
+
+def test_a_none_yet_bullet_under_decisions_is_no_choice(repo):
+    change(repo, "docs/tech-design/heron.md", "# Heron\n\n**Decisions that shape it:**\n\n- None yet. Scope is open.\n")
+    assert commit(repo, "--about", "scope")[0] == 0
