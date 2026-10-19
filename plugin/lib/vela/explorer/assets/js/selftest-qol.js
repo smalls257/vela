@@ -210,10 +210,11 @@
   };
   async function underTheDiagram(ok) {
     const bad = [], parts = [[".flow-nodes", "the flow as a list"], ["#caption", "the current step"], ["#transport", "the player bar"]];
-    Nav.open("flows"); await tick();
-    for (const [sel, name] of parts) { const why = reachable($(sel)); if (why) bad.push(`Flows: ${name} ${why}`); }
+    if (D.flows.length) Nav.open("flows");
+    await tick();
+    if (D.flows.length) for (const [sel, name] of parts) { const why = reachable($(sel)); if (why) bad.push(`Flows: ${name} ${why}`); }
     const dia = rect("#main .dia");
-    if (dia.height < 150) bad.push(`Flows: the diagram is squeezed to ${Math.round(dia.height)} px`);
+    if (D.flows.length && dia.height < 150) bad.push(`Flows: the diagram is squeezed to ${Math.round(dia.height)} px`);
     $("#main").scrollTop = 0;
     for (const id of ["apps", "capabilities", "decisions", "unknowns", "releases", "slices"].filter((x) => Nav.SECTIONS[x])) {
       Nav.open(id); await tick();
