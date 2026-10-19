@@ -767,6 +767,9 @@ def claims_unsupported(run, criterion):
         raise ToolFailure(str(exc)) from exc
     if data is None:
         raise ToolFailure(f"the design claims judge did not score the session: {why}")
+    for row in data.get("items") or []:  # a judge may cite an inbox document by its folder too; the name is the key
+        if isinstance(row, dict) and str(row.get("where") or "").startswith(".inbox/"):
+            row["where"] = row["where"][len(".inbox/"):]
     rows, _ = precision.enforce(data, sample, labels, docs, spoken)
     bad = [r for r in rows if r["class"] == "unsupported"]
     passed = len(bad) <= criterion["at_most"]
@@ -781,7 +784,7 @@ def claim_units(run, criterion):
     under docs/, judged against the vault it started from; `where: plan` is an import's plan pages, every item the
     snapshot didn't already hold, judged against the inbox documents first, then the starting vault."""
     if criterion.get("where", "docs") == "plan":
-        inbox = [{"name": f".inbox/{d['name']}", "text": d["text"]} for d in run.persona.get("docs") or []]
+        inbox = [{"name": d["name"], "text": d["text"]} for d in run.persona.get("docs") or []]  # as the judge names them
         return precision.units_of(run.vault, template=run.snapshot), inbox + claim_sources(run.snapshot), "plan"
     return design_units(run.vault), claim_sources(run.snapshot), "design"
 
