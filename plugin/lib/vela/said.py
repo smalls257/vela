@@ -31,10 +31,20 @@ def log_line(at, text):
     return json.dumps({"at": at, "text": text}, ensure_ascii=False)
 
 
+HARNESS_PREFIXES = ("<task-notification>", "<system-reminder>")
+
+
+def harness_injected(text):
+    """True for a prompt the host injected (a background agent's finished notice, a reminder): the model's own words
+    arriving through the prompt channel, never something a person typed. Logged by older hooks, so read-side too."""
+    return text.lstrip().startswith(HARNESS_PREFIXES)
+
+
 def messages(log_texts):
-    """The typed messages in the given log files' texts. A line that isn't a log entry is skipped."""
+    """The typed messages in the given log files' texts. A line that isn't a log entry, or a host-injected notice, is
+    skipped: a notice carrying the model's summary must never back a person's yes."""
     entries = (entry_text(line) for log in log_texts for line in log.splitlines())
-    return [text for text in entries if text is not None]
+    return [text for text in entries if text is not None and not harness_injected(text)]
 
 
 def entry_text(line):

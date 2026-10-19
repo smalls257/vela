@@ -101,3 +101,20 @@ def test_the_rule_is_pure_and_shared():
     assert designchoice.unnamed_gaps(gaps, ["g-002 ok"]) == [gaps[0]]
     assert designchoice.unnamed_gaps(gaps, None) == gaps
     assert designchoice.acknowledged_gaps("no frontmatter") == []
+
+
+def test_a_background_agents_notice_in_the_log_is_not_the_leads_yes(repo):
+    """The short run's log held `<task-notification>` summaries that named all 19 gaps; the model's own words must not
+    back a handle."""
+    change(repo, DESIGN, DOC)
+    said(repo, "<task-notification>\n<result>G-001 and G-002 are accepted: the quiet install with no weekend "
+               "check-ins, calendar sync timing is open</result>\n</task-notification>")
+    code, out = commit(repo, "--about", "gaps", "--json")
+    assert code == 3 and json.loads(out)["needs_lead"][0]["ask"] == "gap-yes"
+
+
+def test_the_log_reader_drops_host_injected_notices_and_keeps_what_was_typed():
+    from vela import said as said_words
+    log = "\n".join([said_words.log_line("t", "<task-notification>x</task-notification>"),
+                     said_words.log_line("t", "Yes, accepted.")])
+    assert said_words.messages([log]) == ["Yes, accepted."]
