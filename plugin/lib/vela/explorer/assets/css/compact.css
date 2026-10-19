@@ -8,6 +8,8 @@
   #side { left: 0; width: min(300px, 86vw); border-right: 1px solid var(--rule-3); }
   #panel { right: 0; width: min(400px, 94vw); border-left: 1px solid var(--rule-3); }
   #panel-grip, #side-grip { display: none; }
+  /* the Details tab stands on the window's right edge: a gutter keeps it off the diagram bar's last button */
+  body.panel-hidden #main { margin-right: 26px; }
   .search { min-width: 120px; }
 }
 @media (max-width: 700px) {

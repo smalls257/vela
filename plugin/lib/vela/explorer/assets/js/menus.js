@@ -63,8 +63,6 @@ const Menus = (() => {
   }
 
   /* One menu. `kind: "choice"` shows what it sets ("View  System map"); `kind: "icon"` shows just its icon, named by `label`. */
-  /* The right edge a menu keeps inside: in a narrow window the Details tab stands on the window's edge, and a menu does not run under it. */
-  const edge = (lim) => lim.right - (document.body.classList.contains("compact") && $("#panel-tab") && !$("#panel-tab").hidden ? 30 : 0);
   function menu({ id, kind = "choice", label, current, glyph, items, align = "left", title, extraClass = "" }) {
     const uid = `dmenu-${id}-${++seq}`;
     const btn = h("button", { class: "dmenu-btn" + (kind === "icon" ? " icon" : "") + (extraClass ? " " + extraClass : ""), type: "button", id: uid + "-btn", "aria-haspopup": "menu", "aria-expanded": "false", "aria-controls": uid,
@@ -82,7 +80,7 @@ const Menus = (() => {
       pop.style.left = ""; pop.style.right = ""; pop.style.maxHeight = "";
       const frame = root.closest(".dia") || root.closest("#main") || document.body, lim = frame.getBoundingClientRect(), r = pop.getBoundingClientRect();
       if (align === "right") { if (r.left < lim.left + 6) pop.style.right = `${r.left - lim.left - 6}px`; }
-      else if (r.right > edge(lim) - 6) pop.style.left = `${Math.min(0, edge(lim) - 6 - r.right)}px`;
+      else if (r.right > lim.right - 6) pop.style.left = `${Math.min(0, lim.right - 6 - r.right)}px`;
       const room = innerHeight - r.top - 10;  // a short window: the menu scrolls inside itself rather than run off the bottom
       if (r.height > room) pop.style.maxHeight = `${Math.max(120, room)}px`;
     }
@@ -129,7 +127,7 @@ const Menus = (() => {
       pop.style.left = ""; pop.style.right = ""; pop.style.maxHeight = "";
       const frame = root.closest(".dia") || root.closest("#main") || document.body, lim = frame.getBoundingClientRect(), r = pop.getBoundingClientRect();
       if (align === "right") { if (r.left < lim.left + 6) pop.style.right = `${r.left - lim.left - 6}px`; }
-      else if (r.right > edge(lim) - 6) pop.style.left = `${Math.min(0, edge(lim) - 6 - r.right)}px`;
+      else if (r.right > lim.right - 6) pop.style.left = `${Math.min(0, lim.right - 6 - r.right)}px`;
       const room = innerHeight - r.top - 10;  // a short window: the menu scrolls inside itself rather than run off the bottom
       if (r.height > room) pop.style.maxHeight = `${Math.max(120, room)}px`;
     }

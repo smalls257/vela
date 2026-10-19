@@ -15,8 +15,8 @@
     PanelSize.hide(true); SideSize.hide(true);  // earlier checks leave them as they like
     const saved0 = Settings.read("explorer.panel.hidden"); Nav.home(); await tick();
     const side = rect("#side"), panel = rect("#panel"), main = rect("#main");
-    ok(document.body.classList.contains("compact") && !shown("#side") && !shown("#panel") && main.width >= innerWidth - 1,
-      `compact, ${innerWidth} px: the menu and the panel start closed and the diagram has the whole ${Math.round(main.width)} px`, `compact: menu shown ${shown("#side")}, panel shown ${shown("#panel")}, main ${Math.round(main.width)} of ${innerWidth}`);
+    ok(document.body.classList.contains("compact") && !shown("#side") && !shown("#panel") && main.width >= innerWidth - 30,
+      `compact, ${innerWidth} px: the menu and the panel start closed and the diagram has ${Math.round(main.width)} of the ${innerWidth} px (the rest is a gutter for the Details tab)`, `compact: menu shown ${shown("#side")}, panel shown ${shown("#panel")}, main ${Math.round(main.width)} of ${innerWidth}`);
     ok(!$("#side-toggle").hidden && $("#side-toggle").getAttribute("aria-expanded") === "false" && !$("#panel-tab").hidden,
       "compact: the hamburger and the Details tab are the ways back to the menu and the panel", "compact: the hamburger or the Details tab is missing");
     $("#side-toggle").click(); await tick();
