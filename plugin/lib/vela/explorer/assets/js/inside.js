@@ -24,10 +24,10 @@
 const Inside = (() => {
   const DES = D.designs || {}, CONT = D.containers || {};
   const LEVELS = [["context", "Context"], ["containers", "Containers"], ["components", "Components"], ["plan", "Build plan"]];
-  const TABS = [["trace", "Coverage"], ["data", "Data model"], ["api", "API contracts"], ["flows", "Key flows"], ["stack", "Tech stack"], ["nfrs", "Quality targets"],
+  const TABS = [["overview", "Overview"], ["coverage", "Coverage"], ["data", "Data model"], ["api", "API contracts"], ["flows", "Key flows"], ["stack", "Tech stack"], ["nfrs", "Quality targets"],
     ["constraints", "Constraints"], ["risks", "Risks"], ["adrs", "Design decisions"], ["ops", "Operations"], ["glossary", "Glossary"]];
-  const st = { app: "", level: "context", tab: "trace", step: {}, playing: null, zoom: {} };
-  const VAULT_ID = /\b(?:CAP-\d{3}(?:\.FR\d+(?:@APP-[a-z0-9-]+)?)?|EPC-\d{3}(?:\.AC\d+)?|CON-\d{3}|UNK-\d{3}|FLO-\d{3}|CST-\d+|INI-\d{3}|APP-[a-z0-9-]+|R-\d{2}|PTY-\d{2,3}|SV-\d{2,3})\b/g;
+  const st = { app: "", level: "context", tab: "", step: {}, playing: null, zoom: {}, show: "all", hl: "near", hover: "", full: false };
+  const VAULT_ID = /\b(?:CAP-\d{3}(?:\.FR\d+(?:@APP-[a-z0-9-]+)?)?|EPC-\d{3}(?:[. ]AC\d+)?|CON-\d{3}|UNK-\d{3}|FLO-\d{3}|CST-\d+|INI-\d{3}|APP-[a-z0-9-]+|R-\d{2}|PTY-\d{2,3}|SV-\d{2,3})\b/g;
   const appTitle = (k) => titleOf(k);
   const VIA = { "trace table": "trace table", responsibility: "component description", "depends on": "what it depends on", exposes: "what it offers", owns: "what it owns",
     "matrix owns": "data table", "matrix reads from": "data table", "matrix writes to": "data table", "api contracts": "API contracts" };
@@ -44,6 +44,7 @@ const Inside = (() => {
   /* Where a vault ID the design cites opens: an allocated row at its requirement, a criterion at its epic (when the
      epic has that many), the initiative at the home; null when the vault holds no such thing. */
   function vaultKey(id) {
+    id = id.replace(/\s+AC/, ".AC");
     const ac = id.match(/^(EPC-\d{3})\.AC(\d+)$/);
     if (ac) { const k = keyForId(ac[1]); return ent(k) && (D.epicCriteria[k] || []).some((c) => c.n === +ac[2]) ? k : null; }
     if (id === D.initiative) return "lights";
@@ -107,9 +108,9 @@ const Inside = (() => {
   const key = (app, kind, name) => "inside:" + app + (kind ? `|${kind}|${encodeURIComponent(name)}` : "");
   function parse(k) { const [app, kind, name] = k.slice(7).split("|"); return { app, kind: kind || "", name: name ? decodeURIComponent(name) : "" }; }
   function entOf(k) {
-    const p = parse(k), d = design(p.app);
+    const p = parse(k);
     if (!APPS[p.app]) return null;
-    const title = !p.kind ? designWord(p.app) : p.kind === "problems" ? `What couldn't be read in the ${designWord(p.app)}` : (p.kind === "story" || p.kind === "blocker") && typeof Plan !== "undefined" ? Plan.panelTitle(p.app, p.kind, p.name) : p.kind === "adr" ? (d && (d.adrs.find((a) => a.id === p.name) || {}).adr_title ? `${p.name} ${(d.adrs.find((a) => a.id === p.name) || {}).adr_title}` : p.name) : p.name;
+    const title = labelOfKey(k);
     return { key: k, kind: "inside", title, id: "" };
   }
 
@@ -120,12 +121,14 @@ const Inside = (() => {
     const deeper = LEVELS.findIndex(([l]) => l === level) > LEVELS.findIndex(([l]) => l === st.level);
     const was = App.view === "inside" && st.app === k ? st.level : null;
     st.app = k; st.level = LEVELS.some(([l]) => l === level) ? level : "context";
-    if (opts.tab) st.tab = opts.tab;
+    st.tab = opts.tab || "";
+    DetailsPanel.reset();
     App.section = "apps"; Nav.st.child = k; MapView.st.focus = null;
     App.view = "inside"; App.focus = k;
     App.root = st.level === "components" && design(k) ? key(k) : Reader.keyFor(k) || "lights";
     if (!opts.keepTrail) App.trail = [];
     Nav.syncHash(); rerender(); Panel.render();
+    if (opts.tab && st.level === "components" && design(k)) { App.trail = [key(k, "sec", opts.tab)]; Panel.render(); highlight(topKey()); }
     if (!opts.still) zoom(opts.from || null, was === null ? true : deeper);
   }
   /* Effects On: the new level grows out of what was picked, or the old one recedes. Plain: it is simply there. */
@@ -137,7 +140,7 @@ const Inside = (() => {
     const from = inward ? `scale(${clamp(f.width / r.width, 0.12, 0.6).toFixed(3)})` : "scale(1.7)";
     stage.animate([{ transform: from, opacity: 0.15 }, { transform: "scale(1)", opacity: 1 }], { duration: 460, easing: "cubic-bezier(.2,.8,.2,1)" });
   }
-  const hash = () => `inside=${encodeURIComponent(st.app)}&level=${st.level}${st.level === "components" && st.tab !== "trace" ? "&tab=" + st.tab : ""}`;
+  const hash = () => `inside=${encodeURIComponent(st.app)}&level=${st.level}${st.level === "components" && st.tab ? "&tab=" + st.tab : ""}`;
   function boot() {
     const k = keyOfApp(HASH.get("inside"));
     if (!k) { console.warn(`[inside] #inside=${HASH.get("inside")} is not an app in this vault; opening the home`); return false; }
@@ -156,9 +159,10 @@ const Inside = (() => {
       h("div", {}, h("div", { class: "kicker" }, "Inside this app"),
         h("h1", {}, Icons.forKey(app, "p-glyph"), appTitle(app)), crumbs()),
       h("div", { class: "spacer" }),
-      h("div", { class: "page-actions" }, d && st.level !== "plan" ? statusPill(app) : null, d && st.level !== "plan" ? problemsChip(app) : null,  // the plan level has its own bar of status and problems
+      h("div", { class: "page-actions" }, d && st.level !== "plan" ? designState(app) : null,  // the plan level has its own bar of status and problems
         st.level === "plan" ? null : designLink(d, Icons.el("docs")),
         h("button", { class: "btn", onclick: () => Nav.open("apps", app) }, "Back to the map"))));
+    main.classList.toggle("inside-full", !!st.full && st.level !== "plan");
     const stage = h("div", { class: "inside-stage inside-" + st.level, id: "inside-stage", "data-level": st.level, "data-app": app });
     main.append(stage);
     ({ context, containers, components, plan: (box, a) => Plan.render(box, a) })[st.level](stage, app, d);
@@ -185,6 +189,15 @@ const Inside = (() => {
   function designStatus(status) {
     return ({ complete: "Design done", "complete-with-gaps": "Design done, with gaps", "in-progress": "Design in progress", draft: "Design in draft" })[status] || (status ? "Design: " + status : "Design status not given");
   }
+  /* The design's state and what could not be read, once, in the header: "Design in progress · 15 parts not read". It opens the list with line numbers. */
+  function designState(app) {
+    const d = design(app), fm = d.frontmatter, n = d.problems.length, un = d.resolved.unresolved.length;
+    const word = fm.status === "complete-with-gaps" ? "Design done, with gaps" : designStatus(fm.status);
+    const text = [word, n ? `${plural(n, "part")} not read` : "read in full", un ? `${un} it names that the plan doesn't have` : ""].filter(Boolean).join(" · ");
+    return h("button", { class: "chip d-problems d-status d-state " + (fm.status || "unknown") + (n || un ? " some" : ""), "data-problems": n, type: "button",
+      title: `${designStatus(fm.status)}. ${n ? `${plural(n, "part")} of the design doc couldn't be read.` : "The whole design doc was read."} Open the list, with line numbers.`,
+      onclick: (ev) => { ev.stopPropagation(); DetailsPanel.show(key(app, "problems", "all"), { reset: true }); } }, Icons.el(n || un ? "audit" : "consent"), text);
+  }
   /* The count of what the reader could not read: always shown, opening the list with line numbers. */
   function problemsChip(app, opts = {}) {
     const d = design(app), n = d.problems.length, un = d.resolved.unresolved.length;
@@ -200,7 +213,7 @@ const Inside = (() => {
   function context(stage, app) {
     const board = h("div", { class: "board board-cockpit board-focus", id: "board" });
     const lg = keyFor("inside-context", () => $("#inside-stage"), MapView.LOOKS.focus());
-    stage.append(board, lg.el());
+    stage.append(Menus.frame({ right: [Menus.keyButton(lg), fullButton(), Nav.moreMenu(insideMore)] }, board));
     lg.within(() => MapGroups.focus(board, app, (el) => open(app, "containers", { from: el.getBoundingClientRect() })));
     lg.paint();
     const center = $(`#board g.hit[data-key="${CSS.escape(app)}"]`);
@@ -366,7 +379,7 @@ const Inside = (() => {
     for (const p of lay.paths) {
       const e = p.e;
       const pts = p.pts.filter((q, i) => !i || Math.hypot(q.x - p.pts[i - 1].x, q.y - p.pts[i - 1].y) > 0.5);  // a bend needs two distinct points
-      s("path", { d: Geo.roundedPath(pts, 18), class: "in-edge" + (e.soft ? " soft" : "") + (e.lit ? " lit " + e.lit : ""), "marker-end": `url(#${e.soft ? "in-arrow-soft" : "in-arrow"})`, "data-from": e.from, "data-to": e.to }, gEdges)
+      s("path", { d: Geo.roundedPath(pts, 18), class: "in-edge" + (e.soft ? " soft" : "") + (e.lit ? " lit " + e.lit : ""), "marker-end": `url(#${e.soft ? "in-arrow-soft" : "in-arrow"})`, "data-from": e.from, "data-to": e.to, ...(e.cons ? { "data-cons": e.cons } : {}) }, gEdges)
         .appendChild(document.createElementNS(SVGNS, "title")).textContent = e.title || `${e.fromName || e.from} → ${e.toName || e.to}${e.label ? ": " + e.label : ""}`;
       Legend.saw(e.soft ? (lay.looks || {}).soft : (lay.looks || {}).solid);
       if (e.lit) Legend.saw("lamp." + e.lit);
@@ -374,7 +387,7 @@ const Inside = (() => {
       const text = fit(e.label, 168, 11.5, 500, MONO), w = measure(text, 11.5, 500, MONO) + 14, r = placeLabel(pts, w, 20, obs, lay.gaps, lay.dir);
       if (!r) { hidden++; continue; }
       obs.push(r);
-      const g = s("g", { class: "in-label" + (e.onpick ? " pick" : "") + (e.lit ? " lit " + e.lit : ""), "data-label": e.label }, gLabels);
+      const g = s("g", { class: "in-label" + (e.onpick ? " pick" : "") + (e.lit ? " lit " + e.lit : ""), "data-label": e.label, "data-from": e.from, "data-to": e.to, ...(e.cons ? { "data-cons": e.cons } : {}) }, gLabels);
       s("rect", { x: r.x, y: r.y, width: r.w, height: r.h, rx: 4 }, g);
       s("text", { x: r.x + r.w / 2, y: r.y + 14, "text-anchor": "middle" }, g).textContent = text;
       s("title", {}, g).textContent = e.title || e.label;
@@ -521,7 +534,7 @@ const Inside = (() => {
     const holder = h("div", { class: "inside-draw", id: "inside-draw" });
     const lg = keyFor("inside-containers", () => $("#inside-stage"), { "ic.frame": ".in-frame", "ic.container": "g.in-box.container", ...insideLamps(), "kind.app": 'g.hit[data-kind="app"]', "kind.party": 'g.hit[data-kind="partner"]',
       "ic.contract": "path.in-edge:not(.soft):not(.loose)", "ic.soft": "path.in-edge.soft", "picked": PICKS }, PICKS);
-    stage.append(h("div", { class: "inside-frame" }, holder), lg.el(), h("div", { class: "inside-hint" }, `${plural(c.rows.length, "container")}. Arrows to other apps are its contracts`,
+    stage.append(Menus.frame({ right: [Menus.keyButton(lg), fullButton(), Nav.moreMenu(insideMore)] }, h("div", { class: "inside-frame" }, holder)), h("div", { class: "inside-hint" }, `${plural(c.rows.length, "container")}. Arrows to other apps are its contracts`,
       c.edges.length ? h("span", { class: "heuristic" }, "; dashed ones come from the page's diagram") : "; the page's diagram doesn't draw any between containers", ". Click one for its details."));
     const nodes = c.rows.map((r) => ({ id: "k:" + r.name, kind: "container", w: 214, h: 72, row: r }));
     const edges = [], stub = {};
@@ -561,6 +574,7 @@ const Inside = (() => {
     lg.saw("ic.frame");
     settle(lg);
     sized(svg, holder, boundsOf([...Object.values(lay.box), fr, ...heads]), 24);
+    wireDiagram(holder);
     MapView.startBreathing();
   }
   const worstOf = (ids) => { const lv = ids.map(levelOf).sort((p, q) => rank(q) - rank(p))[0]; return lv && lv !== "dark" ? lv : ""; };
@@ -572,6 +586,7 @@ const Inside = (() => {
   const glyphFor = (name) => (GLYPHS.find(([re]) => re.test(name)) || [null, "cube"])[1];
 
   /* ------------------------------------------------------------ level 3: the team's design */
+  const PD = (app) => (D.insidePanel || {})[app] || null;  // what the panel says about the design, worked out at build time (panel_data.py)
   function components(stage, app, d) {
     if (!d) {
       stage.append(chipCard("docs", `The ${appTitle(app)} team hasn't shared a design yet.`, h("span", {}, "Once they do, it shows here. Context and Containers still draw from the plan. ",
@@ -582,24 +597,18 @@ const Inside = (() => {
       return;
     }
     stage.dataset.design = d.frontmatter.status || "unknown";
-    const wrap = h("div", { class: "inside-l3" }), holder = h("div", { class: "inside-draw", id: "inside-draw" }), side = h("div", { class: "inside-side" });
-    const toggle = h("button", { class: "btn quiet in-tabs-toggle", "aria-expanded": String(!st.tabsHidden), onclick: () => {
-      st.tabsHidden = !st.tabsHidden;
-      wrap.classList.toggle("tabs-hidden", st.tabsHidden);
-      toggle.setAttribute("aria-expanded", String(!st.tabsHidden)); toggle.textContent = st.tabsHidden ? "Show the tabs" : "Hide the tabs";
-      dispatchEvent(new Event("resize"));  // the drawing refits to the room it now has
-    } }, st.tabsHidden ? "Show the tabs" : "Hide the tabs");
-    wrap.classList.toggle("tabs-hidden", !!st.tabsHidden);
+    const holder = h("div", { class: "inside-draw", id: "inside-draw" });
     const lg = keyFor("inside-components", () => $("#inside-stage"), { "ic.frame": ".in-frame", "ic.component": "g.in-box.component", "ic.lip": ".in-lip:not(.missing)", "ic.lip.missing": ".in-lip.missing",
       "ic.owns": ".in-owns", "ic.oq": ".in-oq", "ic.stub": ".in-stub-face:not(.loose)", "ic.stub.loose": ".in-stub-face.loose", "ic.depends": "path.in-edge:not(.soft):not(.loose)", "ic.loose": "path.in-edge.loose",
       ...insideLamps(), "inside.mini": ".in-mini:not([hidden])", "picked": PICKS }, PICKS);
-    wrap.append(h("div", { class: "inside-left" }, h("div", { class: "inside-tools" }, toggle), h("div", { class: "inside-frame" }, holder), lg.el(), componentsNote(app, d)), side);  // the toggle sits above the drawing, never on a box
-    stage.append(wrap);
+    stage.append(Menus.frame({ left: [showMenu(), highlightMenu()], right: [Menus.keyButton(lg), fullButton(), Nav.moreMenu(insideMore)],
+      say: [h("span", { class: "dia-hint", id: "inside-say" })] }, h("div", { class: "inside-frame" }, holder)), componentsNote(app, d));
     lg.within(() => drawComponents(holder, app, d, lg));
     lg.saw("ic.frame");
     settle(lg);
-    side.append(tabs(app, d));
+    wireDiagram(holder);
     placeDrawings();
+    highlight(topKey());
   }
   function componentsNote(app, d) {
     const missing = d.problems.some((p) => p.section === "Integration points" && /has no '.*' section/.test(p.message));
@@ -608,22 +617,67 @@ const Inside = (() => {
       missing ? h("span", { class: "gap" }, " The design doesn't list the outside systems it connects to, so none is drawn.") : null,
       d.trace_source === "recorded" ? null : h("span", { class: "heuristic" }, " What each one delivers is guessed from where it's mentioned; the design doesn't list it."));
   }
+
+  /* ------------------------------------------------------------ the diagram's bar: Show, Highlight, the Key, full screen, more */
+  function showMenu() {
+    const items = [["all", "Components and outside services"], ["components", "Components only"]];
+    return Menus.menu({ id: "show", label: "Show", current: items.find(([id]) => id === st.show)[1], title: "Show the outside services the components reach, or only the components",
+      items: () => items.map(([id, label]) => ({ id, label, checked: st.show === id, run: () => { st.show = id; rerender(); } })) });
+  }
+  const HL_WORDS = { near: ["What the pick touches", "Dims the rest"], waiting: ["What's waiting", "Lights the components an open design question holds up"], none: ["Nothing", "Only the picked box is marked"] };
+  function highlightMenu() {
+    return Menus.menu({ id: "highlight", label: "Highlight", current: HL_WORDS[st.hl][0], title: "What the diagram lights",
+      items: () => Object.entries(HL_WORDS).map(([id, [label, say]]) => ({ id, label, say, checked: st.hl === id, run: () => { st.hl = id; rerender(); } })) });
+  }
+  function fullButton() {
+    return h("button", { class: "dmenu-btn icon", type: "button", id: "inside-full", "aria-pressed": String(!!st.full), "aria-label": "Full screen", title: "Full screen (Esc leaves)", onclick: () => setFull(!st.full) }, "⛶");
+  }
+  function setFull(on) {
+    st.full = on;
+    $("#main").classList.toggle("inside-full", on);
+    const b = $("#inside-full"); if (b) b.setAttribute("aria-pressed", String(on));
+    dispatchEvent(new Event("resize"));  // the drawing refits to the room it now has
+  }
+  const insideMore = () => [{ id: "summary", label: "Back to the summary", say: "Nothing picked, the whole design", run: () => DetailsPanel.clear() }];
+  document.addEventListener("keydown", (ev) => {
+    if (ev.key === "Escape" && st.full && App.view === "inside" && !ev.defaultPrevented) { ev.preventDefault(); setFull(false); }
+  });
+
+  /* Empty space in the drawing goes back to the summary; hovering lights a box's neighbors and changes nothing else. */
+  function wireDiagram(holder) {
+    let down = null;
+    holder.addEventListener("pointerdown", (ev) => { down = { x: ev.clientX, y: ev.clientY }; });
+    holder.addEventListener("click", (ev) => {
+      if (ev.target.closest(".in-node, .in-label, .in-zoom, .in-mini, .dmenu")) return;
+      if (down && Math.hypot(ev.clientX - down.x, ev.clientY - down.y) > 4) return;  // a drag that panned the drawing
+      DetailsPanel.clear();
+    });
+    holder.addEventListener("pointerover", (ev) => {
+      const g = ev.target.closest && ev.target.closest("g.in-node[data-nid]"), id = g ? g.dataset.nid : "";
+      if (id !== st.hover) { st.hover = id; paintFocus(); }
+    });
+    holder.addEventListener("pointerleave", () => { if (st.hover) { st.hover = ""; paintFocus(); } });
+  }
+
   function drawComponents(holder, app, d, lg) {
-    const comps = d.components, affects = {};
-    for (const oq of d.open_questions) for (const c of comps) if (new RegExp(`\\b${c.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(oq.affects)) (affects[c.name] = affects[c.name] || []).push(oq.id);
+    const P = PD(app), comps = d.components;
+    const pc = (name) => (P && P.components[name]) || {};
     const nodes = comps.map((c) => ({ id: "c:" + c.name, kind: "component", w: 206, h: 86, portH: 62, c }));
     const edges = d.depends.map((e) => ({ from: "c:" + e.from, to: "c:" + e.to, label: e.label, fromName: e.from, toName: e.to,
       title: e.label ? `${e.from} depends on ${e.to}, for ${e.label}` : `${e.from} depends on ${e.to} (the design doesn't say what ${e.to} offers it)` }));
     const loose = [];
-    d.stubs.forEach((x, i) => {
-      const side = x.direction === "in" ? "in" : "out", id = "s:" + i;
-      nodes.push({ id, kind: "stub", side, w: 168, h: 56, stub: x });
-      const label = x.contracts.join(", ");
-      const title = `${x.system}${x.protocol ? ", " + x.protocol : ""}${x.auth ? ", " + x.auth : ""}: ${x.component ? `connected to ${x.component} (${conNames(x.how)})` : conNames(x.how)}`;
-      if (!x.component) { loose.push({ id, side, title }); return; }
-      const lit = worstOf(x.contracts.filter((c) => CONTRACT[c]));
-      const onpick = x.contracts[0] && CONTRACT[x.contracts[0]] ? () => go(x.contracts[0], { reset: true }) : null;
-      edges.push(side === "in" ? { from: id, to: "c:" + x.component, label, title, lit, onpick } : { from: "c:" + x.component, to: id, label, title, lit, onpick });
+    if (st.show !== "components") d.stubs.forEach((x, i) => {
+      const side = x.direction === "in" ? "in" : "out", id = "s:" + i, link = P ? P.links[i] : { name: x.system, lines: [] };
+      nodes.push({ id, kind: "stub", side, w: 168, h: 56, stub: x, link, index: i });
+      const lines = link.lines.filter((l) => comps.some((c) => c.name === l.component));
+      if (!lines.length) { loose.push({ id, side, title: `${link.name}: no component in the design connects to it` }); return; }
+      for (const l of lines) {
+        const label = l.contracts.map((c) => c.name).join(" · "), ids = l.contracts.map((c) => c.id);
+        const title = `${l.component} ${side === "in" ? "is called by" : "calls"} ${link.name}${label ? ", over " + label : ""}`;
+        const onpick = ids.length === 1 ? () => go(key(app, "con", ids[0]), { reset: true }) : ids.length ? () => go(key(app, "ext", String(i)), { reset: true }) : null;
+        const ends = side === "in" ? { from: id, to: "c:" + l.component } : { from: "c:" + l.component, to: id };
+        edges.push({ ...ends, label, title, lit: worstOf(ids.filter((c) => CONTRACT[c])), onpick, cons: ids.join(",") });
+      }
     });
     const room = holder.getBoundingClientRect();
     const lay = layered(nodes, edges, { gapX: 170, gapY: 30, gapTB: 70, gapYTB: 26, minColW: 170, dir: "auto", fit: { w: room.width, h: room.height } });
@@ -646,45 +700,44 @@ const Inside = (() => {
     const owned = (name) => (d.trace[name] || []).length;
     const drawn = drawLayout(svg, lay, {
       component: (g, b) => {
-        const c = b.node.c, k = key(app, "c", c.name), grp = s("g", { class: "in-node in-box component", tabindex: 0, role: "button", "data-key": k, "aria-label": `${c.name}: ${c.responsibility}` }, g);
+        const c = b.node.c, k = key(app, "c", c.name), grp = s("g", { class: "in-node in-box component", tabindex: 0, role: "button", "data-key": k, "data-nid": b.node.id, "aria-label": `${c.name}: ${pc(c.name).lead || c.responsibility}` }, g);
         const LIP = 24, tb = lay.dir === "TB", y = tb ? b.y + LIP : b.y, faceH = b.h - LIP;
-        const exposes = c.exposes && c.exposes.trim(), lip = exposes ? "exposes " + exposes : "doesn't say what it offers";
+        const exposes = (c.exposes && said(c.exposes.trim().replace(/`/g, ""))), lip = exposes ? "exposes " + exposes : "doesn't say what it offers";
+        const lead = pc(c.name).lead || "The design doesn't say what it does.", waits = pc(c.name).waiting || [];
         Legend.saw("ic.component"); Legend.saw(exposes ? "ic.lip" : "ic.lip.missing");
         s("rect", { x: b.x + 10, y: tb ? b.y : b.y + faceH - 1, width: b.w - 20, height: LIP + 1, rx: 5, class: "in-lip" + (exposes ? "" : " missing") }, grp);
         s("text", { x: b.x + 18, y: tb ? b.y + 16 : b.y + b.h - 8, class: "in-lip-text" + (exposes ? "" : " missing") }, grp).textContent = fit(lip, b.w - 36, 10.5, 500, exposes ? MONO : null);
         s("rect", { x: b.x, y, width: b.w, height: faceH, rx: 10, class: "in-box-face" }, grp);
         Icons.put(grp, glyphFor(c.name), b.x + 20, y + 22, 18, "node-glyph");
         const n = owned(c.name), badge = n ? `${n}` : "";
-        s("text", { x: b.x + 36, y: y + 27, class: "in-box-name" }, grp).textContent = fit(c.name, b.w - 50 - (badge ? 30 : 0) - (affects[c.name] ? 18 : 0), 14, 600);
+        s("text", { x: b.x + 36, y: y + 27, class: "in-box-name" }, grp).textContent = fit(c.name, b.w - 50 - (badge ? 30 : 0) - (waits.length ? 18 : 0), 14, 600);
         if (badge) {
           Legend.saw("ic.owns");
           const w = measure(badge, 10.5, 600) + 12;
           s("rect", { x: b.x + b.w - w - 8, y: y + 10, width: w, height: 16, rx: 8, class: "in-owns" }, grp);
           s("text", { x: b.x + b.w - w / 2 - 8, y: y + 22, "text-anchor": "middle", class: "in-owns-text" }, grp).textContent = badge;
         }
-        if (affects[c.name]) Legend.saw("ic.oq");
-        if (affects[c.name]) s("circle", { cx: b.x + b.w - (badge ? measure(badge, 10.5, 600) + 30 : 16), cy: y + 18, r: 5, class: "in-oq" }, grp)
-          .appendChild(document.createElementNS(SVGNS, "title")).textContent = `${affects[c.name].join(", ")} affects it`;
-        s("text", { x: b.x + 14, y: y + 48, class: "in-box-sub" }, grp).textContent = fit(c.responsibility, b.w - 24, 11.5);
-        s("title", {}, grp).textContent = `${c.name}: ${c.responsibility}${n ? `\nOwns ${plural(n, "vault ID")}` : ""}\n${lip}`;
+        if (waits.length) Legend.saw("ic.oq");
+        if (waits.length) s("circle", { cx: b.x + b.w - (badge ? measure(badge, 10.5, 600) + 30 : 16), cy: y + 18, r: 5, class: "in-oq" }, grp)
+          .appendChild(document.createElementNS(SVGNS, "title")).textContent = `${plural(waits.length, "open question")} hold${waits.length === 1 ? "s" : ""} it up`;
+        s("text", { x: b.x + 14, y: y + 48, class: "in-box-sub" }, grp).textContent = fit(lead, b.w - 24, 11.5);
+        s("title", {}, grp).textContent = `${c.name}: ${lead}${n ? `\nDelivers ${plural(n, "item")} from the plan` : ""}\n${lip}`;
         pick(grp, k);
       },
       stub: (g, b) => {
-        const x = b.node.stub, nk = x.nodes.find((k) => NODE[k]);
+        const x = b.node.stub, link = b.node.link, nk = x.nodes.find((k) => NODE[k] && APPS[k] && k !== app);
         Legend.saw(x.component ? "ic.stub" : "ic.stub.loose");
-        const grp = s("g", { class: "in-node in-stub", tabindex: 0, role: "button", "data-stub": x.system, "aria-label": `${x.system}, ${x.direction || "out"}` }, g);
+        const k = nk ? key(app, "app", nk) : key(app, "ext", String(b.node.index));
+        const grp = s("g", { class: "in-node in-stub", tabindex: 0, role: "button", "data-key": k, "data-nid": b.node.id, "data-stub": link.name, "aria-label": `${link.name}, ${x.direction || "out"}` }, g);
         s("path", { d: `M${b.x + 8},${b.y}H${b.x + b.w - 8}L${b.x + b.w},${b.y + 8}V${b.y + b.h - 8}L${b.x + b.w - 8},${b.y + b.h}H${b.x + 8}L${b.x},${b.y + b.h - 8}V${b.y + 8}Z`, class: "in-stub-face" + (x.component ? "" : " loose") }, grp);
-        Icons.put(grp, nk ? Icons.name(nk) : "partner", b.x + 20, b.y + 20, 17, "node-glyph");
-        s("text", { x: b.x + 36, y: b.y + 25, class: "in-box-name small" }, grp).textContent = fit(x.system, b.w - 44, 13, 600);
-        const names = x.nodes.filter((k) => NODE[k]).map(titleOf);
-        s("text", { x: b.x + 12, y: b.y + 45, class: "in-box-sub" }, grp).textContent = fit(names.length ? names.join(", ") : x.protocol || "not on the map", b.w - 22, 11);
-        s("title", {}, grp).textContent = `${x.system}${x.protocol ? ": " + x.protocol : ""}${names.length ? "\nOn the map: " + names.join(", ") : ""}\n${x.component ? `Connected to ${x.component}: ${conNames(x.how)}` : conNames(x.how)}`;
-        const target = nk || x.contracts.find((c) => CONTRACT[c]);
-        if (target) pick(grp, target, x.system);
-        else Nodes.wire(grp, { label: x.system, note: Nodes.note({ diagram: `${appTitle(app)} components`, name: x.system, kind: "Outside system with no page in the plan",
-          text: x.how || `The design names ${x.system} as an outside system it connects to.`, facts: [["Protocol", x.protocol], ["Auth", x.auth], ["Direction", x.direction || "out"]].filter(([, v]) => v),
-          relates: [x.component ? key(app, "c", x.component) : ""] }) });
-        grp.addEventListener("dblclick", (ev) => { if (nk && APPS[nk]) { ev.stopPropagation(); open(nk, "context", { from: grp.getBoundingClientRect() }); } });
+        const nodeKey = x.nodes.find((q) => NODE[q]);
+        Icons.put(grp, nodeKey ? Icons.name(nodeKey) : "partner", b.x + 20, b.y + 20, 17, "node-glyph");
+        s("text", { x: b.x + 36, y: b.y + 25, class: "in-box-name small" }, grp).textContent = fit(link.name, b.w - 44, 13, 600);
+        const names = x.nodes.filter((q) => NODE[q]).map(titleOf);
+        s("text", { x: b.x + 12, y: b.y + 45, class: "in-box-sub" }, grp).textContent = fit(nk ? "another app in the plan" : names.length ? names.join(", ") : "outside the app", b.w - 22, 11);
+        s("title", {}, grp).textContent = `${link.name}${link.connection && link.connection.protocol ? ": " + link.connection.protocol : ""}${names.length ? "\nOn the map: " + names.join(", ") : ""}`;
+        pick(grp, k, link.name);
+        grp.addEventListener("dblclick", (ev) => { if (nk) { ev.stopPropagation(); open(nk, "context", { from: grp.getBoundingClientRect() }); } });
       },
     }, [fr.name, ...heads]);
     holder.dataset.hiddenLabels = drawn.hidden;
@@ -696,41 +749,105 @@ const Inside = (() => {
     sized(svg, holder, boundsOf([...Object.values(lay.box), fr, ...heads]), 24, { open: "read", key: "components", focus: main, lg });
   }
 
-  /* ------------------------------------------------------------ beside level 3: the design's sections */
-  function tabs(app, d) {
-    const box = h("div", { class: "inside-tabs" });
-    const bar = h("div", { class: "seg small wrap", role: "tablist", "aria-label": "The design's sections" }, TABS.map(([id, word]) =>
-      h("button", { role: "tab", "aria-pressed": String(st.tab === id), "data-tab": id, onclick: () => { st.tab = id; Nav.syncHash(); const fresh = tabs(app, d); box.replaceWith(fresh); placeDrawings(); } }, word, count(d, id))));
-    const body = h("div", { class: "inside-tab-body", "data-tab": st.tab });
-    body.append(...[].concat(({ trace: traceTab, data: dataTab, api: apiTab, flows: flowsTab, stack: tableTab("tech_stack", ["layer", "choice", "rationale"], "stack"), nfrs: tableTab("nfrs", ["concern", "target", "how_enforced"], "nfrs"),
-      constraints: tableTab("constraints", ["id", "constraint", "source", "impact"], "constraints"), risks: tableTab("risks", ["id", "risk", "severity", "mitigation"], "risks"), adrs: adrTab, ops: opsTab, glossary: glossaryTab })[st.tab](app, d)).filter(Boolean));
-    box.append(bar, body);
-    return box;
+  /* ------------------------------------------------------------ what a pick lights
+     The panel's view decides: a component lights itself and what it touches; a contract, its line and both ends; a
+     question, the components it holds up; a flow, the components in it. Hovering a box lights its neighbors and
+     nothing else. "Highlight" can turn the dimming off, or light what is waiting instead. */
+  const topKey = () => App.trail[App.trail.length - 1] || "";
+  const drawnEdges = () => $$("#inside-draw path.in-edge[data-from]").map((e) => ({ from: e.dataset.from, to: e.dataset.to, cons: (e.dataset.cons || "").split(",").filter(Boolean) }));
+  const around = (ids, edges) => { const out = new Set(ids); for (const e of edges) if (ids.has(e.from) || ids.has(e.to)) { out.add(e.from); out.add(e.to); } return out; };
+  function focusOf(app, k) {
+    const d = design(app), P = PD(app);
+    if (!d || !P || !k || !k.startsWith("inside:")) return null;
+    const p = parse(k), edges = drawnEdges(), touching = (ids) => (e) => ids.has(e.from) || ids.has(e.to);
+    const comp = (n) => (d.components.some((c) => c.name === n) ? ["c:" + n] : []);
+    if (p.kind === "c") { const ids = new Set(comp(p.name)); return { nodes: around(ids, edges), edge: touching(ids) }; }
+    if (p.kind === "con") { const on = (e) => e.cons.includes(p.name); return { nodes: new Set(edges.filter(on).flatMap((e) => [e.from, e.to])), edge: on }; }
+    if (p.kind === "ext" || p.kind === "app") {
+      const i = p.kind === "ext" ? +p.name : d.stubs.findIndex((x) => x.nodes.includes(p.name));
+      if (!(i >= 0)) return null;
+      const ids = new Set(["s:" + i]);
+      return { nodes: around(ids, edges), edge: touching(ids) };
+    }
+    if (p.kind === "oq" || p.kind === "flow") {
+      const item = p.kind === "oq" ? P.waiting.find((x) => x.id === p.name) : P.flows[+p.name];
+      if (!item) return null;
+      const ids = new Set((p.kind === "oq" ? item.holds : item.who).flatMap(comp));
+      return { nodes: ids, edge: (e) => ids.has(e.from) && ids.has(e.to), held: p.kind === "oq" ? ids : null };
+    }
+    return null;
   }
-  function count(d, id) {
-    const n = { data: d.data_model.entities.length, api: d.api.length, flows: d.flows.length + d.diagrams.length, stack: d.tech_stack.length, nfrs: d.nfrs.length, constraints: d.constraints.length,
-      risks: d.risks.length, adrs: d.adrs.length, glossary: d.context ? d.context.glossary.length : 0, trace: Object.values(d.trace).reduce((p, l) => p + l.length, 0) }[id];
-    return n ? h("span", { class: "ct" }, " " + n) : null;
+  function waitingFocus(app) {
+    const P = PD(app), held = new Set(Object.values(P ? P.components : {}).filter((c) => c.waiting.length).map((c) => "c:" + c.name));
+    return { nodes: held, edge: () => false, held };
   }
-  /* Design text, with every vault ID it names a link into the vault, and `code` as code. */
-  function prose(text, cls) {
+  function paintFocus() {
+    const root = $("#inside-draw");
+    if (!root) return;
+    const app = st.app;
+    const f = st.hover ? { nodes: around(new Set([st.hover]), drawnEdges()), edge: (e) => e.from === st.hover || e.to === st.hover }
+      : st.hl === "waiting" ? waitingFocus(app) : st.hl === "near" ? focusOf(app, topKey()) : null;
+    const dim = !!f && f.nodes.size > 0, on = (el) => !!f && f.edge({ from: el.dataset.from, to: el.dataset.to, cons: (el.dataset.cons || "").split(",").filter(Boolean) });
+    $$("g.in-node[data-nid]", root).forEach((g) => { g.classList.toggle("dim", dim && !f.nodes.has(g.dataset.nid)); g.classList.toggle("held", !!f && !!f.held && f.held.has(g.dataset.nid)); });
+    $$("path.in-edge[data-from], g.in-label[data-from]", root).forEach((el) => { const lit = on(el); el.classList.toggle("near", lit); el.classList.toggle("dim", dim && !lit); });
+    const say = $("#inside-say"), k = topKey();
+    if (say) say.textContent = k && k.startsWith("inside:") && parse(k).kind ? `Showing ${labelOfKey(k)}. Escape or empty space goes back to the summary.` : "Pick a component, a contract on a line or an outside service.";
+  }
+
+  /* Design text, with every vault ID it names a link into the vault, and `code` as code. With `names` it is the panel's
+     voice: each ID said as the name the plan gives it, never the code, and the design's own OQ, D and ADR numbers said
+     as the question, the deferral or the decision they point at. */
+  const LOCAL_ID = /\b(?:OQ-\d{3}|D-\d{3}|ADR-\d{4})\b/;
+  const plainText = (html) => String(html || "").replace(/<[^>]*>/g, "").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+  function nameOfId(raw) {
+    const id = raw.replace(/\s+AC/, ".AC"), ac = id.match(/^(EPC-\d{3})\.AC(\d+)$/);
+    if (ac) { const c = (D.epicCriteria[keyForId(ac[1])] || []).find((x) => x.n === +ac[2]); return c ? shorten(plainText(c.heading || c.html), 60) : ""; }
+    const k = vaultKey(id), t = k ? titleOf(k) : "";
+    return t && t !== id ? shorten(t, 48) : "";
+  }
+  function localName(id) {
+    const app = st.app, d = design(app), P = PD(app);
+    if (id.startsWith("OQ-")) { const q = P && P.waiting.find((x) => x.id === id); return q ? { text: shorten(q.question, 48), key: key(app, "oq", id) } : null; }
+    if (id.startsWith("ADR-")) { const a = d && d.adrs.find((x) => x.id === id); return a ? { text: shorten(a.adr_title || a.title || "", 44), key: a.found ? key(app, "adr", id) : null } : null; }
+    const x = d && d.frontmatter.deferred.find((y) => y.id === id);
+    return x ? { text: shorten(x.reason || x.section || "", 44), key: null } : null;
+  }
+  /* One ID as the panel says it: { text, key } with the vault or inside key it opens, or none. */
+  function nameRef(raw) {
+    if (LOCAL_ID.test(raw)) return localName(raw) || { text: "a design item", key: null };
+    const id = raw.replace(/\s+AC/, ".AC"), name = nameOfId(id), k = vaultKey(id);
+    return { text: name || `${idKind(id).toLowerCase()}${k ? "" : " the plan doesn't list"}`, key: k };
+  }
+  function prose(text, cls, names = false) {
     const out = h("span", { class: (cls ? cls + " " : "") + "authored" });  // the team's own words, as written
+    const re = names ? new RegExp(`${VAULT_ID.source}|${LOCAL_ID.source}`, "g") : VAULT_ID;
     for (const part of String(text || "").split(/(`[^`]+`)/)) {
       if (/^`[^`]+`$/.test(part)) { out.append(h("code", {}, part.slice(1, -1))); continue; }
       let last = 0;
       const plainPart = part.replace(/\*\*/g, "");
-      for (const m of plainPart.matchAll(VAULT_ID)) {
+      for (const m of plainPart.matchAll(re)) {
+        if (m.index < last) continue;
         out.append(plainPart.slice(last, m.index));
+        last = m.index + m[0].length;
+        if (names) {
+          const r = nameRef(m[0]), rest = plainPart.slice(last), lead = rest.match(/^\s+/);
+          if (lead && rest.slice(lead[0].length).toLowerCase().startsWith(r.text.toLowerCase())) last += lead[0].length + r.text.length;  // "CON-003 Consent check" says it once
+          const inside = r.key && r.key.startsWith("inside:");
+          out.append(r.key ? h("a", { class: "vid named", "data-ref": r.key, title: r.text, onclick: inside ? (ev) => { ev.preventDefault(); ev.stopPropagation(); DetailsPanel.show(r.key); } : null }, r.text) : h("span", { class: "vid dead", title: "not in this plan" }, r.text));
+          continue;
+        }
         const k = vaultKey(m[0]);
         out.append(k ? h("a", { class: "vid", "data-ref": k, title: titleOf(k) }, m[0]) : h("span", { class: "vid dead", title: "not in this vault" }, m[0]));
-        last = m.index + m[0].length;
       }
       out.append(plainPart.slice(last));
     }
     return out;
   }
+  const np = (text, cls) => prose(text, cls, true);  // the panel's voice: names, never codes
+  /* The same words as plain text, for a block shown as written and for a drawing's labels. */
+  const said = (text) => String(text || "").replace(new RegExp(`${VAULT_ID.source}|${LOCAL_ID.source}`, "g"), (m) => nameRef(m).text);
   const card = (title, ...kids) => h("section", { class: "in-card" }, title ? h("h3", {}, title) : null, ...kids.flat().filter(Boolean));
-  const raw = (text, title) => (text ? h("details", { class: "in-raw" }, h("summary", {}, title || "The design's own text"), h("pre", {}, text)) : null);
+  const raw = (text, title) => (text ? h("details", { class: "in-raw" }, h("summary", {}, title || "The design's own text"), h("pre", {}, said(text))) : null);
   const best = (text) => h("p", { class: "heuristic small" }, text);
 
   function traceTab(app, d) {
@@ -739,20 +856,20 @@ const Inside = (() => {
     // where the design says it is said once, in the card's note; a chip names its source only when it differs
     const vias = Object.values(d.trace).flat().map((e) => viaWords(e.via)), tally = (v) => vias.filter((x) => x === v).length;
     const usual = vias.slice().sort((a, b) => tally(b) - tally(a))[0] || "";
-    const chip = (e) => { const via = viaWords(e.via); return idChip(e.id, via === usual ? "" : via, via); };
+    const chip = (e) => { const via = viaWords(e.via); return nchip(e.id, via === usual ? "" : via, via); };
     out.push(card("What each component delivers", usual ? h("p", { class: "heuristic small" }, `Found in the design's ${usual}${vias.some((v) => v !== usual) ? ", unless a chip says otherwise" : ""}.`) : null, d.components.map((c) => {
       const list = d.trace[c.name] || [];
-      return h("div", { class: "in-own" }, h("a", { class: "in-own-name", onclick: () => go(key(app, "c", c.name), { reset: true }) }, c.name), h("span", { class: "ct muted" }, ` ${list.length}`),
+      return h("div", { class: "in-own" }, h("button", { class: "linkish in-own-name", type: "button", onclick: () => DetailsPanel.show(key(app, "c", c.name)) }, c.name), h("span", { class: "ct muted" }, ` ${list.length}`),
         h("div", {}, list.length ? list.map(chip) : h("span", { class: "p-empty-line" }, "nothing on this app's list")));
     }), (d.trace.Operations || []).length ? h("div", { class: "in-own" }, h("b", {}, "Operations"), h("div", {}, d.trace.Operations.map(chip))) : null));
     const ack = r.untraced.filter((t) => r.acknowledged[t]), missed = r.untraced.filter((t) => !r.acknowledged[t]);
-    out.push(card(`Not covered by any component: ${r.untraced.length} of ${d.targets.length}`, missed.length ? h("div", { class: "in-untraced missed" }, h("div", { class: "in-sub" }, lampEl("caution"), "Not covered, and the design doesn't say why"), missed.map((t) => idChip(t))) : null,
-      ack.length ? h("div", { class: "in-untraced ack" }, h("div", { class: "in-sub" }, lampEl("dark"), "Not covered, and the design says why (a known gap)"), ack.map((t) => idChip(t, r.acknowledged[t]))) : null,
+    out.push(card(`Not covered by any component: ${r.untraced.length} of ${d.targets.length}`, missed.length ? h("div", { class: "in-untraced missed" }, h("div", { class: "in-sub" }, lampEl("caution"), "Not covered, and the design doesn't say why"), missed.map((t) => nchip(t))) : null,
+      ack.length ? h("div", { class: "in-untraced ack" }, h("div", { class: "in-sub" }, lampEl("dark"), "Not covered, and the design says why (a known gap)"), ack.map((t) => nchip(t, r.acknowledged[t]))) : null,
       !r.untraced.length ? h("div", { class: "p-empty-line" }, "Every requirement, contract and criterion for this app is covered by a component.") : null,
       best(`The ${d.targets.length} are this app's requirements, the contracts it provides or uses, and the acceptance criteria of its epics.`)));
     const mentioned = Object.entries(d.mentions).filter(([id]) => !ownedIds.has(id) && !r.untraced.includes(id) && id !== d.appId && id !== D.initiative);
-    if (mentioned.length) out.push(card("Mentioned in the design, but not delivered by any component", mentioned.map(([id, where]) => idChip(id, viaWords(where)))));
-    if (r.unresolved.length) out.push(card("Named in the design, but missing from the plan", r.unresolved.map((u) => h("div", { class: "gap" }, lampEl("caution"), " ", h("b", {}, u.id), ` in ${u.where.replace("trace:", "the trace of ").replace("challenge:", "the challenge in ")}`))));
+    if (mentioned.length) out.push(card("Mentioned in the design, but not delivered by any component", mentioned.map(([id, where]) => nchip(id, viaWords(where)))));
+    if (r.unresolved.length) out.push(card("Named in the design, but missing from the plan", r.unresolved.map((u) => h("div", { class: "gap" }, lampEl("caution"), " ", h("b", {}, nameRef(u.id).text), ` in ${u.where.replace("trace:", "the trace of ").replace(/challenge:(OQ-\d+)/, (_, q) => "the question " + (localName(q) || { text: "" }).text)}`))));
     return out;
   }
   function idChip(id, note, source = note) {
@@ -761,15 +878,20 @@ const Inside = (() => {
     return h("a", { class: "ref-chip in-id" + (k ? "" : " ref-dead"), "data-ref": k, title: k ? `${titleOf(k)} (${id})${source ? " · found in: " + source : ""}` : `${idKind(id)} ${id}: not found in the plan` },
       named || (k ? null : idKind(id) + " "), h("span", { class: "rid" }, id), note ? h("span", { class: "in-via" }, note) : null);
   }
+  function nchip(id, note, source = note) {
+    const k = vaultKey(id), name = nameOfId(id);
+    return h("a", { class: "ref-chip in-id" + (k ? "" : " ref-dead"), "data-ref": k, title: name ? `${name}${source ? " · found in: " + source : ""}` : `${idKind(id)}: not found in the plan` },
+      name || idKind(id), note ? h("span", { class: "in-via" }, note) : null);
+  }
   function dataTab(app, d) {
     const m = d.data_model, out = [];
     if (m.parsed_from === "erDiagram") {
       out.push(best("Entities and relationships from the design's data diagram."), erDiagram(m, appTitle(app)));
     } else if (m.entities.length) {
       out.push(best("The design has no data diagram, so these are read from its text and the relationships aren't shown."),
-        card(null, m.entities.map((x) => h("div", { class: "in-entity" }, h("b", {}, x.name), x.text ? h("div", {}, prose(x.text)) : null))));
+        card(null, m.entities.map((x) => h("div", { class: "in-entity" }, h("b", {}, x.name), x.text ? h("div", {}, np(x.text)) : null))));
     } else out.push(card(null, h("div", { class: "p-empty-line" }, m.raw ? "The data model is free text this page cannot draw; it is below as written." : "The design has no data model section.")));
-    if (m.stores.length) out.push(card("Persistence", m.stores.map((x) => h("div", {}, prose(x)))));
+    if (m.stores.length) out.push(card("Persistence", m.stores.map((x) => h("div", {}, np(x)))));
     out.push(raw(m.raw, "The data model as written"));
     return out;
   }
@@ -813,8 +935,8 @@ const Inside = (() => {
   }
   function apiTab(app, d) {
     if (!d.api.length) return [card(null, h("div", { class: "p-empty-line" }, "The design lists no API for each component."))];
-    return d.api.map((a) => card(null, h("h3", {}, a.component_found ? h("a", { onclick: () => go(key(app, "c", a.component), { reset: true }) }, a.heading) : h("span", { class: "gap" }, a.heading, " (not one of the design's components)")),
-      a.operations.length ? h("ul", { class: "in-ops" }, a.operations.map((op) => h("li", {}, prose(op)))) : h("div", { class: "p-empty-line" }, "No operations listed."), raw(a.raw, "As written")));
+    return d.api.map((a) => card(null, h("h3", {}, a.component_found ? h("button", { class: "linkish", type: "button", onclick: () => DetailsPanel.show(key(app, "c", a.component)) }, a.heading) : h("span", { class: "gap" }, a.heading, " (not one of the design's components)")),
+      a.operations.length ? h("ul", { class: "in-ops" }, a.operations.map((op) => h("li", {}, np(op)))) : h("div", { class: "p-empty-line" }, "No operations listed."), raw(a.raw, "As written")));
   }
   function tableTab(field, cols, tab) {
     const word = (TABS.find(([id]) => id === tab) || [tab, field.replace(/_/g, " ")])[1].toLowerCase();  // the tab's own word, never the field name
@@ -822,23 +944,23 @@ const Inside = (() => {
       const rows = d[field];
       if (!rows.length) return [card(null, h("div", { class: "p-empty-line" }, `The design has no ${word}.`))];
       return [h("table", { class: "t in-table" }, h("tr", {}, cols.map((c) => h("th", {}, c.replace(/_/g, " ")))),
-        rows.map((r) => h("tr", {}, cols.map((c) => h("td", {}, c === "severity" && r[c] ? h("span", { class: "pill" }, r[c]) : prose(r[c] || ""))))))];
+        rows.map((r) => h("tr", {}, cols.map((c) => h("td", {}, c === "severity" && r[c] ? sevPill(String(r[c]).toLowerCase()) : np(r[c] || ""))))))];
     };
   }
   function adrTab(app, d) {
     if (!d.adrs.length) return [card(null, h("div", { class: "p-empty-line" }, "The design lists no design decisions."))];
-    return [best("The team's own design decisions. Their numbers are the team's, separate from the plan's decision numbers."),
-      h("ul", { class: "mini-list" }, d.adrs.map((a) => h("li", {}, a.found ? h("a", { class: "in-adr", onclick: () => go(key(app, "adr", a.id), { reset: true }) }, h("b", {}, a.id), " ", a.adr_title || a.title)
-        : h("span", { class: "gap", title: a.href }, h("b", {}, a.id), ` ${a.title}: the team's design names this decision, but its page isn't there`), a.status ? h("span", { class: "pill" }, a.status) : null)))];
+    return [best("The team's own design decisions, separate from the plan's."),
+      h("ul", { class: "mini-list" }, d.adrs.map((a) => h("li", {}, a.found ? h("button", { class: "linkish in-adr", type: "button", onclick: () => DetailsPanel.show(key(app, "adr", a.id)) }, a.adr_title || a.title)
+        : h("span", { class: "gap" }, `${a.title}: the team's design names this decision, but its page isn't there`), a.status ? h("span", { class: "pill" }, a.status) : null)))];
   }
   function opsTab(app, d) {
     const o = d.operations, rows = [["Deploy", o.deploy], ["Monitor", o.monitor], ["Scale", o.scale], ...Object.entries(o.other || {})];
     return [best("Items named here aren't delivered by any one component: running the service belongs to no single part."),
-      card(null, h("div", { class: "facts" }, rows.flatMap(([label, v]) => [h("div", { class: "fl" }, label), v ? h("div", {}, prose(v)) : h("div", { class: "gap" }, `not written`)])))];
+      card(null, h("div", { class: "facts" }, rows.flatMap(([label, v]) => [h("div", { class: "fl" }, label), v ? h("div", {}, np(v)) : h("div", { class: "gap" }, `not written`)])))];
   }
   function glossaryTab(app, d) {
     if (!d.context) return [card(null, h("div", { class: "p-empty-line" }, "The design has no glossary."))];
-    return [card(null, d.context.glossary.map((g) => h("div", { class: "in-term" }, h("b", {}, g.term), h("div", {}, prose(g.definition)), g.not_to_be_confused_with ? h("div", { class: "muted small" }, "Not to be confused with: ", prose(g.not_to_be_confused_with)) : null)))];
+    return [card(null, d.context.glossary.map((g) => h("div", { class: "in-term" }, h("b", {}, g.term), h("div", {}, np(g.definition)), g.not_to_be_confused_with ? h("div", { class: "muted small" }, "Not to be confused with: ", np(g.not_to_be_confused_with)) : null)))];
   }
 
   /* Key flows: each sequence diagram drawn from its mermaid source, stepped through; other diagrams as source.
@@ -849,8 +971,8 @@ const Inside = (() => {
     if (!all.length) return [card(null, h("div", { class: "p-empty-line" }, "The design draws no flow."))];
     return all.map((f, i) => {
       const flo = (f.title || "").match(/\bFLO-\d{3}\b/), fk = flo ? keyForId(flo[0]) : null;
-      const head = h("h3", {}, f.title || `${f.from}, line ${f.line}`, fk && FLOW[fk] ? h("button", { class: "btn tiny", onclick: () => go(fk, { reveal: true }) }, `▶ Play “${titleOf(fk)}” on the map`) : null);
-      if (f.kind !== "sequenceDiagram") return card(null, head, h("div", { class: "muted small" }, "A diagram this page can't draw; here is its source."), h("pre", { class: "in-src" }, f.mermaid));
+      const head = h("h3", {}, said(f.title) || `${f.from}, line ${f.line}`, fk && FLOW[fk] ? h("button", { class: "btn tiny", onclick: () => go(fk, { reveal: true }) }, `▶ Play “${titleOf(fk)}” on the map`) : null);
+      if (f.kind !== "sequenceDiagram") return card(null, head, h("div", { class: "muted small" }, "A diagram this page can't draw; here is its source."), h("pre", { class: "in-src" }, said(f.mermaid)));
       return card(null, head, sequence(app, d, f, `${app}:${i}`));
     });
   }
@@ -873,6 +995,7 @@ const Inside = (() => {
   }
   function sequence(app, d, f, id) {
     const seq = parseSequence(f.mermaid), n = seq.steps.length;
+    for (const step of seq.steps) step.text = said(step.text);
     const box = h("div", { class: "in-seq", "data-seq": id }), diagram = `${appTitle(app)}: ${f.title || "sequence"}`;
     const lg = keyFor("inside-sequence", () => box, { "sq.lane": ".seq-lane", "sq.msg": ".seq-msg:not(.reply)", "sq.reply": ".seq-msg.reply", "sq.note": ".seq-note", "sq.block": ".seq-block", "sq.now": ".seq-step.on .seq-msg", "sq.later": ".seq-step.later .seq-msg" }, null, id);
     if (st.step[id] === undefined) st.step[id] = 0;
@@ -956,39 +1079,223 @@ const Inside = (() => {
     }, 1100);
   }
 
-  /* ------------------------------------------------------------ the panel: the design, its parts, its problems */
+  /* ------------------------------------------------------------ the design's sections, shown in the panel when asked for */
+  const SECTION_VIEW = () => ({ overview: overviewSection, coverage: traceTab, data: dataTab, api: apiTab, flows: flowsTab,
+    stack: tableTab("tech_stack", ["layer", "choice", "rationale"], "stack"), nfrs: tableTab("nfrs", ["concern", "target", "how_enforced"], "nfrs"),
+    constraints: tableTab("constraints", ["constraint", "source", "impact"], "constraints"), risks: tableTab("risks", ["risk", "severity", "mitigation"], "risks"),
+    adrs: adrTab, ops: opsTab, glossary: glossaryTab });
+  function sectionPanel(app, d, id) {
+    const word = (TABS.find(([t]) => t === id) || [id, id])[1], make = SECTION_VIEW()[id];
+    if (!make) return [h("div", { class: "p-empty" }, `The design has no section called ${id}.`)];
+    const n = (PD(app).summary.sections.find((x) => x.id === id) || {}).count;
+    const body = h("div", { class: "inside-tab-body", "data-tab": id });
+    body.append(...[].concat(make(app, d)).filter(Boolean));
+    return [phead(`Design · ${appTitle(app)}`, word, n ? h("div", { class: "p-meta" }, h("span", { class: "pill" }, `${n}`)) : null), body];
+  }
+  /* The overview: what the design says about itself, in the order it says it. Nothing the design lacks is filled in. */
+  function overviewSection(app, d) {
+    const fm = d.frontmatter, text = (d.summary && d.summary.text) || "", says = d.overview.text;
+    const none = (what) => h("div", { class: "p-empty-line" }, `Not recorded: the design has no ${what}.`);
+    return [
+      card(null, text ? h("div", { class: "prose-text in-prose in-summary" }, np(text)) : null, says ? h("div", { class: "prose-text in-prose" }, np(says)) : null, !text && !says ? none("overview") : null),
+      skeletonSection(d),
+      card("Boundaries", h("div", { class: "facts" }, h("div", { class: "fl" }, "Inside"), h("div", {}, d.boundaries.inside ? np(d.boundaries.inside) : "Not recorded"),
+        h("div", { class: "fl" }, "Outside"), h("div", {}, d.boundaries.outside ? np(d.boundaries.outside) : "Not recorded"))),
+      fm.gaps.length ? card(`Gaps ${fm.gaps.length}`, fm.gaps.map((g) => h("div", { class: "in-gap" }, np(g.what || "A gap"), h("div", { class: "ml-sub" },
+        said([g.acknowledged_by ? `Accepted by ${person(g.acknowledged_by)}.` : "Nobody has accepted it yet.", g.why ? ` Why: ${g.why}` : " No reason given.", g.revisit ? ` Look again: ${g.revisit}` : ""].join("")))))) : null,
+      fm.deferred.length ? card(`Deferred ${fm.deferred.length}`, fm.deferred.map((x) => h("div", { class: "in-gap" }, h("b", {}, x.section || "A part of the design"), ": ", np(x.reason || "")))) : null,
+      d.open_questions.length ? card(`Open questions ${d.open_questions.length}`, PD(app).waiting.map((q) => h("div", { class: "in-gap" }, lampEl("caution", "An open design question"), " ", DetailsPanel.link(key(app, "oq", q.id), q.question)))) : null,
+      card("The plan it was written against", h("div", { class: "p-note" }, d.vault.app ? `The plan for ${appTitle(keyOfApp(d.vault.app) || app)}${d.vault.commits.length > 1 ? `, written against ${d.vault.commits.length} different versions of the plan, so parts may be out of date. Ask the team to re-check` : d.vault.commits.length ? ", at the version the design names" : ", with no version named"}.` : "This design isn't linked to the plan; it was written from a requirements doc.",
+        d.vault.source === "inferred" ? h("span", { class: "heuristic" }, " Guessed from the design's references; it doesn't name the plan directly.") : null)),
+      h("div", { class: "p-note" }, coverageSay(d), " ", DetailsPanel.link(key(app, "sec", "coverage"), "What each component delivers"))];
+  }
+
+  /* ------------------------------------------------------------ the panel: Details, one scope at a time */
+  const empty = (text) => h("div", { class: "p-empty-line" }, text);
+  const notRecorded = (what) => empty(what ? `Not recorded: the design has no ${what}.` : "Not recorded");
+  const subhead = (text) => h("h4", {}, text);
+  const bullets = (items) => h("ul", {}, items.map((x) => h("li", {}, ...[].concat(x))));
+  const block = (...kids) => h("section", { class: "comp-sec" }, ...kids.flat().filter(Boolean));
+  const waitingLine = (app, q) => [lampEl("caution", "An open design question"), " ", DetailsPanel.link(key(app, "oq", q.id), q.question)];
+  const sevPill = (sv) => h("span", { class: "pill" + (sv === "high" ? " sevhigh" : "") }, sv);
+
+  /* What the page says when nothing is picked: the design at a glance, with a way into each full section. */
+  function designSummary(app, d) {
+    const S = PD(app).summary, pk = Reader.keyFor(app);
+    const more = (id, word) => h("button", { class: "linkish more", type: "button", "data-open-section": id, onclick: () => DetailsPanel.show(key(app, "sec", id)) }, `Open ${word} →`);
+    const targets = S.targets.slice(0, 2);
+    const cards = [
+      card("About this section", h("div", {}, `Components shows the ${plural(d.components.length, "part")} inside ${appTitle(app)} and what talks to what. Pick a part, a contract on a line or an outside service to read just that. Pick nothing and this summary is the design. `,
+        pk ? DetailsPanel.link("read:" + pk, `Read ${appTitle(app)}'s page`) : null)),
+      card("What it is", S.what ? h("div", { class: "big" }, np(S.what)) : notRecorded("overview"), S.what ? more("overview", "the overview") : null),
+      card("The stack in one line", S.stack ? h("div", { class: "big" }, S.stack) : notRecorded("tech stack"), more("stack", "the tech stack")),
+      card(["Top risks", S.risks.total ? h("span", { class: "ct muted" }, `${S.risks.total}${S.risks.high ? `, ${S.risks.high} high` : ""}`) : null],
+        S.risks.top.length ? h("ul", { class: "in-ops" }, S.risks.top.map((r) => h("li", {}, sevPill(r.severity), " ", np(r.risk)))) : notRecorded("risks"), S.risks.total ? more("risks", `all ${S.risks.total} risks`) : null),
+      card("Quality targets", targets.length ? targets.map((t) => h("div", {}, h("div", { class: "big" }, `${t.concern}: `, np(t.target)), t.how ? h("div", { class: "muted small" }, "Enforced by ", np(t.how)) : null)) : notRecorded("quality targets"), more("nfrs", "the quality targets")),
+      card("Coverage gaps", S.gaps.items.length ? h("ul", { class: "in-ops" }, S.gaps.items.map((g) => h("li", {}, np(g.name), g.known && g.why ? h("span", { class: "muted small" }, ` (${shorten(g.why, 90)})`) : null)))
+        : empty(d.trace_source === "recorded" ? "Every requirement, contract and criterion has a component." : "Not recorded: the design has no trace table, so coverage is guessed."), more("coverage", `coverage${S.gaps.total ? ` (${S.gaps.total})` : ""}`))];
+    const bar = h("div", { class: "seg small wrap", role: "group", "aria-label": "Sections of the design" }, S.sections.map((x) => h("button", { type: "button", "data-open-section": x.id,
+      onclick: () => DetailsPanel.show(key(app, "sec", x.id)) }, x.label, x.count ? h("span", { class: "ct" }, " " + x.count) : null)));
+    return [phead(`Design · ${appTitle(app)}`, "The design at a glance"), h("div", { class: "glance" }, ...cards, h("div", { class: "gl" }, "All sections"), bar)];
+  }
+  /* The same, for Context and Containers, which draw from the plan alone. */
+  function appSummary(app) {
+    const a = D.apps[app] || { provides: [], consumes: [] }, c = CONT[app], e = ent(app);
+    const what = e && e.text ? shorten(e.text, 360) : "";
+    const others = (id) => { const k = CONTRACT[id]; return k.provider === app ? k.consumers.map(titleOf).join(", ") : titleOf(k.provider); };
+    const talks = [...a.provides.map((id) => ["to", id]), ...a.consumes.map((id) => ["from", id])].filter(([, id]) => CONTRACT[id]);
+    const level = st.level === "context" ? "Context shows the app in the middle, the contracts in and out, and the outside parties on the other end." : "Containers shows the app's main parts, from its page, and the contracts that reach them.";
+    const cards = [card("About this section", h("div", {}, `${level} Pick a box to read just that. Pick nothing and this summary is the app. `)),
+      card("What it is", what ? h("div", { class: "big" }, what) : empty("Not recorded: the app's page says nothing about it yet.")),
+      card("What it talks to", talks.length ? h("ul", { class: "in-ops" }, talks.map(([way, id]) => h("li", {}, DetailsPanel.link(id, titleOf(id)), ` ${way} ${others(id)}`))) : empty("No contract with another app or outside party yet.")),
+      st.level === "containers" && c && c.rows.length ? card("Main parts", h("ul", { class: "in-ops" }, c.rows.map((r) => h("li", {}, DetailsPanel.link(key(app, "ct", r.name), r.name), h("span", { class: "muted small" }, ` ${r.job}`))))) : null,
+      card("What's waiting", (D.blockedBy[app] || []).length ? h("div", {}, `${plural(D.blockedBy[app].length, "open question")} hold${D.blockedBy[app].length === 1 ? "s" : ""} it up. See the What's waiting tab.`) : empty("Nothing is holding it up."))];
+    return withBody([phead(`Inside · ${appTitle(app)}`, "The app at a glance"), h("div", { class: "glance" }, ...cards.filter(Boolean))]);
+  }
+
+  const groupOf = (title, names) => names.length ? [h("div", { class: "grp" }, title), h("div", {}, names.map((n) => h("span", { class: "ref-chip", title: n }, n)))] : [];
+  function dependLink(app, d, seg) {
+    if (seg.link.kind === "component") return DetailsPanel.link(key(app, "c", seg.link.name), seg.text);
+    const i = PD(app).links.findIndex((l) => l.name.toLowerCase() === seg.link.name.toLowerCase());
+    if (i < 0) return seg.text;
+    const nk = d.stubs[i].nodes.find((q) => APPS[q] && q !== app);
+    return DetailsPanel.link(nk ? key(app, "app", nk) : key(app, "ext", String(i)), seg.text);
+  }
+  function componentPanel(app, d, name) {
+    const P = PD(app), c = P.components[name];
+    if (!c) return [h("div", { class: "p-empty" }, `The ${designWord(app)} has no component called ${name}.`)];
+    const dv = c.delivers, shownContracts = dv.contracts.map((x) => (P.contracts[x.id] ? DetailsPanel.link(key(app, "con", x.id), x.name) : x.name));
+    const depends = c.dependsOn ? c.dependsOn.map((seg) => (seg.link ? dependLink(app, d, seg) : seg.text)) : [notRecorded()];
+    return [phead("Component", `${name} · part of ${c.partOf}`, c.container ? h("div", { class: "p-meta" }, h("span", { class: "pill" }, c.container)) : null),
+      block(subhead("What it delivers"), c.lead ? h("p", { class: "lead" }, np(c.lead)) : notRecorded("description of it"), c.owns ? h("div", { class: "own" }, "Owns ", np(c.owns)) : null,
+        dv.total ? h("details", { class: "in-raw", open: true }, h("summary", {}, `Delivers ${dv.total}: ${plural(dv.requirements.length, "requirement")}, ${plural(dv.contracts.length, "contract")}, ${plural(dv.criteria.reduce((n, e) => n + e.items.length, 0), "criterion", "criteria")}`),
+          groupOf("Requirements", dv.requirements), dv.criteria.map((e) => groupOf(e.epic, e.items)), groupOf("Contracts", dv.contracts.map((x) => x.name)), groupOf("Other", dv.other),
+          c.traceSource === "recorded" ? null : h("div", { class: "p-note heuristic" }, "Guessed: the design doesn't list what each component delivers, so anything it mentions is counted."))
+          : empty(c.traceSource === "recorded" ? "Nothing on the design's trace table." : "Nothing the design mentions for it."),
+        subhead("Its contracts"),
+        bullets([[h("b", {}, "Depends on: "), ...depends], [h("b", {}, "Exposes: "), c.exposes ? np(c.exposes) : "Not recorded"],
+          shownContracts.length ? [h("b", {}, "Contracts it delivers: "), ...shownContracts.flatMap((x, i) => (i ? [", ", x] : [x]))] : null].filter(Boolean)),
+        subhead("Its flows"), c.flows.length ? bullets(c.flows.map((f) => [DetailsPanel.link(key(app, "flow", String(f.index)), f.title), " (Key flows)"])) : empty("No key flow names it."),
+        subhead("What's waiting"), c.waiting.length ? bullets(c.waiting.map((q) => waitingLine(app, q))) : empty("No open question names it."))];
+  }
+  function contractPanel(app, d, id) {
+    const P = PD(app), k = P.contracts[id];
+    if (!k) return [h("div", { class: "p-empty" }, `The ${designWord(app)} doesn't connect to that contract.`)];
+    const provider = k.provider.key && APPS[k.provider.key] ? DetailsPanel.link(key(app, "app", k.provider.key), k.provider.name) : k.provider.name;
+    const waits = k.waiting;
+    return [phead("Contract", k.name, h("div", { class: "p-meta" }, h("span", { class: "pill" }, `${k.provider.name} → ${appTitle(app)}`))),
+      block(subhead("Who provides it, who calls it"), bullets([[h("b", {}, "Provided by: "), provider], [h("b", {}, "Called by: "), ...(k.callers.length ? k.callers.flatMap((n, i) => (i ? [", ", DetailsPanel.link(key(app, "c", n), n)] : [DetailsPanel.link(key(app, "c", n), n)])) : ["Not recorded"])]]),
+        subhead("Ways it answers"),
+        k.answers.length ? h("table", { class: "t in-table" }, h("tr", {}, h("th", {}, "When"), h("th", {}, "The agent does")), k.answers.map((a) => h("tr", {}, h("td", {}, a.when), h("td", {}, np(a.does))))) : notRecorded("failure behavior for it"),
+        k.crosses ? h("div", { class: "own" }, "The plan's contract: ", np(k.crosses)) : null,
+        subhead("The connection"), bullets([[h("b", {}, "Outside system: "), k.connection.system], [h("b", {}, "Direction: "), k.connection.direction || "Not recorded"],
+          [h("b", {}, "Protocol: "), k.connection.protocol ? np(k.connection.protocol) : "Not recorded"], [h("b", {}, "Auth: "), k.connection.auth ? np(k.connection.auth) : "Not recorded"]]),
+        subhead("What's waiting"), waits.length ? bullets(waits.map((q) => waitingLine(app, q))) : empty("No open question names it."))];
+  }
+  function appPanel(app, d, nk) {
+    const P = PD(app), e = ent(nk), links = P.links.filter((l, i) => d.stubs[i].nodes.includes(nk));
+    const lines = links.flatMap((l) => l.lines);
+    return [phead("App in the plan", titleOf(nk)),
+      block(e && e.text ? h("p", { class: "lead" }, shorten(e.text, 420)) : empty("Not recorded: its page says nothing about it yet."), subhead(`Its contracts with ${appTitle(app)}`),
+        lines.some((l) => l.contracts.length) ? bullets(lines.flatMap((l) => l.contracts.map((c) => [DetailsPanel.link(key(app, "con", c.id), c.name), ", called by ", DetailsPanel.link(key(app, "c", l.component), l.component)])))
+          : empty("The design lists no contract between them."))];
+  }
+  function extPanel(app, d, i) {
+    const l = PD(app).links[+i];
+    if (!l) return [h("div", { class: "p-empty" }, "That outside service isn't in the design.")];
+    const x = l.connection;
+    return [phead("Outside service", l.name),
+      block(bullets([[h("b", {}, "Direction: "), x.direction || "Not recorded"], [h("b", {}, "Protocol: "), x.protocol ? np(x.protocol) : "Not recorded"], [h("b", {}, "Auth: "), x.auth ? np(x.auth) : "Not recorded"]]),
+        subhead("Its contracts with " + appTitle(app)), l.lines.some((c) => c.contracts.length) ? bullets(l.lines.flatMap((ln) => ln.contracts.map((c) => [DetailsPanel.link(key(app, "con", c.id), c.name), ", called by ", DetailsPanel.link(key(app, "c", ln.component), ln.component)])))
+          : (l.lines.length ? bullets(l.lines.map((ln) => ["Reached by ", DetailsPanel.link(key(app, "c", ln.component), ln.component)])) : empty("No component in the design connects to it.")))];
+  }
+  function flowPanel(app, d, i) {
+    const f = PD(app).flows[+i], raw = d.flows[+i];
+    if (!f || !raw) return [h("div", { class: "p-empty" }, "That flow isn't in the design.")];
+    const comps = f.who.filter((n) => d.components.some((c) => c.name === n));
+    return [phead("Key flow", f.title),
+      block(comps.length ? bullets([[h("b", {}, "Components in it: "), ...comps.flatMap((n, j) => (j ? [", ", DetailsPanel.link(key(app, "c", n), n)] : [DetailsPanel.link(key(app, "c", n), n)]))]]) : null),
+      h("div", { class: "inside-tab-body" }, raw.kind === "sequenceDiagram" ? card(null, sequence(app, d, raw, `${app}:${i}`)) : card(null, h("pre", { class: "in-src" }, said(raw.mermaid))))];
+  }
+  function oqPanel(app, d, id) {
+    const q = PD(app).waiting.find((x) => x.id === id);
+    if (!q) return [h("div", { class: "p-empty" }, "That question isn't in the design.")];
+    return [phead("Open question", q.question),
+      block(subhead("What we know"), q.knows ? h("p", { class: "lead" }, np(q.knows)) : notRecorded(), subhead("What would unblock it"), q.unblocks ? h("p", { class: "lead" }, np(q.unblocks)) : notRecorded(),
+        subhead("It holds up"), q.holds.length ? bullets(q.holds.map((n) => [DetailsPanel.link(key(app, "c", n), n)])) : empty("No component."),
+        q.alsoAffects.length ? h("div", { class: "own" }, "Also affects: ", q.alsoAffects.join(", ")) : null)];
+  }
+
+  function labelOfKey(k) {
+    const p = parse(k), P = PD(p.app), d = design(p.app);
+    if (p.kind === "story" || p.kind === "blocker") return typeof Plan !== "undefined" ? Plan.panelTitle(p.app, p.kind, p.name) : p.name;
+    switch (p.kind) {
+      case "": return designWord(p.app);
+      case "con": return P && P.contracts[p.name] ? P.contracts[p.name].name : CONTRACT[p.name] ? CONTRACT[p.name].title : "A contract";
+      case "ext": return P && P.links[+p.name] ? P.links[+p.name].name : "An outside service";
+      case "app": return titleOf(p.name);
+      case "flow": return P && P.flows[+p.name] ? P.flows[+p.name].title : "A key flow";
+      case "oq": { const q = P && P.waiting.find((x) => x.id === p.name); return q ? shorten(q.question, 36) : "An open question"; }
+      case "sec": return (TABS.find(([t]) => t === p.name) || [0, p.name])[1];
+      case "problems": return "What wasn't read";
+      case "adr": { const a = d && d.adrs.find((x) => x.id === p.name); return a ? shorten(a.adr_title || a.title || "A design decision", 36) : "A design decision"; }
+      default: return p.name;
+    }
+  }
   function panel(k) {
     const p = parse(k), d = design(p.app);
     if (!APPS[p.app]) return [h("div", { class: "p-empty" }, `Nothing here is called ${k}.`)];
     if (p.kind === "story" || p.kind === "blocker") return Plan.panel(p.app, p.kind, p.name);
-    if (!d && p.kind !== "ct") return [h("div", { class: "p-empty" }, `The ${appTitle(p.app)} team hasn't shared a design yet.`)];
-    if (p.kind === "c") return componentPanel(p.app, d, p.name);
     if (p.kind === "ct") return containerPanel(p.app, p.name);
-    if (p.kind === "adr") return adrPanel(p.app, d, p.name);
+    if (!d) return [h("div", { class: "p-empty" }, `The ${appTitle(p.app)} team hasn't shared a design yet.`)];
+    const make = { c: componentPanel, con: contractPanel, app: appPanel, ext: extPanel, flow: flowPanel, oq: oqPanel, sec: sectionPanel, adr: adrPanel };
     if (p.kind === "problems") return problemsPanel(p.app, d);
-    return designPanel(p.app, d);
+    return withBody(make[p.kind] ? make[p.kind](p.app, d, p.name) : designSummary(p.app, d));
+  }
+  /* A panel is a header and a body: whatever follows the header and is not already a body is gathered into one. */
+  function withBody(nodes) {
+    const is = (n, c) => n && n.classList && n.classList.contains(c);
+    const rest = nodes.filter((n) => n && !is(n, "p-head") && !is(n, "p-body"));
+    return [...nodes.filter((n) => is(n, "p-head")), ...nodes.filter((n) => is(n, "p-body")), ...(rest.length ? [h("div", { class: "p-body" }, ...rest)] : [])];
   }
   const phead = (kind, title, ...rest) => h("div", { class: "p-head" }, h("div", { class: "kind" }, kind), h("h2", {}, title), ...rest.filter(Boolean));
   const sec = (title, n, ...kids) => Panel.section(title, n, ...kids);
-  function designPanel(app, d) {
-    const fm = d.frontmatter;
-    return [phead("Team design", d.title || designWord(app), h("div", { class: "p-meta" }, statusPill(app), problemsChip(app, { keep: true })),
-      h("div", { class: "p-actions" }, designLink(d), linkChips(app))),
-    h("div", { class: "p-body" },
-      d.summary && d.summary.text ? h("div", { class: "prose-text in-prose in-summary" }, prose(d.summary.text)) : null,
-      d.overview.text ? (d.summary && d.summary.text ? sec("Architecture overview", null, h("div", { class: "prose-text in-prose" }, prose(d.overview.text))) : h("div", { class: "prose-text in-prose" }, prose(d.overview.text))) : null,
-      skeletonSection(d),
-      sec("Boundaries", null, h("div", { class: "facts" }, h("div", { class: "fl" }, "Inside"), h("div", {}, prose(d.boundaries.inside || "not written")), h("div", { class: "fl" }, "Outside"), h("div", {}, prose(d.boundaries.outside || "not written")))),
-      sec("Gaps", fm.gaps.length, fm.gaps.map((g) => h("div", { class: "in-gap" }, h("b", {}, g.id || "a gap"), " ", prose(g.what || ""), h("div", { class: "ml-sub" }, [g.acknowledged_by ? `Accepted by ${person(g.acknowledged_by)}.` : "Nobody has accepted it yet.", g.why ? ` Why: ${g.why}` : " No reason given.", g.revisit ? ` Look again: ${g.revisit}` : ""].join(""))))),
-      sec("Deferred", fm.deferred.length, fm.deferred.map((x) => h("div", { class: "in-gap" }, h("b", {}, x.id), " ", x.section || "", ": ", prose(x.reason || "")))),
-      sec("Open questions", d.open_questions.length, d.open_questions.map((q) => h("div", { class: "in-gap" }, q.challenges.length ? lampEl("caution", "Questions part of the plan: waiting") : null, " ", h("b", {}, q.id), " ", q.title,
-        q.challenges.length ? h("div", {}, "Questions ", q.challenges.map((id) => idChip(id))) : null, q.other.Scenario ? h("div", { class: "ml-sub" }, "Scenario: ", prose(q.other.Scenario)) : null,
-        q.affects_ids.length ? h("div", { class: "ml-sub" }, "Affects ", q.affects_ids.map((id) => idChip(id))) : null))),
-      sec("The plan it was written against", null, h("div", { class: "p-note" }, d.vault.app ? `The plan for ${appTitle(keyOfApp(d.vault.app) || app)}${d.vault.commits.length > 1 ? `, written against ${d.vault.commits.length} different versions of the plan, so parts may be out of date. Ask the team to re-check` : d.vault.commits.length ? ", at the version the design names" : ", with no version named"}.` : "This design isn't linked to the plan; it was written from a requirements doc.",
-        d.vault.source === "inferred" ? h("span", { class: "heuristic" }, " Guessed from the design's references; it doesn't name the plan directly.") : null)),
-      sec("Coverage", null, h("div", { class: "p-note" }, coverageSay(d)),
-        h("button", { class: "btn tiny", onclick: () => { st.tab = "trace"; open(app, "components", { keepTrail: true }); } }, "What each component delivers")))];
+
+  /* The Open button: only a thing with a view of its own has one, and it is the second click, never the first. */
+  function openFor(k) {
+    const p = parse(k), P = PD(p.app);
+    if (p.kind === "app" && APPS[p.name]) return { label: "Open", title: `Go inside ${titleOf(p.name)}`, run: () => open(p.name, "context", {}) };
+    const fid = p.kind === "flow" && P && P.flows[+p.name] ? P.flows[+p.name].flow : null, fk = fid ? keyForId(fid) : null;
+    if (fk && FLOW[fk]) return { label: "Open", title: "Play it on the Flows view", run: () => go(fk, { reset: true, reveal: true }) };
+    return null;
   }
+  /* The What's waiting tab: the design's open questions, those holding up what is picked first. */
+  function waitingTab(k) {
+    const app = st.app, d = design(app), P = PD(app);
+    if (!(st.level === "components" && d && P)) {
+      const nodes = Panel.waitingFor(app);
+      return nodes.length ? nodes : [Panel.empty(`Nothing is holding ${appTitle(app)} up.`)];
+    }
+    if (!P.waiting.length) return [Panel.empty("The design has no open questions.")];
+    const row = (q) => h("button", { class: "wq", type: "button", "data-oq": q.id, onclick: () => DetailsPanel.show(key(app, "oq", q.id), { reset: true }) },
+      h("b", {}, q.question), h("small", {}, q.holds.length ? "Holds up " + q.holds.join(", ") : "Affects the design's text, not one component"));
+    const p = k && k.startsWith("inside:") ? parse(k) : null;
+    const ids = !p ? [] : p.kind === "c" ? (P.components[p.name] || { waiting: [] }).waiting.map((q) => q.id) : p.kind === "con" ? ((P.contracts[p.name] || { waiting: [] }).waiting.map((q) => q.id)) : p.kind === "oq" ? [p.name] : [];
+    const mine = P.waiting.filter((q) => ids.includes(q.id)), rest = P.waiting.filter((q) => !ids.includes(q.id));
+    return p && p.kind && ["c", "con", "oq"].includes(p.kind)
+      ? [h("div", { class: "gl" }, `Holding up ${labelOfKey(k)}`), ...(mine.length ? mine.map(row) : [empty("Nothing.")]), h("div", { class: "gl" }, "Others"), ...rest.map(row)]
+      : [h("div", { class: "gl" }, "Open questions"), ...rest.map(row)];
+  }
+  const waitingCount = () => { const d = design(st.app), P = PD(st.app); return st.level === "components" && d && P ? P.waiting.length : (D.blockedBy[st.app] || []).length; };
+
+  DetailsPanel.register("inside", {
+    view: "inside", live: () => !!st.app && st.level !== "plan" && !!APPS[st.app],
+    rootLabel: () => (st.level === "components" && design(st.app) ? "Design" : appTitle(st.app)),
+    summary: () => (st.level === "components" && design(st.app) ? withBody(designSummary(st.app, design(st.app))) : appSummary(st.app)),
+    owns: (k) => k.startsWith("inside:"), detail: (k) => panel(k), label: (k) => labelOfKey(k), open: openFor,
+    waiting: waitingTab, waitingCount, focus: (k) => highlight(k || ""), rendered: placeDrawings,
+  });
+
   function coverageSay(d) {
     const n = d.targets.length, ack = Object.keys(d.resolved.acknowledged).length, missed = d.resolved.untraced.length - ack, how = d.trace_source === "recorded" ? "" : " (guessed from where each is mentioned)";
     if (!d.resolved.untraced.length) return `All ${n} requirements, contracts and criteria for this app are covered by a component${how}.`;
@@ -998,25 +1305,8 @@ const Inside = (() => {
   function skeletonSection(d) {
     const w = d.walking_skeleton;
     if (!w || (!w.text && !Object.keys(w.fields || {}).length)) return null;
-    return sec("Walking skeleton", null, w.text ? h("div", { class: "prose-text in-prose" }, prose(w.text)) : null,
-      h("div", { class: "facts in-skeleton" }, Object.entries(w.fields).flatMap(([label, v]) => [h("div", { class: "fl" }, label), h("div", {}, prose(v))])));
-  }
-  function componentPanel(app, d, name) {
-    const c = d.components.find((x) => x.name === name);
-    if (!c) return [h("div", { class: "p-empty" }, `The ${designWord(app)} has no component called ${name}.`)];
-    const list = d.trace[name] || [], api = d.api.find((a) => a.component.toLowerCase() === name.toLowerCase());
-    const oqs = d.open_questions.filter((q) => new RegExp(`\\b${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(q.affects));
-    return [phead(`Component · ${designWord(app)}`, name, h("div", { class: "p-meta" }, oqs.length ? levelPill("caution", `${plural(oqs.length, "open design question")} on it`) : null), linkChips(app),
-      h("div", { class: "p-actions" }, h("button", { class: "btn", onclick: () => open(app, "components", { keepTrail: true }) }, "Show it inside"), designLink(d, null, `, line ${c.line}`))),
-    h("div", { class: "p-body" },
-      h("div", { class: "big-q" }, prose(c.responsibility || "The design doesn't say what it does.")),
-      sec("What it delivers from the plan", list.length, list.length ? h("ul", { class: "mini-list" }, list.map((e) => h("li", {}, idChip(e.id), h("div", { class: "ml-sub" }, `found in: ${viaWords(e.via)}`, d.trace_source === "inferred" ? h("span", { class: "heuristic" }, " · guessed") : null))))
-        : h("div", { class: "p-empty-line" }, "Nothing on this app's list."), list.length && d.trace_source === "inferred" ? h("div", { class: "p-note heuristic" }, "Guessed: the design doesn't list what each component delivers, so anything it mentions is counted.") : null),
-      sec("Details", null, h("div", { class: "facts" }, [["Owns", c.owns], ["Depends on", c.depends_on], ["Offers", c.exposes], ["Container", c.container], ...Object.entries(c.other)].flatMap(([l, v]) =>
-        [h("div", { class: "fl" }, l), v ? h("div", {}, prose(v)) : h("div", { class: l === "Container" ? "muted" : "gap" }, l === "Offers" ? "doesn't say what it offers" : "not given")]))),
-      c.depends_on_components.length || c.depends_on_other.length ? sec("Depends on", null, c.depends_on_components.map((x) => h("a", { class: "ref-chip", onclick: () => go(key(app, "c", x), {}) }, x)), c.depends_on_other.map((x) => h("span", { class: "ref-chip ref-dead", title: "Neither a component nor an outside system the design lists" }, x))) : null,
-      api ? sec("Public surface", api.operations.length, h("ul", { class: "in-ops" }, api.operations.map((op) => h("li", {}, prose(op))))) : null,
-      oqs.length ? sec("Open questions on it", oqs.length, oqs.map((q) => h("div", {}, h("b", {}, q.id), " ", q.title))) : null)];
+    return card("Walking skeleton", w.text ? h("div", { class: "prose-text in-prose" }, np(w.text)) : null,
+      h("div", { class: "facts in-skeleton" }, Object.entries(w.fields).flatMap(([label, v]) => [h("div", { class: "fl" }, label), h("div", {}, np(v))])));
   }
   function containerPanel(app, name) {
     const c = CONT[app], r = c && c.rows.find((x) => x.name === name), d = design(app);
@@ -1033,18 +1323,18 @@ const Inside = (() => {
   function adrPanel(app, d, id) {
     const a = d.adrs.find((x) => x.id === id);
     if (!a) return [h("div", { class: "p-empty" }, `The ${designWord(app)} lists no ${id}.`)];
-    return [phead(`Team design decision · ${designWord(app)}`, `${a.id}: ${a.adr_title || a.title}`, h("div", { class: "p-meta" }, statePill(a.status), a.date ? h("span", { class: "pill" }, a.date) : null),
-      h("div", { class: "p-note" }, `The number is the team's own, not the plan's.`)),
+    return [phead(`Team design decision · ${designWord(app)}`, a.adr_title || a.title, h("div", { class: "p-meta" }, statePill(a.status), a.date ? h("span", { class: "pill" }, a.date) : null),
+      null),
     h("div", { class: "p-body" }, !a.found ? h("div", { class: "gap" }, "The team's design names this decision, but its page isn't there.") : null,
-      sec("Context", null, a.context ? h("div", { class: "prose-text in-prose" }, prose(a.context)) : null), sec("Decision", null, a.decision ? h("div", { class: "prose-text in-prose" }, prose(a.decision)) : null),
-      sec("Alternatives considered", (a.alternatives || []).length, (a.alternatives || []).map((x) => h("div", { class: "in-gap" }, h("b", {}, x.option), " ", prose(x.why_not)))),
-      sec("Consequences", null, Object.keys(a.consequences || {}).length ? h("div", { class: "facts" }, Object.entries(a.consequences).flatMap(([l, v]) => [h("div", { class: "fl" }, l), h("div", {}, prose(v))])) : null))];
+      sec("Context", null, a.context ? h("div", { class: "prose-text in-prose" }, np(a.context)) : null), sec("Decision", null, a.decision ? h("div", { class: "prose-text in-prose" }, np(a.decision)) : null),
+      sec("Alternatives considered", (a.alternatives || []).length, (a.alternatives || []).map((x) => h("div", { class: "in-gap" }, h("b", {}, x.option), " ", np(x.why_not)))),
+      sec("Consequences", null, Object.keys(a.consequences || {}).length ? h("div", { class: "facts" }, Object.entries(a.consequences).flatMap(([l, v]) => [h("div", { class: "fl" }, l), h("div", {}, np(v))])) : null))];
   }
   function problemsPanel(app, d) {
     const byLine = d.problems.slice().sort((p, q) => (p.line || 1e9) - (q.line || 1e9));
     return [phead("Team design", "What couldn't be read", h("p", { class: "p-lede" }, d.problems.length ? `${plural(d.problems.length, "part")} of the ${designWord(app)} couldn't be read. Each is listed as found; none is filled in with a guess.` : "The whole design doc was read with no problems.")),
     h("div", { class: "p-body" }, sec("Couldn't read", d.problems.length, d.problems.length ? h("ol", { class: "in-problems" }, byLine.map((p) => h("li", { "data-line": p.line || "" }, h("span", { class: "in-line" }, p.line ? `line ${p.line}` : "no line"), h("b", {}, p.section), " ", p.message))) : null),
-      sec("Named in the design, but missing from the plan", d.resolved.unresolved.length, d.resolved.unresolved.map((u) => h("div", { class: "gap" }, h("b", {}, u.id), ` in ${u.where.replace("trace:", "the trace of ").replace("challenge:", "the challenge in ")}`))))];
+      sec("Named in the design, but missing from the plan", d.resolved.unresolved.length, d.resolved.unresolved.map((u) => h("div", { class: "gap" }, h("b", {}, nameRef(u.id).text), ` in ${u.where.replace("trace:", "the trace of ").replace(/challenge:(OQ-\d+)/, (_, q) => "the question " + (localName(q) || { text: "" }).text)}`))))];
   }
 
   /* ------------------------------------------------------------ what the rest of the page asks of it */
@@ -1099,6 +1389,14 @@ const Inside = (() => {
     $$("#inside-stage [data-key]").forEach((g) => g.classList.toggle("picked", g.dataset.key === k));
     if (st.level === "context") MapGroups.highlight(k);
     for (const lg of Legend.keyed()) if (lg.def.picks && lg.name.startsWith("inside-")) settle(lg);
+    paintFocus();
+    if (k) { const g = $$("#inside-draw g.in-node[data-key]").find((x) => x.dataset.key === k); if (g) reveal(g); }
+  }
+  /* A pick the drawing has scrolled out of view is brought back into it, by the least that shows it whole. */
+  function reveal(g) {
+    const holder = $("#inside-draw"), r = g.getBoundingClientRect(), b = holder.getBoundingClientRect(), m = 28;
+    if (r.left < b.left + m) holder.scrollLeft -= b.left + m - r.left; else if (r.right > b.right - m) holder.scrollLeft += r.right - (b.right - m);
+    if (r.top < b.top + m) holder.scrollTop -= b.top + m - r.top; else if (r.bottom > b.bottom - m) holder.scrollTop += r.bottom - (b.bottom - m);
   }
 
   // Double-click an app on the map, or one beside it on the context level, to go inside it.
@@ -1113,6 +1411,6 @@ const Inside = (() => {
   /* What plan.js draws with: the layout and drawing helpers above, and the chips that link into the vault. */
   const kit = { layered, drawLayout, defsFor, sized, placeDrawings, boundsOf, fit, idChip, prose, chipCard, open, key };
   return { open, boot, hash, render, kit, designKey, highlight, panel, ent: entOf, ownedBy, challenge, challengeHome, challengeSection, homeSection, statusCell, doorEntry, sideEntry, statusPill, problemsChip,
-    layered, parseSequence, st, LEVELS, TABS, OWNERS, UNTRACED, CHALLENGED };
+    layered, parseSequence, st, LEVELS, TABS, OWNERS, UNTRACED, CHALLENGED, labelOfKey, PD };
 })();
 View("inside", { label: "Inside", title: "Inside this app: context, containers, components and build plan", render: Inside.render, highlight: Inside.highlight });

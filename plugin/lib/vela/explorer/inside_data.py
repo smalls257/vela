@@ -93,7 +93,7 @@ def contracts_named(cell):
 
 
 def _bare(name):
-    return design_data._bare(name).split(" via ")[0].strip()
+    return design_data._system_name(name)
 
 
 def integration_stubs(design, vault, keys, app):
@@ -123,7 +123,8 @@ def integration_stubs(design, vault, keys, app):
 
     for row in design["integrations"]:
         system = row.get("system", "")
-        ids = CON.findall(" ".join(str(v) for v in row.values()))
+        # the contracts the System cell names; a contract the Auth cell mentions in passing is another system's
+        ids = CON.findall(system) or CON.findall(" ".join(str(v) for v in row.values()))
         component, how = attach(design, system, ids, {k: c.name for k, c in contracts.items()})
         stubs.append({"system": system, "direction": (row.get("direction") or "").strip().lower(),
                       "protocol": row.get("protocol", ""), "auth": row.get("auth", ""), "contracts": ids,
@@ -134,6 +135,8 @@ def integration_stubs(design, vault, keys, app):
             if _bare(name) in integrated:
                 continue
             ids = CON.findall(name)
+            if ids and any(set(ids) <= set(s["contracts"]) for s in stubs):
+                continue  # the same contract the table already lists for an outside system, said another way
             stubs.append({"system": re.sub(r"\s*\(.*?\)\s*", " ", name).strip(), "direction": "out", "protocol": "",
                           "auth": "", "contracts": ids, "nodes": nodes_for(name, ids), "component": c["name"],
                           "how": "it depends on it, though the design doesn't list it as an outside system", "line": c["line"]})

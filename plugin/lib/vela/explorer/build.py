@@ -34,7 +34,7 @@ from vela import search as vela_search
 from vela.edge import atomic, sessiongit
 from vela.parse import FENCE, closes_fence
 
-from . import (asks_data, assets_inline, branches_data, breakdown_find, design_data, design_find, draft_data, flows_data, icons_data, inside_data, pages_data,
+from . import (asks_data, assets_inline, branches_data, breakdown_find, design_data, design_find, draft_data, flows_data, icons_data, inside_data, pages_data, panel_data,
                plan_data, roles_data, serve, slices_data)
 from . import pins as pinning
 from .record import (HANDLE, LABELED_LINE, PROSE_LIMIT, Keys, inline_html,
@@ -51,10 +51,10 @@ class ExplorerError(Exception):
     says which and why; nothing is written."""
 
 # The page's script and style, in load order: shared code first, one module per view, the boot last.
-JS_MODULES = ("core", "theme", "fx", "menus", "assets", "icons", "layout", "pan", "geometry", "search", "minimap", "reader", "queue", "panel", "panelsize", "motion", "view-map",
+JS_MODULES = ("core", "theme", "fx", "menus", "assets", "icons", "layout", "pan", "geometry", "search", "minimap", "reader", "queue", "panel", "panelsize", "detailspanel", "motion", "view-map",
               "wires", "mapgroups", "releases", "slices", "flowkit", "flowpicker", "branches", "view-flows", "rehearse", "view-asks", "view-decisions", "view-progress",
               "view-trace", "sections", "roles", "nav", "markdown", "ask", "inside", "plan", "drafts", "freshness", "main")
-SELFTEST_MODULES = ("selftest", "selftest-branches", "selftest-qol")  # 120 KB of checks: bundled only when asked (`vela explore --selftest`), not shipped to every reader
+SELFTEST_MODULES = ("selftest", "selftest-branches", "selftest-qol", "selftest-inside")  # 120 KB of checks: bundled only when asked (`vela explore --selftest`), not shipped to every reader
 CSS_MODULES = ("base", "menus", "nav", "panel", "compact", "map", "queue", "flows", "rehearse", "asks", "decisions", "pages", "reader", "roles",
                "releases", "slices", "branches", "ask", "inside", "plan", "pending", "drafts", "themes", "plain")
 
@@ -637,6 +637,7 @@ def extract(vault, root, today, pins_path=None, designs=None, seed=None, plans=N
     data["containers"] = inside_data.containers(vault, keys)
     data["designs"] = inside_data.inside(vault, keys, designs or {})
     data["plans"] = plan_data.inside(vault, keys, plans or {}, data["designs"])
+    data["insidePanel"] = panel_data.panels(vault, data)
     data["themes"] = [{"id": i, "label": label, "say": say} for i, label, say in THEMES]
     data["theme"] = THEME_IDS[0]
     return data

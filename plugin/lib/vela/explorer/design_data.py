@@ -531,7 +531,7 @@ def _split_names(value, known=()):
     parts.append(buf)
     out = []
     for part in parts:
-        if part.strip() and _bare(part.strip().rstrip(".")) in known:
+        if part.strip() and _system_name(part.strip().rstrip(".")) in known:
             out.append(part.strip().rstrip("."))
             continue
         out += [p.strip().rstrip(".") for p in re.split(r"\s+and\s+(?![^(]*\))", part) if p.strip()]
@@ -540,6 +540,11 @@ def _split_names(value, known=()):
 
 def _bare(name):
     return re.sub(r"\s*\(.*?\)\s*", " ", name).strip().lower()
+
+
+def _system_name(name):
+    """The outside system a Depends-on part names: 'Consent and identity over CON-003' is Consent and identity."""
+    return _bare(name).split(" via ")[0].split(" over ")[0].strip()
 
 
 def _components(section, problems):
@@ -756,7 +761,7 @@ def _check_components(design, problems):
                 c["depends_on_components"].append(names[_bare(name)]["name"])
                 continue
             c["depends_on_other"].append(name)
-            if _bare(name) not in systems:
+            if _system_name(name) not in systems:
                 _problem(problems, c["line"], f"Components › {c['name']}",
                          f"depends on {name!r}, which is neither a component nor an integration point")
     for api in design["api"]:
