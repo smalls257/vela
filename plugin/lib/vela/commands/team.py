@@ -12,12 +12,18 @@ It commits only on a branch that isn't `main` or `master` (the skills use `desig
 the team's review like any other change, so a commit straight to main is refused, not made. In a reader copy (no
 git) nothing runs, and it says so.
 
+A section that adds a design choice (`designchoice`: an ADR, a Decisions bullet, "we'll use X") is not committed until
+a person's capture names it. The senior's yes goes in with `vela record add`, which on a design branch writes to the
+branch's own record under `.vela/design/`; Claude's own captures never count (Silent Fallback ruled out: a doc that
+reads as decided and was decided by nobody).
+
 Exit codes: 0 committed; 1 refused (on main, detached, or nothing of the team's changed) or files left out (named; the
-team's files are still committed); 2 git failed.
+team's files are still committed); 2 git failed; 3 a choice nobody has said yes to (ask the person; nothing changed).
 """
 import pathlib
 
-from vela import guard, say
+from vela import closegate, designchoice, guard, say
+from vela.commands import record
 from vela.edge import stagegit, vaultgit
 
 PROTECTED = ("main", "master")
@@ -64,6 +70,43 @@ def report(result, plan, commit, message, branch):
         result.exit = say.REFUSED
 
 
+def head_text(root, rel):
+    """The committed text of `rel`, "" when HEAD doesn't have it (a new file)."""
+    code, out, _ = vaultgit.run_git(root, "show", f"HEAD:{rel}")
+    return out if code == 0 else ""
+
+
+def person_yes_words(root, branch):
+    """The words of every capture a person made in this design's record (origin not claude's)."""
+    rel = record.design_record_path(branch)
+    path = root / rel if rel else None
+    if not path or not path.is_file():
+        return []
+    matches = (closegate.CAPTURE_RE.match(row) for row in path.read_text(encoding="utf-8").splitlines())
+    return [m.group("words") for m in matches if m and not m.group("origin").strip().lower().startswith("claude")]
+
+
+def unbacked_choices(root, branch, staged):
+    """The design choices these docs add that no person's capture names."""
+    added = []
+    for rel in staged:
+        if rel.endswith(".md") and (root / rel).is_file():
+            text = (root / rel).read_text(encoding="utf-8", errors="replace")
+            added += designchoice.added_choices(rel, head_text(root, rel), text)
+    return designchoice.unbacked(added, person_yes_words(root, branch)) if added else []
+
+
+def ask_for_yes(result, unsaid):
+    result.exit = say.NEEDS_LEAD
+    result.needs_lead = [{"ask": "design-yes", "choice": designchoice.plain_choice(c)} for c in unsaid]
+    for c in unsaid:
+        words = designchoice.plain_choice(c)
+        result.lines.append(say.Line(
+            f"vela team commit: not committed, no yes recorded for: {words}",
+            f"This adds a choice nobody has said yes to: {words}. Ask, record the yes, then commit."))
+    return result
+
+
 def cmd_team_commit(args, out):
     from vela import cli, commands
     root = pathlib.Path(args.vault).resolve()
@@ -84,6 +127,9 @@ def cmd_team_commit(args, out):
             refuse(result, "team-nothing", "None of the team's files changed, so there's nothing to save.",
                    "Write the section or the story into docs/ first.")
             return commands.emit(result, args, out)
+        unsaid = unbacked_choices(root, branch, plan.stage)
+        if unsaid:
+            return commands.emit(ask_for_yes(result, unsaid), args, out)
         message = f"design: {about}"
         stagegit.stage(root, list(plan.stage))
         commit = stagegit.commit(root, message, list(plan.stage))

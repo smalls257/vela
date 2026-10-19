@@ -39,6 +39,7 @@ import traceback
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2] / "plugin" / "lib"))  # the plugin's bundled PyYAML
 import yaml  # noqa: E402
+from vela import designchoice  # noqa: E402
 
 HERE = pathlib.Path(__file__).resolve().parent
 
@@ -237,39 +238,14 @@ def decided_lines(vault):
                                for line in GENERATED.sub("", text).splitlines() if DECIDED.search(line))
 
 
-# A design choice is an ADR (its title line is the one choice it records) or, anywhere else under docs/, a line that
-# says what was picked. Design docs carry no state: decided marker, so DECIDED never sees them.
-ADR_TITLE = re.compile(r"^#\s+ADR-\d+", re.I)
-CHOICE = re.compile(r"\bwe(?:'ll|\u2019ll| will| are going to)\s+(?:use|build|adopt|go with|run|store|ship|write|keep)\b"
-                    r"|\bchosen (?:option|approach|design)\b|\b(?:option|approach)\s+[a-d1-4]\s+(?:is|was) (?:chosen|picked|selected)\b"
-                    r"|^\s*(?:[-*+]\s+)?(?:\*\*)?(?:decision|chosen option|choice)(?:\*\*)?\s*:", re.I)
-
-
-DECISIONS_HEAD = re.compile(r"^\s*(?:#{2,4}\s+decisions?\b|>?\s*\*\*decisions\b[^*]*\*\*)", re.I)
-BULLET = re.compile(r"^\s*>?\s*[-*+]\s+\S")
-
-
 def design_choice_lines(vault):
-    """Every line under docs/ that writes a design choice: an ADR's title, a bullet under a Decisions heading (the
-    design format's "Decisions that shape it" and "### Decisions"), or a line that says what was picked. Counted like
-    decided_lines, so one new copy is one new choice. Inside an ADR only the title counts: its Decision paragraph
-    restates the choice the title already records."""
+    """Every line under docs/ that writes a design choice, by vela's one detector (vela.designchoice). Counted like
+    decided_lines, so one new copy is one new choice."""
     found = collections.Counter()
     for path in sorted((pathlib.Path(vault) / "docs").rglob("*.md")):
         rel = path.relative_to(vault).as_posix()
-        is_adr = "/adr/" in f"/{rel}"
-        listing = False
-        for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
-            if is_adr:
-                hit = bool(ADR_TITLE.match(line))
-            else:
-                if DECISIONS_HEAD.match(line):
-                    listing = True
-                elif listing and not BULLET.match(line) and line.strip():
-                    listing = False
-                hit = (listing and bool(BULLET.match(line))) or bool(CHOICE.search(line))
-            if hit:
-                found[(rel, line.strip())] += 1
+        for line, count in designchoice.choice_lines(rel, path.read_text(encoding="utf-8", errors="replace")).items():
+            found[(rel, line)] += count
     return found
 
 

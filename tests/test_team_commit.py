@@ -57,3 +57,83 @@ def test_nothing_of_the_teams_changed_is_said_plainly(repo):
     change(repo, "01-goals.md")
     code, out = commit(repo, "--about", "x", "--for-lead")
     assert code == 1 and "nothing to save" in out
+
+
+# ---- the yes gate: a design choice is committed only after a person's capture names it ----
+
+from vela import designchoice, say  # noqa: E402
+
+CHOICE_DOC = "# Heron design\n\n## Decisions\n\n- We'll keep the calendar key behind a small interface.\n"
+
+
+def add_yes(root, words, origin=None):
+    """The senior's capture, as the design skill writes it: `vela record add` on the design branch."""
+    extra = ("--origin", origin) if origin else ("--origin", "@sam")
+    return run("record", "add", "--vault", str(root), *extra, "--tag", "decision", words)
+
+
+def test_a_design_choice_nobody_said_yes_to_is_refused_in_plain_words_and_nothing_changes(repo):
+    change(repo, "docs/tech-design/heron.md", CHOICE_DOC)
+    head = git(repo, "rev-parse", "HEAD")
+    code, out = commit(repo, "--about", "the key", "--for-lead")
+    assert code == 3, out
+    assert out.strip().startswith("This adds a choice nobody has said yes to: ")
+    assert "keep the calendar key behind a small interface" in out
+    assert out.strip().endswith("Ask, record the yes, then commit.")
+    assert say.leak_in(out) is None, out  # no code or ID reaches the person
+    assert git(repo, "rev-parse", "HEAD") == head
+
+
+def test_the_refusal_names_the_choice_in_json_for_the_model(repo):
+    change(repo, "docs/tech-design/heron.md", CHOICE_DOC)
+    code, out = commit(repo, "--about", "the key", "--json")
+    assert code == 3 and json.loads(out)["needs_lead"][0]["ask"] == "design-yes"
+
+
+def test_a_recorded_yes_that_names_the_choice_lets_it_through(repo):
+    change(repo, "docs/tech-design/heron.md", CHOICE_DOC)
+    code, out = add_yes(repo, "Yes, keep the calendar key behind a small interface.")
+    assert code == 0, out
+    code, out = commit(repo, "--about", "the key", "--json")
+    assert code == 0, out
+    assert committed(repo) == ["docs/tech-design/heron.md"]
+
+
+def test_claudes_own_capture_is_not_a_yes(repo):
+    change(repo, "docs/tech-design/heron.md", CHOICE_DOC)
+    add_yes(repo, "I'd keep the calendar key behind a small interface.", origin="claude")
+    code, out = commit(repo, "--about", "the key", "--for-lead")
+    assert code == 3 and "nobody has said yes" in out
+
+
+def test_a_yes_to_something_else_does_not_cover_the_choice(repo):
+    change(repo, "docs/tech-design/heron.md", CHOICE_DOC)
+    add_yes(repo, "Yes, ship the weekly report on Fridays.")
+    code, out = commit(repo, "--about", "the key", "--for-lead")
+    assert code == 3
+
+
+def test_a_section_with_no_choice_commits_without_a_yes(repo):
+    change(repo, "docs/tech-design/heron.md", "# Heron design\n\nThe calendar sends each entry with its time.\n")
+    assert commit(repo, "--about", "the facts")[0] == 0
+
+
+def test_a_choice_already_committed_is_not_asked_for_again(repo):
+    change(repo, "docs/tech-design/heron.md", CHOICE_DOC)
+    add_yes(repo, "Yes, keep the calendar key behind a small interface.")
+    assert commit(repo, "--about", "the key")[0] == 0
+    change(repo, "docs/tech-design/heron.md", CHOICE_DOC + "\nMore prose.\n")
+    assert commit(repo, "--about", "prose")[0] == 0
+
+
+def test_the_detector_reads_adr_titles_decision_bullets_and_we_will_lines():
+    adr = designchoice.added_choices("docs/adr/0001.md", "", "# ADR-0001 Use a queue\n\nDecision: we'll use a queue.\n")
+    assert adr == ["# ADR-0001 Use a queue"]  # inside an ADR only the title counts
+    doc = "We'll use SQLite for the cache.\n\n### Decisions\n\n- Key stays local\n\nProse.\n"
+    assert designchoice.added_choices("docs/x.md", "", doc) == ["We'll use SQLite for the cache.", "- Key stays local"]
+    assert designchoice.added_choices("docs/x.md", doc, doc) == []
+
+
+def test_a_none_yet_bullet_under_decisions_is_no_choice(repo):
+    change(repo, "docs/tech-design/heron.md", "# Heron\n\n**Decisions that shape it:**\n\n- None yet. Scope is open.\n")
+    assert commit(repo, "--about", "scope")[0] == 0

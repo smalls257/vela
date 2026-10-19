@@ -25,11 +25,13 @@ that would not parse; 2 the record or git failed; 3 several open records in this
 A reader copy writes in place and runs no git: the history is not read there, and the record's text and the
 session file still hold every number this copy used.
 """
+import datetime
 import pathlib
 
 from vela import commands, records, say, sessions
 from vela.commands import whoami
 from vela.edge import sessiongit
+from vela.edge import vaultgit
 from vela.edge.vaultgit import GitUnavailable
 
 NAME = "record add"
@@ -83,6 +85,10 @@ def open_record(root, state, wanted):
     found, _ = sessions.find_open(sessiongit.folder_records(root))
     if wanted:
         found = sessions.pick(found, wanted)
+    if not found and not wanted:
+        design = design_record(root)
+        if design:
+            return design
     if not found:
         raise Stop(say.Result(NAME, exit=say.REFUSED, lines=[say.Line(NO_RECORD)]))
     if len(found) > 1:
@@ -92,6 +98,33 @@ def open_record(root, state, wanted):
                                                                       "haven't picked one.")]
                               + [say.Line(f"- {r.id}", plain=f"- {r.title}") for r in found]))
     return found[0].path, found[0].id
+
+
+DESIGN_RECORDS = ".vela/design"
+
+
+def design_record_path(branch):
+    """The vault-relative path of the yes record for a `design/<slug>` branch, or "" for any other branch."""
+    slug = branch[len("design/"):].strip("/") if branch.startswith("design/") else ""
+    return f"{DESIGN_RECORDS}/{slug.replace('/', '-')}.md" if slug else ""
+
+
+def design_record(root):
+    """(path, id) of the design branch's own record of the senior's yes, made on first use. A design session opens no
+    session record, yet its choices need a place for the yes (`vela team commit` reads it). It lives in `.vela/`, the
+    tool's local state, so it never rides the design commit or shows up as a stray file; None off a design branch."""
+    try:
+        rel = design_record_path(vaultgit.current_branch(root))
+    except GitUnavailable:
+        return None
+    if not rel:
+        return None
+    path = root / rel
+    record_id = path.stem
+    if not path.is_file():
+        today = datetime.date.today().isoformat()
+        sessiongit.write_text(root, rel, sessions.record_text(record_id, f"Design: {record_id}", today, ["design"]))
+    return rel, record_id
 
 
 def lead_origin(root):

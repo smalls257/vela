@@ -41,11 +41,11 @@ If the vault has no releases page at all, propose a skeleton from the app's firs
 
 ## 3. Ask one question at a time
 
-`GRILL-LOOP.md` holds the loop: one question, your recommended answer with a one-line reason, then wait; concrete edge cases over general ones; checks against this conversation, then the documents, then the code. Ask until the answer is specific enough to build from. When the code can answer, read the code.
+`GRILL-LOOP.md` holds the loop: one question, your recommended answer with a one-line reason, then wait; concrete edge cases over general ones; checks against this conversation, then the documents, then the code. Ask until the answer is specific enough to build from. When the code can answer, read the code. Before each reply, reread it for codes: the pages you read are full of IDs (CST-3, UNK-021, EPC-004 criterion 3), and quoting a page as your reason copies them into the chat. Name the thing instead ("the CISO's no-cloud rule", "how a client call is marked"); the only ID the person hears is one they must type, once, such as the one in `/vela:challenge`.
 
 ## 4. Write as you go
 
-Write a choice in only after the person says yes to it: propose it with its reason ("I'd keep the key behind a small interface, so it can move later. OK?") and wait. Your own expertise is a recommendation, not a decision. Write each answer into `docs/tech-design/<slug>.md` as its section settles, and commit it on the branch with `vela team commit --about "<the section>"`, naming the section. Batching loses work when a session is cut off; the branch is the resume point.
+Propose each choice with its reason ("I'd keep the key behind a small interface, so it can move later. OK?"), wait for the yes, record it with `vela record add --tag decision "<their words>"`, write it into `docs/tech-design/<slug>.md`, then `vela team commit --about "<the section>"` after each section settles; the commit stops on a choice no yes names.
 
 - The doc follows `TECH-DESIGN-FORMAT.md`, its frontmatter `FRONTMATTER-FORMAT.md`: a summary first, then full detail, each topic under about 120 words.
 - An ADR only when a decision is hard to reverse, surprising without context and a real trade-off: `ADR-FORMAT.md`.
