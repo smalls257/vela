@@ -3,7 +3,7 @@
    map's orientation and is never rotated to the current page (Levine's you-are-here maps). "Here" is what the
    panel shows, or what the current view is about (the step being played, the strip being read). */
 const Minimap = (() => {
-  Legend.define("mini.party", [{ k: "clip", fill: "unlit", stroke: "rule-3", w: 1.4 }], "Clipped corners: an outside service");
+  Legend.define("mini.party", [{ k: "clip", fill: "unlit", stroke: "rule-3", w: 1.4 }], "Cut corners: a service outside the plan");
   Legend.define("mini.link", [Legend.ln({ stroke: "track", w: 3 })], "Gray line: a connection between two boxes");
   Legend.define("mini.link.lit", [Legend.ln({ stroke: "caution", w: 3.5 })], "Colored line: a connection with a contract that needs you, in its most urgent color");
   Legend.define("mini.link.hot", [Legend.ln({ stroke: "focus", w: 4.5 })], "White line: a connection to what you picked");
@@ -16,10 +16,15 @@ const Minimap = (() => {
     if (own && own.length) return own;
     return App.focus ? mapAnchors(App.focus) : [];
   }
+  /* It shows where you are on the map, so it belongs where the map is the subject: Home, Apps, Capabilities, Flows and
+     inside an app. On Goals, Decisions, Slices or Concerns it showed a map with no link to the page and took 170 px from the text. */
+  const MAP_SECTIONS = ["home", "apps", "capabilities", "flows"];
+  const wanted = () => MAP_SECTIONS.includes(App.section) || App.view === "inside";
   function refresh() {
     const box = $("#panel-mini");
     if (!box) return;
-    if (!D.nodes.length) { box.innerHTML = ""; return; }
+    box.hidden = !wanted();
+    if (box.hidden || !D.nodes.length) { box.innerHTML = ""; return; }
     const L = Geo.layout(MINI);  // drawn afresh each time: a box held by the pointer, or moved, is where it now stands
     const at = new Set(here());
     const pad = 70, padTop = 40, b = L.bounds;
@@ -66,5 +71,5 @@ const Minimap = (() => {
     requestAnimationFrame(breathe);
   }
   requestAnimationFrame(breathe);
-  return { refresh, here };
+  return { refresh, here, wanted };
 })();

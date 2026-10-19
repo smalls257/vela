@@ -82,6 +82,7 @@ ul.chain li { border-left: 2px solid var(--rule-3); padding-left: 10px; }
 .step-link:hover { background: var(--deck); color: var(--ink); }
 .gap { color: var(--warning-text); font-size: 13px; }
 details summary { cursor: pointer; font-size: 12.5px; color: var(--ink-3); }
+.panel-mini[hidden] { display: none; }
 .panel-mini { flex: none; border-top: 1px solid var(--rule); padding: 8px 14px 10px; background: var(--room); }
 .panel-mini .mini-head { display: flex; justify-content: space-between; gap: 10px; font-size: 11.5px; color: var(--ink-3); margin-bottom: 4px; }
 .panel-mini .mini-head > span:first-child { letter-spacing: .07em; text-transform: uppercase; }

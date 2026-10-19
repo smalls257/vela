@@ -36,6 +36,11 @@ def heron(tmp_path_factory):
 
 
 @pytest.fixture(scope="module")
+def booking(tmp_path_factory):
+    return build(tmp_path_factory, REPO / "examples" / "unified-booking", "booking")
+
+
+@pytest.fixture(scope="module")
 def chrome():
     return find_chrome()
 
@@ -115,3 +120,19 @@ def test_left_menu_names_and_a_folded_read_group(chrome, heron):
     """Finding 11: flow names drop what they share; the text-first pages fold under Read."""
     lines = selftest(chrome, heron, 1440)
     need(lines, "menu: ", "menu: Constraints, Context, Strategy and Glossary sit under one Read heading", "menu: Read opens", "menu: Read stays open")
+
+
+@pytest.mark.browser
+def test_a_few_slices_open_without_filter_rows(chrome, booking):
+    """Finding 12: four slices open with no search or filters (the ... menu brings them), the Key is a ?, and Comes after
+    says "the first slice"."""
+    lines = selftest(chrome, booking, 1440, "s=slices")
+    need(lines, "slices: 4 slices open with no search or filter rows", "Comes after says", "slices: the ? opens the key")
+
+
+@pytest.mark.browser
+def test_overview_map_only_where_the_map_is_the_subject_and_labels_say_what_they_show(chrome, heron, booking):
+    """Findings 15 and 16. The booking example records a first slice, so its flows carry the tag."""
+    lines = selftest(chrome, heron, 1440)
+    need(lines, "overview map: shown on Home, Apps, Capabilities, Flows and inside an app", "labels: the View menu says Contracts only, Dependencies and Moving markers")
+    need(selftest(chrome, booking, 1440), "labels: a flow in the first slice says so")

@@ -275,7 +275,7 @@ const SelfTest = (() => {
       Flows.select(keys[0], -1); await frames(2);
       $(".flow-picker .fp-trigger").click(); await frames();
       const got = $$(".flow-picker .fp-opt").filter((o) => o.querySelector(".tracer-tag")).map((o) => o.dataset.flow);
-      const small = $$(".flow-picker .fp-opt .tracer-tag").every((t) => t.getAttribute("title") && t.textContent === "tracer");
+      const small = $$(".flow-picker .fp-opt .tracer-tag").every((t) => t.getAttribute("title") && t.textContent === "first slice");
       $(".flow-picker .fp-trigger").click(); await frames();
       return { got, small };
     };
@@ -290,7 +290,7 @@ const SelfTest = (() => {
       const want = t ? t.flows : [];
       const pk = await pickerTags(), pg = await pageTags();
       ok(pk.got.length === want.length && pk.got.every((k) => want.includes(idOf(k))) && pk.small, `tracer, ${label}: the picker tags ${want.join(", ") || "no flow"}, each with a tooltip`, `tracer, ${label}: the picker tags ${pk.got.map(idOf).join(", ") || "nothing"}, wanted ${want.join(", ") || "nothing"}`);
-      const wantPg = keys.filter((k) => want.includes(idOf(k))).map((k) => `${k}:tracer ${want.indexOf(idOf(k)) + 1} of ${want.length}`);
+      const wantPg = keys.filter((k) => want.includes(idOf(k))).map((k) => `${k}:first slice flow ${want.indexOf(idOf(k)) + 1} of ${want.length}`);
       ok(JSON.stringify(pg) === JSON.stringify(wantPg), `tracer, ${label}: each tracer flow's page shows the tag and its place${wantPg.length ? ` (${wantPg.map((x) => x.split(":")[1]).join("; ")})` : ", none here"}`, `tracer, ${label}: flow pages show ${pg.join("; ") || "nothing"}, wanted ${wantPg.join("; ") || "nothing"}`);
       if (!D.releases.count || !D.map.apps.length) return;
       Nav.open("releases"); await frames(2);
@@ -714,10 +714,10 @@ const SelfTest = (() => {
     // choosing a view from the menu changes the view and the address
     const transit = menuItem("view", "transit");
     transit.click(); await frames();
-    ok(MapView.lens() === "transit" && (!D.nodes.length || !!$("#board g.station")) && /lens=transit/.test(location.hash) && menuButton("view").textContent.includes("Flow lines") && !menuButton("group"),
-      "diagram menus: picking Flow lines draws the line map, says so on the button, drops the Group menu and puts lens=transit in the address", `diagram menus: lens ${MapView.lens()}, hash ${location.hash}`);
+    ok(MapView.lens() === "transit" && (!D.nodes.length || !!$("#board g.station")) && /lens=transit/.test(location.hash) && menuButton("view").textContent.includes("Contracts only") && !menuButton("group"),
+      "diagram menus: picking Contracts only draws the line map, says so on the button, drops the Group menu and puts lens=transit in the address", `diagram menus: lens ${MapView.lens()}, hash ${location.hash}`);
     const animate = menuItem("view", "animate");
-    ok(!!animate && animate.getAttribute("role") === "menuitemcheckbox", "diagram menus: Animate flows is a checkbox item in the View menu", "diagram menus: no Animate flows checkbox");
+    ok(!!animate && animate.getAttribute("role") === "menuitemcheckbox", "diagram menus: Moving markers is a checkbox item in the View menu", "diagram menus: no Moving markers checkbox");
     menuItem("view", "cockpit").click(); await frames();
     menuItem("group", "none").click(); await frames();
     const progress = menuItem("view", "progress");
@@ -930,6 +930,15 @@ const SelfTest = (() => {
     ok(sideways() <= 1, `slices path: nothing scrolls sideways at ${innerWidth} px`, `slices path: scrolls sideways by ${sideways()} px`);
     Nav.open("slices"); await frames();
     ok(!!$(".sl-path") && layoutIs("path"), "slices: drawn again, the path is still the layout", "slices: the layout was not kept");
+    // a plan of a few slices opens without search and filters; the ... menu brings them (a plan of Slices.FILTERS_FROM or more always has them)
+    Slices.st.filters = false; Nav.open("slices"); await frames();
+    const few = L.length < Slices.FILTERS_FROM, bare = !$(".sl-find") && !$(".sl-fgroup");
+    if (few) {
+      const more = $('[data-dmenu="more"] .dmenu-btn'); more.click(); await frames();
+      const item = $('[data-dmenu="more"] [data-item="filters"]'), had = !!item;
+      if (item) { item.click(); await frames(); }
+      ok(bare && had && !!$(".sl-find") && !!$(".sl-fgroup"), `slices: ${L.length} slices (under ${Slices.FILTERS_FROM}) open with no search or filter rows; the ... menu's Search and filter brings them`, `slices: bare ${bare}, menu item ${had}, filters after ${!!$(".sl-find")}`);
+    } else ok(!bare, `slices: ${L.length} slices show search and filters at once`, "slices: a big plan has no filters");
     // a filter narrows both layouts the same way, and the address bar carries it
     const counts = {};
     for (const x of L) { const s = x.status || "not planned yet"; counts[s] = (counts[s] || 0) + 1; }
@@ -963,7 +972,7 @@ const SelfTest = (() => {
     needs.click(); await frames();
     ok(+$(".ct", $(".sl-fgroup[data-group=needs] button")).textContent === late && (late ? $$(".sl-tr").length === late && $$(".sl-tr .sl-due").length === late : needs.disabled && $$(".sl-tr").length === L.length),
       `slices: Needs you only shows the ${late} with a journey past its due date`, `slices needs you: ${$$(".sl-tr").length} rows, want ${late}`);
-    Slices.clear(); Slices.st.open = new Set(); Slices.st.layout = null;
+    Slices.clear(); Slices.st.open = new Set(); Slices.st.layout = null; Slices.st.filters = false;
     if (was === null) localStorage.removeItem(KEYL); else Settings.write(KEYL, was);
     Nav.home(); go("lights", { reset: true }); await frames();
   }

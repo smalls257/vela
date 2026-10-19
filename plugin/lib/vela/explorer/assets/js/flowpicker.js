@@ -63,7 +63,7 @@ const FlowPicker = (() => {
     const bits = [plural(e.steps, "step")];
     if (e.open) bits.push(plural(e.open, "open question"));
     const pl = Releases.tracerPlace(e.key);
-    if (pl) bits.push(`${Releases.tracerPlaceWords(pl)} in the tracer`);
+    if (pl) bits.push(`${Releases.tracerPlaceWords(pl)} in the first slice`);
     if (grouped && e.caps.length > 1) bits.push(`also serves ${e.caps.slice(1).join(", ")}`);
     return bits.join(" · ");
   };

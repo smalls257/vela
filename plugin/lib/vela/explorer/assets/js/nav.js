@@ -47,12 +47,12 @@ const Nav = (() => {
     epics: "every epic, and what it delivers", releases: "the system before and after each release" };
   const visualItem = ([v, label]) => ({ id: v, label, say: VISUAL_SAY[v] || null, checked: App.view === v, run: () => { Sections.doc.page = ""; showView(v); } });
   /* The View menu's items for the section the reader is in. A section with a map keeps the map's four views in the same
-     menu as its other visuals, so Progress sits beside System map and Flow lines, whichever of them is showing. */
+     menu as its other visuals, so Progress sits beside System map and Contracts only, whichever of them is showing. */
   function viewItems() {
     const s = sec(), vis = s ? VISUALS[s.id] || [] : [];
     if (App.section !== "home" && !vis.some(([v]) => v === "map")) return vis.map(visualItem);
     const items = MapView.viewItems(), at = items.findIndex((x) => x.separator), others = vis.filter(([v]) => v !== "map").map(visualItem);
-    items.splice(at < 0 ? items.length : at, 0, ...others);  // the other visuals sit with the views; the Animate flows switch stays last
+    items.splice(at < 0 ? items.length : at, 0, ...others);  // the other visuals sit with the views; the Moving markers switch stays last
     return items;
   }
   function viewMenu() {

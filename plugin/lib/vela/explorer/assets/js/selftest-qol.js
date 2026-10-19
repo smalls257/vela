@@ -182,12 +182,60 @@
     Nav.st.expanded.delete("read"); Nav.home(); await tick();
   }
 
+  /* Finding 12: a few slices open without search and filter rows, the Key is a ? in the bar, and "Comes after" says
+     "the first slice" with the name on hover. */
+  async function slicesQuiet(ok) {
+    const L = Slices.LIST;
+    if (!L.length) { out_skip(ok, "slices quiet: this vault has no slices"); return; }
+    Slices.st.filters = false; Slices.clear(); Nav.open("slices"); await tick();
+    const few = L.length < Slices.FILTERS_FROM, after = $$("#main .sl-afterchip");
+    const withAfter = L.filter((x) => x.after.length).length;
+    ok((few ? !$(".sl-find") && !$(".sl-fgroup") : !!$(".sl-find")) && !$("#main .sl-results .legend") && !!$("#main [aria-controls^='dmenu-key']"),
+      `slices: ${L.length} slices ${few ? "open with no search or filter rows" : "show their filters"}, and the key is a ? in the bar, not a block under the rows`, `slices: find ${!!$(".sl-find")}, filters ${!!$(".sl-fgroup")}, key block ${!!$("#main .sl-results .legend")}, ? button ${!!$("#main [aria-controls^='dmenu-key']")}`);
+    const named = after.every((c) => /^(the \w+ slice|slice \d+)$/.test(c.textContent) && c.title.length > c.textContent.length);
+    ok(after.length >= withAfter && named, `slices: Comes after says "${after[0] ? after[0].textContent : ""}", never a whole title, with the name on hover (${after.length} chips)`, `slices: chips ${after.map((c) => c.textContent).join(" | ")}`);
+    const key = $("#main [aria-controls^='dmenu-key']"); key.click(); await tick();
+    const pop = document.getElementById(key.getAttribute("aria-controls"));
+    ok(!pop.hidden && $$(".lg-items li", pop).length > 0, "slices: the ? opens the key, one line for each look on the page", "slices: the ? opened an empty key");
+    Menus.close(); Nav.home(); await tick();
+  }
+  const out_skip = (ok, text) => ok(true, text);
+
+  /* Finding 15: the overview map is in the panel only where the map is the subject. Finding 16: names say what you will see. */
+  async function overviewAndNames(ok) {
+    const bad = [];
+    for (const [name, show] of [["Home", () => Nav.home()], ...D.sections.map((x) => [x.label, () => Nav.open(x.id)])]) {
+      show(); await tick();
+      const id = App.section, want = ["home", "apps", "capabilities", "flows"].includes(id), mini = $("#panel-mini"), shown = !mini.hidden && mini.offsetParent !== null && (!D.nodes.length || !!$("svg", mini));
+      if (shown !== want) bad.push(`${name}: overview ${shown ? "shown" : "missing"}`);
+    }
+    if (D.map.apps.length) { Inside.open(D.map.apps[0].key, "containers"); await tick(); if ($("#panel-mini").hidden) bad.push("Inside: overview missing"); }
+    Nav.open("goals"); await tick();
+    const body = $("#panel-body").getBoundingClientRect(), panel = $("#panel").getBoundingClientRect();
+    ok(!bad.length && body.bottom >= panel.bottom - 2, "overview map: shown on Home, Apps, Capabilities, Flows and inside an app, and nowhere else, so the panel text gets the full height", `overview map: ${bad.join(" | ")}; body ends ${Math.round(body.bottom)} of ${Math.round(panel.bottom)}`);
+    Nav.open("apps"); MapView.st.lens = null; rerender(); await tick();
+    const view = $("#main [data-dmenu=view] .dmenu-btn"); view.click(); await tick();
+    const labels = $$("#main [data-dmenu=view] [role^=menuitem]").map((x) => x.textContent).join(" | ");
+    Menus.close();
+    const old = ["Flow lines", "Who uses whom", "Animate flows", "Clipped corners", "Wide card", " 1 of 2", "tracer 1"];
+    const text = [$("#main"), $("#panel"), $("#side")].map((e) => e.textContent).join(" ") + labels;
+    ok(/Contracts only/.test(labels) && /Dependencies/.test(labels) && /Moving markers/.test(labels) && !old.some((w) => text.includes(w)), "labels: the View menu says Contracts only, Dependencies and Moving markers, and none of the old names is on the page", `labels: menu ${labels}; old names left: ${old.filter((w) => text.includes(w)).join(", ")}`);
+    MapView.st.lens = null; Nav.home(); await tick();
+    const tag = D.flows.map((f) => f.key).find((k) => typeof Releases !== "undefined" && Releases.tracerPlace(k));
+    if (tag) {
+      Nav.open("flows", tag); Flows.select(tag, -1); await tick();
+      const place = $(".flows-head .tracer-place, .dia-bar .tracer-place");
+      ok(!!place && /^first slice\s+flow \d+ of \d+$/.test(place.textContent.trim()), `labels: a flow in the first slice says so ("${place ? place.textContent.trim() : ""}"), not tracer and a bare 1 of 2`, `labels: flow tag "${place && place.textContent}"`);
+    } else ok(true, "labels: this vault records no first slice, so no flow carries its tag");
+    Nav.home(); await tick();
+  }
+
   /* A menu opened from a diagram bar or a page head is the topmost thing at its middle and its two ends, in every section
      and every map view, so no view's own layers (the matrix's frozen corner, a canvas) are ever drawn over it. */
   const GRID = [0.06, 0.3, 0.5, 0.7, 0.94].flatMap((x) => [0.06, 0.3, 0.5, 0.7, 0.94].map((y) => [x, y]));  // a corner of the frozen head sits over one part of a menu, not its middle
   async function menusOnTop(ok) {
     const trials = [["Home", () => Nav.home()], ...D.sections.map((x) => [x.label, () => Nav.open(x.id)]),
-      ["Who uses whom", () => { Nav.open("apps"); MapView.st.lens = "matrix"; rerender(); }], ["Flow lines", () => { Nav.open("apps"); MapView.st.lens = "transit"; rerender(); }],
+      ["Dependencies", () => { Nav.open("apps"); MapView.st.lens = "matrix"; rerender(); }], ["Contracts only", () => { Nav.open("apps"); MapView.st.lens = "transit"; rerender(); }],
       ["Before and after", () => { Nav.open("apps"); MapView.st.lens = "releases"; rerender(); }]];
     const was = { lens: MapView.st.lens, theme: Theme.id }, bad = [];
     for (const el of [document.scrollingElement, document.body, $("#main")]) if (el) { el.scrollTop = 0; el.scrollLeft = 0; }  // earlier checks scroll things into view
@@ -195,7 +243,7 @@
     for (const theme of [was.theme, ...Theme.LIST.map((t) => t.id).filter((t) => t !== was.theme)]) {
       Theme.set(theme);
       for (const [name, show] of trials) {
-        if (theme !== was.theme && name !== "Who uses whom" && name !== "Epics") continue;  // the other themes are checked where the layers are heaviest
+        if (theme !== was.theme && name !== "Dependencies" && name !== "Epics") continue;  // the other themes are checked where the layers are heaviest
         show(); await tick();
         for (const btn of $$("#main [aria-haspopup]:not([disabled]):not([aria-disabled='true'])")) {
           if (btn.offsetParent === null) continue;  // a control a narrow bar folds away is not on the page
@@ -224,7 +272,7 @@
     const only = HASH.get("only") === "qol";
     const report = only ? ["head"] : await base(), lines = [], errors = window.__errors.length;
     const ok = (cond, good, bad) => { lines.push(cond ? "ok " + good : "FAIL " + (bad || good)); if (HASH.has("trace")) console.log("[selftest] " + lines[lines.length - 1]); };
-    try { if (!wide()) await compact(ok); else { await appPanel(ok); await searchRows(ok); await oneNumber(ok); await onceEach(ok); await gear(ok); await sideNames(ok); } await menusOnTop(ok); } catch (e) { lines.push("FAIL the quality-of-life checks threw: " + e.message + " " + (e.stack || "").split("\n")[1]); }
+    try { if (!wide()) await compact(ok); else { await appPanel(ok); await searchRows(ok); await oneNumber(ok); await onceEach(ok); await gear(ok); await sideNames(ok); await slicesQuiet(ok); await overviewAndNames(ok); } await menusOnTop(ok); } catch (e) { lines.push("FAIL the quality-of-life checks threw: " + e.message + " " + (e.stack || "").split("\n")[1]); }
     Nav.home(); go("lights", { reset: true });
     if (window.__errors.length > errors) lines.push("FAIL JS ERRORS in the quality-of-life checks: " + window.__errors.slice(errors).join(" | "));
     const body = report.slice(1).concat(lines), fails = body.filter((l) => l.startsWith("FAIL")).length;
