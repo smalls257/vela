@@ -7,7 +7,7 @@ authored: mixed
 
 # Epics
 
-One page per epic, named `EPC-nnn-<slug>.md`.
+Each epic is one team's block of work, with the checks that say when it is done.
 
 ## Traceability
 

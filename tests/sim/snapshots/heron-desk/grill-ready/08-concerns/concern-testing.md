@@ -17,4 +17,5 @@ Who tests each contract from each side, the end-to-end suites, and the test data
 
 | App | State | Why |
 |---|---|---|
-| [[heron-building-blocks\|Heron]] | unexamined | |
+
+Not looked at yet: [[heron-building-blocks\|Heron]].
