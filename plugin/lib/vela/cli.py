@@ -244,7 +244,31 @@ def tracked_tool_file_findings(root):
 def vault_file_findings(root):
     """The findings about the vault's own files, which are not pages: its conventions copy, its config, its manifests
     and the working files git should not track."""
-    return conventions_findings(root) + config_findings(root) + manifest_findings(root) + tracked_tool_file_findings(root)
+    return (conventions_findings(root) + config_findings(root) + manifest_findings(root) + tracked_tool_file_findings(root)
+            + gap_acknowledgement_findings(root))
+
+
+def gap_acknowledgement_findings(root):
+    """E821 for a design gap whose `acknowledged_by` no typed message backs; W821 for all of them when there is no
+    said log to check against (listed for confirmation, as the other gates do). The rule is designchoice's, the same
+    one `vela team commit` applies."""
+    from vela import designchoice
+    from vela.edge import saidlog
+    designs = sorted((root / "docs" / "tech-design").glob("*.md"))
+    gaps = [(path, g) for path in designs
+            for g in designchoice.acknowledged_gaps(path.read_text(encoding="utf-8", errors="replace"))]
+    if not gaps:
+        return []
+    messages = saidlog.typed_messages(root)
+    unbacked = set(designchoice.unnamed_gaps([g for _, g in gaps], messages))
+    code = "W821" if messages is None else "E821"
+    why = ("no said log exists here, so nothing can show the lead accepted it" if messages is None
+           else "nothing the lead typed names it")
+    return [model.Finding(path.relative_to(root).as_posix(), 1, code,
+                    f"gap {gap_id} says {handle} acknowledged it, but {why}: {what}",
+                    "Ask the lead whether they accepted it. If they did, record their words; if not, take acknowledged_by "
+                    "off and keep it as an open question.")
+            for path, gap in gaps if gap in unbacked for gap_id, what, handle in [gap]]
 
 
 def cmd_upgrade(args, out):

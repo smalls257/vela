@@ -527,7 +527,7 @@ Run `python3 .claude/skills/vela/scripts/vela check` from the vault root. It rea
 
 The table is generated from the codes `vela check` uses, so it cannot drift from them, and each finding's fix line says how to put it right. `vela upgrade` brings a vault's copy up to date.
 
-<!-- generated:check-codes sha=4fe323b5: do not edit, run vela render -->
+<!-- generated:check-codes sha=9b50e6c4: do not edit, run vela render -->
 | Code | Finding |
 |---|---|
 | E101 | page has no frontmatter |
@@ -671,6 +671,8 @@ The table is generated from the codes `vela check` uses, so it cannot drift from
 | W811 | subject defined off its page |
 | W812 | ledger row is dated in the future |
 | W813 | ledger page has no question ledger heading |
+| E821 | design gap acknowledged by someone whose typed words never name it |
+| W821 | design gap acknowledged_by cannot be checked: no said log |
 <!-- /generated:check-codes -->
 
 W371 fires on a page that keeps two or more separate openings: two or more prose paragraphs of real words above the first `##` heading whose words together run past 150, the most one body paragraph may hold (W365). A page has one opening. A later session that rewrites it replaces it, so a second opening is a second account of the same page, and the two can disagree. Two paragraphs inside the limit, such as what a page does and what it does not own, are an ordinary opening and are left alone, as are lists, tables and `**Label:**` lines between them. An index and the glossary are exempt: one describes its folder, the other is a paragraph per term. The fix is to keep one opening and move anything the others add under a heading.

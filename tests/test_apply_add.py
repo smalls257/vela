@@ -224,7 +224,9 @@ def test_app_stub_has_the_exact_stub_line(tmp_path):
     meta, _, problem = parse.split_frontmatter(page)
     assert problem is None and meta["id"] == "APP-desk" and meta["state"] == "inkling" and meta["change"] == "new"
     assert schema.BOUNDARY_STUB_LINE in page.split("\n")
-    assert "| [[desk-building-blocks\\|Desk]] | unexamined | |" in writes["08-concerns/concern-testing.md"]
+    concern = writes["08-concerns/concern-testing.md"]
+    assert "| unexamined |" not in concern
+    assert "\nNot looked at yet: [[desk-building-blocks\\|Desk]].\n" in concern
     assert "| APP-desk | - | inkling | [[2026-10-20-grill-stock#^c03]] |" in writes[RECORD]
 
 
@@ -308,3 +310,13 @@ def test_every_type_has_an_example_its_own_validate_accepts_in_shape(kind):
     assert set(module.EXAMPLE) <= set(module.FIELDS) | {"type"}, kind
     assert set(module.REQUIRED) <= set(module.FIELDS), kind
     assert module.__doc__ and "Violation" in (add.__doc__ or ""), kind
+
+
+def test_a_second_stub_joins_the_one_not_looked_at_line_and_no_empty_row_is_written(tmp_path):
+    from vela.decisions import textedit
+    page = "# Testing\n\n| App | State | Why |\n|---|---|---|\n\nNext.\n"
+    once = textedit.add_not_looked(page, ("App", "State"), "[[a\\|A]]")
+    twice = textedit.add_not_looked(once, ("App", "State"), "[[b\\|B]]")
+    assert twice.count("Not looked at yet:") == 1
+    assert "\nNot looked at yet: [[a\\|A]], [[b\\|B]].\n" in twice
+    assert "unexamined" not in twice and textedit.add_not_looked("no table", ("App", "State"), "x") is None

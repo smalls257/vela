@@ -34,3 +34,9 @@ def read_all(root):
     if not logs:
         return None
     return [p.read_text(encoding="utf-8", errors="replace") for p in logs]
+
+
+def typed_messages(root):
+    """What the person typed, one string per message, or None when no log exists (nothing can be proven either way)."""
+    logs = read_all(root)
+    return None if logs is None else said.messages(logs)

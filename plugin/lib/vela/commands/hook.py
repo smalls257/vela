@@ -89,11 +89,12 @@ def cmd_session_start(args, out):
 def cmd_said(args, out):
     """UserPromptSubmit: log what the person typed. Prints nothing (UserPromptSubmit stdout reaches the model's
     context), always exits 0, and leaves the log in `.vela/`, which is never staged."""
+    from vela import said
     from vela.edge import saidlog, vaultgit
     payload = read_payload(sys.stdin, "said")
     root = marker_folder(payload)
     prompt = payload.get("prompt")
-    if not isinstance(prompt, str) or not prompt.strip() or not is_vault(root):
+    if not isinstance(prompt, str) or not prompt.strip() or said.harness_injected(prompt) or not is_vault(root):
         return 0
     name = str(payload.get("session_id") or "") or vaultgit.current_branch(root) or "session"
     try:

@@ -7,11 +7,11 @@ Pages read like a senior colleague explaining the plan across a desk. They're sh
 - We say "we" for the team and the role for one person: "the solution lead picked it".
 - We contract the way people talk, negatives too: hasn't, won't, can't.
 - Short sentences carry the facts. The reason gets its own sentence right after the fact it explains.
-- The reader's next question, usually why, gets its answer in the next sentence.
+- The reader's next question gets its answer in the next sentence, but only with a reason someone recorded. With none, we write "the reason isn't recorded yet".
 - A period does the work of a formal linking word, and a page opens on its point.
-- An open list ends with what happens next, not a summary.
-- A point the record says is decided is never hedged.
-- We sound sure only about what someone said or a source shows. Anything we know ourselves is written as worth checking, or asked.
+- An open list ends with a next step someone recorded, not a summary. With none, it says what's open and who's been asked.
+- A point the record marks decided is never hedged. An absence is "not recorded as agreed", never "nobody has…" as fact.
+- We sound sure only about what someone said or a source shows. Anything we know ourselves is written as worth checking, or asked. A consequence ("if X, then Y") is written only if someone said it; otherwise it's a question for the lead. A number or date needs a source; otherwise we write "no figure given yet".
 - Warmth comes from being direct, not from jokes.
 - "You" is the person reading the page; a person who uses the system is named by their role.
 

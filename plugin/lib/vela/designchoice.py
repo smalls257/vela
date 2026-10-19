@@ -73,3 +73,57 @@ def plain_choice(line):
     text = re.sub(r"^\s*(?:>?\s*[-*+]\s+|#+\s+)", "", line)
     text = re.sub(r"^ADR-\d+[:\s.—-]*", "", text.replace("*", "").replace("`", ""), flags=re.I)
     return text.strip().rstrip(".")
+
+
+# ---- a gap's `acknowledged_by` is a claim that a person accepted it; only their typed words can back it ----
+#
+# Why: a design session copied the lead's handle onto 21 gaps when the lead had accepted one (a Silent Fallback: fake
+# consent in hand-written frontmatter, with no verifier). The Violation this prevents is a handle nobody typed a word
+# under. One implementation: `vela team commit` and `vela check` both ask `unnamed_gaps`.
+
+GAP_ID = re.compile(r"\bG-\d+\b", re.I)
+
+
+def acknowledged_gaps(text):
+    """The gaps in a design doc's frontmatter that carry an `acknowledged_by`, as (id, what, handle) tuples. A doc with
+    no readable frontmatter has none (the design reader reports that problem; this does not repeat it)."""
+    import yaml
+    lines = text.split("\n")
+    if not lines or lines[0].strip() != "---":
+        return []
+    end = next((i for i in range(1, len(lines)) if lines[i].strip() == "---"), None)
+    if end is None:
+        return []
+    try:
+        meta = yaml.safe_load("\n".join(lines[1:end]))
+    except yaml.YAMLError:
+        return []
+    gaps = meta.get("gaps") if isinstance(meta, dict) else None
+    if not isinstance(gaps, list):
+        return []
+    return [(str(g.get("id", "")), str(g.get("what", "")), str(g["acknowledged_by"]))
+            for g in gaps if isinstance(g, dict) and g.get("acknowledged_by")]
+
+
+def gap_named(gap, typed_messages):
+    """True when one typed message names the gap: it carries the gap's ID, or half the content words of what it says."""
+    gap_id, what, _ = gap
+    for message in typed_messages:
+        ids = {m.upper() for m in GAP_ID.findall(message)}
+        if (gap_id and gap_id.upper() in ids) or (what and names_choice(message, what)):
+            return True
+    return False
+
+
+def unnamed_gaps(gaps, typed_messages):
+    """The acknowledged gaps no typed message names, in order. `typed_messages` is None when no said log exists at
+    all: nothing can be proven, so the caller lists them as unverified, never as accepted and never as refused."""
+    if typed_messages is None:
+        return list(gaps)
+    return [g for g in gaps if not gap_named(g, typed_messages)]
+
+
+def new_acknowledged_gaps(before, after):
+    """The acknowledged gaps `after` has that `before` (the committed text) did not carry as-is."""
+    old = set(acknowledged_gaps(before))
+    return [g for g in acknowledged_gaps(after) if g not in old]

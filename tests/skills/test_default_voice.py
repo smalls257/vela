@@ -93,3 +93,17 @@ def test_the_conversation_voice_borrows_habits_not_length():
     text = read(CONVERSATION)
     assert "may use the page voice's sentence habits" in text and "never its length" in text
     assert "| Measure | Target |" not in text
+
+
+def test_the_voice_writes_only_what_the_record_holds():
+    """Reason, next step, consequence, figure and absence are each written only from the record (Silent Fallback:
+    the old rules pulled the model to invent a why, a next step, an 'if X then Y' or a date)."""
+    for text in (default_section(), read(DEFAULT)):
+        assert "the reason isn't recorded yet" in text
+        assert "who's been asked" in text
+        assert "only if someone said it" in text and "question for the lead" in text
+        assert "no figure given yet" in text
+        assert "not recorded as agreed" in text
+        assert "marks decided" in text
+        assert "usually why" not in text
+        assert "what happens next" not in text

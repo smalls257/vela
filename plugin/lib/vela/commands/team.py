@@ -12,6 +12,9 @@ It commits only on a branch that isn't `main` or `master` (the skills use `desig
 the team's review like any other change, so a commit straight to main is refused, not made. In a reader copy (no
 git) nothing runs, and it says so.
 
+A gap newly marked `acknowledged_by` is committed only when a typed message names it (`designchoice.unnamed_gaps`,
+the same rule `vela check` applies); with no said log it is listed for the lead to confirm.
+
 A section that adds a design choice (`designchoice`: an ADR, a Decisions bullet, "we'll use X") is not committed until
 a person's capture names it. The senior's yes goes in with `vela record add`, which on a design branch writes to the
 branch's own record under `.vela/design/`; Claude's own captures never count (Silent Fallback ruled out: a doc that
@@ -24,7 +27,7 @@ import pathlib
 
 from vela import closegate, designchoice, guard, said, say
 from vela.commands import record
-from vela.edge import stagegit, vaultgit
+from vela.edge import saidlog, stagegit, vaultgit
 
 PROTECTED = ("main", "master")
 
@@ -105,9 +108,40 @@ def unbacked_choices(root, branch, staged):
     return unsaid, [c for c in open_choices if c not in unsaid]
 
 
+def unbacked_gaps(root, staged):
+    """(unsaid, unverified): the gaps these docs newly mark `acknowledged_by` that no typed message names. With no
+    said log at all they are all unverified: listed for the lead to confirm, as the other gates do."""
+    added = []
+    for rel in staged:
+        if rel.endswith(".md") and (root / rel).is_file():
+            text = (root / rel).read_text(encoding="utf-8", errors="replace")
+            added += designchoice.new_acknowledged_gaps(head_text(root, rel), text)
+    if not added:
+        return [], []
+    messages = saidlog.typed_messages(root)
+    open_gaps = designchoice.unnamed_gaps(added, messages)
+    return ([], open_gaps) if messages is None else (open_gaps, [])
+
+
+def ask_about_gaps(result, unsaid, unverified):
+    result.exit = say.NEEDS_LEAD
+    result.needs_lead = list(result.needs_lead or []) + ([{"ask": "gap-yes", "gap": what} for _, what, _ in unsaid]
+                          + [{"ask": "gap-confirm", "gap": what} for _, what, _ in unverified])
+    for _, what, handle in unsaid:
+        result.lines.append(say.Line(
+            f"vela team commit: not committed, no typed words name the gap that {handle} acknowledged: {what}",
+            f"I can't find where you accepted this: {what}. Did you? If not, it stays an open question."))
+    for _, what, handle in unverified:
+        result.lines.append(say.Line(
+            f"vela team commit: not committed, no said log exists, so {handle} acknowledging '{what}' is unverified; "
+            "ask the lead, then commit again",
+            f"I couldn't check that you accepted this: {what}. Did you?"))
+    return result
+
+
 def ask_for_yes(result, unsaid, unconfirmed=()):
     result.exit = say.NEEDS_LEAD
-    result.needs_lead = ([{"ask": "design-yes", "choice": designchoice.plain_choice(c)} for c in unsaid]
+    result.needs_lead = list(result.needs_lead or []) + ([{"ask": "design-yes", "choice": designchoice.plain_choice(c)} for c in unsaid]
                          + [{"ask": "design-confirm", "choice": designchoice.plain_choice(c)} for c in unconfirmed])
     for c in unsaid:
         words = designchoice.plain_choice(c)
@@ -144,8 +178,13 @@ def cmd_team_commit(args, out):
                    "Write the section or the story into docs/ first.")
             return commands.emit(result, args, out)
         unsaid, unconfirmed = unbacked_choices(root, branch, plan.stage)
+        gaps_unsaid, gaps_unverified = unbacked_gaps(root, plan.stage)
         if unsaid or unconfirmed:
-            return commands.emit(ask_for_yes(result, unsaid, unconfirmed), args, out)
+            ask_for_yes(result, unsaid, unconfirmed)
+        if gaps_unsaid or gaps_unverified:
+            ask_about_gaps(result, gaps_unsaid, gaps_unverified)
+        if result.exit == say.NEEDS_LEAD:
+            return commands.emit(result, args, out)
         message = f"design: {about}"
         stagegit.stage(root, list(plan.stage))
         commit = stagegit.commit(root, message, list(plan.stage))
