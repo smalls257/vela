@@ -18,6 +18,9 @@ checks compare a yes's origin with that handle, so a capture written without `--
 yes. When nobody knows the handle, nothing is written and the exit is 3 with whoami's question (ask once, then
 `vela whoami --set`): writing the line under a guessed or empty origin would be a yes no consent check can trust.
 
+Every loose spelling of the lead (`lead`, `@lead`, `the lead`, the handle with or without `@`) is written as
+`@<handle>`, so `vela decide` and the override check never refuse on how the lead was named.
+
 A person's words are checked against what they typed (`vela/said.py`, the log `vela hook said` keeps in
 `.vela/said/`): words that are not an excerpt of one typed message are refused with exit 3 and nothing written, and
 `--origin claude` is the home of the model's own words. Where no log exists (a host whose hooks don't fire) nothing can
@@ -148,10 +151,28 @@ def lead_origin(root):
     return "@" + found.data["handle"], list(found.wrote)
 
 
+LEAD_WORDS = ("lead", "@lead", "the lead", "the @lead")
+
+
+def spells_the_lead(root, origin):
+    """Whether an origin is one of the loose ways to say "the lead": `lead`, `@lead`, `the lead`, or the lead's own
+    handle with or without its `@`. The consent checks accept one spelling only (`@<handle>`), so every other
+    spelling costs a refused `vela decide` later (a Distributed Monolith of spellings: the check and the writer
+    must agree). Write the handle once, here, and the checks never see a variant. A role or another person's name
+    is not the lead's spelling and is left alone."""
+    word = origin.strip().casefold()
+    if word in LEAD_WORDS:
+        return True
+    handle = sessiongit.read_handle(root).lstrip("@").casefold()
+    return bool(handle) and word.lstrip("@") == handle
+
+
 def add(root, args, reader):
     state = sessiongit.read_json(root, sessiongit.STATE_FILE)
     rel, record_id = open_record(root, state, args.record)
     origin, wrote = (args.origin.strip(), []) if args.origin.strip() else lead_origin(root)
+    if spells_the_lead(root, origin):
+        origin, wrote = lead_origin(root)
     origin, unverified = checked_origin(root, origin, args.text)
     path = root / rel
     text = path.read_text(encoding="utf-8")
