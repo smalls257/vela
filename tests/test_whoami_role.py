@@ -56,3 +56,30 @@ def test_a_role_file_that_holds_something_else_is_not_a_role(vault):
 def test_whoamis_own_handle_check_refuses_a_trailing_newline():
     from vela.commands import whoami as who
     assert who.HANDLE.match("sam") and who.HANDLE.match("sam\n") is None
+
+
+def test_set_and_role_together_write_both_and_say_both(vault):
+    code, said = whoami(vault, "--set", "@ana", "--role", "QA lead")
+    assert code == 0 and said["handle"] == "ana" and said["role"] == "qa" and said["wrote"] == [".vela/handle", ".vela/role"]
+    assert whoami(vault)[1]["handle"] == "ana" and whoami(vault)[1]["role"] == "qa"
+
+
+@pytest.mark.parametrize("handle, role, rule", [("ana", "janitor", "role"), ("not a handle", "eng", "handle")])
+def test_set_with_role_refuses_a_bad_half_and_writes_neither(vault, handle, role, rule):
+    code, said = whoami(vault, "--set", handle, "--role", role)
+    assert code == 1 and said["refusals"][0]["rule"] == rule
+    assert whoami(vault)[1]["handle"] == "sam" and not (vault / ".vela" / "role").exists()
+
+
+def test_a_role_that_cannot_be_saved_names_the_role_file_and_a_role_that_cannot_be_read_is_none(vault):
+    (vault / ".vela" / "role").mkdir()  # a folder where the file should be: reading and writing both fail with an OSError
+    code, said = whoami(vault, "--role", "eng")
+    assert code != 0 and ".vela/role" in json.dumps(said)
+    assert ".vela/handle" not in json.dumps(said)
+    assert whoami(vault)[1]["role"] == ""
+
+
+def test_set_with_role_whose_role_cannot_be_saved_says_the_handle_was_saved_and_names_the_role_file(vault):
+    (vault / ".vela" / "role").mkdir()
+    code, said = whoami(vault, "--set", "ana", "--role", "eng")
+    assert code != 0 and said["wrote"] == [".vela/handle"] and ".vela/role" in json.dumps(said)

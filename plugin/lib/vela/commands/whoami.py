@@ -7,21 +7,20 @@ guessed. Here the order is code: the cached `.vela/handle` first (no network, an
 then `gh`, whose answer is cached. When neither knows, exit 3 says "ask the lead once", and `--set` writes their
 answer. A reader copy never runs `gh`. `.vela/` is not committed, so the handle stays on this machine.
 
-`--role <role>` keeps the person's own role (lead, exec, product, qa, eng or mgr) in `.vela/role`, beside the handle; `role` in the
+`--set X --role Y` writes both. `--role <role>` keeps the person's own role (lead, exec, product, qa, eng or mgr) in `.vela/role`, beside the handle; `role` in the
 output is it, or "" when never set (the /vela:onboard skill then asks once). The lead's record in `.vela.yaml` (`roles:`) wins over it.
 
 Exit codes: 0 the handle is printed; 1 `--set` got something that isn't a handle; 2 the cache couldn't be written;
 3 ask the lead once (nothing changed).
 """
 import pathlib
-import re
 
 from vela import commands, onboarding, say
 from vela.edge import sessiongit
+from vela.onboardpath import HANDLE  # the one pattern for a handle, kept with the personal path that a handle names
 
 NAME = "whoami"
 ROLE_FILE = ".vela/role"  # the person's own choice of role, kept beside their handle
-HANDLE = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})\Z")  # a GitHub login's shape; \Z, not $, so "sam\n" is no handle
 QUESTION = "What's your GitHub handle, the short name after the @? I'll remember it on this machine."
 
 
@@ -37,11 +36,12 @@ def register(sub):
 def cmd_whoami(args, out):
     root = pathlib.Path(args.vault).resolve()
     try:
-        result = set_role(root, args.role) if args.role and not args.set else set_handle(root, args.set) if args.set else find_handle(root)
+        result = set_both(root, args.set, args.role) if args.role and args.set else set_role(root, args.role) if args.role else set_handle(root, args.set) if args.set else find_handle(root)
     except OSError as exc:
+        file = ROLE_FILE if args.role and not args.set else sessiongit.HANDLE_FILE
+        what = "your role" if file == ROLE_FILE else "your handle"
         result = say.Result(NAME, exit=say.FAILED, lines=[
-            say.Line(f"vela: couldn't write {sessiongit.HANDLE_FILE}: {exc}",
-                     plain=f"I couldn't save your handle on this machine: {exc}")])
+            say.Line(f"vela: couldn't write {file}: {exc}", plain=f"I couldn't save {what} on this machine ({file}): {exc}")])
     return commands.emit(result, args, out)
 
 
@@ -49,7 +49,7 @@ def read_role(root):
     """The role `vela whoami --role` kept, or "". A file that holds something else is not a role."""
     try:
         text = (pathlib.Path(root) / ROLE_FILE).read_text(encoding="utf-8").split("\n", 1)[0].strip()
-    except (FileNotFoundError, UnicodeDecodeError):
+    except (OSError, UnicodeDecodeError):  # a missing, unreadable or non-text file is no role
         return ""
     return text if text in onboarding.AUDIENCES else ""
 
@@ -62,6 +62,24 @@ def set_role(root, given):
     wrote = sessiongit.write_text(root, ROLE_FILE, role + "\n")
     label = onboarding.AUDIENCE_LABELS[role]
     return say.Result(NAME, wrote=[wrote], data={"role": role}, lines=[say.Line(role, plain=f"You're set as {label}.")])
+
+
+def set_both(root, given_handle, given_role):
+    """`--set X --role Y` writes both, handle first, and says both. Either being refused (not a handle, not a role) writes neither,
+    so one answer is never applied while the other is silently dropped."""
+    role = onboarding.ROLE_WORDS.get(given_role.strip().casefold())
+    handle = given_handle.strip().lstrip("@")
+    if role is None or not HANDLE.match(handle):
+        return set_role(root, given_role) if role is None else set_handle(root, given_handle)
+    wrote = [sessiongit.write_text(root, sessiongit.HANDLE_FILE, handle + "\n")]
+    try:
+        wrote.append(sessiongit.write_text(root, ROLE_FILE, role + "\n"))
+    except OSError as exc:  # the handle is saved; say which half was not
+        return say.Result(NAME, exit=say.FAILED, wrote=wrote, lines=[say.Line(
+            f"vela: wrote {sessiongit.HANDLE_FILE} but couldn't write {ROLE_FILE}: {exc}",
+            plain=f"I saved your handle, but I couldn't save your role on this machine ({ROLE_FILE}): {exc}")])
+    label = onboarding.AUDIENCE_LABELS[role]
+    return say.Result(NAME, wrote=wrote, data={"handle": handle, "source": "set", "role": role}, lines=[say.Line(f"{handle} {role}", plain=f"You're @{handle}, set as {label}.")])
 
 
 def known(handle, source, wrote=(), role=""):

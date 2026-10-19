@@ -1627,7 +1627,7 @@ def cmd_explore(args, out):
     today, _ = parse_today(args.today)
     person = getattr(args, "person", "")
     mine, me = personal_path(root, person) if person else (None, None)
-    target = pathlib.Path(args.out) if args.out else root / (onboardpath.file_for(person).replace(".json", ".html") if person else publish.DASHBOARD_PATH)
+    target = pathlib.Path(args.out) if args.out else root / (onboardpath.page_for(person) if person else publish.DASHBOARD_PATH)
     found = detect_role(root)
     advice = explorer.vault_id_advice(root, found.role)
     if advice:

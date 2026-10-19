@@ -9,13 +9,13 @@ The file lives at `.vela/onboard/<handle>.json`: working state, never committed,
 excluded from a published copy). A person is their handle (`vela whoami`).
 """
 import json
+import re
 from dataclasses import dataclass
 
 from vela import onboarding
-from vela.commands import whoami
 
 FOLDER = ".vela/onboard"
-HANDLE = whoami.HANDLE  # one pattern for a handle, so a handle can't name a path here or there
+HANDLE = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})\Z")  # a GitHub login's shape, the one pattern for a handle (whoami, explore and every verb use it), so a handle can't name a path; \Z, not $, so "sam\n" is no handle
 DEPTHS = ("gist", "normal", "everything")
 KEYS = {"audience", "modules", "depth", "diagrams", "broughtBack"}
 
@@ -32,6 +32,11 @@ class Path:
 
 def file_for(handle):
     return f"{FOLDER}/{handle}.json"
+
+
+def page_for(handle):
+    """Where the page built for this person goes, beside their path file."""
+    return f"{FOLDER}/{handle}.html"
 
 
 def make(handle, audience, modules, depth="normal", diagrams=False, hidden=(), bring_back=()):

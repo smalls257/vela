@@ -17,16 +17,18 @@ const Onboard = (() => {
     delivery: "This initiative is in delivery: slice status, the build plan and what is stuck matter most." };
   const DEPTHS = [["gist", "Just the gist"], ["normal", "Normal"], ["everything", "Everything"]];
   const st = { role: "", at: 0, standard: false, depth: null, shape: null };
-  const lastKey = `onboard:${D.vaultId}:role`, depthKey = `onboard:${D.vaultId}:depth`, shapeKey = `onboard:${D.vaultId}:shape`;
+  const lastKey = `onboard:${D.vaultId}:role`;
   const who = () => (O.mine ? O.mine.handle : "reader");
+  /* Depth and diagrams are kept per reader too: a choice made on the shared copy ("reader") must not override the path a person's own page was built with. */
+  const depthKey = () => `onboard:${D.vaultId}:${who()}:depth`, shapeKey = () => `onboard:${D.vaultId}:${who()}:shape`;
   const doneKey = (role) => `onboard:${D.vaultId}:${who()}:${role}`;
   const readDone = (role) => { const v = Settings.readJson(doneKey(role), null, "your onboarding progress"); return new Set(v && Array.isArray(v.done) ? v.done : []); };
   const writeDone = (role, set) => Settings.write(doneKey(role), JSON.stringify({ done: [...set] }));
   const mine = (role) => (O.mine && O.mine.audience === role && !st.standard ? O.mine : null);
   const keys = (role) => (mine(role) ? mine(role).keys : O.paths[role].modules);
   const mod = (k) => O.modules[k];
-  const depth = () => st.depth || Settings.read(depthKey) || (O.mine && O.mine.depth) || "normal";
-  const shape = () => st.shape || Settings.read(shapeKey) || (mine(st.role) && mine(st.role).diagrams ? "diagram" : "cards");
+  const depth = () => st.depth || Settings.read(depthKey()) || (O.mine && O.mine.depth) || "normal";
+  const shape = () => st.shape || Settings.read(shapeKey()) || (mine(st.role) && mine(st.role).diagrams ? "diagram" : "cards");
   const roleLabel = (id) => (Roles.ROLES.find(([r]) => r === id) || [id, id])[1];
   const current = () => { const ks = keys(st.role); return ks[Math.min(st.at, ks.length - 1)]; };
   const hashParts = () => [`onboard=${st.role}`, `m=${encodeURIComponent(current())}`];
@@ -61,7 +63,8 @@ const Onboard = (() => {
     const found = picks.find(([, r]) => r && O.paths[r]);
     return found ? { role: found[1], source: found[0] } : { role: "", source: "" };
   }
-  function defaultRole() { return HASH.get("onboard") || myRole().role || (O.mine && O.mine.audience) || "exec"; }
+  /* A person's own page opens on their path's role; only a role named in the address (or, on the shared copy, the best guess) changes that. */
+  function defaultRole() { return HASH.get("onboard") || (O.mine && O.mine.audience) || myRole().role || "exec"; }
   function pick(key) { st.at = Math.max(0, keys(st.role).indexOf(key)); Nav.syncHash({ replace: true }); rerender(); }
   function step(by) { st.at = clamp(st.at + by, 0, keys(st.role).length - 1); Nav.syncHash({ replace: true }); rerender(); }
   function finishOne() {
@@ -85,7 +88,12 @@ const Onboard = (() => {
       it.pill ? h("span", { class: `pill ob-pill ${it.tone || ""}`.trim() }, it.pill) : null, it.note ? h("small", {}, it.note) : null);
     return wired(el, it, m);
   }
-  const openLink = (it) => (it.href ? h("a", { class: "ob-open", href: it.href, title: `Open ${it.label} in its own view`, "aria-label": `Open ${it.label} in its own view` }, "↗") : null);
+  /* A link that only opens a section (#asks, #s=releases) is named for the section; one that opens the item is named for the item. */
+  function openName(it) {
+    const sec = it.href === "#asks" ? "unknowns" : (/^#s=([a-z-]+)$/.exec(it.href) || [])[1], s = sec && D.sections.find((x) => x.id === sec);
+    return s ? `Open ${s.id === "unknowns" ? "Who to ask" : s.label}` : `Open ${it.label} in its own view`;
+  }
+  const openLink = (it) => (it.href ? h("a", { class: "ob-open", href: it.href, title: openName(it), "aria-label": openName(it) }, "↗") : null);
   function cards(m, shown) { return h("ul", { class: "ob-items" }, shown.map((it) => h("li", { class: "ob-row" }, itemEl(it, m, "ob-item"), openLink(it)))); }
   function board(m, shown, key) {
     const ordered = ORDERED.includes(m.id), kids = [];
@@ -103,8 +111,8 @@ const Onboard = (() => {
       : diagram ? board(m, shown, key) : cards(m, shown);
     const more = m.items.length - shown.length;
     const showMenu = Menus.menu({ id: "onb-show", label: "Show", current: diagram ? "Diagram" : "Cards", items: () => [
-      { id: "cards", label: "Cards", say: "Each thing as a card", checked: shape() !== "diagram", run: () => { st.shape = "cards"; Settings.write(shapeKey, "cards"); rerender(); } },
-      { id: "diagram", label: "Diagram", say: "Boxes you can click, joined by arrows where order matters", checked: shape() === "diagram", run: () => { st.shape = "diagram"; Settings.write(shapeKey, "diagram"); rerender(); } }] });
+      { id: "cards", label: "Cards", say: "Each thing as a card", checked: shape() !== "diagram", run: () => { st.shape = "cards"; Settings.write(shapeKey(), "cards"); rerender(); } },
+      { id: "diagram", label: "Diagram", say: "Boxes you can click, joined by arrows where order matters", checked: shape() === "diagram", run: () => { st.shape = "diagram"; Settings.write(shapeKey(), "diagram"); rerender(); } }] });
     const wrap = Menus.frame({ left: [m.items.length ? showMenu : null], right: [diagram ? Menus.keyButton(key) : null],
       say: [h("span", { class: "dia-hint" }, m.items.length ? `${plural(m.items.length, "thing")} from the plan, as it stands today` : "")] },
       h("div", { class: "ob-scroll" }, body, more > 0 ? h("p", { class: "muted small ob-more" }, `${plural(more, "more thing")} at the Everything depth.`) : null));
@@ -126,7 +134,7 @@ const Onboard = (() => {
       m.links.length ? h("div", { class: "ob-links" }, m.links.map((l) => h("a", { class: "ob-link", href: l.href }, l.label))) : null,
       m.tryIt ? h("div", { class: "ob-try" }, h("b", {}, "Try it: "), m.tryIt) : null,
       h("div", { class: "ob-depth", role: "radiogroup", "aria-label": "How much to show" }, h("span", { class: "muted small" }, "Depth"),
-        DEPTHS.map(([id, label]) => h("button", { type: "button", role: "radio", "aria-checked": String(depth() === id), onclick: () => { st.depth = id; Settings.write(depthKey, id); rerender(); } }, label))),
+        DEPTHS.map(([id, label]) => h("button", { type: "button", role: "radio", "aria-checked": String(depth() === id), onclick: () => { st.depth = id; Settings.write(depthKey(), id); rerender(); } }, label))),
       h("div", { class: "onb-nav" }, h("button", { class: "btn", type: "button", disabled: st.at === 0 ? "" : null, onclick: () => step(-1) }, "Back"),
         h("button", { class: "btn go", type: "button", onclick: finishOne }, last ? "Finish" : `Next: ${mod(ks[st.at + 1]).title}`)));
   }

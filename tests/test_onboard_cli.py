@@ -226,3 +226,19 @@ def test_a_saved_path_that_holds_text_is_reported_not_used(vault):
     assert code == 2 and "isn't usable" in shown
     code, rebuilt = onboard(vault, "build")
     assert code == 2 and rebuilt["lines"][0].startswith("the path file is not usable")
+
+
+def test_a_handle_file_that_holds_a_path_to_somewhere_else_is_no_handle_and_names_no_file(vault, monkeypatch):
+    """The Violation is an Infected Core trusting whatever the disk says: .vela/handle is a file a person can edit or a tool can
+    mangle, so what it holds is checked as a handle before it is joined into a path to read."""
+    from vela import onboardpath
+    from vela.commands import onboard as command
+    named = []
+    real = onboardpath.file_for
+    monkeypatch.setattr(onboardpath, "file_for", lambda handle: named.append(handle) or real(handle))
+    (vault / ".vela" / "handle").write_text("../x\n", encoding="utf-8")
+    assert command.effective_role(vault, {"roles": {}}) == ("exec", "none")
+    assert named == [], "no file was named for it"
+    (vault / ".vela" / "handle").write_text("ana\n", encoding="utf-8")
+    command.effective_role(vault, {"roles": {}})
+    assert named == ["ana"]

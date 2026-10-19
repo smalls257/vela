@@ -106,3 +106,37 @@ def test_waiting_on_you_on_the_shared_page_comes_from_the_role_door_and_survives
     home("onboard=qa&still")  # choosing the QA door by its route; this vault's queue is empty on that page, so the chip shows on Home
     assert chip(home("home&still")).group(1) == "role", "after choosing QA, in a new load of the page, Waiting on you is offered for the role"
     assert chip(home("home&still")).group(1) == "role", "and it stays"
+
+
+@pytest.mark.browser
+def test_a_persons_page_opens_on_their_paths_role_and_depth_saved_on_the_shared_page_does_not_override_it(vault, chrome_path, tmp_path):  # noqa: F811
+    """The Violation is a Distributed Monolith between the shared copy and one person's page: both are in the same browser, and
+    a depth or diagram choice saved on the shared copy must not change the path the person's own page was built with. Their
+    recorded role (qa) also differs from their path's role (product): the page opens on the path."""
+    vela("whoami", "--vault", str(vault), "--role", "qa")
+    vela("onboard", "path", "set", "--vault", str(vault), "--today", TODAY, "--role", "product", "--modules", "Goal, Slices, Journeys", "--diagrams", "yes", "--depth", "gist")
+    vela("explore", str(vault), "--today", TODAY)
+    vault_id = re.search(r'"vaultId":\s*"([^"]+)"', (vault / "dashboard.html").read_text(encoding="utf-8")).group(1)
+    profile = tmp_path / "profile"
+    seed = tmp_path / "seed.html"
+    seed.write_text(f"<script>localStorage.setItem('onboard:{vault_id}:reader:depth','everything');localStorage.setItem('onboard:{vault_id}:reader:shape','cards');</script>", encoding="utf-8")
+
+    def load(page, hash_):
+        cmd = [str(chrome_path), "--headless=new", "--disable-gpu", "--no-sandbox", f"--user-data-dir={profile}", "--window-size=1600,1000", "--virtual-time-budget=20000", "--dump-dom", f"file://{page}#{hash_}"]
+        return subprocess.run(cmd, timeout=180, capture_output=True, text=True).stdout
+    load(seed, "")
+    own = load(vault / ".vela" / "onboard" / "ana.html", "onboard&still")
+    assert 'data-role="product"' in own, "their path's role, not the role they recorded"
+    assert re.search(r'aria-checked="true"[^>]*>Just the gist<', own), "the path's depth wins over the depth saved on the shared copy"
+    assert "ob-board" in own, "and its diagrams"
+
+
+@pytest.mark.browser
+def test_an_arrow_that_only_opens_a_section_is_named_for_the_section_not_for_the_item(vault, chrome_path):  # noqa: F811
+    vela("explore", str(vault), "--today", TODAY)
+    out = dom(chrome_path, vault / "dashboard.html", "onboard=eng&m=people%40eng&still")
+    links = re.findall(r'<a class="ob-open" href="([^"]+)"[^>]*aria-label="([^"]+)"', out)
+    assert links, "the people part lists people, each with an arrow"
+    assert ("#asks", "Open Who to ask") in links
+    for href, label in links:
+        assert label.endswith(" in its own view") == ("open=" in href), (href, label)

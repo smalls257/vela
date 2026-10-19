@@ -204,3 +204,23 @@ def test_every_control_a_try_prompt_names_is_a_label_the_dashboard_has():
         for control in controls:
             assert control in prompt and control in assets, (mid, control)
     assert "needs you" not in " ".join(p[1] for p in onboardmodules.TRY.values()).lower()
+
+
+def test_the_exec_fit_finds_decisions_the_way_decisions_waiting_does_so_it_never_says_not_recorded_over_a_plan_with_decisions():
+    facts = data("heron-after-full-1")
+    assert facts["garden"]["trees"], "the snapshot has decisions"
+    fit = onboardmodules.build_all(facts)["fit@exec"]
+    stated = [onboardmodules.decision_key(t) for t in facts["garden"]["trees"] if t.get("state") and onboardmodules.decision_key(t) in facts["entities"]]
+    assert stated, "at least one decision sits on a page the dashboard has"
+    assert not fit["notRecorded"] and set(stated) <= {i["key"] for i in fit["items"]}
+
+
+def test_a_reason_that_ends_in_its_own_punctuation_is_not_followed_by_another_period():
+    import copy
+    facts = copy.deepcopy(data("heron-after-full-1"))
+    tree = next(t for t in facts["garden"]["trees"] if t.get("state") and t["rejected"] and t["rejected"][0]["label"])
+    for ending in ("It cost too much.", "Was it worth it?", "Too slow…"):
+        tree["rejected"][0]["reason"] = ending
+        body = onboardmodules.build_all(facts)["standing"]["body"]
+        said = " ".join(body)
+        assert ending in said and not re.search(r"[.?…]\.", said.replace("...", "")), said

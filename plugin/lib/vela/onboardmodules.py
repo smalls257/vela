@@ -228,6 +228,11 @@ def approach(f):
                 terms=[t for t, on in (("slice", slices), ("tracer", tracer)) if on])
 
 
+def decision_key(tree):
+    """The page a decision lives on: its record, else the first page carrying it."""
+    return (tree.get("adr") or {}).get("key") or tree["carriedBy"][0]["key"]
+
+
 def standing(f):
     trees = [t for t in f["garden"]["trees"] if t.get("state")]
     open_asks = [a for a in f["asks"] if a["state"] == "open"]
@@ -245,11 +250,15 @@ def standing(f):
     body = []
     for t in (decided + others)[:3]:
         gone = [r for r in t["rejected"] if say_text(r["label"])]
-        why = f" We ruled out {say_text(gone[0]['label'])}" + (f": {cut(say_text(gone[0]['reason']), 160)}" if say_text(gone[0]["reason"]) else "") + "." if gone else ""
+        why = ""
+        if gone:
+            reason = cut(say_text(gone[0]["reason"]), 160)
+            why = f" We ruled out {say_text(gone[0]['label'])}" + (f": {reason}" if reason else "")
+            why += "" if why[-1] in ".!?…" else "."  # a reason that ends in its own punctuation is not followed by another period
         body.append(f"{say_text(t['picked']['label'])} is {plainwords.state_word(t['state'])}.{why}")
     items = []
     for t in decided + others:
-        key = (t.get("adr") or {}).get("key") or t["carriedBy"][0]["key"]
+        key = decision_key(t)
         gone = ", ".join(say_text(r["label"]) for r in t["rejected"] if say_text(r["label"]))
         items.append(item(cut(say_text(t["picked"]["label"]), 100), plainwords.state_word(t["state"]), f"Ruled out: {gone}" if gone else "",
                           route(f, key), key if entity(f, key) else "", TONE_OF_STATE.get(t["state"], "")))
@@ -280,9 +289,10 @@ def touches(f, audience):
              "qa": ("epic", "the epics, with their acceptance criteria"), "eng": ("app", "the apps being built or changed"),
              "mgr": ("app", "the apps and how far they have got")}
     kind, phrase = kinds[audience]
-    keys = [k for k, e in f["entities"].items() if e["kind"] == kind and (audience != "eng" or e["change"] not in ("unchanged", "integrated"))]
-    if audience == "exec":
-        keys += [r["id"] for r in f["riskList"] if r["id"] in f["entities"]]
+    keys = {k for k, e in f["entities"].items() if e["kind"] == kind and (audience != "eng" or e["change"] not in ("unchanged", "integrated"))}
+    if audience == "exec":  # decisions come from the decision trees, the way "Decisions waiting" finds them; not every one is its own entity kind
+        keys |= {decision_key(t) for t in f["garden"]["trees"] if t.get("state") and decision_key(t) in f["entities"]}
+        keys |= {r["id"] for r in f["riskList"] if r["id"] in f["entities"]}
         phrase = "the decisions and risks"
     return {"phrase": phrase, "keys": sorted(keys)}
 
@@ -372,7 +382,7 @@ def decisions_waiting(f):
     words = {"proposed": "proposed", "pending": "waiting for review", "overridden": "decided by exception"}
     items = []
     for t in waiting:
-        key = (t.get("adr") or {}).get("key") or t["carriedBy"][0]["key"]
+        key = decision_key(t)
         items.append(item(cut(say_text(t["picked"]["label"]), 100), words[t["state"]], "", route(f, key), key if entity(f, key) else "", "open"))
     return make("decisions-waiting", f"{count_phrase(len(waiting), 'decision')} waiting to be settled.", [], items, [link("The decision log", "#s=decisions")])
 

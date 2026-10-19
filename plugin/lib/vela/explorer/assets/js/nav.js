@@ -155,7 +155,7 @@ const Nav = (() => {
   }
   /* Where the reader is, so a view that takes them elsewhere (Ask) can bring them back to it. */
   function where() {
-    return { section: App.section, child: st.child, view: App.view, trail: App.trail.slice(), focus: App.focus, root: App.root, doc: Sections.doc.page };
+    return { section: App.section, child: st.child, view: App.view, trail: App.trail.slice(), focus: App.focus, root: App.root, doc: Sections.doc.page, module: App.section.startsWith("onboard:") ? Onboard.current() : undefined };
   }
   const whereLabel = (w) => {
     if (!w || w.section === "home") return "What's waiting";
@@ -168,7 +168,7 @@ const Nav = (() => {
     if (!w || w.section === "ask" || w.section === "drafts") return home();
     if (w.section === "home") home();
     else if (w.section.startsWith("role:")) role(w.section.slice(5));
-    else if (w.section.startsWith("onboard:")) onboard(w.section.slice(8), undefined, false);
+    else if (w.section.startsWith("onboard:")) onboard(w.section.slice(8), w.module, false);
     else if (w.view === "doc") { open(w.section, w.child); readWide(w.doc || sectionPage()); }
     else { open(w.section, w.child); if (w.view !== App.view && viewDef(w.view) && w.view !== "inside") showView(w.view); }
     App.trail = w.trail; App.focus = w.focus; App.root = w.root;

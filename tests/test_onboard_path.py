@@ -77,3 +77,7 @@ def test_brought_back_that_is_not_a_list_is_refused(brought):
     raw = json.dumps({"audience": "eng", "modules": ["goal"], "broughtBack": brought})
     found, problems_ = onboardpath.from_text("sam", raw)
     assert found is None and "broughtBack should be a list" in problems_[0]
+
+
+def test_the_page_beside_the_path_file_is_named_by_the_one_place_that_names_it():
+    assert onboardpath.page_for("sam") == ".vela/onboard/sam.html"

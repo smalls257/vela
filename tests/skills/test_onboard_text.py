@@ -85,3 +85,11 @@ def test_every_command_it_names_is_one_the_parser_has_and_the_rest_is_held_by_th
         assert parser.parse_args(argv).func, verb
     for named in ("`vela onboard show --role <role> --for-lead`", "`vela onboard modules --json`", "`vela onboard path set --role <role> --modules", "`vela onboard path clear`"):
         assert named in body, named
+
+
+def test_a_step_runs_the_check_on_the_leads_page_and_says_its_mistakes_in_one_sentence():
+    _, body = parts()
+    steps = body.split("## Steps")[1].split("## Rules")[0]
+    step = next(line for line in steps.splitlines() if "`vela onboard check`" in line)
+    assert step.lstrip().startswith("2.") and "one sentence" in step and "the lead's page to fix" in step
+    assert body.count("`vela onboard check`") == 1, "one place says it, in the steps"

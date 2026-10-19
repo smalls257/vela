@@ -93,9 +93,18 @@
         if (got.role !== role || got.source !== source) bad.push(`${what}: ${got.role}/${got.source}, wanted ${role}/${source}`);
       }
       O.me = { handle: "zed", role: "mgr" }; O.roles = {}; Nav.home(); Settings.write(`onboard:${D.vaultId}:role`, "exec");
-      if (Onboard.defaultRole() !== "mgr") bad.push("the door in the sidebar did not open as the person's own role");
+      const wanted = O.mine ? O.mine.audience : "mgr";  // a person's own page opens on their path's role; the shared copy on the best guess
+      if (Onboard.defaultRole() !== wanted) bad.push(`the door in the sidebar opened as ${Onboard.defaultRole()}, wanted ${wanted}`);
     } finally { [O.me, O.roles] = was; Nav.home(); go("lights", { reset: true }); }
     ok(!bad.length, "onboarding: who the reader is comes from the plan's record first, then their own choice, then the role door", `onboarding who: ${bad.join(" | ")}`);
+  }
+  async function backToThePart(ok) {
+    const role = roles[0], ks = Onboard.keys(role), key = ks[Math.min(2, ks.length - 1)];
+    Nav.onboard(role, key, false); await frames();
+    const left = Nav.where();
+    Nav.home(); await frames();
+    Nav.back(left); await frames();
+    ok(Onboard.current() === key && App.section === "onboard:" + role, "onboarding: Back from somewhere else returns to the part the reader left, not the first unfinished one", `onboarding back: returned to ${Onboard.current()}, wanted ${key}`);
   }
   async function termsOnce(ok) {
     const bad = [];
@@ -177,7 +186,8 @@
     ok(gist === O.depths.gist.items && everything === O.modules[big].items.length, `onboarding: the depth switch shows ${gist} items at "Just the gist" and all ${everything} at "Everything"`, `onboarding depth: gist showed ${gist} (wanted ${O.depths.gist.items}), everything ${everything} (wanted ${O.modules[big].items.length})`);
     st_depth(null);
   }
-  const st_depth = (d) => { Onboard.st.depth = d; if (d) localStorage.setItem(`onboard:${D.vaultId}:depth`, d); else localStorage.removeItem(`onboard:${D.vaultId}:depth`); };
+  const st_depth = (d) => { Onboard.st.depth = d; const k = `onboard:${D.vaultId}:${O_who()}:depth`; if (d) localStorage.setItem(k, d); else localStorage.removeItem(k); };
+  const O_who = () => (D.onboard.mine ? D.onboard.mine.handle : "reader");
   async function keyAndFit(ok) {
     const keyBad = [], fitBad = [];
     const roleList = roles.filter((r) => ["eng", "exec", "mgr"].includes(r));
@@ -198,7 +208,7 @@
   SelfTest.run = async () => {
     const report = await base(), lines = [], errors = window.__errors.length, at = location.hash;
     const ok = (cond, good, bad) => { lines.push(cond ? "ok " + good : "FAIL " + (bad || good)); if (HASH.has("trace")) console.log("[selftest] " + lines[lines.length - 1]); };
-    try { await paths(ok); await silent(ok); await whoAmI(ok); await termsOnce(ok); await linksLand(ok); await itemsOpen(ok); await progressAndDepth(ok); await oddProgress(ok); await keyAndFit(ok); } catch (e) { lines.push("FAIL the onboarding checks threw: " + e.message + " " + (e.stack || "").split("\n")[1]); }
+    try { await paths(ok); await silent(ok); await whoAmI(ok); await backToThePart(ok); await termsOnce(ok); await linksLand(ok); await itemsOpen(ok); await progressAndDepth(ok); await oddProgress(ok); await keyAndFit(ok); } catch (e) { lines.push("FAIL the onboarding checks threw: " + e.message + " " + (e.stack || "").split("\n")[1]); }
     history.replaceState(null, "", at); Nav.home(); go("lights", { reset: true });
     if (window.__errors.length > errors) lines.push("FAIL JS ERRORS in the onboarding checks: " + window.__errors.slice(errors).join(" | "));
     const body = report.slice(1).concat(lines), fails = body.filter((l) => l.startsWith("FAIL")).length;

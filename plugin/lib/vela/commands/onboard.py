@@ -116,6 +116,8 @@ def effective_role(root, onboard):
     """(role, source): the lead's record for this person, else their own choice, else their own path's role, else exec
     with source "none", which tells the skill to ask once."""
     handle = sessiongit.read_handle(root)
+    if not onboardpath.HANDLE.match(handle):
+        handle = ""  # a file under .vela/ that holds something else is no handle; it must not name a path to read
     role, source = onboarding.role_for(onboard["roles"].get(handle, ""), whoami.read_role(root))
     if role:
         return role, source
@@ -191,7 +193,7 @@ def cmd_check(args, out):
 def rebuild(root, handle, args):
     """Build the person's page from their path file. (file, error text): error is "" when it worked."""
     from vela import cli
-    target = root / onboardpath.file_for(handle).replace(".json", ".html")
+    target = root / onboardpath.page_for(handle)
     ns = argparse.Namespace(vault=str(root), out=str(target), today=args.today, theme="console", design=[], breakdown=[], assets=None,
                             selftest=False, serve=False, port=None, model="haiku", no_open=True, person=handle)
     printed = io.StringIO()
@@ -276,7 +278,7 @@ def cmd_path_clear(args, out):
     if stop:
         return commands.emit(stop, args, out)
     gone = []
-    for rel in (onboardpath.file_for(handle), onboardpath.file_for(handle).replace(".json", ".html")):
+    for rel in (onboardpath.file_for(handle), onboardpath.page_for(handle)):
         if not (root / rel).exists():
             continue
         try:
