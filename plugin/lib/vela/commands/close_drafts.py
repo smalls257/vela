@@ -120,7 +120,7 @@ def as_data(found, record_id, reader):
             "readback": [r.__dict__ for r in found.readback],
             "long_lists": [x.as_json() for x in found.long_lists],
             "split": found.split.as_json() if found.split else None,
-            "judgment": list(found.judgment)}
+            "judgment": list(found.judgment), "kept_wording": list(found.kept)}
 
 
 def default_lines(found, record_id, reader):
@@ -139,6 +139,8 @@ def default_lines(found, record_id, reader):
         groups = ", ".join(f"{g}: {c}" for g, c in found.split.groups.items())
         out.append(say.Line(f"size: ask the lead: \"{found.split.question}\" ({found.split.pages} pages; by group: "
                             f"{groups})"))
+    out += [say.Line(f"kept wording: {page}: the documents' words, as the lead chose; no voiced prose owed")
+            for page in found.kept]
     out += [say.Line(f"judgment: {j}") for j in found.judgment]
     return out
 

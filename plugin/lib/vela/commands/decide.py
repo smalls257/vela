@@ -47,6 +47,7 @@ from vela.edge.vaultgit import GitUnavailable
 
 NAME = "decide"
 MESSAGES = {"decided": "grill: {id} decided", "planned": "grill: {id} planned", "reopened": "grill: {id} reopened"}
+STATED_MESSAGE = "import: {id} decided, as {source} states"
 
 
 def register(sub):
@@ -67,6 +68,9 @@ def register(sub):
     parser.add_argument("--provider", metavar="^cP", help="contract: the capture saying where the provider stands")
     parser.add_argument("--group", nargs=3, action="append", metavar=("CRITERIA", "READBACK", "YES"),
                         help="epic: a criterion group read back (AC1-AC5), its read-back and the lead's yes; repeat")
+    parser.add_argument("--stated-in", metavar="SRC-nn",
+                        help="import: the source that states the decision; the lead's yes confirms it, no options "
+                             "needed")
     parser.add_argument("--vault", default=".", help="vault root or reader workspace (default: current directory)")
     parser.add_argument("--today", help="the date written (Dissent, Override, Pending approval), YYYY-MM-DD")
     say.add_output_flags(parser)
@@ -107,6 +111,8 @@ def item_from(args, ident, by, reader):
             "overrides": override_groups(args), "on_behalf_of": args.on_behalf, "by": by, "reader": reader}
     if args.provider:
         item["provider"] = args.provider
+    if getattr(args, "stated_in", None):
+        item["stated_in"] = args.stated_in
     if args.group:
         item["groups"] = [{"criteria": c, "readback": r, "yes": y} for c, r, y in args.group]
     return {k: v for k, v in item.items() if v not in (None, [])}
@@ -190,6 +196,8 @@ def file_item(item, root, staged, record, reader):
     commit = None
     if not reader:
         message = MESSAGES[state if not item.get("reopen") else "reopened"].format(id=item["id"])
+        if item.get("stated_in") and not item.get("reopen"):
+            message = STATED_MESSAGE.format(id=item["id"], source=item["stated_in"])
         try:
             commit = stagegit.commit(root, message, written)
         except GitUnavailable as exc:

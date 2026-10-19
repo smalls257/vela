@@ -7,49 +7,56 @@ disable-model-invocation: true
 
 # Import
 
-The initiative already exists as a pile of material. Turn it into a plan without inventing anything. This skill fixes the output, not the route: work out with the user how to reach each source.
+Turn a pile of existing material into a plan without inventing anything: read the sources, show the import map, then work the queue with the lead about four things at a time.
 
-Every `vela` below is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela`. Relay its `--for-lead` lines. When a command can't express what the lead wants, say so and stop. Name sources by title when you talk and things by name; an ID only where the lead must act on one.
+Every `vela` below is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela`. Relay its `--for-lead` lines. When a command can't express what the lead wants, say so and stop. Name sources by title when you talk and things by name.
 
-## Reaching the material
+Run the steps in `${CLAUDE_PLUGIN_ROOT}/references/START.md` with mode `discover`. Only the owner writes plan pages; on a reader copy everything written is a draft for the owner. If an earlier record has an `## Import ledger`, resume from what it lists as pending.
 
-Use whatever access the user already has: local files, a clone, an export, a tool already in their session. Ask when unsure how to reach a source. Never ask for or store a credential, never upload material anywhere, and keep raw copies only in `.inbox/`, which is never committed. Read what you can reach, say what you cannot, and do not guess at the rest.
+## 1. Read the sources
 
-## Steps
+Use the access the user already has: local files, a clone, an export, a tool in their session. Never ask for or store a credential, never upload material, and keep raw copies only in `.inbox/`, which is never committed. Say what you can't reach.
 
-1. Run the steps in `${CLAUDE_PLUGIN_ROOT}/references/START.md` with mode `discover` (an import is a Discover that arrives in bulk; there is no `import` mode in the record). Read the Discover row of `${CLAUDE_PLUGIN_ROOT}/references/MODES.md`. Only the owner writes plan pages. On a reader copy the import is allowed, and everything it writes is a draft for the owner.
-2. Read the `## Import ledger` in earlier session records. If one exists, resume: list what is pending and carry on. Otherwise ask where the material lives, and agree with the user how each place is reached.
-3. Register before reading. Propose a Kind for each source (`exists`, `intends` or `repo`, as `vela conventions "Certainty and sources"` defines), have the user confirm it or override as `START.md` says, and register it with `vela add source --title "<title>" --owner <handle> --date <YYYY-MM-DD> --kind <kind> --location "<where>" --for-lead`. Location must let someone find it again: a path, a URL, `<url>@<sha>` for a repo (pass the URL as git prints it; the command takes out any credential and says so), or `export of <space> on <date>`. A source you do not read is still listed, as skipped, with why.
-4. Show the import map first, one block per plan section: goals, constraints, context and scope, strategy, capabilities, apps and building blocks, contracts, flows, concerns, decisions, requirements, releases, epics, unknowns and risks, glossary. Under each say what was found, from which source, what is duplicated, and what clashes, in about five lines; count the rest. The user corrects the map. Write nothing until they have.
+Propose each source's Kind (`exists`, `intends` or `repo`, as `vela conventions "Certainty and sources"` defines), let the user confirm it, and register it: `vela add source --title "<title>" --owner <handle> --date <YYYY-MM-DD> --kind <kind> --location "<where>" --for-lead`. Location must find it again: a path, a URL, `<url>@<sha>` for a repo (the command takes out any credential and says so), or `export of <space> on <date>`. A skipped source is listed, with why.
 
-   > **Contracts.** The partner guide describes the nightly booking file; the ops runbook says hourly, so that's one open question. The roadmap deck's live feed by Q4 stays not decided yet.
+As you read, queue what only the lead can settle, with the answer you'd give: `vela import add --type decision "<what a source says was decided, by whom, when>" --source <SRC> --propose "<answer>" --why "<why>"`. Use `--type clash` with both `--source`s for two sources that disagree, proposing which wins and why, and `--type stale` for a fact that may be out of date.
 
-5. Write the pages in the format `vela conventions "<section>"` gives for each, in batches, committing a checkpoint after each with `vela close stage --checkpoint --for-lead` (in a reader copy, which has no git, write the batch and skip the commit). Every line cites its source, and its state follows where it came from:
-   - `exists` or `repo` gives a `fact`.
-   - `intends` gives an `assumption`, or an `inkling` if it is vague. Anything about the future is an `assumption` whatever the Kind.
-   - A decision a source names is an `assumption` here, never `decided`: only a grill decides, and the check flags `decided` with no grill behind it. When the source names who decided it and when, note both on the item, so the grill has them ("Decided by the CTO on 3 March, per the architecture decision record; grill to confirm"). When it names neither, add an unknown asking the owner to confirm it. In a reader copy, decisions carry `**Pending approval:**` as `vela conventions "Pending approval"` says.
-   - Don't build case tables, strict diagrams or slices from imported material unless the source states them; leave those for boundary and grill, and let the warnings show.
-   - A gap stays a gap. Write in the house voice (`house-voice`), your own words and plain names, the source linked on the words that rely on it, no bare ID in the sentence. Never copy document text or use general knowledge as a source.
-6. Every clash between sources becomes one unknown naming both sources, with an owner handle and an ask-by date: `vela add unknown --name "<name>" --owner <handle> --for-lead`. Never pick a side.
-7. Large piles go in batches across sessions. Keep an `## Import ledger` in the session record: one line per source, `processed` or `pending`, so a later `/vela:import` resumes where this one stopped.
+## 2. Show the import map
+
+One block per plan section with something in it (goals, constraints, context and scope, strategy, capabilities, apps, contracts, flows, concerns, decisions, requirements, releases, epics, unknowns and risks, glossary): what was found, from which source, what clashes, in about five lines.
+
+> **Contracts.** The partner guide describes the nightly booking file; the ops runbook says hourly, so I'll ask you which wins. The roadmap deck's live feed by Q4 stays a plan.
+
+End the map with the voice question, once: "I'd keep the documents' exact words, quoted and cited, for requirements, contract and legal terms, numbers and direct quotes, and write each page's explaining sentences in the plan's voice. That way, keep everything as written, or voice it all?" Capture the answer, then `vela import wording --as split --yes <capture>` (or `keep`, or `voice`; add `--source <SRC>` when they answer per source). Until they answer, keep every word as written.
+
+The user corrects the map. Write nothing until they have.
+
+## 3. Work the queue
+
+`vela import next --for-lead` gives the next batch, about four, each with your proposal. Ask them in one turn. Capture the answer, settle each by its number (`vela import close 1 --as decided --how "<a line>"`, or the outcome the lead chose), and only then ask for the next batch.
+
+- **A stated decision the lead says yes to** is decided, citing the document: `vela decide <ID> --readback <capture> --yes <capture> --stated-in <SRC>`. One they aren't sure of stays an `assumption`, the document noted. Never write `decided` any other way.
+- **A clash** goes the way the lead picks. If they don't know, both sides become one open question naming both sources: `vela add unknown --name "<name>" --owner <handle> --for-lead`, with an ask-by date.
+- **A stale fact** is kept, replaced or opened the same way.
+
+Write pages in the format `vela conventions "<section>"` gives, committing after each batch with `vela close stage --checkpoint --for-lead` (in a reader copy, which has no git, write the batch and skip the commit). Stamp each page with the wording the lead chose: `vela import page <path> --source <SRC>`, one `--source` per document it draws on.
+
+- Every line cites its source. `exists` or `repo` gives a `fact`, `intends` an `assumption` (an `inkling` if vague), and anything about the future is an `assumption`.
+- A requirement, a contract or legal term, a number or a direct quote keeps the source's words, as `> "<their words>"` with the source linked. Explaining sentences follow `house-voice` on a page the lead agreed to voice.
+- Don't build case tables, strict diagrams or slices from imported material unless the source states them; leave those for boundary and grill, and let the warnings show.
+- A gap stays a gap. General knowledge is never a source.
+
+Keep an `## Import ledger` in the session record, one line per source, `processed` or `pending`, so a later import resumes.
 
 ## Done only when
 
-The import is done only when each of these holds:
-
-- [ ] Every source used has a row in `sources.md` with a user-confirmed Kind and a findable Location; unread ones are listed as skipped.
-- [ ] The user corrected the import map before any plan page was written.
-- [ ] Every written line cites a source, with the state step 5 gives.
-- [ ] Every clash is one unknown with an owner and an ask-by date.
-- [ ] The import ledger lists processed and pending sources.
-- [ ] `vela check` has run: errors fixed, warnings listed.
-- [ ] `vela capture` and `vela next` have run.
-- [ ] The record holds an `## Import report`: coverage per section (rich, thin or empty), skipped sources, open clashes, the next recommended session.
+- [ ] Every source used is in `sources.md` with a confirmed Kind and a findable Location; skipped ones are listed.
+- [ ] The user corrected the map and answered the voice question (or the words stayed as written) before any page was written.
+- [ ] `vela import show --for-lead` shows nothing asked and unsettled.
+- [ ] Every written line cites a source, and every written page is stamped.
+- [ ] `vela check` has run (errors fixed, warnings listed), then `vela capture` and `vela next`.
+- [ ] The record holds the ledger and an `## Import report`: coverage per section (rich, thin or empty), skipped sources, open clashes, the next session.
 
 ## Ends when
 
-The checklist holds, or the user stops. If they stop early, write the ledger and the report for what was done. In an owner's vault, run `git status` and confirm nothing under `.inbox/` is staged (a reader copy has no git: skip it). Rebuild the dashboard with `vela explore` (no `--serve`). If it exits 0, say: "The dashboard is up to date: dashboard.html — open it, or run /vela:explore to ask Claude from it". If it fails, say "The dashboard could not be built: <message>." and go on; a failed build never ends the import. Then tell the user: "Run `/vela:close` to finish the session and open the PR."
-
-## Never
-
-- Never write a `fact` from an `intends` source, or `decided` at all: a decision a source names is an `assumption` with its decider and date in a note, until a grill.
+The checklist holds, or the user stops; write the ledger and report for what was done. In an owner's vault, run `git status` and confirm nothing under `.inbox/` is staged. Rebuild the dashboard with `vela explore` (no `--serve`). If it exits 0, say: "The dashboard is up to date: dashboard.html — open it, or run /vela:explore to ask Claude from it". If it fails, say "The dashboard could not be built: <message>." and go on; a failed build never ends the import. Then say: "Run `/vela:close` to finish the session and open the PR."

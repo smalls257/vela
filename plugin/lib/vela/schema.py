@@ -364,6 +364,7 @@ CODES = {
     "W357": "functional requirement lists no acceptance criteria",
     "W358": "flow names no capability though the initiative has capability pages",
     "E359": "flow names a capability that is not a capability page",
+    "E361": "an imported page is voiced with no answer from the lead on record",
     "W360": "one sentence holds three or more IDs",
     "W361": "an ID in prose, outside a link and not followed by its name",
     "W362": "a list of more than nine items with no subheadings",

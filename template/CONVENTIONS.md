@@ -76,7 +76,7 @@ Every page starts with a YAML block. Quote any value that holds a colon or start
 | `entity` | `id`, `type`, `title`, `app`, `shared`, `initial`, `final` | `owner`, `sources` | none: `initial` and `final` name its states. See Flow check. |
 | `slice` | `id`, `type`, `title`, `authored` | `initiative`, `sources` | none: its `**Status:**` bullet says where it stands. See Slices. |
 
-Every type except `session` may also carry `last_verified`, `verified_by` and `links`.
+Every type except `session` may also carry `last_verified`, `verified_by` and `links`. A page an import wrote also carries `source-wording` (see Certainty and sources).
 
 Field values:
 
@@ -118,11 +118,13 @@ IDs are never reused or renumbered. A file's basename is frozen once anything li
 Every item has a state. `inkling` is a hunch. `assumption` is believed but not checked. `fact` has a source. `decided` came out of a Grill. `unknown` is a question with an owner, an ask-by date and a list of what it blocks.
 
 - **Only a Grill decides,** unless the user overrides it (see Overrides). A `decided` page carries a page-level `- **Decision:** [[<session>]]` bullet, and a `decided` contract or functional requirement carries one under its heading. The linked session's `modes` must include `grill`, or an `**Override:**` on the item names `grill`. Goal rows take their decision from the Goals page's bullet.
+- **A decision a document states** is the one exception. When a registered source records a decision ("approved by the CTO on 3 March") and the lead says yes to it in an import, it is `decided` with `- **Decision:** [[<session>]], as SRC-nn states`, which `vela decide --stated-in SRC-nn` writes. The lead's yes is on the session's Changes row, as for any decision. What the lead isn't sure of stays an `assumption`, with the document noted.
 - **A decision keeps its why.** When a Grill sets an item to `decided`, it asks the lead why in one question, and writes the answer in the lead's own words as `- **Why:** <the lead's words>` beside the `**Decision:**` bullet: under the item's heading, or under its `#### <ID>` in `## History`, or directly under `## History` for a page. A decision that shapes the whole design (the strategy, an app, a flow) also gets a decision record stub for close to fill. `vela check` warns W390 on a decided item with no Why; it is a warning, never an error, and a decision record is exempt because it is the reasoning. A page and the rows it decides (goals, allocation, releases) share one page-level Why.
 - **A requirements session cannot decide.** It writes at most `assumption`.
 - **A fact needs a source.** A `fact` page lists `sources`. A `fact` contract or functional requirement carries `- **Source:** SRC-nn`. A goal row at `fact` needs its page to list `sources`.
 - **What counts as a source.** A document describing what exists gives a fact. A document stating intent gives an assumption. A person's first-hand knowledge gives a fact. Claude's general knowledge is never a source.
-- **Sources live in the register.** `sources.md` has one row per document: `ID | Title | Owner | Date | Kind | Location`. `Kind` is `exists`, `intends` or `repo`. A `repo` source is a code repository read at a commit, with Location `<url>@<sha>`. Raw files stay in `.inbox/`; document text is never copied into the vault.
+- **Sources live in the register.** `sources.md` has one row per document: `ID | Title | Owner | Date | Kind | Location`. `Kind` is `exists`, `intends` or `repo`. A `repo` source is a code repository read at a commit, with Location `<url>@<sha>`. Raw files stay in `.inbox/`; document text is never copied into the vault, except as an import keeps it below.
+- **An import keeps a document's own words where they carry weight.** Requirements, contract and legal terms, numbers and direct quotes go in word for word, as a quote (`> "..."`) with its source linked. Whether the page's own sentences are written in the house voice is the lead's answer to one question the import asks. Each page records it in `source-wording`: `keep` (every word as the documents have it, the default until the lead answers), `split` (quotes kept, the explaining sentences voiced) or `voice`. A `split` or `voice` page links the capture of the lead's answer in `source-wording-yes: "[[<session>#^cNN]]"`; E361 is a page voiced without it. Close never redrafts a `keep` page, and `vela voicecheck` holds its kept lines exactly.
 - **Nothing is left for a Grill in prose.** A matter a session leaves for a Grill, or says is decided later, is an open unknown with an owner and an ask-by date, and the page links it. Close writes the unknown when a capture or a sentence defers; `vela check` warns W389 on page prose that says it is left for a Grill, or decided later, and links no open unknown in the same paragraph. Session records, History and generated blocks are not read, and nor is the unknowns page, where the question lives.
 - **Disputes are unknowns.** When two sources or two people disagree, write an unknown naming both. Do not pick one.
 - **State a value once.** The item that owns a value states it. Every other page links to it.
@@ -525,7 +527,7 @@ Run `python3 .claude/skills/vela/scripts/vela check` from the vault root. It rea
 
 The table is generated from the codes `vela check` uses, so it cannot drift from them, and each finding's fix line says how to put it right. `vela upgrade` brings a vault's copy up to date.
 
-<!-- generated:check-codes sha=616e6d2e: do not edit, run vela render -->
+<!-- generated:check-codes sha=4fe323b5: do not edit, run vela render -->
 | Code | Finding |
 |---|---|
 | E101 | page has no frontmatter |
@@ -593,6 +595,7 @@ The table is generated from the codes `vela check` uses, so it cannot drift from
 | W358 | flow names no capability though the initiative has capability pages |
 | E359 | flow names a capability that is not a capability page |
 | W360 | one sentence holds three or more IDs |
+| E361 | an imported page is voiced with no answer from the lead on record |
 | W361 | an ID in prose, outside a link and not followed by its name |
 | W362 | a list of more than nine items with no subheadings |
 | W363 | a long page with no opening summary |

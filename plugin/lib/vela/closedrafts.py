@@ -39,7 +39,7 @@ import re
 from collections import OrderedDict
 from dataclasses import dataclass, field
 
-from vela import closegate, drafts, model, parse, query
+from vela import closegate, drafts, model, parse, query, wording
 
 DECIDED, RESOLVED = "decided", "resolved"
 LONG_LIST = 7  # "more than about seven" (close section 4)
@@ -134,6 +134,7 @@ class Drafts:
     long_lists: list
     split: object  # Split or None
     judgment: tuple = JUDGMENT
+    kept: list = field(default_factory=list)  # imported pages that keep the documents' words: owed no voiced prose
 
     @property
     def count(self):
@@ -386,6 +387,14 @@ def owed(before, after, changes, modes=()):
     owe_strategy(ledger, before, after, pages)
     owe_adrs(ledger, after, decided)
     owe_epics(ledger, pages, tuple(modes))
-    paragraphs = sorted(ledger.all(), key=lambda p: p.page)  # stable: a page's paragraphs stay in the order found
+    # An imported page the lead hasn't had voiced keeps the documents' words: it is never handed to the voice redraft,
+    # and it is listed, so the skip is seen (wording.py).
+    kept = sorted({p.page for p in ledger.all() if is_kept(after, p.page)})
+    paragraphs = sorted([p for p in ledger.all() if p.page not in kept], key=lambda p: p.page)  # stable order
     back = [ReadBack(r.item, r.name, was.get(r.item, "-"), r.page, r.heading) for r in readback(after, decided)]
-    return Drafts(paragraphs, back, long_lists(after, pages), split_facts(paragraphs))
+    return Drafts(paragraphs, back, long_lists(after, pages), split_facts(paragraphs), kept=kept)
+
+
+def is_kept(vault, path):
+    page = next((p for p in vault.pages if p.path == path), None)
+    return page is not None and wording.wording_of(page.meta) == wording.KEEP

@@ -36,6 +36,9 @@ target kind adds. The grill gate needs the flow check's standings for a slice or
 view as `flows`; a view without them reads as "not checked", never as a pass.
 """
 import importlib
+import re
+
+from vela import say
 
 from vela.decisions import consent, decide_writes, schema, textedit
 
@@ -51,7 +54,8 @@ SHARED = {"id": "the item's ID (a release by its heading, an allocation row as C
           "on_behalf_of": "the owner's handle when the lead decides for an owner who isn't here (with GATE-5)",
           "by": "the lead's handle; computed",
           "reader": "true in a reader copy; computed",
-          "reopen": "true to reopen a decided item (a change of mind), with why"}
+          "reopen": "true to reopen a decided item (a change of mind), with why",
+          "stated_in": "the source (SRC-nn) that states the decision, when an import confirms it: no options needed"}
 JUDGMENT = ("readback", "yes", "why", "dissent", "overrides", "on_behalf_of")
 
 
@@ -142,6 +146,18 @@ def reopen_refusals(item, record, module, found):
     return out + ([why] if why else [])
 
 
+def stated_refusals(item, view):
+    """A decision confirmed from a document names a source that is in the register, so the reviewer can open it."""
+    ident = item.get("stated_in")
+    if not ident or (re.fullmatch(r"SRC-\d+", str(ident)) and str(ident) in view.model.row_ids):
+        return []
+    return [decide_writes.refusal("decide-stated-in", "I can't find the document that says this was decided, so I "
+                                                      "filed nothing.",
+                                  f"--stated-in {ident!r} is no row of sources.md; register it with vela add source "
+                                  "first.", override="none: a decision from a document cites that document",
+                                  audience=say.MODEL)]
+
+
 def validate(item, view, record):
     found = textedit.context_refusals(view)
     if found:
@@ -157,6 +173,7 @@ def validate(item, view, record):
                                               f"Reopen it only if the lead wants to change it: vela decide --reopen "
                                               f"{target.id} --why <their reason>.",
                                               override="none: reopening is the route, and it records the change")]
+    found += stated_refusals(item, view)
     found += decide_writes.yes_refusals(item, record)
     found += decide_writes.words_refusals(item, record)
     found += decide_writes.override_refusals(item, view, record, target)

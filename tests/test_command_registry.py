@@ -31,7 +31,7 @@ def test_a_group_with_nothing_built_adds_no_command():
     for name in commands.GROUPS:
         before = argparse.ArgumentParser().add_subparsers()
         commands.register(before, name)
-        assert (name in names) == bool(before.choices), name
+        assert (commands.COMMAND_OF.get(name, name) in names) == bool(before.choices), name
     assert {"check", "explore", "where", "questions", "handoff", "capture", "decide"} <= names
 
 

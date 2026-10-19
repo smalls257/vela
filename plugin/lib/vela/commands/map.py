@@ -15,6 +15,8 @@ open it; it is never only in the model's memory, and never staged (guard.py's to
 written; 3 several open sessions here (pick with `--record`).
 """
 import pathlib
+from dataclasses import dataclass
+from typing import Callable
 
 from vela import commands, say, topicmap
 from vela.commands import record
@@ -77,57 +79,85 @@ def name_of(args):
     return f"map {args.map_command}"
 
 
-def session_of(root, args):
+def session_of(root, args, name=None, nothing=NO_SESSION):
     """The open record's id, or Stop: exit 1 with none open, 3 with several."""
+    name = name or name_of(args)
     try:
         _, record_id = record.open_record(root, sessiongit.read_json(root, sessiongit.STATE_FILE), args.record)
     except record.Stop as stop:
         if stop.result.exit == say.REFUSED:
-            raise Stop(say.Result(name_of(args), exit=say.REFUSED, lines=[say.Line(NO_SESSION)])) from stop
+            raise Stop(say.Result(name, exit=say.REFUSED, lines=[say.Line(nothing)])) from stop
         found = stop.result
-        raise Stop(say.Result(name_of(args), exit=found.exit, needs_lead=found.needs_lead, lines=found.lines)) from stop
+        raise Stop(say.Result(name, exit=found.exit, needs_lead=found.needs_lead, lines=found.lines)) from stop
     return record_id
 
 
+@dataclass(frozen=True)
+class Store:
+    """A session's working file under `.vela/`: the topic map, or the import queue (commands/importer.py), which
+    shares this one way of finding the open session, reading the file, writing it back only when it changed, and
+    saying every refusal and failure. One copy, so the two queues can't drift in how they keep their state."""
+    folder: str
+    new: Callable
+    parse: Callable
+    dumps: Callable
+    key: str  # the --json field naming the file
+    rule: str  # the refusal's rule name
+    refused: str  # the refusal's words, with {exc}
+    failed: str  # what the lead hears when the file can't be read or written
+    needs_kinds: bool = True  # the map's changes take the catalog's kinds; the import's take (root, session)
+    nothing: str = NO_SESSION  # what the lead hears when no session is open
+
+    def path(self, session):
+        return f"{self.folder}/{session}.json"
+
+    def load(self, root, session):
+        path = root / self.path(session)
+        if not path.is_file():
+            return self.new(session)
+        return self.parse(path.read_text(encoding="utf-8"))
+
+
+MAP = Store(topicmap.FOLDER, topicmap.new_state, topicmap.parse, topicmap.dumps, "map", "topic map",
+            "The map didn't take that: {exc}.", "I couldn't read or save the session's topic map.")
+
+
 def map_path(session):
-    return f"{topicmap.FOLDER}/{session}.json"
+    return MAP.path(session)
 
 
 def load(root, session):
-    path = root / map_path(session)
-    if not path.is_file():
-        return topicmap.new_state(session)
-    return topicmap.parse(path.read_text(encoding="utf-8"))
+    return MAP.load(root, session)
 
 
-def run(args, out, change):
-    """Find the session, load its map, apply `change(state, kinds)` -> (lines, data, answer, closing) and write the
-    map back when the change altered it. Every refusal and failure is said, never read as an empty map."""
+def run(args, out, change, store=MAP, name=None):
+    """Find the session, load its file, apply `change(state, kinds)` -> (lines, data, answer, closing) and write the
+    file back when the change altered it. Every refusal and failure is said, never read as an empty file."""
     from vela import cli  # the catalog's kinds; imported here as every command module does
     root = pathlib.Path(args.vault).resolve()
-    name = name_of(args)
+    name = name or name_of(args)
     try:
-        session = session_of(root, args)
-        kinds = cli.load_catalog().kinds
-        if not kinds:
+        session = session_of(root, args, name, store.nothing)
+        kinds = cli.load_catalog().kinds if store.needs_kinds else ()
+        if store.needs_kinds and not kinds:
             raise cli.ToolError("the question catalog lists no kinds, so the topic map has nothing to tag to")
-        state = load(root, session)
-        before = topicmap.dumps(state)
-        lines, data, answer, closing = change(state, kinds)
-        wrote = []
-        if topicmap.dumps(state) != before:
-            wrote.append(sessiongit.write_text(root, map_path(session), topicmap.dumps(state)))
-        result = say.Result(name, lines=lines, data={"map": map_path(session), **data}, wrote=wrote, answer=answer,
+        state = store.load(root, session)
+        before = store.dumps(state)
+        lines, data, answer, closing = change(state, kinds if store.needs_kinds else (root, session))
+        wrote = list(data.pop("_wrote", []))  # a page the change wrote itself (vela import page)
+        if store.dumps(state) != before:
+            wrote.append(sessiongit.write_text(root, store.path(session), store.dumps(state)))
+        result = say.Result(name, lines=lines, data={store.key: store.path(session), **data}, wrote=wrote, answer=answer,
                             closing=closing)
     except Stop as stop:
         result = stop.result
     except topicmap.MapRefused as exc:
         result = say.Result(name, exit=say.REFUSED, refusals=[say.Refusal(
-            "topic map", f"The map didn't take that: {exc}.", "fix that part and run it again",
+            store.rule, store.refused.format(exc=exc), "fix that part and run it again",
             "nothing to override: the map only records", audience=say.MODEL)])
     except (topicmap.MapUnreadable, cli.ToolError, ValueError, OSError) as exc:
         result = say.Result(name, exit=say.FAILED, lines=[
-            say.Line(f"vela: {exc}", plain="I couldn't read or save the session's topic map.")])
+            say.Line(f"vela: {exc}", plain=store.failed)])
     return commands.emit(result, args, out)
 
 
