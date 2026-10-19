@@ -80,6 +80,11 @@ def build(tmp_path):
 class Context(types.SimpleNamespace):
     """What a step gets: the vault, the runner, and what earlier steps kept."""
 
+    def typed(self, text):
+        """What the lead typed, logged as the UserPromptSubmit hook does, so `record add` can check their words."""
+        from vela.edge import saidlog
+        saidlog.append(self.vault, "replay-session", f"{self.today}T09:00:00Z", text)
+
     def vela(self, *args, check=True):
         env = dict(os.environ, PATH=f"{self.bin_dir}{os.pathsep}{os.environ.get('PATH', '')}")
         for name in ("GH_TOKEN", "GITHUB_TOKEN", "GH_ENTERPRISE_TOKEN"):

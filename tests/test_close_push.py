@@ -10,6 +10,7 @@ import stat
 from conftest import run
 from sharing import git, make_vault, with_remote
 from vela import say
+from vela.edge import saidlog
 
 RECORD = "2026-10-20-grill-stock"
 BRANCH = f"session/{RECORD}"
@@ -77,6 +78,7 @@ def push(vault, *flags):
 
 def add_yes(vault, words="Yes, send it.", origin="@lead", commit=True, record_id=RECORD):
     """The lead's answer to the send notice, captured with `vela record add`, then committed."""
+    saidlog.append(vault, "test-session", "2026-10-14T09:00:00Z", words)  # typed, as the hook logs it
     code, out = run("record", "add", "--vault", str(vault), "--origin", origin, "--tag", "decision", "--mark",
                     SEND_MARK, words)
     assert code == 0, out

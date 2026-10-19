@@ -62,6 +62,7 @@ def test_nothing_of_the_teams_changed_is_said_plainly(repo):
 # ---- the yes gate: a design choice is committed only after a person's capture names it ----
 
 from vela import designchoice, say  # noqa: E402
+from vela.edge import saidlog  # noqa: E402
 
 CHOICE_DOC = "# Heron design\n\n## Decisions\n\n- We'll keep the calendar key behind a small interface.\n"
 
@@ -69,6 +70,8 @@ CHOICE_DOC = "# Heron design\n\n## Decisions\n\n- We'll keep the calendar key be
 def add_yes(root, words, origin=None):
     """The senior's capture, as the design skill writes it: `vela record add` on the design branch."""
     extra = ("--origin", origin) if origin else ("--origin", "@sam")
+    if not origin:
+        saidlog.append(root, "test-session", "2026-10-14T09:00:00Z", words)  # the senior typed it, as the hook logs it
     return run("record", "add", "--vault", str(root), *extra, "--tag", "decision", words)
 
 
@@ -137,3 +140,30 @@ def test_the_detector_reads_adr_titles_decision_bullets_and_we_will_lines():
 def test_a_none_yet_bullet_under_decisions_is_no_choice(repo):
     change(repo, "docs/tech-design/heron.md", "# Heron\n\n**Decisions that shape it:**\n\n- None yet. Scope is open.\n")
     assert commit(repo, "--about", "scope")[0] == 0
+
+
+# ---- the yes must be words the person typed (vela/said.py) ----
+
+def test_an_unverified_yes_is_listed_for_the_lead_to_confirm_and_never_counted_silently(repo):
+    change(repo, "docs/tech-design/heron.md", CHOICE_DOC)
+    code, out = run("record", "add", "--vault", str(repo), "--origin", "@sam", "--tag", "decision",
+                    "Yes, keep the calendar key behind a small interface.")  # no log here: hooks didn't fire
+    assert code == 0 and "unverified" in out
+    head = git(repo, "rev-parse", "HEAD")
+    code, out = commit(repo, "--about", "the key", "--json")
+    answer = json.loads(out)
+    assert code == 3 and answer["needs_lead"][0]["ask"] == "design-confirm"
+    assert "unverified" in answer["lines"][0] and "keep the calendar key behind a small interface" in answer["lines"][0]
+    code, out = commit(repo, "--about", "the key", "--for-lead")
+    assert code == 3 and out.strip().startswith("I couldn't check that you said yes to: ") and say.leak_in(out) is None
+    assert git(repo, "rev-parse", "HEAD") == head
+    assert run("record", "confirm", "--vault", str(repo), "1")[0] == 0
+    assert commit(repo, "--about", "the key")[0] == 0
+
+
+def test_the_models_own_sentence_cannot_become_the_seniors_yes(repo):
+    change(repo, "docs/tech-design/heron.md", CHOICE_DOC)
+    saidlog.append(repo, "test-session", "2026-10-14T09:00:00Z", "Sounds reasonable, go on.")
+    code, out = add_yes(repo, "Yes, keep the calendar key behind a small interface.", origin="@sam")
+    assert code == 3 and "Those aren't words the person typed" in out
+    assert commit(repo, "--about", "the key")[0] == 3

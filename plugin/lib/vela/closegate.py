@@ -28,6 +28,7 @@ import re
 from dataclasses import dataclass, replace
 
 from vela import override, say, schema
+from vela.said import is_unverified
 
 CONSENT_CLEAR = ("The lead's own yes, quoted in the session record with a Changes row citing it, clears it; so does "
                  "their override with a reason.")
@@ -51,6 +52,11 @@ class Capture:
     @property
     def is_person(self):
         return not self.origin.strip().lower().startswith("claude")
+
+    @property
+    def unverified(self):
+        """Written where nothing could check the person typed these words (`vela/said.py`): not a yes until they confirm."""
+        return is_unverified(self.origin)
 
     @property
     def quote(self):
@@ -198,6 +204,10 @@ def judge_change(change, rows, said, vault, record_name):
     if not capture.is_person:
         return Problem(f"{moving(change, capital=True)} was my suggestion, not your yes. Do you agree?",
                        f"{change.item}: ^c{capture.n} has origin '{capture.origin}'", kind=CONSENT), None
+    if capture.unverified:
+        return Problem(f'I couldn\'t check that you said "{capture.quote}" on {change.name}. Did you say it?',
+                       f"{change.item}: ^c{capture.n} is unverified (no log of what was typed); "
+                       f"`vela record confirm {capture.n}` after the lead says yes", kind=CONSENT), None
     if capture.is_bare_non_yes:
         return Problem(f"You said '{capture.quote or 'ok'}' on {change.name}. Was that a yes to {moving(change)}?",
                        f"{change.item}: ^c{capture.n} says only '{capture.quote}'", kind=CONSENT), None
@@ -318,7 +328,7 @@ def removal_agreed(key, rows, said):
         if row.item != key or row.after != REMOVED:
             continue
         capture = said.get(row.capture_number)
-        if capture is not None and capture.is_person and not capture.is_bare_non_yes:
+        if capture is not None and capture.is_person and not capture.unverified and not capture.is_bare_non_yes:
             return True
     return False
 

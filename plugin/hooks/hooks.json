@@ -1,5 +1,5 @@
 {
-  "description": "Earlier feedback in Claude Code, never the gate: the CLI refuses each of these itself, which holds where hooks don't fire. SessionStart and the probe canary are markers, so `vela where --probe` can tell whether hooks run here. Bash: deny staging by hand (only vela stages), ask before a push or a PR. Edit/Write: deny a hand-moved state or an edit inside a generated block; afterwards, a quick check of the edited page.",
+  "description": "Earlier feedback in Claude Code, never the gate: the CLI refuses each of these itself, which holds where hooks don't fire. UserPromptSubmit logs what the person typed, so `vela record add` can tell their words from the model's. SessionStart and the probe canary are markers, so `vela where --probe` can tell whether hooks run here. Bash: deny staging by hand (only vela stages), ask before a push or a PR. Edit/Write: deny a hand-moved state or an edit inside a generated block; afterwards, a quick check of the edited page.",
   "hooks": {
     "SessionStart": [
       {
@@ -7,6 +7,17 @@
           {
             "type": "command",
             "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/vela\" hook session-start",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/vela\" hook said",
             "timeout": 10
           }
         ]
