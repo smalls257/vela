@@ -638,6 +638,7 @@ def extract(vault, root, today, pins_path=None, designs=None, seed=None, plans=N
     data["designs"] = inside_data.inside(vault, keys, designs or {})
     data["plans"] = plan_data.inside(vault, keys, plans or {}, data["designs"])
     data["insidePanel"] = panel_data.panels(vault, data)
+    data["contractAnswers"] = panel_data.contract_answers(vault)
     data["themes"] = [{"id": i, "label": label, "say": say} for i, label, say in THEMES]
     data["theme"] = THEME_IDS[0]
     return data

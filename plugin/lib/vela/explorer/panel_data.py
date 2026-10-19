@@ -17,9 +17,9 @@ A section the design lacks is `None` or an empty list, and the page says "Not re
 """
 import re
 
-from vela import criteria, trace
+from vela import cases, criteria, trace
 
-from . import inside_data
+from . import branches_data, inside_data
 from .record import title_of
 
 SEVERITY = {"high": 0, "critical": 0, "medium": 1, "med": 1, "low": 2}
@@ -326,6 +326,24 @@ def summary(design, namer, app_title, untraced_names):
         "gaps": {"items": gaps[:6], "total": len(gaps)},
         "sections": [{"id": i, "label": label, "count": counts.get(i)} for i, label in SECTIONS],
     }
+
+
+def contract_answers(vault):
+    """{contract id: [every way it can answer]} from each contract's case table, for the Details of a contract on Flows,
+    the map and Decisions.
+
+    A Paper Tiger guard: a contract panel that lists only the success answer says nothing about what a caller must
+    handle. Each answer carries its status and whether it is an error, so the panel can say which are the error
+    branches. A contract with no case table has no entry, and the page says "Not recorded"; nothing is guessed."""
+    namer = Namer(vault)
+    out = {}
+    for contract in vault.contracts:
+        table = cases.case_table(contract.page, contract)
+        if table is None or not table.cases:
+            continue
+        out[contract.id] = [{"case": branches_data.case_words(c.key), "when": plain(c.when) or None, "status": c.status or None,
+                             "says": namer.say(c.answer) or None, "error": c.is_error} for c in table.cases]
+    return out
 
 
 def panels(vault, data):
