@@ -34,8 +34,8 @@ from vela import search as vela_search
 from vela.edge import atomic, sessiongit
 from vela.parse import FENCE, closes_fence
 
-from . import (asks_data, assets_inline, branches_data, breakdown_find, design_data, design_find, draft_data, flows_data, icons_data, inside_data, pages_data,
-               plan_data, roles_data, serve, slices_data)
+from . import (asks_data, assets_inline, branches_data, breakdown_find, design_data, design_find, draft_data, flows_data, icons_data, inside_data, onboard_data,
+               pages_data, plan_data, roles_data, serve, slices_data)
 from . import pins as pinning
 from .record import (HANDLE, LABELED_LINE, PROSE_LIMIT, Keys, inline_html,
                      plain, refs_in, title_of)
@@ -580,7 +580,7 @@ def lights_data(vault, keys, today):
     return {"lights": lights, "ranked": ranked, "above": above, "levels": list(attention.LEVELS)}
 
 
-def extract(vault, root, today, pins_path=None, designs=None, seed=None, plans=None):
+def extract(vault, root, today, pins_path=None, designs=None, seed=None, plans=None, onboard_mine=None, onboard_me=None):
     keys = Keys(vault)
     entities = {}
     for page in vault.pages:
@@ -639,6 +639,7 @@ def extract(vault, root, today, pins_path=None, designs=None, seed=None, plans=N
     data["plans"] = plan_data.inside(vault, keys, plans or {}, data["designs"])
     data["themes"] = [{"id": i, "label": label, "say": say} for i, label, say in THEMES]
     data["theme"] = THEME_IDS[0]
+    data["onboard"] = onboard_data.extract(data, root, onboard_mine, onboard_me)
     return data
 
 
@@ -861,7 +862,7 @@ def plural_pages(n):
 
 
 def generate(root, out, today, pins_path=None, seed=None, assets_config=None, design_args=(), theme=THEME_IDS[0], freshness=None,
-             breakdown_args=(), built=None, selftest=False):
+             breakdown_args=(), built=None, selftest=False, onboard_mine=None, onboard_me=None):
     """Build the page for the vault at `root` and write it to `out`. Returns the report lines: what the build
     chose, what it left out and why, and the one-line summary last. Raises ExplorerError, writing nothing, when
     the vault, the assets, the pins, a design or a named breakdown cannot be read.
@@ -892,7 +893,9 @@ def generate(root, out, today, pins_path=None, seed=None, assets_config=None, de
     plans_found, plan_find_lines = breakdown_find.discover(vault, root, breakdown_args, design_args)
     plan_args = [*breakdown_args, *plans_found]
     try:
-        data = extract(vault, root, today, pins_path, design_data.designs_for(design_args), seed, plan_data.plans_for(plan_args))
+        data = extract(vault, root, today, pins_path, design_data.designs_for(design_args), seed, plan_data.plans_for(plan_args), onboard_mine, onboard_me)
+    except onboard_data.OnboardError as exc:
+        raise ExplorerError(str(exc)) from exc
     except design_data.DesignError as exc:
         raise ExplorerError(f"--design: {exc}") from exc
     except plan_data.PlanError as exc:
@@ -919,6 +922,7 @@ def generate(root, out, today, pins_path=None, seed=None, assets_config=None, de
     said += plan_find_lines
     said += plan_lines(data["plans"])
     said += draft_lines(data)
+    said += data["onboard"]["problems"]
     m = data["map"]
     said.append(f"wrote {out} for {data['initiative']} {data['title']}: {len(m['apps'])} apps, "
                 f"{len(m['contracts'])} contracts, {len(data['unknowns'])} unknowns, {len(data['trace']['epics'])} epics, "

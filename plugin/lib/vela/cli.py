@@ -23,7 +23,7 @@ import traceback
 
 import yaml
 
-from vela import allocation, capture, catalog, completeness, diagramcheck, doctor, drafts, search, export, freshness, handoff, handoffwarn, health, ids, ladder, model, opening, pending, pluginroot, proposal, reading, parse, progress, publish, query, questions, releases, render, replay, review, reviews, roles, rules, schema, secretscan, slices, terms, tickets, untrusted, viewer, voicecheck, voicescore
+from vela import allocation, capture, catalog, completeness, diagramcheck, doctor, drafts, search, export, freshness, handoff, handoffwarn, health, ids, ladder, model, onboardpath, opening, pending, pluginroot, proposal, reading, parse, progress, publish, query, questions, releases, render, replay, review, reviews, roles, rules, schema, secretscan, slices, terms, tickets, untrusted, viewer, voicecheck, voicescore
 from vela.edge import atomic, copies, machine, mermaidjs, replays, reviewgit, teamdocs, vaultgit
 from vela.edge import proposals as proposal_files
 from vela import commands, guard, say
@@ -1591,13 +1591,43 @@ def live_freshness(root, found, today, unavailable):
         raise unavailable(str(exc)) from exc
 
 
+def read_text_if_present(root, name):
+    """The text of `name` at the vault root, or None when there is no such file. An unreadable file raises OSError or
+    UnicodeDecodeError, for the caller to say why."""
+    path = pathlib.Path(root) / name
+    return path.read_text(encoding="utf-8") if path.is_file() else None
+
+
+def personal_path(root, handle):
+    """(path or None, me) for a page built for one person (`vela explore --person`). `me` is their handle and the role they
+    chose (`vela whoami --role`), which a page uses to open as the right role. A person with no onboarding path of their own
+    still gets a page (path None: they see the standard one); a path file that can't be read or used refuses, naming why,
+    because a page built from a broken path would quietly show something else."""
+    if not onboardpath.HANDLE.match(handle):
+        raise ToolError(f"'{handle}' isn't a handle: letters, digits and hyphens, up to 39.")
+    from vela.commands import whoami
+    me = {"handle": handle, "role": whoami.read_role(root)}
+    try:
+        text = (root / onboardpath.file_for(handle)).read_text(encoding="utf-8")
+    except FileNotFoundError:
+        return None, me
+    except (OSError, UnicodeDecodeError) as exc:
+        raise ToolError(f"{handle}'s onboarding path can't be read ({exc}).") from exc
+    found, problems = onboardpath.from_text(handle, text)
+    if found is None:
+        raise ToolError(f"{handle}'s onboarding path isn't usable: {'; '.join(problems)}")
+    return found, me
+
+
 def cmd_explore(args, out):
     """Build the explorer page: dashboard.html at the vault root unless --out says otherwise, so it travels with the vault
     in git or OneDrive. The pinned layout goes in .vela/; nothing is written beside the plugin."""
     from vela.explorer import build as explorer, pins as explorer_pins, serve as explorer_serve  # lazy: the explorer imports this module
     root = pathlib.Path(args.vault).resolve()
     today, _ = parse_today(args.today)
-    target = pathlib.Path(args.out) if args.out else root / publish.DASHBOARD_PATH
+    person = getattr(args, "person", "")
+    mine, me = personal_path(root, person) if person else (None, None)
+    target = pathlib.Path(args.out) if args.out else root / (onboardpath.file_for(person).replace(".json", ".html") if person else publish.DASHBOARD_PATH)
     found = detect_role(root)
     advice = explorer.vault_id_advice(root, found.role)
     if advice:
@@ -1606,7 +1636,7 @@ def cmd_explore(args, out):
         lines = explorer.generate(root, target, today, pins_path=root / explorer_pins.PINS_FILE,
                                   assets_config=args.assets, design_args=args.design, theme=args.theme,
                                   freshness=page_freshness(root, found, today), breakdown_args=args.breakdown,
-                                  built=page_built(root, found, today), selftest=args.selftest)
+                                  built=page_built(root, found, today), selftest=args.selftest, onboard_mine=mine, onboard_me=me)
     except explorer.ExplorerError as exc:
         raise ToolError(str(exc)) from exc
     for line in lines:

@@ -26,6 +26,8 @@ def register(sub):
     explore.add_argument("--breakdown", action="append", default=[], metavar="APP-x=PATH",
                          help="a team's work breakdown (docs/plan/<slug>-breakdown.md) for an app, for its Build plan; repeat for each app")
     explore.add_argument("--assets", help="an assets.config.json whose provider's art is inlined (default: the builtin art)")
+    explore.add_argument("--person", default="", metavar="HANDLE",
+                         help="build the page for one person from their saved onboarding path (vela onboard path set); it is written under .vela/, never to dashboard.html")
     explore.add_argument("--selftest", action="store_true",
                          help="for developers: bundle the dashboard's own checks, so opening it with #selftest runs them (about 120 KB)")
     explore.add_argument("--serve", action="store_true",
