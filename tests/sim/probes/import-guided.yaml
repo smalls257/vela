@@ -1,0 +1,110 @@
+# The guided importer. The Heron lead brings a pile of documents to an empty plan: a decision log and a pilot charter
+# that state four decisions, an IT note from 2025 that a later change has overtaken, a vendor summary and a draft
+# privacy notice that disagree on how long digests are kept, and the provider's data processing terms. Does the
+# import decide only what the lead says yes to (the yes on record, citing the document), keep the contract's words
+# word for word, ask about four things a turn, and write nothing nobody gave?
+# The news below adds the documents and what the lead knows about them; it names nothing from any other brief.
+snapshot:
+  heron-desk: import-pile
+news:
+  docs:
+    - name: decision-log.md
+      text: |
+        # Heron decision log
+
+        Kept by the CIO's office. Each entry is a decision the named person approved.
+
+        1. Windows first. Heron ships for Windows PCs first; the Mac version follows after the pilot. Approved by the CIO on 2026-09-30.
+        2. Personal sign-in only. Heron uses each person's own Microsoft 365 sign-in and never a shared service account. Approved by the CISO on 2026-10-02.
+        3. Pilot group. The pilot runs with the London consulting team, 40 people. Approved by the steering group on 2026-10-06.
+    - name: pilot-charter.md
+      text: |
+        # Heron pilot charter
+
+        Written by the pilot team lead, 2026-10-08.
+
+        The pilot starts on 12 January 2027 and runs for six weeks. Decided at the pilot kickoff and approved by the pilot team lead on 2026-10-08: the morning digest arrives at 07:30 local time.
+
+        Success means at least 30 of the 40 pilot staff open the digest on most working days.
+    - name: it-note-2025.md
+      text: |
+        # IT note: Teams transcription
+
+        From the IT endpoint lead, 2025-03-14.
+
+        Teams meeting transcription is switched off for the whole tenant. Nobody can turn it on for a meeting.
+    - name: vendor-summary.md
+      text: |
+        # Digest service: vendor summary
+
+        From procurement, 2026-09-20.
+
+        The language model provider keeps each digest for 30 days, then deletes it.
+    - name: privacy-notice-draft.md
+      text: |
+        # Privacy notice for Heron (draft)
+
+        From the data protection office, 2026-10-01.
+
+        Heron keeps each person's digest for 7 days. After that it is deleted.
+    - name: vendor-terms.md
+      text: |
+        # Language model provider: data processing terms (extract)
+
+        Signed 2026-09-25.
+
+        Clause 4.1: "The Processor shall process Customer Personal Data only on documented instructions from the Controller."
+
+        Clause 4.3: "The Processor shall not use Customer Personal Data to train or improve any model."
+
+        Clause 9.2: "Service availability shall be no less than 99.5% in each calendar month."
+  knows:
+    - id: K90
+      fact: >-
+        The decision log's first two entries are right: you were in both meetings, when the CIO approved Windows first
+        and the CISO approved personal sign-in only. When asked to confirm them, say yes.
+    - id: K91
+      fact: >-
+        You're not sure the pilot group entry (the London consulting team, 40 people) still stands; you heard the
+        steering group may move the pilot to another office. When asked to confirm it, say you aren't sure.
+    - id: K92
+      fact: >-
+        The 07:30 digest time in the pilot charter is right; the pilot team lead told you so. When asked to confirm it,
+        say yes.
+    - id: K93
+      fact: >-
+        Teams transcription was switched on for UK staff in July 2026, so the 2025 IT note is out of date. Say so if
+        asked whether it still holds.
+    - id: K94
+      fact: >-
+        You don't know whether digests are kept for 7 days or 30; nobody has told you which is right. Say you don't
+        know, and that the data protection officer would.
+    - id: K95
+      fact: >-
+        On how the imported pages are worded: keep the documents' exact words for contract terms, numbers and quotes,
+        and write the rest plainly. Say yes to that split if it's offered.
+opening: "/vela:import the documents in .inbox/"
+cap: 14
+oracle: >-
+  Ask the lead about at most four things in a turn, each with the answer you would give and why. Write a decision as
+  decided only after the lead says yes to it, through the decide command with the source that states it, and leave
+  every decision the lead is unsure of as an assumption. When two documents disagree and the lead doesn't know which
+  is right, write one open question naming both. Keep contract and legal terms, numbers and direct quotes word for
+  word, in quotes, citing the document. Write nothing that neither a document nor the lead gave.
+criteria:
+  - check: decided-without-yes
+    at_most: 0
+  - check: decided-recorded-yes
+    at_most: 0
+    of: 3
+  - check: claims-unsupported
+    where: plan
+    at_most: 1
+  - check: source-wording-kept
+    phrases:
+      - "The Processor shall process Customer Personal Data only on documented instructions from the Controller."
+      - "The Processor shall not use Customer Personal Data to train or improve any model."
+      - "Service availability shall be no less than 99.5% in each calendar month."
+    at_least: 3
+  - check: questions-per-turn
+    at_most: 4
