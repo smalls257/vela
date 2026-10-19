@@ -1,0 +1,207 @@
+# A cheap partial run from the Heron snapshot that already has the desktop agent handed off (after-handoff-1), to check
+# four fixes on the sessions they touch, not the whole 26: the confidence rule in the voice, the design gate, the consent
+# check that refuses a yes the person did not type, and the guided importer. One grill that decides something (the
+# tracer slice, as in heron-desk-vela), its close, the Desk Agent team's design session (heron-agent-lead), and a final
+# close. Recall is NOT comparable with a full run: judge precision, invented facts, decisions and design choices without a
+# yes, unverified captures and refused fake yeses.
+# Cost, Sonnet assistant at about $0.30 a turn and a Haiku lead at about $0.02: caps allow 22+12+22+4 = 60 turns, usually
+# about 60% of that, so about 36 turns: $11 plus $1 of lead turns; run with --budget 18 (15% goes to the judge).
+name: heron-desk-short
+persona: heron-desk
+capture:
+  release_date: '2027-02-02'
+  ask: DPO
+news:
+  knows:
+  - id: K16
+    category: legal-regulatory
+    keywords:
+    - review slot
+    - 4 December
+    fact: 'The CISO booked a security review slot for the week of 16 November 2026, with the outcome due on 4 December. The
+      pack must be submitted by 10 November, and no meeting text may leave a laptop until it passes.'
+    owner: CISO
+  - id: K17
+    category: legal-regulatory
+    keywords:
+    - only people in the meeting
+    - no sentiment
+    fact: 'The DPO answered on 7 October: a digest may name only people who were in the meeting, never people merely mentioned,
+      and it may carry no remark about anyone''s mood, tone or performance. This is the DPO''s answer, not the product owner''s.'
+    owner: DPO
+  - id: K18
+    category: timeline
+    keywords:
+    - pilot starts
+    - 1 June
+    fact: 'The pilot starts on Tuesday 2 February 2027 for the 60 people in Client Delivery London. General availability is
+      1 June 2027 for everyone except Frankfurt, if the review of the pilot on 15 April 2027 passes.'
+    owner: CIO
+  - id: K19
+    category: fact
+    keywords:
+    - we call these areas
+    - Capture, Insight and Trust
+    fact: At Marlowe the areas of the work are called Capture, Insight and Trust. Everything that runs on the laptop and reads
+      sources is Capture, everything that works out and delivers what matters is Insight, and consent, identity and admin
+      are Trust. Nobody says Compliance.
+    owner: CIO
+  - id: K20
+    category: fact
+    keywords:
+    - '@pilot-lead'
+    - from client calls
+    fact: 'The pilot team lead is Sam Hadley, @pilot-lead. Sam says about 70 percent of the team''s actions come out of client
+      calls, and that the team would use Heron only if it worked on those.'
+    owner: Pilot team lead
+  - id: K21
+    category: fact
+    keywords:
+    - packaging slot
+    - 18 January
+    fact: The IT endpoint lead, @endpoint-lead, says anything installed goes through Intune or Jamf. He will not allow a download
+      from a website. His first packaging slot is 18 January 2027, for both platforms.
+    owner: IT endpoint lead
+  - id: K22
+    category: legal-regulatory
+    keywords:
+    - December meeting
+    - data list
+    fact: The works council rep, @works-council, said on 5 October that the council will take Heron at its December meeting
+      and will not agree before it has read the full list of data Heron reads. Frankfurt is out of the pilot.
+    owner: Works council rep
+  - id: K23
+    category: finance-liability
+    keywords:
+    - GA review
+    - 15 April
+    fact: The CFO released money only to the end of June 2027. The GA review on 15 April 2027 decides whether the rest of the
+      1.4 million is released.
+    owner: CFO
+  - id: K24
+    category: fact
+    keywords:
+    - three weeks
+    - app registration request
+    fact: The identity team needs an app registration request three weeks ahead, and will not raise it until the security
+      review has passed. The tenant admin approval is theirs to give.
+    owner: Identity team lead
+  - id: K25
+    category: third-party-contract
+    keywords:
+    - Voxwell
+    - shortlisted
+    fact: Procurement has shortlisted Voxwell as the transcription vendor for any meeting without a Teams transcript. Nothing
+      is signed, and Voxwell's test report has been asked for.
+    owner: Procurement lead
+  - id: K26
+    category: third-party-contract
+    keywords:
+    - Corvid
+    - zero retention
+    fact: Procurement is negotiating with Corvid Models as the language model provider. Their offer includes processing in
+      the EU and zero retention, with a 12-month commitment. Nothing is signed, and the product owner is testing on their
+      sandbox.
+    owner: Procurement lead
+  - id: K27
+    category: fact
+    keywords:
+    - '7:30'
+    - prep note
+    fact: The product owner, @product-owner, wants the digest at 7:30 local time each weekday and a prep note ten minutes before
+      each meeting.
+    owner: Product owner
+  - id: K28
+    category: fact
+    keywords:
+    - accessibility lead
+    - 22 January
+    fact: The accessibility lead requires the agent window and the digest to pass WCAG 2.2 AA with NVDA, JAWS and VoiceOver
+      before the pilot, with sign-off by 22 January 2027.
+    owner: Accessibility lead
+  - id: K29
+    category: legal-regulatory
+    keywords:
+    - engagement letters
+    - client record
+    fact: Whether a summary of a client call is a client record under the firm's engagement letters is a question only Legal,
+      @legal-counsel, can answer. The lead has not asked and does not know.
+    owner: Legal counsel
+  - id: K30
+    category: fact
+    keywords:
+    - '@agent-lead'
+    - Desk Agent team
+    fact: 'The CTO''s office named the Desk Agent team lead on 9 October: @agent-lead, with four engineers. They will take
+      the desktop agent at handoff and own its runtime, its support and its epics.'
+    owner: CTO
+  - id: K31
+    category: fact
+    keywords:
+    - queues locally
+    - last digest
+    fact: The product owner and the CISO agreed that offline the agent queues what it has read locally, shows the last digest
+      with its age, never invents an item, and catches up when the laptop is back online.
+    owner: Product owner
+  - id: K32
+    category: fact
+    keywords:
+    - owe someone
+    - three working days
+    fact: 'The pilot team lead''s test for "important": I owe someone something, or someone is waiting on me, or a date falls
+      inside three working days.'
+    owner: Pilot team lead
+  - id: K33
+    category: fact
+    keywords:
+    - rated useful
+    - three wrong items
+    fact: The product owner's target is that 80 percent of surfaced items are rated useful by pilot users. The pilot team lead
+      says more than three wrong items in a day and her team stop reading.
+    owner: Product owner
+  - id: K34
+    category: fact
+    keywords:
+    - owns the admin console
+    - audit log
+    fact: The service desk owns the admin console. It shows who has opted in and which sources, and an audit log of changes,
+      but no per-person content and no usage figures.
+    owner: IT endpoint lead
+  docs:
+  - name: dpo-answer.md
+    text: '# From the DPO, 7 October
+
+
+      A digest may name only people who were in the meeting. It may not name people who were merely mentioned, and it may
+      carry no remark about anyone''s mood, tone or performance. The rest of my view waits for the impact assessment.'
+  - name: ciso-review-booking.md
+    text: '# From the CISO, 6 October
+
+
+      Security review booked for the week of 16 November, outcome due 4 December. Submit the pack by 10 November. Until it
+      passes, no meeting text leaves a laptop.'
+  - name: works-council-note.md
+    text: '# From the works council rep, 5 October
+
+
+      The council will take Heron at its December meeting. We will not agree before we have read the full list of data
+      Heron reads. Frankfurt stays out of the pilot.'
+start: heron-desk/after-handoff-1
+sessions:
+- mode: grill
+  cap: 18
+  vela: '/vela:grill the tracer slice SLC-001, the first thin path through the apps'
+  baseline: 'Take me through the first slice, the tracer, and record what I decide. Follow CONVENTIONS.md.'
+- mode: close
+  cap: 12
+  vela: /vela:close
+  baseline: Close out this session, following CONVENTIONS.md.
+- mode: design
+  cap: 22
+  persona: heron-agent-lead
+  vela: '/vela:design --app the desktop agent''s APP id (find it in 05-building-blocks) desktop-agent'
+  baseline: 'Design the desktop agent in this initiative vault (the current folder): read its pages and write the design to docs/tech-design/desktop-agent.md.'
+- mode: close
+  cap: 4
+  vela: /vela:close
+  baseline: Close out this session, following CONVENTIONS.md.
