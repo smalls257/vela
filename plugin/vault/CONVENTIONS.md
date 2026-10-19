@@ -10,7 +10,7 @@ One vault holds one initiative. Pages are numbered by arc42 section.
 |---|---|
 | `README.md` | Home page: layout, reading paths, setup checklist |
 | `CLAUDE.md` | How Claude answers questions from this vault. A person writes it. |
-| `.vela.yaml` | `initiative` (`INI-nnn`), `title`, `stale_after_days` (default 60), and optionally `link_templates` (see Links out of the vault), `designs` (see Team design docs), `owner_contact` (who a published copy's readers write to) and `role: reader` (see Roles and published copies) |
+| `.vela.yaml` | `initiative` (`INI-nnn`), `title`, `stale_after_days` (default 60), and optionally `link_templates` (see Links out of the vault), `designs` (see Team design docs), `owner_contact` (who a published copy's readers write to), `roles` (who holds which role, see Onboarding) and `role: reader` (see Roles and published copies) |
 | `01-goals.md` | Goals table, and the `where-it-stands` and `progress-map` blocks |
 | `02-constraints.md` | Constraints table, `CST-n` |
 | `03-context-and-scope.md` | Systems today and after; apps in and out of scope |
@@ -25,6 +25,7 @@ One vault holds one initiative. Pages are numbered by arc42 section.
 | `12-glossary.md` | Terms |
 | `13-epics/` | Index, then `EPC-nnn-<slug>.md` |
 | `capabilities/` | `CAP-nnn-<slug>.md` per capability touched |
+| `ONBOARDING.md` | Optional. The lead's tuning of the onboarding path, one section per role (see Onboarding). Not a vault page: `vela check` does not read it. |
 | `sources.md` | The source register, `SRC-nn` |
 | `sessions/` | One record per session, `YYYY-MM-DD-<topic>.md` |
 | `voice/VOICE.md` | Optional. The owner's own rules for either voice (pages, conversation), in their own words. Committed. Never a source. |
@@ -35,9 +36,9 @@ One vault holds one initiative. Pages are numbered by arc42 section.
 | `handoffs/` | `<APP-id>.md` per handed-off app: the manifest `vela handoff` writes. Never edited by hand. |
 | `.inbox/` | Documents dropped for Discover. Gitignored, never parsed. |
 | `dashboard.html` | The explorer page `vela explore` builds (and `/vela:close`, `open` and `import` rebuild), one offline file at the vault root. Committed, so a colleague who pulls the repo or opens the OneDrive folder just opens it; it says at the top when it was built and from which commit. Generated, never edited by hand and never parsed: `vela check`, `search` and `capture` ignore it. `vela publish` rebuilds it from the published pages. |
-| `.vela/` | The tool's own files, never parsed. Gitignored except `explorer-pins.json`, which is committed so a team shares one map layout: the explorer's fixed layout, `{node ID: [column, row]}`, written on the first build and added to when an app or party appears; delete it to lay the map out afresh. A reader's workspace (`workspace.json`, `baseline/`, `replay-backup/`) and `findings/` review scratch stay ignored. The template's `.gitignore` says `.vela/*` then `!.vela/explorer-pins.json`; a plain `.vela/` line cannot be undone for one file inside it. |
+| `.vela/` | The tool's own files, never parsed. A person's own onboarding path and the page built from it sit in `.vela/onboard/` (see Onboarding). Gitignored except `explorer-pins.json`, which is committed so a team shares one map layout: the explorer's fixed layout, `{node ID: [column, row]}`, written on the first build and added to when an app or party appears; delete it to lay the map out afresh. A reader's workspace (`workspace.json`, `baseline/`, `replay-backup/`) and `findings/` review scratch stay ignored. The template's `.gitignore` says `.vela/*` then `!.vela/explorer-pins.json`; a plain `.vela/` line cannot be undone for one file inside it. |
 
-`vela check` reads every `.md` file except `CLAUDE.md`, `CONVENTIONS.md`, `CONTEXT.md`, anything under `voice/`, `handoffs/` or `docs/`, and anything under a folder whose name starts with a dot.
+`vela check` reads every `.md` file except `CLAUDE.md`, `CONVENTIONS.md`, `CONTEXT.md`, `ONBOARDING.md`, anything under `voice/`, `handoffs/` or `docs/`, and anything under a folder whose name starts with a dot.
 
 ## Areas and stages
 
@@ -276,6 +277,56 @@ Authority comes from access, not title and not config. An **owner** works inside
 `vela publish --out <folder|.zip>` writes a read copy of the committed files at HEAD, never the working tree. It leaves out `.git`, generated `.vela/` output (the committed `explorer-pins.json` stays in, so a reader's map matches the owner's), `voice/local/` and the vendored plugin copy, and adds `.vela/published.json`: the initiative, title, full and short commit, date, whether the vault had uncommitted changes (`dirty`), the owner's contact (`owner_contact` in `.vela.yaml`, else `git config`), the `vela check` counts, and a `tree_hash` of the contents. A dirty vault is never refused; the stamp says so. A zip has one top folder, forward-slash names and fixed timestamps, so the same input gives the same zip. A reader cannot publish.
 
 `vela freshness [--json]` says whether anything has changed, and never updates anything. An owner's clone runs `git fetch` (8 seconds, `--timeout` to change) and reports commits behind and ahead of upstream and uncommitted files; offline is said plainly and local state is shown. A reader's workspace compares its baseline stamp with the stamp at the folder or zip it was opened from; an unreachable source is said plainly, and is not a failure.
+
+## Onboarding
+
+Someone joins a plan already under way. `/vela:onboard` and the dashboard's "Get up to speed" door get them ready for a useful first conversation with the people who will hand them work. They never assign work, and they never quiz. Everyone gets the same five parts in the same order: **Goal**, **Approach**, **Where things stand**, **Where you fit** and **Who to talk to**. After them come three to five role specifics, chosen by role (lead, exec, product, qa, eng, mgr) and by the project's stage. Every sentence a part says is worked out from the plan as it is now: a name, a count, a date, or a page's own opening words. A part the plan is silent on says "Not recorded yet" and who to ask, and stays on the path.
+
+**Stage** is one value for the whole project and is never typed. It is `delivery` once any app is handed off or any slice is `building` or further along; else `design` once any app has reached `boundaries` or later, or the plan has a flow or a contract; else `discovery`. A role's parts still show each app's own state.
+
+The role specifics, by their names:
+
+| Part | What it holds |
+|---|---|
+| Open questions | What nobody has answered, who can, and by when |
+| What's waiting | What the plan is waiting on its lead for, most urgent first |
+| Risks | What could go wrong, and what is being done |
+| Dates | Release targets and slice journey dates |
+| Decisions waiting | Choices proposed but not settled |
+| Capabilities | What the product has to be able to do |
+| Journeys | The flows, step by step |
+| Slices | Each slice and where it stands |
+| Apps | The apps being built or changed |
+| Contracts | What the apps promise each other |
+| Acceptance criteria | How each epic is done |
+| Failure behavior | What each app does when something it depends on fails |
+| Handoff | What each app's team was handed, and what changed since |
+| Progress | How far each app has got |
+| Who is blocking what | Open questions grouped by who can answer them |
+
+**The lead's page.** `ONBOARDING.md` at the vault root is optional; with none, everyone gets the standard path. It has one `## <Role>` section per role, named Lead, Exec, Product, QA, Engineering or Managers, and under each any of four bullets:
+
+```markdown
+## Engineering
+- Stress: Contracts, Journeys
+- Play down: Open questions
+- Hide: Handoff
+- Note: Read the contract for the pilot first.
+```
+
+`Stress` moves a role specific to the front of its path, `Play down` to the back, `Hide` leaves it out, and `Note` is shown to that role as the lead's own words. Names are the ones in the table above. The five parts can't be stressed, played down or hidden. A name that is no part, a part that is not one of the role's, a second note, a code in the note and a heading that names no role are all reported, by `vela onboard check` and by every `vela explore`, and everything else on the page still applies. A hidden part is a default: a newcomer can ask for it and gets it, and it is recorded as brought back on their path.
+
+**Who is who.** Each person has one of the dashboard's six roles: `lead`, `exec`, `product`, `qa`, `eng` or `mgr`. They say it once, like their handle, with `vela whoami --role <role>` (kept in `.vela/role`, and changed the same way), and `/vela:onboard` asks for it when it is not set. The lead may also record roles for others in `.vela.yaml`, which wins over what a person chose, because the lead knows who holds which seat:
+
+```yaml
+roles:
+  "@ana": eng
+  "@bo": mgr
+```
+
+The plan has no people page, so this is where it lives. The dashboard takes a reader's role from, in order: the lead's record for the handle the page was built for, that person's own choice, then the role door a reader of the shared copy picked. It sets the default onboarding role and which items count as the reader's own. A role that is not one of the six is reported and left out.
+
+**A person's own path** is what their own Claude sets up with `/vela:onboard`: part names in an order, a depth (`gist`, `normal` or `everything`) and whether they want diagrams. It holds choices and no text, so it cannot say anything the plan doesn't. It is kept in `.vela/onboard/<handle>.json` under their handle (`vela whoami`), and the page built from it in `.vela/onboard/<handle>.html`, because the shared `dashboard.html` is committed and carries only the standard path. Neither file is committed or published. Progress through a path is kept in the browser, per person and role.
 
 ## Fact tables
 
