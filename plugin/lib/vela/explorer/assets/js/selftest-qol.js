@@ -48,7 +48,7 @@
       const flowN = flowsFor(k).filter((r) => FLOW[r.flow]).length, a = D.apps[k], talkN = [...a.consumes, ...a.provides].filter((id) => CONTRACT[id]).length;
       if (titles.join("|") !== "In these flows|Talks to") bad.push(`${titleOf(k)}: rows ${titles.join("|")}`);
       if ($$("#panel [data-flow]").length !== flowN || $$("#panel [data-contract]").length !== talkN) bad.push(`${titleOf(k)}: ${$$("#panel [data-flow]").length} of ${flowN} flows, ${$$("#panel [data-contract]").length} of ${talkN} contracts`);
-      const links = $("#panel .p-links"), why = $$("#panel .p-sec").find((x) => $("h3", x) && /Why it needs you/.test($("h3", x).textContent));
+      const links = $("#panel .p-links"), why = $$("#panel .p-sec").find((x) => $("h3", x) && /Why it's waiting/.test($("h3", x).textContent));
       if (links && why && !(links.compareDocumentPosition(why) & Node.DOCUMENT_POSITION_FOLLOWING)) bad.push(`${titleOf(k)}: the questions come before the chips`);
       if ($$("#panel .p-sec h3").some((x) => /^(Flows that cross this|Provides|Consumes)/.test(x.textContent.trim()))) bad.push(`${titleOf(k)}: the panel still relists flows or contracts`);
       if ($$("#panel .p-chip").some((x) => x.tagName !== "BUTTON" || /\b(APP|FLO|CON)-\d/.test(x.textContent))) bad.push(`${titleOf(k)}: a chip is not a button or shows a code`);
@@ -94,7 +94,7 @@
     Search.type(""); Nav.home(); await tick();
   }
 
-  /* Finding 7: one number, "N need you", wherever the count is said; the 18 + 3 split is on hover, and the side's count of
+  /* Finding 7: one number, "N waiting", wherever the count is said; the 18 + 3 split is on hover, and the side's count of
      all open questions says so. Finding 13: no banner or notes above the Home map; the notes are an "i" in its bar. */
   async function oneNumber(ok) {
     const n = Queue.needsYou().n, top = $("#masters .master.caution b");
@@ -103,11 +103,11 @@
     Nav.open("apps"); go("lights", { reset: true }); App.root = "lights"; Panel.render(); await tick();
     const lede = $("#panel .p-lede");
     const words = [$("#main"), $("#panel"), $("#masters")].map((e) => e.textContent).join(" ");
-    if (!n) { ok(/Nothing/.test(card ? card.textContent : "Nothing") && +top.textContent === 0, "need you: nothing waiting, and every place says so", `need you: top ${top && top.textContent}, card "${card && card.textContent}"`); }
-    else ok(+top.textContent === n && card && card.textContent.startsWith(`${n} need you`) && lede && lede.textContent.startsWith(`${n} need you`) && / (isn't|aren't|blocking)/.test(lede.title) && !/\d+ questions? (blocks?|(is|are) blocking) work|other things? (isn|aren)/.test(words),
-      `need you: one number, ${n}, on the top bar, the waiting card and the panel, with its parts on hover`, `need you: top ${top && top.textContent}, card "${card && card.textContent}", panel "${lede && lede.textContent}", loose words ${(words.match(/\d+ questions? (block|are blocking)[^.]*/) || [""])[0]}`);
+    if (!n) { ok(/Nothing/.test(card ? card.textContent : "Nothing") && +top.textContent === 0, "waiting: nothing waiting, and every place says so", `waiting: top ${top && top.textContent}, card "${card && card.textContent}"`); }
+    else ok(+top.textContent === n && card && card.textContent.startsWith(`${n} waiting`) && lede && lede.textContent.startsWith(`${n} waiting`) && / (isn't|aren't|blocking)/.test(lede.title) && !/\d+ questions? (blocks?|(is|are) blocking) work|other things? (isn|aren)/.test(words),
+      `waiting: one number, ${n}, on the top bar, the waiting card and the panel, with its parts on hover`, `waiting: top ${top && top.textContent}, card "${card && card.textContent}", panel "${lede && lede.textContent}", loose words ${(words.match(/\d+ questions? (block|are blocking)[^.]*/) || [""])[0]}`);
     const side = $("#side .side-link[data-section='unknowns'] .side-n");
-    ok(!side || (/in all/.test(side.title) && side.title.includes(`${Queue.needsYou().n}`)), "need you: the sidebar's count says it is all open questions, and how many of the things need you", `need you: sidebar title "${side && side.title}"`);
+    ok(!side || (/in all/.test(side.title) && side.title.includes(`${Queue.needsYou().n}`)), "waiting: the sidebar's count says it is all open questions, and how many of the things waiting", `waiting: sidebar title "${side && side.title}"`);
     Nav.home(); await tick();
     const note = $("#main [aria-controls^='dmenu-notes']");
     if (!note) { ok(!$("#main .q-kicker") && !$("#main .countline"), "Home: no banner or note line above the map, and no i when the diagram has no notes", "Home: a banner or note line is above the map"); return; }
@@ -230,6 +230,31 @@
     Nav.home(); await tick();
   }
 
+  /* The wording: the page does not know who is reading, so it says "waiting", one number, and each item says who it is waiting
+     on. "Waiting on you" is a filter that exists only when the build knew the reader's handle or the reader picked a role door. */
+  async function waitingOnYou(ok) {
+    const was = { me: D.me, chosen: Roles.st.chosen, role: Roles.st.role }, bare = !was.me.handle && !was.chosen;
+    const rows = () => $$(".q-card .q-row");
+    const open = () => { Nav.home(); return tick(); };
+    D.me = { handle: "" }; Roles.st.chosen = false; await open();
+    const none = !$(".q-mine") && !Queue.me();
+    const text = [$("#main"), $("#panel"), $("#masters"), $("#side")].map((e) => e.textContent).join(" ");
+    ok(none && !/\bneeds? you\b|waiting on you|\byou\b/i.test(text.replace(/Search by name[^/]*/, "")), "waiting: with no handle and no role door there is no Waiting on you filter, and nothing on Home says you", `waiting: filter ${!!$(".q-mine")}, text says ${(text.match(/.{20}\byou\b.{20}/i) || [""])[0]}`);
+    const asked = Queue.items().map((x) => ASK[x.id].ask.key).find((k) => String(k).startsWith("@"));
+    if (asked) {
+      D.me = { handle: asked.slice(1) }; await open();
+      const all = rows().length, chip = $(".q-mine");
+      const want = Queue.items().filter((x) => [ASK[x.id].ask.key, ASK[x.id].ask.owner].some((k) => String(k).toLowerCase() === asked.toLowerCase())).length;
+      chip.click(); await tick();
+      const mineRows = rows().length;
+      ok(!!chip && chip.dataset.me === "handle" && want > 0 && mineRows === Math.min(want, Queue.TOP) && mineRows <= all && $(".q-mine").getAttribute("aria-pressed") === "true",
+        `waiting: with the handle ${asked}, Waiting on you shows the ${want} questions that name ${asked} as the owner or the one asked`, `waiting: handle ${asked}, rows ${mineRows} of ${all}, wanted ${want}`);
+    }
+    D.me = { handle: "" }; Roles.st.chosen = true; Roles.st.role = "product"; await open();
+    ok(!!$(".q-mine") && $(".q-mine").dataset.me === "role", "waiting: a reader who picked the Product door gets Waiting on you for that role", "waiting: no filter after picking a role door");
+    D.me = was.me; Roles.st.chosen = was.chosen; Roles.st.role = was.role; Queue.st.mine = false; await open();
+  }
+
   /* A menu opened from a diagram bar or a page head is the topmost thing at its middle and its two ends, in every section
      and every map view, so no view's own layers (the matrix's frozen corner, a canvas) are ever drawn over it. */
   const GRID = [0.06, 0.3, 0.5, 0.7, 0.94].flatMap((x) => [0.06, 0.3, 0.5, 0.7, 0.94].map((y) => [x, y]));  // a corner of the frozen head sits over one part of a menu, not its middle
@@ -272,7 +297,7 @@
     const only = HASH.get("only") === "qol";
     const report = only ? ["head"] : await base(), lines = [], errors = window.__errors.length;
     const ok = (cond, good, bad) => { lines.push(cond ? "ok " + good : "FAIL " + (bad || good)); if (HASH.has("trace")) console.log("[selftest] " + lines[lines.length - 1]); };
-    try { if (!wide()) await compact(ok); else { await appPanel(ok); await searchRows(ok); await oneNumber(ok); await onceEach(ok); await gear(ok); await sideNames(ok); await slicesQuiet(ok); await overviewAndNames(ok); } await menusOnTop(ok); } catch (e) { lines.push("FAIL the quality-of-life checks threw: " + e.message + " " + (e.stack || "").split("\n")[1]); }
+    try { if (!wide()) await compact(ok); else { await appPanel(ok); await searchRows(ok); await oneNumber(ok); await onceEach(ok); await gear(ok); await sideNames(ok); await slicesQuiet(ok); await overviewAndNames(ok); await waitingOnYou(ok); } await menusOnTop(ok); } catch (e) { lines.push("FAIL the quality-of-life checks threw: " + e.message + " " + (e.stack || "").split("\n")[1]); }
     Nav.home(); go("lights", { reset: true });
     if (window.__errors.length > errors) lines.push("FAIL JS ERRORS in the quality-of-life checks: " + window.__errors.slice(errors).join(" | "));
     const body = report.slice(1).concat(lines), fails = body.filter((l) => l.startsWith("FAIL")).length;

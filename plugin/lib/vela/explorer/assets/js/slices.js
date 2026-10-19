@@ -2,7 +2,7 @@
    the choice is kept in this browser, like the build plan's List / Cards / Path).
 
    Table is for finding one slice fast in a live call: a row each with its name, where it stands, what it comes after
-   and whether it needs you; a row is a button that folds open to its flows, its joins with both sides, its journey or
+   and whether it is waiting; a row is a button that folds open to its flows, its joins with both sides, its journey or
    the date it is due, what is left out of it, and its flow check with any overrides. Path is for the planning talk:
    what comes after what, drawn as boxes whose edge is the status color, an arrow for "comes after", and slices side by
    side when they can be built at the same time.
@@ -41,7 +41,7 @@ const Slices = (() => {
     "Side by side: slices that can be built at the same time");
   Legend.define("sl.tracer", [bx({ fill: "caution", opacity: 0.35, stroke: "caution", w: 1, rx: 7 })], termTip("tracer"));
   Legend.define("sl.circle", [bx({ stroke: "warning", w: 2, rx: 3 })], "Red edge: slices that come after each other in a circle, so none can start");
-  Legend.define("sl.due", [bx({ fill: "warning", opacity: 0.3, rx: 7 })], "Journey due: the date has passed and nobody has recorded trying it, so it needs you");
+  Legend.define("sl.due", [bx({ fill: "warning", opacity: 0.3, rx: 7 })], "Journey due: the date has passed and nobody has recorded trying it, so it is waiting");
   const PROBES = Object.fromEntries([
     ...ORDER.map((s) => { const c = STATUS_CLASS[s]; return ["sl.st." + c, `.sl-st.st-${c}, .sl-node.st-${c}`]; }),
     ["sl.after", ".sl-path-arrows path.sl-after"], ["sl.parallel", ".sl-level.parallel"], ["sl.tracer", ".tracer-tag"],
@@ -136,7 +136,7 @@ const Slices = (() => {
       const list = [...st[g]].map((v) => labelOf(g, v)), or = list.length > 1 ? `${list.slice(0, -1).join(", ")} or ${list[list.length - 1]}` : list[0];
       parts.push(g === "status" ? `status ${or}` : g === "app" ? `${or} taking part` : `milestone ${or}`);
     }
-    if (st.needs) parts.push("needing you");
+    if (st.needs) parts.push("waiting");
     if (st.find) parts.push(`the words "${st.find}"`);
     return parts.length > 1 ? `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}` : parts[0] || "";
   }
@@ -162,7 +162,7 @@ const Slices = (() => {
     }
     const late = LIST.filter((x) => matches(x, "needs") && x.overdue).length;
     bar.append(h("div", { class: "sl-fgroup", "data-group": "needs" }, h("button", { class: "chip sl-fchip" + (st.needs ? " on" : ""), "aria-pressed": String(st.needs),
-      disabled: late || st.needs ? null : true, title: late ? null : "Nothing needs you here", onclick: () => { st.needs = !st.needs; changed(); } }, "Needs you only", h("span", { class: "ct" }, String(late)))));
+      disabled: late || st.needs ? null : true, title: late ? null : "Nothing is waiting here", onclick: () => { st.needs = !st.needs; changed(); } }, "Waiting only", h("span", { class: "ct" }, String(late)))));
     return bar;
   }
 
@@ -235,7 +235,7 @@ const Slices = (() => {
     return [tr, more];
   }
   function tableLayout(list) {
-    const head = h("div", { class: "sl-th", "aria-hidden": "true" }, h("span", {}), h("span", {}, "Slice"), h("span", {}, "Status"), h("span", {}, "Comes after"), h("span", {}, "Needs you"));
+    const head = h("div", { class: "sl-th", "aria-hidden": "true" }, h("span", {}), h("span", {}, "Slice"), h("span", {}, "Status"), h("span", {}, "Comes after"), h("span", {}, "Waiting"));
     list.forEach(sawRow);
     return h("div", { class: "sl-table" }, head, ...list.flatMap(tableRow));
   }

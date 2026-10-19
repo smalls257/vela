@@ -142,7 +142,7 @@ const relDueWords = (iso) => { if (!isDate(iso)) return "no date"; const d = day
 // Console's; theme.js re-reads them from the theme's --warning, --caution, ... so a lamp means the same in every room.
 const LIGHT = {
   warning: { color: "#ff5a48", ink: "#2a0703", word: "Overdue", say: "a question blocking it missed its answer date" },
-  caution: { color: "#ffb21e", ink: "#2b1a00", word: "Needs you", say: "not decided yet, or blocked by an open question" },
+  caution: { color: "#ffb21e", ink: "#2b1a00", word: "Waiting", say: "not decided yet, or blocked by an open question" },
   pending: { color: "#b79cff", ink: "#150c33", word: "Pending approval", say: "someone decided this for the owner, and the owner hasn't confirmed it yet, so it isn't settled" },
   unexamined: { color: "#52c8ff", ink: "#04202e", word: "Not reviewed yet", say: "nobody has reviewed this yet; it only turns gray once someone has" },
   override: { color: "#f2f1e8", ink: "#1d1d18", word: "Overridden", say: "the plan's lead chose to skip a rule here; shown for the record, not a problem" },
@@ -173,7 +173,7 @@ function reasonText(r) {
 const KIND_WORD = { app: "App", runtime: "How it runs", contract: "Contract", party: "Outside service", external: "Outside service",
   unknown: "Open question", risk: "Risk", epic: "Epic", capability: "Capability", flow: "Flow", requirement: "Requirement",
   decision: "Decision", concern: "Concern", session: "Session", section: "Plan section", page: "Page", slice: "Slice",
-  "stored-value": "Stored data", owner: "Person", bundle: "Contracts", lights: "Needs you", inside: "Inside this app" };
+  "stored-value": "Stored data", owner: "Person", bundle: "Contracts", lights: "Waiting", inside: "Inside this app" };
 const CONTRACT = Object.fromEntries(D.map.contracts.map((c) => [c.id, c]));
 const UNKNOWN = Object.fromEntries(D.unknowns.map((u) => [u.id, u]));
 const APPS = Object.fromEntries(D.map.apps.map((a) => [a.key, a]));
@@ -250,7 +250,7 @@ function ent(key) {
   if (key && key.startsWith("node:")) return Nodes.ent(key);
   if (key && key.startsWith("owner:")) { const o = D.owners[key.slice(6)]; return o ? { key, kind: "owner", title: o.handle, id: "" } : null; }
   if (EXTERNAL[key]) return { key, kind: "external", title: EXTERNAL[key].title, id: "" };
-  if (key === "lights") return { key, kind: "lights", title: "What needs you", id: "" };
+  if (key === "lights") return { key, kind: "lights", title: "What's waiting", id: "" };
   if (key && key.startsWith("inside:")) return typeof Inside !== "undefined" ? Inside.ent(key) : null;
   if (key && key.startsWith("read:")) { const [pk] = key.slice(5).split("#"); const p = E[pk]; return p ? { key, kind: "reader", title: p.title, id: "", page: pk } : null; }
   return null;
@@ -300,11 +300,11 @@ const peopleWords = (text) => String(text || "").replace(/@[\w/-]+/g, personName
 function refChip(key, extra) {
   const e = ent(key);
   if (!e) return h("span", { class: "ref-chip ref-dead", title: "Not a page or item in this plan" }, key);
-  // a team's design question that challenges the item lights it "needs you" (inside.js), where attention leaves it dark
+  // a team's design question that challenges the item lights it "waiting" (inside.js), where attention leaves it dark
   const id = idOf(key), own = levelForKey(key), challenged = typeof Inside !== "undefined" && Inside.challenge(key);
   const lvl = challenged && (!own || own === "dark") ? "caution" : own;
   return h("a", { class: "ref-chip", "data-ref": key, title: (KIND_WORD[e.kind] || "") + (challenged && lvl === "caution" && own !== "caution" ? ": the app team's design questions it" : "") },
-    lvl && lvl !== "dark" ? lampEl(lvl, challenged && own !== "caution" ? "Needs you: the app team's design questions it" : null) : null,
+    lvl && lvl !== "dark" ? lampEl(lvl, challenged && own !== "caution" ? "Waiting: the app team's design questions it" : null) : null,
     e.kind === "owner" ? personName(e.title) : e.title, id ? h("span", { class: "rid id-tag" }, id) : null, extra || null);
 }
 /* Where a thing's work lives outside the vault (vela's links.py: a page's links:, an item's **Links:**). Each chip

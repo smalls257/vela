@@ -1,5 +1,5 @@
 /* Front doors, by audience: one screen each, built from the same data as every other view, everything else one
-   click away. The lead's door is "What needs you", the cockpit. Where a door chooses what to show by a rule of its
+   click away. The lead's door is "What's waiting", the cockpit. Where a door chooses what to show by a rule of its
    own (which questions are a "business question", which would "change a test"), the rule is written on the card.
    - Exec: goals and where they stand, what is decided, the top risks, what needs their decision, the timeline.
    - Product: capabilities and requirements, what each release delivers, the business questions, the user flows.
@@ -9,9 +9,9 @@
      how far every app is from a build plan (no design, design only, plan with gaps, plan complete).
    - Managers: progress, completeness, the timeline, what is blocked on whom, and the build plans' stories and points. */
 const Roles = (() => {
-  const ROLES = [["lead", "Lead", "What needs you"], ["exec", "Exec", "Goals, decisions, risks and the timeline"], ["product", "Product", "Capabilities, requirements, releases and flows"],
+  const ROLES = [["lead", "Lead", "What's waiting"], ["exec", "Exec", "Goals, decisions, risks and the timeline"], ["product", "Product", "Capabilities, requirements, releases and flows"],
     ["qa", "QA", "What to test, and what might still change it"], ["eng", "Engineering", "One app's handoff list"], ["mgr", "Managers", "Progress, timeline and who is blocking what"]];
-  const st = { role: HASH.get("role") || "exec", app: HASH.get("app") || "" };
+  const st = { role: HASH.get("role") || "exec", app: HASH.get("app") || "", chosen: HASH.has("role") };  // chosen: the reader picked a door, so the page may say "you" for it
   const lamp = (lv) => (lv && lv !== "dark" ? lampEl(lv) : null);  // a settled thing needs no lamp in a short list
   const worst = (levels) => levels.slice().sort((p, q) => rank(q) - rank(p))[0] || "dark";
   const openQs = () => D.asks.filter((u) => u.state === "open");
@@ -73,9 +73,9 @@ const Roles = (() => {
       ...proposed.map((e) => ({ kind: "decision", key: e.key, say: e.state === "pending" ? "decided by a reader, the owner hasn't confirmed it" : "proposed, not decided" })),
       ...D.progress.awaiting.map((a) => ({ kind: "override", key: a.key, say: `decided for ${a.owners.join(", ")}, waiting for them to confirm` })),
       ...Releases.STATES.slice(1).filter((x) => !x.fromChange && x.state !== "decided").map((x) => ({ kind: "release", key: null, name: x.heading || x.name, say: `release ${releaseState(x.state)}` }))];
-    grid.append(card("What needs your decision", null, owed.length ? list(owed, 5, (x) => h("li", {}, x.key ? lampEl(levelForKey(x.key) || "caution") : lampEl("caution"),
+    grid.append(card("Waiting on a decision", null, owed.length ? list(owed, 5, (x) => h("li", {}, x.key ? lampEl(levelForKey(x.key) || "caution") : lampEl("caution"),
       x.kind === "question" ? h("a", { "data-ref": x.key, title: x.key }, titleOf(x.key)) : x.key ? refChip(x.key) : h("b", {}, x.name), h("span", { class: "muted small" }, " " + x.say))) : empty("Nothing is waiting on an executive decision."),
-      rule("These wait on you: questions that hold up a goal or the strategy, decisions still proposed or not yet confirmed, and releases nobody has agreed. Open one to settle it.")));
+      rule("Waiting on a decision: questions that hold up a goal or the strategy, decisions still proposed or not yet confirmed, and releases nobody has agreed. Open one to settle it.")));
   }
 
   /* ------------------------------------------------------------ product */
@@ -160,7 +160,7 @@ const Roles = (() => {
     const P = D.progress, stages = P.stages;
     grid.append(card("Progress", ["Progress", () => { Nav.open("apps"); showView("progress"); }],
       h("div", { class: "kpi-row" }, h("div", {}, h("b", {}, P.rows.filter((r) => r.stage).length), h("span", {}, "apps in progress")),
-        h("div", {}, h("b", { "data-quantity": "needsYou", "data-n": Queue.needsYou().n }, Queue.needsYou().n), h("span", {}, "need you"),
+        h("div", {}, h("b", { "data-quantity": "needsYou", "data-n": Queue.needsYou().n }, Queue.needsYou().n), h("span", {}, "waiting"),
           h("small", { class: "muted", "data-quantity": "openQuestions", "data-n": D.counts.openQuestions }, `${plural(D.counts.openQuestions, "open question")} in all`))),
       h("div", { class: "shares" }, P.shares.map((x) => h("div", { class: "share" }, h("span", {}, x.name), h("div", { class: "bar" }, h("span", { style: `width:${x.total ? ((100 * x.done) / x.total).toFixed(1) : 100}%` })), h("span", { class: "v" }, `${x.done} of ${x.total}`))))));
     grid.append(card("Where each app stands", ["Apps", () => Nav.open("apps")], list(P.rows.filter((r) => r.stage), 7, (r) => h("li", {}, lamp(levelOf(r.app)), h("a", { "data-ref": r.app }, E[r.app].title),
@@ -198,7 +198,7 @@ const Roles = (() => {
     const root = h("div", { class: "door", "data-role": def[0] });
     // The sidebar's door buttons are the only way between views. The release timeline lives on Releases, one link away.
     const toTimeline = ["exec", "mgr"].includes(def[0]) ? h("button", { class: "linkish", "data-to": "releases", onclick: () => Nav.open("releases") }, "Release timeline →") : null;
-    root.append(h("div", { class: "door-head" }, h("div", {}, h("div", { class: "kicker" }, "Your view"), h("h1", {}, def[0] === "eng" ? "Engineering: one app's handoff list" : `${def[1]}: ${def[2].toLowerCase()}`)), toTimeline));
+    root.append(h("div", { class: "door-head" }, h("div", {}, h("div", { class: "kicker" }, "View"), h("h1", {}, def[0] === "eng" ? "Engineering: one app's handoff list" : `${def[1]}: ${def[2].toLowerCase()}`)), toTimeline));
     const grid = h("div", { class: "door-grid door-" + def[0] });
     root.append(grid);
     main.append(root);
@@ -206,4 +206,4 @@ const Roles = (() => {
   }
   return { render, st, ROLES };
 })();
-View("role", { label: "Your view", render: Roles.render });
+View("role", { label: "Role view", render: Roles.render });

@@ -27,7 +27,7 @@ const Nav = (() => {
 
   /* ------------------------------------------------------------ what the views ask of the section */
   function title(fallback) {
-    if (App.section === "home") return "What needs you";
+    if (App.section === "home") return "What's waiting";
     const s = sec();
     if (!s) return fallback;
     if (st.child && E[st.child]) return s.id === "apps" || s.id === "flows" ? E[st.child].title : `${s.label}: ${E[st.child].title}`;
@@ -122,7 +122,7 @@ const Nav = (() => {
   }
   function role(r) {
     if (r === "lead") return home();
-    Roles.st.role = r; App.section = "role:" + r; st.child = ""; App.root = "lights"; App.trail = [];
+    Roles.st.role = r; Roles.st.chosen = true; App.section = "role:" + r; st.child = ""; App.root = "lights"; App.trail = [];
     App.view = "role"; syncHash(); rerender(); Panel.render();
   }
   function readWide(pk, anchor) {
@@ -151,7 +151,7 @@ const Nav = (() => {
     return { section: App.section, child: st.child, view: App.view, trail: App.trail.slice(), focus: App.focus, root: App.root, doc: Sections.doc.page };
   }
   const whereLabel = (w) => {
-    if (!w || w.section === "home") return "What needs you";
+    if (!w || w.section === "home") return "What's waiting";
     if (w.section.startsWith("role:")) return (Roles.ROLES.find(([id]) => id === w.section.slice(5)) || [0, "the front door"])[1];
     const s = SECTIONS[w.section];
     return s ? (w.child && E[w.child] ? E[w.child].title : s.label) : "the explorer";
@@ -269,7 +269,7 @@ const Nav = (() => {
   /* A section's count shows only beside a lit lamp: a dozen bare numbers down the side were a dozen things to hold. */
   function sideCount(s) {
     const n = count(s), open = s.id === "unknowns";
-    return h("span", { class: "side-n", title: open ? `${plural(n, "open question")} in all; ${Queue.needsYou().n} of the plan's things need you` : `${s.label}: ${n}`, ...(open ? { "aria-label": `${plural(n, "open question")} in all` } : {}), ...(open ? { "data-quantity": "openQuestions", "data-n": n } : {}) }, n);
+    return h("span", { class: "side-n", title: open ? `${plural(n, "open question")} in all; ${Queue.needsYou().n} of the plan's things are waiting` : `${s.label}: ${n}`, ...(open ? { "aria-label": `${plural(n, "open question")} in all` } : {}), ...(open ? { "data-quantity": "openQuestions", "data-n": n } : {}) }, n);
   }
   /* Flow names often start alike ("A person switches Heron on", "A person gets the 7:30 digest"), and a narrow bar cuts every one
      to the same stub. The two words most of them share are left off in the bar (the hover keeps the whole name). */
@@ -317,7 +317,7 @@ const Nav = (() => {
     side.append(h("div", { class: "side-group" }, h("div", { class: "side-h" }, "Start here"),
       // the top bar carries the needs-you number; the side door shows only the overdue part, and only when there is one
       h("button", { class: "side-home" + (App.section === "home" ? " on" : ""), "aria-current": App.section === "home" ? "page" : null, title: Queue.needsYouSays(), onclick: home },
-        h("span", { class: "side-label" }, "What needs you"), late ? h("span", { class: "side-n lit warning", title: `${late} overdue`, "data-quantity": "overdue", "data-n": late }, late) : null),
+        h("span", { class: "side-label" }, "What's waiting"), late ? h("span", { class: "side-n lit warning", title: `${late} overdue`, "data-quantity": "overdue", "data-n": late }, late) : null),
       typeof Ask !== "undefined" && Ask.served() ? h("button", { class: "side-home side-ask" + (App.section === "ask" ? " on" : ""), "aria-current": App.section === "ask" ? "page" : null, title: "Ask Claude about the plan", onclick: () => Ask.open() },
         h("span", { class: "side-label" }, "Ask Claude"), Ask.count() ? h("span", { class: "side-n" }, Ask.count()) : null) : null,
       h("div", { class: "side-roles", role: "tablist", "aria-label": "Views by role" }, Roles.ROLES.slice(1).map(([id, label, say]) =>

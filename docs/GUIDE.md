@@ -181,7 +181,7 @@ or `vela explore` for a static `dashboard.html` at the vault root. Nobody else h
 The flags worth knowing, all checked against `vela explore --help`: `--theme console|graphite|daylight|vaporwave`, `--today YYYY-MM-DD` (treat this date as today, for example when the sessions are dated in the future), `--port`, `--no-open`, `--model haiku|sonnet`.
 
 What you get:
-- **What needs you** is the home screen: every overdue question, unreviewed decision and item not decided yet, marked as needing a decision.
+- **What's waiting** is the home screen: every overdue question, unreviewed decision and item not decided yet, with who each is waiting on and by when. The number on the top bar is the count of those. Once the dashboard knows who is reading (a handle from `vela whoami`, or a role door picked on it), a Waiting on you filter appears there.
 - **Five views** for other readers: Exec, Product, QA, Engineering, Managers.
 - **Map, flows, releases, who to ask, why** (the decision log). A flow plays step by step; press `P` to present it full screen.
 - **Ask Claude**: type a question and press Enter. Claude reads the vault only (it can't edit), cites the pages it used as links, and flags an ID the vault doesn't hold. Each answer shows its model and cost. "Think harder" uses Sonnet.

@@ -21,13 +21,13 @@ const Panel = (() => {
     return h("div", { class: "p-homes", role: "tablist" },
       design ? h("button", { role: "tab", "aria-selected": String(App.root === design), onclick: () => pick(design) }, "The design") : null,
       page ? h("button", { role: "tab", "aria-selected": String(App.root.startsWith("read:")), onclick: () => pick("read:" + page) }, "About this section") : null,
-      h("button", { role: "tab", "aria-selected": String(App.root === "lights"), onclick: () => pick("lights") }, "What needs you"));
+      h("button", { role: "tab", "aria-selected": String(App.root === "lights"), onclick: () => pick("lights") }, "What's waiting"));
   }
   function crumbs() {
     const box = h("nav", { class: "crumbs", "aria-label": "Trail" });
     const rootIsPage = App.root.startsWith("read:") || App.root.startsWith("inside:");
-    box.append(h("a", { onclick: () => { App.trail = []; render(); }, class: App.trail.length ? "" : "cur", title: rootIsPage ? "Back to the page" : "What needs you, most urgent first" },
-      rootIsPage ? "◧ " + shorten(titleOf(App.root), 22) : "◉ What needs you"));
+    box.append(h("a", { onclick: () => { App.trail = []; render(); }, class: App.trail.length ? "" : "cur", title: rootIsPage ? "Back to the page" : "What's waiting, most urgent first" },
+      rootIsPage ? "◧ " + shorten(titleOf(App.root), 22) : "◉ What's waiting"));
     App.trail.forEach((k, i) => {
       box.append(h("span", { class: "sep" }, "›"));
       box.append(i === App.trail.length - 1 ? h("span", { class: "cur", title: idOf(k) || null }, shorten(titleOf(k), 26)) : h("a", { "data-ref": k, title: idOf(k) ? `${titleOf(k)} (${idOf(k)})` : titleOf(k) }, shorten(titleOf(k), 20)));
@@ -55,7 +55,7 @@ const Panel = (() => {
     root.scrollTop = 0;
   }
 
-  /* ------------------------------------------------------------ home: what needs you */
+  /* ------------------------------------------------------------ home: what's waiting */
   /* Why it is this way: on the home page the work queue sits beside the map, so the panel does not list the same
      questions again. It shows the other half: the apps, contracts and flows that are lit, one line each, with how many
      questions hold each. On any other page the queue is not on screen, so the panel carries it. */
@@ -69,19 +69,19 @@ const Panel = (() => {
     const beside = App.section === "home" && App.view === "map";  // the queue is on the page, beside the map
     // Beside the map the queue card already says how many and what is due first, and the top bar's lamp carries the
     // count, so the lede only says where to start; saying the count again made the same 21 show four times on Home.
-    const lede = !queue.length && !lit.length ? "Nothing needs you. Every app, contract and flow is decided, and no open question is blocking any of them."
+    const lede = !queue.length && !lit.length ? "Nothing is waiting. Every app, contract and flow is decided, and no open question is blocking any of them."
       : beside ? (queue.length ? "Start with the questions on the left, most urgent first. Pick one, or a box on the map, to read it here." : "Pick a box on the map to read it here.")
-      : `${Queue.needsYou().n ? Queue.needsYou().n + " need you. " : ""}${queue.length ? "Most urgent first; pick one to read it here." : ""}`.trim();  // the top bar's number; its parts are on hover
-    const out = [h("div", { class: "p-head" }, h("h2", {}, "What needs you"),
+      : `${Queue.needsYou().n ? Queue.needsYou().n + " waiting. " : ""}${queue.length ? "Most urgent first; pick one to read it here." : ""}`.trim();  // the top bar's number; its parts are on hover
+    const out = [h("div", { class: "p-head" }, h("h2", {}, "What's waiting"),
       lede ? h("p", { class: "p-lede", title: Queue.needsYou().n ? Queue.needsYouParts() : null, ...(!beside && Queue.needsYou().n ? { "data-quantity": "needsYou", "data-n": Queue.needsYou().n } : {}) }, lede) : null)];
     if (!beside && queue.length) out.push(section("Waiting on an answer", null, Queue.block()));
-    // a slice is not on the map: one whose journey is past its due date needs you too, and is listed under its own heading
+    // a slice is not on the map: one whose journey is past its due date is waiting too, and is listed under its own heading
     const lightRows = (list) => h("ul", { class: "lights" }, list.map(({ key, light }) => h("li", {},
       h("button", { class: "light-row" + (key === App.focus ? " on" : ""), "data-ref": key, title: `${LIGHT[light.level].word}${idOf(key) ? ", " + idOf(key) : ""}` },
         lampEl(light.level), h("span", {}, h("span", { class: "what" }, titleOf(key)), h("span", { class: "why" }, litWhy(light) || LIGHT[light.level].say))))));
     const sliceLit = lit.filter((x) => ent(x.key).kind === "slice"), mapLit = lit.filter((x) => ent(x.key).kind !== "slice");
     if (sliceLit.length) out.push(section("Slices whose ship date has passed", sliceLit.length, lightRows(sliceLit)));
-    out.push(section("Apps, contracts and flows waiting on you", null, mapLit.length ? lightRows(mapLit) : empty("No app, contract or flow is waiting on you.")));
+    out.push(section("Apps, contracts and flows that are waiting", null, mapLit.length ? lightRows(mapLit) : empty("No app, contract or flow is waiting.")));
     const challenged = typeof Inside !== "undefined" ? Inside.homeSection() : null;
     if (challenged) out.push(challenged);  // Element.append writes a null as the text "null"
     out.push(section("Decided", dark.length, h("p", { class: "p-note" }, dark.map((k) => titleOf(k)).join(", ") || "None.")));
@@ -156,7 +156,7 @@ const Panel = (() => {
     const unseen = light.reasons.filter((r) => r.kind === "unexamined" && / not reviewed yet$/.test(r.text || "")), merged = unseen.length > 1;
     const rows = light.reasons.filter((r) => !(merged && unseen.includes(r)));
     const lamp = (r) => lampEl(r.kind === "held" && r.unknown ? unknownLevel(r.unknown) : r.kind === "override" ? "override" : r.kind === "unexamined" ? "unexamined" : r.kind === "pending" ? "pending" : "caution");
-    return section("Why it needs you", null, h("ul", { class: "reasons" }, rows.map((r) => h("li", { class: "r-" + r.kind }, lamp(r), h("span", {}, r.unknown ? named(r) : r.text))),
+    return section("Why it's waiting", null, h("ul", { class: "reasons" }, rows.map((r) => h("li", { class: "r-" + r.kind }, lamp(r), h("span", {}, r.unknown ? named(r) : r.text))),
       merged ? h("li", { class: "r-unexamined" }, lampEl("unexamined"), h("span", {}, "Not reviewed yet: " + unseen.map((r) => r.text.replace(/:? ?not reviewed yet$/, "")).join(", "))) : null),
       h("div", { class: "p-note" }, light.level === "caution" || light.level === "warning" ? "Answer the questions above, or decide it in a grill session, and it turns gray." : `${LIGHT[light.level].word}: ${LIGHT[light.level].say}.`));
   }
@@ -230,7 +230,7 @@ const Panel = (() => {
     if (typeof Inside !== "undefined") out.push(Inside.challengeSection(k));
     if (e.kind === "app") {
       const a = D.apps[k];
-      // "Why it needs you" already names the questions that light the app; this list only adds the ones it does not
+      // "Why it's waiting" already names the questions that light the app; this list only adds the ones it does not
       const lit = lightOf(k) && lightOf(k).level !== "dark", named = new Set(((lightOf(k) || {}).reasons || []).map((r) => r.unknown).filter(Boolean));
       const rest = a.questions.filter((q) => !named.has(q.id));
       out.push(appLinks(k), whyLit(k), prose(e));

@@ -23,8 +23,8 @@ const MapView = (() => {
   const group = () => { const g = st.group || (App.section === "capabilities" ? "capability" : manyApps() && hasDomains() ? "domain" : "none"); return groupOff(g) ? "none" : g; };
   let pulses = [], trains = [], gPulses = null, LAY = null, stripEl = null;
   const LEDE = {
-    cockpit: "Your apps and the contracts between them. Pick one to see what it's waiting on.",
-    home: "Most of what needs you is held up by an open question. Pick a box to see what's blocking it.",
+    cockpit: "The apps and the contracts between them. Pick one to see what it's waiting on.",
+    home: "Most of what's waiting is held up by an open question. Pick a box to see what's blocking it.",
     domain: "Apps grouped by business area. Click a group to open it.",
     capability: "Each capability with the apps that deliver it. Pick one to see what's still open on it.",
     focus: "Who uses this app and what it relies on. Pick a contract to see what's agreed.",
@@ -50,7 +50,7 @@ const MapView = (() => {
   Legend.define("works", [bx({ stroke: "caution", dash: "3 2", w: 2, width: 19, y: 5, height: 8, rx: 1.5 }), { k: "dot", fill: "caution", x: 27, y: 4.5, r: 4.5 }], "Striped badge with a number: open questions blocking it, in the color of the most urgent");
   Legend.define("station.app", [bx({ fill: "room", stroke: "ink", w: 2.4, rx: 7 })], "Round-ended box: one of our apps, its status in words under the name");
   Legend.define("station.party", [bx({ fill: "room", stroke: "ink-3", w: 2.4, rx: 3 }), bx({ stroke: "ink-3", w: 1, x: 6, y: 5.5, width: 22, height: 5, rx: 1 })], "Double frame: an outside service");
-  Legend.define("lit.words", [{ k: "text", t: "Aa", fill: "caution-text", size: 12 }], "Colored words: this needs you; the words say why");
+  Legend.define("lit.words", [{ k: "text", t: "Aa", fill: "caution-text", size: 12 }], "Colored words: this is waiting; the words say why");
   Legend.define("dim", [bx({ fill: "unlit", opacity: 0.25, stroke: "rule-3", w: 1 })], "Faded: not on the flow you picked");
   Legend.define("train", [bx({ fill: "line-gray", stroke: "room", x: 8, y: 4.5, width: 18, height: 7, rx: 3.5, w: 1.4 })], "Small moving marker: runs along the flow, step by step");
   Legend.define("matrix.upper", [bx({ fill: "cell-upper", stroke: "cell-upper-edge", w: 1 })], "Shaded cell: this app depends on one further down the list, so the build order loops back");
@@ -168,7 +168,7 @@ const MapView = (() => {
     if (lens() === "cockpit" && !st.lens && big() && hasDomains() && group() === "domain") notes.push(`Too many apps to draw at once (${D.nodes.length}), so they are grouped by business area, ${manyApps() ? "each group closed" : "every group open"}; Dependencies shows them all`);
     if (lens() === "matrix" && !st.lens) notes.push(`There are too many apps to draw clearly (${D.nodes.length}, with ${plural(lines(), "connection")}), so this opens as a table. The system map still has them all`);
     if (lens() === "transit") { const idle = D.map.contracts.filter((c) => !flowsFor(c.id).length).length; if (idle) notes.push(`${plural(idle, "contract")} ${idle === 1 ? "isn't" : "aren't"} used by any flow yet, so nothing tests ${idle === 1 ? "it" : "them"} end to end`); }
-    // Home already counts what needs you once, on the top bar's lamp; a second "need you" here, counted in apps and
+    // Home already counts what is waiting once, on the top bar's lamp; a second "waiting" here, counted in apps and
     // contracts, disagreed with it (label sweep). Off Home the line says what is settled instead.
     const settled = App.section === "home" ? "" : !apps ? ""
       : litApps === apps && litCons === cons ? "Nothing is decided yet on any app or contract."
@@ -762,5 +762,5 @@ const MapView = (() => {
   function here() { return App.focus ? mapAnchors(App.focus) : []; }
   return { LOOKS: { cockpit: COCKPIT_LOOKS, focus: () => ({ ...COCKPIT_LOOKS(), ...MapGroups.LOOKS_FOCUS }) }, render, highlight, here, lens, group, viewItems, st, lamp, fitSvg, shortWhy, startBreathing: () => breathe.start(), big, COCKPIT, markDrop, clearDrop, justDropped, resetPulses: () => { pulses = []; }, CLUSTER_PAST };
 })();
-View("map", { label: "Map", title: "Your apps, the contracts between them, and what needs you", render: MapView.render, highlight: MapView.highlight,
+View("map", { label: "Map", title: "The apps, the contracts between them, and what's waiting", render: MapView.render, highlight: MapView.highlight,
   count: () => `${D.map.apps.length}·${D.map.contracts.length}`, lamp: () => { const top = litSubjects()[0]; return top ? top.light.level : null; } });

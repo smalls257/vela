@@ -5,7 +5,7 @@
 const Minimap = (() => {
   Legend.define("mini.party", [{ k: "clip", fill: "unlit", stroke: "rule-3", w: 1.4 }], "Cut corners: a service outside the plan");
   Legend.define("mini.link", [Legend.ln({ stroke: "track", w: 3 })], "Gray line: a connection between two boxes");
-  Legend.define("mini.link.lit", [Legend.ln({ stroke: "caution", w: 3.5 })], "Colored line: a connection with a contract that needs you, in its most urgent color");
+  Legend.define("mini.link.lit", [Legend.ln({ stroke: "caution", w: 3.5 })], "Colored line: a connection with a contract that is waiting, in its most urgent color");
   Legend.define("mini.link.hot", [Legend.ln({ stroke: "focus", w: 4.5 })], "White line: a connection to what you picked");
   Legend.define("mini.here", [Legend.bx({ stroke: "focus", w: 2.4, rx: 6 })], "White ring: what the panel is showing now");
   const MINI = Layout.FRAME;  // the cockpit's frame, the one the overlap rule measures in: a box clear on the big map is clear here

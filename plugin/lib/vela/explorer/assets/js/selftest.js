@@ -68,7 +68,7 @@ const SelfTest = (() => {
     const crumbs = $$("#panel .crumbs a, #panel .crumbs .cur").length;
     ok(path.length >= 2 && crumbs === path.length + 1, `thread ${path.join(" › ")}: crumbs ${crumbs} (Lights + ${path.length}), panel "${($("#panel h2") || {}).textContent}"`, `thread broke at ${path.join(" › ")}; crumbs ${crumbs}`);
     $("#panel .crumbs a").click(); await frames();
-    ok(($("#panel h2") || {}).textContent === "What needs you", "the Lights crumb returns the panel to its home, the lights", "the Lights crumb did not return home");
+    ok(($("#panel h2") || {}).textContent === "What's waiting", "the Lights crumb returns the panel to its home, the lights", "the Lights crumb did not return home");
   }
   async function views() {
     // Map, cockpit: one lamp per app, party, contract and flow, each lit exactly as attention.lights says.
@@ -171,7 +171,7 @@ const SelfTest = (() => {
     Nav.refresh();
     const shown = [...new Set($$("#side .side-link").map((b) => b.dataset.section))];
     const sideOrder = [...order.filter((id) => !["constraints", "context", "strategy", "glossary"].includes(id)), "constraints", "context", "strategy", "glossary"];  // the text-first pages sit last, under Read
-    ok(JSON.stringify(shown.filter((x) => x)) === JSON.stringify(sideOrder), `sidebar: ${shown.length} sections in the vault's order, the text pages folded under Read, with What needs you and ${Roles.ROLES.length - 1} front doors above`, `sidebar order ${shown.join(",")}`);
+    ok(JSON.stringify(shown.filter((x) => x)) === JSON.stringify(sideOrder), `sidebar: ${shown.length} sections in the vault's order, the text pages folded under Read, with What's waiting and ${Roles.ROLES.length - 1} front doors above`, `sidebar order ${shown.join(",")}`);
     const kids = $$("#side .side-kid[data-section=apps]").length, flowKids = $$("#side .side-kid[data-section=flows]").length;
     ok((kids === D.map.apps.length || !Nav.st.expanded.has("apps")) && (flowKids === D.flows.length || !Nav.st.expanded.has("flows")), `sidebar lists each app (${kids}) and each flow (${flowKids})`, `sidebar lists ${kids} apps of ${D.map.apps.length}, ${flowKids} flows of ${D.flows.length}`);
     const bad = [], seen = [];
@@ -955,7 +955,7 @@ const SelfTest = (() => {
     history.replaceState(null, "", link); Nav.followHash(); await frames();
     ok(cleared && Slices.st.status.has(pick) && $$(".sl-tr").length === n && $(`.sl-fgroup[data-group=status] [data-value="${CSS.escape(pick)}"]`).getAttribute("aria-pressed") === "true",
       `slices filter: the link ${link} opens the same ${n} again, with the chip pressed`, `slices link: cleared ${cleared}, back to ${$$(".sl-tr").length} rows, status ${[...Slices.st.status]}`);
-    // search, the empty answer, and Needs you only
+    // search, the empty answer, and Waiting only
     Slices.clear(); await frames();
     const f = L.find((x) => x.flows.some((fl) => fl.key && E[fl.key])), find = $(".sl-find");
     if (f) {
@@ -971,7 +971,7 @@ const SelfTest = (() => {
     const late = L.filter((x) => x.overdue).length, needs = $(".sl-fgroup[data-group=needs] button");
     needs.click(); await frames();
     ok(+$(".ct", $(".sl-fgroup[data-group=needs] button")).textContent === late && (late ? $$(".sl-tr").length === late && $$(".sl-tr .sl-due").length === late : needs.disabled && $$(".sl-tr").length === L.length),
-      `slices: Needs you only shows the ${late} with a journey past its due date`, `slices needs you: ${$$(".sl-tr").length} rows, want ${late}`);
+      `slices: Waiting only shows the ${late} with a journey past its due date`, `slices waiting: ${$$(".sl-tr").length} rows, want ${late}`);
     Slices.clear(); Slices.st.open = new Set(); Slices.st.layout = null; Slices.st.filters = false;
     if (was === null) localStorage.removeItem(KEYL); else Settings.write(KEYL, was);
     Nav.home(); go("lights", { reset: true }); await frames();
@@ -1317,15 +1317,15 @@ const SelfTest = (() => {
     ok($$("#panel .q-row").length === top, `panel home, away from the home page: carries the queue (${top} of ${q.length}) because the page does not`, `panel home on Goals: ${$$("#panel .q-row").length} queue rows`);
     const need = Queue.needsYou(), counts = Queue.counts(), masters = Object.fromEntries($$("#masters .master").map((m) => [m.className.split(" ").find((c) => LEVELS.includes(c)), +$("b", m).textContent]));
     ok(masters.caution === need.n && (masters.warning || 0) === need.late && Object.entries(masters).every(([lv, n]) => lv === "caution" || n === counts[lv]),
-      `top bar: ${need.n} need you, ${need.late} of them overdue; ${Object.entries(masters).filter(([lv]) => lv !== "caution" && lv !== "warning").map(([lv, n]) => `${n} ${lv}`).join(", ") || "nothing else lit"}`, `top bar ${JSON.stringify(masters)} against needs-you ${JSON.stringify(need)}`);
-    // "needs you" is shown as a number once on Home, in the top bar (label sweep: the same 21 showed four times). The
+      `top bar: ${need.n} waiting, ${need.late} of them overdue; ${Object.entries(masters).filter(([lv]) => lv !== "caution" && lv !== "warning").map(([lv, n]) => `${n} ${lv}`).join(", ") || "nothing else lit"}`, `top bar ${JSON.stringify(masters)} against needs-you ${JSON.stringify(need)}`);
+    // "waiting" is shown as a number once on Home, in the top bar (label sweep: the same 21 showed four times). The
     // side door shows only the overdue part, the waiting card says what to start with, and the panel doesn't repeat either.
     Nav.home(); go("lights", { reset: true }); await frames();
     const door = $(".side-home .side-n"), qcount = $(".q-card .q-count"), lede = $("#panel .p-lede"), says = Queue.needsYouSays();
     const homeText = [$("#main"), $("#side"), $("#panel")].map((x) => (x ? x.textContent : "")).join(" ");
-    ok((need.late ? door && +door.textContent === need.late : !door) && (!need.n || (qcount && qcount.textContent === Queue.startWith())) && (!need.n || !homeText.includes(says)) && !(lede && /\d+ need you/.test(lede.textContent)),
-      `needs you: ${need.n} in the top bar only; the side door shows ${need.late ? need.late + " overdue" : "no number"}, the waiting card says "${Queue.startWith()}", and the panel doesn't repeat the count`,
-      `needs you: side door ${door && door.textContent} (want ${need.late || "none"}), card "${qcount && qcount.textContent}", panel "${lede && lede.textContent.slice(0, 80)}", "${says}" ${homeText.includes(says) ? "repeated on the page" : "not repeated"}`);
+    ok((need.late ? door && +door.textContent === need.late : !door) && (!need.n || (qcount && qcount.textContent === Queue.startWith())) && (!need.n || !homeText.includes(says)) && !(lede && /\d+ waiting/.test(lede.textContent)),
+      `waiting: ${need.n} in the top bar only; the side door shows ${need.late ? need.late + " overdue" : "no number"}, the waiting card says "${Queue.startWith()}", and the panel doesn't repeat the count`,
+      `waiting: side door ${door && door.textContent} (want ${need.late || "none"}), card "${qcount && qcount.textContent}", panel "${lede && lede.textContent.slice(0, 80)}", "${says}" ${homeText.includes(says) ? "repeated on the page" : "not repeated"}`);
     Nav.home(); go("lights", { reset: true }); await frames();
   }
 
@@ -1551,7 +1551,7 @@ const SelfTest = (() => {
       go(k, { reset: true });
       const sec = $$("#panel .in-challenge");
       ok(!!chipLamp && chipLamp.classList.contains("caution") && sec.length === list.length && (!list[0].scenario || sec[0].textContent.includes(list[0].scenario.slice(0, 30))),
-        `challenge: ${id} lit "needs you" by ${list.map((c) => c.oq).join(", ")} in the ${titleOf(list[0].app)} design${list[0].scenario ? ", with its scenario" : ""}`, `challenge: ${id} lamp ${chipLamp ? chipLamp.className : "none"}, ${sec.length} sections`);
+        `challenge: ${id} lit "waiting" by ${list.map((c) => c.oq).join(", ")} in the ${titleOf(list[0].app)} design${list[0].scenario ? ", with its scenario" : ""}`, `challenge: ${id} lamp ${chipLamp ? chipLamp.className : "none"}, ${sec.length} sections`);
     }
     await planChecks(ok, out, apps);
     // the deep link, the crumbs, the doors, the sidebar and the map
@@ -1776,7 +1776,7 @@ const SelfTest = (() => {
     if (D.pending.length) {
       go("lights", { reset: true }); await frames();
       ok(!!$("#pending-chip") && ($$("#panel .light-row .lamp.pending").length >= 1 || D.pending.every((m) => lightOf(m.key) && lightOf(m.key).level !== "pending")),
-        `pending approval: the header chip counts ${D.pending.length} and What needs you lists them`, "pending approval: no chip or no pending row in What needs you");
+        `pending approval: the header chip counts ${D.pending.length} and What's waiting lists them`, "pending approval: no chip or no pending row in What's waiting");
     } else ok(!$("#pending-chip"), "pending approval: no chip when nothing is pending", "pending approval: a chip with nothing pending");
     // freshness: the banner follows the stamped report, shown only when something changed
     const newer = { role: "reader", state: "newer", latest: { date: "2026-10-20", commit: "4d1e8a0" }, have: {}, checked_at: "2026-10-18T09:12:00" };
@@ -2018,7 +2018,7 @@ const TextFit = (() => {
    (2026-10-16) found by eye and no check saw:
    - leaks(root): builder plumbing in reader text, by say.LEAD_PATTERNS (the one copy, carried in the selftest build as
      D.leadPatterns), less item IDs, which ride in a small tag on purpose. Words someone wrote are theirs and left out.
-   - repeats(root): the same count sentence twice on one screen ("21 need you: 18 open questions blocking work..." on the
+   - repeats(root): the same count sentence twice on one screen ("21 waiting: 18 open questions blocking work..." on the
      banner and in the panel beside it). A count said once is information; said twice it is a second thing to hold.
    - quantities(): every element marked data-quantity="<name>" data-n="<n>" must give the one source's number for that
      name, and every view must agree (E60: the Managers door said 27 open questions, the top bar 21, the Exec door 0
@@ -2053,10 +2053,10 @@ const VoiceGate = (() => {
   /* A block's own words, joined across its inline children, so "18 questions block work." is one sentence however it is marked up. */
   const BLOCK = /^(block|flex|grid|list-item|table-cell|table-caption|flow-root)/;
   function blockOf(el) { for (let a = el; a && a !== document.body; a = a.parentElement) if (BLOCK.test(getComputedStyle(a).display)) return a; return document.body; }
-  /* A count sentence says how many of something there are: "18 questions block work", "21 need you". A date, a time
+  /* A count sentence says how many of something there are: "18 questions block work", "21 waiting". A date, a time
      or a name with a number in it ("the 7:30 digest") is not a count. Rows of a list or table say the same words about
      different things by design, so a row is not compared with its siblings. */
-  const COUNT = /\b\d+ (?:[a-z-]+ ){0,2}?(?:questions?|things?|items?|decisions?|apps?|contracts?|flows?|steps?|stor(?:y|ies)|points?|pages?|requirements?|criteri(?:on|a)|releases?|slices?|epics?|risks?|concerns?|options?|people|persons?|teams?|need you|overdue|of the plan)\b/i;
+  const COUNT = /\b\d+ (?:[a-z-]+ ){0,2}?(?:questions?|things?|items?|decisions?|apps?|contracts?|flows?|steps?|stor(?:y|ies)|points?|pages?|requirements?|criteri(?:on|a)|releases?|slices?|epics?|risks?|concerns?|options?|people|persons?|teams?|waiting|overdue|of the plan)\b/i;
   const isCount = (s) => COUNT.test(s) && s.split(/\s+/).length >= 3;
   const ROW = "li, tr, [role=row], [data-row], .light-row, .q-row";  // data-row: a card in a list of cards
   function sentences(root = document) {
@@ -2154,7 +2154,7 @@ const VoiceGate = (() => {
       if (D.designs[k]) for (const [tab] of Inside.TABS) { Inside.open(k, "components", { tab }); note(`${titleOf(k)}, design tab ${tab}`); }
       Inside.open(k, "containers");
       const page = Nav.pageBeside();
-      for (const [name, root] of [["The design", Inside.designKey()], ["The page", page ? "read:" + page : ""], ["What needs you", "lights"]]) {
+      for (const [name, root] of [["The design", Inside.designKey()], ["The page", page ? "read:" + page : ""], ["What's waiting", "lights"]]) {
         if (root) { App.root = root; App.trail = []; Panel.render(); note(`${titleOf(k)}, panel tab ${name}`); }
       }
       go(k, { reset: true }); note(`panel, app ${titleOf(k)}`);

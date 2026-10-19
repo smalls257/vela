@@ -34,7 +34,7 @@ const ProgressView = (() => {
       P.next ? h("div", { class: "note next" }, h("b", {}, "Suggested next step: "), modeEl(P.next.mode), " ", P.next.subject ? refChip(keyForId(P.next.subject)) : null, " ", P.next.reason) : null));
     const tableKey = Legend.open("progress-table", { root: () => tableCard, probes: { "pg.done": ".ladder .done", "pg.cur": ".ladder .cur", "pg.reach": ".ladder .reach", "pg.empty": ".ladder:not(.off) span:not(.done):not(.cur):not(.reach)",
       "pg.off": ".ladder.off", ...Object.fromEntries(MIX.map(([state]) => ["pg.mix." + state, `.mix span[style*="--mix-${state}"]`])) } });
-    const table = h("table", { class: "t" }, h("tr", {}, h("th", {}, "App"), h("th", {}, "Needs you"), h("th", {}, "Stage"), h("th", {}, "Next step"), h("th", {}, "Handoff")));
+    const table = h("table", { class: "t" }, h("tr", {}, h("th", {}, "App"), h("th", {}, "Waiting"), h("th", {}, "Stage"), h("th", {}, "Next step"), h("th", {}, "Handoff")));
     for (const r of P.rows) {
       const a = E[r.app], ad = D.apps[r.app], idx = P.stages.indexOf(r.stage), reach = P.stages.indexOf(ad.reached), lv = levelOf(r.app);
       if (r.stage) {

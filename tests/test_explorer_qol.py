@@ -7,6 +7,7 @@ a test that only looked for FAIL, so every test names the lines it needs to see.
     python3 -m pytest -q -m browser tests/test_explorer_qol.py
 """
 import html
+import json
 import pathlib
 import re
 import shutil
@@ -95,10 +96,10 @@ def test_search_is_one_row_per_thing_with_app_pills(chrome, heron):
 
 
 @pytest.mark.browser
-def test_one_need_you_number_and_notes_in_an_i(chrome, heron):
-    """Findings 7 and 13: one "N need you" on the bar, the card and the panel (parts on hover); Home's notes are an i."""
+def test_one_waiting_number_and_notes_in_an_i(chrome, heron):
+    """Findings 7 and 13: one "N waiting" on the bar, the card and the panel (parts on hover); Home's notes are an i."""
     lines = selftest(chrome, heron, 1440)
-    need(lines, "need you: one number", "need you: the sidebar's count", "Home: no banner or note lines above the map", "Home: the i opens the notes in place")
+    need(lines, "waiting: one number", "waiting: the sidebar's count", "Home: no banner or note lines above the map", "Home: the i opens the notes in place")
 
 
 @pytest.mark.browser
@@ -136,3 +137,26 @@ def test_overview_map_only_where_the_map_is_the_subject_and_labels_say_what_they
     lines = selftest(chrome, heron, 1440)
     need(lines, "overview map: shown on Home, Apps, Capabilities, Flows and inside an app", "labels: the View menu says Contracts only, Dependencies and Moving markers")
     need(selftest(chrome, booking, 1440), "labels: a flow in the first slice says so")
+
+
+@pytest.mark.browser
+def test_waiting_wording_and_the_filter_that_needs_to_know_the_reader(chrome, heron):
+    """The user: the dashboard does not know who is reading, so it says "waiting", never "need you". Waiting on you is a
+    filter that only exists with a known handle or a picked role door."""
+    lines = selftest(chrome, heron, 1440)
+    need(lines, "waiting: with no handle and no role door", "waiting: a reader who picked the Product door")
+
+
+def test_the_build_carries_the_handle_whoami_keeps(tmp_path):
+    """data.me.handle is .vela/handle (as `vela whoami` keeps it), or empty: the page then makes no claim about the reader."""
+    for handle, want in (("", ""), ("@product-owner\n", "product-owner")):
+        vault = tmp_path / ("v" + str(len(want)))
+        shutil.copytree(HERON, vault)
+        if handle:
+            (vault / ".vela").mkdir(exist_ok=True)
+            (vault / ".vela" / "handle").write_text(handle, encoding="utf-8")
+        out = vault / "d.html"
+        cmd = [sys.executable, str(REPO / "plugin" / "scripts" / "vela"), "explore", str(vault), "--today", "2026-10-10", "-o", str(out), "--no-open"]
+        assert subprocess.run(cmd, timeout=120, capture_output=True, text=True).returncode == 0
+        data = json.loads(re.search(r'<script type="application/json" id="data">(.*?)</script>', out.read_text(encoding="utf-8"), re.S).group(1))
+        assert data["me"] == {"handle": want}

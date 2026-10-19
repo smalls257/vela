@@ -3,8 +3,8 @@
    view and one drives present mode, both on FlowKit's renderer. Save clip records the same frames as MP4 or WebM in
    the browser. Heuristics are labeled where they show: an inferred direction says so under its arrow. */
 const Flows = (() => {
-  /* A contract's state and light in one sentence: "Not decided yet, and it needs you". */
-  const LIGHT_SAYS = { warning: "it's overdue", caution: "it needs you", pending: "it's waiting on the owner's approval", unexamined: "nobody has reviewed it yet",
+  /* A contract's state and light in one sentence: "Not decided yet, and it is waiting". */
+  const LIGHT_SAYS = { warning: "it's overdue", caution: "it's waiting", pending: "it's waiting on the owner's approval", unexamined: "nobody has reviewed it yet",
     override: "a check was skipped on it", dark: "nothing is blocking it" };
   const contractSays = (id) => `${CONTRACT[id].state ? stateWord(CONTRACT[id].state) : "Nobody has given it a state yet"}, and ${LIGHT_SAYS[levelOf(id)] || LIGHT[levelOf(id)].word.toLowerCase()}`;
   const TRAVEL = 0.8;
