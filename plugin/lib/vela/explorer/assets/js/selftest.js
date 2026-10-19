@@ -1776,7 +1776,7 @@ const SelfTest = (() => {
     if (D.pending.length) {
       go("lights", { reset: true }); await frames();
       ok(!!$("#pending-chip") && ($$("#panel .light-row .lamp.pending").length >= 1 || D.pending.every((m) => lightOf(m.key) && lightOf(m.key).level !== "pending")),
-        `pending approval: the header chip counts ${D.pending.length} and What's waiting lists them`, "pending approval: no chip or no pending row in What's waiting");
+        `pending approval: the header chip counts ${D.pending.length} and What's waiting includes them`, "pending approval: no chip or no pending row in What's waiting");
     } else ok(!$("#pending-chip"), "pending approval: no chip when nothing is pending", "pending approval: a chip with nothing pending");
     // freshness: the banner follows the stamped report, shown only when something changed
     const newer = { role: "reader", state: "newer", latest: { date: "2026-10-20", commit: "4d1e8a0" }, have: {}, checked_at: "2026-10-18T09:12:00" };

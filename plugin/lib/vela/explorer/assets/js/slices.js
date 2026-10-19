@@ -235,8 +235,8 @@ const Slices = (() => {
     return [tr, more];
   }
   function tableLayout(list) {
-    const head = h("div", { class: "sl-th", "aria-hidden": "true" }, h("span", {}), h("span", {}, "Slice"), h("span", {}, "Status"), h("span", {}, "Comes after"), h("span", {}, "Waiting"));
     list.forEach(sawRow);
+    const head = h("div", { class: "sl-th", "aria-hidden": "true" }, h("span", {}), h("span", {}, "Slice"), h("span", {}, "Status"), h("span", {}, "Comes after"), h("span", {}, "Waiting"));
     return h("div", { class: "sl-table" }, head, ...list.flatMap(tableRow));
   }
 

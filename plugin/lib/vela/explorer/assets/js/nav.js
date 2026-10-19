@@ -271,7 +271,7 @@ const Nav = (() => {
     const n = count(s), open = s.id === "unknowns";
     return h("span", { class: "side-n", title: open ? `${plural(n, "open question")} in all; ${Queue.needsYou().n} of the plan's things are waiting` : `${s.label}: ${n}`, ...(open ? { "aria-label": `${plural(n, "open question")} in all` } : {}), ...(open ? { "data-quantity": "openQuestions", "data-n": n } : {}) }, n);
   }
-  /* Flow names often start alike ("A person switches Heron on", "A person gets the 7:30 digest"), and a narrow bar cuts every one
+  /* Flow names often start alike ("A person switches it on", "A person gets the morning digest"), and a narrow bar cuts every one
      to the same stub. The two words most of them share are left off in the bar (the hover keeps the whole name). */
   const READ = ["constraints", "context", "strategy", "glossary"];  // pages that are mostly words: one folded heading, not four rows between the diagrams
   function sharedLead(titles) {
