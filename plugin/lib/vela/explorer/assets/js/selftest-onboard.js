@@ -9,7 +9,7 @@
 (() => {
   const base = SelfTest.run, frames = () => Promise.resolve();
   const O = D.onboard, roles = O.audiences.map((a) => a.id), allKeys = Object.keys(O.modules);
-  const heading = () => { const b = $("#panel-body"), head = b && $(".p-head h2", b); return head ? head.textContent.trim() : ""; };
+  const heading = () => { const b = $("#panel-body"), head = b && $(".p-head h2", b); if (!head) return ""; const c = head.cloneNode(true); c.querySelectorAll("svg").forEach((x) => x.remove()); return c.textContent.trim(); };  // an app's icon carries its own title text
   const press = (el, how) => (how === "Enter" ? el.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true })) : el.click());
   const listed = () => $$(".onb-mod").map((b) => b.dataset.module);
   const sameList = (a, b) => a.length === b.length && a.every((x, i) => x === b[i]);

@@ -113,6 +113,8 @@ const Nav = (() => {
     App.view = viewDef(view) ? view : "doc";
     setRoot();
     syncHash(); rerender(); Panel.render();
+    /* A link lands on the exact item: a page with a Details panel shows the opened item there, not its summary. */
+    if (st.child && ent(st.child) && DetailsPanel.active()) DetailsPanel.show(st.child, { reset: true, quiet: true });
     if (st.child && viewDef(App.view).highlight) viewDef(App.view).highlight(st.child);
   }
   function home() {

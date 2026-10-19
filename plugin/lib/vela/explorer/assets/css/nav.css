@@ -26,11 +26,13 @@ html.plain .side-n.lit { box-shadow: none; }
 .side-roles button { border: 1px solid var(--rule-3); background: var(--room); color: var(--ink-2); border-radius: 7px; padding: 5px 6px; cursor: pointer; font-size: 12.5px; text-align: center; }
 .side-roles button:hover { color: var(--ink); border-color: var(--ink-3); }
 .side-roles button[aria-selected="true"] { background: var(--ink); color: var(--room); border-color: var(--ink); font-weight: 600; }
-.side-row { display: grid; grid-template-columns: 18px 1fr; align-items: center; border-radius: 7px; }
+.side-row { display: grid; grid-template-columns: 28px 1fr; align-items: center; border-radius: 7px; }
 .side-row.on { background: var(--deck-3); }
 .side-row.in .side-link { color: var(--ink); }
-.side-caret { all: unset; cursor: pointer; color: var(--ink-4); font-size: 10px; text-align: center; height: 26px; line-height: 26px; }
-.side-caret:hover { color: var(--ink); }
+/* The triangle is the only thing that folds a list, so it is a 28x28 target: the glyph is large, the padding is the click area. */
+.side-caret { all: unset; box-sizing: border-box; cursor: pointer; color: var(--ink-3); font-size: 16px; text-align: center; width: 28px; height: 28px; line-height: 28px; border-radius: 7px; }
+.side-caret:hover { color: var(--ink); background: var(--deck-3); }
+.side-caret:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; color: var(--ink); background: var(--deck-3); }
 .side-caret.blank { cursor: default; }
 .side-link, .side-kid { all: unset; box-sizing: border-box; cursor: pointer; display: flex; align-items: center; gap: 7px; padding: 5px 8px 5px 2px; color: var(--ink-2); min-width: 0; border-radius: 7px; }
 .side-link:hover, .side-kid:hover { color: var(--ink); }
@@ -39,7 +41,7 @@ html.plain .side-n.lit { box-shadow: none; }
 .side-row.missing .side-link { color: var(--ink-4); }
 .side-label { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .side-link .lamp, .side-kid .lamp { width: 8px; height: 8px; }
-.side-kids { display: grid; margin: 1px 0 4px 18px; border-left: 1px solid var(--rule); padding-left: 4px; }
+.side-kids { display: grid; margin: 1px 0 4px 14px; border-left: 1px solid var(--rule); padding-left: 4px; }
 .side-kid { font-size: 12.5px; padding: 3px 8px; color: var(--ink-3); }
 .side-kid.on { background: var(--deck-3); color: var(--ink); font-weight: 600; }
 .side-foot { font-size: 11.5px; padding: 6px 8px; }
