@@ -938,3 +938,38 @@ def test_a_yes_counts_for_the_decision_filed_after_the_why_and_is_used_up(tmp_pa
     turn("Yes, that's right.", "Why this one, in your words?")
     turn("Because people keep files everywhere.", "Filed.", decide=True)
     assert run.item_decisions == [{"id": "CAP-001.FR1", "turn": 3, "with_yes": True}] and not run.yes_pending
+
+
+# ------------------------------------------------------------------ design choices and the yes
+
+def test_design_choice_lines_find_adrs_and_we_will_lines_but_not_an_adrs_restatement(tmp_path):
+    (tmp_path / "docs" / "adr").mkdir(parents=True)
+    (tmp_path / "docs" / "tech-design").mkdir()
+    (tmp_path / "docs" / "adr" / "0001-x.md").write_text(
+        "# ADR-0001: Queue the events\n\n## Decision\nWe will use a queue.\n", encoding="utf-8")
+    (tmp_path / "docs" / "tech-design" / "heron.md").write_text(
+        "We'll build the sync as a nightly job.\n- **Decision:** keep the cache local\nThe agent reads the cache.\n",
+        encoding="utf-8")
+    lines = probe.design_choice_lines(tmp_path)
+    assert sum(lines.values()) == 3
+    assert ("docs/adr/0001-x.md", "# ADR-0001: Queue the events") in lines
+    assert not any("The agent reads" in line for _, line in lines)
+
+
+def test_design_choice_without_yes_counts_only_the_choices_written_before_a_yes(tmp_path):
+    fn = probe.CHECKS["design-choice-without-yes"][0]
+    planted = [{"turn": 2, "file": "docs/adr/0001-x.md", "line": "# ADR-0001: A", "with_yes": True},
+               {"turn": 4, "file": "docs/tech-design/h.md", "line": "We'll use B", "with_yes": False},
+               {"turn": 5, "file": "docs/tech-design/h.md", "line": "We'll build C", "with_yes": False}]
+    run = spoken_run(tmp_path, [])
+    run.design_choices = planted
+    passed, summary, *_ = fn(run, {"at_most": 1})
+    assert not passed and summary.startswith("design choices written without a yes: 2 (need at most 1); choices written in all: 3")
+    run.design_choices = planted[:2]
+    assert fn(run, {"at_most": 1})[0]
+
+
+def test_a_design_choice_the_stub_writes_with_no_yes_fails_the_design_probe(tmp_path):
+    env = {"SIM_STUB_WRITE": json.dumps({"docs/adr/0001-stub.md": "# ADR-0001: Stub choice\n\nWe will use a stub.\n"})}
+    code, out, err, runs = run_probe(tmp_path, "design-yes", "heron-agent-lead", env=env)
+    assert "FAIL design-choice-without-yes: design choices written without a yes: 1" in out, out + err
