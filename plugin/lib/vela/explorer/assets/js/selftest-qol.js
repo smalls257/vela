@@ -250,6 +250,7 @@
       ok(!!chip && chip.dataset.me === "handle" && want > 0 && mineRows === Math.min(want, Queue.TOP) && mineRows <= all && $(".q-mine").getAttribute("aria-pressed") === "true",
         `waiting: with the handle ${asked}, Waiting on you shows the ${want} questions that name ${asked} as the owner or the one asked`, `waiting: handle ${asked}, rows ${mineRows} of ${all}, wanted ${want}`);
     }
+    Queue.st.mine = false;  // the handle case above left the filter on, and the click below would switch it off
     D.me = { handle: "" }; Roles.st.chosen = true; Roles.st.role = "product"; await open();
     ok(!!$(".q-mine") && $(".q-mine").dataset.me === "role", "waiting: a reader who picked the Product door gets Waiting on you for that role", "waiting: no filter after picking a role door");
     const who = Queue.me(), every = Queue.items().length, mineAll = Queue.items().filter((x) => who && who.waiting(ASK[x.id])).length;
