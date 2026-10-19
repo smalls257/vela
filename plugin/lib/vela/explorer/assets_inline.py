@@ -1,6 +1,6 @@
-"""Optional generated art and sound, inlined so the page still opens from disk.
+"""Optional generated art, inlined so the page still opens from disk.
 
-The explorer draws everything itself: lamps, lines, strips, plants, tones. Assets only add identity and atmosphere,
+The explorer draws everything itself: lamps, lines, strips, plants. Assets only add identity and atmosphere,
 and only through the slot contract (art/slots.json): the page asks resolve.js for a slot id such as emblem.coach
 or texture.cockpit and never names a file or a provider.
 
@@ -20,7 +20,7 @@ DEFAULT_ROOT = pathlib.Path(__file__).resolve().parent / "art"
 MIME = {"svg": "image/svg+xml", "png": "image/png", "jpg": "image/jpeg", "webp": "image/webp", "mp4": "video/mp4",
         "webm": "video/webm", "mp3": "audio/mpeg", "wav": "audio/wav"}
 # The slots the explorer asks for, by prefix; the rest of the contract is not inlined, to keep the page small.
-USED = ("emblem.", "emblem-on-dark.", "texture.", "loop.title-card", "theme.", "chime.decided")
+USED = ("emblem.", "emblem-on-dark.", "texture.", "loop.title-card")
 
 
 class AssetError(Exception):

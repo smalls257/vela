@@ -7,7 +7,7 @@
      page fills the main area; any other section's page reads this way from "Read the page". */
 const Sections = (() => {
   const worst = (levels) => levels.slice().sort((p, q) => rank(q) - rank(p))[0] || "dark";
-  const head = (fallback, lede, extra) => h("div", { class: "view-head" }, h("div", {}, h("h1", {}, Nav.title(fallback)), lede ? h("p", {}, lede) : null), h("div", { class: "spacer" }), extra || null, Nav.pageActions());
+  const head = (fallback, lede, extra) => h("div", { class: "view-head" }, h("div", {}, h("h1", {}, Nav.title(fallback)), lede ? h("p", {}, lede, Nav.ledeLink()) : null), h("div", { class: "spacer" }), extra || null, Nav.pageActions());
 
   /* ------------------------------------------------------------ goals */
   function goals(main) {

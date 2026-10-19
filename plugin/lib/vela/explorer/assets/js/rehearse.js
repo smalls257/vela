@@ -258,8 +258,6 @@ const Rehearse = (() => {
       const placed = q("#rh-rail").children[i].querySelector(".tile");
       if (placed) placed.classList.add("snap");
       requestAnimationFrame(() => pluck(d.lane));
-      Sound.click(d.lane);
-      if (d.fromSlot === null) Assets.theme(d.lane);
     } else if (d.fromSlot !== null && e.target.closest(".rh-tray, .rh-side")) {
       const lane = st.slots[d.fromSlot], before = st.steps.length;
       st.slots[d.fromSlot] = null;
@@ -279,7 +277,7 @@ const Rehearse = (() => {
   function plugSender(lane) {
     if (st.carry.self) { addStep({ self: lane }); return; }
     st.carry.from = lane; wire.sag = 70; wire.v = 0; wire.lastX = st.pointer.x;
-    pluck(lane); Sound.click(lane); renderBoard();
+    pluck(lane); renderBoard();
   }
   function plugReceiver(e) {
     const lane = laneAt(e.clientX, e.clientY);
@@ -303,7 +301,7 @@ const Rehearse = (() => {
     st.steps.push(step); st.carry = null;
     root.querySelectorAll(".cable").forEach((c) => c.classList.remove("carrying"));
     const target = step.self || step.to;
-    pluck(target); Sound.click(target); renderAll();
+    pluck(target); renderAll();
   }
   function cancelCarry() { st.carry = null; root.querySelectorAll(".cable").forEach((c) => c.classList.remove("carrying")); renderBoard(); }
   addEventListener("keydown", (e) => {
@@ -409,8 +407,8 @@ const Rehearse = (() => {
         (function run() { const k = Math.min(1, (performance.now() - start) / 450); dot.setAttribute("cx", x1 + (x2 - x1) * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(run); else dot.setAttribute("opacity", 0); })();
         pluck(p.r.to);
       }
-      if (p.stamp) setTimeout(() => { p.stamp.classList.add("stamp"); Sound.verdict(p.verdict === "right" ? "right" : p.verdict === "near" ? "near" : "miss"); }, STEP * 600);
-      if (i === R.pairs.length - 1) setTimeout(() => { R.done = true; if (R.got === R.scored) Sound.chime(); }, STEP * 1000);
+      if (p.stamp) setTimeout(() => { p.stamp.classList.add("stamp"); }, STEP * 600);
+      if (i === R.pairs.length - 1) setTimeout(() => { R.done = true; }, STEP * 1000);
     }, i * STEP * 1000));
   }
   function resultHtml() {

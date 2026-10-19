@@ -118,7 +118,6 @@ const Panel = (() => {
     if (readKey) actions.append(h("button", { class: "btn open-page", title: "Read it here, in the plan's own words", onclick: () => go(readKey, {}) }, "Open the page"));
     if (e.kind === "app" && typeof MapView !== "undefined") actions.append(h("button", { class: "btn", onclick: () => Nav.focusApp(e.key) }, "Focus on the map"));
     if (e.kind === "app" && typeof Inside !== "undefined") actions.append(h("button", { class: "btn inside-btn", title: "How this app is built, and the team's plan for building it", onclick: () => Inside.open(e.key, "containers") }, "Inside this app"));
-    if ((e.kind === "app" || e.kind === "decision") && typeof Motion !== "undefined") actions.append(h("button", { class: "btn", title: "Show what depends on it, spreading outward", onclick: () => Nav.ripple(e.key) }, "Impact: what depends on it"));
     if ((e.kind === "flow" || e.kind === "contract") && typeof Motion !== "undefined") actions.append(h("button", { class: "btn", title: "Show the route it takes on the map, step by step", onclick: () => Nav.trace(e.key) }, "Show its path on the map"));
     const light = lightOf(e.key), u = UNKNOWN[e.key];
     return h("div", { class: "p-head" },

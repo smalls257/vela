@@ -209,8 +209,9 @@ const Decisions = (() => {
       h("span", { class: "spacer" }),
       h("label", { class: "dl-sort" }, "Sort ", h("select", { "aria-label": "Sort the decisions", onchange: (ev) => { st.sort = ev.target.value; st.flip = false; refresh(); } },
         SORTS.map(([id, label]) => h("option", { value: id, selected: st.sort === id ? true : null }, label)))),
-      h("div", { class: "seg small", role: "group", "aria-label": "Show as" }, [["log", "Log"], ["timeline", "Timeline"]].map(([id, label]) =>
-        h("button", { "aria-pressed": String(st.mode === id), "data-mode": id, onclick: () => { st.mode = id; refresh(); } }, label))));
+      Menus.menu({ id: "view", label: "View", current: st.mode === "timeline" ? "Timeline" : "Log", align: "right", items: () => [
+        { id: "log", label: "Log", say: "one row for each decision, with the state it is in", checked: st.mode === "log", attrs: { "data-mode": "log" }, run: () => { st.mode = "log"; refresh(); } },
+        { id: "timeline", label: "Timeline", say: "the decisions along the dates they were made", checked: st.mode === "timeline", attrs: { "data-mode": "timeline" }, run: () => { st.mode = "timeline"; refresh(); } }] }));
   }
   function summary(list) {
     const waiting = new Set(list.flatMap((e) => e.waits)).size;
@@ -226,7 +227,7 @@ const Decisions = (() => {
   function render(main) {
     const stage = h("div", { class: "dl-stage" });
     main.append(h("div", { class: "view-head" }, h("div", {}, h("h1", {}, Nav.title("Decisions")),
-      h("p", {}, "Pick a decision to see what was chosen, what was turned down and why, and what it still waits on.")),
+      h("p", {}, "Pick a decision to see what was chosen, what was turned down and why, and what it still waits on.", Nav.ledeLink())),
       h("div", { class: "spacer" }), Nav.pageActions()));
     if (!trees.length) { main.append(emptyState("No decisions written down yet.", "Shape the plan and the choices you make show up here.", "/vela:shape")); return; }
     main.append(h("div", { class: "dl-wrap" }, h("div", { class: "dl-barhost" }, bar()), h("p", { class: "dl-count", id: "dl-count", "aria-live": "polite" }), stage));

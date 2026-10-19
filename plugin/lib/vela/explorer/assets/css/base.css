@@ -97,14 +97,7 @@ kbd { font: 500 11px var(--ui); border: 1px solid var(--rule-3); border-bottom-w
 .side-toggle { all: unset; cursor: pointer; width: 32px; height: 32px; display: grid; place-items: center; border-radius: 8px; color: var(--ink-2); flex: none; }
 .side-toggle:hover { background: var(--deck); color: var(--ink); }
 .side-toggle svg { width: 18px; height: 18px; }
-.fx { display: inline-flex; align-items: center; gap: 2px; background: var(--room); border: 1px solid var(--rule-3); border-radius: 999px; padding: 2px; flex: none; }
 .fx-label { font-size: 12px; color: var(--ink-3); padding: 0 6px 0 9px; }
-.fx button { border: 0; background: transparent; color: var(--ink-3); padding: 3px 10px; border-radius: 999px; cursor: pointer; font-size: 12.5px; }
-.fx button[aria-current="true"] { background: var(--deck-3); color: var(--ink); }
-.sound-btn { display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--rule-3); background: var(--room); color: var(--ink-2);
-  border-radius: 999px; padding: 6px 12px; cursor: pointer; font-size: 13px; white-space: nowrap; }
-.sound-btn svg { width: 16px; height: 16px; }
-.sound-btn[aria-pressed="true"] { background: var(--ink); color: var(--room); border-color: var(--ink); }
 
 /* ------------------------------------------------ main */
 #main { grid-area: main; position: relative; overflow: hidden; display: flex; flex-direction: column; min-width: 0; min-height: 0; background: var(--room); }
@@ -201,7 +194,7 @@ a.idname:hover .idsuf, a.idname:focus-visible .idsuf { display: inline; color: v
 @media print {
   html[data-theme][data-theme] { --room: #fff; --deck: #fff; --deck-2: #f3f3f3; --ink: #111; --ink-2: #222; --ink-3: #444; --rule-3: #999; --link: #0b4ea2; }
   html, body { height: auto; display: block; background: #fff; color: #111; }
-  header.top, #side, #side-grip, #panel, #panel-tab, #toast, #tip, #fresh, #built, .page-actions, .seg { display: none !important; }
+  header.top, #side, #side-grip, #panel, #panel-tab, #toast, #tip, #fresh, #built, .page-actions, .dia-bar, .seg { display: none !important; }
   #main { display: block; overflow: visible; background: #fff; }
   #main :not(svg):not(svg *) { overflow: visible !important; max-height: none !important; }
   a.ext[href]::after { content: " (" attr(href) ")"; font-size: .85em; color: #444; word-break: break-all; }
@@ -218,7 +211,6 @@ a.idname:hover .idsuf, a.idname:focus-visible .idsuf { display: inline; color: v
 @media (max-height: 720px) {
   .view-head p.lede { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 }
-@media (max-width: 1500px) { .sound-btn span { display: none; } .sound-btn { padding: 7px 9px; } }
 .ref-chip .rid { white-space: normal; overflow-wrap: anywhere; }
 /* A phone-width window has no room for three columns: the page, then its detail, then the front doors stack in one
    column and the window scrolls down through them, so nothing needs a sideways scroll (360 px is the floor). */

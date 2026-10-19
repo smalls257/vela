@@ -1,37 +1,17 @@
-/* Effects: On or Plain, in the top bar, remembered in this browser, On by default.
-   Plain removes every motion, glow and pulse on the page and keeps every color's meaning: a lamp is still the
-   color attention.lights gives it; it only stops breathing and glowing. The map's motion option (trace on demand,
-   ripple of impact, or trains on the line map) is remembered the same way. */
+/* Effects follow the browser's own "reduce motion" setting and nothing else; the page has no switch of its own.
+   With it set, the page is Plain: it removes every motion, glow and pulse and keeps every color's meaning (a lamp is
+   still the color attention.lights gives it; it only stops breathing and glowing). `#fx=plain` forces Plain for a
+   still screenshot, and FX.set is the selftest's way to compare the two. Nothing is remembered between visits. */
 const FX = (() => {
-  const KEY = "explorer.effects", MOTION_KEY = "explorer.motion";
-  const MOTIONS = [["trace", "Path", "Pick a flow or contract to see the route it takes, step by step"],
-    ["ripple", "Impact", "Pick an app or decision to see what depends on it, spreading outward"],
-    ["trains", "Animate flows", "The line map, with a moving marker running along each flow"]];
-  const read = Settings.read, write = Settings.write;
   const fromHash = HASH.get("fx");
-  let on = fromHash ? fromHash !== "plain" : read(KEY) !== "plain";
-  let motion = HASH.get("motion") || read(MOTION_KEY) || "trace";
-  if (!MOTIONS.some(([m]) => m === motion)) motion = "trace";
-  function apply() {
-    document.documentElement.classList.toggle("plain", !on);
-    const b = $("#fx");
-    if (b) {
-      b.setAttribute("aria-pressed", String(on));
-      b.title = on ? "Animation on: motion and glow show what is urgent. Switch it off for a still page; the colors keep their meaning."
-        : "Animation off: nothing moves, glows or pulses, and every color keeps its meaning. Switch it back on.";
-      $$("button", b).forEach((x) => x.setAttribute("aria-current", String((x.dataset.fx === "on") === on)));
-    }
-  }
+  let on = fromHash ? fromHash !== "plain" : !matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function apply() { document.documentElement.classList.toggle("plain", !on); }
   function set(value) {
     on = !!value;
-    write(KEY, on ? "on" : "plain");
     apply();
     if (typeof Motion !== "undefined") Motion.clear();
     if (typeof rerender === "function" && $("#main").childNodes.length) rerender();
   }
-  function setMotion(m) { motion = m; write(MOTION_KEY, m); }
-  const box = $("#fx");
-  if (box) box.addEventListener("click", (ev) => { const b = ev.target.closest("button[data-fx]"); if (b) set(b.dataset.fx === "on"); });
   apply();
-  return { get on() { return on; }, set, get motion() { return motion; }, setMotion, MOTIONS };
+  return { get on() { return on; }, set };
 })();

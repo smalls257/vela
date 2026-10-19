@@ -52,7 +52,7 @@ if (!Nav.boot()) {
   Nav.syncHash();
   if (open && viewDef(App.view).highlight) viewDef(App.view).highlight(open);
 } else if (open && App.section === "flows" && HASH.has("step") && FLOW[open]) Flows.select(open, +HASH.get("step") - 1);
-if (HASH.get("from") && ent(HASH.get("from"))) (FX.motion === "ripple" ? Nav.ripple : Nav.trace)(HASH.get("from"));
+if (HASH.get("from") && ent(HASH.get("from"))) Nav.trace(HASH.get("from"));
 // Assets arrive after the first paint; redraw with them and keep whatever the view was showing in focus.
 Assets.load().then(() => {
   if (!Assets.R) return;

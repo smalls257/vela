@@ -603,7 +603,7 @@ def test_domain_less_vault_disables_domain_grouping(tmp_path):
     page, data = built(tmp_path, COASTAL_S2, "2026-10-10", "no-domain")
     assert data["map"]["apps"] and all(not a["domain"] for a in data["map"]["apps"])
     assert data["grouping"]["domain"] is False and data["grouping"]["noDomain"] == len(data["map"]["apps"])
-    assert "disabled: groupOff(id) ? true : null" in page
+    assert "disabled: groupOff(id)" in page
     assert "No app has a business area yet, so there is nothing to group by" in page
 
 

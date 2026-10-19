@@ -248,24 +248,26 @@ const Layout = (() => {
     refreshTools();
   }
 
-  /* ------------------------------------------------------------ the map's toolbar */
-  function tools(what = "box") {
-    const saving = canSave(), dirty = moved();
-    const grab = `Drag a ${what} anywhere, or focus it and press an arrow key to nudge it a quarter of a cell (Shift and an arrow key: a whole cell). It stays where you put it; it stops short of another box rather than cover it.`;
-    // how to move a box lives in the tooltip; the line under the map only speaks once there is a move to talk about
-    const hint = !dirty ? "" : saving ? "Your moves are saved to the plan." : "Your moves stay in this browser.";
-    toolsFor = what;
-    return h("span", { class: "tool-unit layout-tools", title: `${grab} ${saving ? "A move is saved to the plan for everyone." : "A move stays in this browser. To share it, download the layout and send it to the plan's owner."}` },
-      h("span", { class: "tool-label sep" }, "Arrange"),
-      h("button", { class: "chip", "data-layout": "reset", disabled: dirty ? null : true, title: "Put every box back where this page was built with it", onclick: reset }, "Reset layout"),
-      saving ? null : h("button", { class: "chip", "data-layout": "copy", title: "Copy the layout, to send to the plan's owner", onclick: copy }, "Copy layout"),
-      saving ? null : h("button", { class: "chip", "data-layout": "download", title: "Download the layout as a file, to send to the plan's owner", onclick: download }, "Download layout"),
-      h("span", { class: "tool-hint layout-say", id: "layout-say", role: "status", "aria-live": "polite" }, note || hint));
-  }
+  /* ------------------------------------------------------------ the map's bar */
+  /* The layout's part of the diagram bar (menus.js): the line that answers a move, and the actions the ... menu lists. */
+  const hint = () => (!moved() ? "" : canSave() ? "Your moves are saved to the plan." : "Your moves stay in this browser.");
+  const grabHelp = (what) => `Drag a ${what} anywhere, or focus it and press an arrow key to nudge it a quarter of a cell (Shift and an arrow key: a whole cell). It stays where you put it; it stops short of another box rather than cover it. ${canSave() ? "A move is saved to the plan for everyone." : "A move stays in this browser. To share it, download the layout and send it to the plan's owner."}`;
   let toolsFor = "box";
+  // how to move a box lives in the tooltip; the line only speaks once there is a move to talk about
+  function sayEl(what = "box") {
+    toolsFor = what;
+    return h("span", { class: "dia-hint layout-say layout-tools", id: "layout-say", role: "status", "aria-live": "polite", title: grabHelp(what) }, note || hint());
+  }
+  function menuItems() {
+    return [
+      { id: "reset", label: "Reset layout", say: "Put every box back where this page was built with it", disabled: !moved(), why: "Nothing has been moved", attrs: { "data-layout": "reset" }, run: reset },
+      canSave() ? null : { id: "copy", label: "Copy layout", say: "Copy the layout, to send to the plan's owner", attrs: { "data-layout": "copy" }, run: copy },
+      canSave() ? null : { id: "download", label: "Download layout", say: "Download the layout as a file, to send to the plan's owner", attrs: { "data-layout": "download" }, run: download },
+    ].filter(Boolean);
+  }
   function refreshTools() {
-    const old = $(".layout-tools"), fresh = tools(toolsFor);
-    if (old) old.replaceWith(fresh);
+    const el = $("#layout-say");
+    if (el) { el.textContent = note || hint(); el.title = grabHelp(toolsFor); }
   }
 
   /* A served page asks the helper for the layout it holds now: the page file is as old as its build. */
@@ -286,6 +288,6 @@ const Layout = (() => {
   /* For #selftest: a page played as served against a fake fetch, then put back as it was. */
   const snapshot = () => ({ base: clone(base), built: clone(built), mine: clone(mine), note });
   function restore(s) { base = s.base; built = s.built; mine = s.mine; note = s.note; live = null; apply(); remember(); }
-  return { cell, cells, blocker, check, verdict, landing, along, drag, endDrag, drop, move, moveToward, step, clusterAt, placeClusters, reset, copy, download, tools, boot, say, moved, canSave, net,
+  return { cell, cells, blocker, check, verdict, landing, along, drag, endDrag, drop, move, moveToward, step, clusterAt, placeClusters, reset, copy, download, sayEl, menuItems, boot, say, moved, canSave, net,
     get live() { return live; }, get note() { return note; }, layoutJson, snapshot, restore, setCopy: (fn) => { copyFn = fn; }, KIND: kindOf, FRAME, BOX: { w: F.boxW, h: F.boxH }, GAP: F.gap, STEP, tidy };
 })();

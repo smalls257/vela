@@ -259,7 +259,7 @@ def sections(vault, keys):
 
 
 def outgoing(vault, keys):
-    """Every page's and item's outgoing links, as keys: what a decision's ripple starts from."""
+    """Every page's and item's outgoing links, as keys: what a decision's neighbors are found from."""
     out = {}
     for page in vault.pages:
         if page.path.startswith(("voice/", "sessions/")):

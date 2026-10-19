@@ -35,17 +35,16 @@ const Flows = (() => {
         if (p.playing && p.cur >= 0) {
           const step = f.steps[p.cur];
           if (tau > FlowKit.travelTime(step, TRAVEL) + (p.present ? 3.0 : 3.4)) {
-            if (p.cur < f.steps.length - 1) p.go(p.cur + 1); else { p.pause(); Sound.chime(); }
+            if (p.cur < f.steps.length - 1) p.go(p.cur + 1); else p.pause();
           }
         }
       }
       requestAnimationFrame(p.frame);
     };
-    p.go = (i, sound = true) => {
+    p.go = (i) => {
       const n = flow().steps.length;
       p.cur = clamp(i, -1, n - 1);
       p.entered = performance.now();
-      if (p.cur >= 0 && sound) Sound.playStep(flow().steps[p.cur], TRAVEL / st.speed);
       opts.onStep && opts.onStep(p);
     };
     p.play = () => { p.playing = true; if (p.cur === -1 || p.cur === flow().steps.length - 1) p.go(0); else p.go(p.cur); opts.onPlay && opts.onPlay(p); };
@@ -69,8 +68,8 @@ const Flows = (() => {
       const t = hitAt(e);
       if (!t) return;
       if (t.type === "unknown" || t.type === "contract") { if (!p.present) go(t.id, {}); else opts.onPick && opts.onPick(t); }
-      else if (t.type === "ref") { p.key = t.id; p.go(-1, false); opts.onFlow && opts.onFlow(p); }
-      else if (t.type === "lane") { if (!p.present) go(t.id, {}); if (!Assets.theme(t.id)) Sound.lane(t.id, undefined, { gain: 0.45, dur: 1.2 }); }
+      else if (t.type === "ref") { p.key = t.id; p.go(-1); opts.onFlow && opts.onFlow(p); }
+      else if (t.type === "lane") { if (!p.present) go(t.id, {}); }
       else if (t.si !== undefined) { p.pause(); p.go(t.si); if (!p.present) go(stepNote(p.key, flow().steps[t.si]), { reset: true }); }
     });
     requestAnimationFrame(p.frame);
@@ -82,17 +81,19 @@ const Flows = (() => {
     if (!D.flows.length) { main.append(emptyState("No flows yet.", "Once the plan writes a flow with its steps, it plays here, step by step across the apps.", "/vela:boundary")); return; }
     const f = FlowKit.flowOf(st.key);
     const picker = FlowPicker.make({ current: () => st.key, onPick: (key) => select(key, -1) });
-    const actions = h("div", { class: "flow-actions" },
-      h("button", { class: "btn", onclick: () => Rehearse.open(st.key), title: "Quiz yourself: rebuild the flow from memory, then reveal it" }, svgIcon("rehearse"), "Rehearse this flow"),
-      h("button", { class: "btn", id: "clip-btn", onclick: saveClip, title: clipNote() }, svgIcon("download"), "Save as video"),
-      h("button", { class: "btn primary", id: "present-btn", onclick: () => present(st.key, Math.max(0, st.cur)), title: "Present full screen (P)" }, svgIcon("present"), "Present"));
+    const present_ = h("button", { class: "dmenu-btn primary", id: "present-btn", type: "button", onclick: () => present(st.key, Math.max(0, st.cur)), title: "Present full screen (P)" }, svgIcon("present"), "Present");
+    const moreFlow = () => [
+      { id: "rehearse", label: "Rehearse this flow", say: "Quiz yourself: rebuild the flow from memory, then reveal it", run: () => Rehearse.open(st.key) },
+      { id: "clip", label: "Save as video", say: clipNote(), attrs: { id: "clip-btn" }, run: saveClip }];
     const tag = Releases.tracerTag(st.key), pl = Releases.tracerPlace(st.key);
     // the Show picker swaps a branch's steps into this same diagram (branches.js); the step numbers change, so the play head starts over
     const branch = Branches.picker(st.key, () => { st.cur = -1; rerender(); });
-    main.append(h("div", { class: "flows-head" }, picker, ...[branch].filter(Boolean), ...(tag ? [h("span", { class: "tracer-place" }, tag, ` ${Releases.tracerPlaceWords(pl)}`)] : []), actions),
-      ...[Branches.summary(st.key)].filter(Boolean));
-    if (HASH.has("picker")) picker.open();  // #flows&picker opens the list on arrival, for screenshots
     const stage = h("div", { class: "stage" });
+    const diagram = Menus.frame({ barClass: "flows-head", left: [picker, branch], right: [present_, Nav.moreMenu(moreFlow)],
+      say: [tag ? h("span", { class: "tracer-place" }, tag, ` ${Releases.tracerPlaceWords(pl)}`) : null, h("span", { class: "dia-hint", id: "clip-status", role: "status", "aria-live": "polite" })] },
+      ...[Branches.summary(st.key)].filter(Boolean), stage);
+    main.append(diagram);
+    if (HASH.has("picker")) picker.open();  // #flows&picker opens the list on arrival, for screenshots
     const canvas = h("canvas", { class: "stage-canvas", role: "img", "aria-label": `Sequence of ${f.title}` });
     stage.append(canvas);
     const key = Legend.open("flow", { root: () => $(".stage"), probes: FlowKit.flowProbes(() => st.key) });
@@ -100,7 +101,7 @@ const Flows = (() => {
     const nodeList = flowNodes(st.key, () => player);
     const caption = h("section", { class: "caption", id: "caption", "aria-live": "polite" });
     const transport = h("footer", { class: "transport", id: "transport" });
-    main.append(stage, ...[Branches.findings(st.key)].filter(Boolean), key.el(), nodeList, caption, transport);
+    main.append(...[Branches.findings(st.key)].filter(Boolean), key.el(), nodeList, caption, transport);
     key.paint();
     player = makePlayer(canvas, { key: st.key, cur: st.cur, onStep: (p) => { st.cur = p.cur; paintCaption(); paintTransport(); Minimap.refresh(); }, onPlay: paintTransport,
       onFlow: (p) => select(p.key, -1) });
@@ -218,19 +219,19 @@ const Flows = (() => {
     st.key = key; st.cur = step ?? -1;
     if (App.view !== "flows") { showView("flows"); }
     else if (changed || !player || !player.canvas.isConnected) rerender();
-    else { player.pause(); player.go(st.cur, step >= 0); }
+    else { player.pause(); player.go(st.cur); }
     history.replaceState(null, "", `#flows&open=${encodeURIComponent(key)}${st.cur >= 0 ? `&step=${st.cur + 1}` : ""}${Branches.hashPart(key)}`);
   }
   function clipNote() { const fmt = FlowKit.clipFormat(); return fmt ? "Saves this flow as a video you can drop into slides" : "Recording a video doesn't work in this browser; try Chrome"; }
   async function saveClip() {
     await (document.fonts ? document.fonts.ready : Promise.resolve());
     if (recording) return;
-    const f = FlowKit.flowOf(st.key), btn = $("#clip-btn");
+    const f = FlowKit.flowOf(st.key), status = () => $("#clip-status");
     if (!FlowKit.clipFormat()) { toast("This browser can't record video. Try Chrome."); return; }
-    recording = true; if (btn) btn.disabled = true;
+    recording = true;
     try {
       const total = Math.round(FlowKit.clipPlan(f).total);
-      const out = await FlowKit.recordClip(f, { onProgress: (p, T) => { const b = $("#clip-btn"); if (b) b.lastChild.textContent = `Recording ${Math.ceil(T)} of ${total} s`; } });
+      const out = await FlowKit.recordClip(f, { onProgress: (p, T) => { const b = status(); if (b) b.textContent = `Recording ${Math.ceil(T)} of ${total} s`; } });
       window.__clipResult = { ok: true, mime: out.mime, size: out.blob.size, name: out.name };
       if (window.__selftestClip) window.__clipBlob = out.blob;
       if (!window.__selftestClip) FlowKit.download(out.blob, out.name);
@@ -241,7 +242,7 @@ const Flows = (() => {
       toast(`The video didn't save: ${err.message}`);
     } finally {
       recording = false;
-      const b = $("#clip-btn"); if (b) { b.disabled = false; b.lastChild.textContent = "Save as video"; }
+      const b = status(); if (b) b.textContent = "";
     }
   }
 
@@ -286,7 +287,6 @@ const Flows = (() => {
   }
   document.addEventListener("keydown", (e) => {
     if (e.target.closest && e.target.closest("input,textarea,select,[contenteditable]")) return;
-    if (e.key.toLowerCase() === "s" && !e.metaKey && !e.ctrlKey && !e.altKey) { Sound.set(!Sound.enabled); return; }
     // on a focused button, link, tab or option the key belongs to that control: Space presses it, arrows move among tabs
     if (e.target.closest && e.target.closest("button,a[href],[role=tab],[role=option],[role=combobox],[role=button]") && !(e.key === "Escape")) return;
     const pr = presenter && $("#overlay").classList.contains("present") ? presenter : null;

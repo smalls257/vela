@@ -1,8 +1,8 @@
-/* Optional generated art and sound, only through the gallery's resolver (resolve.js), only by slot id.
+/* Optional generated art, only through the gallery's resolver (resolve.js), only by slot id.
 
    build.py inlines resolve.js, a bundle of the slot contract and manifests, and the chosen files as data URIs
    (assets_inline.py), so this works from file://. The page looks and works fully with none of it: every view draws
-   its own marks, textures and tones first, and an asset only replaces one when its slot resolves. Nothing here
+   its own marks, textures first, and an asset only replaces one when its slot resolves. Nothing here
    names a file or a provider. A failure is reported in the console and in Assets.status, never swallowed. */
 const Assets = {
   R: null, status: "none", fellBack: [], listeners: new Set(),
@@ -26,12 +26,6 @@ const Assets = {
   /* The explorer is dark, so an emblem made for a dark ground comes first; a light one would sit as a pale square. */
   emblem(key) { return this.url(this.slotFor("emblem-on-dark", key)) || this.url(this.slotFor("emblem", key)); },
   texture(name) { return this.url(this.R && this.R.slots().includes("texture." + name) ? "texture." + name : null); },
-  /* Plays an audio slot when sound is on; false when there is nothing to play, so the caller uses its own tone. */
-  play(id, opts) {
-    if (!this.R || !Sound.enabled || !id || !this.R.slots().includes(id)) return false;
-    try { return this.R.play(id, opts) || true; } catch (e) { console.warn(`[assets] ${id} did not play: ${e.message}`); return false; }
-  },
-  theme(key) { return this.play(this.slotFor("theme", key), { volume: 0.5 }); },
   onReady(fn) { this.listeners.add(fn); if (this.R) fn(this); },
   async load() {
     if (!window.ASSET_REPORT) { this.status = "no assets in this build: the page's own drawing only"; return; }

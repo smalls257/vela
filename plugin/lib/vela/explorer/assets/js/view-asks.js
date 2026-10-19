@@ -150,25 +150,26 @@ const Asks = (() => {
     }
     const { list, totals } = bays();
     main.append(h("div", { class: "view-head asks-head" },
-      h("div", {}, h("h1", {}, "Who to ask"), h("p", {}, "Who you need answers from, and by when. Start with the person at the left: their questions fall due first. Click a question to see what it holds up.")),
+      h("div", {}, h("h1", {}, "Who to ask"), h("p", {}, "Who you need answers from, and by when. Start with the person at the left: their questions fall due first. Click a question to see what it holds up.", Nav.ledeLink())),
       h("div", { class: "spacer" }),
       h("input", { type: "search", class: "board-find", placeholder: "Find a question or a person", value: st.q, oninput: (e) => { st.q = e.target.value.trim(); repaint(); } }),
-      h("div", { class: "seg", role: "group", "aria-label": "Due within" }, [[7, "Due in 7 days"], [14, "14 days"], [30, "30 days"], [9999, "Any time"]].map(([d, label]) =>
-        h("button", { "aria-pressed": String(st.days === d), onclick: () => { st.days = d; st.widened = false; rerender(); } }, label))),
       h("button", { class: "chip" + (st.holdingOnly ? " on" : ""), onclick: () => { st.holdingOnly = !st.holdingOnly; rerender(); }, title: "Only questions that say what they block" }, "Blocking something"),
       h("label", { class: "meet-pick" }, "Meeting with ", h("select", { onchange: (e) => meet(e.target.value) },
         h("option", { value: "" }, "pick a person"), list.filter((b) => b.key !== CRIT && b.open.length).map((b) => h("option", { value: b.key, selected: st.meeting === b.key ? "" : null }, `${b.person.name} (${b.open.length})`))))));
-    main.append(h("div", { class: "countline", id: "asks-tally" }, tally(list, totals)));
-    main.append(h("nav", { class: "rack-index", id: "rack-index" }, list.filter((b) => b.key !== CRIT || b.open.length).map((b) => h("button", { "data-jump": b.key, class: (b.key === CRIT ? "crit " : "") + (b.open.some((u) => u.light.level === "warning") ? "late" : "") },
-      b.key === CRIT ? "Critical" : b.person.name, h("b", {}, b.open.length)))));
+    const DUE = [[7, "In 7 days", "questions due this week, and any overdue"], [14, "In 14 days", "the next two weeks, and any overdue"], [30, "In 30 days", "the next month, and any overdue"], [9999, "Any time", "every open question, whenever it is due"]];
+    const dueMenu = Menus.menu({ id: "due", label: "Due", current: DUE.find(([d]) => d === st.days)[1], title: "Show the questions due within this long",
+      items: () => DUE.map(([d, label, say]) => ({ id: String(d), label, say, checked: st.days === d, attrs: { "data-days": String(d) }, run: () => { st.days = d; st.widened = false; rerender(); } })) });
+    const diagram = [h("div", { class: "countline", id: "asks-tally" }, tally(list, totals)),
+      h("nav", { class: "rack-index", id: "rack-index" }, list.filter((b) => b.key !== CRIT || b.open.length).map((b) => h("button", { "data-jump": b.key, class: (b.key === CRIT ? "crit " : "") + (b.open.some((u) => u.light.level === "warning") ? "late" : "") },
+        b.key === CRIT ? "Critical" : b.person.name, h("b", {}, b.open.length))))];
     if (st.meeting) {
       const b = list.find((x) => x.key === st.meeting);
-      if (b) main.append(h("div", { class: "meeting-banner" }, h("b", {}, `Meeting with ${b.person.name}`),
+      if (b) diagram.push(h("div", { class: "meeting-banner" }, h("b", {}, `Meeting with ${b.person.name}`),
         h("span", {}, `${plural(b.open.length, "question")} to ask, ${b.open.filter((u) => marks.asked[u.id]).length} ticked as asked. Turn a question over to tick it; each tick becomes a line in the changes list.`),
         h("button", { class: "btn", onclick: () => meet("") }, "Done")));
     }
     const wrap = h("div", { class: "board-wrap", id: "asks-wrap" }, h("div", { class: "strip-board", id: "strip-board", html: list.map(bayHtml).join("") }));
-    main.append(wrap, tray());
+    main.append(Menus.frame({ left: [dueMenu], right: [Nav.moreMenu()] }, ...diagram, wrap), tray());
     renderTray();
     if (!D.asks.length) wrap.append(emptyState("No open questions yet.", "Nobody is waiting on an answer. A grill session finds them.", "/vela:grill"));
     const tex = Assets.texture("strip-board");
@@ -268,7 +269,6 @@ const Asks = (() => {
     drag.slot = h("div", { class: "slot" }); drag.strip.after(drag.slot);
     drag.strip.style.display = "none";
     drag.fromBay = drag.toBay = drag.strip.closest(".bay").dataset.bay;
-    Sound.click(null, "lift");
   }
   function placeSlot(x, y) {
     const elx = document.elementFromPoint(x, y), bay = elx && elx.closest(".bay");
@@ -294,7 +294,6 @@ const Asks = (() => {
     const target = d.slot.getBoundingClientRect(), g = d.ghost;
     g.classList.add("settling"); g.style.left = target.left + "px"; g.style.top = target.top + "px"; g.style.transform = "scale(1) rotate(0deg)";
     setTimeout(() => {
-      Sound.click(null, "drop");
       if (d.toBay !== d.fromBay) moveTo(d.id, d.toBay);
       g.remove(); repaint();
       const placed = $(`.strip[data-id="${CSS.escape(d.id)}"]`);
@@ -312,7 +311,7 @@ const Asks = (() => {
       if (a === "crit") { if (marks.critical[id]) delete marks.critical[id]; else moveTo(id, CRIT); }
       if (a === "cock") { if (marks.cocked[id]) delete marks.cocked[id]; else marks.cocked[id] = true; }
       if (a === "asked") { if (marks.asked[id]) delete marks.asked[id]; else marks.asked[id] = true; }
-      save(); Sound.click(null, "drop"); repaint(); return;
+      save(); repaint(); return;
     }
     const done = e.target.closest(".strip.resolved");
     if (done) { flip(done.dataset.id); go(done.dataset.id, { quiet: true }); return; }
@@ -334,7 +333,7 @@ const Asks = (() => {
     if (e.key === "Enter") { e.preventDefault(); flip(id); return; }
     if (strip.classList.contains("resolved")) return;
     const racks = $$(".bay").map((b) => b.dataset.bay), here = strip.closest(".bay").dataset.bay;
-    if (e.key === "[" || e.key === "]") { const i = racks.indexOf(here) + (e.key === "]" ? 1 : -1); if (i < 0 || i >= racks.length) return; moveTo(id, racks[i]); Sound.click(null, "drop"); repaint(); $(`.strip[data-id="${CSS.escape(id)}"]`)?.focus(); }
+    if (e.key === "[" || e.key === "]") { const i = racks.indexOf(here) + (e.key === "]" ? 1 : -1); if (i < 0 || i >= racks.length) return; moveTo(id, racks[i]); repaint(); $(`.strip[data-id="${CSS.escape(id)}"]`)?.focus(); }
     if (e.key === "!") { if (marks.critical[id]) delete marks.critical[id]; else moveTo(id, CRIT); save(); repaint(); $(`.strip[data-id="${CSS.escape(id)}"]`)?.focus(); }
     if (e.key.toLowerCase() === "k") { if (marks.cocked[id]) delete marks.cocked[id]; else marks.cocked[id] = true; save(); repaint(); $(`.strip[data-id="${CSS.escape(id)}"]`)?.focus(); }
   });

@@ -2,14 +2,14 @@
    - Cockpit (default): a dark panel, calm gray where all is well, a lamp lit only where attention.lights says the
      lead is needed. Lit lamps glow steadily; only an overdue one breathes. It can group the apps by domain
      (collapsible clusters) or by business capability (regions), and focus on one app with its direct neighbors
-     (mapgroups.js). Picking something runs the chosen motion, trace or ripple (motion.js).
+     (mapgroups.js). Picking a flow or a contract draws its path (motion.js).
    - Line map: flows are lines and apps are stations. With the Trains motion, a train runs each flow's journey.
    - Matrix: who provides (rows) to whom (columns). Past about 20 boxes or 30 lines a node-link drawing stops
      helping (Ghoniem et al. 2004), so the matrix takes over there unless the apps have domains to cluster by.
    - Releases: the system before and after each release (releases.js). */
 const MapView = (() => {
   const SCALE_NODES = 20, SCALE_LINES = 30, CLUSTER_PAST = 12;
-  const st = { lens: null, group: null, focus: null, open: new Set(), shut: new Set(), line: null, running: true };
+  const st = { lens: null, group: null, focus: null, open: new Set(), shut: new Set(), line: null, running: true, animate: true };
   let linePicker = null;  // the Lines key's flow picker, redrawn when a line is picked on the map
   const lines = () => D.map.contracts.reduce((n, c) => n + c.consumers.filter((k) => k !== c.provider).length, 0);
   const big = () => D.nodes.length > SCALE_NODES || lines() > SCALE_LINES;
@@ -93,26 +93,20 @@ const MapView = (() => {
     const queued = App.section === "home" && typeof Queue !== "undefined";
     const lede = LEDE[queued && mode === "cockpit" ? "home" : mode];
     const head = h("div", { class: "view-head" },
-      h("div", {}, h("h1", {}, st.focus && lens() === "cockpit" ? `${titleOf(st.focus)} and its neighbors` : title), h("p", { class: "lede", title: lede }, lede)),
-      h("div", { class: "spacer" }),
-      typeof Nav !== "undefined" ? Nav.pageActions() : null);
+      h("div", {}, h("h1", {}, st.focus && lens() === "cockpit" ? `${titleOf(st.focus)} and its neighbors` : title), h("p", { class: "lede", title: lede }, lede, typeof Nav !== "undefined" ? Nav.ledeLink() : null)),
+      h("div", { class: "spacer" }));
     main.append(head);
     const col = queued ? h("div", { class: "home-map" }) : main;
-    // On the home page the lens, grouping, motion and layout controls and the count line run the full width above the
-    // queue card and the map, at every window width, so they are where the reader looks first, not under the map.
-    const above = queued ? h("div", { class: "home-tools" }) : main;
-    const tools = toolbar();
-    if (tools) above.append(tools);  // Element.append writes a null as the text "null"
-    above.append(countLine());
     if (App.section === "capabilities" && !hasCapabilities()) col.append(emptyState("No requirements tied to a capability yet,", "so there's nothing to group by.", "/vela:requirements", "inline"));
     const board = h("div", { class: "board board-" + (lens() === "cockpit" && mode !== "cockpit" ? "cockpit board-" + mode : lens()), id: "board" });
     // The matrix's key sits beside (or, in a narrow window, under) the scrolling board and not inside it, so nothing
     // after the table adds scroll room and pushes the frozen head and row names out with the table's edge.
     const stage = lens() === "matrix" ? h("div", { class: "matrix-stage" }, board) : null;
     KEY = lens() === "releases" ? null : Legend.open(keyName(mode), { root: () => $("#board"), probes: keyLooks(mode) });
-    col.append(stage || board);
+    // The view, grouping, focus and layout controls ride on the diagram's own bar (menus.js), under the title and lede.
+    col.append(Menus.frame(diagramBar(), countLine(), stage || board));
     if (KEY) col.append(KEY.el());
-    if (queued) { const width = main.clientWidth; main.append(h("div", { class: "home-wrap" }, above, h("div", { class: "home-stage" + (Queue.folded(width) ? " stacked" : "") }, Queue.card(width), col))); }
+    if (queued) { const width = main.clientWidth; main.append(h("div", { class: "home-wrap" }, h("div", { class: "home-stage" + (Queue.folded(width) ? " stacked" : "") }, Queue.card(width), col))); }
     if (!D.nodes.length) { board.append(emptyState("No apps yet.", "The map fills in once a session names them.", "/vela:boundary")); return; }
     if (lens() === "releases") { Releases.mapLens(board); return; }  // the releases drawing keeps its own key
     if (lens() === "matrix") drawn(() => { const m = matrix(); board.append(m.table); stage.append(m.key); });
@@ -124,31 +118,44 @@ const MapView = (() => {
       highlight(App.focus);  // the board is in the page, so it has its size now
     }
   }
-  /* The second row: grouping, focus and motion, for the lenses they apply to. */
-  function toolbar() {
-    const bar = h("div", { class: "map-tools" });
-    bar.append(h("div", { class: "seg small", role: "group", "aria-label": "Lens" }, [["cockpit", "System map"], ["transit", "Flow lines"], ["matrix", "Who uses whom"], ["releases", "Before and after"]].map(([id, label]) =>
-      h("button", { "aria-pressed": String(lens() === id), "data-lens": id, onclick: () => { st.lens = id; if (id === "transit" && FX.motion !== "trains") FX.setMotion("trains"); if (id === "cockpit" && FX.motion === "trains") FX.setMotion("trace"); rerender(); } }, label))));
-    if (lens() === "cockpit") {
-      bar.append(h("span", { class: "tool-label sep" }, "Group by"), h("div", { class: "seg small", role: "group", "aria-label": "Group the apps by" },
-        [["none", "Nothing"], ["domain", "Business area"], ["capability", "Capability"]].map(([id, label]) => h("button", { "aria-pressed": String(!st.focus && group() === id), "data-group": id,
-          disabled: groupOff(id) ? true : null, title: groupOff(id) ? GROUP_OFF[id] : "",
-          onclick: () => { st.group = id; st.focus = null; rerender(); } }, label))));
-      if (!st.focus && group() !== "none") bar.append(h("button", { class: "chip", onclick: () => { MapGroups.all(true); rerender(); } }, "Open all"), h("button", { class: "chip", onclick: () => { MapGroups.all(false); rerender(); } }, "Close all"));
-      const app = st.focus || (App.focus && APPS[App.focus] ? App.focus : null);
-      if (st.focus) bar.append(h("button", { class: "chip on", onclick: () => { st.focus = null; rerender(); } }, "Back to the whole map"));
-      else bar.append(h("button", { class: "chip", disabled: app ? null : true, title: app ? "Show this app and the apps it connects to" : "Pick an app on the map first", onclick: () => { st.focus = app; rerender(); } }, app ? `Show ${titleOf(app)} and its neighbors` : "Show one app and its neighbors"));
-    }
-    if (lens() === "cockpit" || lens() === "transit") {
-      const say = FX.MOTIONS.find(([id]) => id === FX.motion)[2];
-      bar.append(h("span", { class: "tool-unit" }, h("span", { class: "tool-label sep" }, "Show"), h("div", { class: "seg small", role: "group", "aria-label": "Show on the map" },
-        FX.MOTIONS.map(([id, label, say]) => h("button", { "aria-pressed": String(FX.motion === id), "data-motion": id, title: say,
-          onclick: () => { FX.setMotion(id); st.lens = id === "trains" ? "transit" : "cockpit"; rerender(); } }, label))),
-        h("span", { class: "tool-hint" }, FX.on ? say : say.replace(/, step by step|, spreading outward/, "") + " (shown all at once while animation is off)")));
-      if (lens() === "transit" && FX.motion === "trains" && FX.on) bar.append(h("button", { class: "chip", onclick: (ev) => { st.running = !st.running; ev.currentTarget.textContent = st.running ? "Pause" : "Play"; } }, st.running ? "Pause" : "Play"));
-    }
-    if (lens() === "cockpit" && !st.focus) bar.append(Layout.tools(group() === "none" ? "box" : "cluster"));
-    return bar.childNodes.length ? bar : null;
+  /* The bar on the diagram: View and Group menus on the left, the focus button and the ... menu on the right, and
+     the line that says what picking does between them. */
+  const LENSES = [["cockpit", "System map", "every app, and what connects them"], ["transit", "Flow lines", "each flow drawn as a line across the apps"],
+    ["matrix", "Who uses whom", "who provides to whom, as a table"], ["releases", "Before and after", "the system before and after each release"]];
+  const GROUPS = [["none", "None", "one box for each app"], ["domain", "Business area", "apps gathered by the business area they belong to"], ["capability", "Capability", "apps gathered by the capability they deliver"]];
+  // a refinement inside the map (a view, a grouping) replaces the address rather than adding to the history
+  const refine = () => { if (typeof Nav !== "undefined") Nav.syncHash({ replace: true }); rerender(); };
+  function viewItems() {
+    const onMap = App.view === "map", animating = onMap && lens() === "transit" && st.animate;
+    const items = LENSES.map(([id, label, say]) => ({ id, label, say, checked: onMap && lens() === id, run: () => { st.lens = id; if (onMap) refine(); else showView("map"); } }));
+    items.push({ separator: true }, { id: "animate", label: "Animate flows", say: FX.on ? "a marker runs along each flow on the flow lines" : "off while this browser asks for less motion", checkbox: true, checked: animating, disabled: !FX.on, why: "This browser asks for less motion, so nothing moves.",
+      run: () => { st.animate = onMap && lens() === "transit" ? !st.animate : true; st.lens = "transit"; if (onMap) refine(); else showView("map"); } });
+    return items;
+  }
+  function groupMenu() {
+    const label = (id) => GROUPS.find(([g]) => g === id)[1];
+    return Menus.menu({ id: "group", label: "Group", current: label(group()), title: "Group the apps by business area or capability",
+      items: () => GROUPS.map(([id, name, say]) => ({ id, label: name, say, checked: !st.focus && group() === id, disabled: groupOff(id), why: GROUP_OFF[id], run: () => { st.group = id; st.focus = null; refine(); } })) });
+  }
+  function focusButton() {
+    if (lens() !== "cockpit") return null;
+    const app = st.focus || (App.focus && APPS[App.focus] ? App.focus : null);
+    const say = st.focus ? "Back to the whole map" : "Show one app and its neighbors";
+    return h("button", { class: "dmenu-btn icon", id: "focus-btn", type: "button", "aria-pressed": String(!!st.focus), "aria-disabled": st.focus || app ? null : "true", "aria-label": say,
+      title: st.focus ? say : app ? `Show ${titleOf(app)} and its neighbors` : `${say}: pick an app on the map first`,
+      onclick: () => { if (st.focus) { st.focus = null; refine(); } else if (app) { st.focus = app; refine(); } else toast("Pick an app on the map first, then show it with its neighbors."); } },
+      Menus.icon("focus"), st.focus ? h("span", {}, "Back to the whole map") : null);
+  }
+  function moreItems() {
+    const grouped = lens() === "cockpit" && !st.focus && group() !== "none";
+    return [...(lens() === "cockpit" && !st.focus ? Layout.menuItems() : []),
+      grouped ? { id: "open-all", label: "Open all groups", run: () => { MapGroups.all(true); rerender(); } } : null,
+      grouped ? { id: "close-all", label: "Close all groups", run: () => { MapGroups.all(false); rerender(); } } : null];
+  }
+  function diagramBar() {
+    const cockpit = lens() === "cockpit";
+    return { left: [Nav.viewMenu(), cockpit ? groupMenu() : null], right: [focusButton(), Nav.moreMenu(moreItems)],
+      say: [cockpit ? h("span", { class: "dia-hint" }, "Pick a contract or a flow to see its path.") : null, cockpit && !st.focus ? Layout.sayEl(group() === "none" ? "box" : "cluster") : null] };
   }
 
   /* ------------------------------------------------------------ the count line */
@@ -367,7 +374,7 @@ const MapView = (() => {
     const shape = (attrs) => o.clip ? s("path", { d: clipped(o.x, o.y, o.w, o.h, 12), ...attrs }, grp) : s("rect", { x: o.x, y: o.y, width: o.w, height: o.h, rx: o.rx, ...attrs }, grp);
     if (glows) {
       const halo = shape({ fill: color, filter: "url(#ck-glow)", opacity: 0.32, class: "halo" });
-      pulses.push({ el: halo, level, urgency: light.urgency, period: pulsePeriod(light.urgency), phase: (hash(o.key) % 1000) * 5, lastPeak: null, key: o.key });
+      pulses.push({ el: halo, level, urgency: light.urgency, period: pulsePeriod(light.urgency), phase: (hash(o.key) % 1000) * 5, key: o.key });
     }
     shape({ fill: Theme.c("face-drop"), transform: "translate(0,2)" });
     const face = shape({ fill: isLit && !ringed ? color : "url(#ck-lens)", stroke: Theme.c("face-edge"), "stroke-width": 2, class: "face" });
@@ -387,7 +394,7 @@ const MapView = (() => {
       if (o.sub) s("text", { x: tx, y: o.kind === "cluster" ? o.y + 62 : o.y + o.h / 2 + 15, "text-anchor": "middle", class: "node-sub" }, grp).textContent = shorten(o.sub, o.kind === "cluster" ? 40 : 34);
     }
     s("title", {}, grp).textContent = light ? `${o.title || o.label}: ${LIGHT[level].word}` : `${o.title || o.label} (outside service). Its status shows on the contracts that connect to it.`;
-    const pick = o.onpick || (() => { go(o.key, { reset: true }); if (o.kind === "app" || o.kind === "partner") Assets.theme(o.key); });
+    const pick = o.onpick || (() => { go(o.key, { reset: true }); });
     Nodes.wire(grp, { label: o.title || o.label || o.key, aria: o.aria || `${o.title || o.label}: ${light ? LIGHT[level].word : "outside service, no status of its own"}. ${o.sub || ""}`, open: pick, guard: () => !justDropped() });
     grp.addEventListener("mousemove", (e) => showTip(e, `<b>${esc(o.title || o.label)}</b>${light ? esc(LIGHT[level].word) + (light.reasons[0] ? ": " + esc(reasonText(light.reasons[0])) : "") : "Outside service: its status shows on the contracts that connect to it"}`));
     grp.addEventListener("mouseleave", hideTip);
@@ -405,9 +412,6 @@ const MapView = (() => {
         const x = (now + p.phase) / (p.period * 1.6), wave = breathes ? 0.5 - 0.5 * Math.cos(2 * Math.PI * x) : 0.5;
         p.el.setAttribute("opacity", (0.14 + 0.3 * wave).toFixed(3));
         if (p.shade) p.shade.setAttribute("opacity", breathes ? (0.18 * (1 - wave)).toFixed(3) : "0");
-        const peak = Math.floor(x + 0.5);
-        if (breathes && p.lastPeak !== null && peak !== p.lastPeak && App.view === "map") Sound.breath(p.level, p.urgency, p.key);
-        p.lastPeak = peak;
       }
       requestAnimationFrame(frame);
     }
@@ -456,7 +460,7 @@ const MapView = (() => {
     const taken = $$("g.station, .zone-text", map).map((el) => { const b = el.getBBox(); return { x: b.x, y: b.y, w: b.width, h: b.height }; });
     for (const cor of Object.values(L.corridors)) trackLabel(cor, L, gLabels, taken);
     works(L, gWorks);
-    if (FX.motion === "trains" && FX.on) buildTrains(L, gTrains);
+    if (st.animate && FX.on) buildTrains(L, gTrains);
     stripEl = h("div", { class: "line-strip" });
     board.append(stripEl);
     if (st.line) selectLine(st.line);
@@ -539,7 +543,7 @@ const MapView = (() => {
     }
     stn.labelSide = side;
     names.push(put(side));
-    const open = () => { go(n.key, { reset: true }); Assets.theme(n.key); };
+    const open = () => { go(n.key, { reset: true }); };
     Nodes.wire(grp, { label: n.title, aria: `${n.title}. Open details.`, open });
   }
   /* Engineering works: open questions on the track or station they hold up, from each question's Blocks line. Each
@@ -664,7 +668,6 @@ const MapView = (() => {
       const ring = s("rect", { x: stn.x - stn.w / 2, y: stn.y - stn.h / 2, width: stn.w, height: stn.h, rx: Math.min(stn.w, stn.h) / 2, fill: "none", stroke: Geo.flowColor(t.order), "stroke-width": 3, class: "arrival" }, gPulses);
       ring.style.transformOrigin = `${stn.x}px ${stn.y}px`;
       setTimeout(() => ring.remove(), 1100);
-      Sound.arrival(t.order);
     }
     function frame(now) {
       if (!trains.length || !trains[0].el.isConnected) { running = false; return; }
@@ -754,12 +757,12 @@ const MapView = (() => {
     if (lens() === "matrix" && key) { const cur = $(".grid-wrap"); if (cur) { const w = $("#board"), top = w.scrollTop, left = w.scrollLeft; rerender(); Object.assign($("#board"), { scrollTop: top, scrollLeft: left }); } }
     if (key && lens() === "cockpit" && typeof Motion !== "undefined") { if (st.focus || group() !== "none") MapGroups.highlight(key); Motion.onPick(key); }
     if (KEY && KEY.host && KEY.host.isConnected && lens() !== "matrix") { KEY.set("picked", !!$("g.hit.picked, path.duct.picked, g.station.picked, .focus-center", board), mode() === "focus" ? "White outline: the app in focus, and what you pick" : null); KEY.paint(); }
-    const bar = $(".map-tools"), fresh = toolbar();
-    if (bar && fresh) bar.replaceWith(fresh);  // "Focus on <the app you picked>"
+    const focusBtn = $("#focus-btn"), fresh = focusButton();
+    if (focusBtn && fresh) focusBtn.replaceWith(fresh);  // "Show <the app you picked> and its neighbors"
   }
   const mode = () => (lens() === "cockpit" ? (st.focus ? "focus" : group() === "none" ? "cockpit" : group()) : lens());
   function here() { return App.focus ? mapAnchors(App.focus) : []; }
-  return { LOOKS: { cockpit: COCKPIT_LOOKS, focus: () => ({ ...COCKPIT_LOOKS(), ...MapGroups.LOOKS_FOCUS }) }, render, highlight, here, lens, group, st, lamp, fitSvg, shortWhy, startBreathing: () => breathe.start(), big, COCKPIT, markDrop, clearDrop, justDropped, resetPulses: () => { pulses = []; }, CLUSTER_PAST };
+  return { LOOKS: { cockpit: COCKPIT_LOOKS, focus: () => ({ ...COCKPIT_LOOKS(), ...MapGroups.LOOKS_FOCUS }) }, render, highlight, here, lens, group, viewItems, st, lamp, fitSvg, shortWhy, startBreathing: () => breathe.start(), big, COCKPIT, markDrop, clearDrop, justDropped, resetPulses: () => { pulses = []; }, CLUSTER_PAST };
 })();
 View("map", { label: "Map", title: "Your apps, the contracts between them, and what needs you", render: MapView.render, highlight: MapView.highlight,
   count: () => `${D.map.apps.length}·${D.map.contracts.length}`, lamp: () => { const top = litSubjects()[0]; return top ? top.light.level : null; } });

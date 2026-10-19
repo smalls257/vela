@@ -24,7 +24,8 @@ const ProgressView = (() => {
   function render(main) {
     const P = D.progress, sc = h("div", { class: "scroll pages" });
     main.append(h("div", { class: "view-head" }, h("div", {}, h("h1", {}, "Progress"),
-      h("p", {}, "Each app's planning stage and what's still waiting on someone. The suggested next step is at the top."))), sc);
+      h("p", {}, "Each app's planning stage and what's still waiting on someone. The suggested next step is at the top.", Nav.ledeLink())),
+      h("div", { class: "spacer" }), Nav.pageActions()), sc);
     const totals = [0, 0, 0, 0];
     P.rows.forEach((r) => r.mix.forEach((n, i) => { totals[i] += n; }));
     const ring = (pct) => {
