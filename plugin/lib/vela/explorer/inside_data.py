@@ -136,7 +136,7 @@ def integration_stubs(design, vault, keys, app):
                 continue
             ids = CON.findall(name)
             if ids and any(set(ids) <= set(s["contracts"]) for s in stubs):
-                continue  # "Microsoft over CON-001" is the Microsoft 365 row the table already lists, said another way
+                continue  # the same contract the table already lists for an outside system, said another way
             stubs.append({"system": re.sub(r"\s*\(.*?\)\s*", " ", name).strip(), "direction": "out", "protocol": "",
                           "auth": "", "contracts": ids, "nodes": nodes_for(name, ids), "component": c["name"],
                           "how": "it depends on it, though the design doesn't list it as an outside system", "line": c["line"]})
