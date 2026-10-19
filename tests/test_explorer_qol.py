@@ -120,7 +120,8 @@ def test_theme_is_one_gear_at_the_far_right(chrome, heron):
 def test_left_menu_names_and_a_folded_read_group(chrome, heron):
     """Finding 11: flow names drop what they share; the text-first pages fold under Read."""
     lines = selftest(chrome, heron, 1440)
-    need(lines, "menu: ", "menu: Constraints, Context, Strategy and Glossary sit under one Read heading", "menu: Read opens", "menu: Read stays open")
+    need(lines, "menu: ", "menu: Constraints, Context, Strategy and Glossary sit under one Read heading", "menu: Read opens", "menu: Read stays open",
+         "menu: the expand triangle is ", "menu: the triangle alone folds")
 
 
 @pytest.mark.browser

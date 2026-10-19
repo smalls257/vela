@@ -180,6 +180,19 @@
     Nav.open("glossary"); await tick();
     ok(!$("#side-read").hidden && $("#side .side-link[data-section=glossary]").getAttribute("aria-current") === "page", "menu: Read stays open on one of its pages, with that page marked", "menu: Read closed on its own page");
     Nav.st.expanded.delete("read"); Nav.home(); await tick();
+    await caretTarget(ok);
+  }
+  /* The triangle is the only thing that folds a list, so it is a target a hand can hit: 28 px square, as tall as its row, and a click on it (not on the row's name) folds. */
+  async function caretTarget(ok) {
+    Nav.st.expanded.delete("apps"); Nav.home(); Nav.refresh(); await tick();
+    const caret = $("#side .side-row:has(.side-link[data-section=apps]) button.side-caret");
+    if (!caret) { ok(true, "menu: the expand triangle is only on a row with something under it (the Apps row has nothing here)"); return; }
+    const was = Nav.st.expanded.has("apps"), at = App.section, r = caret.getBoundingClientRect(), rr = caret.parentElement.getBoundingClientRect();
+    ok(r.width >= 28 && r.height >= 28 && Math.abs(rr.height - r.height) < 6 && parseFloat(getComputedStyle(caret).fontSize) >= 14,
+      `menu: the expand triangle is ${Math.round(r.width)}x${Math.round(r.height)} px (at least 28x28) in a ${Math.round(rr.height)} px row, with a larger glyph`, `menu: the expand triangle is ${Math.round(r.width)}x${Math.round(r.height)} px in a ${Math.round(rr.height)} px row`);
+    caret.click(); await tick();
+    ok(Nav.st.expanded.has("apps") !== was && App.section === at, "menu: the triangle alone folds and unfolds the list, and does not open the page", `menu: the triangle did not toggle the list by itself (expanded ${was} -> ${Nav.st.expanded.has("apps")}, section ${at} -> ${App.section})`);
+    Nav.st.expanded.delete("apps"); Nav.home(); Nav.refresh(); await tick();
   }
 
   /* Finding 12: a few slices open without search and filter rows, the Key is a ? in the bar, and "Comes after" says
