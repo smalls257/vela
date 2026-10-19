@@ -11,3 +11,5 @@ criteria:
     at_most: 0
   - check: claims-unsupported
     at_most: 0
+  - check: design-choice-without-yes
+    at_most: 0

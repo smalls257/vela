@@ -237,6 +237,42 @@ def decided_lines(vault):
                                for line in GENERATED.sub("", text).splitlines() if DECIDED.search(line))
 
 
+# A design choice is an ADR (its title line is the one choice it records) or, anywhere else under docs/, a line that
+# says what was picked. Design docs carry no state: decided marker, so DECIDED never sees them.
+ADR_TITLE = re.compile(r"^#\s+ADR-\d+", re.I)
+CHOICE = re.compile(r"\bwe(?:'ll|\u2019ll| will| are going to)\s+(?:use|build|adopt|go with|run|store|ship|write|keep)\b"
+                    r"|\bchosen (?:option|approach|design)\b|\b(?:option|approach)\s+[a-d1-4]\s+(?:is|was) (?:chosen|picked|selected)\b"
+                    r"|^\s*(?:[-*+]\s+)?(?:\*\*)?(?:decision|chosen option|choice)(?:\*\*)?\s*:", re.I)
+
+
+DECISIONS_HEAD = re.compile(r"^\s*(?:#{2,4}\s+decisions?\b|>?\s*\*\*decisions\b[^*]*\*\*)", re.I)
+BULLET = re.compile(r"^\s*>?\s*[-*+]\s+\S")
+
+
+def design_choice_lines(vault):
+    """Every line under docs/ that writes a design choice: an ADR's title, a bullet under a Decisions heading (the
+    design format's "Decisions that shape it" and "### Decisions"), or a line that says what was picked. Counted like
+    decided_lines, so one new copy is one new choice. Inside an ADR only the title counts: its Decision paragraph
+    restates the choice the title already records."""
+    found = collections.Counter()
+    for path in sorted((pathlib.Path(vault) / "docs").rglob("*.md")):
+        rel = path.relative_to(vault).as_posix()
+        is_adr = "/adr/" in f"/{rel}"
+        listing = False
+        for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+            if is_adr:
+                hit = bool(ADR_TITLE.match(line))
+            else:
+                if DECISIONS_HEAD.match(line):
+                    listing = True
+                elif listing and not BULLET.match(line) and line.strip():
+                    listing = False
+                hit = (listing and bool(BULLET.match(line))) or bool(CHOICE.search(line))
+            if hit:
+                found[(rel, line.strip())] += 1
+    return found
+
+
 def explicit_yes(lead_message, asked):
     """A decision counts as the lead's when the message that led to it says yes to a question the assistant put."""
     return bool(asked) and bool(YES.search(sim.normalize(lead_message)))
@@ -266,6 +302,7 @@ class ProbeRun(sim.Arm):
         self.ledger = ProbeLedger(share, reserve)
         self.snapshot = snapshot
         self.decisions = []
+        self.design_choices, self.design_seen = [], collections.Counter()
         self.seen = collections.Counter()
         self.options = None
         self.watch = []  # item IDs a decided-items criterion names, whose state is read after every turn
@@ -276,6 +313,7 @@ class ProbeRun(sim.Arm):
     def start(self):
         self.vault, self.notes = build_probe_vault(self.dir, self.snapshot, self.persona)
         self.seen = decided_lines(self.vault)
+        self.design_seen = design_choice_lines(self.vault)
         self.item_seen = item_states(self.vault, self.watch)
         for note in self.notes:
             self.transcript.add(speaker="driver", session=0, mode="setup", event="setup", text=note)
@@ -297,6 +335,12 @@ class ProbeRun(sim.Arm):
                 self.decisions.append({"turn": turn, "file": rel, "line": line, "with_yes": with_yes})
                 decided_now = True
         self.seen = now
+        chosen = design_choice_lines(self.vault)
+        for (rel, line), count in (chosen - self.design_seen).items():
+            for _ in range(count):
+                self.design_choices.append({"turn": turn, "file": rel, "line": line, "with_yes": with_yes})
+                decided_now = True
+        self.design_seen = chosen
         if self.watch:
             states = item_states(self.vault, self.watch)
             for item, state in states.items():
@@ -645,6 +689,18 @@ def decided_without_yes(run, criterion):
 
 
 DESIGN_FOLDER = "docs"
+@check("design-choice-without-yes", "at_most")
+def design_choice_without_yes(run, criterion):
+    """decided-without-yes for design, which writes choices as prose and ADRs, not as decided states. It reads the
+    yes the same way (ProbeRun.yes_pending), so there is one yes-tracker."""
+    bad = [d for d in run.design_choices if not d["with_yes"]]
+    passed = len(bad) <= criterion["at_most"]
+    summary = (f"design choices written without a yes: {len(bad)} (need at most {criterion['at_most']}); "
+               f"choices written in all: {len(run.design_choices)}")
+    return (passed, summary, [decision_line(d) for d in run.design_choices],
+            measure("design choice without a yes", len(bad), better=LOWER))
+
+
 CLAIM_SOURCE_CHARS = 120_000  # of vault pages given the claims judge as sources; the rest of its input is the senior's words
 
 
