@@ -22,7 +22,7 @@ This is what a grill is for; the other sections only set the agenda and file wha
 - Ask one question at a time. Wait for the answer.
 - Give your recommended answer with each question, in the form: question, then *Recommended: <answer>. <one-line reason>.*
 - Look things up in the plan rather than ask.
-- Use a concrete scenario at the edge of the item to force a precise answer. Pick an edge case, not the happy path: "It's 8:58, the call starts at nine, and the calendar service doesn't answer. What does the person see?"
+- Use a concrete scenario at the edge of the item to force a precise answer. Pick an edge case, not the happy path, and frame it as a hypothetical ("Suppose it's 8:58, the call starts at nine, and the calendar service doesn't answer. What does the person see?"). Build it only from what the plan, the inbox or the lead has said. Never state a new dated event, or what a third party reported, as if it had happened.
 - Check each answer against what the plan already holds and what the lead said earlier. Say so when they disagree.
 - Keep your recommendation when the user pushes back without a reason. Change it only for a reason, and say what the reason was.
 - Never answer your own question.
@@ -45,6 +45,8 @@ Capture each answer, and your read-back, with `vela record add --origin <who> --
 ## 2. Start
 
 Run the steps in `${CLAUDE_PLUGIN_ROOT}/references/START.md` with mode `grill`. Read the grill row of `${CLAUDE_PLUGIN_ROOT}/references/MODES.md`.
+
+`vela session brief` lists items the lead already said yes to in a session that couldn't decide ("ready to decide"). Open the agenda with them, and still read each wording back for its own yes.
 
 If the lead names a challenge to answer, by its PR number or the challenged item, START will take its "Answer a challenge" path, on the challenge's own branch, with `modes: [answer, grill]`; read the Answer row of `MODES.md` too. The agenda holds the challenge's unknown and the challenged item. Resolve the unknown with the team lead as its owner, with the `resolve` kind. If the answer changes the item, set it back first with `vela decide --reopen <ID> --why ^cN`, then decide it again through the gate below.
 

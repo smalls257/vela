@@ -30,7 +30,7 @@ These two run in the team's clone after a design is complete. Neither is a sessi
 | `dump` | captures only, and the `## Reviews` of its checkpoint | promoted items at `inkling`, unknowns with owner and ask-by, question ledger rows |
 | `discover` | `sources.md` rows; facts after each correction round, with sources, and the parties and stored value they name | prose, question ledger rows |
 | `shape` | captures only, and the `## Reviews` of its checkpoint | `assumption` items with `**Options considered:**`, question ledger rows |
-| `boundary` | a stub page and `unexamined` concern rows for each app of the picked cut; then, after each sheet's yeses, the app page, its containers and contracts, its runtime page, its capability and flow pages, its concern cells and the unknowns they link, at `assumption`, with a checkpoint commit | prose, question ledger rows |
+| `boundary` | a stub page for each app of the picked cut, with each concern page's "Not looked at yet:" line naming it (no row); then, after each sheet's yeses, the app page, its containers and contracts, its runtime page, its capability and flow pages, its concern cells and the unknowns they link, at `assumption`, with a checkpoint commit | prose, question ledger rows |
 | `grill` | each decided item as its branch closes, with a checkpoint commit | prose, read-back, question ledger rows, decision records for decided pages, glossary terms |
 | `epics` | `draft` epic pages, bullets and criteria only; `decided` only inside its grill part | epic description paragraphs |
 | `requirements` | capability pages it needs; requirements on them at `assumption`, each with a checkpoint commit; unknowns | prose |
@@ -38,6 +38,8 @@ These two run in the team's clone after a design is complete. Neither is a sessi
 | `releases` | `04b-releases.md`: each release's heading, Target, State and rows at `assumption`, with a checkpoint commit; unknowns | prose |
 | `challenge` | the unknown and the `**Dissent:**` line, then its own PR | nothing: a challenge closes its own record |
 | `answer` | what its grill decides, or the item set back, on the challenge's branch | a push to that branch and a comment on the challenge PR, never a new PR |
+
+When the lead says a plain yes to a pick in a session that can't decide (`dump`, `discover`, `shape`, `boundary`, `requirements`, `allocate`, `releases`), run `vela decide` on it anyway: it answers that this session can't decide, marks the item ready to decide, and says to offer the lead a short grill on it now. Do as it says; never leave the yes as an assumption nobody sees again.
 
 No mode writes inside a generated block. `vela render` fills them. Close runs it, and so does `epics`, mid-session, to read its frontier. Whoever runs it stages every file it reports, by exact path.
 

@@ -91,4 +91,6 @@ Once every sheet is written, run the review checkpoint in `${CLAUDE_PLUGIN_ROOT}
 
 ## 6. Finish
 
+When the lead says a plain yes to a pick, run `vela decide` on it: if it answers that this session can't decide and marks the item ready to decide, offer the lead a short grill on it now, as it says.
+
 When the lead says they are done, close as `${CLAUDE_PLUGIN_ROOT}/references/START.md` says under "Closing a session". The next step is a grill on each app's page and its contracts; say the line the lead types by the app's name, such as `/vela:grill Desktop agent`.

@@ -20,4 +20,5 @@ Coach's page names the product lead as owner for now, and no team is recorded to
 | App | State | Why |
 |---|---|---|
 | [[coach-building-blocks\|Coach]] | unknown | [[11-unknowns-and-risks#UNK-018 Who writes the lessons and defines ready\|Who writes the lessons and defines ready]]: who writes the lessons and defines "ready" |
-| [[tickertalk-building-blocks\|TickerTalk]] | unexamined | |
+
+Not looked at yet: [[tickertalk-building-blocks\|TickerTalk]].

@@ -22,4 +22,5 @@ The Coach lead wrote on 9 October, as relayed in [[sources#SRC-16|the answers th
 | App | State | Why |
 |---|---|---|
 | [[coach-building-blocks\|Coach]] | unknown | [[11-unknowns-and-risks#UNK-028 Where a Coach service can run\|Where a Coach service can run]]: where a Coach service can run, and who runs it |
-| [[tickertalk-building-blocks\|TickerTalk]] | unexamined | |
+
+Not looked at yet: [[tickertalk-building-blocks\|TickerTalk]].

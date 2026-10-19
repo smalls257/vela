@@ -320,3 +320,60 @@ def test_a_second_stub_joins_the_one_not_looked_at_line_and_no_empty_row_is_writ
     assert twice.count("Not looked at yet:") == 1
     assert "\nNot looked at yet: [[a\\|A]], [[b\\|B]].\n" in twice
     assert "unexamined" not in twice and textedit.add_not_looked("no table", ("App", "State"), "x") is None
+
+
+# --- add unknown: no second copy of an open question (full3 P14: UNK-070 and UNK-073 asked "will the 18 January slot
+# hold" twice, filed by two sessions with no check).
+def test_a_near_identical_open_question_is_refused_naming_the_existing_one(tmp_path):
+    root = make_vault(tmp_path)
+    item = {"type": "unknown", "name": "Test till", "question": "Is there a test till that we can use?",
+            "owner": "@priya"}
+    _, refusals = plan(root, "add", [item])
+    assert [r.rule for r in refusals] == ["add-duplicate-question"]
+    assert "Till test rig" in refusals[0].plain and "UNK-001" in refusals[0].fix
+    assert "different_because" in refusals[0].override
+
+
+def test_a_different_question_or_a_resolved_twin_is_filed(tmp_path):
+    root = make_vault(tmp_path)
+    other = {"type": "unknown", "name": "Float size", "question": "How much cash float does each till start with?",
+             "owner": "@priya"}
+    assert filed(root, "add", [other])
+    resolved_twin = {"type": "unknown", "name": "VAT line", "question": "Does the receipt need a VAT line?",
+                     "owner": "@priya"}
+    assert filed(root, "add", [resolved_twin])  # UNK-002 is resolved, so it is not an open question to add to
+
+
+def test_the_override_files_it_and_writes_why(tmp_path):
+    root = make_vault(tmp_path)
+    item = {"type": "unknown", "name": "Test till", "question": "Is there a test till we can use?",
+            "owner": "@priya", "different_because": "this one is about the pilot store, not head office"}
+    page = filed(root, "add", [item])[UNKNOWNS]
+    assert "- **Not the same as an open question because:** this one is about the pilot store, not head office" in page
+
+
+def test_same_question_threshold():
+    same = add_unknown.same_question
+    assert same("Will the 18 January slot hold?", "Will the 18 January slot still hold for the pilot?")
+    assert not same("Who owns the till test rig?", "Who pays for the till licence?")
+    assert not same("Hold?", "Hold?")  # too short to call a copy
+
+
+def test_add_unknown_cli_refuses_a_copy_then_files_with_the_reason(tmp_path):
+    root = make_vault(tmp_path)
+    args = ["add", "unknown", "--vault", str(root), "--today", TODAY, "--name", "Test till",
+            "--question", "Is there a test till we can use?", "--owner", "@priya"]
+    code, _ = run(*args)
+    assert code != 0
+    code, _ = run(*args, "--different-because", "pilot store only")
+    assert code == 0
+
+
+def test_the_override_bullet_does_not_trip_the_vault_check(tmp_path):
+    root = make_vault(tmp_path)
+    before = run("check", "--vault", str(root))[1]
+    run("add", "unknown", "--vault", str(root), "--today", TODAY, "--name", "Test till",
+        "--question", "Is there a test till we can use?", "--owner", "@priya", "--different-because", "pilot only")
+    after = run("check", "--vault", str(root))[1]
+    assert "Not the same" not in after
+    assert after.count("error") <= before.count("error")

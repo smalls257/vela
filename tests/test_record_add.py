@@ -121,3 +121,33 @@ def test_no_origin_and_no_known_handle_asks_once_and_writes_nothing(tmp_path, mo
 def test_help_says_origin_defaults_to_the_lead(capsys):
     run("record", "add", "--help")
     assert "Default: the lead, as @<handle> from vela whoami" in " ".join(capsys.readouterr().out.split())
+
+
+def test_every_spelling_of_the_lead_is_written_as_the_handle(tmp_path, monkeypatch):
+    """`lead`, `@lead`, `the lead`, the handle with or without `@`: one spelling reaches the record, so a later
+    `vela decide` (which reads the origin) never refuses on how the lead was named. A role is left as given."""
+    vault = started(tmp_path, monkeypatch)
+    assert run("whoami", "--vault", str(vault), "--set", "sim-lead")[0] == 0
+    spellings = ["lead", "@lead", "the lead", "The Lead", "sim-lead", "@sim-lead", "@Sim-Lead"]
+    typed(vault, "Yes, that is right.")
+    for spelling in spellings:
+        assert add(vault, "--origin", spelling, "--tag", "decision", "Yes, that is right.")[0] == 0
+    lines = [l for l in record_of(vault).read_text(encoding="utf-8").splitlines() if l.startswith("- [decision]")]
+    assert len(lines) == len(spellings)
+    assert all(l.startswith("- [decision] (@sim-lead) ") for l in lines), lines
+
+
+def test_a_role_origin_is_not_taken_for_the_lead(tmp_path, monkeypatch):
+    vault = started(tmp_path, monkeypatch)
+    assert run("whoami", "--vault", str(vault), "--set", "sim-lead")[0] == 0
+    typed(vault, "Yes.")
+    assert add(vault, "--origin", "the security officer", "--tag", "thought", "Yes.")[0] == 0
+    assert "(the security officer)" in record_of(vault).read_text(encoding="utf-8")
+
+
+def test_the_lead_spelled_loosely_with_no_known_handle_asks_once(tmp_path, monkeypatch):
+    vault = started(tmp_path, monkeypatch)
+    before = record_of(vault).read_text(encoding="utf-8")
+    code, output = add(vault, "--origin", "the lead", "--tag", "idea", "x", "--for-lead")
+    assert code == 3 and "GitHub handle" in output
+    assert record_of(vault).read_text(encoding="utf-8") == before

@@ -40,7 +40,7 @@ import pathlib
 from vela import commands, decisions, gates, say
 from vela import override as overrides
 from vela.commands import apply as apply_command
-from vela.decisions import decide, schema, textedit
+from vela.decisions import decide, ready, schema, textedit
 from vela.edge import apply as disk
 from vela.edge import atomic, sessiongit, stagegit
 from vela.edge.vaultgit import GitUnavailable
@@ -147,6 +147,8 @@ def run(args, out):
     # A decision numbers nothing, so no branch is read for IDs; the view still carries the (empty) list `attach` gives.
     staged = textedit.attach(decisions.Staged(vault, disk.reader(root)), today, [])
     _, target = decide.locate(staged, ident)
+    if not (args.reopen or args.stated_in) and target is not None and not ready.can_decide(record.text):
+        return commands.emit(cannot_decide_here(root, record, ident, args), args, out, resolver)
     if target is not None and target.gate:
         keys = gates.flow_keys(vault, target.gate)
         staged.flows = cli.recorded_standings(root, vault, keys, today)[0] if keys else {}
@@ -157,6 +159,22 @@ def run(args, out):
     item = item_from(args, ident, lead_handle(root, record, args), reader)
     result = file_item(item, root, staged, record, reader)
     return commands.emit(result, args, out, resolver)
+
+
+def cannot_decide_here(root, record, ident, args):
+    """A yes in a shape, boundary, releases (...) session is kept, not lost: the item is listed as ready to decide in
+    this record, `vela session brief` shows it to the next grill, and the model is told to offer the lead one now."""
+    text = ready.mark(record.text, ident, record.id, (args.yes or "").strip() or None)
+    wrote = [sessiongit.write_text(root, record.path, text)] if text != record.text else []
+    return say.Result(NAME, exit=say.REFUSED, wrote=wrote, data={"id": ident, "ready_to_decide": True},
+                      refusals=[textedit.refusal(
+                          "decide-not-in-this-session",
+                          "Only a grill sets something as decided, so this stays an idea for now. Want a short "
+                          "grill on it, here and now?",
+                          f"This session can't decide. {ident} is marked ready to decide (the lead said yes in "
+                          f"{record.id}), so the next grill opens with it. Offer the lead a short grill on it now "
+                          "(/vela:grill); if they decline, say it is marked and move on. Nothing was decided.",
+                          override="none: a grill decides it, and the lead can take it later")])
 
 
 def already_result(target):

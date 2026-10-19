@@ -73,6 +73,8 @@ Then run `vela render` and `vela check`, fix every error (E340 and E341 mean a l
 
 ## 4. Review, then finish
 
+When the lead says a plain yes to a pick, run `vela decide` on it: if it answers that this session can't decide and marks the item ready to decide, offer the lead a short grill on it now, as it says.
+
 Run the review checkpoint in `${CLAUDE_PLUGIN_ROOT}/references/REVIEW.md`, with the checkpoint "after the releases are written" and `04b-releases.md` as its focus. Show the digest as REVIEW says and capture what the lead takes.
 
 When the lead says they are done, close as `${CLAUDE_PLUGIN_ROOT}/references/START.md` says under "Closing a session". Then a grill on the releases decides them, and `/vela:epics` cuts each team's epics against them.

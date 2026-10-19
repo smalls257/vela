@@ -142,3 +142,10 @@ def test_shape_shows_an_option_by_name_with_a_pick_and_why():
     example = SHAPE.split("> **Unlock at the dock.**", 1)[1].split("\n", 1)[0]
     assert "My pick:" in example and "(partners)" in example
     assert not re.search(r"\b(?:APP|CON|F\d|R-)", example)
+
+
+
+def test_shape_says_what_to_do_with_the_ready_to_decide_hand_off():
+    from conftest import REPO
+    text = (REPO / "plugin/skills/shape/SKILL.md").read_text(encoding="utf-8")
+    assert "run `vela decide` on it" in text and "ready to decide, offer the lead a short grill" in text

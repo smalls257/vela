@@ -8,4 +8,4 @@ authored: authored
 
 # Decisions
 
-One page per decision, named `ADR-nnnn-<slug>.md`.
+Each decision big enough to need its own page gets one here: what was decided, the options turned down, and why. Smaller decisions are recorded on the pages they affect.

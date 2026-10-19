@@ -52,3 +52,27 @@ def test_cell_linking_a_page_that_is_not_an_app(mini):
     _, out = check(mini)
     assert ("E301", TESTING) in primary(out)
     assert "not an app page" in out
+
+
+def test_an_app_on_the_not_looked_at_yet_line_is_covered(mini):
+    edit(mini / TESTING, "| [[stock-building-blocks\\|Stock]] | unchanged | Existing tests hold |\n",
+         "\nNot looked at yet: [[stock-building-blocks\\|Stock]].\n")
+    _, out = check(mini)
+    assert primary(out) == []
+
+
+def test_an_app_on_neither_the_table_nor_the_line_still_errors(mini):
+    edit(mini / TESTING, "| [[stock-building-blocks\\|Stock]] | unchanged | Existing tests hold |\n",
+         "\nNot looked at yet: [[shop-building-blocks\\|Shop]].\n")
+    _, out = check(mini)
+    assert primary(out) == [("E315", TESTING)] and "APP-stock" in out
+
+
+def test_the_line_add_app_stub_writes_is_the_line_check_reads(mini):
+    from vela.decisions import textedit
+    path = mini / TESTING
+    edit(path, "| [[stock-building-blocks\\|Stock]] | unchanged | Existing tests hold |\n", "")
+    path.write_text(textedit.add_not_looked(path.read_text(encoding="utf-8"), ("App", "State"),
+                                            "[[stock-building-blocks\\|Stock]]"), encoding="utf-8")
+    _, out = check(mini)
+    assert primary(out) == []

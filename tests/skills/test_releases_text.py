@@ -215,3 +215,10 @@ def test_releases_reads_criteria_back_by_their_words_and_says_grill_lower_case()
     assert "list its criteria as AC1, AC2" not in workshop and "such as AC1 and AC2" not in workshop
     assert not re.search(r"\bGrill\b", SKILL)
     assert "the user" not in SKILL.split("---", 2)[2]  # the person in the room is the lead
+
+
+
+def test_releases_says_what_to_do_with_the_ready_to_decide_hand_off():
+    from conftest import REPO
+    text = (REPO / "plugin/skills/releases/SKILL.md").read_text(encoding="utf-8")
+    assert "run `vela decide` on it" in text and "ready to decide, offer the lead a short grill" in text

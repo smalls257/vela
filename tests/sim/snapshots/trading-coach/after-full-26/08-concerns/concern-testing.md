@@ -19,5 +19,5 @@ Nobody has examined testing for either app yet. Who tests each contract between 
 
 | App | State | Why |
 |---|---|---|
-| [[coach-building-blocks\|Coach]] | unexamined | |
-| [[tickertalk-building-blocks\|TickerTalk]] | unexamined | |
+
+Not looked at yet: [[coach-building-blocks\|Coach]], [[tickertalk-building-blocks\|TickerTalk]].

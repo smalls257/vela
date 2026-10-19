@@ -204,3 +204,26 @@ def test_pages_leaves_to_add_what_add_writes():
     assert "`type: app-building-blocks`, `title`, `state: assumption`" not in pages  # the stub's frontmatter
     assert "one `### CON-nnn <name>` each, with every required bullet" not in pages
     assert "| Case | When | Status | Answer | Emits | Sets |" in pages  # the case table stays the session's
+
+
+# --- plugin/skills/boundary/PAGES.md, MODES.md: the stub writes a "Not looked at yet:" line and no row. A skill that
+# still said to replace or write an `unexamined` row (a Fossil Comment) had the model write empty rows the code
+# deliberately left out; the judge scored them as padding (full3, four duplicates).
+def test_no_skill_or_reference_tells_the_model_to_write_an_unexamined_row():
+    stale = re.compile(r"unexamined[`\"']?\s+(?:concern\s+)?(?:cell\s+)?rows?\b", re.I)
+    found = [f"{path.relative_to(PLUGIN)}: {m.group(0)}"
+             for path in sorted([*(PLUGIN / "skills").rglob("*.md"), *(PLUGIN / "references").rglob("*.md")])
+             for m in stale.finditer(path.read_text(encoding="utf-8"))]
+    assert found == []
+
+
+def test_pages_names_the_line_the_code_writes():
+    pages = read("skills/boundary/PAGES.md")
+    assert "Not looked at yet:" in pages
+
+
+
+def test_boundary_says_what_to_do_with_the_ready_to_decide_hand_off():
+    from conftest import REPO
+    text = (REPO / "plugin/skills/boundary/SKILL.md").read_text(encoding="utf-8")
+    assert "run `vela decide` on it" in text and "ready to decide, offer the lead a short grill" in text

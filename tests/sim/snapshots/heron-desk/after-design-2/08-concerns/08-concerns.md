@@ -8,7 +8,7 @@ authored: mixed
 
 # Concerns
 
-One row per app, one column per concern.
+One row per app, one column per topic every app must cover, such as security or cost.
 
 <!-- generated:concern-matrix sha=90e94a70: do not edit, run vela render -->
 | App | [[concern-cost\|Cost]] | [[concern-data\|Data]] | [[concern-observability\|Observability]] | [[concern-operations\|Operations]] | [[concern-ownership\|Ownership]] | [[concern-rollout\|Rollout]] | [[concern-security\|Security]] | [[concern-testing\|Testing]] |

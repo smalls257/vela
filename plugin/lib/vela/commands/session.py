@@ -654,6 +654,7 @@ def cmd_brief(args, out):
     result = say.Result(BRIEF)
     review_comments(result, root, vault, sessiongit.is_read_copy(root))
     overdue_questions(result, vault, today)
+    ready_to_decide(result, root, vault, today)
     next_steps(result, root, today)
     how_much(result, vault, today)
     return commands.emit(result, args, out, resolver)
@@ -731,6 +732,31 @@ def overdue_questions(result, vault, today):
         result.lines.append(say.Line(
             f"overdue: {entry['id']} {entry['name']}, owner {entry['owner'] or 'none'}, ask by {entry['ask_by']}",
             plain=plain))
+
+
+def ready_to_decide(result, root, vault, today):
+    """Items the lead said yes to in a session that can't decide (`decisions/ready.py`), not decided since: a grill
+    opens with them."""
+    from vela import decisions
+    from vela.decisions import decide, ready, textedit
+    from vela.edge import apply as disk
+    staged = textedit.attach(decisions.Staged(vault, disk.reader(root)), today, [])
+    found = ready.waiting([text for _, _, text in sessiongit.folder_records(root)],
+                          lambda ident: decide.already(staged, ident) is not None)
+    for entry in found:
+        entry["name"] = vault.name_of(entry["id"])
+    result.data["ready_to_decide"] = found
+    if found:
+        names = [e["name"] if e["name"] != e["id"] else "an item" for e in found]
+        one = len(found) == 1
+        result.lines.append(say.Line(
+            "ready to decide: " + ", ".join(f"{e['id']} (yes in {e['session']})" for e in found),
+            plain=f"The lead already said yes to {join_names(names)}; a short grill can make "
+                  f"{'it' if one else 'them'} decided, and a grill opens with {'it' if one else 'them'}."))
+
+
+def join_names(names):
+    return ", ".join(names[:-1]) + (" and " if len(names) > 1 else "") + names[-1]
 
 
 OVERDUE_SAID = 2  # past this many overdue questions, the brief says how many and the oldest

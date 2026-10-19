@@ -20,4 +20,5 @@ Coach is a new service, and the vault does not record [[11-unknowns-and-risks#UN
 | App | State | Why |
 |---|---|---|
 | [[coach-building-blocks\|Coach]] | unknown | [[11-unknowns-and-risks#UNK-028 Where a Coach service can run\|Where a Coach service can run]]: where a Coach service can run, and who runs it |
-| [[tickertalk-building-blocks\|TickerTalk]] | unexamined | |
+
+Not looked at yet: [[tickertalk-building-blocks\|TickerTalk]].
