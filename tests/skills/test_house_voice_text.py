@@ -221,3 +221,10 @@ def test_house_voice_names_only_commands_that_exist():
         argv = shlex.split(re.sub(r"<[^>]*>", "X", call))
         _, extras = parser.parse_known_args(argv)
         assert not extras, (call, extras)
+
+
+
+def test_the_voice_rule_covers_what_ifs():
+    from conftest import REPO
+    voice = (REPO / "plugin/skills/house-voice/SKILL.md").read_text(encoding="utf-8")
+    assert "A what-if is framed as one" in voice and "never reports a new event" in voice

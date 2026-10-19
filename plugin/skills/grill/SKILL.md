@@ -22,7 +22,7 @@ This is what a grill is for; the other sections only set the agenda and file wha
 - Ask one question at a time. Wait for the answer.
 - Give your recommended answer with each question, in the form: question, then *Recommended: <answer>. <one-line reason>.*
 - Look things up in the plan rather than ask.
-- Use a concrete scenario at the edge of the item to force a precise answer. Pick an edge case, not the happy path: "It's 8:58, the call starts at nine, and the calendar service doesn't answer. What does the person see?"
+- Use a concrete scenario at the edge of the item to force a precise answer. Pick an edge case, not the happy path, and frame it as a hypothetical ("Suppose it's 8:58, the call starts at nine, and the calendar service doesn't answer. What does the person see?"). Build it only from what the plan, the inbox or the lead has said. Never state a new dated event, or what a third party reported, as if it had happened.
 - Check each answer against what the plan already holds and what the lead said earlier. Say so when they disagree.
 - Keep your recommendation when the user pushes back without a reason. Change it only for a reason, and say what the reason was.
 - Never answer your own question.

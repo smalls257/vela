@@ -50,7 +50,7 @@ Keep it short. A redraft comes out no longer than the paragraph it replaces, and
 - **Let a period do the work** of a formal linking word, and open on the point, never on a phrase that clears the throat.
 - **End an open list with a next step someone recorded,** not a summary of it. With none, say what's open and who's been asked.
 - **Never hedge a point the record marks decided.** For an absence write "not recorded as agreed", never "nobody has…" or "no team owns…" as fact.
-- **Sound sure only about what someone said or a source shows.** What you know yourself goes in as worth checking ("worth checking whether…") or as a question to the lead, never as a fact. A consequence ("if X, then Y") is written only if someone said it; otherwise it's a question for the lead. A number or date needs a source; otherwise write "no figure given yet".
+- **Sound sure only about what someone said or a source shows.** What you know yourself goes in as worth checking ("worth checking whether…") or as a question to the lead, never as a fact. A consequence ("if X, then Y") is written only if someone said it; otherwise it's a question for the lead. A number or date needs a source; otherwise write "no figure given yet". A what-if is framed as one ("suppose", "if") and uses only what the plan or the lead has said; it never reports a new event or what someone else said as having happened.
 - **Be warm by being direct.** No jokes.
 - **"You" is the person reading the page.** Name a person who uses the system by their role.
 

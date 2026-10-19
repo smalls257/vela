@@ -374,3 +374,15 @@ def test_new_unknown_goes_through_add_unknown():
     five = section(text("skills/grill/SKILL.md"), "## 5.", "## Ends when")
     assert "vela add unknown --name" in five and "--blocks <ID>" in five
     assert "re-run GATE-4 for every other agenda item" not in five
+
+
+# --- grill SKILL.md section 1, house-voice "Sound sure": full3 T118 opened a part with "It's 3 November. Procurement
+# reports that ... still hasn't come", an invented present-tense fact the lead then built on.
+def test_a_grill_scenario_is_a_hypothetical_built_from_the_record():
+    from conftest import REPO
+    grill = (REPO / "plugin/skills/grill/SKILL.md").read_text(encoding="utf-8")
+    assert 'frame it as a hypothetical ("Suppose' in grill
+    assert "Build it only from what the plan, the inbox or the lead has said" in grill
+    assert "Never state a new dated event, or what a third party reported, as if it had happened" in grill
+    assert '"It\'s 8:58,' not in grill  # the old example was itself a present-tense fact
+
