@@ -31,7 +31,7 @@ import uuid
 from vela import (allocation, attention, cli, completeness, handoff, ladder, links, model, override, pending, plainwords,
                      progress, reading, roles, say, schema, slices, terms, trace)
 from vela import search as vela_search
-from vela.edge import atomic, sessiongit
+from vela.edge import atomic
 from vela.parse import FENCE, closes_fence
 
 from . import (asks_data, assets_inline, branches_data, breakdown_find, design_data, design_find, draft_data, flows_data, icons_data, inside_data, onboard_data,
@@ -607,9 +607,11 @@ def extract(vault, root, today, pins_path=None, designs=None, seed=None, plans=N
         "terms": dict(terms.TERMS), "words": plainwords.reader_words(),
     }
     data["pending"] = pending_list(vault, keys)
-    # Who is reading, if the build knows: the handle `vela whoami` keeps for this vault. The page never claims "you" without it
-    # (or without the reader picking a role door); an empty handle means a dashboard for whoever opens it.
-    data["me"] = {"handle": sessiongit.read_handle(root).lstrip("@")}
+    # Who is reading is known only to a page built for one person (`vela explore --person`, never committed). The shared page is
+    # committed and read by colleagues, so it carries nobody's handle: it has no "me", and "Waiting on you" there works from the
+    # role door the reader picked (Onboard.myRole).
+    if onboard_me:
+        data["me"] = {"handle": onboard_me["handle"].lstrip("@")}
     data["owners"] = owners(entities)
     data["nodes"], data["pins"] = map_nodes(vault, keys, data["map"], pins_path, seed)
     app_meta = {keys.page(a): a.meta for a in vault.apps}

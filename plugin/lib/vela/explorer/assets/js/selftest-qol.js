@@ -233,7 +233,7 @@
   /* The wording: the page does not know who is reading, so it says "waiting", one number, and each item says who it is waiting
      on. "Waiting on you" is a filter that exists only when the build knew the reader's handle or the reader picked a role door. */
   async function waitingOnYou(ok) {
-    const was = { me: D.me, chosen: Roles.st.chosen, role: Roles.st.role }, bare = !was.me.handle && !was.chosen;
+    const was = { me: D.me, chosen: Roles.st.chosen, role: Roles.st.role }, bare = !(was.me && was.me.handle) && !was.chosen;
     const rows = () => $$(".q-card .q-row");
     const open = () => { Nav.home(); return tick(); };
     D.me = { handle: "" }; Roles.st.chosen = false; await open();
@@ -252,6 +252,9 @@
     }
     D.me = { handle: "" }; Roles.st.chosen = true; Roles.st.role = "product"; await open();
     ok(!!$(".q-mine") && $(".q-mine").dataset.me === "role", "waiting: a reader who picked the Product door gets Waiting on you for that role", "waiting: no filter after picking a role door");
+    const who = Queue.me(), every = Queue.items().length, mineAll = Queue.items().filter((x) => who && who.waiting(ASK[x.id])).length;
+    if ($(".q-mine")) { $(".q-mine").click(); await tick(); }
+    ok(!!who && who.kind === "role" && Onboard.myRole().role === "product" && rows().length === Math.min(mineAll, Queue.TOP) && mineAll <= every, "waiting: Waiting on you for the Product door shows only the questions asked of, or owned by, that role (the role is Onboard.myRole's)", `waiting: role ${Onboard.myRole().role}, rows ${rows().length}, wanted ${mineAll} of ${every}`);
     D.me = was.me; Roles.st.chosen = was.chosen; Roles.st.role = was.role; Queue.st.mine = false; await open();
   }
 

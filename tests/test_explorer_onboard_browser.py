@@ -66,7 +66,8 @@ def test_a_persons_own_path_is_what_their_page_shows_and_the_shared_page_does_no
     vela("onboard", "path", "set", "--vault", str(vault), "--today", TODAY, "--role", "product", "--modules", "Goal, Slices, Journeys", "--diagrams", "yes", "--depth", "gist")
     vela("explore", str(vault), "--today", TODAY)
     shared = dom(chrome_path, vault / "dashboard.html", "onboard=product&still")
-    assert HEADING.search(shared).group(1) == "The standard path" and '"mine":null' in shared and '"me":null' in shared  # onboarding's own data carries no one (D.me, the build's handle for "Waiting on you", is the dashboard's and is not onboarding's)
+    assert HEADING.search(shared).group(1) == "The standard path" and '"mine":null' in shared and '"me":null' in shared
+    assert '"handle":"ana"' not in shared and '"me":{' not in shared, "the shared page carries nobody's handle, not even the builder's (D.me exists only on a --person page)"
     own = dom(chrome_path, vault / ".vela" / "onboard" / "ana.html", "onboard=product&still")
     assert MODULES.findall(own) == ["goal", "slices", "journeys"] and HEADING.search(own).group(1) == "Your path"
 
@@ -85,3 +86,23 @@ def test_the_door_opens_as_the_readers_role_the_leads_record_first_then_their_ch
     vela("explore", str(vault), "--today", TODAY)
     shared = dom(chrome_path, vault / "dashboard.html", "onboard&still")
     assert 'data-role="exec"' in shared, "a reader with no handle and no door picked gets exec; the door's own order is held by the selftest"
+
+
+def chip(out):
+    return re.search(r'class="chip q-mine[^"]*"[^>]*data-me="([^"]*)"', out)
+
+
+@pytest.mark.browser
+def test_waiting_on_you_on_the_shared_page_comes_from_the_role_door_and_survives_a_reload(vault, chrome_path, tmp_path):  # noqa: F811
+    """Before any choice there is no Waiting on you; opening #onboard=qa makes it the QA door's, and a later visit to Home in the
+    same browser profile still has it (the role is remembered). The filter's rows are held by the page's own selftest."""
+    vela("explore", str(vault), "--today", TODAY)
+    page, profile = vault / "dashboard.html", tmp_path / "profile"
+
+    def home(hash_):
+        cmd = [str(chrome_path), "--headless=new", "--disable-gpu", "--no-sandbox", f"--user-data-dir={profile}", "--window-size=1600,1000", "--virtual-time-budget=20000", "--dump-dom", f"file://{page}#{hash_}"]
+        return subprocess.run(cmd, timeout=180, capture_output=True, text=True).stdout
+    assert chip(home("home&still")) is None, "no handle and no door picked: the filter is not offered"
+    home("onboard=qa&still")  # choosing the QA door by its route; this vault's queue is empty on that page, so the chip shows on Home
+    assert chip(home("home&still")).group(1) == "role", "after choosing QA, in a new load of the page, Waiting on you is offered for the role"
+    assert chip(home("home&still")).group(1) == "role", "and it stays"

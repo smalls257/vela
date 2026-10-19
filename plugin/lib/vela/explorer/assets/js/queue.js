@@ -77,7 +77,8 @@ const Queue = (() => {
   }
   const items = () => (cache = cache || build());
 
-  /* Who is reading, only when the page can tell: the handle the build was given, else the role door the reader picked. Anything
+  /* Who is reading, only when the page can tell: the handle of a page built for one person (D.me exists only there; the shared page
+     is committed and carries nobody's handle), else the role door the reader picked or this browser remembers (Onboard.myRole). Anything
      else is a dashboard for whoever opens it, and it never says "you". A role is matched on the words of who was asked and the
      owner ("the product owner", "CISO"): a door is a kind of reader, not a person, so the match is by what they are called. */
   const ROLE_WORDS = { exec: /exec|ceo|cio|cto|ciso|chief|sponsor|director/i, product: /product/i, qa: /\bqa\b|test|quality/i, eng: /engineer|tech|architect|develop/i, mgr: /manager|delivery|program/i };
