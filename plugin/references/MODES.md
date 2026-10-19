@@ -39,6 +39,8 @@ These two run in the team's clone after a design is complete. Neither is a sessi
 | `challenge` | the unknown and the `**Dissent:**` line, then its own PR | nothing: a challenge closes its own record |
 | `answer` | what its grill decides, or the item set back, on the challenge's branch | a push to that branch and a comment on the challenge PR, never a new PR |
 
+When the lead says a plain yes to a pick in a session that can't decide (`dump`, `discover`, `shape`, `boundary`, `requirements`, `allocate`, `releases`), run `vela decide` on it anyway: it refuses, marks the item ready to decide, and says to offer the lead a short grill on it now. Do as it says; never leave the yes as an assumption nobody sees again.
+
 No mode writes inside a generated block. `vela render` fills them. Close runs it, and so does `epics`, mid-session, to read its frontier. Whoever runs it stages every file it reports, by exact path.
 
 ## Team-side sessions

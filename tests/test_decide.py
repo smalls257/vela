@@ -5,6 +5,7 @@ Pending approval, the Changes row, the capture's mark, the agenda line, the comm
 The vault is the mini fixture with one item of each target kind added, so every kind is decided against the same pages.
 """
 import json
+import re
 import shutil
 import subprocess
 
@@ -523,3 +524,59 @@ def test_dispatch_names_one_module_per_kind():
     for kind in decide.KINDS:
         module = decide.kind_module(kind)
         assert module.KIND and callable(module.target) and callable(module.set_state), kind
+
+
+# --- a yes in a session that can't decide is kept, not lost (full3: D4, D7, D8 had a lead yes and stayed assumptions)
+def in_session_with_modes(root, modes):
+    path = root / RECORD
+    text = re.sub(r"^modes: \[[^\]]*\]", f"modes: [{modes}]", path.read_text(encoding="utf-8"), flags=re.M)
+    path.write_text(text, encoding="utf-8")
+
+
+def decide_con_002(root):
+    return run("decide", "CON-002", "--readback", "^c01", "--yes", "^c02", "--provider", "^c07", "--vault", str(root),
+               "--today", TODAY, "--json")
+
+
+@pytest.mark.parametrize("mode", ["shape", "boundary", "releases", "shape, boundary"])
+def test_decide_in_a_session_that_cannot_decide_refuses_and_marks_it_ready(tmp_path, mode):
+    root = make_vault(tmp_path)
+    in_session_with_modes(root, mode)
+    before = (root / STOCK).read_text(encoding="utf-8")
+    code, output = decide_con_002(root)
+    assert code == 1, output
+    said = json.loads(output)
+    assert said["refusals"][0]["rule"] == "decide-not-in-this-session"
+    assert "short grill" in said["refusals"][0]["plain"] and "Offer the lead a short grill" in said["refusals"][0]["fix"]
+    assert (root / STOCK).read_text(encoding="utf-8") == before, "nothing was decided"
+    record = (root / RECORD).read_text(encoding="utf-8")
+    assert f"## Ready to decide\n\n- CON-002: the lead said yes in {RECORD_ID} (^c02)" in record
+    assert decide_con_002(root)[0] == 1
+    assert (root / RECORD).read_text(encoding="utf-8").count("- CON-002: the lead said yes") == 1, "marked once"
+
+
+@pytest.mark.parametrize("mode", ["grill", "answer, grill", "epics, grill", "shape, grill"])
+def test_decide_still_works_in_a_session_with_a_grill_part(tmp_path, mode):
+    root = make_vault(tmp_path)
+    in_session_with_modes(root, mode)
+    git_init(root)
+    code, output = decide_con_002(root)
+    assert code == 0, output
+    assert "Ready to decide" not in (root / RECORD).read_text(encoding="utf-8")
+
+
+def test_the_next_session_brief_lists_what_the_lead_already_said_yes_to(tmp_path):
+    from vela.decisions import ready
+    root = make_vault(tmp_path)
+    in_session_with_modes(root, "shape")
+    decide_con_002(root)
+    code, output = run("session", "brief", "--vault", str(root), "--today", TODAY, "--json")
+    found = json.loads(output)["ready_to_decide"]
+    assert [(e["id"], e["session"]) for e in found] == [("CON-002", RECORD_ID)]
+    in_session_with_modes(root, "grill")
+    git_init(root)
+    code, output = decide_con_002(root)
+    assert code == 0, output
+    code, output = run("session", "brief", "--vault", str(root), "--today", TODAY, "--json")
+    assert json.loads(output)["ready_to_decide"] == [], "decided items drop off the list"
+    assert ready.can_decide("modes: [dump]\n") is False and ready.can_decide("no front matter") is True

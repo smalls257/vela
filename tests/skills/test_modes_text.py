@@ -94,3 +94,9 @@ def test_modes_says_team_lead_and_grill_in_lower_case():
     assert "senior" not in MODES
     prose = "\n".join(line for line in MODES.splitlines() if not line.startswith("| Grill (`grill`)"))
     assert not re.search(r"\bGrill\b", prose)
+
+
+def test_a_yes_in_a_session_that_cannot_decide_goes_through_vela_decide():
+    from conftest import REPO
+    modes = (REPO / "plugin/references/MODES.md").read_text(encoding="utf-8")
+    assert "run `vela decide` on it anyway" in modes and "offer the lead a short grill" in modes

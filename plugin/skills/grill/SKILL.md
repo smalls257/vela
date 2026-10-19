@@ -46,6 +46,8 @@ Capture each answer, and your read-back, with `vela record add --origin <who> --
 
 Run the steps in `${CLAUDE_PLUGIN_ROOT}/references/START.md` with mode `grill`. Read the grill row of `${CLAUDE_PLUGIN_ROOT}/references/MODES.md`.
 
+`vela session brief` lists items the lead already said yes to in a session that couldn't decide ("ready to decide"). Open the agenda with them, and still read each wording back for its own yes.
+
 If the lead names a challenge to answer, by its PR number or the challenged item, START will take its "Answer a challenge" path, on the challenge's own branch, with `modes: [answer, grill]`; read the Answer row of `MODES.md` too. The agenda holds the challenge's unknown and the challenged item. Resolve the unknown with the team lead as its owner, with the `resolve` kind. If the answer changes the item, set it back first with `vela decide --reopen <ID> --why ^cN`, then decide it again through the gate below.
 
 ## 3. The gate, per item

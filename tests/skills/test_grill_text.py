@@ -386,3 +386,11 @@ def test_a_grill_scenario_is_a_hypothetical_built_from_the_record():
     assert "Never state a new dated event, or what a third party reported, as if it had happened" in grill
     assert '"It\'s 8:58,' not in grill  # the old example was itself a present-tense fact
 
+
+
+# --- grill SKILL.md section 2, MODES: a lead's yes in shape, boundary or releases was saved as an assumption and lost
+# (full3 D4, D7, D8). The rule is in `vela decide` (decisions/ready.py); the skills only say to follow it.
+def test_a_grill_opens_with_the_items_the_lead_already_said_yes_to():
+    from conftest import REPO
+    grill = (REPO / "plugin/skills/grill/SKILL.md").read_text(encoding="utf-8")
+    assert "ready to decide" in grill and "Open the agenda with them" in grill
