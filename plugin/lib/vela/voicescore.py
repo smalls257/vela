@@ -14,7 +14,7 @@ from dataclasses import dataclass
 
 import yaml
 
-from vela import parse, voicecheck
+from vela import parse, voicecheck, wording
 
 # StyleDistance (NAACL 2025): MIT, RoBERTa-base, one text in, one vector out, trained to ignore
 # content, and it needs no trust_remote_code. The revision is pinned so a model update upstream
@@ -146,8 +146,12 @@ def prose_lines(text):
     line that may not, so paragraphs never join across a skipped table, list or block."""
     lines = voicecheck.normalized_lines(text)
     start = voicecheck.frontmatter_length(lines)
+    meta = voicecheck.frontmatter_fields(lines[:start])
     out, fenced, generated = [], False, False
     for n, line in enumerate(lines[start:], start=start + 1):
+        if wording.kept_text(meta, line):  # a document's own words are not the vault's voice, so never scored
+            out.append((n, ""))
+            continue
         if FENCE.match(line):
             fenced = not fenced
             out.append((n, ""))

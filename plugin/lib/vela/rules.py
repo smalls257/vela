@@ -5,7 +5,7 @@ Every rule runs on every page it can read. No rule stops the others.
 import datetime
 import re
 
-from vela import allocation, cases, deferrals, flows, handoffwarn, links, override, parse, pending, progress, questions, readability, readload, releases, render, schema, slices, trace
+from vela import allocation, cases, deferrals, flows, handoffwarn, links, override, parse, pending, progress, questions, readability, readload, releases, render, schema, slices, trace, wording
 from vela.model import Finding, blocked_units, cell_table, decided_goal_rows, goal_rows_at, meta_line
 
 
@@ -451,6 +451,37 @@ def deferral_rules(vault, today):
                      "Write it as an unknown with an owner and an ask-by date, link it from this paragraph, and let the Grill answer it.")
 
 
+WORDING_YES = re.compile(r"^\[\[(?P<record>[^\]#|]+)#\^c(?P<n>\d+)\]\]$")
+
+
+def wording_rules(vault, today):
+    """E361. An imported page voiced (`split` or `voice`) without the lead's answer on record: whether a document's
+    prose is rewritten in the plan's voice is the lead's call, so the page links the capture of their words, a
+    person's and not a bare "ok", the same test close's gate puts a decision's yes to. Until then a page keeps the
+    documents' words (`keep`)."""
+    from vela import closegate
+    for page in vault.pages:
+        if wording.WORDING_KEY not in page.meta:
+            continue
+        value = str(page.meta.get(wording.WORDING_KEY) or "").strip()
+        line = meta_line(page, wording.WORDING_KEY)
+        if value not in wording.WORDINGS:
+            yield _f(page, line, "E361", f"source-wording '{value}' is not one of {', '.join(wording.WORDINGS)}.",
+                     "Stamp the page again with vela import page.")
+            continue
+        if value == wording.KEEP:
+            continue
+        link = WORDING_YES.match(str(page.meta.get(wording.WORDING_YES_KEY) or "").strip())
+        record = vault.page(link["record"]) if link else None
+        said = closegate.captures(record.text) if record is not None and record.type == "session" else {}
+        capture = next((c for n, c in said.items() if link and int(n) == int(link["n"])), None)
+        if capture is None or not capture.is_person or capture.is_bare_non_yes:
+            yield _f(page, line, "E361", f"{page.id or page.name} is voiced ({value}) with no answer from the lead on "
+                                         "record.",
+                     "Ask the lead the voice question, record it with vela import wording, then vela import page; or "
+                     "set source-wording: keep.")
+
+
 def why_rules(vault, today):
     """W390: a decided item whose reasons are not written down. The Grill asks the lead why while the reason is freshest;
     an item decided without the answer is Forensic Coding for whoever reopens it, so the warning names the item. A decision
@@ -601,6 +632,20 @@ def decided_units(vault):
         if release.state == "decided":
             page = releases.page(vault)
             yield f"release '{release.name}'", page, release.line, page.page_bullets("Decision")
+
+
+STATED_IN = re.compile(r"\bas (?P<src>SRC-\d+) states\b")
+
+
+def stated_in_source(vault, decisions):
+    """Whether a Decision bullet says a registered source states the decision (`as SRC-nn states`, which
+    `vela decide --stated-in` writes). A decision the documents already record isn't a grill's to weigh again: the
+    lead's yes to it is on the Changes row close's gate reads, and the source says who decided it and when."""
+    for bullet in decisions:
+        for found in STATED_IN.finditer(bullet.value or ""):
+            if found["src"] in vault.row_ids:
+                return True
+    return False
 
 
 def _modes(session):
@@ -1048,6 +1093,8 @@ def certainty_rules(vault, today):
         modes = [m for s in sessions for m in _modes(s)]
         if "grill" in modes:
             continue
+        if sessions and "requirements" not in modes and stated_in_source(vault, decisions):
+            continue  # an import confirmed a decision a registered source states, with the lead's yes (close gate)
         if "requirements" in modes:
             yield _f(page, line, "E317", f"{unit_id} is decided by a requirements session, which can only write assumptions.",
                      "Run a Grill on it and link that session in **Decision:**, or set it back to assumption.")
@@ -1365,5 +1412,5 @@ def link_pipe_rules(vault, today):
 
 
 RULES = (parse_errors, frontmatter_rules, duplicate_rules, link_rules, reference_rules, table_rules,
-         history_rules, page_state_rules, stale_mention_rules, allocation_rules, release_rules, slice_rules, flow_sender_rules, flow_capability_rules, domain_rules, ask_rules, requirement_coverage_rules, contract_rules, case_table_rules, handoff_rules, deferral_rules, why_rules, requirement_rules, unknown_rules, risk_rules, subject_rules, question_rules, certainty_rules, stage_rules, concern_rules,
+         history_rules, page_state_rules, stale_mention_rules, allocation_rules, release_rules, slice_rules, flow_sender_rules, flow_capability_rules, domain_rules, ask_rules, requirement_coverage_rules, contract_rules, case_table_rules, handoff_rules, deferral_rules, why_rules, wording_rules, requirement_rules, unknown_rules, risk_rules, subject_rules, question_rules, certainty_rules, stage_rules, concern_rules,
          diagram_rules, block_rules, trace_rules, freshness_rules, link_field_rules, link_pipe_rules, reading_load_rules)

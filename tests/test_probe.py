@@ -95,7 +95,7 @@ def test_the_snapshots_are_the_ones_the_cases_name():
     assert names == {"coastal-merger/empty", "coastal-merger/after-s2", "coastal-merger/after-s4", "coastal-merger/after-v3-s8",
                      "coastal-merger/after-complete-s21", "coastal-merger/after-cio-s4", "coastal-merger/after-boundary-s2",
                      "trading-coach/after-handoff-grill-s25", "trading-coach/after-s12", "trading-coach/after-full-26", "trading-coach/after-handoff-2", "trading-coach/after-complete-s10", "trading-coach/after-finish", "trading-coach/after-final", "trading-coach/after-80", "trading-coach/after-80b", "trading-coach/after-capture", "trading-coach/after-capture-boundary",  # where scripts start, not probes
-                     "trading-coach/empty", "heron-desk/empty", "heron-desk/after-full-1", "heron-desk/after-handoff-1", "heron-desk/after-design-2", "heron-desk/grill-ready", "heron-agent-lead/handoff", "holdout-hospitals/empty", "holdout-hospitals/after-dump", "holdout-hospitals/after-discover"}
+                     "trading-coach/empty", "heron-desk/empty", "heron-desk/after-full-1", "heron-desk/after-handoff-1", "heron-desk/after-design-2", "heron-desk/grill-ready", "heron-desk/import-pile", "heron-agent-lead/handoff", "holdout-hospitals/empty", "holdout-hospitals/after-dump", "holdout-hospitals/after-discover"}
     for case_path in sorted((SIM / "probes").glob("*.yaml")):
         case = probe.load_case(str(case_path))
         # The dev persona (heron-desk) or coastal-merger runs every case; a holdout only where it has a vault that far along.
@@ -103,11 +103,21 @@ def test_the_snapshots_are_the_ones_the_cases_name():
         assert set(case["snapshot"]) <= {"coastal-merger", "holdout-hospitals", "heron-desk", "trading-coach", "heron-agent-lead"}, case_path
 
 
+def with_case_docs(snapshot, lead):
+    """The persona with the documents a case's news adds, for the snapshot that case starts from (import-guided's
+    pile): the probe writes the inbox from the persona as the news leaves it, so the snapshot must match that."""
+    for case_path in sorted((SIM / "probes").glob("*.yaml")):
+        case = yaml.safe_load(case_path.read_text(encoding="utf-8"))
+        if (case.get("snapshot") or {}).get(snapshot.parent.name) == snapshot.name and (case.get("news") or {}).get("docs"):
+            return probe.sim.with_news(lead, {"docs": case["news"]["docs"]})
+    return lead
+
+
 @pytest.mark.parametrize("snapshot", SNAPSHOT_DIRS, ids=lambda p: p.relative_to(SIM / "snapshots").as_posix())
 def test_every_snapshot_is_a_clean_vault_with_its_personas_inbox(snapshot):
     assert not (snapshot / ".claude" / "skills").exists(), "the plugin is installed at probe time, never stored"
     assert not (snapshot / ".git").exists()
-    stale = probe.inbox_problems(snapshot, persona(snapshot.parent.name))
+    stale = probe.inbox_problems(snapshot, with_case_docs(snapshot, persona(snapshot.parent.name)))
     assert len(stale) == 0
     check = subprocess.run([sys.executable, str(sim.VELA), "check", "--vault", str(snapshot)],
                            capture_output=True, text=True, timeout=120)

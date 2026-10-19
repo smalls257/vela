@@ -7,6 +7,7 @@ added or moved, the rewrite fails, and close keeps the earlier draft.
 import re
 from collections import Counter
 from dataclasses import dataclass
+from vela import wording
 from vela.parse import protect_link_pipes
 
 CODE_SPAN = re.compile(r"``[^\n]+?``|`[^`\n]+`")
@@ -69,6 +70,17 @@ def frontmatter_length(lines):
     return 0
 
 
+def frontmatter_fields(lines):
+    """{key: value} of a frontmatter block's simple `key: value` lines, enough to read `source-wording`. The block is
+    compared line for line anyway; this only decides which body lines are a document's own."""
+    out = {}
+    for line in lines[1:-1]:
+        key, sep, value = line.partition(":")
+        if sep and key.strip() and not line.startswith((" ", "-")):
+            out[key.strip()] = value.strip().strip('"').strip("'")
+    return out
+
+
 def strip_marker(line):
     """A list marker or heading number is layout. Blank it out so it is not read as a number."""
     marker = LEADING_MARKER.match(line).group(0)
@@ -92,7 +104,11 @@ def tokens(text):
     lines = normalized_lines(text)
     skip = frontmatter_length(lines)
     found = [Token("frontmatter", line, n) for n, line in enumerate(lines[:skip], start=1)]
+    meta = frontmatter_fields(lines[:skip])
     for n, line in enumerate(lines[skip:], start=skip + 1):
+        if wording.kept_text(meta, line):
+            found.append(Token("source", line.strip(), n))  # a document's own words: kept exactly (wording.py)
+            continue
         if line.lstrip().startswith("|"):
             if not TABLE_SEPARATOR.match(line.strip()):
                 found.extend(Token("cell", c.replace("\x00", "|"), n) for c in cells(line))

@@ -61,12 +61,15 @@ seal = sim.load_sim_module("seal")
 scale = sim.load_sim_module("probe_scale")
 precision = sim.load_sim_module("precision")  # the precision judge, reused for the design's claims
 elicit = sim.load_sim_module("probe_elicit")  # the belief and tacit-fact probes, and the overlays their cases name
+importing = sim.load_sim_module("probe_import")  # the guided importer's checks: decided with a recorded yes, kept wording
 
 ToolFailure = sim.ToolFailure
 SNAPSHOTS = HERE / "snapshots"
 PROBES = HERE / "probes"
 SCALE_CASES = HERE / "scale" / "cases"  # the scaled cases and their snapshots (probe_scale.py); a case may name its root
 PROBE_RESULTS = sim.RESULTS / "probes"
+# A probe may open any skill a script can, and the import, which no full-run script plays: it starts from material.
+OPENING_MODES = sim.MODES + sim.PLUGIN_TEAM_MODES + ("import",)
 DETAIL_NAME = "detail-DO-NOT-READ-WHEN-BLIND.md"
 EXCERPT = 200
 
@@ -114,8 +117,8 @@ def case_problems(case):
     problems += sim.news_problems(case.get("news"))
     if not isinstance(case.get("opening"), str) or not case["opening"].startswith("/vela:"):
         problems.append("'opening' must be a /vela: command")
-    elif case["opening"].split()[0].split(":", 1)[1] not in sim.MODES + sim.PLUGIN_TEAM_MODES:
-        problems.append(f"'opening' must start with one of /vela:{', /vela:'.join(sim.MODES + sim.PLUGIN_TEAM_MODES)}")
+    elif case["opening"].split()[0].split(":", 1)[1] not in OPENING_MODES:
+        problems.append(f"'opening' must start with one of /vela:{', /vela:'.join(OPENING_MODES)}")
     if not isinstance(case.get("cap"), int) or case["cap"] < 1:
         problems.append("'cap' must be a whole number of assistant turns, at least 1")
     if "close" in case and not (isinstance(case["close"], int) and not isinstance(case["close"], bool) and case["close"] >= 1):
@@ -713,10 +716,11 @@ def claims_unsupported(run, criterion):
     """Lines the session wrote under docs/ that state something as fact which neither the senior's words nor a vault
     page give: precision.py's judge, aimed at the design instead of the vault. Its citations are checked the same way
     (a quote the driver can't find turns the line unsupported), so a careless judge can fail a line but never pass one."""
-    units = design_units(run.vault)
+    units, docs, what = claim_units(run, criterion)
     if not units:
-        return (True, f"design lines written under docs/: 0, nothing to judge (need at most {criterion['at_most']} "
-                      "unsupported)", [], measure("unsupported design claims", 0, 0, better=LOWER))
+        where = " under docs/" if what == "design" else ""
+        return (True, f"{what} lines written{where}: 0, nothing to judge (need at most {criterion['at_most']} "
+                      "unsupported)", [], measure(f"unsupported {what} claims", 0, 0, better=LOWER))
 
     def send(text):
         room = min(run.ledger.judge_room(), precision.BUDGET_USD)
@@ -731,7 +735,7 @@ def claims_unsupported(run, criterion):
                                 "thinking_tokens": sim.thinking_tokens(result)})
         return result
 
-    sample, docs, spoken = precision.stratified_sample(units), claim_sources(run.snapshot), run.transcript.spoken()
+    sample, spoken = precision.stratified_sample(units), run.transcript.spoken()
     try:
         text, labels, _ = precision.build_input(sample, units, docs, spoken)
         data, why = precision.ask(send, text, [label for label, _ in sample])
@@ -739,13 +743,26 @@ def claims_unsupported(run, criterion):
         raise ToolFailure(str(exc)) from exc
     if data is None:
         raise ToolFailure(f"the design claims judge did not score the session: {why}")
+    for row in data.get("items") or []:  # a judge may cite an inbox document by its folder too; the name is the key
+        if isinstance(row, dict) and str(row.get("where") or "").startswith(".inbox/"):
+            row["where"] = row["where"][len(".inbox/"):]
     rows, _ = precision.enforce(data, sample, labels, docs, spoken)
     bad = [r for r in rows if r["class"] == "unsupported"]
     passed = len(bad) <= criterion["at_most"]
-    summary = (f"design lines stated as fact that nobody gave: {len(bad)} of {len(rows)} sampled from "
+    summary = (f"{what} lines stated as fact that nobody gave: {len(bad)} of {len(rows)} sampled from "
                f"{len(units)} written (need at most {criterion['at_most']})")
     detail = [f"- {r['path']} {r['item']}: {r.get('dropped') or r.get('quote')}. Grounds: {r.get('grounds')}" for r in bad]
-    return passed, summary, detail, measure("unsupported design claims", len(bad), len(rows), better=LOWER)
+    return passed, summary, detail, measure(f"unsupported {what} claims", len(bad), len(rows), better=LOWER)
+
+
+def claim_units(run, criterion):
+    """(units, source documents, what) for the claims judge. `where: docs` (the default) is a design session's lines
+    under docs/, judged against the vault it started from; `where: plan` is an import's plan pages, every item the
+    snapshot didn't already hold, judged against the inbox documents first, then the starting vault."""
+    if criterion.get("where", "docs") == "plan":
+        inbox = [{"name": d["name"], "text": d["text"]} for d in run.persona.get("docs") or []]  # as the judge names them
+        return precision.units_of(run.vault, template=run.snapshot), inbox + claim_sources(run.snapshot), "plan"
+    return design_units(run.vault), claim_sources(run.snapshot), "design"
 
 
 @check("decisions-recorded", "at_most")
@@ -1325,6 +1342,7 @@ class _ThisModule:
 THIS = _ThisModule()
 scale.register(THIS)
 elicit.register(THIS)
+importing.register(THIS)
 
 
 def score(run, case):

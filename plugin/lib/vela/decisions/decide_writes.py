@@ -42,6 +42,10 @@ GATE_5 = "GATE-5"
 # yes) could be set aside: it holds at the moment of deciding, so an exception is a reason, not a period.
 EVENT_WAIVER = "It's your call: I can decide it anyway and note your reason."
 GATE_3 = "GATE-3"
+# The one grill rule a decision a source states skips: a Grill picks between options Shape wrote down, and the
+# document records a choice already made. Every other reason (the stage, an open question, a contract's case table)
+# still holds, because a stated decision can still be blocked or unfinished.
+STATED_SKIPS = "GATE-2"
 REOPENED = "reopened"
 
 
@@ -243,6 +247,8 @@ def gate_refusals(item, view, record, target):
         route = gates.ROUTE_NAMES.get(reason.rule)
         if route is not None and route in named:
             continue
+        if item.get("stated_in") and reason.rule == STATED_SKIPS:
+            continue  # a source states the decision: there were options, weighed where it was made, not here
         override = found.route if route is not None else \
             "none from decide: settle each finding, or the dated flow-check override the checker reads"
         # The gate's fix is my recommendation to the lead; an event rule is set aside with a reason and no end date.
@@ -272,7 +278,8 @@ def _override_bullets(item, view, record, target):
 def history_bullets(item, view, record, target, decision=True):
     """The bullets a decision adds under `## History`, in CONVENTIONS' order."""
     today = textedit.today(view)
-    out = [f"- **Decision:** [[{record.id}]]"] if decision else []
+    stated = f", as {item['stated_in']} states" if item.get("stated_in") else ""
+    out = [f"- **Decision:** [[{record.id}]]{stated}"] if decision else []
     if item.get("why"):
         out.append(f"- **Why:** {textedit.inline(record.capture(item['why']).quote)}")
     if item.get("dissent"):

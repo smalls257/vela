@@ -19,7 +19,9 @@ from vela import say
 
 MOVED = ("check", "explore", "where", "questions", "handoff")
 GROUPS = ("session", "record", "close", "guard", "conventions", "apply", "decide", "marks", "voice", "reviewers",
-          "hook", "epics", "releases", "boundary", "prose", "whoami", "add", "team", "map")
+          "hook", "epics", "releases", "boundary", "prose", "whoami", "add", "team", "map", "importer")
+# A group whose command is a Python keyword lives in a module named apart: `vela import` is commands/importer.py.
+COMMAND_OF = {"importer": "import"}
 
 
 def module(name):
