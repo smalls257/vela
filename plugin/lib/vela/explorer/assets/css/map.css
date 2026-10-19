@@ -109,10 +109,6 @@ button.cell:focus-visible { outline: 2px solid var(--focus); }
 tr.grouprow td { background: none !important; height: 14px; }
 .matrix-side h3 { margin-top: 16px; }
 /* ------------------------------------------------ the map's second row: grouping, focus, motion */
-.map-tools { display: flex; align-items: center; gap: 8px; padding: 0 24px 8px; flex-wrap: wrap; font-size: 12.5px; }
-.tool-label { color: var(--ink-4); font-size: 11.5px; letter-spacing: .06em; text-transform: uppercase; }
-.tool-label.sep { margin-left: 10px; padding-left: 12px; border-left: 1px solid var(--rule); }
-.tool-hint { color: var(--ink-3); font-size: 12px; }
 /* clusters and regions */
 .grouped .cluster-frame { fill: color-mix(in srgb, var(--ink) 2.5%, transparent); stroke: var(--rule); stroke-width: 1.5; }
 .grouped .cluster-frame.outside { stroke-dasharray: 3 6; fill: color-mix(in srgb, var(--duct) 12%, transparent); }
@@ -139,16 +135,13 @@ tr.grouprow td { background: none !important; height: 14px; }
 .grouped .cluster-frame.also-on { stroke: var(--ink-2); stroke-width: 2; stroke-dasharray: 6 4; }
 .focus .focus-center .face { stroke: var(--focus); stroke-width: 3; }
 .focus-note { position: absolute; left: 18px; bottom: 12px; font-size: 12.5px; color: var(--ink-3); background: var(--glass); border: 1px solid var(--rule); border-radius: 8px; padding: 5px 10px; }
-/* motion: trace and ripple */
+/* motion: the path of a flow or a contract */
 .m-layer .tr-path { fill: none; stroke-width: 5; stroke-linecap: round; opacity: .95; }
-.m-layer .rp-wave { fill: none; stroke: var(--ink); stroke-width: 2; }
 .m-badge circle { fill: var(--room); stroke: var(--ink); stroke-width: 2; }
 .m-badge text { font: 700 12.5px var(--ui); fill: var(--ink); }
-.m-badge.rp circle { fill: var(--ink); stroke: var(--room); } .m-badge.rp text { fill: var(--room); }
-svg.tracing g.hit:not(.tr-on), svg.rippling g.hit:not(.rp-on) { opacity: .38; transition: opacity .4s; }
-svg.tracing .duct:not(.tr-on), svg.rippling .duct:not(.rp-on) { opacity: .5; }
-svg.rippling g.hit.rp-on .face, svg.tracing g.hit.tr-on .face { stroke: var(--focus); stroke-width: 2.5; }
-svg.rippling g.hit[data-ring="0"] .face { stroke-width: 4; }
+svg.tracing g.hit:not(.tr-on) { opacity: .38; transition: opacity .4s; }
+svg.tracing .duct:not(.tr-on) { opacity: .5; }
+svg.tracing g.hit.tr-on .face { stroke: var(--focus); stroke-width: 2.5; }
 .motion-legend { position: absolute; right: 16px; top: 12px; z-index: 4; display: flex; gap: 10px; align-items: center; max-width: 520px; font-size: 12.5px; color: var(--ink-2);
   background: var(--glass); border: 1px solid var(--rule-3); border-radius: 9px; padding: 6px 10px; }
 .board-focus, .board-domain, .board-capability { position: relative; }
@@ -184,15 +177,14 @@ table.cmx td.none { background: var(--cell-empty); border-radius: 5px; }
 .grouped .duct-lit { opacity: .35; }
 .grouped .count-badge .lamp-text { font-size: 12px; font-weight: 700; fill: var(--unlit-ink); }
 .grouped .count-badge.lit .lamp-text { fill: var(--caution-ink); }
-.tool-unit { display: inline-flex; flex-wrap: wrap; max-width: 100%; align-items: center; gap: 4px 8px; }
-svg.tracing .duct.picked:not(.tr-on), svg.rippling .duct.picked:not(.rp-on) { stroke: var(--duct); }
+svg.tracing .duct.picked:not(.tr-on) { stroke: var(--duct); }
 .grouped .cluster-names text { paint-order: stroke; stroke: var(--board); stroke-width: 5px; stroke-linejoin: round; }
 .cockpit.grouped .cluster-lamp .node-sub { fill: var(--ink-3); font-weight: 400; }
 .cockpit.grouped .cluster-lamp .open-hint { fill: var(--zone-text); }
 .card .grid-wrap { overflow: auto; }
 .cmx-cell { min-width: 64px; }
 .m-layer .tr-path.inferred { stroke-dasharray: 9 7; }
-svg.tracing .duct.picked, svg.rippling .duct.picked { stroke: var(--duct); stroke-width: 6; }
+svg.tracing .duct.picked { stroke: var(--duct); stroke-width: 6; }
 .motion-legend { top: auto; bottom: 12px; right: 16px; }
 /* glyphs on the boxes take the box's ink: quiet gray when settled, the lamp's ink when lit */
 .cockpit g.hit .node-glyph { color: var(--node-name); }

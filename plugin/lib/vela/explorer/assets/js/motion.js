@@ -1,14 +1,11 @@
 /* Motion on the map, on demand. Nothing moves until you pick something.
    - Trace: pick a flow or a contract and its path lights hop by hop: each hop is a step of the flow page (or the
      contract's provider to each consumer), numbered where it lands.
-   - Ripple: pick an app or a decision and a ripple spreads, ring by ring, to what depends on it. Ring 1 is every
-     app that consumes a contract the app provides (its Consumers lines); ring 2 consumes from ring 1; and so on. A
-     decision starts from the apps and contracts its page links, or that link it (heuristic, labeled).
-   - Trains are the third option and live on the line map (view-map.js).
-   With effects off (Plain) the same path or rings are shown at once, numbered, with nothing moving.
+   - Trains are the line map's own motion (view-map.js).
+   With effects off (Plain) the same path is shown at once, numbered, with nothing moving.
 
    Every map drawing registers what it drew in a Scene: each node's box and each edge's points, plus how a key is
-   drawn (an app inside a collapsed cluster is drawn as its cluster). The trace and ripple only read the Scene. */
+   drawn (an app inside a collapsed cluster is drawn as its cluster). The trace only reads the Scene. */
 const Scene = (() => {
   let st = null;
   function reset(svg, layer, resolve, top) { st = { svg, layer, top: top || layer, nodes: {}, edges: {}, resolve: resolve || ((k) => k) }; }
@@ -21,7 +18,7 @@ const Scene = (() => {
 })();
 
 const Motion = (() => {
-  const HOP_MS = 650, RING_MS = 750;
+  const HOP_MS = 650;
   let timers = [], active = null;
   function clear() {
     timers.forEach(clearTimeout); timers = [];
@@ -29,14 +26,13 @@ const Motion = (() => {
     const S = Scene.st;
     if (!S || !S.svg.isConnected) return;
     S.layer.innerHTML = "";
-    S.svg.classList.remove("tracing", "rippling");
-    $$(".tr-on, .rp-on", S.svg).forEach((n) => { n.classList.remove("tr-on", "rp-on"); n.removeAttribute("data-ring"); });
+    S.svg.classList.remove("tracing");
+    $$(".tr-on", S.svg).forEach((n) => n.classList.remove("tr-on"));
     const legend = $("#motion-legend"); if (legend) legend.remove();
   }
   const later = (ms, fn) => { if (reducedMotion() || ms <= 0) fn(); else timers.push(setTimeout(fn, ms)); };
-  const center = (b) => ({ x: b.x + b.w / 2, y: b.y + b.h / 2 });
-  function badge(x, y, text, cls) {
-    const g = s("g", { class: "m-badge " + (cls || "") }, Scene.st.top);
+  function badge(x, y, text) {
+    const g = s("g", { class: "m-badge" }, Scene.st.top);
     s("circle", { cx: x, cy: y, r: 13 }, g);
     s("text", { x, y: y + 4.5, "text-anchor": "middle" }, g).textContent = text;
     return g;
@@ -91,7 +87,7 @@ const Motion = (() => {
         [a, b].forEach((k) => S.nodes[k].el.classList.add("tr-on"));
         if (e.el) e.el.classList.add("tr-on");
         const at2 = exitPoint(pts, S.nodes[b]);
-        badge(at2.x, at2.y, hop.step, "tr");
+        badge(at2.x, at2.y, hop.step);
       });
     }
     const guessed = hops.filter((x) => x.inferred).length;
@@ -100,71 +96,11 @@ const Motion = (() => {
     return { hops: hops.length, drawn, inside };
   }
 
-  /* ------------------------------------------------------------ ripple */
-  /* Rings of what depends on a thing: [[ring 1 keys], [ring 2 keys], ...], by the Consumers lines of contracts. */
-  function dependants(app) { return [...new Set(D.map.contracts.filter((c) => c.provider === app).flatMap((c) => c.consumers).filter((k) => k !== app))]; }
-  function seedOf(key) {
-    if (NODE[key]) return { seed: [key], via: "" };
-    const e = ent(key);
-    if (e && e.kind === "decision") {
-      const linked = [...new Set([...(D.outgoing[key] || []), ...(D.backlinks[key] || [])])];
-      const anchors = new Set();
-      for (const k of linked) for (const a of mapAnchors(k)) anchors.add(CONTRACT[a] ? CONTRACT[a].provider : a);
-      return { seed: [...anchors].filter((k) => NODE[k]), via: "the apps and contracts its page links, or that link it" };
-    }
-    return { seed: mapAnchors(key).filter((k) => NODE[k]), via: "where it sits on the map" };
-  }
-  function rings(key) {
-    const { seed, via } = seedOf(key), seen = new Set(seed), out = [];
-    let front = seed;
-    while (front.length) {
-      const next = [...new Set(front.flatMap(dependants))].filter((k) => !seen.has(k));
-      next.forEach((k) => seen.add(k));
-      if (next.length) out.push(next);
-      front = next;
-    }
-    return { seed, rings: out, via };
-  }
-  function ripple(key) {
-    clear();
-    const S = Scene.st;
-    if (!S || !S.svg.isConnected) return { rings: 0 };
-    const R = rings(key);
-    active = { kind: "ripple", key };
-    S.svg.classList.add("rippling");
-    const seedVis = [...new Set(R.seed.map(Scene.vis).filter(Boolean))];
-    seedVis.forEach((k) => { S.nodes[k].el.classList.add("rp-on"); S.nodes[k].el.setAttribute("data-ring", "0"); });
-    const origin = seedVis.length ? center(S.nodes[seedVis[0]]) : null;
-    const placed = new Set(seedVis);
-    R.rings.forEach((ring, i) => {
-      const vis = [...new Set(ring.map(Scene.vis).filter(Boolean))].filter((k) => !placed.has(k));
-      vis.forEach((k) => placed.add(k));
-      later((i + 1) * RING_MS, () => {
-        if (!Scene.live || !active) return;
-        if (origin && !reducedMotion()) {
-          const far = Math.max(60, ...vis.map((k) => { const c = center(S.nodes[k]); return Math.hypot(c.x - origin.x, c.y - origin.y); }));
-          const wave = s("circle", { cx: origin.x, cy: origin.y, r: 10, class: "rp-wave" }, S.layer);
-          wave.animate([{ r: 10, opacity: 0.7 }, { r: far + 40, opacity: 0 }], { duration: RING_MS * 1.3, easing: "ease-out", fill: "forwards" });
-        }
-        for (const k of vis) {
-          const b = S.nodes[k];
-          b.el.classList.add("rp-on"); b.el.setAttribute("data-ring", String(i + 1));
-          badge(b.x + b.w - 4, b.y + 4, i + 1, "rp");
-        }
-        for (const e of Object.values(S.edges)) if (e.el && ((placed.has(e.a) && vis.includes(e.b)) || (placed.has(e.b) && vis.includes(e.a)))) e.el.classList.add("rp-on");
-      });
-    });
-    const total = R.rings.reduce((n, r) => n + r.length, 0);
-    const near = (R.rings[0] || []).length;
-    legend(`${total ? `If ${titleOf(key)} changes, ${plural(total, "app")} ${total === 1 ? "feels" : "feel"} it; the nearest ${near} ${near === 1 ? "uses" : "use"} it directly` : `Nothing uses ${titleOf(key)}, so a change to it reaches no other app`}${R.via ? `. It starts from ${R.via}, a guess from what its page links` : ""}.`);
-    return { rings: R.rings.length, total, seed: R.seed.length };
-  }
-  /* Run whatever the chosen motion does for this key, if anything. */
+  /* Picking a flow or a contract draws its path; picking anything else draws nothing. */
   function onPick(key) {
     if (!Scene.live) return null;
-    if (FX.motion === "ripple" && (NODE[key] || (ent(key) && ent(key).kind === "decision"))) return ripple(key);
-    if (FX.motion === "trace" && (FLOW[key] || CONTRACT[key])) return trace(key);
+    if (FLOW[key] || CONTRACT[key]) return trace(key);
     return null;
   }
-  return { trace, ripple, rings, clear, onPick, hopsOf, get active() { return active; } };
+  return { trace, clear, onPick, hopsOf, get active() { return active; } };
 })();

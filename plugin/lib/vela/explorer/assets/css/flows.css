@@ -3,7 +3,6 @@
 .flow-nodes .flow-node { font: inherit; padding: 2px 8px; border: 1px solid var(--rule); border-radius: 12px; background: transparent; color: var(--ink-2); cursor: pointer; text-align: left; }
 .flow-nodes .flow-node:hover { border-color: var(--ink-3); color: var(--ink); }
 /* ------------------------------------------------ flows, played */
-.flows-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 12px 20px 6px 18px; }
 .flow-picker { position: relative; flex: 1 1 14rem; min-width: min(14rem, 100%); max-width: 460px; }
 .fp-trigger { display: flex; align-items: center; gap: 9px; width: 100%; box-sizing: border-box; text-align: left; cursor: pointer; padding: 7px 12px; border-radius: 9px;
   border: 1px solid var(--rule-3); background: var(--room-2); color: var(--ink); font: inherit; font-size: 14.5px; font-weight: 600; }

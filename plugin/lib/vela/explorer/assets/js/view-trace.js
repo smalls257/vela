@@ -6,10 +6,10 @@ const TraceView = (() => {
   function render(main) {
     const T = D.trace, hasFR = T.requirements.length > 0, sc = h("div", { class: "scroll pages" });
     main.append(h("div", { class: "view-head" }, h("div", {}, h("h1", {}, "Requirements to epics"),
-      h("p", {}, hasFR ? "Which requirements have an app and an epic behind them, and which are missing a link. Turn on the filter to see only the gaps." : "Each capability and the epics that deliver it, with the apps and contracts each epic lists.")),
+      h("p", {}, hasFR ? "Which requirements have an app and an epic behind them, and which are missing a link. Turn on the filter to see only the gaps." : "Each capability and the epics that deliver it, with the apps and contracts each epic lists.", Nav.ledeLink())),
       h("div", { class: "spacer" }),
       h("button", { class: "chip" + (st.open ? " on" : ""), onclick: () => { st.open = !st.open; rerender(); } }, st.open ? "Collapse all" : "Expand all"),
-      h("button", { class: "chip" + (st.gaps ? " on" : ""), onclick: () => { st.gaps = !st.gaps; rerender(); } }, "Only those with a missing link")), sc);
+      h("button", { class: "chip" + (st.gaps ? " on" : ""), onclick: () => { st.gaps = !st.gaps; rerender(); } }, "Only those with a missing link"), Nav.pageActions()), sc);
     if (!hasFR) sc.append(emptyState("No requirements yet, so each capability goes straight to its epics.", "", ["/vela:requirements", "/vela:allocate"], "inline"));
     if (st.open === null) st.open = T.capabilities.length <= 8;
     const gapsT1 = new Set(T.gaps.filter((g) => g.rule === "T1").map((g) => g.subject));

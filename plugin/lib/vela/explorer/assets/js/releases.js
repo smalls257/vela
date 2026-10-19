@@ -261,7 +261,7 @@ const Releases = (() => {
   function render(main) {
     const title = typeof Nav !== "undefined" ? Nav.title("Releases") : "Releases";
     main.append(h("div", { class: "view-head" }, h("div", {}, h("h1", {}, title),
-      h("p", {}, R.count ? releasesLede() : "Today and where every app ends up.")),
+      h("p", {}, R.count ? releasesLede() : "Today and where every app ends up.", typeof Nav !== "undefined" ? Nav.ledeLink() : null)),
       h("div", { class: "spacer" }), typeof Nav !== "undefined" ? Nav.pageActions() : null));
     const box = h("div", { class: "rel-body", id: "board" });
     main.append(box);

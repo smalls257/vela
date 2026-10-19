@@ -562,8 +562,9 @@ const SelfTest = (() => {
 
     // Reset layout: every box back where the vault's pins have it, and the browser's memory emptied
     posts.length = 0;
+    await openMenuAt("more");
     const reset = $('[data-layout="reset"]');
-    ok(!!reset && !reset.disabled, "Reset layout is offered once a box has moved", "Reset layout is missing or disabled after moves");
+    ok(!!reset && reset.getAttribute("aria-disabled") !== "true", "Reset layout is offered once a box has moved", "Reset layout is missing or disabled after moves");
     reset.click(); await flush();
     const back = nodes.every((n) => NODE[n.key].col === original[n.key][0] && NODE[n.key].row === original[n.key][1]);
     const left = served ? "{}" : JSON.stringify((JSON.parse(Settings.read(`explorer.layout.${D.vaultId}`) || "{}").pins) || {});
@@ -651,28 +652,130 @@ const SelfTest = (() => {
     ok(!without.length, `drag to pan: the ${Object.keys(holders).join(", ")} drawings can be panned`, `drag to pan: not pannable: ${without.join(", ")}`);
     Pan.reset();
   }
+  /* Menus on the diagram are real menus: the item is found where a person finds it, by opening its button first. */
+  const menuButton = (id) => $(`[data-dmenu="${id}"] .dmenu-btn`);
+  const menuItem = (menu, item) => $(`[data-dmenu="${menu}"] [data-item="${item}"]`);
+  const openMenuAt = async (id) => { menuButton(id).click(); await frames(); return $(`[data-dmenu="${id}"] .dmenu-pop`); };
   async function effects() {
     const was = FX.on;
     Nav.home(); MapView.st.lens = "cockpit"; MapView.st.group = "none"; FX.set(false); await frames();
     const halos = $$("#board .halo").length, plain = document.documentElement.classList.contains("plain");
     const lampsRight = $$("#board g.hit:not([data-agg])").every((g) => { const lv = D.lights[g.dataset.key] ? D.lights[g.dataset.key].level : "dark"; return g.classList.contains(lv === "dark" ? "dark" : lv); });
-    let stored = null; try { stored = localStorage.getItem("explorer.effects"); } catch (e) { console.warn("[selftest] no storage:", e.message); }
     const anim = document.getAnimations ? document.getAnimations().filter((a) => a.playState === "running").length : 0;
-    ok(plain && !halos && lampsRight && stored === "plain" && !anim && reducedMotion(), `effects Plain: no glow (${halos} halos), ${anim} running animations, every lamp still lit as attention.lights says, remembered as "${stored}"`, `Plain: class ${plain}, ${halos} halos, lamps right ${lampsRight}, stored ${stored}, ${anim} animations`);
+    ok(plain && !halos && lampsRight && !anim && reducedMotion(), `effects Plain: no glow (${halos} halos), ${anim} running animations, every lamp still lit as attention.lights says`, `Plain: class ${plain}, ${halos} halos, lamps right ${lampsRight}, ${anim} animations`);
     if (D.flows.length && D.flows[0].hops.length) {
       const r = Motion.trace(D.flows[0].key);
       ok(r.drawn > 0 && $$("#board .m-badge").length === r.drawn, `trace in Plain: ${E[D.flows[0].key].id}'s ${r.drawn} hops lit at once, each numbered`, `trace drew ${r.drawn}, ${$$("#board .m-badge").length} badges`);
     }
     FX.set(true); await frames();
     ok(!document.documentElement.classList.contains("plain") && $$("#board .halo").length === $$("#board g.hit.lit:not(.pending):not([data-agg])").length, `effects On again: ${$$("#board .halo").length} lit lamps glow (a pending approval is a ring, with no halo)`, "effects On did not restore the glow");
-    const provider = D.map.apps.find((a) => D.map.contracts.some((c) => c.provider === a.key && c.consumers.some((k) => k !== a.key)));
-    if (provider) {
-      const want = new Set(D.map.contracts.filter((c) => c.provider === provider.key).flatMap((c) => c.consumers).filter((k) => k !== provider.key));
-      const R = Motion.rings(provider.key), r1 = new Set(R.rings[0] || []);
-      ok([...want].every((k) => r1.has(k)) && r1.size === want.size, `ripple from ${provider.title}: ring 1 is its ${want.size} consumers, ${plural(R.rings.length, "ring")} in all`, `ripple ring 1 ${[...r1].join(",")} ≠ ${[...want].join(",")}`);
-    }
     FX.set(was);
     Motion.clear();
+  }
+  /* The controls ride on the diagram as menus (menus.js): switching views, the keys a menu has, closing, the narrow
+     window, and the things that are gone (sound, the Animation switch, Impact and its ripple). */
+  async function diagramMenus() {
+    const was = { lens: MapView.st.lens, group: MapView.st.group, focus: MapView.st.focus };
+    const key = (k, target = document.activeElement) => target.dispatchEvent(new KeyboardEvent("keydown", { key: k, bubbles: true, cancelable: true }));
+    const roleOf = () => document.activeElement.getAttribute("role");
+    const within = (el) => { const r = el.getBoundingClientRect(); return r.left >= -1 && r.right <= innerWidth + 1; };
+    Menus.close();
+    Nav.open("apps"); MapView.st.lens = null; MapView.st.focus = null; MapView.st.group = "none"; showView("map"); await frames();
+    const btn = menuButton("view"), head = $("#main .view-head");
+    ok(!!btn && btn.getAttribute("aria-haspopup") === "menu" && btn.getAttribute("aria-expanded") === "false" && head.nextElementSibling === $("#main .dia") && !$("#main .map-tools") && !$$("#main .seg").length,
+      "diagram menus: the apps map starts right under its title and lede, with a View menu on the diagram and no row of toggles above it", "diagram menus: the map still has a row of toggles, or the diagram is not right under the lede");
+    ok(!!menuButton("group") && !!menuButton("more") && !!$("#focus-btn") && $$("[data-dmenu=view] [role=menuitemradio]").length >= 4,
+      "diagram menus: View (four views and Progress), Group, the focus button and the more menu are all there", "diagram menus: a menu or the focus button is missing");
+    btn.focus(); key("ArrowDown", btn);
+    const pop = $("[data-dmenu=view] .dmenu-pop");
+    ok(!pop.hidden && pop.getAttribute("role") === "menu" && btn.getAttribute("aria-expanded") === "true" && roleOf() === "menuitemradio" && document.activeElement.getAttribute("aria-checked") === "true" && within(pop),
+      "diagram menus: Down opens the View menu on the chosen view, as a menu with radio items, inside the window", "diagram menus: Down did not open the menu on the chosen item");
+    const first = document.activeElement;
+    key("ArrowDown"); const second = document.activeElement; key("ArrowUp");
+    ok(second !== first && document.activeElement === first, "diagram menus: Down and Up move between the items", "diagram menus: arrows did not move");
+    key("End"); const last = document.activeElement; key("Home");
+    ok(last !== first && document.activeElement === first, "diagram menus: End and Home jump to the last and first items", "diagram menus: Home and End did not jump");
+    key("Escape");
+    ok(pop.hidden && btn.getAttribute("aria-expanded") === "false" && document.activeElement === btn, "diagram menus: Escape closes the menu and gives the focus back to its button", "diagram menus: Escape left the menu open or lost the focus");
+    const moreFirst = await openMenuAt("more"), groupPop = await openMenuAt("group");
+    ok(within(groupPop) && moreFirst.hidden, `diagram menus: the Group menu opens inside the window (${innerWidth} px) and closes the more menu`, "diagram menus: the Group menu runs off the window");
+    const morePop = await openMenuAt("more");
+    ok(within(morePop) && !!$("[data-item=open-page]", morePop) === !!Nav.sectionPage(), "diagram menus: the more menu opens inside the window and lists Open the page when the section has a page", "diagram menus: the more menu runs off the window");
+    Menus.close();
+    btn.click(); await frames();
+    document.body.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+    ok(pop.hidden && btn.getAttribute("aria-expanded") === "false", "diagram menus: a click outside closes the menu", "diagram menus: a click outside left it open");
+    btn.click(); menuButton("group").click(); await frames();
+    ok(pop.hidden && !$("[data-dmenu=group] .dmenu-pop").hidden, "diagram menus: opening one menu closes the other", "diagram menus: two menus open at once");
+    Menus.close();
+      const room = Math.max(document.documentElement.scrollWidth - document.documentElement.clientWidth, 0);
+      ok(room <= 1, `diagram menus: the page does not scroll sideways at ${innerWidth} px`, `diagram menus: ${room} px of sideways scroll at ${innerWidth} px`);
+    // choosing a view from the menu changes the view and the address
+    const transit = menuItem("view", "transit");
+    transit.click(); await frames();
+    ok(MapView.lens() === "transit" && (!D.nodes.length || !!$("#board g.station")) && /lens=transit/.test(location.hash) && menuButton("view").textContent.includes("Flow lines") && !menuButton("group"),
+      "diagram menus: picking Flow lines draws the line map, says so on the button, drops the Group menu and puts lens=transit in the address", `diagram menus: lens ${MapView.lens()}, hash ${location.hash}`);
+    const animate = menuItem("view", "animate");
+    ok(!!animate && animate.getAttribute("role") === "menuitemcheckbox", "diagram menus: Animate flows is a checkbox item in the View menu", "diagram menus: no Animate flows checkbox");
+    menuItem("view", "cockpit").click(); await frames();
+    menuItem("group", "none").click(); await frames();
+    const progress = menuItem("view", "progress");
+    if (progress) {
+      progress.click(); await frames();
+      ok(App.view === "progress" && !!menuButton("view") && menuItem("view", "progress").getAttribute("aria-checked") === "true", "diagram menus: Progress is in the same View menu and the menu is still there once it shows", "diagram menus: Progress lost the View menu");
+      menuItem("view", "cockpit").click(); await frames();
+      ok(App.view === "map" && MapView.lens() === "cockpit", "diagram menus: from Progress, System map returns to the map", `diagram menus: view ${App.view}`);
+    }
+    for (const g of [["domain", "domain"], ["capability", "capability"]]) {
+      const it = menuItem("group", g[0]);
+      if (it && it.getAttribute("aria-disabled") !== "true") { it.click(); await frames(); ok(MapView.group() === g[1] && /group=/.test(location.hash) && menuItem("group", g[0]).getAttribute("aria-checked") === "true", `diagram menus: Group by ${g[0]} groups the map and the address says so`, `diagram menus: group ${MapView.group()}, hash ${location.hash}`); }
+    }
+    MapView.st.group = "none"; rerender(); await frames();
+    // flows: the pickers and the buttons are on the diagram
+    if (D.flows.length) {
+      showView("flows"); await frames();
+      const dia = $("#main .dia");
+      ok(!!dia && !!$(".flow-picker", dia) && !!$("#present-btn", dia) && !!menuItem("more", "rehearse") && !!menuItem("more", "clip") && !$("#main .flows-head ~ .flow-actions"),
+        "diagram menus: the Flow picker, Present, and Rehearse and Save as video (in the more menu) are on the flow diagram", "diagram menus: a flows control is not on the diagram");
+    }
+    // asks: Due within is a menu on the board
+    if (D.asks.length) {
+      showView("asks"); await frames();
+      const due = menuItem("due", "30");
+      ok(!!due && !$("#main [aria-label='Due within']") && !!$("#main .dia #asks-wrap"), "diagram menus: Due within is a menu on the board of who to ask", "diagram menus: Due within is not on the board");
+      if (due) { due.click(); await frames(); ok(Asks.st.days === 30 && menuItem("due", "30").getAttribute("aria-checked") === "true", "diagram menus: picking 30 days shows the questions due in a month", `diagram menus: days ${Asks.st.days}`); Asks.st.days = null; }
+    }
+    // the Key is a "?" on the diagram, not three open copies of itself
+    if (D.map.apps.length) {
+      Nav.open("apps"); MapView.st.lens = "cockpit"; MapView.st.group = "none"; MapView.st.focus = null; showView("map"); await frames();
+      const keyBtn = menuButton("key"), keyPop = $("[data-dmenu=key] .dmenu-pop");
+      ok(!!keyBtn && keyPop.hidden && !$$("#main .legend").some((l) => !l.closest(".dmenu-pop")) && !$$("#panel .legend").length,
+        "diagram menus: the Key is a ? on the diagram's bar, closed until asked for, and the panel carries no second copy", "diagram menus: the Key is still open on the page or in the panel");
+      keyBtn.click(); await frames();
+      ok(!keyPop.hidden && keyBtn.getAttribute("aria-expanded") === "true" && within(keyPop) && $$("li", keyPop).length > 0, "diagram menus: the ? opens the Key inside the window, with its entries", "diagram menus: the ? did not open the Key");
+      key("Escape", keyPop); await frames();
+      ok(keyPop.hidden && document.activeElement === keyBtn, "diagram menus: Escape closes the Key and gives the focus back to the ?", "diagram menus: Escape left the Key open");
+    }
+    if (D.flows.length) {
+      showView("flows"); Flows.st.cur = -1; rerender(); await frames();
+      const noPresent = !$$("#main .flow-actions, #main .flows-head ~ .flow-actions").length;
+      ok(!$$("#main ol.cap-steps").length && !$("#main .flow-nodes") === false && !$$(".flow-nodes .fn-group b").some((b) => b.textContent === "Steps") && noPresent && !!$("#present-btn"),
+        "diagram menus: a flow's steps are written once under the diagram (the current step), not again as a list, and Present is its one button", "diagram menus: a flow's steps are listed twice under the diagram, or Present is missing");
+      ok(!!$("[data-dmenu=more] [data-item=rehearse]") && !!$("[data-dmenu=more] [data-item=clip]"), "diagram menus: Rehearse and Save as video are in the flow's menu", "diagram menus: Rehearse or Save as video is missing from the flow menu");
+    }
+    for (const role of ["product", "eng"]) {
+      Nav.role(role); await frames();
+      ok(!$$("#main .btn").some((b) => /Present/.test(b.textContent)), `diagram menus: the ${role} door has no Present button on each flow row`, `diagram menus: the ${role} door still has a Present button on a row`);
+    }
+    // what is gone
+    const gone = [typeof Sound === "undefined", !$("#sound"), !$("#fx"), typeof Nav.ripple === "undefined", typeof Motion.ripple === "undefined", typeof FX.setMotion === "undefined", !document.querySelector("[data-motion]")];
+    Nav.home(); await frames();
+    const app0 = D.map.apps[0];
+    if (app0) { go(app0.key, { reset: true }); await frames(); }
+    ok(gone.every(Boolean) && !$$("#panel button, #main button").some((b) => /^Impact/.test(b.textContent.trim())),
+      "diagram menus: no sound button, no Animation switch, no Impact mode and no ripple are left on the page", `diagram menus: leftovers ${gone.map(Number).join("")}`);
+    MapView.st.lens = was.lens; MapView.st.group = was.group; MapView.st.focus = was.focus;
+    Menus.close();
   }
   /* The panel's room: hide it and the main area widens, a pick brings it back, a drag stays between the minimum and
      60% of the window, the choice is in storage as a reload would read it, and the views that fit the main area
@@ -792,7 +895,8 @@ const SelfTest = (() => {
     const L = Slices.LIST, KEYL = Slices.LAYOUT_KEY, was = Settings.read(KEYL);
     if (!L.length) { out.push("skip slices view: vault has no slices"); return; }
     const sideways = () => Math.max(document.documentElement.scrollWidth - document.documentElement.clientWidth, $("#main").scrollWidth - $("#main").clientWidth, ($(".sl-body") || $("#main")).scrollWidth - ($(".sl-body") || $("#main")).clientWidth);
-    const layout = (id) => { $(`.sl-seg [data-layout="${id}"]`).click(); };
+    const layout = (id) => { $(`[data-dmenu="view"] [data-layout="${id}"]`).click(); };
+    const layoutIs = (id) => $(`[data-dmenu="view"] [data-layout="${id}"]`).getAttribute("aria-checked") === "true";
     Slices.clear(); Slices.st.open = new Set(); Slices.st.layout = null; Settings.write(KEYL, "table"); Nav.open("slices"); await frames();
     let rows = $$(".sl-tr");
     ok(rows.length === L.length && rows.every((r) => r.getAttribute("role") === "button" && r.tabIndex === 0 && r.getAttribute("aria-expanded") === "false" && $(".sl-name[data-node]", r)),
@@ -816,13 +920,13 @@ const SelfTest = (() => {
     // Path, and the layout kept
     layout("path"); await frames();
     const nodes = $$(".sl-node");
-    ok(nodes.length === L.length && nodes.every((n) => n.hasAttribute("data-node")) && Settings.read(KEYL) === "path" && $(".sl-seg [data-layout=path]").getAttribute("aria-pressed") === "true" && !$('.legend[data-legend="slices"]').hidden,
+    ok(nodes.length === L.length && nodes.every((n) => n.hasAttribute("data-node")) && Settings.read(KEYL) === "path" && layoutIs("path") && !$('.legend[data-legend="slices"]').hidden,
       `slices path: ${nodes.length} boxes, each opening the panel, with its key, and the layout is kept in this browser`, `slices path: ${nodes.length} boxes for ${L.length}, stored ${Settings.read(KEYL)}`);
     const wantArrows = L.reduce((n, x) => n + x.after.filter((k) => L.some((y) => y.slice === k)).length, 0);
     ok($$(".sl-path-arrows path.sl-after").length === wantArrows, `slices path: ${wantArrows} arrows, one for each "comes after"`, `slices path: ${$$(".sl-path-arrows path.sl-after").length} arrows, want ${wantArrows}`);
     ok(sideways() <= 1, `slices path: nothing scrolls sideways at ${innerWidth} px`, `slices path: scrolls sideways by ${sideways()} px`);
     Nav.open("slices"); await frames();
-    ok(!!$(".sl-path") && $(".sl-seg [data-layout=path]").getAttribute("aria-pressed") === "true", "slices: drawn again, the path is still the layout", "slices: the layout was not kept");
+    ok(!!$(".sl-path") && layoutIs("path"), "slices: drawn again, the path is still the layout", "slices: the layout was not kept");
     // a filter narrows both layouts the same way, and the address bar carries it
     const counts = {};
     for (const x of L) { const s = x.status || "not planned yet"; counts[s] = (counts[s] || 0) + 1; }
@@ -961,8 +1065,9 @@ const SelfTest = (() => {
     if (D.map.apps.length) {
       Nav.home(); MapView.st.lens = "cockpit"; MapView.st.focus = null; MapView.st.group = "none"; rerender(); await frames();
       for (const [id, key, writer] of [["domain", "domain", "/vela:boundary"], ["capability", "capability", "/vela:requirements"]]) {
-        const btn = $(`#main button[data-group="${id}"]`), off = !D.grouping[key];
-        ok(!!btn && btn.disabled === off && (!off || /nothing to group by/.test(btn.title)), `group by ${id}: ${off ? "disabled, the tooltip says there is nothing to group by yet" : "offered"}`, `group by ${id}: ${btn ? `disabled ${btn.disabled}` : "no button"}, title "${btn ? btn.title : ""}", wanted ${off ? "off" : "on"}`);
+        await openMenuAt("group");
+        const btn = menuItem("group", id), off = !D.grouping[key], disabled = !!btn && btn.getAttribute("aria-disabled") === "true";
+        ok(!!btn && disabled === off && (!off || /nothing to group by/.test(btn.title)), `group by ${id}: ${off ? "disabled, the tooltip says there is nothing to group by yet" : "offered"}`, `group by ${id}: ${btn ? `disabled ${disabled}` : "no item"}, title "${btn ? btn.title : ""}", wanted ${off ? "off" : "on"}`);
       }
       MapView.st.group = null; rerender();
     } else out.push("skip group buttons: vault has no apps");
@@ -1179,8 +1284,8 @@ const SelfTest = (() => {
     ok(rows().every((r, i) => $(".lamp", r).classList.contains(q[i].level)) && $$(".home-stage .q-row .lamp").length === rows().length, "queue: a small lamp, not a painted row, carries the level", "queue: a row's lamp is not its level");
     const card = $(".q-card"), map = $(".home-map"), a = card.getBoundingClientRect(), b = map.getBoundingClientRect();
     const apart = a.right <= b.left + 1 || a.bottom <= b.top + 1;  // beside the map, or folded above it
-    const bar = $(".home-tools .map-tools"), tb = bar && bar.getBoundingClientRect();
-    ok(!!bar && tb.bottom <= a.top + 1 && tb.bottom <= b.top + 1 && !$(".home-map .map-tools"), "queue: the map's controls sit in one row above the waiting card and the map", "queue: the map's controls are not above the waiting card");
+    const bar = $(".home-map .dia-bar"), tb = bar && bar.getBoundingClientRect(), board = $(".home-map #board");
+    ok(!!bar && !!board && tb.bottom <= board.getBoundingClientRect().top + 1 && !$(".home-tools") && !!$("[data-dmenu=view]", bar), "queue: the map's menus sit on the top of the map itself, with no row of toggles above the waiting card", "queue: the map's menus are not on the map");
     ok(apart && b.height > 150, `queue: the card and the map do not overlap, and the map keeps ${Math.round(b.height)} px of height (${innerWidth}x${innerHeight})`, `queue: card ${Math.round(a.left)}..${Math.round(a.right)} x ${Math.round(a.top)}..${Math.round(a.bottom)} meets the map ${Math.round(b.left)}..${Math.round(b.right)} x ${Math.round(b.top)}..${Math.round(b.bottom)}`);
     if (q.length > Queue.TOP) {
       $(".q-more").click(); await frames();
@@ -1291,7 +1396,7 @@ const SelfTest = (() => {
     out.length = 0;
     const parity = Search.parity(), bad = parity.filter((p) => !p.same);
     out.push(bad.length ? `FAIL SEARCH PARITY ${bad.length} of ${parity.length}: ` + JSON.stringify(bad) : `ok SEARCH PARITY ${parity.length} of ${parity.length} queries rank exactly as vela query search`);
-    try { await livePaths(); await thread(); await views(); await navigation(); await doors(); await scale(); await ungrouped(); await moves(); await panning(); await effects(); await panelRoom(); await sideRoom(); await sliceChecks(); await releases(); savedState(); corruptState(); keyboard(); searchAria(); await history_(); await policy(); await emptyStates(); await askChecks(); await plainNames(); }
+    try { await livePaths(); await thread(); await views(); await navigation(); await doors(); await scale(); await ungrouped(); await moves(); await panning(); await effects(); await diagramMenus(); await panelRoom(); await sideRoom(); await sliceChecks(); await releases(); savedState(); corruptState(); keyboard(); searchAria(); await history_(); await policy(); await emptyStates(); await askChecks(); await plainNames(); }
     catch (e) { out.push("FAIL the self-test threw: " + e.message + " " + (e.stack || "").split("\n")[1]); }
     Nav.home(); go("lights", { reset: true });
     out.push(window.__errors.length ? "FAIL JS ERRORS: " + window.__errors.join(" | ") : "ok no JS errors");
@@ -1450,7 +1555,7 @@ const SelfTest = (() => {
     ok(!!entry && $$("[data-inside]", entry).length === 4 && !!$("[data-readiness]", entry), `engineering door: an Inside entry for ${titleOf(k0)}, with its four levels and its plan readiness`, "engineering door: no Inside entry");
     Nav.open("apps", k0);
     const listed = Nav.st.expanded.has("apps");  // past 12 apps the sidebar starts with its app list folded
-    ok((!listed || !!$(`#side .side-inside[data-inside="${CSS.escape(k0)}"]`)) && !!$("#main .inside-btn"), `${listed ? "sidebar and " : ""}section page: ${titleOf(k0)} offers Inside this app`, "the app's sidebar entry or page has no Inside");
+    ok((!listed || !!$(`#side .side-inside[data-inside="${CSS.escape(k0)}"]`)) && !!$(`#main [data-dmenu="more"] [data-item="inside"]`), `${listed ? "sidebar and " : ""}section page: ${titleOf(k0)} offers Inside this app`, "the app's sidebar entry or page has no Inside");
     const box = $(`#board g.hit[data-key="${CSS.escape(k0)}"]`);
     if (box) { box.dispatchEvent(new MouseEvent("dblclick", { bubbles: true })); ok(App.view === "inside" && Inside.st.level === "containers", `the map: double-clicking ${titleOf(k0)} goes inside, to its containers`, `double-click: view ${App.view}, level ${Inside.st.level}`); }
     // every theme and Plain: the drawing still lays out with nothing on anything, and Plain runs no animation
@@ -2281,7 +2386,7 @@ const VoiceGate = (() => {
     ["#main svg.cockpit:not(.grouped):not(.focus):not(.containers):not(.components)", "map-cockpit", "outside"], ["svg.transit", "map-lines"], ["table.dsm", "map-matrix"],
     ["svg.rl-map", "releases"], [".sl-table", "slices"], [".sl-path", "slices"], ["canvas.stage-canvas", "flow"], [".fp-pop:not([hidden])", "flows-list|lines-list"],
     ["svg.containers", "inside-containers"], ["svg.components", "inside-components"], [".in-er svg", "inside-data"], [".in-seq svg", "inside-sequence"],
-    ["svg.plan-dag-svg", "plan-waits"], [".due-chart", "progress-due"], [".card table.t .ladder:not(.inline)", "progress-table"], [".card table.t .mix", "progress-table"], ["#panel-mini svg", "minimap"],
+    ["svg.plan-dag-svg", "plan-waits"], [".due-chart", "progress-due"], [".card table.t .ladder:not(.inline)", "progress-table"], [".card table.t .mix", "progress-table"],
   ];
   function look(where) {
     for (const p of Legend.audit()) if (!found.has(p)) found.set(p, where);
@@ -2350,11 +2455,11 @@ const VoiceGate = (() => {
       found.clear(); visited.clear();
       if (D.map.apps.length) await tour();
       const list = [...found].map(([problem, where]) => `${problem} (seen in ${where})`);
-      const want = D.map.apps.length ? ["map-cockpit", "map-lines", "map-matrix", "releases", "minimap", "progress-due"].concat(D.flows.length ? ["flow", "flows-list"] : []) : [];
+      const want = D.map.apps.length ? ["map-cockpit", "map-lines", "map-matrix", "releases", "progress-due"].concat(D.flows.length ? ["flow", "flows-list"] : []) : [];
       const missing = want.filter((n) => !visited.has(n));
       ok(!list.length, `keys: in ${visited.size} diagrams (${[...visited].sort().join(", ")}) every look drawn is in the key and every look in the key is drawn`,
         `keys: ${list.length} problems, ${list.slice(0, 12).join(" | ")}`);
-      ok(!missing.length, "keys: the tour reached the cockpit, the line map, the matrix, releases, the minimap and the progress charts, and each had a key", `keys: the tour found no key for ${missing.join(", ")}`);
+      ok(!missing.length, "keys: the tour reached the cockpit, the line map, the matrix, releases and the progress charts, and each had a key", `keys: the tour found no key for ${missing.join(", ")}`);
     } catch (e) { lines.push("FAIL the key checks threw: " + e.message + " " + (e.stack || "").split("\n")[1]); }
     Nav.home(); go("lights", { reset: true });
     if (window.__errors.length > errors) lines.push("FAIL JS ERRORS in the key checks: " + window.__errors.slice(errors).join(" | "));

@@ -311,14 +311,8 @@ const Slices = (() => {
     if (!P.onPages) box.append(h("p", { class: "note sl-old" }, "Each slice gets its own page once the releases session runs again."));
     const find = h("input", { type: "search", class: "sl-find", placeholder: "Search slices, flows, apps, contracts", "aria-label": "Search the slices", value: st.find });
     find.addEventListener("input", () => { st.find = find.value.trim(); changed(); });
-    const seg = h("div", { class: "plan-seg sl-seg", role: "group", "aria-label": "How to lay out the slices" }, LAYOUTS.map(([id, label]) =>
-      h("button", { class: "btn tiny", "data-layout": id, "aria-pressed": String(id === layoutNow()), onclick: () => {
-        Settings.write(LAYOUT_KEY, id); st.layout = id;
-        $$("button", seg).forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.layout === id)));
-        changed();
-      } }, label)));
     const bar = h("div", { class: "sl-filterhost" }), host = h("div", { class: "sl-results" });
-    box.append(h("div", { class: "sl-tools" }, find, seg), bar, host);
+    box.append(h("div", { class: "sl-tools" }, find), bar, host);
     refresh = () => { if (!host.isConnected) return; bar.replaceChildren(filterBar()); results(host); };
     bar.append(filterBar());
     results(host);
@@ -327,10 +321,13 @@ const Slices = (() => {
     const n = LIST.length, moving = LIST.filter((x) => P.statuses.indexOf(x.status) >= 1).length, late = LIST.filter((x) => x.overdue).length;
     const title = typeof Nav !== "undefined" ? Nav.title("Slices") : "Slices";
     main.append(h("div", { class: "view-head" }, h("div", {}, h("h1", {}, title),
-      h("p", {}, termEl("slice", n ? plural(n, "slice") : "Slices"), n ? `, ${moving ? `${moving} building or further along` : "none building yet"}${late ? `, ${late} with a journey past its due date` : ""}${LIST.some((x) => x.tracer) && !moving ? ". The first to plan is the tracer" : ""}; pick a row to see what's in it.` : " are the pieces the product is built and shipped in.")),
-      h("div", { class: "spacer" }), typeof Nav !== "undefined" ? Nav.pageActions() : null));
+      h("p", {}, termEl("slice", n ? plural(n, "slice") : "Slices"), n ? `, ${moving ? `${moving} building or further along` : "none building yet"}${late ? `, ${late} with a journey past its due date` : ""}${LIST.some((x) => x.tracer) && !moving ? ". The first to plan is the tracer" : ""}; pick a row to see what's in it.` : " are the pieces the product is built and shipped in.", typeof Nav !== "undefined" ? Nav.ledeLink() : null)),
+      h("div", { class: "spacer" })));
     const box = h("div", { class: "sl-body scroll", id: "board" });
-    main.append(box);
+    const layouts = { table: "one row for each slice, with what it needs", path: "the slices as steps, in the order they depend on each other" };
+    const viewMenu = Menus.menu({ id: "view", label: "View", current: LAYOUTS.find(([id]) => id === layoutNow())[1], items: () => LAYOUTS.map(([id, label]) =>
+      ({ id, label, say: layouts[id], checked: id === layoutNow(), attrs: { "data-layout": id }, run: () => { Settings.write(LAYOUT_KEY, id); st.layout = id; changed(); rerender(); } })) });
+    main.append(Menus.frame({ left: [viewMenu], right: [Nav.moreMenu()] }, box));
     body(box);
   }
   function highlight(key) {

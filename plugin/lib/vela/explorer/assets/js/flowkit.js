@@ -432,8 +432,7 @@ const FlowKit = (() => {
   }
   const slug = (t) => t.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
   /* Renders the clip in real time on a 1280 by 720 canvas and records it. Each frame is drawn from its own
-     timestamp, so a slow frame drops a frame rather than shifting the content. With sound on, the motif is
-     scheduled up front on the audio clock and recorded with it. Failure raises; it never returns an empty file. */
+     timestamp, so a slow frame drops a frame rather than shifting the content. Failure raises; it never returns an empty file. */
   async function recordClip(flow, { onProgress } = {}) {
     const fmt = clipFormat();
     if (!fmt) throw new Error("This browser can't record video. Try Chrome.");
@@ -444,14 +443,11 @@ const FlowKit = (() => {
     const ctx = canvas.getContext("2d"), plan = clipPlan(flow);
     drawClipFrame(ctx, flow, 0, CLIP.W, CLIP.H, { images: false });
     const stream = canvas.captureStream(30);
-    let audioDest = null;
-    if (Sound.enabled && Sound.ensure()) { audioDest = Sound.ctx.createMediaStreamDestination(); Sound.comp.connect(audioDest); audioDest.stream.getAudioTracks().forEach((t) => stream.addTrack(t)); }
     const rec = new MediaRecorder(stream, { mimeType: fmt.mime, videoBitsPerSecond: 4_000_000 }), chunks = [];
     rec.ondataavailable = (e) => e.data.size && chunks.push(e.data);
     const done = new Promise((res, rej) => { rec.onstop = res; rec.onerror = (e) => rej(e.error || new Error("recording failed")); });
     rec.start(250);
     const t0 = performance.now();
-    if (audioDest) { const base = Sound.ctx.currentTime + 0.03; flow.steps.forEach((step, j) => Sound.playStep(step, plan.D, { at: base + CLIP.title + j * plan.stepDur })); }
     await new Promise((resolve) => {
       function frame() {
         const T = (performance.now() - t0) / 1000;
@@ -463,7 +459,6 @@ const FlowKit = (() => {
     });
     rec.stop();
     await done;
-    if (audioDest) Sound.comp.disconnect(audioDest);
     stream.getTracks().forEach((t) => t.stop());
     canvas.remove();
     if (!chunks.length) throw new Error("The recording came out empty; try again.");

@@ -58,8 +58,6 @@ const Minimap = (() => {
       t.textContent = shorten(st.node.title, st.outside ? 10 : 11);
       Nodes.wire(g, { label: `${st.node.title}: ${LIGHT[lv].word}`, role: "link", open: () => go(st.key, { reveal: App.view === "map" }) });
     }
-    box.append(lg.el());
-    lg.el().classList.add("tight");
     lg.paint();
   }
   function breathe(now) {

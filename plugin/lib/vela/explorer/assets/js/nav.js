@@ -42,20 +42,53 @@ const Nav = (() => {
   /* The page that sits beside the visual in the panel: none when the page itself fills the main area. */
   function pageBeside() { return textLed(App.section) || App.view === "doc" ? "" : sectionPage(); }
   function missingPage() { const s = sec(); return s ? `The ${s.label.toLowerCase()} page isn't written yet. The plan's lead writes it in a planning session.` : "No page."; }
-  /* The section's own controls on every view head: its visuals, and the page to read. */
-  function pageActions(opts = {}) {
+  /* What each visual shows, one line, as the View menu says it. */
+  const VISUAL_SAY = { map: "the apps and the contracts between them", progress: "how far each app is, and what is waiting on someone", trace: "which requirements have an app and an epic behind them",
+    epics: "every epic, and what it delivers", releases: "the system before and after each release" };
+  const visualItem = ([v, label]) => ({ id: v, label, say: VISUAL_SAY[v] || null, checked: App.view === v, run: () => { Sections.doc.page = ""; showView(v); } });
+  /* The View menu's items for the section the reader is in. A section with a map keeps the map's four views in the same
+     menu as its other visuals, so Progress sits beside System map and Flow lines, whichever of them is showing. */
+  function viewItems() {
+    const s = sec(), vis = s ? VISUALS[s.id] || [] : [];
+    if (App.section !== "home" && !vis.some(([v]) => v === "map")) return vis.map(visualItem);
+    const items = MapView.viewItems(), at = items.findIndex((x) => x.separator), others = vis.filter(([v]) => v !== "map").map(visualItem);
+    items.splice(at < 0 ? items.length : at, 0, ...others);  // the other visuals sit with the views; the Animate flows switch stays last
+    return items;
+  }
+  function viewMenu() {
+    const items = viewItems();
+    if (items.length < 2) return null;
+    const here = items.find((x) => x.checked);
+    return Menus.menu({ id: "view", label: "View", current: here ? here.label : "Reading the page", items: viewItems });
+  }
+  /* The page this section reads from, as a link in the lede under the title: "Read the full page". */
+  function ledeLink() {
+    const pk = sectionPage();
+    if (!pk || App.view === "doc") return null;
+    return h("a", { class: "lede-link", href: "#", title: "Read this section's page across the whole width", onclick: (ev) => { ev.preventDefault(); readWide(pk); } }, "Read the full page");
+  }
+  /* The ... menu: what the view adds (its `extra` items), then what every page has: Inside this app, and Open the page. */
+  function moreItems(extra = []) {
+    const s = sec(), pk = sectionPage(), items = (typeof extra === "function" ? extra() : extra).filter(Boolean);
+    if (items.length) items.push({ separator: true });
+    if (s && s.id === "apps" && st.child && APPS[st.child] && typeof Inside !== "undefined" && App.view !== "inside")
+      items.push({ id: "inside", label: "Inside this app", say: "How this app is built, and the team's plan for building it", run: () => Inside.open(st.child, "containers") });
+    const href = pk ? openHref(D.vault ? D.vault + "/" + E[pk].path : "", E[pk].path) : null;
+    if (href) items.push({ id: "open-page", label: "Open the page", say: `${E[pk].title}, as it is written, in a new tab`, href, newTab: true });
+    else if (pk && SERVED_HERE) items.push({ id: "open-page", label: "Open the page", disabled: true, why: "This page can only open files that are part of the plan, and this one isn't. Open it from your editor, or open the page as a file." });
+    if (items.length && items[items.length - 1].separator) items.pop();  // nothing after the separator, so it goes
+    return items;
+  }
+  function moreMenu(extra = []) {
+    if (!moreItems(extra).length) return null;
+    return Menus.menu({ id: "more", kind: "icon", glyph: "more", label: "More: layout and the page", align: "right", items: () => moreItems(extra) });
+  }
+  /* The section's own controls on a view head that has no diagram under it to carry them: its views, and the page. */
+  function pageActions() {
     const s = sec();
     if (!s) return null;
-    const box = h("div", { class: "page-actions" });
-    const vis = VISUALS[s.id] || [];
-    if (vis.length > 1 || (opts.reading && vis.length)) box.append(h("div", { class: "seg", role: "group", "aria-label": "Visual" }, vis.map(([v, label]) =>
-      h("button", { "aria-pressed": String(App.view === v), onclick: () => { Sections.doc.page = ""; showView(v); } }, label))));
-    const pk = sectionPage();
-    if (s.id === "apps" && st.child && APPS[st.child] && typeof Inside !== "undefined" && App.view !== "inside") box.append(h("button", { class: "btn inside-btn", title: "How this app is built, and the team's plan for building it", onclick: () => Inside.open(st.child, "containers") }, "Inside this app"));
-    if (pk && App.view !== "doc") box.append(h("button", { class: "btn", title: "Read this section's page across the whole width", onclick: () => readWide(pk) }, "Read full page"));
-    const file = pk ? openLink(["Open the page"], D.vault ? D.vault + "/" + E[pk].path : "", E[pk].path, `${E[pk].title}, as it is written, in a new tab`) : null;
-    if (file) box.append(file);  // openLink is null when the page is opened from a file; Element.append would print the word "null"
-    return box;
+    const kids = [viewMenu(), moreMenu()].filter(Boolean);
+    return kids.length ? h("div", { class: "page-actions" }, ...kids) : null;
   }
 
   /* ------------------------------------------------------------ going places */
@@ -134,10 +167,7 @@ const Nav = (() => {
   }
   function focusApp(key) { open("apps", key); }
   function trace(key) { if (!(App.view === "map" && ["home", "apps"].includes(App.section) && MapView.lens() === "cockpit")) { App.section = "home"; MapView.st.lens = "cockpit"; App.view = "map"; App.root = "lights"; rerender(); }
-    FX.setMotion("trace"); go(key, { reset: true }); Motion.trace(key); }
-  function ripple(key) { if (!(App.view === "map" && MapView.lens() === "cockpit")) { App.section = "home"; MapView.st.lens = "cockpit"; App.view = "map"; App.root = "lights"; rerender(); }
-    FX.setMotion("ripple"); const bar = $(".map-tools"); if (bar) $$("[data-motion]", bar).forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.motion === "ripple")));
-    App.trail = [key]; App.focus = key; Panel.render(); MapView.highlight(NODE[key] ? key : null); Motion.ripple(key); syncHash(); }
+    go(key, { reset: true }); Motion.trace(key); }
   function openRelease(i) { open("releases", "", { state: i }); }
 
   /* ------------------------------------------------------------ the hash */
@@ -275,5 +305,5 @@ const Nav = (() => {
     side.append(vault);
     side.append(h("div", { class: "side-foot" }, h("span", { class: "muted", title: D.initiative ? `Initiative ${D.initiative}` : null }, `Search all ${plural(Object.keys(D.reader).length, "page")} with /`)));
   }
-  return { where, whereLabel, back, title, sectionPage, pageBeside, missingPage, pageActions, open, home, role, readWide, adopt, focusApp, trace, ripple, openRelease, syncHash, followHash, boot, refresh, st, VISUALS, SECTIONS };
+  return { where, whereLabel, back, title, sectionPage, pageBeside, missingPage, pageActions, viewMenu, moreMenu, moreItems, ledeLink, viewItems, open, home, role, readWide, adopt, focusApp, trace, openRelease, syncHash, followHash, boot, refresh, st, VISUALS, SECTIONS };
 })();

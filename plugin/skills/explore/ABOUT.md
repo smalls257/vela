@@ -18,7 +18,7 @@ Served, the search box can also put a question to Claude. The question box can r
 
 ## Offline
 
-The file works offline and doesn't load anything from the internet. It carries the plan's text as escaped data, so a page that says `<script>` shows those characters and runs nothing. Sound is off until the user presses `S`. A link chip to a tracker or wiki opens in a new tab only when clicked, and the page never fetches it. The file can be emailed or opened from a USB stick. Opened that way, the box stays search-only and offers the question as a prompt to copy into Claude Code. Served (`--serve`), the page asks its own helper on this machine and nothing else.
+The file works offline and doesn't load anything from the internet. It carries the plan's text as escaped data, so a page that says `<script>` shows those characters and runs nothing. A link chip to a tracker or wiki opens in a new tab only when clicked, and the page never fetches it. The file can be emailed or opened from a USB stick. Opened that way, the box stays search-only and offers the question as a prompt to copy into Claude Code. Served (`--serve`), the page asks its own helper on this machine and nothing else.
 
 ## Explorer or viewer
 

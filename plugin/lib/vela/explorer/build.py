@@ -51,11 +51,11 @@ class ExplorerError(Exception):
     says which and why; nothing is written."""
 
 # The page's script and style, in load order: shared code first, one module per view, the boot last.
-JS_MODULES = ("core", "theme", "fx", "sound", "assets", "icons", "layout", "pan", "geometry", "search", "minimap", "reader", "queue", "panel", "panelsize", "motion", "view-map",
+JS_MODULES = ("core", "theme", "fx", "menus", "assets", "icons", "layout", "pan", "geometry", "search", "minimap", "reader", "queue", "panel", "panelsize", "motion", "view-map",
               "wires", "mapgroups", "releases", "slices", "flowkit", "flowpicker", "branches", "view-flows", "rehearse", "view-asks", "view-decisions", "view-progress",
               "view-trace", "sections", "roles", "nav", "markdown", "ask", "inside", "plan", "drafts", "freshness", "main")
 SELFTEST_MODULES = ("selftest", "selftest-branches")  # 120 KB of checks: bundled only when asked (`vela explore --selftest`), not shipped to every reader
-CSS_MODULES = ("base", "nav", "panel", "map", "queue", "flows", "rehearse", "asks", "decisions", "pages", "reader", "roles",
+CSS_MODULES = ("base", "menus", "nav", "panel", "map", "queue", "flows", "rehearse", "asks", "decisions", "pages", "reader", "roles",
                "releases", "slices", "branches", "ask", "inside", "plan", "pending", "drafts", "themes", "plain")
 
 # The themes the page offers, first the default. Each is a palette in assets/css/themes.css (Console is base.css's
