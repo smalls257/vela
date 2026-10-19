@@ -237,7 +237,7 @@ def test_the_explorer_reads_the_fixture_with_nothing_it_could_not_read(tmp_path)
     assert design["trace_source"] == "recorded" and not design["resolved"]["untraced"] and not design["resolved"]["unresolved"]
     assert len(design["stubs"]) >= 3 and design["depends"] and design["summary"]["text"]
     original, _ = built_with(tmp_path, OLD_DOC)
-    assert len(app_entry(original, "designs")["problems"]) == 16  # the run's own doc, for the record
+    assert len(app_entry(original, "designs")["problems"]) == 11  # the run's own doc, for the record (it was 16 while "Consent and identity over CON-003" read as two systems that were neither components nor integration points)
 
 
 def test_the_original_build_plan_reads_the_same_beside_the_reshaped_design(tmp_path):
@@ -256,7 +256,7 @@ def test_the_original_build_plan_reads_the_same_beside_the_reshaped_design(tmp_p
 
 @pytest.mark.browser
 def test_the_fixture_page_opens_the_design_on_its_summary(tmp_path):
-    """The page's own selftest opens Inside this app for the Desktop agent: components drawn, the panel on the summary."""
+    """The page's own selftest opens Inside this app for the Desktop agent: components drawn, the design's overview in the panel on the summary."""
     import subprocess
     import sys
     from test_explorer_browser import _check_selftest_in_chrome, find_chrome
@@ -266,7 +266,7 @@ def test_the_fixture_page_opens_the_design_on_its_summary(tmp_path):
     cmd = [sys.executable, str(PLUGIN / "scripts" / "vela"), "explore", "--selftest", str(vault), "--today", "2026-10-12"]
     assert subprocess.run(cmd, timeout=120, capture_output=True, text=True).returncode == 0
     lines = _check_selftest_in_chrome(chrome, vault / "dashboard.html", "team-skills/heron")
-    assert any("the design panel opens on its summary, with the walking skeleton below" in line for line in lines)
+    assert any("the design's overview opens on its summary, with the walking skeleton below" in line for line in lines)
 
 
 # --- design as a known mode ---------------------------------------------------------------------------------------
