@@ -68,7 +68,7 @@ const SelfTest = (() => {
     const crumbs = $$("#panel .crumbs a, #panel .crumbs .cur").length;
     ok(path.length >= 2 && crumbs === path.length + 1, `thread ${path.join(" › ")}: crumbs ${crumbs} (Lights + ${path.length}), panel "${($("#panel h2") || {}).textContent}"`, `thread broke at ${path.join(" › ")}; crumbs ${crumbs}`);
     $("#panel .crumbs a").click(); await frames();
-    ok(($("#panel h2") || {}).textContent === "What needs you", "the Lights crumb returns the panel to its home, the lights", "the Lights crumb did not return home");
+    ok(($("#panel h2") || {}).textContent === "What's waiting", "the Lights crumb returns the panel to its home, the lights", "the Lights crumb did not return home");
   }
   async function views() {
     // Map, cockpit: one lamp per app, party, contract and flow, each lit exactly as attention.lights says.
@@ -170,7 +170,8 @@ const SelfTest = (() => {
     const order = ["goals", "constraints", "context", "strategy", "capabilities", "releases", "slices", "apps", "flows", "concerns", "decisions", "unknowns", "glossary", "epics"];
     Nav.refresh();
     const shown = [...new Set($$("#side .side-link").map((b) => b.dataset.section))];
-    ok(JSON.stringify(shown) === JSON.stringify(order), `sidebar: ${shown.length} sections in the vault's order, with What needs you and ${Roles.ROLES.length - 1} front doors above`, `sidebar order ${shown.join(",")}`);
+    const sideOrder = [...order.filter((id) => !["constraints", "context", "strategy", "glossary"].includes(id)), "constraints", "context", "strategy", "glossary"];  // the text-first pages sit last, under Read
+    ok(JSON.stringify(shown.filter((x) => x)) === JSON.stringify(sideOrder), `sidebar: ${shown.length} sections in the vault's order, the text pages folded under Read, with What's waiting and ${Roles.ROLES.length - 1} front doors above`, `sidebar order ${shown.join(",")}`);
     const kids = $$("#side .side-kid[data-section=apps]").length, flowKids = $$("#side .side-kid[data-section=flows]").length;
     ok((kids === D.map.apps.length || !Nav.st.expanded.has("apps")) && (flowKids === D.flows.length || !Nav.st.expanded.has("flows")), `sidebar lists each app (${kids}) and each flow (${flowKids})`, `sidebar lists ${kids} apps of ${D.map.apps.length}, ${flowKids} flows of ${D.flows.length}`);
     const bad = [], seen = [];
@@ -274,7 +275,7 @@ const SelfTest = (() => {
       Flows.select(keys[0], -1); await frames(2);
       $(".flow-picker .fp-trigger").click(); await frames();
       const got = $$(".flow-picker .fp-opt").filter((o) => o.querySelector(".tracer-tag")).map((o) => o.dataset.flow);
-      const small = $$(".flow-picker .fp-opt .tracer-tag").every((t) => t.getAttribute("title") && t.textContent === "tracer");
+      const small = $$(".flow-picker .fp-opt .tracer-tag").every((t) => t.getAttribute("title") && t.textContent === "first slice");
       $(".flow-picker .fp-trigger").click(); await frames();
       return { got, small };
     };
@@ -289,7 +290,7 @@ const SelfTest = (() => {
       const want = t ? t.flows : [];
       const pk = await pickerTags(), pg = await pageTags();
       ok(pk.got.length === want.length && pk.got.every((k) => want.includes(idOf(k))) && pk.small, `tracer, ${label}: the picker tags ${want.join(", ") || "no flow"}, each with a tooltip`, `tracer, ${label}: the picker tags ${pk.got.map(idOf).join(", ") || "nothing"}, wanted ${want.join(", ") || "nothing"}`);
-      const wantPg = keys.filter((k) => want.includes(idOf(k))).map((k) => `${k}:tracer ${want.indexOf(idOf(k)) + 1} of ${want.length}`);
+      const wantPg = keys.filter((k) => want.includes(idOf(k))).map((k) => `${k}:first slice flow ${want.indexOf(idOf(k)) + 1} of ${want.length}`);
       ok(JSON.stringify(pg) === JSON.stringify(wantPg), `tracer, ${label}: each tracer flow's page shows the tag and its place${wantPg.length ? ` (${wantPg.map((x) => x.split(":")[1]).join("; ")})` : ", none here"}`, `tracer, ${label}: flow pages show ${pg.join("; ") || "nothing"}, wanted ${wantPg.join("; ") || "nothing"}`);
       if (!D.releases.count || !D.map.apps.length) return;
       Nav.open("releases"); await frames(2);
@@ -713,10 +714,10 @@ const SelfTest = (() => {
     // choosing a view from the menu changes the view and the address
     const transit = menuItem("view", "transit");
     transit.click(); await frames();
-    ok(MapView.lens() === "transit" && (!D.nodes.length || !!$("#board g.station")) && /lens=transit/.test(location.hash) && menuButton("view").textContent.includes("Flow lines") && !menuButton("group"),
-      "diagram menus: picking Flow lines draws the line map, says so on the button, drops the Group menu and puts lens=transit in the address", `diagram menus: lens ${MapView.lens()}, hash ${location.hash}`);
+    ok(MapView.lens() === "transit" && (!D.nodes.length || !!$("#board g.station")) && /lens=transit/.test(location.hash) && menuButton("view").textContent.includes("Contracts only") && !menuButton("group"),
+      "diagram menus: picking Contracts only draws the line map, says so on the button, drops the Group menu and puts lens=transit in the address", `diagram menus: lens ${MapView.lens()}, hash ${location.hash}`);
     const animate = menuItem("view", "animate");
-    ok(!!animate && animate.getAttribute("role") === "menuitemcheckbox", "diagram menus: Animate flows is a checkbox item in the View menu", "diagram menus: no Animate flows checkbox");
+    ok(!!animate && animate.getAttribute("role") === "menuitemcheckbox", "diagram menus: Moving markers is a checkbox item in the View menu", "diagram menus: no Moving markers checkbox");
     menuItem("view", "cockpit").click(); await frames();
     menuItem("group", "none").click(); await frames();
     const progress = menuItem("view", "progress");
@@ -781,6 +782,7 @@ const SelfTest = (() => {
      60% of the window, the choice is in storage as a reload would read it, and the views that fit the main area
      (the map, the matrix's frozen edges) still hold after every change. */
   async function panelRoom() {
+    if (isCompact()) { out.push("skip the panel room: under " + COMPACT_BELOW + " px it is a slide-over, checked by the compact group"); return; }
     const hidden0 = PanelSize.hidden, want0 = PanelSize.wanted;
     const mainW = () => $("#main").getBoundingClientRect().width, panelW = () => $("#panel").getBoundingClientRect().width;
     const stored = () => ({ hidden: Settings.read("explorer.panel.hidden"), width: Number(Settings.read("explorer.panel.width")) || null });
@@ -837,6 +839,7 @@ const SelfTest = (() => {
      main area widens, the handle's drag and arrow keys stay between the minimum and a third of the window, both choices
      are in storage as a reload reads them, and the page never scrolls sideways at the window it was opened in. */
   async function sideRoom() {
+    if (isCompact()) { out.push("skip the sections bar room: under " + COMPACT_BELOW + " px it is a slide-over, checked by the compact group"); return; }
     const hidden0 = SideSize.hidden, want0 = SideSize.wanted;
     const mainW = () => $("#main").getBoundingClientRect().width, sideW = () => $("#side").getBoundingClientRect().width;
     const stored = () => ({ hidden: Settings.read("explorer.side"), width: Number(Settings.read("explorer.side.width")) || null });
@@ -927,6 +930,15 @@ const SelfTest = (() => {
     ok(sideways() <= 1, `slices path: nothing scrolls sideways at ${innerWidth} px`, `slices path: scrolls sideways by ${sideways()} px`);
     Nav.open("slices"); await frames();
     ok(!!$(".sl-path") && layoutIs("path"), "slices: drawn again, the path is still the layout", "slices: the layout was not kept");
+    // a plan of a few slices opens without search and filters; the ... menu brings them (a plan of Slices.FILTERS_FROM or more always has them)
+    Slices.st.filters = false; Nav.open("slices"); await frames();
+    const few = L.length < Slices.FILTERS_FROM, bare = !$(".sl-find") && !$(".sl-fgroup");
+    if (few) {
+      const more = $('[data-dmenu="more"] .dmenu-btn'); more.click(); await frames();
+      const item = $('[data-dmenu="more"] [data-item="filters"]'), had = !!item;
+      if (item) { item.click(); await frames(); }
+      ok(bare && had && !!$(".sl-find") && !!$(".sl-fgroup"), `slices: ${L.length} slices (under ${Slices.FILTERS_FROM}) open with no search or filter rows; the ... menu's Search and filter brings them`, `slices: bare ${bare}, menu item ${had}, filters after ${!!$(".sl-find")}`);
+    } else ok(!bare, `slices: ${L.length} slices show search and filters at once`, "slices: a big plan has no filters");
     // a filter narrows both layouts the same way, and the address bar carries it
     const counts = {};
     for (const x of L) { const s = x.status || "not planned yet"; counts[s] = (counts[s] || 0) + 1; }
@@ -943,7 +955,7 @@ const SelfTest = (() => {
     history.replaceState(null, "", link); Nav.followHash(); await frames();
     ok(cleared && Slices.st.status.has(pick) && $$(".sl-tr").length === n && $(`.sl-fgroup[data-group=status] [data-value="${CSS.escape(pick)}"]`).getAttribute("aria-pressed") === "true",
       `slices filter: the link ${link} opens the same ${n} again, with the chip pressed`, `slices link: cleared ${cleared}, back to ${$$(".sl-tr").length} rows, status ${[...Slices.st.status]}`);
-    // search, the empty answer, and Needs you only
+    // search, the empty answer, and Waiting only
     Slices.clear(); await frames();
     const f = L.find((x) => x.flows.some((fl) => fl.key && E[fl.key])), find = $(".sl-find");
     if (f) {
@@ -959,8 +971,8 @@ const SelfTest = (() => {
     const late = L.filter((x) => x.overdue).length, needs = $(".sl-fgroup[data-group=needs] button");
     needs.click(); await frames();
     ok(+$(".ct", $(".sl-fgroup[data-group=needs] button")).textContent === late && (late ? $$(".sl-tr").length === late && $$(".sl-tr .sl-due").length === late : needs.disabled && $$(".sl-tr").length === L.length),
-      `slices: Needs you only shows the ${late} with a journey past its due date`, `slices needs you: ${$$(".sl-tr").length} rows, want ${late}`);
-    Slices.clear(); Slices.st.open = new Set(); Slices.st.layout = null;
+      `slices: Waiting only shows the ${late} with a journey past its due date`, `slices waiting: ${$$(".sl-tr").length} rows, want ${late}`);
+    Slices.clear(); Slices.st.open = new Set(); Slices.st.layout = null; Slices.st.filters = false;
     if (was === null) localStorage.removeItem(KEYL); else Settings.write(KEYL, was);
     Nav.home(); go("lights", { reset: true }); await frames();
   }
@@ -1079,7 +1091,7 @@ const SelfTest = (() => {
     } else out.push("skip releases empty state: the vault records releases");
     if (D.map.apps.length) {
       Nav.role("exec"); await frames();
-      ok(D.releases.count || has($(".door"), "No releases yet."), "exec door: release timeline says no releases are recorded", "exec door: no releases and no empty state");
+      ok(!!$(".door [data-to='releases']") && !$(".door .mini-time"), "exec door: the release timeline is one link away (Releases carries it and its empty state), not drawn again here", "exec door: no link to Releases, or the timeline is drawn here again");
       ok(D.releases.count || await doorHas("product", "No releases yet."), "product door: what each release delivers names 04b-releases.md", "product door: no empty state for releases");
       if (!D.trace.requirements.length && D.trace.capabilities.length) ok(await doorHas("product", "No requirements written yet, so none is assigned to an app."), "product door: the requirement cards name /vela:requirements and /vela:allocate", "product door: no empty state for requirements");
       if (!D.trace.epics.length) ok(await doorHas("qa", "No epics yet."), "QA door: criteria cards name /vela:epics", "QA door: no empty state for epics");
@@ -1122,8 +1134,8 @@ const SelfTest = (() => {
       window.fetch = realFetch;
       ok(Ask.st.mode === "file" && real.fetches === 0 && !seen.length && !Ask.served() && document.documentElement.dataset.ask === "file",
         "ask on a file: the helper is not looked for, no request is made, Enter asks nothing", `ask on a file: mode ${Ask.st.mode}, ${real.fetches} fetches at boot, ${seen.length} during, served ${Ask.served()}`);
-      ok(/Copy as a Claude Code prompt/.test(rowText) && /\/vela:explore/.test(rowText) && !$("#results .ask-btn b").textContent.includes("Ask Claude"),
-        "ask on a file: the box offers Copy as a Claude Code prompt and says to run /vela:explore, with no Ask button", `ask on a file: row says "${rowText}"`);
+      ok(!$("#results .r-ask") && !rowText && !/Claude/.test($("#results").textContent),
+        "ask on a file: the results have no Claude row at all, so no dead end sits first", `ask on a file: row says "${rowText}"`);
       const prompt = Ask.promptFor("What does the demo deliver?");
       ok(prompt.startsWith("What does the demo deliver?") && prompt.includes("[[ID]]") && prompt.includes("Never create, edit or delete"),
         "ask on a file: the copied prompt is the question plus the citation rules", `ask on a file: prompt "${prompt.slice(0, 80)}"`);
@@ -1305,15 +1317,15 @@ const SelfTest = (() => {
     ok($$("#panel .q-row").length === top, `panel home, away from the home page: carries the queue (${top} of ${q.length}) because the page does not`, `panel home on Goals: ${$$("#panel .q-row").length} queue rows`);
     const need = Queue.needsYou(), counts = Queue.counts(), masters = Object.fromEntries($$("#masters .master").map((m) => [m.className.split(" ").find((c) => LEVELS.includes(c)), +$("b", m).textContent]));
     ok(masters.caution === need.n && (masters.warning || 0) === need.late && Object.entries(masters).every(([lv, n]) => lv === "caution" || n === counts[lv]),
-      `top bar: ${need.n} need you, ${need.late} of them overdue; ${Object.entries(masters).filter(([lv]) => lv !== "caution" && lv !== "warning").map(([lv, n]) => `${n} ${lv}`).join(", ") || "nothing else lit"}`, `top bar ${JSON.stringify(masters)} against needs-you ${JSON.stringify(need)}`);
-    // "needs you" is shown as a number once on Home, in the top bar (label sweep: the same 21 showed four times). The
+      `top bar: ${need.n} waiting, ${need.late} of them overdue; ${Object.entries(masters).filter(([lv]) => lv !== "caution" && lv !== "warning").map(([lv, n]) => `${n} ${lv}`).join(", ") || "nothing else lit"}`, `top bar ${JSON.stringify(masters)} against needs-you ${JSON.stringify(need)}`);
+    // "waiting" is shown as a number once on Home, in the top bar (label sweep: the same 21 showed four times). The
     // side door shows only the overdue part, the waiting card says what to start with, and the panel doesn't repeat either.
     Nav.home(); go("lights", { reset: true }); await frames();
     const door = $(".side-home .side-n"), qcount = $(".q-card .q-count"), lede = $("#panel .p-lede"), says = Queue.needsYouSays();
     const homeText = [$("#main"), $("#side"), $("#panel")].map((x) => (x ? x.textContent : "")).join(" ");
-    ok((need.late ? door && +door.textContent === need.late : !door) && (!need.n || (qcount && qcount.textContent === Queue.startWith())) && (!need.n || !homeText.includes(says)) && !(lede && /\d+ need you/.test(lede.textContent)),
-      `needs you: ${need.n} in the top bar only; the side door shows ${need.late ? need.late + " overdue" : "no number"}, the waiting card says "${Queue.startWith()}", and the panel doesn't repeat the count`,
-      `needs you: side door ${door && door.textContent} (want ${need.late || "none"}), card "${qcount && qcount.textContent}", panel "${lede && lede.textContent.slice(0, 80)}", "${says}" ${homeText.includes(says) ? "repeated on the page" : "not repeated"}`);
+    ok((need.late ? door && +door.textContent === need.late : !door) && (!need.n || (qcount && qcount.textContent === Queue.startWith())) && (!need.n || !homeText.includes(says)) && !(lede && /\d+ waiting/.test(lede.textContent)),
+      `waiting: ${need.n} in the top bar only; the side door shows ${need.late ? need.late + " overdue" : "no number"}, the waiting card says "${Queue.startWith()}", and the panel doesn't repeat the count`,
+      `waiting: side door ${door && door.textContent} (want ${need.late || "none"}), card "${qcount && qcount.textContent}", panel "${lede && lede.textContent.slice(0, 80)}", "${says}" ${homeText.includes(says) ? "repeated on the page" : "not repeated"}`);
     Nav.home(); go("lights", { reset: true }); await frames();
   }
 
@@ -1539,7 +1551,7 @@ const SelfTest = (() => {
       go(k, { reset: true });
       const sec = $$("#panel .in-challenge");
       ok(!!chipLamp && chipLamp.classList.contains("caution") && sec.length === list.length && (!list[0].scenario || sec[0].textContent.includes(list[0].scenario.slice(0, 30))),
-        `challenge: ${id} lit "needs you" by ${list.map((c) => c.oq).join(", ")} in the ${titleOf(list[0].app)} design${list[0].scenario ? ", with its scenario" : ""}`, `challenge: ${id} lamp ${chipLamp ? chipLamp.className : "none"}, ${sec.length} sections`);
+        `challenge: ${id} lit "waiting" by ${list.map((c) => c.oq).join(", ")} in the ${titleOf(list[0].app)} design${list[0].scenario ? ", with its scenario" : ""}`, `challenge: ${id} lamp ${chipLamp ? chipLamp.className : "none"}, ${sec.length} sections`);
     }
     await planChecks(ok, out, apps);
     // the deep link, the crumbs, the doors, the sidebar and the map
@@ -1764,7 +1776,7 @@ const SelfTest = (() => {
     if (D.pending.length) {
       go("lights", { reset: true }); await frames();
       ok(!!$("#pending-chip") && ($$("#panel .light-row .lamp.pending").length >= 1 || D.pending.every((m) => lightOf(m.key) && lightOf(m.key).level !== "pending")),
-        `pending approval: the header chip counts ${D.pending.length} and What needs you lists them`, "pending approval: no chip or no pending row in What needs you");
+        `pending approval: the header chip counts ${D.pending.length} and What's waiting includes them`, "pending approval: no chip or no pending row in What's waiting");
     } else ok(!$("#pending-chip"), "pending approval: no chip when nothing is pending", "pending approval: a chip with nothing pending");
     // freshness: the banner follows the stamped report, shown only when something changed
     const newer = { role: "reader", state: "newer", latest: { date: "2026-10-20", commit: "4d1e8a0" }, have: {}, checked_at: "2026-10-18T09:12:00" };
@@ -2006,7 +2018,7 @@ const TextFit = (() => {
    (2026-10-16) found by eye and no check saw:
    - leaks(root): builder plumbing in reader text, by say.LEAD_PATTERNS (the one copy, carried in the selftest build as
      D.leadPatterns), less item IDs, which ride in a small tag on purpose. Words someone wrote are theirs and left out.
-   - repeats(root): the same count sentence twice on one screen ("21 need you: 18 open questions blocking work..." on the
+   - repeats(root): the same count sentence twice on one screen ("21 waiting: 18 open questions blocking work..." on the
      banner and in the panel beside it). A count said once is information; said twice it is a second thing to hold.
    - quantities(): every element marked data-quantity="<name>" data-n="<n>" must give the one source's number for that
      name, and every view must agree (E60: the Managers door said 27 open questions, the top bar 21, the Exec door 0
@@ -2041,10 +2053,10 @@ const VoiceGate = (() => {
   /* A block's own words, joined across its inline children, so "18 questions block work." is one sentence however it is marked up. */
   const BLOCK = /^(block|flex|grid|list-item|table-cell|table-caption|flow-root)/;
   function blockOf(el) { for (let a = el; a && a !== document.body; a = a.parentElement) if (BLOCK.test(getComputedStyle(a).display)) return a; return document.body; }
-  /* A count sentence says how many of something there are: "18 questions block work", "21 need you". A date, a time
+  /* A count sentence says how many of something there are: "18 questions block work", "21 waiting". A date, a time
      or a name with a number in it ("the 7:30 digest") is not a count. Rows of a list or table say the same words about
      different things by design, so a row is not compared with its siblings. */
-  const COUNT = /\b\d+ (?:[a-z-]+ ){0,2}?(?:questions?|things?|items?|decisions?|apps?|contracts?|flows?|steps?|stor(?:y|ies)|points?|pages?|requirements?|criteri(?:on|a)|releases?|slices?|epics?|risks?|concerns?|options?|people|persons?|teams?|need you|overdue|of the plan)\b/i;
+  const COUNT = /\b\d+ (?:[a-z-]+ ){0,2}?(?:questions?|things?|items?|decisions?|apps?|contracts?|flows?|steps?|stor(?:y|ies)|points?|pages?|requirements?|criteri(?:on|a)|releases?|slices?|epics?|risks?|concerns?|options?|people|persons?|teams?|waiting|overdue|of the plan)\b/i;
   const isCount = (s) => COUNT.test(s) && s.split(/\s+/).length >= 3;
   const ROW = "li, tr, [role=row], [data-row], .light-row, .q-row";  // data-row: a card in a list of cards
   function sentences(root = document) {
@@ -2142,7 +2154,7 @@ const VoiceGate = (() => {
       if (D.designs[k]) for (const [tab] of Inside.TABS) { Inside.open(k, "components", { tab }); note(`${titleOf(k)}, design tab ${tab}`); }
       Inside.open(k, "containers");
       const page = Nav.pageBeside();
-      for (const [name, root] of [["The design", Inside.designKey()], ["The page", page ? "read:" + page : ""], ["What needs you", "lights"]]) {
+      for (const [name, root] of [["The design", Inside.designKey()], ["The page", page ? "read:" + page : ""], ["What's waiting", "lights"]]) {
         if (root) { App.root = root; App.trail = []; Panel.render(); note(`${titleOf(k)}, panel tab ${name}`); }
       }
       go(k, { reset: true }); note(`panel, app ${titleOf(k)}`);

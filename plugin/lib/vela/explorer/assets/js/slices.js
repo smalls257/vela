@@ -2,7 +2,7 @@
    the choice is kept in this browser, like the build plan's List / Cards / Path).
 
    Table is for finding one slice fast in a live call: a row each with its name, where it stands, what it comes after
-   and whether it needs you; a row is a button that folds open to its flows, its joins with both sides, its journey or
+   and whether it is waiting; a row is a button that folds open to its flows, its joins with both sides, its journey or
    the date it is due, what is left out of it, and its flow check with any overrides. Path is for the planning talk:
    what comes after what, drawn as boxes whose edge is the status color, an arrow for "comes after", and slices side by
    side when they can be built at the same time.
@@ -25,7 +25,7 @@ const Slices = (() => {
   const STATUS_CLASS = { [NOT_PLANNED]: "none", planned: "planned", building: "building", "journey passes": "passes", "live but off": "off", on: "on" };
   const ORDER = [NOT_PLANNED, ...P.statuses];
   const GROUPS = [["status", "Status", "sl-status"], ["app", "Team", "sl-app"], ["milestone", "Milestone", "sl-milestone"]];
-  const st = { pick: "", open: new Set(), find: "", status: new Set(), app: new Set(), milestone: new Set(), needs: false, layout: null };
+  const st = { pick: "", open: new Set(), find: "", status: new Set(), app: new Set(), milestone: new Set(), needs: false, layout: null, filters: false };
   const statusOf = (x) => x.status || NOT_PLANNED;
   const layoutNow = () => { const v = st.layout || Settings.read(LAYOUT_KEY); return LAYOUTS.some(([id]) => id === v) ? v : "table"; };
 
@@ -41,7 +41,7 @@ const Slices = (() => {
     "Side by side: slices that can be built at the same time");
   Legend.define("sl.tracer", [bx({ fill: "caution", opacity: 0.35, stroke: "caution", w: 1, rx: 7 })], termTip("tracer"));
   Legend.define("sl.circle", [bx({ stroke: "warning", w: 2, rx: 3 })], "Red edge: slices that come after each other in a circle, so none can start");
-  Legend.define("sl.due", [bx({ fill: "warning", opacity: 0.3, rx: 7 })], "Journey due: the date has passed and nobody has recorded trying it, so it needs you");
+  Legend.define("sl.due", [bx({ fill: "warning", opacity: 0.3, rx: 7 })], "Journey due: the date has passed and nobody has recorded trying it, so it is waiting");
   const PROBES = Object.fromEntries([
     ...ORDER.map((s) => { const c = STATUS_CLASS[s]; return ["sl.st." + c, `.sl-st.st-${c}, .sl-node.st-${c}`]; }),
     ["sl.after", ".sl-path-arrows path.sl-after"], ["sl.parallel", ".sl-level.parallel"], ["sl.tracer", ".tracer-tag"],
@@ -85,10 +85,13 @@ const Slices = (() => {
       : chip(j.id, "", missing(j.id, "Contract not in the plan", `A flow step names ${j.id}, and the plan has no contract by that ID.`), "sl-join gap");
     return h("span", { class: "sl-joinitem" }, head, j.from || j.to ? h("span", { class: "sl-sides", title: "Who sends and who receives, as the flow step names them" }, sideChip(j.from), "→", sideChip(j.to)) : null);
   }
+  /* "Comes after" says where in the plan's order, not a whole title in a narrow cell: "the first slice". The name is the hover and the click. */
+  const ORDINALS = ["first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth", "ninth", "tenth"];
+  const placeWords = (x) => { const i = LIST.indexOf(x); return i < 0 ? x.name : i < ORDINALS.length ? `the ${ORDINALS[i]} slice` : `slice ${i + 1}`; };
   function afterChip(k) {
     const x = BY[k];
     if (!x) return chip(k, "", missing(k, "Slice with no page", `The slice comes after ${k}, and the plan has no slice by that name.`), "sl-afterchip gap");
-    return Nodes.wire(h("span", { class: "chip sl-chip sl-afterchip", title: x.id || null }, x.name), { label: x.label, stop: true, ...keyOf(x) });  // the ID in the tooltip: a narrow cell has no room for it
+    return Nodes.wire(h("span", { class: "chip sl-chip sl-afterchip", title: x.name + (x.id ? ` (${x.id})` : "") }, placeWords(x)), { label: x.label, stop: true, ...keyOf(x) });  // the name and ID in the tooltip: a narrow cell has no room for them
   }
   /* A person by the name the vault gives the role, else the handle in words; the handle itself rides in the tooltip. */
   const personWords = (handle) => (D.owners[handle] && D.owners[handle].names[0]) || String(handle).replace(/^@/, "").replace(/^[^/]*\//, "").replace(/-/g, " ");
@@ -133,11 +136,15 @@ const Slices = (() => {
       const list = [...st[g]].map((v) => labelOf(g, v)), or = list.length > 1 ? `${list.slice(0, -1).join(", ")} or ${list[list.length - 1]}` : list[0];
       parts.push(g === "status" ? `status ${or}` : g === "app" ? `${or} taking part` : `milestone ${or}`);
     }
-    if (st.needs) parts.push("needing you");
+    if (st.needs) parts.push("waiting");
     if (st.find) parts.push(`the words "${st.find}"`);
     return parts.length > 1 ? `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}` : parts[0] || "";
   }
-  let refresh = () => {};
+  let refresh = () => {}, keyHost = null;
+  /* Search and four rows of filters are for a plan too big to read at a glance. Under FILTERS_FROM slices they only crowd
+     the few rows there are; a link that carries a filter still shows them, so the filter can be seen and cleared. */
+  const FILTERS_FROM = 8;
+  const wantsFilters = () => LIST.length >= FILTERS_FROM || st.filters || filtered();  // st.filters: the ... menu asked for them
   function changed() { refresh(); if (typeof Nav !== "undefined") Nav.syncHash({ replace: true }); }
   function clear() { st.find = ""; st.needs = false; for (const [g] of GROUPS) st[g].clear(); const f = $(".sl-find"); if (f) f.value = ""; changed(); }
   function filterBar() {
@@ -155,7 +162,7 @@ const Slices = (() => {
     }
     const late = LIST.filter((x) => matches(x, "needs") && x.overdue).length;
     bar.append(h("div", { class: "sl-fgroup", "data-group": "needs" }, h("button", { class: "chip sl-fchip" + (st.needs ? " on" : ""), "aria-pressed": String(st.needs),
-      disabled: late || st.needs ? null : true, title: late ? null : "Nothing needs you here", onclick: () => { st.needs = !st.needs; changed(); } }, "Needs you only", h("span", { class: "ct" }, String(late)))));
+      disabled: late || st.needs ? null : true, title: late ? null : "Nothing is waiting here", onclick: () => { st.needs = !st.needs; changed(); } }, "Waiting only", h("span", { class: "ct" }, String(late)))));
     return bar;
   }
 
@@ -218,7 +225,7 @@ const Slices = (() => {
     const tr = h("div", { class: "sl-tr" + (x.circled ? " circled" : "") + (st.pick === x.slice ? " picked" : ""), role: "button", tabindex: "0",
       "aria-expanded": String(open), "aria-controls": id, "data-slice": x.slice, title: open ? "Fold it" : "Show its flows, contracts, journey and flow check" },
       h("span", { class: "sl-caret", "aria-hidden": "true" }, open ? "▾" : "▸"),
-      h("span", { class: "sl-c sl-c-name" }, name, idTag(x.id), x.tracer ? h("span", { class: "tracer-tag", title: termTip("tracer") }, "tracer") : null),
+      h("span", { class: "sl-c sl-c-name" }, name, idTag(x.id), x.tracer ? h("span", { class: "tracer-tag", title: termTip("tracer") }, "first slice") : null),
       h("span", { class: "sl-c sl-c-status" }, statusPill(x)),
       h("span", { class: "sl-c sl-c-after" }, x.after.length ? x.after.map(afterChip) : h("span", { class: "muted" }, "can start first")),
       h("span", { class: "sl-c sl-c-need" }, duePill(x)));
@@ -228,8 +235,8 @@ const Slices = (() => {
     return [tr, more];
   }
   function tableLayout(list) {
-    const head = h("div", { class: "sl-th", "aria-hidden": "true" }, h("span", {}), h("span", {}, "Slice"), h("span", {}, "Status"), h("span", {}, "Comes after"), h("span", {}, "Needs you"));
     list.forEach(sawRow);
+    const head = h("div", { class: "sl-th", "aria-hidden": "true" }, h("span", {}), h("span", {}, "Slice"), h("span", {}, "Status"), h("span", {}, "Comes after"), h("span", {}, "Waiting"));
     return h("div", { class: "sl-table" }, head, ...list.flatMap(tableRow));
   }
 
@@ -248,7 +255,7 @@ const Slices = (() => {
     const s = statusOf(x), raw = !x.status && x.statusRaw, overrides = x.check ? x.check.overrides.length : 0;
     const facts = [plural(x.flows.length, "flow"), plural(x.joins.length, "contract"), overrides ? `${overrides} accepted for now` : null].filter(Boolean);
     const el = h("div", { class: `sl-node st-${STATUS_CLASS[s]}` + (x.circled ? " circled" : "") + (st.pick === x.slice ? " picked" : ""), "data-slice": x.slice, title: `${x.name}: ${facts.join(", ")}` },
-      h("span", { class: "sl-node-name" }, x.name), x.tracer ? h("span", { class: "tracer-tag", title: termTip("tracer") }, "tracer") : null,
+      h("span", { class: "sl-node-name" }, x.name), x.tracer ? h("span", { class: "tracer-tag", title: termTip("tracer") }, "first slice") : null,
       h("span", { class: "sl-node-sub" }, raw ? `status "${x.statusRaw}"?` : statusWord(s)),
       x.overdue ? h("span", { class: "sl-due sl-node-due" }, `journey due ${day(x.journeyDue)}, not tried yet`)
         : x.journeyDue && !x.journey ? h("span", { class: "sl-node-sub" }, `journey due ${isDate(x.journeyDue) ? day(x.journeyDue) : x.journeyDue}`) : null);
@@ -296,7 +303,10 @@ const Slices = (() => {
     }
     if (filtered()) host.append(h("p", { class: "sl-count" }, `${list.length} of ${plural(LIST.length, "slice")}: ${says()}. `, h("button", { class: "linkish", onclick: clear }, "Clear filters")));
     const drawn = layout === "path" ? pathLayout(list) : tableLayout(list);
-    host.append(drawn, KEY.el());
+    const keyEl = KEY.el();
+    keyEl.classList.add("in-pop"); keyEl.open = true;  // the key lives in the ? popover of the bar, refilled with each redraw
+    if (keyHost) keyHost.replaceChildren(keyEl);
+    host.append(drawn);
     const draw = () => { if (drawn.isConnected) { if (layout === "path") arrows(drawn); KEY.paint(); } };
     draw();
     requestAnimationFrame(draw);
@@ -309,14 +319,24 @@ const Slices = (() => {
       return;
     }
     if (!P.onPages) box.append(h("p", { class: "note sl-old" }, "Each slice gets its own page once the releases session runs again."));
-    const find = h("input", { type: "search", class: "sl-find", placeholder: "Search slices, flows, apps, contracts", "aria-label": "Search the slices", value: st.find });
-    find.addEventListener("input", () => { st.find = find.value.trim(); changed(); });
-    const bar = h("div", { class: "sl-filterhost" }), host = h("div", { class: "sl-results" });
-    box.append(h("div", { class: "sl-tools" }, find), bar, host);
-    refresh = () => { if (!host.isConnected) return; bar.replaceChildren(filterBar()); results(host); };
-    bar.append(filterBar());
+    const showing = wantsFilters(), host = h("div", { class: "sl-results" }), bar = h("div", { class: "sl-filterhost" });
+    if (showing) {
+      const find = h("input", { type: "search", class: "sl-find", placeholder: "Search slices, flows, apps, contracts", "aria-label": "Search the slices", value: st.find });
+      find.addEventListener("input", () => { st.find = find.value.trim(); changed(); });
+      box.append(h("div", { class: "sl-tools" }, find), bar, host);
+      bar.append(filterBar());
+    } else box.append(host);
+    refresh = () => {
+      if (!host.isConnected) return;
+      if (wantsFilters() !== showing) { body(box); return; }  // the last filter was cleared (or a link brought one): the bar goes or comes
+      if (showing) bar.replaceChildren(filterBar());
+      results(host);
+    };
     results(host);
   }
+  /* A plan with few slices opens without search and filters; the ... menu brings them for a reader who wants them. */
+  const filterItem = () => (LIST.length && LIST.length < FILTERS_FROM ? [{ id: "filters", label: "Search and filter", say: "a search box and the status, team and milestone filters", checkbox: true, checked: wantsFilters(),
+    disabled: filtered(), why: "A filter is on, so they stay until it is cleared.", run: () => { st.filters = !st.filters; rerender(); Nav.syncHash({ replace: true }); } }] : []);
   function render(main) {
     const n = LIST.length, moving = LIST.filter((x) => P.statuses.indexOf(x.status) >= 1).length, late = LIST.filter((x) => x.overdue).length;
     const title = typeof Nav !== "undefined" ? Nav.title("Slices") : "Slices";
@@ -327,7 +347,8 @@ const Slices = (() => {
     const layouts = { table: "one row for each slice, with what it needs", path: "the slices as steps, in the order they depend on each other" };
     const viewMenu = Menus.menu({ id: "view", label: "View", current: LAYOUTS.find(([id]) => id === layoutNow())[1], items: () => LAYOUTS.map(([id, label]) =>
       ({ id, label, say: layouts[id], checked: id === layoutNow(), attrs: { "data-layout": id }, run: () => { Settings.write(LAYOUT_KEY, id); st.layout = id; changed(); rerender(); } })) });
-    main.append(Menus.frame({ left: [viewMenu], right: [Nav.moreMenu()] }, box));
+    keyHost = h("div", {});
+    main.append(Menus.frame({ left: [viewMenu], right: [Menus.popover({ id: "key", label: "Key: what the colors and shapes mean", text: "?", content: keyHost }), Nav.moreMenu(filterItem)] }, box));
     body(box);
   }
   function highlight(key) {
@@ -371,6 +392,6 @@ const Slices = (() => {
       x.after.length ? Panel.section("Comes after", x.after.length, chips(x.after, (k) => (BY[k] && BY[k].key ? refChip(BY[k].key) : h("span", { class: "ref-chip ref-dead" }, nameOf(k))))) : null,
       x.notIn.length ? Panel.section("Not in this slice", x.notIn.length, h("ul", { class: "mini-list" }, x.notIn.map((l) => h("li", {}, l.text)))) : null].filter(Boolean);
   }
-  return { render, highlight, panelPart, hashParts, readHash, clear, LIST, st, LAYOUT_KEY, matches, shown };
+  return { render, highlight, panelPart, hashParts, readHash, clear, LIST, FILTERS_FROM, st, LAYOUT_KEY, matches, shown };
 })();
 View("slices", { label: "Slices", title: "Each slice: one journey proven end to end, and where it stands", render: Slices.render, highlight: Slices.highlight, count: () => String(D.slicePlan.list.length) });

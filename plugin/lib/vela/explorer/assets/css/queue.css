@@ -58,3 +58,4 @@
   .home-map .board, .home-map .matrix-stage { min-height: 260px; }
   .home-map .dia { flex: 1 0 auto; min-height: 330px; }
 }
+.q-mine { margin: 0 0 8px; }

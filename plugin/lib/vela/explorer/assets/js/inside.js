@@ -12,7 +12,7 @@
    The vault and the design meet in both directions. A component's panel lists the vault IDs it owns, each with
    where it was found and, while the format records no trace, marked inferred. A requirement row, contract or epic
    criterion in the vault says which component owns it, or that none does: gray when a gap acknowledges it, amber
-   when nobody has. A design question that challenges a vault item lights that item in the "needs you" lamp, with
+   when nobody has. A design question that challenges a vault item lights that item in the "waiting" lamp, with
    its scenario, until the vault records the challenge. This lamp is the design's, not attention.lights, and every
    place it shows says so; the map's lamps stay attention's alone.
 
@@ -92,7 +92,7 @@ const Inside = (() => {
     for (const t of d.resolved.untraced) for (const k of new Set([t, base(t)])) (UNTRACED[k] = UNTRACED[k] || []).push({ app, id: t, gap: d.resolved.acknowledged[t] || null });
     for (const c of d.challenges) if (!c.recorded) (CHALLENGED[c.id] = CHALLENGED[c.id] || []).push(Object.assign({ app }, c));
   }
-  /* The vault item a design question challenges, lit "needs you" until the vault records it. */
+  /* The vault item a design question challenges, lit "waiting" until the vault records it. */
   /* An acceptance criterion (EPC-034.AC4) has no page of its own, so its challenge lights the epic's page. */
   const challengeHome = (id) => id.replace(/^(EPC-\d+)\.AC\d+$/, "$1");
   const challenge = (key) => {
@@ -981,7 +981,7 @@ const Inside = (() => {
       sec("Boundaries", null, h("div", { class: "facts" }, h("div", { class: "fl" }, "Inside"), h("div", {}, prose(d.boundaries.inside || "not written")), h("div", { class: "fl" }, "Outside"), h("div", {}, prose(d.boundaries.outside || "not written")))),
       sec("Gaps", fm.gaps.length, fm.gaps.map((g) => h("div", { class: "in-gap" }, h("b", {}, g.id || "a gap"), " ", prose(g.what || ""), h("div", { class: "ml-sub" }, [g.acknowledged_by ? `Accepted by ${person(g.acknowledged_by)}.` : "Nobody has accepted it yet.", g.why ? ` Why: ${g.why}` : " No reason given.", g.revisit ? ` Look again: ${g.revisit}` : ""].join(""))))),
       sec("Deferred", fm.deferred.length, fm.deferred.map((x) => h("div", { class: "in-gap" }, h("b", {}, x.id), " ", x.section || "", ": ", prose(x.reason || "")))),
-      sec("Open questions", d.open_questions.length, d.open_questions.map((q) => h("div", { class: "in-gap" }, q.challenges.length ? lampEl("caution", "Questions part of the plan: needs you") : null, " ", h("b", {}, q.id), " ", q.title,
+      sec("Open questions", d.open_questions.length, d.open_questions.map((q) => h("div", { class: "in-gap" }, q.challenges.length ? lampEl("caution", "Questions part of the plan: waiting") : null, " ", h("b", {}, q.id), " ", q.title,
         q.challenges.length ? h("div", {}, "Questions ", q.challenges.map((id) => idChip(id))) : null, q.other.Scenario ? h("div", { class: "ml-sub" }, "Scenario: ", prose(q.other.Scenario)) : null,
         q.affects_ids.length ? h("div", { class: "ml-sub" }, "Affects ", q.affects_ids.map((id) => idChip(id))) : null))),
       sec("The plan it was written against", null, h("div", { class: "p-note" }, d.vault.app ? `The plan for ${appTitle(keyOfApp(d.vault.app) || app)}${d.vault.commits.length > 1 ? `, written against ${d.vault.commits.length} different versions of the plan, so parts may be out of date. Ask the team to re-check` : d.vault.commits.length ? ", at the version the design names" : ", with no version named"}.` : "This design isn't linked to the plan; it was written from a requirements doc.",
@@ -1068,7 +1068,7 @@ const Inside = (() => {
   function challengeSection(k) {
     const list = challenge(k);
     if (!list) return null;
-    return sec("Questioned by an app team", list.length, list.map((c) => h("div", { class: "in-challenge" }, lampEl("caution", "Needs you: an app team questions this in its design"), " ",
+    return sec("Questioned by an app team", list.length, list.map((c) => h("div", { class: "in-challenge" }, lampEl("caution", "Waiting: an app team questions this in its design"), " ",
       h("a", { onclick: () => go(key(c.app, "", ""), {}) }, `The ${appTitle(c.app)} team asks`), `: ${c.title}`, idTag(c.oq), c.scenario ? h("div", { class: "ml-sub" }, "Scenario: ", prose(c.scenario)) : null,
       c.affects.length ? h("div", { class: "ml-sub" }, "Affects ", c.affects.map((id) => idChip(id))) : null)),
     h("div", { class: "p-note" }, "The team questions this in its design. Settle it, or take it to a grill session to record it."));

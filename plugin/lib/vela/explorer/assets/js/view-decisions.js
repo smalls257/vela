@@ -229,7 +229,7 @@ const Decisions = (() => {
     main.append(h("div", { class: "view-head" }, h("div", {}, h("h1", {}, Nav.title("Decisions")),
       h("p", {}, "Pick a decision to see what was chosen, what was turned down and why, and what it still waits on.", Nav.ledeLink())),
       h("div", { class: "spacer" }), Nav.pageActions()));
-    if (!trees.length) { main.append(emptyState("No decisions written down yet.", "Shape the plan and the choices you make show up here.", "/vela:shape")); return; }
+    if (!trees.length) { main.append(emptyState("No decisions written down yet.", "Shape the plan and the choices made show up here.", "/vela:shape")); return; }
     main.append(h("div", { class: "dl-wrap" }, h("div", { class: "dl-barhost" }, bar()), h("p", { class: "dl-count", id: "dl-count", "aria-live": "polite" }), stage));
     paint();
   }

@@ -1,5 +1,5 @@
 """The Slices view in a real browser: a link with filters in its hash opens the same filtered view, and the page's own
-selftest walks the table, the path, the filters, the hash round trip and an overdue journey in What needs you."""
+selftest walks the table, the path, the filters, the hash round trip and an overdue journey in What's waiting."""
 import html
 import re
 import shutil
@@ -56,5 +56,5 @@ def test_the_selftest_walks_the_slices_view_with_a_journey_past_due(tmp_path, ch
     runs = {viewport: _check_selftest_in_chrome(chrome_path, vault / "dashboard.html", f"booking with slices moving at {viewport}", viewport)
             for viewport in ("1600,1000", "800,600")}
     lines = runs["1600,1000"]  # the wide run's own lines: the same page and window, so no second run of the selftest
-    for want in ("ok slices table: Enter opens a row", "ok slices filter: the link", "ok slices: Needs you only shows the 1 ", "ok slices path:"):
+    for want in ("ok slices table: Enter opens a row", "ok slices filter: the link", "ok slices: Waiting only shows the 1 ", "ok slices path:"):
         assert any(line.startswith(want) for line in lines), want

@@ -27,7 +27,7 @@ const Nav = (() => {
 
   /* ------------------------------------------------------------ what the views ask of the section */
   function title(fallback) {
-    if (App.section === "home") return "What needs you";
+    if (App.section === "home") return "What's waiting";
     const s = sec();
     if (!s) return fallback;
     if (st.child && E[st.child]) return s.id === "apps" || s.id === "flows" ? E[st.child].title : `${s.label}: ${E[st.child].title}`;
@@ -47,12 +47,12 @@ const Nav = (() => {
     epics: "every epic, and what it delivers", releases: "the system before and after each release" };
   const visualItem = ([v, label]) => ({ id: v, label, say: VISUAL_SAY[v] || null, checked: App.view === v, run: () => { Sections.doc.page = ""; showView(v); } });
   /* The View menu's items for the section the reader is in. A section with a map keeps the map's four views in the same
-     menu as its other visuals, so Progress sits beside System map and Flow lines, whichever of them is showing. */
+     menu as its other visuals, so Progress sits beside System map and Contracts only, whichever of them is showing. */
   function viewItems() {
     const s = sec(), vis = s ? VISUALS[s.id] || [] : [];
     if (App.section !== "home" && !vis.some(([v]) => v === "map")) return vis.map(visualItem);
     const items = MapView.viewItems(), at = items.findIndex((x) => x.separator), others = vis.filter(([v]) => v !== "map").map(visualItem);
-    items.splice(at < 0 ? items.length : at, 0, ...others);  // the other visuals sit with the views; the Animate flows switch stays last
+    items.splice(at < 0 ? items.length : at, 0, ...others);  // the other visuals sit with the views; the Moving markers switch stays last
     return items;
   }
   function viewMenu() {
@@ -122,7 +122,7 @@ const Nav = (() => {
   }
   function role(r) {
     if (r === "lead") return home();
-    Roles.st.role = r; App.section = "role:" + r; st.child = ""; App.root = "lights"; App.trail = [];
+    Roles.st.role = r; Roles.st.chosen = true; App.section = "role:" + r; st.child = ""; App.root = "lights"; App.trail = [];
     App.view = "role"; syncHash(); rerender(); Panel.render();
   }
   function readWide(pk, anchor) {
@@ -151,7 +151,7 @@ const Nav = (() => {
     return { section: App.section, child: st.child, view: App.view, trail: App.trail.slice(), focus: App.focus, root: App.root, doc: Sections.doc.page };
   }
   const whereLabel = (w) => {
-    if (!w || w.section === "home") return "What needs you";
+    if (!w || w.section === "home") return "What's waiting";
     if (w.section.startsWith("role:")) return (Roles.ROLES.find(([id]) => id === w.section.slice(5)) || [0, "the front door"])[1];
     const s = SECTIONS[w.section];
     return s ? (w.child && E[w.child] ? E[w.child].title : s.label) : "the explorer";
@@ -269,7 +269,20 @@ const Nav = (() => {
   /* A section's count shows only beside a lit lamp: a dozen bare numbers down the side were a dozen things to hold. */
   function sideCount(s) {
     const n = count(s), open = s.id === "unknowns";
-    return h("span", { class: "side-n", title: open ? plural(n, "open question") : `${s.label}: ${n}`, ...(open ? { "data-quantity": "openQuestions", "data-n": n } : {}) }, n);
+    return h("span", { class: "side-n", title: open ? `${plural(n, "open question")} in all; ${Queue.needsYou().n} of the plan's things are waiting` : `${s.label}: ${n}`, ...(open ? { "aria-label": `${plural(n, "open question")} in all` } : {}), ...(open ? { "data-quantity": "openQuestions", "data-n": n } : {}) }, n);
+  }
+  /* Flow names often start alike ("A person switches it on", "A person gets the morning digest"), and a narrow bar cuts every one
+     to the same stub. The two words most of them share are left off in the bar (the hover keeps the whole name). */
+  const READ = ["constraints", "context", "strategy", "glossary"];  // pages that are mostly words: one folded heading, not four rows between the diagrams
+  function sharedLead(titles) {
+    const lead = (t) => t.split(/\s+/).slice(0, 2).join(" "), tally = {};
+    for (const t of titles) tally[lead(t)] = (tally[lead(t)] || 0) + 1;
+    const [best, n] = Object.entries(tally).sort((a, b) => b[1] - a[1])[0] || ["", 0];
+    return titles.length >= 3 && n >= 3 && n * 2 > titles.length ? best + " " : "";
+  }
+  function kidLabel(s, k) {
+    const title = E[k].title, lead = s.id === "flows" ? sharedLead(s.children.map((x) => E[x].title)) : "";
+    return lead && title.startsWith(lead) && title.length > lead.length ? title.slice(lead.length) : title;
   }
   function item(s) {
     const here = App.section === s.id, has = s.children.length > 0, openList = st.expanded.has(s.id);
@@ -283,9 +296,18 @@ const Nav = (() => {
       const lvk = levelOf(k), cur = here && st.child === k;
       return h("button", { class: "side-kid" + (cur ? " on" : ""), "data-section": s.id, "data-child": k, "aria-current": cur ? "page" : null, onclick: () => open(s.id, k), title: E[k].title },
         s.id === "apps" && NODE[k] ? Icons.forKey(k, "side-glyph") : null,
-        h("span", { class: "side-label" }, s.id === "capabilities" || s.id === "epics" || s.id === "decisions" ? [E[k].title, idTag(E[k].id)] : E[k].title), lvk !== "dark" && D.lights[k] ? lampEl(lvk) : null);
+        h("span", { class: "side-label" }, s.id === "capabilities" || s.id === "epics" || s.id === "decisions" ? [E[k].title, idTag(E[k].id)] : kidLabel(s, k)), lvk !== "dark" && D.lights[k] ? lampEl(lvk) : null);
     }).flatMap((kid) => (s.id === "apps" && here && st.child === kid.dataset.child && typeof Inside !== "undefined" ? [kid, Inside.sideEntry(kid.dataset.child)] : [kid]))));
     return out;
+  }
+  /* "Read": the text-first pages under one heading that stays folded until it is opened, or until one of them is the page. */
+  function readGroup(reads) {
+    const inside = reads.some((s) => s.id === App.section), open = st.expanded.has("read") || inside;
+    const toggle = () => { st.expanded.has("read") ? st.expanded.delete("read") : st.expanded.add("read"); write(OPEN_KEY, [...st.expanded]); refresh(); };
+    return [h("div", { class: "side-row side-read-row" + (inside ? " in" : "") },
+        h("button", { class: "side-caret", "aria-expanded": String(open), "aria-controls": "side-read", "aria-label": `${open ? "Hide" : "Show"} the pages to read`, onclick: toggle }, open ? "▾" : "▸"),
+        h("button", { class: "side-link", "data-group": "read", title: "Pages that are mostly words: " + reads.map((s) => s.label).join(", "), onclick: toggle }, h("span", { class: "side-label" }, "Read"))),
+      h("div", { class: "side-kids side-read", id: "side-read", hidden: !open }, reads.flatMap((s) => item(s)))];
   }
   function refresh() {
     const side = $("#side");
@@ -295,13 +317,15 @@ const Nav = (() => {
     side.append(h("div", { class: "side-group" }, h("div", { class: "side-h" }, "Start here"),
       // the top bar carries the needs-you number; the side door shows only the overdue part, and only when there is one
       h("button", { class: "side-home" + (App.section === "home" ? " on" : ""), "aria-current": App.section === "home" ? "page" : null, title: Queue.needsYouSays(), onclick: home },
-        h("span", { class: "side-label" }, "What needs you"), late ? h("span", { class: "side-n lit warning", title: `${late} overdue`, "data-quantity": "overdue", "data-n": late }, late) : null),
+        h("span", { class: "side-label" }, "What's waiting"), late ? h("span", { class: "side-n lit warning", title: `${late} overdue`, "data-quantity": "overdue", "data-n": late }, late) : null),
       typeof Ask !== "undefined" && Ask.served() ? h("button", { class: "side-home side-ask" + (App.section === "ask" ? " on" : ""), "aria-current": App.section === "ask" ? "page" : null, title: "Ask Claude about the plan", onclick: () => Ask.open() },
         h("span", { class: "side-label" }, "Ask Claude"), Ask.count() ? h("span", { class: "side-n" }, Ask.count()) : null) : null,
       h("div", { class: "side-roles", role: "tablist", "aria-label": "Views by role" }, Roles.ROLES.slice(1).map(([id, label, say]) =>
         h("button", { role: "tab", "aria-selected": String(App.section === "role:" + id), title: say, onclick: () => role(id) }, label)))));
     const vault = h("div", { class: "side-group" }, h("div", { class: "side-h" }, "Plan pages"));
-    for (const s of D.sections) vault.append(...item(s));
+    const reads = D.sections.filter((s) => READ.includes(s.id));
+    for (const s of D.sections) if (!READ.includes(s.id)) vault.append(...item(s));
+    if (reads.length) vault.append(...readGroup(reads));
     side.append(vault);
     side.append(h("div", { class: "side-foot" }, h("span", { class: "muted", title: D.initiative ? `Initiative ${D.initiative}` : null }, `Search all ${plural(Object.keys(D.reader).length, "page")} with /`)));
   }

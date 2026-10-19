@@ -125,10 +125,10 @@ const Releases = (() => {
     const t = tracer(), at = t && E[flowKey] ? t.flows.indexOf(E[flowKey].id) : -1;
     return at < 0 ? null : { n: at + 1, of: t.flows.length };
   }
-  const tracerPlaceWords = (pl) => `${pl.n} of ${pl.of}`;
+  const tracerPlaceWords = (pl) => `flow ${pl.n} of ${pl.of}`;
   function tracerTag(flowKey) {
     const pl = tracerPlace(flowKey);
-    return pl ? h("span", { class: "tracer-tag", "data-tracer-tag": flowKey, title: `${termTip("tracer")} This flow is ${tracerPlaceWords(pl)} in it.` }, "tracer") : null;
+    return pl ? h("span", { class: "tracer-tag", "data-tracer-tag": flowKey, title: `${termTip("tracer")} This is ${tracerPlaceWords(pl)} in it.` }, "first slice") : null;
   }
   const flowKeyOf = (id) => (D.flows.find((f) => E[f.key].id === id) || {}).key;
   function tracerLine() {

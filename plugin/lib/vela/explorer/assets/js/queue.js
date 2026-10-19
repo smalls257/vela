@@ -8,7 +8,7 @@
    The ID rides in the tooltip, and the question's own words, with who and when, open in the panel. */
 const Queue = (() => {
   const TOP = 5;
-  const st = { all: false };
+  const st = { all: false, mine: false };
   const GROUPS = [["strategy", "Strategy"], ["scope", "Scope"], ["epics", "Epics"], ["parts", "Apps and contracts"], ["concerns", "Concerns"], ["releases", "Releases"], ["questions", "Other questions"]];
   const PARTS = new Set(["app", "contract", "flow", "runtime", "external", "party", "page"]);
   const NUMBER = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
@@ -76,6 +76,19 @@ const Queue = (() => {
     return items;
   }
   const items = () => (cache = cache || build());
+
+  /* Who is reading, only when the page can tell: the handle the build was given, else the role door the reader picked. Anything
+     else is a dashboard for whoever opens it, and it never says "you". A role is matched on the words of who was asked and the
+     owner ("the product owner", "CISO"): a door is a kind of reader, not a person, so the match is by what they are called. */
+  const ROLE_WORDS = { exec: /exec|ceo|cio|cto|ciso|chief|sponsor|director/i, product: /product/i, qa: /\bqa\b|test|quality/i, eng: /engineer|tech|architect|develop/i, mgr: /manager|delivery|program/i };
+  function me() {
+    const handle = D.me && D.me.handle ? "@" + D.me.handle.toLowerCase() : "";
+    if (handle) return { kind: "handle", waiting: (a) => [a.ask.key, a.ask.owner].some((k) => String(k || "").toLowerCase() === handle) };
+    const role = typeof Roles !== "undefined" && Roles.st.chosen ? Roles.st.role : "";
+    if (ROLE_WORDS[role]) return { kind: "role", role, waiting: (a) => ROLE_WORDS[role].test(`${a.ask.name || ""} ${a.ownerRaw || ""}`) };
+    return null;
+  }
+  const mineOf = (list) => { const who = me(); return who ? list.filter((x) => who.waiting(ASK[x.id])) : list; };
   const holdless = () => D.asks.filter((u) => u.state === "open" && !items().some((x) => x.id === u.id)).length;
 
   /* The numbers for the top bar and the sidebar: a question counts once, however many things it holds, and a lit
@@ -86,7 +99,7 @@ const Queue = (() => {
     return out;
   }
   const otherLit = () => litSubjects().filter((x) => !x.light.reasons.some((r) => r.kind === "held"));
-  /* "Needs you" is one count everywhere it is shown: the top bar, the side door, the waiting card and the panel all read it.
+  /* "Waiting" is one count everywhere it is shown: the top bar, the side door, the waiting card and the panel all read it.
      It is the questions that hold something up plus the other things lit overdue or needs-you, each counted once. Pending
      approval and never-examined are lit too, but they are not waiting on the lead, so they are not in it. */
   const NEEDS = ["warning", "caution"];
@@ -98,21 +111,21 @@ const Queue = (() => {
      top bar shows the number itself, so its tooltip says only the parts; a view away from the top bar says both. */
   function needsYouParts() {
     const c = needsYou();
-    if (!c.n) return "Nothing needs you";
+    if (!c.n) return "Nothing is waiting";
     const parts = [c.questions ? `${plural(c.questions, "question")} ${c.questions === 1 ? "is" : "are"} blocking work` : null,
       c.other ? `${plural(c.other, "other thing")} ${c.other === 1 ? "isn't" : "aren't"} decided yet` : null].filter(Boolean);
     return `${parts.join(" and ")}${c.late ? ` (${c.late} overdue)` : ""}`;
   }
   function needsYouSays() {
     const c = needsYou();
-    return c.n ? `${c.n} need you: ${needsYouParts()}` : "Nothing needs you";
+    return c.n ? `${c.n} waiting: ${needsYouParts()}` : "Nothing is waiting";
   }
   /* The queue card's line: what to start with, not the top bar's number again. */
   function startWith() {
     const list = items().filter((x) => NEEDS.includes(x.level)), first = list[0];
-    if (!first) return otherLit().length ? "No question is blocking work." : "Nothing is waiting on an answer";
+    if (!first) return needsYou().n ? `${needsYou().n} waiting. No question is blocking work.` : "Nothing is waiting on an answer";
     const due = isDate(first.askBy) ? `The first is due ${day(first.askBy)}: ${first.title}.` : `The most urgent: ${first.title}.`;
-    return `${plural(list.length, "question")} ${list.length === 1 ? "blocks" : "block"} work. ${due}`;
+    return `${needsYou().n} waiting. ${due}`;  // the one number, the top bar's; what it is made of is on hover
   }
   const total = () => needsYou().n;
 
@@ -136,9 +149,15 @@ const Queue = (() => {
   }
   /* The list, its toggle and the count of questions that hold nothing: the part both homes share. */
   function block() {
-    const list = items(), box = h("div", { class: "q-block" });
+    const who = me(), mine = !!who && st.mine, list = mine ? mineOf(items()) : items(), box = h("div", { class: "q-block" });
+    if (who) {
+      const n = mineOf(items()).length;
+      box.append(h("button", { class: "chip q-mine" + (mine ? " on" : ""), "aria-pressed": String(mine), "data-me": who.kind,
+        title: who.kind === "handle" ? "Only the questions that name you as the owner or the one to ask" : "Only the questions whose owner or the one asked reads as this role",
+        onclick: () => { st.mine = !st.mine; const fresh = block(); box.replaceWith(fresh); $(".q-mine", fresh).focus({ preventScroll: true }); } }, "Waiting on you", h("span", { class: "ct" }, String(n))));
+    }
     if (!list.length) {
-      box.append(h("p", { class: "q-none" }, "No open question is blocking anything."));
+      box.append(h("p", { class: "q-none" }, mine ? "No open question is waiting on you." : "No open question is blocking anything."));
     } else {
       box.append(...(st.all ? grouped(list) : [h("ul", { class: "q-list" }, list.slice(0, TOP).map(row))]));
       if (list.length > TOP) {
@@ -161,7 +180,7 @@ const Queue = (() => {
     const list = items(), fold = folded(width);
     const say1 = startWith();
     const el = h("section", { class: "q-card" + (fold ? "" : " open"), "aria-label": "What is waiting on an answer" },
-      h("div", { class: "q-head" }, h("span", { class: "q-kicker" }, "Waiting on an answer"), h("span", { class: "q-count", ...(needsYou().questions ? { "data-quantity": "needsYou.questions", "data-n": needsYou().questions } : {}) }, say1),
+      h("div", { class: "q-head" }, h("span", { class: "q-count", title: needsYouParts(), ...(needsYou().n ? { "data-quantity": "needsYou", "data-n": needsYou().n } : {}) }, say1),
         h("button", { class: "q-fold", "aria-expanded": String(!fold), title: "Hide the list so the map gets the full width", onclick: (ev) => {
           const open = !el.classList.contains("open");
           if (width >= NARROW) { Settings.write(FOLD_KEY, open ? "0" : "1"); rerender(); return; }  // the map refits to the room the fold gave or took
@@ -173,5 +192,5 @@ const Queue = (() => {
   }
   /* The row picked anywhere stays marked here. */
   function sync() { $$(".q-row").forEach((b) => b.classList.toggle("on", b.dataset.ref === App.focus)); }
-  return { items, card, folded, block, counts, needsYou, needsYouSays, needsYouParts, startWith, total, sync, holdless, say, TOP, GROUPS, st, otherLit };
+  return { me, items, card, folded, block, counts, needsYou, needsYouSays, needsYouParts, startWith, total, sync, holdless, say, TOP, GROUPS, st, otherLit };
 })();

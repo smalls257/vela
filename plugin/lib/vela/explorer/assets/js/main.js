@@ -22,21 +22,24 @@ if (STILL) document.documentElement.classList.add("still");
 
 function renderMasters() {
   const box = $("#masters"), counts = Queue.counts();  // a question counts once however many things it holds
-  // "need you" is shown as a number here and only here (label sweep: the same 21 showed four times on Home); overdue is
+  // "waiting" is shown as a number here and only here (label sweep: the same 21 showed four times on Home); overdue is
   // the part of it that is late. A lamp at zero is noise on every screen, so overdue and not-reviewed hide at zero.
   const need = Queue.needsYou(), count = (lv) => (lv === "caution" ? need.n : counts[lv] || 0);
   const QUANTITY = { warning: "overdue", caution: "needsYou", unexamined: "unreviewed" };
-  const tip = (lv, n) => (lv === "caution" ? `${n ? Queue.needsYouParts() + ". " : "Nothing needs you. "}Click to see them, most urgent first.`
+  const tip = (lv, n) => (lv === "caution" ? `${n ? Queue.needsYouParts() + ". " : "Nothing is waiting. "}Click to see them, most urgent first.`
     : lv === "warning" ? `${plural(n, "question")} past the date ${n === 1 ? "it" : "they"} needed an answer by. Something goes red when a question blocking it misses its answer date.`
     : `${plural(n, "thing")} with something nobody has reviewed yet. Each turns gray once someone has.`);
   box.innerHTML = "";
-  for (const [lv, word] of [["warning", "overdue"], ["caution", "need you"], ["unexamined", LIGHT.unexamined.word.toLowerCase()]]) {
+  for (const [lv, word] of [["warning", "overdue"], ["caution", "waiting"], ["unexamined", LIGHT.unexamined.word.toLowerCase()]]) {
     const n = count(lv);
     if (lv !== "caution" && !n) continue;
     box.append(h("button", { class: `master ${lv}${n ? " on" : ""}`, title: tip(lv, n), onclick: () => { if (App.section !== "home") Nav.home(); go("lights", { reset: true }); } },
       h("b", { "data-quantity": QUANTITY[lv], "data-n": n }, n), h("span", {}, word)));
   }
 }
+/* The things set once and left: the theme, in one gear at the far right (the sound button and the Animation switch are gone). */
+$("#settings").append(Menus.menu({ id: "settings", kind: "icon", glyph: "gear", label: "Settings: theme", align: "right",
+  items: () => [{ heading: "Theme" }, ...Theme.LIST.map((t) => ({ id: t.id, label: t.label, say: t.say, checked: Theme.id === t.id, run: () => Theme.set(t.id) }))] }));
 renderMasters();
 Drafts.badges();
 Freshness.start();

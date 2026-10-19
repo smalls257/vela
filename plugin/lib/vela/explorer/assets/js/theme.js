@@ -23,8 +23,6 @@ const Theme = (() => {
       LIGHT[lv].color = c(base) || LIGHT[lv].color;
       LIGHT[lv].ink = c(base + "-ink") || LIGHT[lv].ink;
     }
-    const sel = $("#theme");
-    if (sel) { sel.value = current; sel.title = `Theme: ${LIST.find((t) => t.id === current).say}`; }
   }
   function set(id) {
     if (!known(id)) { console.warn(`[theme] ${id} is not a theme here`); return; }
@@ -33,11 +31,6 @@ const Theme = (() => {
     apply();
     if (typeof Motion !== "undefined") Motion.clear();
     if (typeof rerender === "function" && $("#main").childNodes.length) { rerender(); if (typeof Panel !== "undefined") Panel.render(); }
-  }
-  const sel = $("#theme");
-  if (sel) {
-    LIST.forEach((t) => sel.append(h("option", { value: t.id }, t.label)));
-    sel.addEventListener("change", () => set(sel.value));
   }
   apply();
   return { get id() { return current; }, set, c, list, LIST };

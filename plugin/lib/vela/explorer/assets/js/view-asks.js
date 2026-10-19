@@ -150,7 +150,7 @@ const Asks = (() => {
     }
     const { list, totals } = bays();
     main.append(h("div", { class: "view-head asks-head" },
-      h("div", {}, h("h1", {}, "Who to ask"), h("p", {}, "Who you need answers from, and by when. Start with the person at the left: their questions fall due first. Click a question to see what it holds up.", Nav.ledeLink())),
+      h("div", {}, h("h1", {}, "Who to ask"), h("p", {}, "Who each answer is waiting on, and by when. Start with the person at the left: their questions fall due first. Click a question to see what it holds up.", Nav.ledeLink())),
       h("div", { class: "spacer" }),
       h("input", { type: "search", class: "board-find", placeholder: "Find a question or a person", value: st.q, oninput: (e) => { st.q = e.target.value.trim(); repaint(); } }),
       h("button", { class: "chip" + (st.holdingOnly ? " on" : ""), onclick: () => { st.holdingOnly = !st.holdingOnly; rerender(); }, title: "Only questions that say what they block" }, "Blocking something"),

@@ -31,7 +31,7 @@ import uuid
 from vela import (allocation, attention, cli, completeness, handoff, ladder, links, model, override, pending, plainwords,
                      progress, reading, roles, say, schema, slices, terms, trace)
 from vela import search as vela_search
-from vela.edge import atomic
+from vela.edge import atomic, sessiongit
 from vela.parse import FENCE, closes_fence
 
 from . import (asks_data, assets_inline, branches_data, breakdown_find, design_data, design_find, draft_data, flows_data, icons_data, inside_data, pages_data,
@@ -54,8 +54,8 @@ class ExplorerError(Exception):
 JS_MODULES = ("core", "theme", "fx", "menus", "assets", "icons", "layout", "pan", "geometry", "search", "minimap", "reader", "queue", "panel", "panelsize", "motion", "view-map",
               "wires", "mapgroups", "releases", "slices", "flowkit", "flowpicker", "branches", "view-flows", "rehearse", "view-asks", "view-decisions", "view-progress",
               "view-trace", "sections", "roles", "nav", "markdown", "ask", "inside", "plan", "drafts", "freshness", "main")
-SELFTEST_MODULES = ("selftest", "selftest-branches")  # 120 KB of checks: bundled only when asked (`vela explore --selftest`), not shipped to every reader
-CSS_MODULES = ("base", "menus", "nav", "panel", "map", "queue", "flows", "rehearse", "asks", "decisions", "pages", "reader", "roles",
+SELFTEST_MODULES = ("selftest", "selftest-branches", "selftest-qol")  # 120 KB of checks: bundled only when asked (`vela explore --selftest`), not shipped to every reader
+CSS_MODULES = ("base", "menus", "nav", "panel", "compact", "map", "queue", "flows", "rehearse", "asks", "decisions", "pages", "reader", "roles",
                "releases", "slices", "branches", "ask", "inside", "plan", "pending", "drafts", "themes", "plain")
 
 # The themes the page offers, first the default. Each is a palette in assets/css/themes.css (Console is base.css's
@@ -607,6 +607,9 @@ def extract(vault, root, today, pins_path=None, designs=None, seed=None, plans=N
         "terms": dict(terms.TERMS), "words": plainwords.reader_words(),
     }
     data["pending"] = pending_list(vault, keys)
+    # Who is reading, if the build knows: the handle `vela whoami` keeps for this vault. The page never claims "you" without it
+    # (or without the reader picking a role door); an empty handle means a dashboard for whoever opens it.
+    data["me"] = {"handle": sessiongit.read_handle(root).lstrip("@")}
     data["owners"] = owners(entities)
     data["nodes"], data["pins"] = map_nodes(vault, keys, data["map"], pins_path, seed)
     app_meta = {keys.page(a): a.meta for a in vault.apps}

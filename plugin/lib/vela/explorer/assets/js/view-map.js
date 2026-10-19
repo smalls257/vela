@@ -23,8 +23,8 @@ const MapView = (() => {
   const group = () => { const g = st.group || (App.section === "capabilities" ? "capability" : manyApps() && hasDomains() ? "domain" : "none"); return groupOff(g) ? "none" : g; };
   let pulses = [], trains = [], gPulses = null, LAY = null, stripEl = null;
   const LEDE = {
-    cockpit: "Your apps and the contracts between them. Pick one to see what it's waiting on.",
-    home: "Most of what needs you is held up by an open question. Pick a box to see what's blocking it.",
+    cockpit: "The apps and the contracts between them. Pick one to see what it's waiting on.",
+    home: "Most of what's waiting is held up by an open question. Pick a box to see what's blocking it.",
     domain: "Apps grouped by business area. Click a group to open it.",
     capability: "Each capability with the apps that deliver it. Pick one to see what's still open on it.",
     focus: "Who uses this app and what it relies on. Pick a contract to see what's agreed.",
@@ -37,10 +37,10 @@ const MapView = (() => {
   const { ln, bx } = Legend;
   const KIND_LOOK = { app: "kind.app", partner: "kind.party", contract: "kind.contract", flow: "kind.flow" };
   Legend.define("kind.app", [bx({ fill: "unlit", stroke: "rule-3", rx: 6, w: 1.4 })], "Rounded box: one of our apps");
-  Legend.define("kind.party", [{ k: "clip", fill: "unlit", stroke: "rule-3", w: 1.4 }], "Clipped corners: an outside service");
+  Legend.define("kind.party", [{ k: "clip", fill: "unlit", stroke: "rule-3", w: 1.4 }], "Cut corners: a service outside the plan");
   Legend.define("kind.contract", [bx({ fill: "unlit", stroke: "rule-3", y: 4.5, height: 7, rx: 2, w: 1.2 })], "Small label: a contract, what two apps have agreed to pass each other");
   Legend.define("kind.count", [{ k: "dot", fill: "unlit", stroke: "rule-3", r: 6, w: 1.4 }, { k: "text", t: "3", fill: "ink-2", y: 11 }], "Round number: that many contracts on one short line");
-  Legend.define("kind.flow", [bx({ fill: "unlit", stroke: "rule-3", y: 3.5, height: 9, rx: 2, w: 1.2 })], "Wide card in the Flows row: a flow");
+  Legend.define("kind.flow", [bx({ fill: "unlit", stroke: "rule-3", y: 3.5, height: 9, rx: 2, w: 1.2 })], "Card in the Flows row: one flow, click it to play");
   Legend.define("link", [ln({ stroke: "duct", w: 4.5 })], "Dark line: a connection between two boxes; its contracts are labeled on it");
   Legend.define("link.lit", [ln({ stroke: "caution", w: 2, dash: "1.5 4.5" })], "Dotted color on a line: the most urgent status among its contracts");
   Legend.define("link.leader", [ln({ stroke: "ink-4", w: 1.2, dash: "2 3" })], "Thin dotted line: ties a contract label to its line");
@@ -50,7 +50,7 @@ const MapView = (() => {
   Legend.define("works", [bx({ stroke: "caution", dash: "3 2", w: 2, width: 19, y: 5, height: 8, rx: 1.5 }), { k: "dot", fill: "caution", x: 27, y: 4.5, r: 4.5 }], "Striped badge with a number: open questions blocking it, in the color of the most urgent");
   Legend.define("station.app", [bx({ fill: "room", stroke: "ink", w: 2.4, rx: 7 })], "Round-ended box: one of our apps, its status in words under the name");
   Legend.define("station.party", [bx({ fill: "room", stroke: "ink-3", w: 2.4, rx: 3 }), bx({ stroke: "ink-3", w: 1, x: 6, y: 5.5, width: 22, height: 5, rx: 1 })], "Double frame: an outside service");
-  Legend.define("lit.words", [{ k: "text", t: "Aa", fill: "caution-text", size: 12 }], "Colored words: this needs you; the words say why");
+  Legend.define("lit.words", [{ k: "text", t: "Aa", fill: "caution-text", size: 12 }], "Colored words: this is waiting; the words say why");
   Legend.define("dim", [bx({ fill: "unlit", opacity: 0.25, stroke: "rule-3", w: 1 })], "Faded: not on the flow you picked");
   Legend.define("train", [bx({ fill: "line-gray", stroke: "room", x: 8, y: 4.5, width: 18, height: 7, rx: 3.5, w: 1.4 })], "Small moving marker: runs along the flow, step by step");
   Legend.define("matrix.upper", [bx({ fill: "cell-upper", stroke: "cell-upper-edge", w: 1 })], "Shaded cell: this app depends on one further down the list, so the build order loops back");
@@ -104,7 +104,7 @@ const MapView = (() => {
     const stage = lens() === "matrix" ? h("div", { class: "matrix-stage" }, board) : null;
     KEY = lens() === "releases" ? null : Legend.open(keyName(mode), { root: () => $("#board"), probes: keyLooks(mode) });
     // The view, grouping, focus and layout controls ride on the diagram's own bar (menus.js), under the title and lede.
-    col.append(Menus.frame(diagramBar(), countLine(), stage || board));
+    col.append(Menus.frame(diagramBar(), stage || board));
     if (queued) { const width = main.clientWidth; main.append(h("div", { class: "home-wrap" }, h("div", { class: "home-stage" + (Queue.folded(width) ? " stacked" : "") }, Queue.card(width), col))); }
     if (!D.nodes.length) { board.append(emptyState("No apps yet.", "The map fills in once a session names them.", "/vela:boundary")); return; }
     if (lens() === "releases") { Releases.mapLens(board); return; }  // the releases drawing keeps its own key
@@ -119,15 +119,15 @@ const MapView = (() => {
   }
   /* The bar on the diagram: View and Group menus on the left, the focus button and the ... menu on the right, and
      the line that says what picking does between them. */
-  const LENSES = [["cockpit", "System map", "every app, and what connects them"], ["transit", "Flow lines", "each flow drawn as a line across the apps"],
-    ["matrix", "Who uses whom", "who provides to whom, as a table"], ["releases", "Before and after", "the system before and after each release"]];
+  const LENSES = [["cockpit", "System map", "every app, and what connects them"], ["transit", "Contracts only", "each flow drawn as a line along the contracts it usess"],
+    ["matrix", "Dependencies", "who provides to whom, as a table"], ["releases", "Before and after", "the system before and after each release"]];
   const GROUPS = [["none", "None", "one box for each app"], ["domain", "Business area", "apps gathered by the business area they belong to"], ["capability", "Capability", "apps gathered by the capability they deliver"]];
   // a refinement inside the map (a view, a grouping) replaces the address rather than adding to the history
   const refine = () => { if (typeof Nav !== "undefined") Nav.syncHash({ replace: true }); rerender(); };
   function viewItems() {
     const onMap = App.view === "map", animating = onMap && lens() === "transit" && st.animate;
     const items = LENSES.map(([id, label, say]) => ({ id, label, say, checked: onMap && lens() === id, run: () => { st.lens = id; if (onMap) refine(); else showView("map"); } }));
-    items.push({ separator: true }, { id: "animate", label: "Animate flows", say: FX.on ? "a marker runs along each flow on the flow lines" : "off while this browser asks for less motion", checkbox: true, checked: animating, disabled: !FX.on, why: "This browser asks for less motion, so nothing moves.",
+    items.push({ separator: true }, { id: "animate", label: "Moving markers", say: FX.on ? "a marker runs along each flow on the contract lines" : "off while this browser asks for less motion", checkbox: true, checked: animating, disabled: !FX.on, why: "This browser asks for less motion, so nothing moves.",
       run: () => { st.animate = onMap && lens() === "transit" ? !st.animate : true; st.lens = "transit"; if (onMap) refine(); else showView("map"); } });
     return items;
   }
@@ -153,29 +153,28 @@ const MapView = (() => {
   }
   function diagramBar() {
     const cockpit = lens() === "cockpit";
-    return { left: [Nav.viewMenu(), cockpit ? groupMenu() : null], right: [Menus.keyButton(KEY), focusButton(), Nav.moreMenu(moreItems)],
+    return { left: [Nav.viewMenu(), cockpit ? groupMenu() : null], right: [Menus.noteButton(mapNotes()), Menus.keyButton(KEY), focusButton(), Nav.moreMenu(moreItems)],
       say: [cockpit ? h("span", { class: "dia-hint" }, "Pick a contract or a flow to see its path.") : null, cockpit && !st.focus ? Layout.sayEl(group() === "none" ? "box" : "cluster") : null] };
   }
 
-  /* ------------------------------------------------------------ the count line */
-  function countLine() {
+  /* ------------------------------------------------------------ the notes */
+  /* What the diagram has to say about itself, as sentences for the "i" in its bar (they once sat above it and pushed it down). */
+  function mapNotes() {
     const apps = D.map.apps.length, litApps = D.map.apps.filter((a) => levelOf(a.key) !== "dark").length;
     const cons = D.map.contracts.length, litCons = D.map.contracts.filter((c) => levelOf(c.id) !== "dark").length;
     const quiet = D.map.parties.filter((p) => !NODE[p.key]).length;
     const notes = [];
     if (quiet) { const names = D.map.parties.filter((p) => !NODE[p.key]).map((p) => p.title); notes.push(`${names.length > 1 ? names.slice(0, -1).join(", ") + " and " + names[names.length - 1] : names[0]} ${quiet === 1 ? "isn't" : "aren't"} on the map because nothing connects to ${quiet === 1 ? "it" : "them"} yet`); }
-    if (lens() === "cockpit" && !st.lens && big() && hasDomains() && group() === "domain") notes.push(`Too many apps to draw at once (${D.nodes.length}), so they are grouped by business area, ${manyApps() ? "each group closed" : "every group open"}; Who uses whom shows them all`);
+    if (lens() === "cockpit" && !st.lens && big() && hasDomains() && group() === "domain") notes.push(`Too many apps to draw at once (${D.nodes.length}), so they are grouped by business area, ${manyApps() ? "each group closed" : "every group open"}; Dependencies shows them all`);
     if (lens() === "matrix" && !st.lens) notes.push(`There are too many apps to draw clearly (${D.nodes.length}, with ${plural(lines(), "connection")}), so this opens as a table. The system map still has them all`);
     if (lens() === "transit") { const idle = D.map.contracts.filter((c) => !flowsFor(c.id).length).length; if (idle) notes.push(`${plural(idle, "contract")} ${idle === 1 ? "isn't" : "aren't"} used by any flow yet, so nothing tests ${idle === 1 ? "it" : "them"} end to end`); }
-    // Home already counts what needs you once, on the top bar's lamp; a second "need you" here, counted in apps and
+    // Home already counts what is waiting once, on the top bar's lamp; a second "waiting" here, counted in apps and
     // contracts, disagreed with it (label sweep). Off Home the line says what is settled instead.
     const settled = App.section === "home" ? "" : !apps ? ""
       : litApps === apps && litCons === cons ? "Nothing is decided yet on any app or contract."
       : !litApps && !litCons ? "Every app and contract is decided."
       : `${apps - litApps} of ${plural(apps, "app")} and ${cons - litCons} of ${plural(cons, "contract")} are decided.`;
-    if (!settled && !notes.length) return h("div", { class: "countline", hidden: true });
-    return h("div", { class: "countline", title: [settled, notes.join(". ")].filter(Boolean).join(" ") }, settled ? h("b", {}, settled) : null, settled && notes.length ? " " : null,
-      notes.length ? h("span", { class: "hidden-note" }, notes.join(". ") + ".") : null);
+    return [settled, ...notes.map((t) => t + ".")].filter(Boolean);
   }
 
   /* ------------------------------------------------------------ cockpit */
@@ -763,5 +762,5 @@ const MapView = (() => {
   function here() { return App.focus ? mapAnchors(App.focus) : []; }
   return { LOOKS: { cockpit: COCKPIT_LOOKS, focus: () => ({ ...COCKPIT_LOOKS(), ...MapGroups.LOOKS_FOCUS }) }, render, highlight, here, lens, group, viewItems, st, lamp, fitSvg, shortWhy, startBreathing: () => breathe.start(), big, COCKPIT, markDrop, clearDrop, justDropped, resetPulses: () => { pulses = []; }, CLUSTER_PAST };
 })();
-View("map", { label: "Map", title: "Your apps, the contracts between them, and what needs you", render: MapView.render, highlight: MapView.highlight,
+View("map", { label: "Map", title: "The apps, the contracts between them, and what's waiting", render: MapView.render, highlight: MapView.highlight,
   count: () => `${D.map.apps.length}·${D.map.contracts.length}`, lamp: () => { const top = litSubjects()[0]; return top ? top.light.level : null; } });

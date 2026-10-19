@@ -244,7 +244,7 @@ def test_no_label_runs_past_its_box_in_a_narrow_window(tmp_path, chrome_path, vi
 @pytest.mark.browser
 def test_names_not_codes_whole_prose_and_one_needs_you_count_pass_the_selftest(tmp_path, chrome_path):
     """The Fix-first findings, each as a line of the page's own selftest: the sensors that flag prose cut mid-sentence and
-    titles that are codes see planted defects, the sweep finds none in any view or theme, and "needs you" is a number
+    titles that are codes see planted defects, the sweep finds none in any view or theme, and "waiting" is a number
     once, in the top bar (the label sweep, 2026-10-16: the same 21 showed four times on Home). The voice gate's lines
     must be there and passing: its sensors see planted leaks, repeats and wrong counts, and no view leaks a lead
     pattern, says a count sentence twice, or gives a quantity a number its source and the other views don't (E60).
@@ -255,7 +255,7 @@ def test_names_not_codes_whole_prose_and_one_needs_you_count_pass_the_selftest(t
     assert subprocess.run(cmd, timeout=120, capture_output=True, text=True).returncode == 0
     lines = _text_fit_lines(chrome_path, vault / "dashboard.html", "1600,1000")
     ok = [line for line in lines if line.startswith("ok ")]
-    assert any(line.startswith("ok needs you: ") and "in the top bar only" in line for line in ok), "the needs-you check did not run or failed"
+    assert any(line.startswith("ok waiting: ") and "in the top bar only" in line for line in ok), "the waiting-count check did not run or failed"
     for wanted in ("ok voice: the leak sensor flags", "ok voice: the repeat sensor flags", "ok voice: the count sensor flags",
                    "ok voice: no view shows a check code", "ok voice: no view says the same count sentence twice",
                    "ok voice: every view gives the same number for the same quantity"):

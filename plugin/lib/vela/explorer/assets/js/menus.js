@@ -31,6 +31,7 @@ const Menus = (() => {
   function icon(kind) {
     const paths = {
       more: '<circle cx="5" cy="12" r="1.7" fill="currentColor"/><circle cx="12" cy="12" r="1.7" fill="currentColor"/><circle cx="19" cy="12" r="1.7" fill="currentColor"/>',
+      gear: '<circle cx="12" cy="12" r="3.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 2.8v3M12 18.2v3M2.8 12h3M18.2 12h3M5.5 5.5l2.1 2.1M16.4 16.4l2.1 2.1M18.5 5.5l-2.1 2.1M7.6 16.4l-2.1 2.1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>',
       focus: '<circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="2.6" fill="currentColor"/>',
     };
     const el = s("svg", { viewBox: "0 0 24 24", class: "dbtn-ico", "aria-hidden": "true" });
@@ -76,10 +77,12 @@ const Menus = (() => {
     };
     fill(pop, id, items, finish);  // built now as well as when it opens, so the page holds its items before anyone asks
     function place() {
-      pop.style.left = ""; pop.style.right = "";
-      const frame = root.closest(".dia") || document.body, lim = frame.getBoundingClientRect(), r = pop.getBoundingClientRect();
+      pop.style.left = ""; pop.style.right = ""; pop.style.maxHeight = "";
+      const frame = root.closest(".dia") || root.closest("#main") || document.body, lim = frame.getBoundingClientRect(), r = pop.getBoundingClientRect();
       if (align === "right") { if (r.left < lim.left + 6) pop.style.right = `${r.left - lim.left - 6}px`; }
       else if (r.right > lim.right - 6) pop.style.left = `${Math.min(0, lim.right - 6 - r.right)}px`;
+      const room = innerHeight - r.top - 10;  // a short window: the menu scrolls inside itself rather than run off the bottom
+      if (r.height > room) pop.style.maxHeight = `${Math.max(120, room)}px`;
     }
     function open(which) {
       if (openNow && openNow.pop === pop) { closeNow(true); return; }
@@ -115,16 +118,18 @@ const Menus = (() => {
 
   /* A button that opens a small panel of its own content (the Key). It is one of the bar's popups like a menu is: only one
      is open at a time, Escape and a click outside close it, and it stays inside the diagram's width. */
-  function popover({ id, label, text, content, align = "right" }) {
+  function popover({ id, label, text, content, align = "right", title }) {
     const uid = `dmenu-${id}-${++seq}`;
-    const btn = h("button", { class: "dmenu-btn icon", type: "button", id: uid + "-btn", "aria-haspopup": "dialog", "aria-expanded": "false", "aria-controls": uid, "aria-label": label, title: label }, text);
+    const btn = h("button", { class: "dmenu-btn icon", type: "button", id: uid + "-btn", "aria-haspopup": "dialog", "aria-expanded": "false", "aria-controls": uid, "aria-label": label, title: title || label }, text);
     const pop = h("div", { class: "dmenu-pop wide " + align, id: uid, role: "dialog", "aria-label": label, hidden: true }, content);
     const root = h("div", { class: "dmenu", "data-dmenu": id }, btn, pop);
     function place() {
-      pop.style.left = ""; pop.style.right = "";
-      const frame = root.closest(".dia") || document.body, lim = frame.getBoundingClientRect(), r = pop.getBoundingClientRect();
+      pop.style.left = ""; pop.style.right = ""; pop.style.maxHeight = "";
+      const frame = root.closest(".dia") || root.closest("#main") || document.body, lim = frame.getBoundingClientRect(), r = pop.getBoundingClientRect();
       if (align === "right") { if (r.left < lim.left + 6) pop.style.right = `${r.left - lim.left - 6}px`; }
       else if (r.right > lim.right - 6) pop.style.left = `${Math.min(0, lim.right - 6 - r.right)}px`;
+      const room = innerHeight - r.top - 10;  // a short window: the menu scrolls inside itself rather than run off the bottom
+      if (r.height > room) pop.style.maxHeight = `${Math.max(120, room)}px`;
     }
     btn.addEventListener("click", () => {
       if (openNow && openNow.pop === pop) { closeNow(true); return; }
@@ -144,6 +149,14 @@ const Menus = (() => {
     return popover({ id: "key", label: "Key: what the colors and shapes mean", text: "?", content: host });
   }
 
+  /* An "i" in the bar for the notes a diagram carries ("Clients and Zoom aren't on the map because..."): read on hover or
+     click, so they do not push the diagram down. No notes, no button. */
+  function noteButton(lines) {
+    const notes = (lines || []).filter(Boolean);
+    if (!notes.length) return null;
+    return popover({ id: "notes", label: "Notes on this diagram", text: "i", title: notes.join(" "), content: h("div", { class: "dmenu-node dia-notes" }, notes.map((t) => h("p", {}, t))) });
+  }
+
   /* The bar over a diagram: menus on its left, the diagram's own buttons on its right, and a line of what to do between. */
   function frame({ left = [], right = [], say = [], barClass = "" }, ...kids) {
     const clean = (x) => x.filter(Boolean);
@@ -151,5 +164,5 @@ const Menus = (() => {
       h("div", { class: "dia-bar" + (barClass ? " " + barClass : "") }, h("div", { class: "dia-l" }, ...clean(left)), h("div", { class: "dia-mid" }, ...clean(say)), h("div", { class: "dia-r" }, ...clean(right))),
       ...clean(kids));
   }
-  return { menu, popover, keyButton, frame, icon, close: () => closeNow(false), get isOpen() { return !!openNow; } };
+  return { menu, popover, keyButton, noteButton, frame, icon, close: () => closeNow(false), get isOpen() { return !!openNow; } };
 })();
