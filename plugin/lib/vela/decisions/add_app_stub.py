@@ -8,13 +8,14 @@ section 2).
   because `vela next` matches it to find the stubs.
 - **Frontmatter** as CONVENTIONS "Frontmatter" requires for `app-building-blocks`, at `state: inkling` and
   `stage: boundaries` (a new or changed app needs a stage), with `domain` when the lead named one.
-- **An `unexamined` row on each concern page**: nobody has looked yet, and saying so is what makes the gap visible
-  (an app with no row only counts as unexamined by default).
+- **One plain line on each concern page**, "Not looked at yet: <apps>." under the table, and no empty row: an app
+  with no row already counts as unexamined, and an empty row per app read as padding. The boundary session adds the
+  app's real row and takes the app off the line.
 - **A `## Changes` row** `| APP-<slug> | - | inkling | ... |` citing the capture of the picked cut.
 """
 import re
 
-from vela import parse, schema as vault_schema
+from vela import schema as vault_schema
 from vela.decisions import add_unknown, textedit
 from vela.decisions.schema import Write
 
@@ -68,13 +69,9 @@ def apply(item, vault, record):
     writes = [Write(f"{FOLDER}/{name}.md", page_text(item, vault))]
     for concern in sorted(vault.model.of_type("concern"), key=lambda p: p.path):
         text = vault.text(concern.path)
-        lines = text.split("\n")
-        header = textedit.find_table(lines, ("App", "State"))
-        if header is None:
-            continue
-        width = len(parse.split_row(lines[header]))
-        cells = [f"[[{name}\\|{item['name']}]]", "unexamined"] + [""] * max(0, width - 2)
-        writes.append(Write(concern.path, textedit.add_row(text, ("App", "State"), textedit.row(*cells))))
+        edited = textedit.add_not_looked(text, ("App", "State"), f"[[{name}\\|{item['name']}]]")
+        if edited is not None:
+            writes.append(Write(concern.path, edited))
     rec = textedit.record_text(record, vault)
     if item.get("capture"):
         rec = textedit.add_change(rec, f"APP-{item['slug']}", "-", "inkling",

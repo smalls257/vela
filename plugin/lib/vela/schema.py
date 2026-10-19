@@ -451,6 +451,8 @@ CODES = {
     "W811": "subject defined off its page",
     "W812": "ledger row is dated in the future",
     "W813": "ledger page has no question ledger heading",
+    "E821": "design gap acknowledged by someone whose typed words never name it",
+    "W821": "design gap acknowledged_by cannot be checked: no said log",
 }
 
 # ------------------------------------------------------------- traceability
