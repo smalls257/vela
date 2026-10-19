@@ -25,6 +25,10 @@
 .dmenu-pop { position: absolute; top: calc(100% + 4px); z-index: 40; width: max-content; min-width: 190px; max-width: min(330px, calc(100vw - 32px)); max-height: min(70vh, 460px); overflow-y: auto;
   background: var(--room-2); color: var(--ink); border: 1px solid var(--rule-3); border-radius: 10px; padding: 6px; font-size: 13px; box-shadow: 0 10px 30px rgba(0, 0, 0, .45); }
 .dmenu-pop[hidden] { display: none; }
+.dmenu-pop.wide { min-width: min(520px, calc(100vw - 32px)); max-width: min(620px, calc(100vw - 32px)); padding: 4px 12px; }
+.dmenu-pop .legend.in-pop { border: 0; padding: 0; background: transparent; }
+.dmenu-pop .legend.in-pop > summary { display: none; }
+.dmenu-pop .legend.in-pop .lg-items { padding: 8px 0; grid-template-columns: 1fr; }
 .dmenu-pop.left { left: 0; }
 .dmenu-pop.right { right: 0; }
 .dmenu-item { all: unset; box-sizing: border-box; display: block; width: 100%; padding: 7px 10px 7px 28px; border-radius: 6px; cursor: pointer; position: relative; color: var(--ink); }
@@ -37,6 +41,8 @@ a.dmenu-item { text-decoration: none; }
 .dmenu-item[role="menuitemcheckbox"][aria-checked="true"]::before { border-radius: 1px; }
 .dmenu-item[aria-disabled="true"] { opacity: .5; cursor: default; }
 .dmenu-h { color: var(--ink-3); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; padding: 6px 10px 2px; }
+.dmenu-node { padding: 4px 10px 8px; font-size: 12.5px; color: var(--ink-2); max-width: 44ch; }
+.dmenu-node p { margin: 0 0 6px; }
 .dmenu-sep { height: 1px; background: var(--rule); margin: 5px 4px; }
 .lede-link { color: var(--link); margin-left: 6px; white-space: nowrap; }
 @media (max-width: 900px) {

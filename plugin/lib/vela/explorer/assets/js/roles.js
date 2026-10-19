@@ -107,7 +107,7 @@ const Roles = (() => {
     grid.append(card("Business questions", ["Who to ask", () => Nav.open("unknowns")], biz.length ? list(biz.sort((a, b) => cmp(a.askBy || "9", b.askBy || "9")), 5, (u) => qRow(UNKNOWN[u.id])) : empty("No open question is blocking a goal, capability, requirement or flow."),
       rule("Questions that hold up a goal, capability, requirement or flow.")));
     grid.append(card("User flows", ["Flows", () => Nav.open("flows")], D.flows.length ? list(D.flows, 5, (f) => h("li", {}, lamp(levelOf(f.key)), h("a", { "data-ref": f.key, "data-reveal": "", title: E[f.key].id }, E[f.key].title, idTag(E[f.key].id)),
-      h("span", { class: "muted small" }, ` ${plural(f.steps.length, "step")}`), h("button", { class: "btn tiny", onclick: () => Flows.present(f.key, 0) }, "▶ Present"))) : missing("No flows yet.", "", "/vela:boundary")));
+      h("span", { class: "muted small" }, ` ${plural(f.steps.length, "step")}`))) : missing("No flows yet.", "", "/vela:boundary")));
   }
 
   /* ------------------------------------------------------------ QA */
@@ -158,8 +158,7 @@ const Roles = (() => {
     grid.append(card("Contracts in and out", ["Focus on the map", () => Nav.focusApp(k)], h("h3", {}, "Provides"), a.provides.length ? list(a.provides, 4, (id) => con(id, "out")) : empty("It doesn't provide any contracts."),
       h("h3", {}, "Uses"), a.consumes.length ? list(a.consumes, 4, (id) => con(id, "in")) : empty("It doesn't use any contracts.")));
     const flows = flowsFor(k);
-    grid.append(card("Flows and open questions", null, flows.length ? list(flows, 3, (r) => h("li", {}, h("a", { "data-ref": r.flow, "data-reveal": "", title: E[r.flow].id }, E[r.flow].title, idTag(E[r.flow].id)),
-      h("button", { class: "btn tiny", onclick: () => Flows.present(r.flow, firstStepTouching(FLOW[r.flow], k)) }, "▶ Present"))) : empty("No flow goes through it."),
+    grid.append(card("Flows and open questions", null, flows.length ? list(flows, 3, (r) => h("li", {}, h("a", { "data-ref": r.flow, "data-reveal": "", title: E[r.flow].id }, E[r.flow].title, idTag(E[r.flow].id)))) : empty("No flow goes through it."),
       h("h3", {}, "Open questions blocking it"), a.questions.length ? list(a.questions.map((q) => UNKNOWN[q.id]).filter(Boolean), 4, qRow) : empty("Nothing is blocking it.")));
     const slice = D.handoffList[k] || [];
     grid.append(card("Handoff", null, h("div", { class: "small" }, ho && (ho.manifest || ho.handedOff) ? [ho.handedOff ? h("div", {}, "Handed off: ", peopleWords(ho.handedOff)) : null,

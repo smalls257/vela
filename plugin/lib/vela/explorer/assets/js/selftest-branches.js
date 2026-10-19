@@ -80,7 +80,7 @@
         `branches, ${key}: "Show" in the header row beside the flow picker, Happy path first and chosen, ${plural(all.length - 1, "branch", "branches")} under ${plural(groups.length, "call")}, one diagram`,
         `branches, ${key}: the picker has ${opts.length} options for ${all.length}, groups ${JSON.stringify(groups)}, chosen ${sel && sel.value}, ${$$("canvas.stage-canvas").length} canvases`);
       const sum = $(`[data-branches-summary="${CSS.escape(key)}"]`);
-      ok(!!sum && sum.previousElementSibling === head && /this flow can go wrong /i.test(sum.textContent), `branches, ${key}: the summary line sits under the header row`, `branches, ${key}: the summary line is missing or out of place`);
+      ok(!!sum && !!sum.closest("[data-dmenu=more] .dmenu-pop") && /this flow can go wrong /i.test(sum.textContent), `branches, ${key}: the summary line is in the diagram's menu`, `branches, ${key}: the summary line is missing or out of place`);
       ok(!d.check.notChecked || opts.every((o) => o.textContent.includes("not fully checked")), `branches, ${key}: ${d.check.notChecked ? "every option says not fully checked" : "the check reached the end"}`,
         `branches, ${key}: the check did not reach the end, but an option does not say so`);
       ok(all.every((o) => o.marks.every((m) => opts.find((x) => x.value === o.id).textContent.includes(m))), `branches, ${key}: every option says its flow-check marks in words`, `branches, ${key}: an option drops its marks`);

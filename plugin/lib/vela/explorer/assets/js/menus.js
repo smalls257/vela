@@ -43,6 +43,7 @@ const Menus = (() => {
     for (const it of typeof items === "function" ? items() : items) {
       if (!it) continue;
       if (it.separator) { pop.append(h("div", { class: "dmenu-sep", role: "separator" })); continue; }
+      if (it.node) { pop.append(h("div", { class: "dmenu-node", role: "presentation" }, it.node)); continue; }
       if (it.heading) { pop.append(h("div", { class: "dmenu-h", role: "presentation" }, it.heading)); continue; }
       const role = it.checkbox ? "menuitemcheckbox" : it.checked === undefined ? "menuitem" : "menuitemradio";
       const attrs = { class: "dmenu-item" + (it.disabled ? " off" : ""), role, tabindex: "-1", title: it.disabled && it.why ? it.why : it.say || null,
@@ -112,6 +113,37 @@ const Menus = (() => {
     return root;
   }
 
+  /* A button that opens a small panel of its own content (the Key). It is one of the bar's popups like a menu is: only one
+     is open at a time, Escape and a click outside close it, and it stays inside the diagram's width. */
+  function popover({ id, label, text, content, align = "right" }) {
+    const uid = `dmenu-${id}-${++seq}`;
+    const btn = h("button", { class: "dmenu-btn icon", type: "button", id: uid + "-btn", "aria-haspopup": "dialog", "aria-expanded": "false", "aria-controls": uid, "aria-label": label, title: label }, text);
+    const pop = h("div", { class: "dmenu-pop wide " + align, id: uid, role: "dialog", "aria-label": label, hidden: true }, content);
+    const root = h("div", { class: "dmenu", "data-dmenu": id }, btn, pop);
+    function place() {
+      pop.style.left = ""; pop.style.right = "";
+      const frame = root.closest(".dia") || document.body, lim = frame.getBoundingClientRect(), r = pop.getBoundingClientRect();
+      if (align === "right") { if (r.left < lim.left + 6) pop.style.right = `${r.left - lim.left - 6}px`; }
+      else if (r.right > lim.right - 6) pop.style.left = `${Math.min(0, lim.right - 6 - r.right)}px`;
+    }
+    btn.addEventListener("click", () => {
+      if (openNow && openNow.pop === pop) { closeNow(true); return; }
+      closeNow(false);
+      pop.hidden = false; btn.setAttribute("aria-expanded", "true");
+      openNow = { root, btn, pop, place };
+      place();
+    });
+    pop.addEventListener("keydown", (e) => { if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); closeNow(true); } });
+    return root;
+  }
+  /* The Key of a diagram, as a "?" in the bar: its legend, kept out of the way until asked for. */
+  function keyButton(legend) {
+    if (!legend) return null;
+    const host = legend.el();
+    host.classList.add("in-pop"); host.open = true;
+    return popover({ id: "key", label: "Key: what the colors and shapes mean", text: "?", content: host });
+  }
+
   /* The bar over a diagram: menus on its left, the diagram's own buttons on its right, and a line of what to do between. */
   function frame({ left = [], right = [], say = [], barClass = "" }, ...kids) {
     const clean = (x) => x.filter(Boolean);
@@ -119,5 +151,5 @@ const Menus = (() => {
       h("div", { class: "dia-bar" + (barClass ? " " + barClass : "") }, h("div", { class: "dia-l" }, ...clean(left)), h("div", { class: "dia-mid" }, ...clean(say)), h("div", { class: "dia-r" }, ...clean(right))),
       ...clean(kids));
   }
-  return { menu, frame, icon, close: () => closeNow(false), get isOpen() { return !!openNow; } };
+  return { menu, popover, keyButton, frame, icon, close: () => closeNow(false), get isOpen() { return !!openNow; } };
 })();

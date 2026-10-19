@@ -82,26 +82,28 @@ const Flows = (() => {
     const f = FlowKit.flowOf(st.key);
     const picker = FlowPicker.make({ current: () => st.key, onPick: (key) => select(key, -1) });
     const present_ = h("button", { class: "dmenu-btn primary", id: "present-btn", type: "button", onclick: () => present(st.key, Math.max(0, st.cur)), title: "Present full screen (P)" }, svgIcon("present"), "Present");
-    const moreFlow = () => [
-      { id: "rehearse", label: "Rehearse this flow", say: "Quiz yourself: rebuild the flow from memory, then reveal it", run: () => Rehearse.open(st.key) },
-      { id: "clip", label: "Save as video", say: clipNote(), attrs: { id: "clip-btn" }, run: saveClip }];
     const tag = Releases.tracerTag(st.key), pl = Releases.tracerPlace(st.key);
     // the Show picker swaps a branch's steps into this same diagram (branches.js); the step numbers change, so the play head starts over
     const branch = Branches.picker(st.key, () => { st.cur = -1; rerender(); });
     const stage = h("div", { class: "stage" });
-    const diagram = Menus.frame({ barClass: "flows-head", left: [picker, branch], right: [present_, Nav.moreMenu(moreFlow)],
-      say: [tag ? h("span", { class: "tracer-place" }, tag, ` ${Releases.tracerPlaceWords(pl)}`) : null, h("span", { class: "dia-hint", id: "clip-status", role: "status", "aria-live": "polite" })] },
-      ...[Branches.summary(st.key)].filter(Boolean), stage);
-    main.append(diagram);
-    if (HASH.has("picker")) picker.open();  // #flows&picker opens the list on arrival, for screenshots
     const canvas = h("canvas", { class: "stage-canvas", role: "img", "aria-label": `Sequence of ${f.title}` });
     stage.append(canvas);
     const key = Legend.open("flow", { root: () => $(".stage"), probes: FlowKit.flowProbes(() => st.key) });
     FlowKit.census(f).forEach((id) => key.saw(id));
+    // Present is the diagram's one button; Rehearse, Save as video and the sentence about the flow's error cases are in its menu
+    const sum = Branches.summary(st.key);
+    const moreFlow = () => [
+      { id: "rehearse", label: "Rehearse this flow", say: "Quiz yourself: rebuild the flow from memory, then reveal it", run: () => Rehearse.open(st.key) },
+      { id: "clip", label: "Save as video", say: clipNote(), attrs: { id: "clip-btn" }, run: saveClip },
+      sum ? { separator: true } : null, sum ? { node: sum } : null];
+    const diagram = Menus.frame({ barClass: "flows-head", left: [picker, branch], right: [Menus.keyButton(key), present_, Nav.moreMenu(moreFlow)],
+      say: [tag ? h("span", { class: "tracer-place" }, tag, ` ${Releases.tracerPlaceWords(pl)}`) : null, h("span", { class: "dia-hint", id: "clip-status", role: "status", "aria-live": "polite" })] }, stage);
+    main.append(diagram);
+    if (HASH.has("picker")) picker.open();  // #flows&picker opens the list on arrival, for screenshots
     const nodeList = flowNodes(st.key, () => player);
     const caption = h("section", { class: "caption", id: "caption", "aria-live": "polite" });
     const transport = h("footer", { class: "transport", id: "transport" });
-    main.append(...[Branches.findings(st.key)].filter(Boolean), key.el(), nodeList, caption, transport);
+    main.append(...[Branches.findings(st.key)].filter(Boolean), nodeList, caption, transport);
     key.paint();
     player = makePlayer(canvas, { key: st.key, cur: st.cur, onStep: (p) => { st.cur = p.cur; paintCaption(); paintTransport(); Minimap.refresh(); }, onPlay: paintTransport,
       onFlow: (p) => select(p.key, -1) });
@@ -124,7 +126,6 @@ const Flows = (() => {
     const group = (title, kids) => (kids.length ? h("div", { class: "fn-group" }, h("b", {}, title), kids) : null);
     return h("details", { class: "flow-nodes", "data-flow-nodes": flowKey },
       h("summary", {}, "The flow as a list"),
-      group("Steps", f.steps.map((x) => btn({ text: `${x.n}. ${x.short}`, label: `Step ${x.n}: ${x.short}`, open: () => { const p = playerOf(); if (p) { p.pause(); p.go(f.steps.indexOf(x)); } go(stepNote(flowKey, x), { reset: true }); } }))),
       group("Apps and outside services", lanes.filter((k) => ent(k)).map((k) => btn({ text: titleOf(k), label: titleOf(k), key: k }))),
       group("Contracts", contracts.map((c) => btn({ text: CONTRACT[c].title, label: `${CONTRACT[c].title} (${c})`, key: c }))),
       group("Open questions", pins.map((u) => btn({ text: titleOf(u), label: `${titleOf(u)} (${u})`, key: u }))));
@@ -143,9 +144,8 @@ const Flows = (() => {
     box.innerHTML = "";
     if (st.cur === -1) {
       const e = E[st.key];
-      box.append(h("div", { class: "cap-where" }, h("span", {}, `${e.state ? stateWord(e.state) : "Nobody has given this flow a state yet"} · ${plural(f.steps.length, "step")}`), h("span", { class: "muted" }, "Press space to play, or pick a step")),
-        h("div", { class: "cap-title" }, e.title), e.text ? h("p", { class: "cap-intro" }, shorten(e.text, 360)) : "",
-        h("ol", { class: "cap-steps" }, f.steps.map((stp, i) => h("li", {}, h("button", { onclick: () => { player.pause(); player.go(i); } }, stp.short)))), ...[inferredLine()].filter(Boolean));  // native append prints a null as "null"
+      box.append(h("div", { class: "cap-where" }, h("span", {}, `${e.state ? stateWord(e.state) : "Nobody has given this flow a state yet"} \u00b7 ${plural(f.steps.length, "step")}`), h("span", { class: "muted" }, "Press space to play, or pick a step")),
+        h("div", { class: "cap-title" }, e.title), ...[inferredLine()].filter(Boolean));  // native append prints a null as "null"
       return;
     }
     const stp = f.steps[st.cur];

@@ -105,7 +105,6 @@ const MapView = (() => {
     KEY = lens() === "releases" ? null : Legend.open(keyName(mode), { root: () => $("#board"), probes: keyLooks(mode) });
     // The view, grouping, focus and layout controls ride on the diagram's own bar (menus.js), under the title and lede.
     col.append(Menus.frame(diagramBar(), countLine(), stage || board));
-    if (KEY) col.append(KEY.el());
     if (queued) { const width = main.clientWidth; main.append(h("div", { class: "home-wrap" }, h("div", { class: "home-stage" + (Queue.folded(width) ? " stacked" : "") }, Queue.card(width), col))); }
     if (!D.nodes.length) { board.append(emptyState("No apps yet.", "The map fills in once a session names them.", "/vela:boundary")); return; }
     if (lens() === "releases") { Releases.mapLens(board); return; }  // the releases drawing keeps its own key
@@ -154,7 +153,7 @@ const MapView = (() => {
   }
   function diagramBar() {
     const cockpit = lens() === "cockpit";
-    return { left: [Nav.viewMenu(), cockpit ? groupMenu() : null], right: [focusButton(), Nav.moreMenu(moreItems)],
+    return { left: [Nav.viewMenu(), cockpit ? groupMenu() : null], right: [Menus.keyButton(KEY), focusButton(), Nav.moreMenu(moreItems)],
       say: [cockpit ? h("span", { class: "dia-hint" }, "Pick a contract or a flow to see its path.") : null, cockpit && !st.focus ? Layout.sayEl(group() === "none" ? "box" : "cluster") : null] };
   }
 

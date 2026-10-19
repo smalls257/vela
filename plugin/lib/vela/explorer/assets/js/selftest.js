@@ -745,6 +745,28 @@ const SelfTest = (() => {
       ok(!!due && !$("#main [aria-label='Due within']") && !!$("#main .dia #asks-wrap"), "diagram menus: Due within is a menu on the board of who to ask", "diagram menus: Due within is not on the board");
       if (due) { due.click(); await frames(); ok(Asks.st.days === 30 && menuItem("due", "30").getAttribute("aria-checked") === "true", "diagram menus: picking 30 days shows the questions due in a month", `diagram menus: days ${Asks.st.days}`); Asks.st.days = null; }
     }
+    // the Key is a "?" on the diagram, not three open copies of itself
+    if (D.map.apps.length) {
+      Nav.open("apps"); MapView.st.lens = "cockpit"; MapView.st.group = "none"; MapView.st.focus = null; showView("map"); await frames();
+      const keyBtn = menuButton("key"), keyPop = $("[data-dmenu=key] .dmenu-pop");
+      ok(!!keyBtn && keyPop.hidden && !$$("#main .legend").some((l) => !l.closest(".dmenu-pop")) && !$$("#panel .legend").length,
+        "diagram menus: the Key is a ? on the diagram's bar, closed until asked for, and the panel carries no second copy", "diagram menus: the Key is still open on the page or in the panel");
+      keyBtn.click(); await frames();
+      ok(!keyPop.hidden && keyBtn.getAttribute("aria-expanded") === "true" && within(keyPop) && $$("li", keyPop).length > 0, "diagram menus: the ? opens the Key inside the window, with its entries", "diagram menus: the ? did not open the Key");
+      key("Escape", keyPop); await frames();
+      ok(keyPop.hidden && document.activeElement === keyBtn, "diagram menus: Escape closes the Key and gives the focus back to the ?", "diagram menus: Escape left the Key open");
+    }
+    if (D.flows.length) {
+      showView("flows"); Flows.st.cur = -1; rerender(); await frames();
+      const noPresent = !$$("#main .flow-actions, #main .flows-head ~ .flow-actions").length;
+      ok(!$$("#main ol.cap-steps").length && !$("#main .flow-nodes") === false && !$$(".flow-nodes .fn-group b").some((b) => b.textContent === "Steps") && noPresent && !!$("#present-btn"),
+        "diagram menus: a flow's steps are written once under the diagram (the current step), not again as a list, and Present is its one button", "diagram menus: a flow's steps are listed twice under the diagram, or Present is missing");
+      ok(!!$("[data-dmenu=more] [data-item=rehearse]") && !!$("[data-dmenu=more] [data-item=clip]"), "diagram menus: Rehearse and Save as video are in the flow's menu", "diagram menus: Rehearse or Save as video is missing from the flow menu");
+    }
+    for (const role of ["product", "eng"]) {
+      Nav.role(role); await frames();
+      ok(!$$("#main .btn").some((b) => /Present/.test(b.textContent)), `diagram menus: the ${role} door has no Present button on each flow row`, `diagram menus: the ${role} door still has a Present button on a row`);
+    }
     // what is gone
     const gone = [typeof Sound === "undefined", !$("#sound"), !$("#fx"), typeof Nav.ripple === "undefined", typeof Motion.ripple === "undefined", typeof FX.setMotion === "undefined", !document.querySelector("[data-motion]")];
     Nav.home(); await frames();
@@ -2364,7 +2386,7 @@ const VoiceGate = (() => {
     ["#main svg.cockpit:not(.grouped):not(.focus):not(.containers):not(.components)", "map-cockpit", "outside"], ["svg.transit", "map-lines"], ["table.dsm", "map-matrix"],
     ["svg.rl-map", "releases"], [".sl-table", "slices"], [".sl-path", "slices"], ["canvas.stage-canvas", "flow"], [".fp-pop:not([hidden])", "flows-list|lines-list"],
     ["svg.containers", "inside-containers"], ["svg.components", "inside-components"], [".in-er svg", "inside-data"], [".in-seq svg", "inside-sequence"],
-    ["svg.plan-dag-svg", "plan-waits"], [".due-chart", "progress-due"], [".card table.t .ladder:not(.inline)", "progress-table"], [".card table.t .mix", "progress-table"], ["#panel-mini svg", "minimap"],
+    ["svg.plan-dag-svg", "plan-waits"], [".due-chart", "progress-due"], [".card table.t .ladder:not(.inline)", "progress-table"], [".card table.t .mix", "progress-table"],
   ];
   function look(where) {
     for (const p of Legend.audit()) if (!found.has(p)) found.set(p, where);
@@ -2433,11 +2455,11 @@ const VoiceGate = (() => {
       found.clear(); visited.clear();
       if (D.map.apps.length) await tour();
       const list = [...found].map(([problem, where]) => `${problem} (seen in ${where})`);
-      const want = D.map.apps.length ? ["map-cockpit", "map-lines", "map-matrix", "releases", "minimap", "progress-due"].concat(D.flows.length ? ["flow", "flows-list"] : []) : [];
+      const want = D.map.apps.length ? ["map-cockpit", "map-lines", "map-matrix", "releases", "progress-due"].concat(D.flows.length ? ["flow", "flows-list"] : []) : [];
       const missing = want.filter((n) => !visited.has(n));
       ok(!list.length, `keys: in ${visited.size} diagrams (${[...visited].sort().join(", ")}) every look drawn is in the key and every look in the key is drawn`,
         `keys: ${list.length} problems, ${list.slice(0, 12).join(" | ")}`);
-      ok(!missing.length, "keys: the tour reached the cockpit, the line map, the matrix, releases, the minimap and the progress charts, and each had a key", `keys: the tour found no key for ${missing.join(", ")}`);
+      ok(!missing.length, "keys: the tour reached the cockpit, the line map, the matrix, releases and the progress charts, and each had a key", `keys: the tour found no key for ${missing.join(", ")}`);
     } catch (e) { lines.push("FAIL the key checks threw: " + e.message + " " + (e.stack || "").split("\n")[1]); }
     Nav.home(); go("lights", { reset: true });
     if (window.__errors.length > errors) lines.push("FAIL JS ERRORS in the key checks: " + window.__errors.slice(errors).join(" | "));
