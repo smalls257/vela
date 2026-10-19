@@ -262,6 +262,7 @@ const Decisions = (() => {
     st.open = id;
     const e = id ? byId(id) : null;
     if (e) go(e.key, { reset: true, quiet: true });
+    else DetailsPanel.clear();  // closing the record sends the panel back to the page's summary
     paint();
     if (e) { const on = $(".dl-row.on, .dl-tl.on"); if (on) on.scrollIntoView({ block: "nearest" }); }
   }
@@ -282,12 +283,39 @@ const Decisions = (() => {
     if (App.view === "decisions") refresh();
     return entries.indexOf(e);
   }
+  /* ------------------------------------------------------------ the Details panel (detailspanel.js) */
+  const entryFor = (key) => entries.find((x) => x.key === key) || null;
+  const closeRecord = () => { if (st.open) { st.open = ""; paint(); } };
+  const kindWord = { decided: "Decided", proposed: "Proposed", pending: "Waiting on the owner", overridden: "Decided without checks" };
+  function decisionNodes(e) {
+    const things = e.affects.filter((a) => ent(a.key) && a.key !== e.key);  // the decision is not one of the things it affects
+    return [PlanDetails.head("Decision", e.name, h("span", { class: "pill dl-" + e.state, title: STATE_SAY[e.state] }, kindWord[e.state] || e.state)),
+      h("div", { class: "p-body" },
+        PlanDetails.sec("What was chosen", null, h("div", {}, h("b", {}, e.chosen.label), e.chosen.said ? " " + e.chosen.said : "")),
+        PlanDetails.sec("What it affects", things.length || null, things.length ? PlanDetails.bullets(things.map((a) => PlanDetails.openRow(a.key, "decisions", a.label))) : PlanDetails.quiet("It doesn't name an app, a contract or a flow." + (e.recordedIn ? ` It is written in ${e.recordedIn}.` : ""))),
+        PlanDetails.sec("What it still waits on", e.waits.length || null, e.waits.length ? e.waits.map(PlanDetails.questionRow) : PlanDetails.quiet("No open question stands between it and final.")),
+        PlanDetails.sec("Who decided", null, h("div", {}, whoSaid(e) === "nobody named" ? "Not recorded" : upFirst(whoSaid(e)))))];
+  }
+  function summaryNodes() {
+    const list = pool(), first = list.filter((e) => ["pending", "overridden", "proposed"].includes(e.state)).sort((a, b) => STATE_ORDER[a.state] - STATE_ORDER[b.state]).slice(0, 6);
+    return [PlanDetails.head("Decisions", plural(list.length, "decision")),
+      h("div", { class: "p-body" },
+        PlanDetails.sec("To look at first", first.length || null, first.length ? PlanDetails.bullets(first.map((e) => [PlanDetails.link(e.key, e.name), h("span", { class: "muted" }, ` ${kindWord[e.state]}`)])) : PlanDetails.quiet("Every decision is decided, with the usual checks done.")),
+        h("div", { class: "p-note" }, "Pick a decision to see what it affects and what it still waits on."), PlanDetails.aboutSection())];
+  }
+  DetailsPanel.register("decisions", {
+    view: "decisions", live: () => trees.length > 0, rootLabel: "Decisions", summary: summaryNodes,
+    owns: (k) => !!entryFor(k) || PlanDetails.owns(k), detail: (k) => (entryFor(k) ? decisionNodes(entryFor(k)) : PlanDetails.detail(k, "decisions")),
+    label: (k) => (entryFor(k) ? entryFor(k).name : PlanDetails.label(k)), open: (k) => (entryFor(k) ? null : PlanDetails.openFor(k, "decisions")),
+    waiting: (k) => PlanDetails.waitingTab(k, "queue"), waitingCount: () => PlanDetails.waitingCount("queue"),
+    focus: (k) => { if (!k) closeRecord(); else if (entryFor(k) && st.open !== entryFor(k).id) showFor(k); },
+  });
   function here() {
     const e = st.open && byId(st.open);
     const keys = e ? e.t.carriedBy.map((w) => w.key).flatMap(mapAnchors) : [];
     return keys.length ? keys : null;
   }
-  return { render, select, showFor, here, highlight: (k) => { if (App.view === "decisions") showFor(k); }, trees, entries, st, visible, STATES };
+  return { render, select, showFor, here, highlight: (k) => { if (App.view === "decisions" && !PlanDetails.owns(k)) showFor(k); }, trees, entries, st, visible, STATES };
 })();
 View("decisions", { label: "Decisions", alias: "garden", title: "The decisions: what was chosen, what was turned down, and what each waits on", render: Decisions.render, here: Decisions.here, highlight: Decisions.highlight,
   count: () => String(Decisions.trees.length) });
