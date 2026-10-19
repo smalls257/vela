@@ -20,5 +20,4 @@ Nobody has yet said who pays to build and run Coach, the stock list and the less
 | App | State | Why |
 |---|---|---|
 | [[coach-building-blocks\|Coach]] | unknown | [[11-unknowns-and-risks#UNK-022 Owner and budget for the stock list\|Owner and budget for the stock list]]: who owns and pays for the list and the lessons |
-
-Not looked at yet: [[tickertalk-building-blocks\|TickerTalk]].
+| [[tickertalk-building-blocks\|TickerTalk]] | unexamined | |

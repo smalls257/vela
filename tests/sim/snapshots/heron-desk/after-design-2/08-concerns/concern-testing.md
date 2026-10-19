@@ -17,6 +17,6 @@ Who tests each contract from each side, the end-to-end suites, and the test data
 
 | App | State | Why |
 |---|---|---|
+| [[desktop-agent-building-blocks\|Desktop agent]] | unexamined | |
 | [[summarizer-building-blocks\|Summarizer]] | unknown | [[11-unknowns-and-risks#UNK-056 On-device model quality\|On-device model quality]] |
-
-Not looked at yet: [[desktop-agent-building-blocks\|Desktop agent]], [[consent-and-identity-building-blocks\|Consent and identity]].
+| [[consent-and-identity-building-blocks\|Consent and identity]] | unexamined | |

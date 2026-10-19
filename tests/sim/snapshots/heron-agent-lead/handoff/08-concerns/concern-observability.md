@@ -17,5 +17,4 @@ What is measured, so a failure shows up without a debugger or a release.
 
 | App | State | Why |
 |---|---|---|
-
-Not looked at yet: [[heron-building-blocks\|Heron]].
+| [[heron-building-blocks\|Heron]] | unexamined | |

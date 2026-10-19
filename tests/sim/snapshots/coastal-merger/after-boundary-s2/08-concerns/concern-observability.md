@@ -17,5 +17,8 @@ What is measured, so a failure shows up without a debugger or a release.
 
 | App | State | Why |
 |---|---|---|
-
-Not looked at yet: [[northway-id-building-blocks\|Northway ID]], [[seabook-building-blocks\|SeaBook]], [[ferrymaster-building-blocks\|FERRYMASTER]], [[account-link-service-building-blocks\|Account link service]], [[railcore-building-blocks\|RailCore]].
+| [[northway-id-building-blocks\|Northway ID]] | unexamined | |
+| [[seabook-building-blocks\|SeaBook]] | unexamined | |
+| [[ferrymaster-building-blocks\|FERRYMASTER]] | unexamined | |
+| [[account-link-service-building-blocks\|Account link service]] | unexamined | |
+| [[railcore-building-blocks\|RailCore]] | unexamined | |

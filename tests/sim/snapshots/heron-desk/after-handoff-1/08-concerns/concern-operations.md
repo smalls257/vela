@@ -17,5 +17,4 @@ Who is on call, and the runbooks for the failures that hurt customers.
 
 | App | State | Why |
 |---|---|---|
-
-Not looked at yet: [[heron-building-blocks\|Heron]].
+| [[heron-building-blocks\|Heron]] | unexamined | |
