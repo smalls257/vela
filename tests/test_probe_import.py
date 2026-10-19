@@ -89,6 +89,15 @@ def test_a_decision_with_the_leads_yes_on_the_changes_row_passes(tmp_path):
     assert "Yes, that one stands." in detail[0]
 
 
+def test_a_decision_record_new_this_session_written_proposed_then_decided_passes(tmp_path):
+    """Seen in the first paid ceiling run: the import wrote each decision record as proposed, then decided it with
+    the lead's yes, so the branch point says "-" and the Changes row says "proposed". Close's gate must read that."""
+    run = vaults(tmp_path)
+    (run.snapshot / ADR).unlink()
+    passed, summary, _, _ = recorded(run)
+    assert passed and "with a recorded yes: 1" in summary
+
+
 def test_a_decision_with_no_changes_row_or_a_bare_ok_fails(tmp_path):
     passed, summary, _, _ = recorded(vaults(tmp_path / "a", row=False))
     assert not passed and "without one: 1" in summary

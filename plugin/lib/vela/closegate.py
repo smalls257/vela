@@ -184,8 +184,10 @@ def judge_change(change, rows, said, vault, record_name):
         o = allowed[0]
         return None, Consent(change.item, change.name, f"{change.before} to {change.after}, by override",
                              o.reason, f"{o.by} on {o.date}")
+    # An item new this session may pass through a state on its way (an import writes a decision record as proposed,
+    # then decides it with the lead's yes): its row's From is that state, not the branch point's "-".
     row = next((r for r in rows if r.item == change.item and r.after == change.after
-                and r.before in (change.before, "-", "")), None)
+                and (r.before in (change.before, "-", "") or change.before == "-")), None)
     if row is None:
         return Problem(f"You haven't said yes to {moving(change)} yet.",
                        f"{change.item}: {change.before} -> {change.after} has no ## Changes row", kind=CONSENT), None
