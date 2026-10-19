@@ -103,17 +103,47 @@
     Nav.open("apps"); go("lights", { reset: true }); App.root = "lights"; Panel.render(); await tick();
     const lede = $("#panel .p-lede");
     const words = [$("#main"), $("#panel"), $("#masters")].map((e) => e.textContent).join(" ");
-    ok(n > 0 && +top.textContent === n && card && card.textContent.startsWith(`${n} need you`) && lede && lede.textContent.startsWith(`${n} need you`) && /blocking work/.test(lede.title) && !/blocks? work|blocking work|other things? (isn|aren)/.test(words),
+    if (!n) { ok(/Nothing/.test(card ? card.textContent : "Nothing") && +top.textContent === 0, "need you: nothing waiting, and every place says so", `need you: top ${top && top.textContent}, card "${card && card.textContent}"`); }
+    else ok(+top.textContent === n && card && card.textContent.startsWith(`${n} need you`) && lede && lede.textContent.startsWith(`${n} need you`) && / (isn't|aren't|blocking)/.test(lede.title) && !/\d+ questions? (blocks?|(is|are) blocking) work|other things? (isn|aren)/.test(words),
       `need you: one number, ${n}, on the top bar, the waiting card and the panel, with its parts on hover`, `need you: top ${top && top.textContent}, card "${card && card.textContent}", panel "${lede && lede.textContent}", loose words ${(words.match(/\d+ questions? (block|are blocking)[^.]*/) || [""])[0]}`);
     const side = $("#side .side-link[data-section='unknowns'] .side-n");
     ok(!side || (/in all/.test(side.title) && side.title.includes(`${Queue.needsYou().n}`)), "need you: the sidebar's count says it is all open questions, and how many of the things need you", `need you: sidebar title "${side && side.title}"`);
     Nav.home(); await tick();
     const note = $("#main [aria-controls^='dmenu-notes']");
+    if (!note) { ok(!$("#main .q-kicker") && !$("#main .countline"), "Home: no banner or note line above the map, and no i when the diagram has no notes", "Home: a banner or note line is above the map"); return; }
     ok(!$("#main .q-kicker") && !$("#main .countline") && !!note && note.textContent === "i" && /\w/.test(note.title), "Home: no banner or note lines above the map; its notes are an i in the diagram bar, read on hover",
       `Home: kicker ${!!$("#main .q-kicker")}, countline ${!!$("#main .countline")}, note button ${!!note}`);
     note.click(); await tick();
     ok(!document.getElementById(note.getAttribute("aria-controls")).hidden && $$(".dia-notes p").length >= 1, "Home: the i opens the notes in place", "Home: the i opened nothing");
     Menus.close();
+  }
+
+  /* Finding 8: one "Read full page" on screen beside a section's page, and its file link only in the ... menu.
+     Finding 9: the doors are the sidebar's buttons, not also a tab strip on every door page.
+     Finding 14: no percent that says "done" under three names, and the release timeline only on Releases. */
+  async function onceEach(ok) {
+    const shownBtns = (root) => $$("a, button", root).filter((b) => b.offsetParent !== null && /^Read (the )?full page$/.test(b.textContent.trim()));
+    const bad = [];
+    let n = 0;
+    for (const sec of D.sections) {
+      Nav.open(sec.id); await tick();
+      if (!Nav.sectionPage() || Nav.pageBeside() === "") continue;
+      n++;
+      const read = [...shownBtns($("#main")), ...shownBtns($("#panel"))], files = $$("#panel .p-actions a[href]").filter((a) => /Open the page/.test(a.textContent));
+      if (read.length !== 1) bad.push(`${sec.label}: ${read.length} Read full page buttons`);
+      if (files.length) bad.push(`${sec.label}: the panel repeats the file link`);
+    }
+    ok(n > 0 && !bad.length, `one Read full page: ${n} sections beside their pages show it once, and the file link is only in the ... menu`, `one Read full page: ${bad.join(" | ") || "no section had a page"}`);
+    const doors = [];
+    for (const [id] of Roles.ROLES.slice(1)) { Nav.role(id); await tick(); doors.push(`${id}:${$$("#main .door-switch").length}`); }
+    ok(doors.every((x) => x.endsWith(":0")) && $$("#side .side-roles button").length === Roles.ROLES.length - 1, `role doors: the sidebar's ${Roles.ROLES.length - 1} buttons are the only doors; no tab strip on any door page`, `role doors: ${doors.join(" ")}`);
+    const pct = [];
+    for (const id of ["exec", "mgr"]) { Nav.role(id); await tick(); if (/\d+%/.test($("#main").textContent) || $(".mini-time", $("#main"))) pct.push(id); if (!$("#main [data-to='releases']")) pct.push(id + " has no link to the timeline"); }
+    Nav.open("apps"); showView("progress"); await tick();
+    if (/\d+%/.test($("#main").textContent)) pct.push("progress");
+    Nav.open("releases"); await tick();
+    ok(!pct.length && !!$("#main .rel-body, #main .releases, #main [data-view]"), "no percent that reads as done, and no timeline repeated on the doors; Releases has the timeline and the doors link to it", `percent or timeline left on: ${pct.join(", ")}`);
+    Nav.home(); await tick();
   }
 
   /* A menu opened from a diagram bar or a page head is the topmost thing at its middle and its two ends, in every section
@@ -158,7 +188,7 @@
     const only = HASH.get("only") === "qol";
     const report = only ? ["head"] : await base(), lines = [], errors = window.__errors.length;
     const ok = (cond, good, bad) => { lines.push(cond ? "ok " + good : "FAIL " + (bad || good)); if (HASH.has("trace")) console.log("[selftest] " + lines[lines.length - 1]); };
-    try { if (!wide()) await compact(ok); else { await appPanel(ok); await searchRows(ok); await oneNumber(ok); } await menusOnTop(ok); } catch (e) { lines.push("FAIL the quality-of-life checks threw: " + e.message + " " + (e.stack || "").split("\n")[1]); }
+    try { if (!wide()) await compact(ok); else { await appPanel(ok); await searchRows(ok); await oneNumber(ok); await onceEach(ok); } await menusOnTop(ok); } catch (e) { lines.push("FAIL the quality-of-life checks threw: " + e.message + " " + (e.stack || "").split("\n")[1]); }
     Nav.home(); go("lights", { reset: true });
     if (window.__errors.length > errors) lines.push("FAIL JS ERRORS in the quality-of-life checks: " + window.__errors.slice(errors).join(" | "));
     const body = report.slice(1).concat(lines), fails = body.filter((l) => l.startsWith("FAIL")).length;

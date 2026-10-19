@@ -94,3 +94,10 @@ def test_one_need_you_number_and_notes_in_an_i(chrome, heron):
     """Findings 7 and 13: one "N need you" on the bar, the card and the panel (parts on hover); Home's notes are an i."""
     lines = selftest(chrome, heron, 1440)
     need(lines, "need you: one number", "need you: the sidebar's count", "Home: no banner or note lines above the map", "Home: the i opens the notes in place")
+
+
+@pytest.mark.browser
+def test_buttons_appear_once_and_the_percent_is_gone(chrome, heron):
+    """Findings 8, 9 and 14: one Read full page, the doors only in the sidebar, no done-sounding percent, one timeline."""
+    lines = selftest(chrome, heron, 1440)
+    need(lines, "one Read full page:", "role doors:", "no percent that reads as done")

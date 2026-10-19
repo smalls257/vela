@@ -46,6 +46,8 @@ a.dmenu-item { text-decoration: none; }
 .dmenu-node p { margin: 0 0 6px; }
 .dmenu-sep { height: 1px; background: var(--rule); margin: 5px 4px; }
 .lede-link { color: var(--link); margin-left: 6px; white-space: nowrap; }
+/* the panel beside the page already has Read full page; the link in the header is for a window where it is closed */
+body:not(.panel-hidden) .lede-link { display: none; }
 @media (max-width: 900px) {
   .dia-bar { padding: 6px 12px; }
   .dia-mid { flex-basis: 100%; order: 3; }

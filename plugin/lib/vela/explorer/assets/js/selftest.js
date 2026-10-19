@@ -1081,7 +1081,7 @@ const SelfTest = (() => {
     } else out.push("skip releases empty state: the vault records releases");
     if (D.map.apps.length) {
       Nav.role("exec"); await frames();
-      ok(D.releases.count || has($(".door"), "No releases yet."), "exec door: release timeline says no releases are recorded", "exec door: no releases and no empty state");
+      ok(!!$(".door [data-to='releases']") && !$(".door .mini-time"), "exec door: the release timeline is one link away (Releases carries it and its empty state), not drawn again here", "exec door: no link to Releases, or the timeline is drawn here again");
       ok(D.releases.count || await doorHas("product", "No releases yet."), "product door: what each release delivers names 04b-releases.md", "product door: no empty state for releases");
       if (!D.trace.requirements.length && D.trace.capabilities.length) ok(await doorHas("product", "No requirements written yet, so none is assigned to an app."), "product door: the requirement cards name /vela:requirements and /vela:allocate", "product door: no empty state for requirements");
       if (!D.trace.epics.length) ok(await doorHas("qa", "No epics yet."), "QA door: criteria cards name /vela:epics", "QA door: no empty state for epics");

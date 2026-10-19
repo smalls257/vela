@@ -71,7 +71,7 @@ const Panel = (() => {
     // count, so the lede only says where to start; saying the count again made the same 21 show four times on Home.
     const lede = !queue.length && !lit.length ? "Nothing needs you. Every app, contract and flow is decided, and no open question is blocking any of them."
       : beside ? (queue.length ? "Start with the questions on the left, most urgent first. Pick one, or a box on the map, to read it here." : "Pick a box on the map to read it here.")
-      : `${Queue.needsYou().n ? Queue.needsYou().n + " need you. " : ""}${queue.length ? "Most urgent first; pick one to read it here." : ""}`;  // the top bar's number; its parts are on hover
+      : `${Queue.needsYou().n ? Queue.needsYou().n + " need you. " : ""}${queue.length ? "Most urgent first; pick one to read it here." : ""}`.trim();  // the top bar's number; its parts are on hover
     const out = [h("div", { class: "p-head" }, h("h2", {}, "What needs you"),
       lede ? h("p", { class: "p-lede", title: Queue.needsYou().n ? Queue.needsYouParts() : null, ...(!beside && Queue.needsYou().n ? { "data-quantity": "needsYou", "data-n": Queue.needsYou().n } : {}) }, lede) : null)];
     if (!beside && queue.length) out.push(section("Waiting on an answer", null, Queue.block()));
@@ -97,7 +97,8 @@ const Panel = (() => {
       h("h2", {}, e.title), linkChips(pk),
       h("div", { class: "p-actions" }, typeof Nav !== "undefined" ? h("button", { class: "btn", onclick: () => Nav.readWide(pk, anchor) }, "Read full page") : null,
         ent(pk) && e.kind !== "section" && e.kind !== "page" ? h("button", { class: "btn", onclick: () => go(pk, {}) }, "About it and what is blocking it") : null,
-        openLink(["Open the page"], D.vault ? D.vault + "/" + e.path : "", e.path, "The page as it is written, in a new tab")))];
+        // the section's own page opens as a file from the ... menu; a page read here from somewhere else keeps its file link
+        typeof Nav !== "undefined" && pk === Nav.sectionPage() ? null : openLink(["Open the page"], D.vault ? D.vault + "/" + e.path : "", e.path, "The page as it is written, in a new tab")))];
     const body = Reader.body(pk, { toc: true });
     out.push(body);
     requestAnimationFrame(() => { if (!Reader.scrollTo(body, anchor)) $("#panel-body").scrollTop = 0; });

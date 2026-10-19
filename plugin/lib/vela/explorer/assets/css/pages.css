@@ -6,15 +6,9 @@
 /* The ring, the shares and the state tiles sit side by side when there is room and wrap when there is not, so a narrow
    window never pushes them past the card's edge. */
 .kpis { display: flex; flex-wrap: wrap; gap: 20px 26px; align-items: center; }
-.kpis > .kpi-big { flex: 1 1 260px; min-width: 0; }
 .kpis > .shares { flex: 2 1 300px; min-width: 0; }
 .kpis > .tiles { flex: 0 0 auto; }
 .kpis .next { flex: 1 1 100%; }
-.kpi-big { display: flex; gap: 16px; align-items: center; max-width: 360px; }
-.kpi-ring { width: 118px; height: 118px; flex: none; }
-.kpi-num { font: 400 28px var(--serif); fill: var(--ink); }
-.kpi-big .lab { font-size: 12.5px; color: var(--ink-3); }
-.kpi-big .lab b { display: block; color: var(--ink); font-size: 15px; margin-bottom: 2px; }
 .shares { display: grid; gap: 7px; min-width: 0; }
 .share { display: grid; grid-template-columns: minmax(0, 170px) minmax(60px, 1fr) max-content; gap: 10px; align-items: center; font-size: 12.5px; color: var(--ink-2); }
 .share .bar { height: 7px; background: var(--deck-3); border-radius: 4px; overflow: hidden; }
@@ -59,8 +53,6 @@ td.wide { max-width: 320px; }
 .tiles { grid-template-columns: repeat(2, minmax(118px, max-content)); }
 /* A narrow card (a small window keeps three columns, so the page pane can be about 250px) stacks a table's rows into
    blocks instead of letting the table run past the card or scroll sideways; the ring's caption wraps under it. */
-.kpi-big { flex-wrap: wrap; }
-.kpi-big .lab { flex: 1 1 140px; min-width: 0; }
 section.card:has(> table.t) { container-type: inline-size; }
 @container (max-width: 760px) {
   table.t, table.t tbody, table.t tr, table.t td { display: block; width: auto; }

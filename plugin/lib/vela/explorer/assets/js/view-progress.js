@@ -28,16 +28,7 @@ const ProgressView = (() => {
       h("div", { class: "spacer" }), Nav.pageActions()), sc);
     const totals = [0, 0, 0, 0];
     P.rows.forEach((r) => r.mix.forEach((n, i) => { totals[i] += n; }));
-    const ring = (pct) => {
-      const C = 2 * Math.PI * 52, svg = s("svg", { viewBox: "0 0 128 128", class: "kpi-ring" });
-      s("circle", { cx: 64, cy: 64, r: 52, fill: "none", stroke: Theme.c("rule"), "stroke-width": 12 }, svg);
-      const arc = s("circle", { cx: 64, cy: 64, r: 52, fill: "none", stroke: Theme.c("ink"), "stroke-width": 12, "stroke-linecap": "round", transform: "rotate(-90 64 64)", "stroke-dasharray": C, "stroke-dashoffset": reducedMotion() ? C * (1 - pct / 100) : C }, svg);
-      if (!reducedMotion()) requestAnimationFrame(() => requestAnimationFrame(() => { arc.style.transition = "stroke-dashoffset 1.2s cubic-bezier(.2,.8,.2,1)"; arc.setAttribute("stroke-dashoffset", C * (1 - pct / 100)); }));
-      s("text", { x: 64, y: 72, "text-anchor": "middle", class: "kpi-num" }, svg).textContent = pct + "%";
-      return svg;
-    };
     sc.append(h("section", { class: "card kpis" },
-      h("div", { class: "kpi-big" }, ring(P.percent), h("div", { class: "lab" }, h("b", {}, "Written down"), "The average of the five bars beside it. It counts only what is written down, so it never means done.")),
       h("div", { class: "shares" }, P.shares.map((x) => h("div", { class: "share" }, h("span", {}, x.name), h("div", { class: "bar" }, h("span", { style: `width:${x.total ? ((100 * x.done) / x.total).toFixed(1) : 100}%` })), h("span", { class: "v" }, `${x.done} of ${x.total}`)))),
       h("div", { class: "tiles" }, [3, 2, 1, 0].map((i) => h("div", { class: "tile" }, h("div", { class: "num" }, totals[i]), h("div", { class: "lab" }, h("i", { class: "sw", style: `background:${MIX[i][1]}` }), stateWord(MIX[i][0]))))),
       P.next ? h("div", { class: "note next" }, h("b", {}, "Suggested next step: "), modeEl(P.next.mode), " ", P.next.subject ? refChip(keyForId(P.next.subject)) : null, " ", P.next.reason) : null));
@@ -141,4 +132,4 @@ const ProgressView = (() => {
   }
   return { render };
 })();
-View("progress", { label: "Progress", title: "The stage ladder, completeness and what is due", render: ProgressView.render, count: () => D.progress.percent + "%" });
+View("progress", { label: "Progress", title: "The stage ladder, how much is written down and what is due", render: ProgressView.render });

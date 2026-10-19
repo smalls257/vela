@@ -29,19 +29,7 @@ const Roles = (() => {
     const shown = items.slice(0, max);
     return h("ul", { class: "door-list" }, shown.map(row), items.length > max ? h("li", { class: "more muted", "data-n": items.length - max }, `and ${items.length - max} more`) : null);
   }
-  function switcher() {
-    return h("div", { class: "door-switch", role: "tablist", "aria-label": "Who is reading" }, ROLES.map(([id, label, say]) =>
-      h("button", { role: "tab", "aria-selected": String(id === st.role), title: say, onclick: () => Nav.role(id) }, label)));
-  }
-
   /* ------------------------------------------------------------ shared pieces */
-  function timeline() {
-    const S = Releases.STATES;
-    return h("ol", { class: "mini-time" }, S.map((x, j) => h("li", {}, h("button", { onclick: () => Nav.openRelease(j) },
-      h("b", {}, j === 0 ? "Today" : x.fromChange ? "End state" : `Release ${j}`), h("span", {}, j === 0 ? day(D.today) : x.target ? day(x.target) : "no date"),
-      j > 0 ? h("small", {}, x.fromChange ? "after every app's change lands" : `${plural((x.rows || []).length, "requirement")}, ${releaseState(x.state)}`) : h("small", {}, "where things stand now")))),
-      !D.releases.count ? h("li", { class: "none" }, missing("No releases yet.", "Until releases are planned, the timeline runs from today to where every app ends up.")) : null);
-  }
   function qRow(u) {
     const a = ASK[u.id];
     return h("li", {}, lamp(a.light.level), h("a", { "data-ref": u.id, title: u.id }, shorten(E[u.id] ? E[u.id].title : "", 54), idTag(u.id)),
@@ -71,7 +59,7 @@ const Roles = (() => {
     grid.append(card("What is decided", ["Decisions", () => Nav.open("decisions")],
       h("div", { class: "kpi-row" }, kpi(C.decided, "decided", "decisions.decided"), kpi(C.proposed, "proposed", "decisions.proposed"),
         C.overridden ? kpi(C.overridden, "decided before the usual checks", "decisions.overridden") : null,
-        h("div", {}, h("b", {}, D.progress.percent + "%"), h("span", { title: `The average of five measures: ${D.progress.shares.map((x) => x.name).join(", ")}` }, "of the plan settled"))),
+        h("div", {}, h("b", {}, `${D.progress.shares.reduce((n, x) => n + x.done, 0)} of ${D.progress.shares.reduce((n, x) => n + x.total, 0)}`), h("span", { title: D.progress.shares.map((x) => `${x.name}: ${x.done} of ${x.total}`).join("; ") }, "things written down"))),
       list(decided, 4, (e) => h("li", {}, h("a", { "data-ref": e.key, title: e.id }, shorten(e.name, 60), idTag(e.id))))));
     const risks = D.riskList;
     grid.append(card("Top risks", ["Unknowns and risks", () => Nav.open("unknowns")], risks.length ? list(risks, 4, (r) => {
@@ -88,7 +76,6 @@ const Roles = (() => {
     grid.append(card("What needs your decision", null, owed.length ? list(owed, 5, (x) => h("li", {}, x.key ? lampEl(levelForKey(x.key) || "caution") : lampEl("caution"),
       x.kind === "question" ? h("a", { "data-ref": x.key, title: x.key }, titleOf(x.key)) : x.key ? refChip(x.key) : h("b", {}, x.name), h("span", { class: "muted small" }, " " + x.say))) : empty("Nothing is waiting on an executive decision."),
       rule("These wait on you: questions that hold up a goal or the strategy, decisions still proposed or not yet confirmed, and releases nobody has agreed. Open one to settle it.")));
-    grid.append(card("Release timeline", ["Releases", () => Nav.open("releases")], timeline()));
   }
 
   /* ------------------------------------------------------------ product */
@@ -172,13 +159,12 @@ const Roles = (() => {
   function mgr(grid) {
     const P = D.progress, stages = P.stages;
     grid.append(card("Progress", ["Progress", () => { Nav.open("apps"); showView("progress"); }],
-      h("div", { class: "kpi-row" }, h("div", {}, h("b", {}, P.percent + "%"), h("span", {}, "complete")), h("div", {}, h("b", {}, P.rows.filter((r) => r.stage).length), h("span", {}, "apps in progress")),
+      h("div", { class: "kpi-row" }, h("div", {}, h("b", {}, P.rows.filter((r) => r.stage).length), h("span", {}, "apps in progress")),
         h("div", {}, h("b", { "data-quantity": "needsYou", "data-n": Queue.needsYou().n }, Queue.needsYou().n), h("span", {}, "need you"),
           h("small", { class: "muted", "data-quantity": "openQuestions", "data-n": D.counts.openQuestions }, `${plural(D.counts.openQuestions, "open question")} in all`))),
       h("div", { class: "shares" }, P.shares.map((x) => h("div", { class: "share" }, h("span", {}, x.name), h("div", { class: "bar" }, h("span", { style: `width:${x.total ? ((100 * x.done) / x.total).toFixed(1) : 100}%` })), h("span", { class: "v" }, `${x.done} of ${x.total}`))))));
     grid.append(card("Where each app stands", ["Apps", () => Nav.open("apps")], list(P.rows.filter((r) => r.stage), 7, (r) => h("li", {}, lamp(levelOf(r.app)), h("a", { "data-ref": r.app }, E[r.app].title),
       h("span", { class: "ladder inline" }, stages.map((x, i) => h("span", { class: i < stages.indexOf(r.stage) ? "done" : i === stages.indexOf(r.stage) ? "cur" : "", title: x }))), h("span", { class: "muted small" }, ` ${stepText(r.stage)}`)))));
-    grid.append(card("Release timeline", ["Releases", () => Nav.open("releases")], timeline()));
     buildPlans(grid);
     const who = {};
     for (const u of openQs()) {
@@ -210,7 +196,9 @@ const Roles = (() => {
   function render(main) {
     const def = ROLES.find(([id]) => id === st.role) || ROLES[1];
     const root = h("div", { class: "door", "data-role": def[0] });
-    root.append(h("div", { class: "door-head" }, h("div", {}, h("div", { class: "kicker" }, "Your view"), h("h1", {}, def[0] === "eng" ? "Engineering: one app's handoff list" : `${def[1]}: ${def[2].toLowerCase()}`)), switcher()));
+    // The sidebar's door buttons are the only way between views. The release timeline lives on Releases, one link away.
+    const toTimeline = ["exec", "mgr"].includes(def[0]) ? h("button", { class: "linkish", "data-to": "releases", onclick: () => Nav.open("releases") }, "Release timeline →") : null;
+    root.append(h("div", { class: "door-head" }, h("div", {}, h("div", { class: "kicker" }, "Your view"), h("h1", {}, def[0] === "eng" ? "Engineering: one app's handoff list" : `${def[1]}: ${def[2].toLowerCase()}`)), toTimeline));
     const grid = h("div", { class: "door-grid door-" + def[0] });
     root.append(grid);
     main.append(root);

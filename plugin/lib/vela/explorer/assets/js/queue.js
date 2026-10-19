@@ -110,7 +110,7 @@ const Queue = (() => {
   /* The queue card's line: what to start with, not the top bar's number again. */
   function startWith() {
     const list = items().filter((x) => NEEDS.includes(x.level)), first = list[0];
-    if (!first) return otherLit().length ? "No question is blocking work." : "Nothing is waiting on an answer";
+    if (!first) return needsYou().n ? `${needsYou().n} need you. No question is blocking work.` : "Nothing is waiting on an answer";
     const due = isDate(first.askBy) ? `The first is due ${day(first.askBy)}: ${first.title}.` : `The most urgent: ${first.title}.`;
     return `${needsYou().n} need you. ${due}`;  // the one number, the top bar's; what it is made of is on hover
   }
