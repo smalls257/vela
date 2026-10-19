@@ -21,7 +21,7 @@ from vela.edge import sessiongit
 
 NAME = "whoami"
 ROLE_FILE = ".vela/role"  # the person's own choice of role, kept beside their handle
-HANDLE = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$")  # a GitHub login's shape
+HANDLE = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})\Z")  # a GitHub login's shape; \Z, not $, so "sam\n" is no handle
 QUESTION = "What's your GitHub handle, the short name after the @? I'll remember it on this machine."
 
 

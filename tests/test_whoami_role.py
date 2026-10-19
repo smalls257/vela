@@ -51,3 +51,8 @@ def test_a_word_that_is_no_role_is_refused_and_keeps_what_was_there(vault):
 def test_a_role_file_that_holds_something_else_is_not_a_role(vault):
     (vault / ".vela" / "role").write_text("janitor\n", encoding="utf-8")
     assert whoami(vault)[1]["role"] == ""
+
+
+def test_whoamis_own_handle_check_refuses_a_trailing_newline():
+    from vela.commands import whoami as who
+    assert who.HANDLE.match("sam") and who.HANDLE.match("sam\n") is None

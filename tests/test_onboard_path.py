@@ -64,3 +64,16 @@ def test_a_handle_that_could_name_another_file_is_never_a_path(handle):
     assert onboardpath.HANDLE.match(handle) is None
     made, said = path(handle=handle)
     assert made is None and "not a handle" in said[0]
+
+
+def test_a_handle_with_a_trailing_newline_is_not_a_handle():
+    assert onboardpath.HANDLE.match("sam\n") is None
+    made, said = path(handle="sam\n")
+    assert made is None and "not a handle" in said[0]
+
+
+@pytest.mark.parametrize("brought", [5, "goal", {"goal": 1}])
+def test_brought_back_that_is_not_a_list_is_refused(brought):
+    raw = json.dumps({"audience": "eng", "modules": ["goal"], "broughtBack": brought})
+    found, problems_ = onboardpath.from_text("sam", raw)
+    assert found is None and "broughtBack should be a list" in problems_[0]

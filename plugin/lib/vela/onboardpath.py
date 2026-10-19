@@ -9,13 +9,13 @@ The file lives at `.vela/onboard/<handle>.json`: working state, never committed,
 excluded from a published copy). A person is their handle (`vela whoami`).
 """
 import json
-import re
 from dataclasses import dataclass
 
 from vela import onboarding
+from vela.commands import whoami
 
 FOLDER = ".vela/onboard"
-HANDLE = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$")  # a GitHub login's shape, so a handle can't name a path
+HANDLE = whoami.HANDLE  # one pattern for a handle, so a handle can't name a path here or there
 DEPTHS = ("gist", "normal", "everything")
 KEYS = {"audience", "modules", "depth", "diagrams", "broughtBack"}
 
@@ -83,10 +83,12 @@ def from_text(handle, text):
     extra = sorted(set(data) - KEYS)
     if extra:
         return None, [f"the file holds '{extra[0]}', which is not a choice; it keeps module ids, depth and diagrams only"]
-    back = tuple(data.get("broughtBack") or ())
-    modules = data.get("modules")
+    modules, back = data.get("modules"), data.get("broughtBack", [])
     if not isinstance(modules, list):
         return None, ["the file's modules should be a list"]
+    if not isinstance(back, list):
+        return None, ["the file's broughtBack should be a list"]
+    back = tuple(back)
     # what the lead hid is judged when the page is built; here the file is checked for shape and vocabulary only
     return make(handle, data.get("audience"), modules, data.get("depth", "normal"), data.get("diagrams", False),
                 hidden=back, bring_back=back)
