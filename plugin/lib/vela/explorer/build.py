@@ -31,11 +31,11 @@ import uuid
 from vela import (allocation, attention, cli, completeness, handoff, ladder, links, model, override, pending, plainwords,
                      progress, reading, roles, say, schema, slices, terms, trace)
 from vela import search as vela_search
-from vela.edge import atomic, sessiongit
+from vela.edge import atomic
 from vela.parse import FENCE, closes_fence
 
-from . import (asks_data, assets_inline, branches_data, breakdown_find, design_data, design_find, draft_data, flows_data, icons_data, inside_data, pages_data, panel_data,
-               plan_data, roles_data, serve, slices_data)
+from . import (asks_data, assets_inline, branches_data, breakdown_find, design_data, design_find, draft_data, flows_data, icons_data, inside_data, onboard_data,
+               pages_data, panel_data, plan_data, roles_data, serve, slices_data)
 from . import pins as pinning
 from .record import (HANDLE, LABELED_LINE, PROSE_LIMIT, Keys, inline_html,
                      plain, refs_in, title_of)
@@ -53,9 +53,9 @@ class ExplorerError(Exception):
 # The page's script and style, in load order: shared code first, one module per view, the boot last.
 JS_MODULES = ("core", "theme", "fx", "menus", "assets", "icons", "layout", "pan", "geometry", "search", "minimap", "reader", "queue", "panel", "panelsize", "detailspanel", "motion", "view-map",
               "wires", "mapgroups", "releases", "slices", "flowkit", "flowpicker", "branches", "view-flows", "rehearse", "view-asks", "view-decisions", "view-progress",
-              "view-trace", "sections", "roles", "nav", "markdown", "ask", "inside", "plan", "drafts", "freshness", "main")
-SELFTEST_MODULES = ("selftest", "selftest-branches", "selftest-qol", "selftest-inside")  # 120 KB of checks: bundled only when asked (`vela explore --selftest`), not shipped to every reader
-CSS_MODULES = ("base", "menus", "nav", "panel", "compact", "map", "queue", "flows", "rehearse", "asks", "decisions", "pages", "reader", "roles",
+              "view-trace", "sections", "roles", "onboard", "nav", "markdown", "ask", "inside", "plan", "drafts", "freshness", "main")
+SELFTEST_MODULES = ("selftest", "selftest-branches", "selftest-qol", "selftest-inside", "selftest-onboard")  # 120 KB of checks: bundled only when asked (`vela explore --selftest`), not shipped to every reader
+CSS_MODULES = ("base", "menus", "nav", "panel", "compact", "map", "queue", "flows", "rehearse", "asks", "decisions", "pages", "reader", "roles", "onboard",
                "releases", "slices", "branches", "ask", "inside", "plan", "pending", "drafts", "themes", "plain")
 
 # The themes the page offers, first the default. Each is a palette in assets/css/themes.css (Console is base.css's
@@ -580,7 +580,7 @@ def lights_data(vault, keys, today):
     return {"lights": lights, "ranked": ranked, "above": above, "levels": list(attention.LEVELS)}
 
 
-def extract(vault, root, today, pins_path=None, designs=None, seed=None, plans=None):
+def extract(vault, root, today, pins_path=None, designs=None, seed=None, plans=None, onboard_mine=None, onboard_me=None):
     keys = Keys(vault)
     entities = {}
     for page in vault.pages:
@@ -607,9 +607,11 @@ def extract(vault, root, today, pins_path=None, designs=None, seed=None, plans=N
         "terms": dict(terms.TERMS), "words": plainwords.reader_words(),
     }
     data["pending"] = pending_list(vault, keys)
-    # Who is reading, if the build knows: the handle `vela whoami` keeps for this vault. The page never claims "you" without it
-    # (or without the reader picking a role door); an empty handle means a dashboard for whoever opens it.
-    data["me"] = {"handle": sessiongit.read_handle(root).lstrip("@")}
+    # Who is reading is known only to a page built for one person (`vela explore --person`, never committed). The shared page is
+    # committed and read by colleagues, so it carries nobody's handle: it has no "me", and "Waiting on you" there works from the
+    # role door the reader picked (Onboard.myRole).
+    if onboard_me:
+        data["me"] = {"handle": onboard_me["handle"].lstrip("@")}
     data["owners"] = owners(entities)
     data["nodes"], data["pins"] = map_nodes(vault, keys, data["map"], pins_path, seed)
     app_meta = {keys.page(a): a.meta for a in vault.apps}
@@ -640,6 +642,7 @@ def extract(vault, root, today, pins_path=None, designs=None, seed=None, plans=N
     data["insidePanel"] = panel_data.panels(vault, data)
     data["themes"] = [{"id": i, "label": label, "say": say} for i, label, say in THEMES]
     data["theme"] = THEME_IDS[0]
+    data["onboard"] = onboard_data.extract(data, root, onboard_mine, onboard_me)
     return data
 
 
@@ -862,7 +865,7 @@ def plural_pages(n):
 
 
 def generate(root, out, today, pins_path=None, seed=None, assets_config=None, design_args=(), theme=THEME_IDS[0], freshness=None,
-             breakdown_args=(), built=None, selftest=False):
+             breakdown_args=(), built=None, selftest=False, onboard_mine=None, onboard_me=None):
     """Build the page for the vault at `root` and write it to `out`. Returns the report lines: what the build
     chose, what it left out and why, and the one-line summary last. Raises ExplorerError, writing nothing, when
     the vault, the assets, the pins, a design or a named breakdown cannot be read.
@@ -893,7 +896,9 @@ def generate(root, out, today, pins_path=None, seed=None, assets_config=None, de
     plans_found, plan_find_lines = breakdown_find.discover(vault, root, breakdown_args, design_args)
     plan_args = [*breakdown_args, *plans_found]
     try:
-        data = extract(vault, root, today, pins_path, design_data.designs_for(design_args), seed, plan_data.plans_for(plan_args))
+        data = extract(vault, root, today, pins_path, design_data.designs_for(design_args), seed, plan_data.plans_for(plan_args), onboard_mine, onboard_me)
+    except onboard_data.OnboardError as exc:
+        raise ExplorerError(str(exc)) from exc
     except design_data.DesignError as exc:
         raise ExplorerError(f"--design: {exc}") from exc
     except plan_data.PlanError as exc:
@@ -920,6 +925,7 @@ def generate(root, out, today, pins_path=None, seed=None, assets_config=None, de
     said += plan_find_lines
     said += plan_lines(data["plans"])
     said += draft_lines(data)
+    said += data["onboard"]["problems"]
     m = data["map"]
     said.append(f"wrote {out} for {data['initiative']} {data['title']}: {len(m['apps'])} apps, "
                 f"{len(m['contracts'])} contracts, {len(data['unknowns'])} unknowns, {len(data['trace']['epics'])} epics, "

@@ -6,7 +6,7 @@
    Decisions, the stage ladder is Apps' second visual and the trace is Capabilities' and Epics'.
 
    Hash: #home, #role=qa, #s=apps&open=APP-booking, #s=strategy&read, plus the map's &lens= &group= &focus= and the
-   releases' &state=. The old deep links (#map, #flows&open=FLO-002, #asks&open=UNK-065, #garden&open=ADR-0002, now the decision log)
+   releases' &state=, and #onboard=eng&m=contracts for the path through the plan (onboard.js). The old deep links (#map, #flows&open=FLO-002, #asks&open=UNK-065, #garden&open=ADR-0002, now the decision log)
    still land where they did. */
 const Nav = (() => {
   const OPEN_KEY = "explorer.side.open";  // the bar's width, and whether it is hidden, are SideSize's (panelsize.js)
@@ -125,6 +125,12 @@ const Nav = (() => {
     Roles.st.role = r; Roles.st.chosen = true; App.section = "role:" + r; st.child = ""; App.root = "lights"; App.trail = [];
     App.view = "role"; syncHash(); rerender(); Panel.render();
   }
+  /* Getting up to speed, as `r` (named: the reader chose it, so it is their door from now on) or as the best guess for who is
+     reading (not named). m: the part to open at. */
+  function onboard(r, m, remember = !!r) {
+    Onboard.open(r || Onboard.defaultRole(), m, remember); App.section = "onboard:" + Onboard.st.role; st.child = ""; App.root = "lights"; App.trail = [];
+    App.view = "onboard"; syncHash(); rerender(); Panel.render();
+  }
   function readWide(pk, anchor) {
     Sections.doc.page = pk; Sections.doc.anchor = anchor || "";
     App.view = "doc"; App.root = "lights"; App.trail = [];
@@ -135,6 +141,7 @@ const Nav = (() => {
     if (view === "inside" || view === "ask" || view === "drafts") return;  // Inside.open and Ask.open set the section themselves
     if (App.section === "home" && view === "map") return;
     if (App.section.startsWith("role:") && view === "role") return;
+    if (App.section.startsWith("onboard:") && view === "onboard") return;
     const s = sec();
     if (s && (VISUALS[s.id] || []).some(([v]) => v === view)) return;
     const owner = Object.entries(VISUALS).find(([, vs]) => vs.some(([v]) => v === view));
@@ -148,11 +155,12 @@ const Nav = (() => {
   }
   /* Where the reader is, so a view that takes them elsewhere (Ask) can bring them back to it. */
   function where() {
-    return { section: App.section, child: st.child, view: App.view, trail: App.trail.slice(), focus: App.focus, root: App.root, doc: Sections.doc.page };
+    return { section: App.section, child: st.child, view: App.view, trail: App.trail.slice(), focus: App.focus, root: App.root, doc: Sections.doc.page, module: App.section.startsWith("onboard:") ? Onboard.current() : undefined };
   }
   const whereLabel = (w) => {
     if (!w || w.section === "home") return "What's waiting";
     if (w.section.startsWith("role:")) return (Roles.ROLES.find(([id]) => id === w.section.slice(5)) || [0, "the front door"])[1];
+    if (w.section.startsWith("onboard:")) return "Get up to speed";
     const s = SECTIONS[w.section];
     return s ? (w.child && E[w.child] ? E[w.child].title : s.label) : "the explorer";
   };
@@ -160,6 +168,7 @@ const Nav = (() => {
     if (!w || w.section === "ask" || w.section === "drafts") return home();
     if (w.section === "home") home();
     else if (w.section.startsWith("role:")) role(w.section.slice(5));
+    else if (w.section.startsWith("onboard:")) onboard(w.section.slice(8), w.module, false);
     else if (w.view === "doc") { open(w.section, w.child); readWide(w.doc || sectionPage()); }
     else { open(w.section, w.child); if (w.view !== App.view && viewDef(w.view) && w.view !== "inside") showView(w.view); }
     App.trail = w.trail; App.focus = w.focus; App.root = w.root;
@@ -218,6 +227,7 @@ const Nav = (() => {
       return;
     }
     if (App.section === "home") p.push("home");
+    else if (App.section.startsWith("onboard:")) p.push(...Onboard.hashParts());
     else if (App.section.startsWith("role:")) { p.push("role=" + App.section.slice(5)); if (App.section === "role:eng" && Roles.st.app) p.push("app=" + encodeURIComponent(Roles.st.app)); }
     else { p.push("s=" + App.section); if (st.child) p.push("open=" + encodeURIComponent(st.child)); }
     if (App.view === "doc") p.push("read" + (Sections.doc.page && Sections.doc.page !== sectionPage() ? "=" + encodeURIComponent(Sections.doc.page) : ""));
@@ -234,6 +244,7 @@ const Nav = (() => {
     const hs = HASH.get("s"), legacy = VIEWS.find((v) => (HASH.has(v.id) || (v.alias && HASH.has(v.alias))) && !["role", "doc"].includes(v.id));
     if (HASH.get("lens")) MapView.st.lens = HASH.get("lens");
     if (HASH.get("group")) MapView.st.group = HASH.get("group");
+    if (HASH.has("onboard")) { onboard(HASH.get("onboard"), HASH.get("m")); return true; }
     if (HASH.has("role")) { role(HASH.get("role")); return true; }
     if (HASH.has("inside") && typeof Inside !== "undefined" && Inside.boot()) return true;
     if (HASH.has("drafts")) return Drafts.boot();
@@ -320,6 +331,8 @@ const Nav = (() => {
         h("span", { class: "side-label" }, "What's waiting"), late ? h("span", { class: "side-n lit warning", title: `${late} overdue`, "data-quantity": "overdue", "data-n": late }, late) : null),
       typeof Ask !== "undefined" && Ask.served() ? h("button", { class: "side-home side-ask" + (App.section === "ask" ? " on" : ""), "aria-current": App.section === "ask" ? "page" : null, title: "Ask Claude about the plan", onclick: () => Ask.open() },
         h("span", { class: "side-label" }, "Ask Claude"), Ask.count() ? h("span", { class: "side-n" }, Ask.count()) : null) : null,
+      h("button", { class: "side-home side-onboard" + (App.section.startsWith("onboard:") ? " on" : ""), "aria-current": App.section.startsWith("onboard:") ? "page" : null, title: "A short path through the plan for your role",
+        onclick: () => onboard() }, h("span", { class: "side-label" }, "Get up to speed")),
       h("div", { class: "side-roles", role: "tablist", "aria-label": "Views by role" }, Roles.ROLES.slice(1).map(([id, label, say]) =>
         h("button", { role: "tab", "aria-selected": String(App.section === "role:" + id), title: say, onclick: () => role(id) }, label)))));
     const vault = h("div", { class: "side-group" }, h("div", { class: "side-h" }, "Plan pages"));
@@ -329,5 +342,5 @@ const Nav = (() => {
     side.append(vault);
     side.append(h("div", { class: "side-foot" }, h("span", { class: "muted", title: D.initiative ? `Initiative ${D.initiative}` : null }, `Search all ${plural(Object.keys(D.reader).length, "page")} with /`)));
   }
-  return { where, whereLabel, back, title, sectionPage, pageBeside, missingPage, pageActions, viewMenu, moreMenu, moreItems, ledeLink, viewItems, open, home, role, readWide, adopt, focusApp, trace, openRelease, syncHash, followHash, boot, refresh, st, VISUALS, SECTIONS };
+  return { where, whereLabel, back, title, sectionPage, pageBeside, missingPage, pageActions, viewMenu, moreMenu, moreItems, ledeLink, viewItems, open, home, role, onboard, readWide, adopt, focusApp, trace, openRelease, syncHash, followHash, boot, refresh, st, VISUALS, SECTIONS };
 })();

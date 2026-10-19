@@ -147,16 +147,21 @@ def test_waiting_wording_and_the_filter_that_needs_to_know_the_reader(chrome, he
     need(lines, "waiting: with no handle and no role door", "waiting: a reader who picked the Product door")
 
 
-def test_the_build_carries_the_handle_whoami_keeps(tmp_path):
-    """data.me.handle is .vela/handle (as `vela whoami` keeps it), or empty: the page then makes no claim about the reader."""
-    for handle, want in (("", ""), ("@product-owner\n", "product-owner")):
-        vault = tmp_path / ("v" + str(len(want)))
-        shutil.copytree(HERON, vault)
-        if handle:
-            (vault / ".vela").mkdir(exist_ok=True)
-            (vault / ".vela" / "handle").write_text(handle, encoding="utf-8")
+def test_only_a_page_built_for_one_person_carries_a_handle(tmp_path):
+    """The shared page is committed and read by colleagues, so it has no data.me even when .vela/handle is set; a page built with
+    `vela explore --person` carries that person's handle, and only that page can say "you" by handle."""
+    vault = tmp_path / "v"
+    shutil.copytree(HERON, vault)
+    (vault / ".vela").mkdir(exist_ok=True)
+    (vault / ".vela" / "handle").write_text("@product-owner\n", encoding="utf-8")
+    vela = [sys.executable, str(REPO / "plugin" / "scripts" / "vela"), "explore", str(vault), "--today", "2026-10-10", "--no-open"]
+
+    def built(*more):
         out = vault / "d.html"
-        cmd = [sys.executable, str(REPO / "plugin" / "scripts" / "vela"), "explore", str(vault), "--today", "2026-10-10", "-o", str(out), "--no-open"]
-        assert subprocess.run(cmd, timeout=120, capture_output=True, text=True).returncode == 0
-        data = json.loads(re.search(r'<script type="application/json" id="data">(.*?)</script>', out.read_text(encoding="utf-8"), re.S).group(1))
-        assert data["me"] == {"handle": want}
+        assert subprocess.run([*vela, "-o", str(out), *more], timeout=120, capture_output=True, text=True).returncode == 0
+        return out.read_text(encoding="utf-8")
+    pattern = r'<script type="application/json" id="data">(.*?)</script>'
+    shared = built()
+    assert "me" not in json.loads(re.search(pattern, shared, re.S).group(1))  # a boolean: the page is large and a failed `in` on it would diff it
+    mine = json.loads(re.search(pattern, built("--person", "product-owner"), re.S).group(1))
+    assert mine["me"] == {"handle": "product-owner"}

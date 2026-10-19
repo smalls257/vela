@@ -2138,6 +2138,7 @@ const VoiceGate = (() => {
     }
     for (const f of D.flows) { Flows.select(f.key, 0); note(`flow ${f.key}`); }
     for (const id of ["lead", "exec", "product", "qa", "mgr"]) { Nav.role(id); note(`door ${id}`); }
+    for (const role of Object.keys(D.onboard.paths)) for (const k of D.onboard.paths[role].modules) { Nav.onboard(role, k, false); note(`onboarding ${role}, ${Onboard.mod(k).title}`); }
     for (const k of apps) { Roles.st.app = k; Nav.role("eng"); note(`door eng, ${titleOf(k)}`); }
     Nav.home();
     for (const k of apps) {

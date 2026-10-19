@@ -125,7 +125,7 @@ function migrateSaved(legacy, current, store = localStorage) {
   try {
     for (let i = 0; i < store.length; i++) {
       const key = store.key(i);
-      const to = [["asks:", ""], ["explorer.layout.", ""], ["explorer.ask.", ""], ["rehearse:", ":"]].map(([p, tail]) => (key === p + legacy || (tail && key.startsWith(p + legacy + tail))) ? p + current + key.slice((p + legacy).length) : null).find(Boolean);
+      const to = [["asks:", ""], ["explorer.layout.", ""], ["explorer.ask.", ""], ["rehearse:", ":"], ["onboard:", ":"]].map(([p, tail]) => (key === p + legacy || (tail && key.startsWith(p + legacy + tail))) ? p + current + key.slice((p + legacy).length) : null).find(Boolean);
       if (to && store.getItem(to) === null) moves.push([key, to]);
     }
     for (const [from, to] of moves) store.setItem(to, store.getItem(from));

@@ -1,6 +1,6 @@
 /* Boot: the top bar, the master lamps, assets if the build carried any, the deep link, and the first view.
    Deep links: #map, #flows&open=FLO-002&step=2, #present=FLO-001&step=3, #asks&open=UNK-065, #map&q=paper%20order,
-   #decisions&open=ADR-0002 (the old #garden still works), #map&lens=transit; add &still for screenshots (no transitions), &selftest to run the checks. */
+   #onboard=eng&m=contracts, #decisions&open=ADR-0002 (the old #garden still works), #map&lens=transit; add &still for screenshots (no transitions), &selftest to run the checks. */
 $("#brand-title").textContent = D.title || "Vault";
 /* The initiative's ID is a tag, not a name: it rides in the tooltip, and the line under the title says what date the plan is read at. */
 $("#brand-sub").textContent = `Plan as of ${day(D.today)}`;
