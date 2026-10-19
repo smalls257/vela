@@ -53,3 +53,5 @@ a.dmenu-item { text-decoration: none; }
 }
 /* a flow's diagram keeps room for its canvas: the bar, then at least what the stage needs */
 .dia:has(> .stage) { flex: 1 0 auto; }
+.dia-notes p { margin: 0 0 6px; }
+.dia-notes p:last-child { margin-bottom: 0; }

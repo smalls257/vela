@@ -94,6 +94,28 @@
     Search.type(""); Nav.home(); await tick();
   }
 
+  /* Finding 7: one number, "N need you", wherever the count is said; the 18 + 3 split is on hover, and the side's count of
+     all open questions says so. Finding 13: no banner or notes above the Home map; the notes are an "i" in its bar. */
+  async function oneNumber(ok) {
+    const n = Queue.needsYou().n, top = $("#masters .master.caution b");
+    Nav.home(); await tick();
+    const card = $(".q-card .q-count"), panelLede = $("#panel .p-lede");
+    Nav.open("apps"); go("lights", { reset: true }); App.root = "lights"; Panel.render(); await tick();
+    const lede = $("#panel .p-lede");
+    const words = [$("#main"), $("#panel"), $("#masters")].map((e) => e.textContent).join(" ");
+    ok(n > 0 && +top.textContent === n && card && card.textContent.startsWith(`${n} need you`) && lede && lede.textContent.startsWith(`${n} need you`) && /blocking work/.test(lede.title) && !/blocks? work|blocking work|other things? (isn|aren)/.test(words),
+      `need you: one number, ${n}, on the top bar, the waiting card and the panel, with its parts on hover`, `need you: top ${top && top.textContent}, card "${card && card.textContent}", panel "${lede && lede.textContent}", loose words ${(words.match(/\d+ questions? (block|are blocking)[^.]*/) || [""])[0]}`);
+    const side = $("#side .side-link[data-section='unknowns'] .side-n");
+    ok(!side || (/in all/.test(side.title) && side.title.includes(`${Queue.needsYou().n}`)), "need you: the sidebar's count says it is all open questions, and how many of the things need you", `need you: sidebar title "${side && side.title}"`);
+    Nav.home(); await tick();
+    const note = $("#main [aria-controls^='dmenu-notes']");
+    ok(!$("#main .q-kicker") && !$("#main .countline") && !!note && note.textContent === "i" && /\w/.test(note.title), "Home: no banner or note lines above the map; its notes are an i in the diagram bar, read on hover",
+      `Home: kicker ${!!$("#main .q-kicker")}, countline ${!!$("#main .countline")}, note button ${!!note}`);
+    note.click(); await tick();
+    ok(!document.getElementById(note.getAttribute("aria-controls")).hidden && $$(".dia-notes p").length >= 1, "Home: the i opens the notes in place", "Home: the i opened nothing");
+    Menus.close();
+  }
+
   /* A menu opened from a diagram bar or a page head is the topmost thing at its middle and its two ends, in every section
      and every map view, so no view's own layers (the matrix's frozen corner, a canvas) are ever drawn over it. */
   const GRID = [0.06, 0.3, 0.5, 0.7, 0.94].flatMap((x) => [0.06, 0.3, 0.5, 0.7, 0.94].map((y) => [x, y]));  // a corner of the frozen head sits over one part of a menu, not its middle
@@ -136,7 +158,7 @@
     const only = HASH.get("only") === "qol";
     const report = only ? ["head"] : await base(), lines = [], errors = window.__errors.length;
     const ok = (cond, good, bad) => { lines.push(cond ? "ok " + good : "FAIL " + (bad || good)); if (HASH.has("trace")) console.log("[selftest] " + lines[lines.length - 1]); };
-    try { if (!wide()) await compact(ok); else { await appPanel(ok); await searchRows(ok); } await menusOnTop(ok); } catch (e) { lines.push("FAIL the quality-of-life checks threw: " + e.message + " " + (e.stack || "").split("\n")[1]); }
+    try { if (!wide()) await compact(ok); else { await appPanel(ok); await searchRows(ok); await oneNumber(ok); } await menusOnTop(ok); } catch (e) { lines.push("FAIL the quality-of-life checks threw: " + e.message + " " + (e.stack || "").split("\n")[1]); }
     Nav.home(); go("lights", { reset: true });
     if (window.__errors.length > errors) lines.push("FAIL JS ERRORS in the quality-of-life checks: " + window.__errors.slice(errors).join(" | "));
     const body = report.slice(1).concat(lines), fails = body.filter((l) => l.startsWith("FAIL")).length;

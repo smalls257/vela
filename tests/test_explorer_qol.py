@@ -87,3 +87,10 @@ def test_search_is_one_row_per_thing_with_app_pills(chrome, heron):
     """Finding 5: no Claude row on a file, one row per thing, pills for the apps it touches, Enter lights those apps."""
     lines = selftest(chrome, heron, 1440)
     need(lines, 'search "digest":', "search: the", "shows the apps it touches as pills", "search: Enter on")
+
+
+@pytest.mark.browser
+def test_one_need_you_number_and_notes_in_an_i(chrome, heron):
+    """Findings 7 and 13: one "N need you" on the bar, the card and the panel (parts on hover); Home's notes are an i."""
+    lines = selftest(chrome, heron, 1440)
+    need(lines, "need you: one number", "need you: the sidebar's count", "Home: no banner or note lines above the map", "Home: the i opens the notes in place")

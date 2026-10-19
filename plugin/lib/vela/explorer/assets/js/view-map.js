@@ -104,7 +104,7 @@ const MapView = (() => {
     const stage = lens() === "matrix" ? h("div", { class: "matrix-stage" }, board) : null;
     KEY = lens() === "releases" ? null : Legend.open(keyName(mode), { root: () => $("#board"), probes: keyLooks(mode) });
     // The view, grouping, focus and layout controls ride on the diagram's own bar (menus.js), under the title and lede.
-    col.append(Menus.frame(diagramBar(), countLine(), stage || board));
+    col.append(Menus.frame(diagramBar(), stage || board));
     if (queued) { const width = main.clientWidth; main.append(h("div", { class: "home-wrap" }, h("div", { class: "home-stage" + (Queue.folded(width) ? " stacked" : "") }, Queue.card(width), col))); }
     if (!D.nodes.length) { board.append(emptyState("No apps yet.", "The map fills in once a session names them.", "/vela:boundary")); return; }
     if (lens() === "releases") { Releases.mapLens(board); return; }  // the releases drawing keeps its own key
@@ -153,12 +153,13 @@ const MapView = (() => {
   }
   function diagramBar() {
     const cockpit = lens() === "cockpit";
-    return { left: [Nav.viewMenu(), cockpit ? groupMenu() : null], right: [Menus.keyButton(KEY), focusButton(), Nav.moreMenu(moreItems)],
+    return { left: [Nav.viewMenu(), cockpit ? groupMenu() : null], right: [Menus.noteButton(mapNotes()), Menus.keyButton(KEY), focusButton(), Nav.moreMenu(moreItems)],
       say: [cockpit ? h("span", { class: "dia-hint" }, "Pick a contract or a flow to see its path.") : null, cockpit && !st.focus ? Layout.sayEl(group() === "none" ? "box" : "cluster") : null] };
   }
 
-  /* ------------------------------------------------------------ the count line */
-  function countLine() {
+  /* ------------------------------------------------------------ the notes */
+  /* What the diagram has to say about itself, as sentences for the "i" in its bar (they once sat above it and pushed it down). */
+  function mapNotes() {
     const apps = D.map.apps.length, litApps = D.map.apps.filter((a) => levelOf(a.key) !== "dark").length;
     const cons = D.map.contracts.length, litCons = D.map.contracts.filter((c) => levelOf(c.id) !== "dark").length;
     const quiet = D.map.parties.filter((p) => !NODE[p.key]).length;
@@ -173,9 +174,7 @@ const MapView = (() => {
       : litApps === apps && litCons === cons ? "Nothing is decided yet on any app or contract."
       : !litApps && !litCons ? "Every app and contract is decided."
       : `${apps - litApps} of ${plural(apps, "app")} and ${cons - litCons} of ${plural(cons, "contract")} are decided.`;
-    if (!settled && !notes.length) return h("div", { class: "countline", hidden: true });
-    return h("div", { class: "countline", title: [settled, notes.join(". ")].filter(Boolean).join(" ") }, settled ? h("b", {}, settled) : null, settled && notes.length ? " " : null,
-      notes.length ? h("span", { class: "hidden-note" }, notes.join(". ") + ".") : null);
+    return [settled, ...notes.map((t) => t + ".")].filter(Boolean);
   }
 
   /* ------------------------------------------------------------ cockpit */

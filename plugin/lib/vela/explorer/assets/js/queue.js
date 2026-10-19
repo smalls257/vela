@@ -112,7 +112,7 @@ const Queue = (() => {
     const list = items().filter((x) => NEEDS.includes(x.level)), first = list[0];
     if (!first) return otherLit().length ? "No question is blocking work." : "Nothing is waiting on an answer";
     const due = isDate(first.askBy) ? `The first is due ${day(first.askBy)}: ${first.title}.` : `The most urgent: ${first.title}.`;
-    return `${plural(list.length, "question")} ${list.length === 1 ? "blocks" : "block"} work. ${due}`;
+    return `${needsYou().n} need you. ${due}`;  // the one number, the top bar's; what it is made of is on hover
   }
   const total = () => needsYou().n;
 
@@ -161,7 +161,7 @@ const Queue = (() => {
     const list = items(), fold = folded(width);
     const say1 = startWith();
     const el = h("section", { class: "q-card" + (fold ? "" : " open"), "aria-label": "What is waiting on an answer" },
-      h("div", { class: "q-head" }, h("span", { class: "q-kicker" }, "Waiting on an answer"), h("span", { class: "q-count", ...(needsYou().questions ? { "data-quantity": "needsYou.questions", "data-n": needsYou().questions } : {}) }, say1),
+      h("div", { class: "q-head" }, h("span", { class: "q-count", title: needsYouParts(), ...(needsYou().n ? { "data-quantity": "needsYou", "data-n": needsYou().n } : {}) }, say1),
         h("button", { class: "q-fold", "aria-expanded": String(!fold), title: "Hide the list so the map gets the full width", onclick: (ev) => {
           const open = !el.classList.contains("open");
           if (width >= NARROW) { Settings.write(FOLD_KEY, open ? "0" : "1"); rerender(); return; }  // the map refits to the room the fold gave or took

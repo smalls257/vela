@@ -119,9 +119,9 @@ const Menus = (() => {
 
   /* A button that opens a small panel of its own content (the Key). It is one of the bar's popups like a menu is: only one
      is open at a time, Escape and a click outside close it, and it stays inside the diagram's width. */
-  function popover({ id, label, text, content, align = "right" }) {
+  function popover({ id, label, text, content, align = "right", title }) {
     const uid = `dmenu-${id}-${++seq}`;
-    const btn = h("button", { class: "dmenu-btn icon", type: "button", id: uid + "-btn", "aria-haspopup": "dialog", "aria-expanded": "false", "aria-controls": uid, "aria-label": label, title: label }, text);
+    const btn = h("button", { class: "dmenu-btn icon", type: "button", id: uid + "-btn", "aria-haspopup": "dialog", "aria-expanded": "false", "aria-controls": uid, "aria-label": label, title: title || label }, text);
     const pop = h("div", { class: "dmenu-pop wide " + align, id: uid, role: "dialog", "aria-label": label, hidden: true }, content);
     const root = h("div", { class: "dmenu", "data-dmenu": id }, btn, pop);
     function place() {
@@ -150,6 +150,14 @@ const Menus = (() => {
     return popover({ id: "key", label: "Key: what the colors and shapes mean", text: "?", content: host });
   }
 
+  /* An "i" in the bar for the notes a diagram carries ("Clients and Zoom aren't on the map because..."): read on hover or
+     click, so they do not push the diagram down. No notes, no button. */
+  function noteButton(lines) {
+    const notes = (lines || []).filter(Boolean);
+    if (!notes.length) return null;
+    return popover({ id: "notes", label: "Notes on this diagram", text: "i", title: notes.join(" "), content: h("div", { class: "dmenu-node dia-notes" }, notes.map((t) => h("p", {}, t))) });
+  }
+
   /* The bar over a diagram: menus on its left, the diagram's own buttons on its right, and a line of what to do between. */
   function frame({ left = [], right = [], say = [], barClass = "" }, ...kids) {
     const clean = (x) => x.filter(Boolean);
@@ -157,5 +165,5 @@ const Menus = (() => {
       h("div", { class: "dia-bar" + (barClass ? " " + barClass : "") }, h("div", { class: "dia-l" }, ...clean(left)), h("div", { class: "dia-mid" }, ...clean(say)), h("div", { class: "dia-r" }, ...clean(right))),
       ...clean(kids));
   }
-  return { menu, popover, keyButton, frame, icon, close: () => closeNow(false), get isOpen() { return !!openNow; } };
+  return { menu, popover, keyButton, noteButton, frame, icon, close: () => closeNow(false), get isOpen() { return !!openNow; } };
 })();
