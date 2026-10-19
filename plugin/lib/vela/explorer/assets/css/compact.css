@@ -1,0 +1,17 @@
+/* A narrow window: the menu and the panel slide over the diagram. After nav.css and panel.css, whose #side and #panel rules it overrides. */
+/* Under 1000 px three columns leave the diagram a sliver (160 + 270 of 800 px went to the side columns), so the left
+   menu and the right panel leave the grid and slide over the diagram instead (panelsize.js decides which is open; it
+   starts with both closed, a pick opens the panel, a section pick closes the menu again). 360 px is the floor. */
+@media (max-width: 999px) {
+  body { grid-template-columns: minmax(0, 1fr); grid-template-areas: "top" "built" "note" "main"; }
+  #side, #panel { position: fixed; top: var(--top-h, 58px); bottom: 0; z-index: 25; box-shadow: 0 0 32px 4px var(--shade); }
+  #side { left: 0; width: min(300px, 86vw); border-right: 1px solid var(--rule-3); }
+  #panel { right: 0; width: min(400px, 94vw); border-left: 1px solid var(--rule-3); }
+  #panel-grip, #side-grip { display: none; }
+  .search { min-width: 120px; }
+}
+@media (max-width: 700px) {
+  .top { flex-wrap: wrap; height: auto; padding: 8px 12px; gap: 8px; }
+  .search { min-width: 0; flex-basis: 100%; order: 5; }
+  .inside-crumbs { flex-wrap: wrap; }
+}

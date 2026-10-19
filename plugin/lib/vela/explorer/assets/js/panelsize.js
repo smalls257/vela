@@ -11,7 +11,14 @@
    that opens in the panel brings it back too (go() calls reveal). "]" toggles it.
    The sections bar: the top bar's menu button hides and shows it (that button is always on screen, so it needs no
    tab). "[" toggles it. Its hidden state keeps the key and the true/false the sidebar always stored, so a reader's
-   choice from before survives. */
+   choice from before survives.
+
+   Under COMPACT_BELOW the page has no room for three columns, so both columns leave the grid and become slide-overs on
+   top of the diagram. In that mode "hidden" is not the reader's saved choice but whether the slide-over is open: it
+   starts closed, a pick opens the panel, a section pick closes the bar again, Esc closes either, and nothing is
+   written to storage, so the choice made on a wide window is still there when the window grows back. */
+const COMPACT_BELOW = 1000;
+const isCompact = () => innerWidth < COMPACT_BELOW;
 function EdgeSize(spec) {
   const { el, grip, hideBtn, tab, hiddenKey, widthKey, cssVar, hiddenClass, dragClass, min, maxShare, edge, key, on = "1", off = "0" } = spec;
   const STEP = 24, SETTLE_MS = 90;
@@ -19,7 +26,8 @@ function EdgeSize(spec) {
   const max = () => Math.max(min, Math.floor(innerWidth * maxShare));
   const clamp = (w) => Math.min(max(), Math.max(min, Math.round(w)));
   const saved = Number(Settings.read(widthKey));
-  const st = { hidden: Settings.read(hiddenKey) === on, want: Number.isFinite(saved) && saved > 0 ? saved : null, drag: null };
+  const st = { hidden: Settings.read(hiddenKey) === on, open: false, want: Number.isFinite(saved) && saved > 0 ? saved : null, drag: null };
+  const hiddenNow = () => (isCompact() ? !st.open : st.hidden);
   let settleTimer = 0;
   /* Which way a pointer or an arrow key grows the column: the panel's handle is on its left, the bar's on its right. */
   const grows = edge === "left" ? "ArrowLeft" : "ArrowRight", shrinks = edge === "left" ? "ArrowRight" : "ArrowLeft";
@@ -29,24 +37,27 @@ function EdgeSize(spec) {
   function refit() { clearTimeout(settleTimer); settleTimer = 0; dispatchEvent(new Event("resize")); }
   function refitSoon() { clearTimeout(settleTimer); settleTimer = setTimeout(refit, SETTLE_MS); }
 
-  function width() { return st.hidden ? 0 : Math.round(el.getBoundingClientRect().width); }
+  function width() { return hiddenNow() ? 0 : Math.round(el.getBoundingClientRect().width); }
   function paint() {
-    document.body.classList.toggle(hiddenClass, st.hidden);
+    const hidden = hiddenNow();
+    document.body.classList.toggle(hiddenClass, hidden);
+    document.body.classList.toggle("compact", isCompact());
+    root.style.setProperty("--top-h", (($(".top") || { offsetHeight: 58 }).offsetHeight || 58) + "px");
     // no inline width means the stylesheet's own default for this window, so a reset is just removing the property
     if (st.want === null) root.style.removeProperty(cssVar); else root.style.setProperty(cssVar, clamp(st.want) + "px");
-    hideBtn.setAttribute("aria-expanded", String(!st.hidden));
-    if (tab) tab.hidden = !st.hidden;
-    grip.hidden = st.hidden;
-    if (st.hidden) return;
+    hideBtn.setAttribute("aria-expanded", String(!hidden));
+    if (tab) tab.hidden = !hidden;
+    grip.hidden = hidden || isCompact();
+    if (hidden) return;
     const now = width();
     grip.setAttribute("aria-valuemin", String(min)); grip.setAttribute("aria-valuemax", String(max())); grip.setAttribute("aria-valuenow", String(now));
     grip.setAttribute("aria-valuetext", `${now} pixels wide`);
   }
 
   function hide(hidden, opts = {}) {
-    if (st.hidden === hidden) return;
+    if (hiddenNow() === hidden) return;
     const hadFocus = el.contains(document.activeElement) || grip === document.activeElement;
-    st.hidden = hidden; Settings.write(hiddenKey, hidden ? on : off);
+    if (isCompact()) st.open = !hidden; else { st.hidden = hidden; Settings.write(hiddenKey, hidden ? on : off); }
     paint();
     if (hidden && hadFocus) (tab || hideBtn).focus();
     else if (!hidden && opts.focus) hideBtn.focus();
@@ -92,11 +103,19 @@ function EdgeSize(spec) {
     if (ev.key !== key || ev.metaKey || ev.ctrlKey || ev.altKey || ev.defaultPrevented) return;
     if (ev.target.closest && ev.target.closest("input,textarea,select,.strip")) return;
     if (!$("#overlay").hidden) return;
-    ev.preventDefault(); hide(!st.hidden);
+    ev.preventDefault(); hide(!hiddenNow());
+  });
+  /* A slide-over closes on Esc when focus is in it or nowhere in particular; a menu or a field that wants Esc has it first. */
+  document.addEventListener("keydown", (ev) => {
+    if (ev.key !== "Escape" || ev.defaultPrevented || !isCompact() || hiddenNow()) return;
+    const at = document.activeElement;
+    if (at && at !== document.body && !el.contains(at)) return;
+    if (!$("#overlay").hidden) return;
+    hide(true);
   });
   addEventListener("resize", paint);
   paint();
-  return { get hidden() { return st.hidden; }, get wanted() { return st.want; }, width, hide, setWidth, refit, MIN: min, max, STEP, paint };
+  return { get hidden() { return hiddenNow(); }, get wanted() { return st.want; }, width, hide, setWidth, refit, MIN: min, max, STEP, paint };
 }
 
 const PanelSize = (() => {
@@ -115,5 +134,7 @@ const SideSize = (() => {
   const edge = EdgeSize({ el: $("#side"), grip: $("#side-grip"), hideBtn, hiddenKey: "explorer.side", widthKey: "explorer.side.width",
     cssVar: "--side-w", hiddenClass: "side-hidden", dragClass: "side-dragging", min: 150, maxShare: 0.34, edge: "right", key: "[", on: "true", off: "false" });
   hideBtn.addEventListener("click", () => edge.hide(!edge.hidden));
+  /* A slide-over bar closes once a section is chosen, so the diagram it opened is what shows. */
+  $("#side").addEventListener("click", (ev) => { if (isCompact() && ev.target.closest(".side-link, .side-kid, .side-home, .side-roles button")) edge.hide(true); });
   return edge;
 })();

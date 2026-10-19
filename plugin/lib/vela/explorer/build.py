@@ -54,8 +54,8 @@ class ExplorerError(Exception):
 JS_MODULES = ("core", "theme", "fx", "menus", "assets", "icons", "layout", "pan", "geometry", "search", "minimap", "reader", "queue", "panel", "panelsize", "motion", "view-map",
               "wires", "mapgroups", "releases", "slices", "flowkit", "flowpicker", "branches", "view-flows", "rehearse", "view-asks", "view-decisions", "view-progress",
               "view-trace", "sections", "roles", "nav", "markdown", "ask", "inside", "plan", "drafts", "freshness", "main")
-SELFTEST_MODULES = ("selftest", "selftest-branches")  # 120 KB of checks: bundled only when asked (`vela explore --selftest`), not shipped to every reader
-CSS_MODULES = ("base", "menus", "nav", "panel", "map", "queue", "flows", "rehearse", "asks", "decisions", "pages", "reader", "roles",
+SELFTEST_MODULES = ("selftest", "selftest-branches", "selftest-qol")  # 120 KB of checks: bundled only when asked (`vela explore --selftest`), not shipped to every reader
+CSS_MODULES = ("base", "menus", "nav", "panel", "compact", "map", "queue", "flows", "rehearse", "asks", "decisions", "pages", "reader", "roles",
                "releases", "slices", "branches", "ask", "inside", "plan", "pending", "drafts", "themes", "plain")
 
 # The themes the page offers, first the default. Each is a palette in assets/css/themes.css (Console is base.css's
