@@ -924,6 +924,7 @@ def test_a_yes_counts_for_the_decision_filed_after_the_why_and_is_used_up(tmp_pa
     run = probe.ProbeRun.__new__(probe.ProbeRun)
     run.vault, run.watch, run.item_seen, run.item_decisions, run.decisions = tmp_path / "vault", ["CAP-001.FR1"], {}, [], []
     run.seen, run.yes_pending, run.oracle = probe.decided_lines(run.vault), False, ""
+    run.design_choices, run.design_seen = [], probe.design_choice_lines(run.vault)
     run.transcript = types.SimpleNamespace(turn=0, spoken=lambda: spoken)
     monkeypatch.setattr(probe.sim.Arm, "assistant_turn", lambda self, message, sid, cwd=None: (None, None))
 
