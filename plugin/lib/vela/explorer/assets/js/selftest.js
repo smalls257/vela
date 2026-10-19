@@ -1461,11 +1461,11 @@ const SelfTest = (() => {
         ok(/hasn't shared a design yet/.test(say) && say.includes("--design"), `inside ${name}, components: no design, so the chip says how to load one with --design`, `inside ${name}, components: no design and no chip ("${say.slice(0, 60)}")`);
         continue;
       }
-      if (d.summary && d.summary.text) {  // a summary-first design (/vela:design) opens its panel on the summary, then the walking skeleton
-        const body = h("div", {}, ...Inside.panel(Inside.designKey())), first = $(".p-body > *", body), skel = [...$$(".p-body *", body)].some((x) => x.textContent.trim() === "Walking skeleton");
+      if (d.summary && d.summary.text) {  // a summary-first design (/vela:design) opens its overview on the summary, then the walking skeleton
+        const body = h("div", {}, ...Inside.panel(`inside:${k}|sec|overview`)), first = $(".inside-tab-body .in-card > *", body), skel = [...$$(".inside-tab-body .in-card h3", body)].some((x) => x.textContent.trim() === "Walking skeleton");
         const wantSkel = !!(d.walking_skeleton && Object.keys(d.walking_skeleton.fields || {}).length);
-        ok(!!first && first.classList.contains("in-summary") && skel === wantSkel, `inside ${name}: the design panel opens on its summary${wantSkel ? ", with the walking skeleton below" : ""}`,
-          `inside ${name}: the design panel opens on ${first ? first.className : "nothing"}; walking skeleton shown ${skel}, wanted ${wantSkel}`);
+        ok(!!first && first.classList.contains("in-summary") && skel === wantSkel, `inside ${name}: the design's overview opens on its summary${wantSkel ? ", with the walking skeleton below" : ""}`,
+          `inside ${name}: the overview opens on ${first ? first.className : "nothing"}; walking skeleton shown ${skel}, wanted ${wantSkel}`);
       }
       const comps = $$("#inside-stage .in-box.component").length, stubs = $$("#inside-stage .in-stub").length, o = overlaps();
       ok(comps === d.components.length && stubs === d.stubs.length && !o.bad.length, `inside ${name}, components: ${comps} components and ${stubs} integration stubs, ${o.n} boxes and labels, no two overlap`,
@@ -1496,11 +1496,11 @@ const SelfTest = (() => {
         zoom[2].click();
         ok(+holder.dataset.scale >= 0.85, `inside ${name}, components: "Read" returns to reading size`, `inside ${name}, components: "Read" left the scale at ${holder.dataset.scale}`);
         delete Inside.st.zoom.components;
-        const toggle = $("#inside-stage .in-tabs-toggle"), beside = getComputedStyle($(".inside-l3")).gridTemplateColumns.split(" ").length > 1, area = (r) => r.width * r.height, wide = area($("#inside-draw").getBoundingClientRect());
-        toggle.click();
-        const hidden = $(".inside-l3").classList.contains("tabs-hidden") && !$(".inside-side").offsetParent, wider = area($("#inside-draw").getBoundingClientRect());
-        toggle.click();
-        ok(hidden && (wider > wide || !beside), `inside ${name}: the tabs fold away (drawing ${Math.round(wide / 1000)} to ${Math.round(wider / 1000)} k px squared) and come back`, `inside ${name}: tabs toggle: hidden ${hidden}, area ${Math.round(wide)} to ${Math.round(wider)}`);
+        const area = (r) => r.width * r.height, wide = area($("#inside-draw").getBoundingClientRect()), full = $("#inside-full");
+        full.click();
+        const filled = $("#main").classList.contains("inside-full") && getComputedStyle($("#panel")).display === "none", wider = area($("#inside-draw").getBoundingClientRect());
+        full.click();
+        ok(filled && wider > wide, `inside ${name}: full screen gives the drawing the room (${Math.round(wide / 1000)} to ${Math.round(wider / 1000)} k px squared) and comes back`, `inside ${name}: full screen: panel gone ${filled}, area ${Math.round(wide)} to ${Math.round(wider)}`);
       }
       const chip = $("#main .d-problems");
       ok(!!chip && +chip.dataset.problems === d.problems.length, `inside ${name}: the problems chip says ${d.problems.length}, the reader's count, never hidden`, `inside ${name}: problems chip ${chip ? chip.dataset.problems : "missing"}, wanted ${d.problems.length}`);
@@ -1508,27 +1508,26 @@ const SelfTest = (() => {
       const items = $$("#panel ol.in-problems li"), byLine = d.problems.slice().sort((p, q) => (p.line || 1e9) - (q.line || 1e9));
       ok(items.length === d.problems.length && items.every((li, i) => li.textContent.includes(byLine[i].message)), `inside ${name}: the chip opens ${plural(items.length, "problem")} in the panel, by line`, `inside ${name}: the panel lists ${items.length} of ${d.problems.length}`);
       const empty = [];
-      for (const [t] of Inside.TABS) { Inside.st.tab = t; rerender(); const body = $("#inside-stage .inside-tab-body"); if (!body || !body.children.length || nulls(body)) empty.push(t); }
-      ok(!empty.length, `inside ${name}: every section beside the drawing renders (${Inside.TABS.length} tabs)`, `inside ${name}: empty or "null" in ${empty.join(", ")}`);
-      Inside.st.tab = "data"; rerender();
-      if (d.data_model.parsed_from === "erDiagram") ok($$("#inside-stage .in-entity-box").length === d.data_model.entities.length, `inside ${name}: the data model drawn from its erDiagram, ${d.data_model.entities.length} entities and ${d.data_model.relationships.length} relationships`, "the data model's entities are not all drawn");
+      for (const [t] of Inside.TABS) { go(`inside:${k}|sec|${t}`, { reset: true }); const body = $("#panel .inside-tab-body"); if (!body || !body.children.length || nulls(body)) empty.push(t); }
+      ok(!empty.length, `inside ${name}: every section of the design reads in the panel (${Inside.TABS.length} sections)`, `inside ${name}: empty or "null" in ${empty.join(", ")}`);
+      go(`inside:${k}|sec|data`, { reset: true });
+      if (d.data_model.parsed_from === "erDiagram") ok($$("#panel .in-entity-box").length === d.data_model.entities.length, `inside ${name}: the data model drawn from its erDiagram, ${d.data_model.entities.length} entities and ${d.data_model.relationships.length} relationships`, "the data model's entities are not all drawn");
       if (d.data_model.parsed_from === "erDiagram") {  // opens at reading size on the main entity; "Whole" puts every entity in view
-        const er = $("#inside-stage .in-er"), buttons = $$("#inside-stage .in-er-wrap .in-zoom button"), within = (g, box) => { const r = g.getBoundingClientRect(); return r.left >= box.left - 1 && r.right <= box.right + 1 && r.top >= box.top - 1 && r.bottom <= box.bottom + 1; };
-        const here = $$("#inside-stage .in-entity-box").filter((g) => within(g, er.getBoundingClientRect())), mini = $("#inside-stage .in-er-wrap .in-mini");
+        const er = $("#panel .in-er"), buttons = $$("#panel .in-er-wrap .in-zoom button"), within = (g, box) => { const r = g.getBoundingClientRect(); return r.left >= box.left - 1 && r.right <= box.right + 1 && r.top >= box.top - 1 && r.bottom <= box.bottom + 1; };
+        const here = $$("#panel .in-entity-box").filter((g) => within(g, er.getBoundingClientRect())), mini = $("#panel .in-er-wrap .in-mini");
         const drawn = $("svg", er).getBoundingClientRect(), room = er.getBoundingClientRect(), spills = drawn.width > room.width + 1 || drawn.height > room.height + 1;
         ok(+er.dataset.scale >= 0.85 && here.length > 0 && (!spills || (mini && !mini.hidden)), `inside ${name}: the data model opens at reading size (${er.dataset.scale}), ${here.length} of ${d.data_model.entities.length} entities in view${spills ? ", the whole in the minimap" : ""}`,
           `inside ${name}: the data model opens at ${er.dataset.scale} with ${here.length} entities in view, minimap ${mini ? (mini.hidden ? "hidden" : "shown") : "missing"}`);
         buttons[1].click();
-        const out = $$("#inside-stage .in-entity-box").filter((g) => !within(g, er.getBoundingClientRect()));
+        const out = $$("#panel .in-entity-box").filter((g) => !within(g, er.getBoundingClientRect()));
         ok(!out.length, `inside ${name}: "Whole" puts all ${d.data_model.entities.length} entities in view`, `inside ${name}: ${out.length} entities outside the data model's frame after "Whole": ${out.map((g) => g.dataset.entity).join(", ")}`);
         delete Inside.st.zoom.er;
       }
-      Inside.st.tab = "trace"; rerender();
       const owner = d.components.find((x) => (d.trace[x.name] || []).length);
       if (owner) {
         go(`inside:${k}|c|${encodeURIComponent(owner.name)}`, { reset: true });
-        const ids = $$("#panel .p-sec ul.mini-list .in-id").length;
-        ok(ids === d.trace[owner.name].length && (d.trace_source !== "inferred" || !!$("#panel .heuristic")), `inside ${name}: ${owner.name}'s panel lists the ${ids} vault IDs it owns, each with where it was found${d.trace_source === "inferred" ? ", marked inferred" : ""}`, `component panel lists ${ids} of ${d.trace[owner.name].length}`);
+        const names = $$("#panel .comp-sec details.in-raw .ref-chip").length;
+        ok(names === d.trace[owner.name].length && (d.trace_source !== "inferred" || !!$("#panel .heuristic")), `inside ${name}: ${owner.name}'s panel lists the ${names} plan items it delivers, by name${d.trace_source === "inferred" ? ", marked guessed" : ""}`, `component panel lists ${names} of ${d.trace[owner.name].length}`);
       }
     }
     // the vault and the design, both ways: owned, acknowledged and missed, each on the vault item's own panel
@@ -2318,8 +2317,8 @@ const VoiceGate = (() => {
       list.push({ name: `inside ${name}, containers`, root: "#inside-stage", show: () => Inside.open(k, "containers") });
       if (d) {
         list.push({ name: `inside ${name}, components`, root: "#inside-stage", show: () => Inside.open(k, "components", { tab: "trace" }) });
-        list.push({ name: `inside ${name}, data model`, root: "#inside-stage", show: () => Inside.open(k, "components", { tab: "data" }) });
-        list.push({ name: `inside ${name}, key flows`, root: "#inside-stage", show: () => Inside.open(k, "components", { tab: "flows" }) });
+        list.push({ name: `inside ${name}, data model`, root: "#panel", show: () => Inside.open(k, "components", { tab: "data" }) });
+        list.push({ name: `inside ${name}, key flows`, root: "#panel", show: () => Inside.open(k, "components", { tab: "flows" }) });
       }
       if (p) list.push({ name: `inside ${name}, build plan`, root: "#inside-stage", show: () => Inside.open(k, "plan") });
     }

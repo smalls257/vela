@@ -126,6 +126,13 @@ const PanelSize = (() => {
   tab.addEventListener("click", () => edge.hide(false, { focus: true }));
   /* Something was picked that shows in the panel: a hidden panel opens for it, and stays as the reader chose it. */
   edge.reveal = () => edge.hide(false);
+  /* Widen: the usual width and a wide one, remembered like a dragged width. A slide-over has one width, so it has no button. */
+  const widen = $("#panel-widen"), WIDE = 640;
+  const isWide = () => edge.wanted !== null && edge.wanted >= WIDE - 4;
+  const syncWiden = () => { widen.textContent = isWide() ? "Narrow" : "Widen"; widen.setAttribute("aria-pressed", String(isWide())); widen.hidden = isCompact(); };
+  widen.addEventListener("click", () => { edge.setWidth(isWide() ? null : WIDE, { now: true }); syncWiden(); });
+  addEventListener("resize", syncWiden);
+  syncWiden();
   return edge;
 })();
 

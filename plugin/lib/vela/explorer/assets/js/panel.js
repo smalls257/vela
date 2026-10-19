@@ -35,24 +35,30 @@ const Panel = (() => {
     return box;
   }
 
+  /* What a key shows in the panel, as nodes: the one place that knows how each kind of key is drawn, so the home panel
+     and a page's own Details panel (detailspanel.js) draw a vault page, a note, a bundle or an inside key alike. */
+  function keyNodes(key) {
+    if (key.startsWith("read:")) return reading(key);
+    if (key.startsWith("node:")) return Nodes.panel(key);
+    if (key.startsWith("bundle:")) return bundle(key);
+    if (key.startsWith("inside:") && typeof Inside !== "undefined") return Inside.panel(key);
+    const e = ent(key);
+    if (!e) return [h("div", { class: "p-empty" }, `Nothing in the plan is called ${key}. Try the search box.`)];
+    return [head(e), h("div", { class: "p-body" }, ...detail(e))];
+  }
   function render() {
     const root = body();
     root.innerHTML = "";
     Queue.sync();
+    if (typeof DetailsPanel !== "undefined" && DetailsPanel.active()) { DetailsPanel.render(root); root.scrollTop = 0; return; }  // a page that brings its own Details
     const key = App.trail[App.trail.length - 1] || (App.root !== "lights" ? App.root : null);
     const tabs = homes();
     if (tabs) root.append(tabs);
     root.append(crumbs());
     if (App.view === "ask" && !key) root.append(h("p", { class: "p-note ask-hint" }, "A citation in the conversation opens here, so you can read the source beside it."));
     if (!key) { root.append(...home()); root.scrollTop = 0; return; }
-    if (key.startsWith("read:")) { root.append(...reading(key)); return; }
-    if (key.startsWith("node:")) { root.append(...Nodes.panel(key)); root.scrollTop = 0; return; }
-    if (key.startsWith("bundle:")) { root.append(...bundle(key)); return; }
-    if (key.startsWith("inside:") && typeof Inside !== "undefined") { root.append(...Inside.panel(key)); root.scrollTop = 0; return; }
-    const e = ent(key);
-    if (!e) { root.append(h("div", { class: "p-empty" }, `Nothing in the plan is called ${key}. Try the search box.`)); return; }
-    root.append(head(e), h("div", { class: "p-body" }, ...detail(e)));
-    root.scrollTop = 0;
+    root.append(...keyNodes(key));
+    if (!key.startsWith("read:") && !key.startsWith("bundle:")) root.scrollTop = 0;
   }
 
   /* ------------------------------------------------------------ home: what's waiting */
@@ -342,5 +348,7 @@ const Panel = (() => {
       h("p", { class: "p-lede" }, `${ids.length} contracts connect these apps, so the map draws them as one line.`)),
     h("div", { class: "p-body" }, h("ul", { class: "mini-list" }, ids.map((id) => contractRow(id, "out"))))];
   }
-  return { render, section };
+  /* What holds a page or app up, for a page's "What's waiting" tab: why it is lit, then the questions that block it. */
+  const waitingFor = (key) => [whyLit(key), heldBy(key)].filter(Boolean);
+  return { render, section, keyNodes, waitingFor, empty };
 })();
