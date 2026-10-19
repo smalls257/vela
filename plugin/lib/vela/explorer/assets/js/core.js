@@ -419,6 +419,7 @@ function showView(name, opts) {
   if (typeof Nav !== "undefined") Nav.adopt(App.view, opts);  // the sidebar entry follows the view
   if (!(opts && opts.keepHash) && typeof Nav !== "undefined") Nav.syncHash();
   rerender();
+  Panel.render();  // a page with its own Details (detailspanel.js) draws the panel for itself, not for the page that went
 }
 function rerender() {
   renderTabs();
@@ -465,6 +466,7 @@ function afterReveal(key, e) {
   if (e.kind === "flow" && typeof Flows !== "undefined") Flows.select(key, -1);
   const v = viewDef(App.view);
   if (v.highlight) v.highlight(key);
+  Panel.render();  // the page that came forward has its own Details, and the panel was drawn for the one that went
 }
 document.addEventListener("click", (ev) => {
   const a = ev.target.closest("[data-ref]");

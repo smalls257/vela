@@ -29,7 +29,8 @@ const Flows = (() => {
         const G = FlowKit.layout(f, { x: 0, y: 6, w: p.w - 8, h: p.h - 6, s: k });
         ctx.clearRect(0, 0, p.w, p.h);
         const tau = ((now - p.entered) / 1000) * st.speed, cur = p.cur === -1 ? f.steps.length : p.cur;
-        const hl = p.present ? null : App.focus ? [...new Set([...mapAnchors(App.focus), ...(CONTRACT[App.focus] ? [CONTRACT[App.focus].provider, ...CONTRACT[App.focus].consumers] : [])])] : null;
+        const pick = App.trail[App.trail.length - 1] || null;  // what the panel shows: back and Escape move it, so the glow follows it
+        const hl = p.present || !pick ? null : litBy(pick);
         // Plain: every message is drawn where it lands, nothing travels; the step timing still drives Play.
         p.hits = FlowKit.drawScene(ctx, G, { cur, tau: FX.on ? tau : 99, clock: now / 1000, D: TRAVEL, highlight: hl });
         if (p.playing && p.cur >= 0) {
@@ -66,11 +67,11 @@ const Flows = (() => {
     canvas.addEventListener("mouseleave", hideTip);
     canvas.addEventListener("click", (e) => {
       const t = hitAt(e);
-      if (!t) return;
-      if (t.type === "unknown" || t.type === "contract") { if (!p.present) go(t.id, {}); else opts.onPick && opts.onPick(t); }
+      if (!t) { if (!p.present) DetailsPanel.clear(); return; }  // empty space goes back to the flow's summary
+      if (t.type === "unknown" || t.type === "contract") { if (!p.present) DetailsPanel.show(t.id, { reset: true }); else opts.onPick && opts.onPick(t); }
       else if (t.type === "ref") { p.key = t.id; p.go(-1); opts.onFlow && opts.onFlow(p); }
-      else if (t.type === "lane") { if (!p.present) go(t.id, {}); }
-      else if (t.si !== undefined) { p.pause(); p.go(t.si); if (!p.present) go(stepNote(p.key, flow().steps[t.si]), { reset: true }); }
+      else if (t.type === "lane") { if (!p.present) DetailsPanel.show(t.id, { reset: true }); }
+      else if (t.si !== undefined) { p.pause(); p.go(t.si); if (!p.present) DetailsPanel.show(PlanDetails.stepKey(p.key, t.si), { reset: true }); }
     });
     requestAnimationFrame(p.frame);
     return p;
@@ -105,15 +106,9 @@ const Flows = (() => {
     const transport = h("footer", { class: "transport", id: "transport" });
     main.append(...[Branches.findings(st.key)].filter(Boolean), nodeList, caption, transport);
     key.paint();
-    player = makePlayer(canvas, { key: st.key, cur: st.cur, onStep: (p) => { st.cur = p.cur; paintCaption(); paintTransport(); Minimap.refresh(); }, onPlay: paintTransport,
+    player = makePlayer(canvas, { key: st.key, cur: st.cur, onStep: (p) => { st.cur = p.cur; paintCaption(); paintTransport(); followStep(p); Minimap.refresh(); }, onPlay: paintTransport,
       onFlow: (p) => select(p.key, -1) });
     paintCaption(); buildTransport(); paintTransport();
-  }
-  /* A flow step has no page of its own: its panel entry says what the step does and which contracts, apps and questions it touches. */
-  function stepNote(flowKey, stp) {
-    const ends = [...stepEnds(stp)].filter((k) => ent(k));
-    return Nodes.note({ diagram: `Flow ${E[flowKey].title}`, name: `Step ${stp.n}: ${stp.short}`, kind: "Flow step", text: stp.text || stp.short,
-      relates: [...new Set([...stp.contracts, ...ends, ...stp.unknowns.map((u) => u.id), ...stp.linked])].filter((k) => ent(k)) });
   }
   /* The canvas is pixels, so a keyboard cannot reach what is drawn on it. This list is the same nodes as buttons: every
      lane, step, contract and open question the canvas draws, each opening the panel as a click on the canvas does. */
@@ -177,7 +172,8 @@ const Flows = (() => {
     }
     const ends = stepEnds(stp), named = stp.named.filter((k) => !ends.has(k));
     if (named.length) facts.append(h("li", {}, h("i", { class: "lane-dot named" }), h("span", { class: "heuristic" }, "Also mentioned in the step: ", named.map((k) => refChip(k)))));
-    box.append(h("div", { class: "cap-where" }, h("span", {}, h("b", {}, `Step ${stp.n}`), ` of ${f.steps.length}`), h("span", { class: "muted" }, E[st.key].title)),
+    box.append(h("div", { class: "cap-where" }, h("span", {}, h("b", {}, `Step ${stp.n}`), ` of ${f.steps.length}`, " ",
+      h("button", { class: "linkish", type: "button", "data-step-details": "", onclick: () => DetailsPanel.show(PlanDetails.stepKey(st.key, st.cur), { reset: true }) }, "Details for this step")), h("span", { class: "muted" }, E[st.key].title)),
       h("div", { class: "cap-text", html: stp.html }), facts, ...[inferredLine()].filter(Boolean));  // native append prints a null as "null"
   }
   function buildTransport() {
@@ -217,6 +213,7 @@ const Flows = (() => {
     if (!FLOW[key]) return;
     const changed = key !== st.key;
     st.key = key; st.cur = step ?? -1;
+    if (App.trail.length === 1 && App.trail[0] === key) { App.trail = []; }  // arriving at a flow is its summary, not a pick
     if (App.view !== "flows") { showView("flows"); }
     else if (changed || !player || !player.canvas.isConnected) rerender();
     else { player.pause(); player.go(st.cur); }
@@ -305,7 +302,86 @@ const Flows = (() => {
     const f = FlowKit.flowOf(st.key);  // the branch shown, when one is picked
     return st.cur >= 0 ? [...stepEnds(f.steps[st.cur])] : flowStations(f);
   }
-  function highlight(key) { if (FLOW[key] && key !== st.key) select(key, -1); }
+  function highlight(key) { if (FLOW[key] && key !== st.key) select(key, -1); paintFocus(key); }
+  /* ------------------------------------------------------------ the Details panel (detailspanel.js) */
+  const flowOf = () => FlowKit.flowOf(st.key);
+  /* The lanes a pick lights on the canvas: a step's ends, a contract's two sides, what a question holds up. */
+  function litBy(key) {
+    if (PlanDetails.isStep(key)) { const s = flowOf().steps[PlanDetails.parseStep(key).i]; return s ? [...stepEnds(s)] : []; }
+    return [...new Set([...mapAnchors(key), ...PlanDetails.held(key).apps])];
+  }
+  /* The play head follows a picked step, and the scrub ticks of the steps a picked question or contract touches are marked. */
+  function paintFocus(key) {
+    if (App.view !== "flows") return;
+    if (key && PlanDetails.isStep(key)) { const i = PlanDetails.parseStep(key).i; if (player && player.cur !== i && flowOf().steps[i]) { player.pause(); player.go(i); } }
+    const contracts = key && UNKNOWN[key] ? PlanDetails.held(key).contracts : new Set(key && CONTRACT[key] ? [key] : []);
+    $$("#scrub .tick").forEach((t, i) => {
+      const s = flowOf().steps[i];
+      t.classList.toggle("held", !!key && !!s && !PlanDetails.isStep(key) && (s.unknowns.some((x) => x.id === key) || s.contracts.some((c) => contracts.has(c))));
+    });
+  }
+  /* A step picked in the panel, then the play head moved (arrow keys, scrub, Play): the panel follows to the new step. */
+  function followStep(p) {
+    const top = App.trail[App.trail.length - 1] || "";
+    if (!PlanDetails.isStep(top) || p.key !== st.key) return;
+    if (p.cur < 0) { DetailsPanel.clear(); return; }
+    const next = PlanDetails.stepKey(st.key, p.cur);
+    if (next !== top) DetailsPanel.show(next, { reset: true });
+  }
+  function flowSummary() {
+    const f = flowOf(), e = E[st.key];
+    const lanes = [...FlowKit.touchedLanes(f)].sort((a, b) => LANE_INDEX[a] - LANE_INDEX[b]).filter((k) => ent(k));
+    const contracts = [...new Set(f.steps.flatMap((x) => x.contracts))].filter((c) => CONTRACT[c]);
+    const ids = PlanDetails.relatedQuestions(st.key), way = Branches.say(st.key);
+    return [PlanDetails.head("Flow", e.title, statePill(e.state), h("span", { class: "pill" }, plural(f.steps.length, "step"))),
+      h("div", { class: "p-body" },
+        e.text ? PlanDetails.prose(shorten(e.text, 360)) : PlanDetails.quiet("Not recorded: the flow's page says nothing about what it is for."),
+        PlanDetails.sec("Who is in it", lanes.length || null, lanes.length ? PlanDetails.bullets(lanes.map((k) => PlanDetails.link(k))) : PlanDetails.quiet("Not recorded")),
+        PlanDetails.sec("The contracts it uses", contracts.length || null, contracts.length ? PlanDetails.bullets(contracts.map((c) => PlanDetails.link(c))) : PlanDetails.quiet("No step names a contract.")),
+        PlanDetails.sec("How it can go wrong", null, h("div", { class: "p-note" }, way || "Not recorded: the flow's page doesn't draw its error cases yet.")),
+        PlanDetails.sec("What's waiting on it", ids.length || null, ids.length ? ids.map(PlanDetails.questionRow) : PlanDetails.quiet("Nothing is waiting on it.")),
+        h("div", { class: "p-note" }, "Pick a step or a contract on the diagram to see just that one."), PlanDetails.aboutSection())];
+  }
+  /* One step: who sends, the contract and every way it can answer, the error branches, and what waits on it. */
+  function stepNodes(key) {
+    const p = PlanDetails.parseStep(key), f = FlowKit.flowOf(p.flow), s = f.steps[p.i];
+    if (!s) return [h("div", { class: "p-empty" }, "That step isn't in the flow shown any more. Pick it again.")];
+    const groups = [];
+    for (const m of s.messages) {
+      const g = groups.find((x) => x.contract === m.contract && x.from === m.from && x.kind === m.kind);
+      if (g) g.to.push(m.to); else groups.push({ ...m, to: [m.to] });
+    }
+    const senders = groups.map((m) => h("li", {}, h("i", { class: "lane-dot", style: `background:${FlowKit.laneColor(m.from)}` }), " ", PlanDetails.link(m.from), " to ", ...PlanDetails.joined(m.to.map((k) => PlanDetails.link(k))),
+      " over ", PlanDetails.link(m.contract), m.kind === "request" ? ", and the answer comes back." : ".", m.direction === "inferred" ? h("div", { class: "heuristic" }, "The page doesn't say who sends this; the contract's provider is shown.") : null));
+    if (!groups.length && s.self) senders.push(h("li", {}, "Inside ", PlanDetails.link(s.self), "; no other app is involved."));
+    const contracts = [...new Set(s.contracts)].filter((c) => CONTRACT[c]), branches = (D.branches || {})[p.flow];
+    const ways = (c) => {
+      const w = (D.contractAnswers || {})[c] || [];
+      return w.length ? h("ul", { class: "dp-ways" }, w.map((x) => h("li", { class: x.error ? "err" : "" }, h("b", {}, x.case), x.error ? h("span", { class: "pill" }, "error") : null, h("div", { class: "ml-sub" }, x.says || ""))))
+        : PlanDetails.quiet("Not recorded: no table of how it can answer.");
+    };
+    const wrong = contracts.flatMap((c) => (branches && branches.state === "drawn" ? branches.groups.filter((g) => g.item === c).flatMap((g) => g.options) : []));
+    const ids = PlanDetails.relatedQuestions(key);
+    return [PlanDetails.head(`Step ${s.n} of ${f.steps.length}`, s.short, h("span", { class: "pill" }, E[p.flow].title)),
+      h("div", { class: "p-body" },
+        PlanDetails.sec("Who sends", null, senders.length ? h("ul", { class: "mini-list" }, senders) : PlanDetails.quiet("Not recorded: the step names no sender.")),
+        PlanDetails.sec(contracts.length > 1 ? "The contracts it uses" : "The contract it uses", null, contracts.length
+          ? contracts.map((c) => h("div", { class: "dp-contract" }, h("div", {}, PlanDetails.link(c), CONTRACT[c].crosses ? h("div", { class: "muted crosses-line", html: "Carries: " + CONTRACT[c].crosses }) : null), h("div", { class: "gl" }, "Every way it can answer"), ways(c)))
+          : PlanDetails.quiet("This step uses no contract.")),
+        PlanDetails.sec("If it goes wrong", wrong.length || null, wrong.length ? h("ul", { class: "mini-list" }, wrong.map((o) => h("li", {}, h("b", {}, o.label), o.marks.length ? h("span", { class: "muted" }, ` (${o.marks.join(", ")})`) : null,
+          o.drawn ? [" ", h("button", { class: "btn tiny", type: "button", onclick: () => showBranch(p.flow, o.id) }, "Show it in the diagram")] : h("div", { class: "ml-sub" }, "Not drawn yet"))))
+          : PlanDetails.quiet("Not recorded: no error branch is drawn at this step.")),
+        PlanDetails.sec("What's waiting on it", ids.length || null, ids.length ? ids.map(PlanDetails.questionRow) : PlanDetails.quiet("Nothing is waiting on it.")))];
+  }
+  function showBranch(flow, id) { Branches.choose(flow, id); st.cur = -1; DetailsPanel.clear(); rerender(); }
+  DetailsPanel.register("flows", {
+    view: "flows", live: () => D.flows.length > 0 && !!st.key && !!FLOW[st.key],
+    rootLabel: () => (E[st.key] ? shorten(E[st.key].title, 26) : "The flow"), summary: flowSummary,
+    owns: (k) => PlanDetails.owns(k) || (k === st.key && !!FLOW[k]),
+    detail: (k) => (PlanDetails.isStep(k) ? stepNodes(k) : k === st.key && FLOW[k] ? flowSummary() : PlanDetails.detail(k, "flows")),
+    label: PlanDetails.label, open: (k) => PlanDetails.openFor(k, "flows"),
+    waiting: (k) => PlanDetails.waitingTab(k, "queue"), waitingCount: () => PlanDetails.waitingCount("queue"), focus: (k) => paintFocus(k),
+  });
   return { render, select, present, closePresent, here, highlight, st, player: () => player, presenter: () => presenter, saveClip };
 })();
 View("flows", { label: "Flows", title: "Each flow, played step by step across the apps", render: Flows.render, here: Flows.here, highlight: Flows.highlight,

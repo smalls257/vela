@@ -70,17 +70,18 @@ const Panel = (() => {
     const other = [...new Set(light.reasons.filter((r) => r.kind !== "held").map((r) => r.text))];
     return [held.size ? `${plural(held.size, "open question")} ${held.size === 1 ? "holds" : "hold"} it up` : null, other[0] || null].filter(Boolean).join("; ");
   }
-  function home() {
+  function home(opts = {}) {
     const lit = litSubjects(), dark = darkSubjects(), queue = Queue.items();
     const beside = App.section === "home" && App.view === "map";  // the queue is on the page, beside the map
     // Beside the map the queue card already says how many and what is due first, and the top bar's lamp carries the
     // count, so the lede only says where to start; saying the count again made the same 21 show four times on Home.
     const lede = !queue.length && !lit.length ? "Nothing is waiting. Every app, contract and flow is decided, and no open question is blocking any of them."
+      : opts.queue === false && !beside ? `${Queue.needsYou().n ? Queue.needsYou().n + " waiting. " : ""}${queue.length ? "Pick a box on the map to read it here, or a question under What's waiting." : "Pick a box on the map to read it here."}`
       : beside ? (queue.length ? "Start with the questions on the left, most urgent first. Pick one, or a box on the map, to read it here." : "Pick a box on the map to read it here.")
       : `${Queue.needsYou().n ? Queue.needsYou().n + " waiting. " : ""}${queue.length ? "Most urgent first; pick one to read it here." : ""}`.trim();  // the top bar's number; its parts are on hover
     const out = [h("div", { class: "p-head" }, h("h2", {}, "What's waiting"),
       lede ? h("p", { class: "p-lede", title: Queue.needsYou().n ? Queue.needsYouParts() : null, ...(!beside && Queue.needsYou().n ? { "data-quantity": "needsYou", "data-n": Queue.needsYou().n } : {}) }, lede) : null)];
-    if (!beside && queue.length) out.push(section("Waiting on an answer", null, Queue.block()));
+    if (!beside && queue.length && opts.queue !== false) out.push(section("Waiting on an answer", null, Queue.block()));
     // a slice is not on the map: one whose journey is past its due date is waiting too, and is listed under its own heading
     const lightRows = (list) => h("ul", { class: "lights" }, list.map(({ key, light }) => h("li", {},
       h("button", { class: "light-row" + (key === App.focus ? " on" : ""), "data-ref": key, title: `${LIGHT[light.level].word}${idOf(key) ? ", " + idOf(key) : ""}` },
@@ -350,5 +351,5 @@ const Panel = (() => {
   }
   /* What holds a page or app up, for a page's "What's waiting" tab: why it is lit, then the questions that block it. */
   const waitingFor = (key) => [whyLit(key), heldBy(key)].filter(Boolean);
-  return { render, section, keyNodes, waitingFor, empty };
+  return { render, section, keyNodes, waitingFor, empty, homeNodes: home };
 })();
