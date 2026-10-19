@@ -23,6 +23,8 @@ def run(ctx):
                                                      "reading only the folder they choose"),
                                ("@replay-lead", "thought", '"Yes, that is how Heron runs."'),
                                ("@replay-lead", "thought", WHY)):
+        if origin != "claude":
+            ctx.typed(words)
         code, out = ctx.vela("record", "add", "--origin", origin, "--tag", tag, words, "--json")
         numbers.append(json.loads(out)["number"])
     readback, yes, why = numbers

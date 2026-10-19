@@ -101,7 +101,7 @@ Close is a skill you may start, and only on the lead's word: any plain way of sa
 
 Capture each point with `vela record add --origin <who> --tag <tag> "<their words>"`; it numbers them. Leave the mark off until close, except in the modes that mark at once with `--mark`: a grill marks the deciding capture `→ keep: [[<page>#<heading>|<ID>]] (decided)` when it writes the item decided; a Discover marks each fact it writes `(fact)`; Boundary, Requirements, Allocate and Releases mark each line they write `(assumption)`. Close leaves a mark already written alone.
 
-- A person's words are quoted verbatim, with their name, role or handle as the origin.
+- A person's words are quoted verbatim, with their name, role or handle as the origin. `vela record add` checks them against what the person typed here and stops (exit 3) on words they didn't type: quote them, or record your own sentence with `--origin claude`. Where nothing can check (no hooks), the line is marked unverified and the lead is asked to confirm it by name before it counts (`vela record confirm <number>` after their yes).
 - Claude's own idea has origin `claude`, and close parks it by default.
 - When Claude restates what someone said, or the user accepts Claude's recommended answer, the origin is `claude, from <name>`. Close lists those lines under "promoted on a nod".
 

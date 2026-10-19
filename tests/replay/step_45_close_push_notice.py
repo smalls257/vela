@@ -11,6 +11,7 @@ def run(ctx):
     assert ctx.git("rev-parse", "HEAD") == head, "the send notice changed the repo"
     assert not ctx.git("ls-remote", "--heads", "origin", f"session/{ctx.record_id}").strip(), "sent before a yes"
     ctx.outputs["close push --for-lead (notice)"] = out
+    ctx.typed("Yes, send it for review.")
     code, number = ctx.vela("record", "add", "--origin", "@replay-lead", "--tag", "decision", "--mark",
                             "drop: the yes to send this for review", "Yes, send it for review.")
     ctx.outputs["push yes"] = number.strip()

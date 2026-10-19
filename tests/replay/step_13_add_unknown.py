@@ -9,6 +9,7 @@ ID = "UNK-029"  # the snapshot's highest is UNK-028, on main
 
 
 def run(ctx):
+    ctx.typed(QUESTION)
     code, out = ctx.vela("record", "add", "--origin", "@replay-lead", "--tag", "unknown", QUESTION, "--json")
     number = json.loads(out)["number"]
     code, said = ctx.vela("add", "unknown", "--today", ctx.today, "--name", "Pilot laptop sign-off",

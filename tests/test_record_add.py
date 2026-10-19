@@ -3,12 +3,19 @@ handed out again (two captures sharing `^c12` break every consent check that cit
 import json
 
 from conftest import run
+from vela.edge import saidlog
 from sharing import git, make_vault
 from test_session_cli import TODAY, no_gh, reader_copy, shim, start
 
 
 def add(vault, *args):
     return run("record", "add", "--vault", str(vault), *args)
+
+
+def typed(vault, *messages):
+    """What the person typed, as the UserPromptSubmit hook logs it."""
+    for message in messages:
+        saidlog.append(vault, "test-session", "2026-10-14T09:00:00Z", message)
 
 
 def record_of(vault):
@@ -25,6 +32,7 @@ def started(tmp_path, monkeypatch):
 
 def test_add_appends_numbered_lines_and_prints_the_number(tmp_path, monkeypatch):
     vault = started(tmp_path, monkeypatch)
+    typed(vault, "A shared calendar.")
     assert add(vault, "--origin", "@priya", "--tag", "idea", '"A shared calendar."') == (0, "^c01\n")
     code, output = add(vault, "--origin", "claude", "--tag", "worry", "The calendar may be private.", "--json")
     assert code == 0 and json.loads(output)["number"] == "^c02"
@@ -58,6 +66,7 @@ def test_a_number_only_git_remembers_is_not_reused(tmp_path, monkeypatch):
 def test_mark_written_at_once(tmp_path, monkeypatch):
     vault = started(tmp_path, monkeypatch)
     mark = "keep: [[shop-building-blocks#CON-001 Orders|CON-001]] (decided)"
+    typed(vault, "Yes.")
     assert add(vault, "--origin", "@priya", "--tag", "decision", '"Yes."', "--mark", mark)[0] == 0
     assert f'- [decision] (@priya) "Yes." → {mark} ^c01\n' in record_of(vault).read_text(encoding="utf-8")
 
@@ -80,6 +89,7 @@ def test_reader_copy_adds_without_git(tmp_path, monkeypatch):
     git_log = shim(tmp_path, monkeypatch, "git")
     no_gh(tmp_path, monkeypatch)
     assert start(copy, "--mode", "dump", "--topic", "consent")[0] == 0
+    typed(copy, "Hm.")
     assert add(copy, "--origin", "@reader", "--tag", "thought", '"Hm."') == (0, "^c01\n")
     assert not git_log.exists()
 
@@ -91,6 +101,7 @@ def test_no_origin_writes_the_leads_handle_so_the_consent_check_reads_their_yes(
     from vela.decisions import consent
     vault = started(tmp_path, monkeypatch)
     assert run("whoami", "--vault", str(vault), "--set", "Priya-K")[0] == 0
+    typed(vault, "Yes, send it.")
     assert add(vault, "--tag", "decision", '"Yes, send it."') == (0, "^c01\n")
     line = next(l for l in record_of(vault).read_text(encoding="utf-8").splitlines() if l.endswith("^c01"))
     assert line == '- [decision] (@Priya-K) "Yes, send it." ^c01'

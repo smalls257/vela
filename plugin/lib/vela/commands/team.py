@@ -22,7 +22,7 @@ team's files are still committed); 2 git failed; 3 a choice nobody has said yes 
 """
 import pathlib
 
-from vela import closegate, designchoice, guard, say
+from vela import closegate, designchoice, guard, said, say
 from vela.commands import record
 from vela.edge import stagegit, vaultgit
 
@@ -77,33 +77,49 @@ def head_text(root, rel):
 
 
 def person_yes_words(root, branch):
-    """The words of every capture a person made in this design's record (origin not claude's)."""
+    """(typed, unverified): the words of every capture a person made in this design's record (origin not claude's),
+    split by whether anything could check they typed them. Unverified words never back a choice on their own."""
     rel = record.design_record_path(branch)
     path = root / rel if rel else None
     if not path or not path.is_file():
-        return []
+        return [], []
     matches = (closegate.CAPTURE_RE.match(row) for row in path.read_text(encoding="utf-8").splitlines())
-    return [m.group("words") for m in matches if m and not m.group("origin").strip().lower().startswith("claude")]
+    people = [m for m in matches if m and not m.group("origin").strip().lower().startswith("claude")]
+    return ([m.group("words") for m in people if not said.is_unverified(m.group("origin"))],
+            [m.group("words") for m in people if said.is_unverified(m.group("origin"))])
 
 
 def unbacked_choices(root, branch, staged):
-    """The design choices these docs add that no person's capture names."""
+    """(unsaid, unconfirmed): the design choices these docs add that no typed person's capture names, split into those
+    nobody has answered and those only an unverified capture names (the lead confirms those by name)."""
     added = []
     for rel in staged:
         if rel.endswith(".md") and (root / rel).is_file():
             text = (root / rel).read_text(encoding="utf-8", errors="replace")
             added += designchoice.added_choices(rel, head_text(root, rel), text)
-    return designchoice.unbacked(added, person_yes_words(root, branch)) if added else []
+    if not added:
+        return [], []
+    typed, unverified = person_yes_words(root, branch)
+    open_choices = designchoice.unbacked(added, typed)
+    unsaid = designchoice.unbacked(open_choices, unverified)
+    return unsaid, [c for c in open_choices if c not in unsaid]
 
 
-def ask_for_yes(result, unsaid):
+def ask_for_yes(result, unsaid, unconfirmed=()):
     result.exit = say.NEEDS_LEAD
-    result.needs_lead = [{"ask": "design-yes", "choice": designchoice.plain_choice(c)} for c in unsaid]
+    result.needs_lead = ([{"ask": "design-yes", "choice": designchoice.plain_choice(c)} for c in unsaid]
+                         + [{"ask": "design-confirm", "choice": designchoice.plain_choice(c)} for c in unconfirmed])
     for c in unsaid:
         words = designchoice.plain_choice(c)
         result.lines.append(say.Line(
             f"vela team commit: not committed, no yes recorded for: {words}",
             f"This adds a choice nobody has said yes to: {words}. Ask, record the yes, then commit."))
+    for c in unconfirmed:
+        words = designchoice.plain_choice(c)
+        result.lines.append(say.Line(
+            f"vela team commit: not committed, the yes for '{words}' is unverified; ask the lead, then run "
+            "`vela record confirm <number>` and commit again",
+            f"I couldn't check that you said yes to: {words}. Did you?"))
     return result
 
 
@@ -127,9 +143,9 @@ def cmd_team_commit(args, out):
             refuse(result, "team-nothing", "None of the team's files changed, so there's nothing to save.",
                    "Write the section or the story into docs/ first.")
             return commands.emit(result, args, out)
-        unsaid = unbacked_choices(root, branch, plan.stage)
-        if unsaid:
-            return commands.emit(ask_for_yes(result, unsaid), args, out)
+        unsaid, unconfirmed = unbacked_choices(root, branch, plan.stage)
+        if unsaid or unconfirmed:
+            return commands.emit(ask_for_yes(result, unsaid, unconfirmed), args, out)
         message = f"design: {about}"
         stagegit.stage(root, list(plan.stage))
         commit = stagegit.commit(root, message, list(plan.stage))

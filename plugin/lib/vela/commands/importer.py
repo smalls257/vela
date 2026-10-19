@@ -217,6 +217,9 @@ def lead_yes(root, session, ref):
     if not capture.is_person:
         raise importqueue.QueueRefused(f"capture ^c{capture.n} is Claude's (origin {capture.origin!r}), not the lead's "
                                        "answer; ask the lead")
+    if capture.unverified:
+        raise importqueue.QueueRefused(f"capture ^c{capture.n} is unverified (nothing could check the lead typed it); "
+                                       "ask the lead, then run `vela record confirm`")
     if capture.is_bare_non_yes:
         raise importqueue.QueueRefused(f"capture ^c{capture.n} says only {capture.quote!r}; ask the lead which they mean")
     return f"^c{capture.n}"

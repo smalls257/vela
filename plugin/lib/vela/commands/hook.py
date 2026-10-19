@@ -1,4 +1,4 @@
-"""`vela hook session-start|bash|edit|post-edit`: what the plugin's hooks (`plugin/hooks/hooks.json`) run.
+"""`vela hook session-start|said|bash|edit|post-edit`: what the plugin's hooks (`plugin/hooks/hooks.json`) run.
 
 `bash` and `edit` are PreToolUse hooks: they print a `permissionDecision` (deny, or ask before a push or a pull
 request) with the reason in plain words. The verdicts come from `hookverdict.py`, which judges paths by `guard.py`, so
@@ -35,6 +35,9 @@ def register(sub):
     start = each.add_parser("session-start", help="leave .vela/hooks-active (session id and time) so the host probe "
                                                   "can see that hooks run here; reads the hook JSON on stdin")
     start.set_defaults(func=cmd_session_start)
+    said_hook = each.add_parser("said", help="UserPromptSubmit: append the person's message to .vela/said/ so `vela record "
+                                             "add` can check a capture is words they typed; reads the hook JSON on stdin")
+    said_hook.set_defaults(func=cmd_said)
     for name, func, said in (("bash", cmd_bash, "PreToolUse on Bash: deny staging by hand, ask before a push or a PR"),
                              ("edit", cmd_edit, "PreToolUse on Edit/Write: deny a hand-moved state or an edit inside "
                                                 "a generated block"),
@@ -80,6 +83,23 @@ def cmd_session_start(args, out):
         atomic.write_atomic(root / MARKER, json.dumps(marker) + "\n")
     except OSError as exc:
         warn(f"couldn't write {root / MARKER}: {exc}; the host probe will report hooks as not running")
+    return 0
+
+
+def cmd_said(args, out):
+    """UserPromptSubmit: log what the person typed. Prints nothing (UserPromptSubmit stdout reaches the model's
+    context), always exits 0, and leaves the log in `.vela/`, which is never staged."""
+    from vela.edge import saidlog, vaultgit
+    payload = read_payload(sys.stdin, "said")
+    root = marker_folder(payload)
+    prompt = payload.get("prompt")
+    if not isinstance(prompt, str) or not prompt.strip() or not is_vault(root):
+        return 0
+    name = str(payload.get("session_id") or "") or vaultgit.current_branch(root) or "session"
+    try:
+        saidlog.append(root, name, datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), prompt)
+    except OSError as exc:
+        warn(f"couldn't log the message under {root / saidlog.FOLDER}: {exc}; `vela record add` will mark yeses unverified", "said")
     return 0
 
 

@@ -18,6 +18,12 @@ checks compare a yes's origin with that handle, so a capture written without `--
 yes. When nobody knows the handle, nothing is written and the exit is 3 with whoami's question (ask once, then
 `vela whoami --set`): writing the line under a guessed or empty origin would be a yes no consent check can trust.
 
+A person's words are checked against what they typed (`vela/said.py`, the log `vela hook said` keeps in
+`.vela/said/`): words that are not an excerpt of one typed message are refused with exit 3 and nothing written, and
+`--origin claude` is the home of the model's own words. Where no log exists (a host whose hooks don't fire) nothing can
+be checked, so the capture is written with `, unverified` after its origin, and the close gate and `vela team commit`
+ask the lead to confirm it by name before it counts; `vela record confirm` takes the mark off once they have.
+
 Which record: `.vela/session.json` (written by `session start`) while it names an open record, else the one open
 record in the working tree's `sessions/`. Exit codes: 0 added (the number is printed); 1 no open record, or a line
 that would not parse; 2 the record or git failed; 3 several open records in this folder (pick with `--record`).
@@ -28,9 +34,9 @@ session file still hold every number this copy used.
 import datetime
 import pathlib
 
-from vela import commands, records, say, sessions
+from vela import closegate, commands, records, said, say, sessions
 from vela.commands import whoami
-from vela.edge import sessiongit
+from vela.edge import saidlog, sessiongit
 from vela.edge import vaultgit
 from vela.edge.vaultgit import GitUnavailable
 
@@ -40,7 +46,7 @@ NO_RECORD = "No session is open, so there's no record to add the note to."
 
 def register(sub):
     record = sub.add_parser("record", help="the open session record: add a capture, numbered so no number is reused")
-    verbs = record.add_subparsers(dest="record_command", metavar="{add}")
+    verbs = record.add_subparsers(dest="record_command", metavar="{add,confirm}")
     verbs.required = True
     adder = verbs.add_parser("add", help="append one capture line with the next ^cNN, and print the number")
     adder.add_argument("--vault", default=".", help="vault root or reader workspace (default: current directory)")
@@ -54,6 +60,12 @@ def register(sub):
     adder.add_argument("text", help="the words of the capture")
     say.add_output_flags(adder)
     adder.set_defaults(func=cmd_add)
+    confirm_parser = verbs.add_parser("confirm", help="take 'unverified' off a capture once the person says the words were theirs")
+    confirm_parser.add_argument("--vault", default=".", help="vault root or reader workspace (default: current directory)")
+    confirm_parser.add_argument("--record", default="", metavar="ID", help="the open record, when several are open")
+    confirm_parser.add_argument("number", help="the capture, as printed by record add (^c07 or 7)")
+    say.add_output_flags(confirm_parser)
+    confirm_parser.set_defaults(func=cmd_confirm)
 
 
 class Stop(Exception):
@@ -140,6 +152,7 @@ def add(root, args, reader):
     state = sessiongit.read_json(root, sessiongit.STATE_FILE)
     rel, record_id = open_record(root, state, args.record)
     origin, wrote = (args.origin.strip(), []) if args.origin.strip() else lead_origin(root)
+    origin, unverified = checked_origin(root, origin, args.text)
     path = root / rel
     text = path.read_text(encoding="utf-8")
     remembered = {int(state.get("last_capture") or 0)} if state and state.get("id") == record_id else set()
@@ -156,5 +169,56 @@ def add(root, args, reader):
     kept["last_capture"] = number
     wrote.append(sessiongit.write_state(root, kept))
     label = records.label(number)
-    return say.Result(NAME, wrote=wrote, data={"number": label, "line": line, "record": rel},
-                      lines=[say.Line(label, plain="Noted in the session record.")])
+    lines = [say.Line(label, plain="Noted in the session record.")]
+    if unverified:
+        lines.append(say.Line(UNVERIFIED_LINE))
+    return say.Result(NAME, wrote=wrote, data={"number": label, "line": line, "record": rel, "unverified": unverified},
+                      lines=lines)
+
+
+NOT_TYPED = "Those aren't words the person typed. Quote what they said, or record it as your own note."
+UNVERIFIED_LINE = "I couldn't check those words against what was typed here, so the note is marked unverified."
+
+
+def checked_origin(root, origin, words):
+    """(origin to write, whether it is unverified). A person's origin needs words they typed; Claude's own origin is
+    never checked. Stop (exit 3, nothing written) when a log exists and the words are not in it."""
+    if origin.strip().lower().startswith("claude"):
+        return origin, False
+    logs = saidlog.read_all(root)
+    if logs is None:
+        return said.mark_unverified(origin), True
+    if said.typed(words, said.messages(logs)):
+        return origin, False
+    raise Stop(say.Result(NAME, exit=say.NEEDS_LEAD, needs_lead=[{"ask": "quote", "words": words}],
+                          lines=[say.Line(NOT_TYPED)]))
+
+
+def cmd_confirm(args, out):
+    root = pathlib.Path(args.vault).resolve()
+    try:
+        result = confirm(root, args)
+    except Stop as stop:
+        result = stop.result
+    except (GitUnavailable, ValueError, OSError) as exc:
+        result = say.Result("record confirm", exit=say.FAILED, lines=[
+            say.Line(f"vela: {exc}", plain=f"I couldn't confirm the note: {exc}")])
+    return commands.emit(result, args, out)
+
+
+def confirm(root, args):
+    """Take `, unverified` off one capture. The lead's own say-so is the only reason to run this, so the skills ask
+    first; this changes the one line and nothing else."""
+    state = sessiongit.read_json(root, sessiongit.STATE_FILE)
+    rel, _ = open_record(root, state, args.record)
+    number = args.number.strip().lstrip("^c").lstrip("0") or "0"
+    lines = (root / rel).read_text(encoding="utf-8").split("\n")
+    for i, line in enumerate(lines):
+        found = closegate.CAPTURE_RE.match(line.strip())
+        if found and found["n"].lstrip("0") == number and said.is_unverified(found["origin"]):
+            lines[i] = line.replace(f"({found['origin']})", f"({said.confirmed(found['origin'])})", 1)
+            return say.Result("record confirm", wrote=[sessiongit.write_text(root, rel, "\n".join(lines))],
+                              lines=[say.Line(f"^c{found['n']} confirmed", plain="Marked as theirs.")])
+    raise Stop(say.Result("record confirm", exit=say.REFUSED, lines=[
+        say.Line(f"No unverified capture ^c{number} in this record; nothing changed.",
+                 plain="I couldn't find an unconfirmed note with that number, so nothing changed.")]))

@@ -30,6 +30,7 @@ The lead can go ahead without any of these (they may override any rule): each re
 an override citing their reason, which then goes on record and into the Consent block, never hidden.
 """
 from vela import closegate, say
+from vela.said import is_unverified
 from vela.decisions.schema import quote_hash
 
 GROUP_LIMIT = 7  # the most items one read-back may name for one yes
@@ -81,6 +82,11 @@ def from_the_lead(capture, handle):
                                                 "anyone else's. What's the short name after the @?",
                         "Ask the lead once, run vela whoami --set <handle>, capture their yes with --origin @<handle>, "
                         "then run vela close push --consent again.", override=NO_PUSH_OVERRIDE)
+    if is_unverified(capture.origin):
+        return _refusal("consent-unverified", "I couldn't check that you typed that yes, so I haven't sent anything. "
+                                              "Did you say yes to sending it?",
+                        f"^c{capture.n} is unverified (no log of what was typed). Ask the lead; on their yes run "
+                        "vela record confirm, then vela close push --consent again.", override=NO_PUSH_OVERRIDE)
     if same_handle(capture.origin, handle):
         return None
     return _refusal("consent-not-the-lead",
