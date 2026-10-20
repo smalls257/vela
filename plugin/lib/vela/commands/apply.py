@@ -108,8 +108,14 @@ def apply_file(path, root, args, out):
         return commands.emit(failed(f"couldn't read the other branches' numbers: {exc}",
                                     "I couldn't check which numbers other sessions hold, so I filed nothing."),
                              args, out)
-    result = file_decision(decision, path, root, vault, record, reader, (today, numbers))
+    result = file_decision(decision, path, root, vault, record, reader, (today, numbers, lead_of(root)))
     return commands.emit(result, args, out, say.Resolver(vault))
+
+
+def lead_of(root):
+    """(handle, display names) of the lead, from `vela whoami`'s files; None when no handle is kept."""
+    handle = sessiongit.read_handle(root)
+    return (handle, sessiongit.lead_names(root)) if handle else None
 
 
 def find_record(root):

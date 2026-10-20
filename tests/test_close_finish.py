@@ -230,3 +230,20 @@ def test_with_closed_keeps_the_body_and_quotes_the_summary():
     meta = parse.split_frontmatter(text)[0]
     assert meta["status"] == "closed" and meta["summary"] == 'Said "yes": to stock'
     assert text.split("---", 2)[2] == record_text().split("---", 2)[2]
+
+
+def test_close_tells_the_lead_which_yeses_wait_for_a_short_grill(tmp_path):
+    """E81: a yes in a session that can't decide is listed for the next grill; close says so, in words and no IDs."""
+    vault = session(tmp_path)
+    page = vault / STOCK
+    page.write_text(page.read_text(encoding="utf-8").replace("- **State:** fact", "- **State:** assumption", 1),
+                    encoding="utf-8")
+    record = vault / "sessions" / f"{RECORD}.md"
+    record.write_text(record.read_text(encoding="utf-8").replace(
+        "## Captures", f"## Ready to decide\n\n- CON-002: the lead said yes in {RECORD} (^c01)\n\n## Captures"),
+        encoding="utf-8")
+    assert run("render", "--vault", str(vault))[0] == 0
+    code, out = finish(vault, "--for-lead")
+    assert code == 0, out
+    assert "One item you said yes to is ready for a short grill: Stock level." in out
+    assert "CON-002" not in out
