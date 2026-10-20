@@ -83,8 +83,9 @@ def test_unknowns_are_written_by_the_command_and_roles_are_spelled_out():
     assert '"the data protection officer", not "DPO"' in unknowns
     assert "`resolve` decision through `vela apply`" in unknowns
     # an unsure lead gets a proposed role and date to confirm, never a filled-in one
-    assert "propose one of each and ask" in unknowns and "Write only what the lead agreed to or named." in unknowns
-    assert "leave `--ask` off" in unknowns and "not a deadline anyone agreed" in unknowns
+    assert "propose one of each and ask" in unknowns and "with the reason for the date" in unknowns
+    assert "File `--ask-by` only with that capture behind it" in unknowns and "it never picks one" in unknowns
+    assert "leave `--ask` off" in unknowns and "check-back date" not in unknowns and "two weeks out" not in unknowns
     # rule deletion: numbering, the E208 clash and the resolved-bullet grammar are the CLI's now
     for old in ("vela next-id UNK", "E208", "`**State:** resolved`", "`**Resolved in:**`", "no `**Ask by:**`"):
         assert old not in MODES, old

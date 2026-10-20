@@ -63,7 +63,7 @@ def digest(vault, *extra):
 # ------------------------------------------------------------------ the block
 
 def test_the_fixture_block_says_nothing_is_undisposed():
-    assert block(FIXTURE).splitlines()[1] == ("**Questions:** 57 owed, 0 undisposed, 1 asked, 1 open reviewer question, "
+    assert block(FIXTURE).splitlines()[3] == ("**Questions:** 57 owed, 0 undisposed, 1 asked, 1 open reviewer question, "
                                               "against catalog v1.")
     rows = [l for l in block(FIXTURE).splitlines() if l.startswith("| R-") or l.startswith("| Q-")]
     assert [r.split(" | ")[0:2] for r in rows] == [["| Q-FIN-02@INI-002", "asked"], ["| R-FIN-01", "open"]], \
@@ -72,8 +72,8 @@ def test_the_fixture_block_says_nothing_is_undisposed():
 
 def test_the_template_block_lists_the_twelve_initiative_questions():
     lines = block(REPO / "template").splitlines()
-    assert lines[1] == "**Questions:** 12 owed, 12 undisposed, against catalog v1."
-    assert lines[3] == "| Ref | Status | Area | How serious | About | Question |"
+    assert lines[3] == "**Questions:** 12 owed, 12 undisposed, against catalog v1."
+    assert lines[5] == "| Ref | Status | Area | How serious | About | Question |"
     assert len([l for l in lines if l.startswith("| Q-")]) == 12
 
 
@@ -184,13 +184,13 @@ def test_the_line_describes_the_table_under_it(ub):
     run("render", "--vault", str(ub))
     lines = block(ub).splitlines()
     shown = json.loads(run("questions", "--vault", str(ub), "--json")[1])
-    assert lines[1] == "**Questions:** 57 owed, 2 undisposed, 1 asked, 1 open reviewer question, against catalog v1."
+    assert lines[3] == "**Questions:** 57 owed, 2 undisposed, 1 asked, 1 open reviewer question, against catalog v1."
     assert len([l for l in lines if l.startswith("| Q-") or l.startswith("| R-")]) == \
         shown["undisposed"] + shown["asked"] + shown["reviewer_open"] == 4
 
 
 def test_the_line_is_unchanged_when_no_reviewer_question_is_open():
-    assert "reviewer" not in block(REPO / "template").splitlines()[1]
+    assert "reviewer" not in block(REPO / "template").splitlines()[3]
 
 
 def test_the_digest_never_drops_a_question(tmp_path):

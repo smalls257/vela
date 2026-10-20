@@ -12,7 +12,9 @@ authored: mixed
 
 Every capability this initiative changes. Each capability page holds what provides it today and after.
 
-<!-- generated:capability-map sha=769ed4de: do not edit, run vela render -->
+<!-- generated:capability-map sha=96a3fefb: do not edit, run vela render -->
+_Kept up to date by vela from the pages it reads._
+
 ```mermaid
 flowchart TB
   subgraph d_dispatch["Dispatch"]

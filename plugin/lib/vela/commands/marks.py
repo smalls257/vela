@@ -9,7 +9,8 @@ matter (at most three at a time) and fills the draft's judgment fields with the 
 `marks` apply kind (Task 15) writes the marks; this command writes no page and no record line.
 
 Nothing here asks for bookkeeping: the lead's handle is `.vela/handle` (else the capture's own handle), and ask-by
-dates come from the fixed rule in `markrules.ask_by`, said back so the lead can correct one.
+dates are never worked out here: the lead gives one or agrees the model's proposal, and `add unknown` files it
+with their capture.
 
 A re-run replaces the latest draft of each kind that hasn't been applied yet, so a stale draft never sits beside the
 fresh one for the model to pick by mistake; an applied draft is never touched.
@@ -42,7 +43,7 @@ def register(sub):
     parser = each.add_parser("plan", help="apply every default mark and draft the decision file; list the leftovers "
                                           "for the lead, most blocking first")
     parser.add_argument("--vault", default=".", help="vault root or reader workspace (default: current directory)")
-    parser.add_argument("--today", help="the date ask-by defaults count from, YYYY-MM-DD (default: today)")
+    parser.add_argument("--today", help="the date the draft is made for, YYYY-MM-DD (default: today)")
     say.add_output_flags(parser)
     parser.set_defaults(func=cmd_plan)
 
@@ -102,7 +103,7 @@ def context(root, vault, record, today):
     copies = frozenset(row.copy for page in vault.pages for row in ledger.rows(page))
     return markrules.Context(record_id=record.id, modes=tuple(modes) if isinstance(modes, (list, tuple)) else (modes,),
                              today=today, lead=("@" + handle.lstrip("@")) if handle else "",
-                             hard_dates=markrules.hard_dates(vault), open_items=markrules.open_items(vault),
+                             open_items=markrules.open_items(vault),
                              ledger_copies=copies, lead_names=frozenset(sessiongit.lead_names(root)))
 
 
@@ -180,8 +181,7 @@ def leftover_words(lo, resolver):
     words = resolver.plain(lo["words"]).strip().rstrip(".")
     recommend = lo.get("recommend") or {}
     if lo["rule"] == "claude-unknown":
-        by = f" for you to chase by {resolver.plain(recommend['ask_by'])}" if recommend.get("ask_by") else ""
-        return f"I raised '{words}' myself. I'd keep it as an open question{by}. Keep it, or drop it?"
+        return f"I raised '{words}' myself. I'd keep it as an open question. Keep it, or drop it?"
     if lo["rule"] == "lifted-line":
         return f"Someone else said '{words}'. I'd copy that onto its page word for word. Fine?"
     choices = " or ".join(lo.get("choices") or ())

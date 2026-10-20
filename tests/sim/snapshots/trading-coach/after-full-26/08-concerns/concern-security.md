@@ -19,5 +19,3 @@ Nobody has examined security for either app yet. Who may call Coach, and how a r
 
 | App | State | Why |
 |---|---|---|
-
-Not looked at yet: [[coach-building-blocks\|Coach]], [[tickertalk-building-blocks\|TickerTalk]].

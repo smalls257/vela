@@ -52,7 +52,7 @@ When two pages disagree, cite both and say which owns the value.
 
 ## Unanswered parts
 
-Each gets its own line, naming who to ask. `Not recorded:` when no page covers it (name the nearest page's owner), an open unknown covers it (its name, owner and ask-by date), a page puts it out of scope (say where), or it sits below the plan's level, such as stories (name the team whose tech design owns it). `Not decided:` when it asks "should we" and no `decided` item answers it (name the area; suggest a shape or a grill session).
+Each gets its own line, naming who to ask. `Not recorded:` when no page covers it (name the nearest page's owner), an open unknown covers it (its name, owner and ask-by date when it has one), a page puts it out of scope (say where), or it sits below the plan's level, such as stories (name the team whose tech design owns it). `Not decided:` when it asks "should we" and no `decided` item answers it (name the area; suggest a shape or a grill session).
 
 If the only match is a capture in `sessions/`: "Not recorded in the plan. It came up in the 12 October desks session but nobody has filed it."
 

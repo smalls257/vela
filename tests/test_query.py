@@ -41,7 +41,7 @@ def test_an_unknown_id_is_not_found_and_exits_1(mini):
 
 
 def test_get_says_what_blocks_an_item(mini):
-    edit(mini / "11-unknowns-and-risks.md", "- **Blocks:** nothing", "- **Blocks:** [[shop-building-blocks#CON-001 Sale API|CON-001]]")
+    edit(mini / "11-unknowns-and-risks.md", "- **Opened:** 2026-01-10", "- **Opened:** 2026-01-10\n- **Blocks:** [[shop-building-blocks#CON-001 Sale API|CON-001]]")
     _, answer = ask(mini, "get", "CON-001")
     assert answer["blocked_by"] == ["UNK-001"]
 

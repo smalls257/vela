@@ -79,6 +79,8 @@ def test_where_it_stands_lists_unk_006_and_holds_no_prose():
     text = (FIXTURE / "01-goals.md").read_text(encoding="utf-8")
     block = text[text.index("<!-- generated:where-it-stands"):text.index("<!-- /generated:where-it-stands -->")]
     lines = block.splitlines()[1:]
+    assert lines[0] == "_Kept up to date by vela from the pages it reads._"  # the one line saying the tool keeps it
+    lines = lines[1:]
     assert "| [[11-unknowns-and-risks#UNK-006 Finance on Booking events\\|Finance on Booking events (UNK-006)]] | @hl-platform-lead (Platform lead) | 2027-03-01 | nothing yet |" in lines
     for line in lines:
         assert line == "" or line.startswith("|") or re.match(r"^\*\*[A-Za-z ]+(:\*\* .+|\*\*)$", line), line
@@ -164,7 +166,7 @@ def test_fact_with_no_source(ub):
 def test_missing_concern_cell(ub):
     edit(ub / "08-concerns" / "concern-security.md",
          "| [[website-building-blocks\\|Website]] | addressed | Calls Booking with a service token. Tidepay hosted page as today. |\n", "")
-    assert broken(ub) == [("E315", "08-concerns/concern-security.md")]
+    assert broken(ub) == []
     matrix = (ub / "08-concerns" / "08-concerns.md").read_text(encoding="utf-8")
     row = next(l for l in matrix.splitlines() if l.startswith("| [[website-building-blocks"))
     assert "not reviewed yet (no line for this app)" in row

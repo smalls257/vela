@@ -76,7 +76,9 @@ Pausing the Notifications consumer leaves events waiting on the bus, and each on
 
 ## Traces to
 
-<!-- generated:traces-to sha=d54b1193: do not edit, run vela render -->
+<!-- generated:traces-to sha=df9e24ea: do not edit, run vela render -->
+_Kept up to date by vela from the pages it reads._
+
 | Traces to | Items |
 |---|---|
 | Apps | [[booking-building-blocks\|Booking]], [[notifications-building-blocks\|Notifications]] |

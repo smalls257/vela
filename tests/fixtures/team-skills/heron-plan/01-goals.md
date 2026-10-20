@@ -14,7 +14,9 @@ Heron has one goal so far, the chief information officer's first ask: a desk hel
 
 ## Where it stands
 
-<!-- generated:where-it-stands sha=8879a6d9: do not edit, run vela render -->
+<!-- generated:where-it-stands sha=ac1a350a: do not edit, run vela render -->
+_Kept up to date by vela from the pages it reads._
+
 **Where each app has got to**
 
 | App | Step reached | Open questions holding it up | Topics nobody has looked at | Contracts settled |
@@ -55,23 +57,25 @@ Heron has one goal so far, the chief information officer's first ask: a desk hel
 | [[11-unknowns-and-risks#UNK-075 Acceptance in the calendar read\|Acceptance in the calendar read (UNK-075)]] | @product-owner (Product owner) | 2026-10-29 | [[CAP-003-write-morning-digest#CAP-003.FR2 Name only people who were there\|Name only people who were there]] |
 | [[11-unknowns-and-risks#UNK-076 Council vote on the pilot\|Council vote on the pilot (UNK-076)]] | @product-owner (Product owner) | 2026-11-06 | [[04b-releases#Release one: February pilot, Client Delivery London\|February pilot]] |
 
-**Last session:** none recorded
+**Last session:** none yet
 
-**Gaps in the planned work:** 5, listed on [[13-epics|Epics]]
+**Gaps in the planned work:** five; see [[13-epics|Epics]]
 
-**Build progress:** tracked in each team's tickets, not in this vault
+**Build progress:** each team tracks it in its own tickets, not here.
 <!-- /generated:where-it-stands -->
 
 ## Progress by app
 
-<!-- generated:progress-map sha=549cd601: do not edit, run vela render -->
+<!-- generated:progress-map sha=b2e14ad0: do not edit, run vela render -->
+_Kept up to date by vela from the pages it reads._
+
 **How sure each app's items are:** no session yet, so no question counts as overdue
 
 | App | Step reached | Early ideas | Assumed | Confirmed | Decided | Oldest open question | Next session |
 |---|---|---|---|---|---|---|---|
-| [[consent-and-identity-building-blocks\|Consent and identity]] | researched | 0 | 5 | 0 | 0 | [[11-unknowns-and-risks#UNK-068 Who builds Consent and identity\|Who builds Consent and identity (UNK-068)]], open since 2026-10-12 | Grill: Consent and identity runtime (RUN-consent-and-identity) |
-| [[summarizer-building-blocks\|Summarizer]] | researched | 0 | 3 | 0 | 0 | [[11-unknowns-and-risks#UNK-067 How slow is too slow\|How slow is too slow (UNK-067)]], open since 2026-10-12 | Grill: Summarizer runtime (RUN-summarizer) |
-| [[desktop-agent-building-blocks\|Desktop agent]] | ready to hand over | 0 | 3 | 0 | 0 | [[11-unknowns-and-risks#UNK-066 Consent sees what agent read\|Consent sees what agent read (UNK-066)]], open since 2026-10-12 | Grill: Desktop agent runtime (RUN-desktop-agent) |
+| [[consent-and-identity-building-blocks\|Consent and identity]] | researched | 0 | 5 | 0 | 0 | [[11-unknowns-and-risks#UNK-068 Who builds Consent and identity\|Who builds Consent and identity]], open since 12 October 2026 | Grill Consent and identity runtime |
+| [[summarizer-building-blocks\|Summarizer]] | researched | 0 | 3 | 0 | 0 | [[11-unknowns-and-risks#UNK-067 How slow is too slow\|How slow is too slow]], open since 12 October 2026 | Grill Summarizer runtime |
+| [[desktop-agent-building-blocks\|Desktop agent]] | ready to hand over | 0 | 3 | 0 | 0 | [[11-unknowns-and-risks#UNK-066 Consent sees what agent read\|Consent sees what agent read]], open since 12 October 2026 | Grill Desktop agent runtime |
 <!-- /generated:progress-map -->
 
 ## Why now

@@ -167,7 +167,7 @@ def test_fr_state_must_be_in_the_enum_and_present(mini):
 
 def test_open_unknown_blocks_a_decided_fr(mini):
     add_cap(mini, CAP_PAGE.replace("- **State:** assumption", "- **State:** decided\n- **Decision:** [[2026-01-10-shop-api]]"))
-    edit(mini / "11-unknowns-and-risks.md", "- **Blocks:** nothing\n", "- **Blocks:** [[CAP-001-sell#CAP-001.FR1 A till sells a basket|CAP-001.FR1]]\n")
+    edit(mini / "11-unknowns-and-risks.md", "- **Opened:** 2026-01-10\n", "- **Opened:** 2026-01-10\n- **Blocks:** [[CAP-001-sell#CAP-001.FR1 A till sells a basket|CAP-001.FR1]]\n")
     _, out = check(mini)
     assert ("E316", CAP) in codes(out)
 
@@ -176,7 +176,7 @@ def test_open_unknown_blocking_an_fr_still_blocks_its_decided_capability(mini):
     decided = CAP_PAGE.replace("state: assumption", "state: decided").replace(
         "# CAP-001 Sell\n", "# CAP-001 Sell\n\n- **Decision:** [[2026-01-10-shop-api]]\n")
     add_cap(mini, decided)
-    edit(mini / "11-unknowns-and-risks.md", "- **Blocks:** nothing\n", "- **Blocks:** [[CAP-001-sell#CAP-001.FR1 A till sells a basket|CAP-001.FR1]]\n")
+    edit(mini / "11-unknowns-and-risks.md", "- **Opened:** 2026-01-10\n", "- **Opened:** 2026-01-10\n- **Blocks:** [[CAP-001-sell#CAP-001.FR1 A till sells a basket|CAP-001.FR1]]\n")
     code, out = check(mini)
     assert code == 1
     assert "E316 CAP-001 is decided, but open unknown UNK-001 blocks it." in out

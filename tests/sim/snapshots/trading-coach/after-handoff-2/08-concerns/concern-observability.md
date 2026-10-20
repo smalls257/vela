@@ -19,5 +19,3 @@ Nobody has examined observability for either app yet. How the team would see tha
 
 | App | State | Why |
 |---|---|---|
-
-Not looked at yet: [[coach-building-blocks\|Coach]], [[tickertalk-building-blocks\|TickerTalk]].

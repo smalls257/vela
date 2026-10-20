@@ -98,10 +98,10 @@ def test_traceability_block_with_nothing_to_trace(mini):
 
 
 def test_where_it_stands_shows_a_handoff_and_skips_a_malformed_one(mini):
-    edit(mini / SHOP, "stage: contracts\n", 'stage: contracts\nhanded_off: "Shop senior, 2026-01-12, PR #4"\n')
+    edit(mini / SHOP, "stage: contracts\n", 'stage: contracts\nhanded_off: "Shop senior, 2026-01-12"\nhanded_off_pr: 4\n')
     render(mini)
     goals = (mini / "01-goals.md").read_text(encoding="utf-8")
     assert "**Handed to its team:** [[shop-building-blocks|Shop]] (Shop senior, 2026-01-12, PR #4)" in goals
-    edit(mini / SHOP, 'handed_off: "Shop senior, 2026-01-12, PR #4"', 'handed_off: "Shop senior"')
+    edit(mini / SHOP, 'handed_off: "Shop senior, 2026-01-12"', 'handed_off: "Shop senior"')
     render(mini)
     assert "**Handed to its team:**" not in (mini / "01-goals.md").read_text(encoding="utf-8")

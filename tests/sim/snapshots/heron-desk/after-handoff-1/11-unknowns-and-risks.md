@@ -52,7 +52,6 @@ Nobody knows yet whether the CIO's "quietly watches" describes how the helper fe
 - **Question:** What does "quietly watches" mean: the user experience, the footprint, or something else?
 - **Owner:** @solution-lead
 - **State:** open
-- **Blocks:** nothing yet, since no app, contract or requirement exists
 - **Ask by:** 2026-10-18
 - **Opened:** 2026-10-11
 - **Notes:** Kept from the Dump; the quoted sentence is the CIO's own, relayed by the solution lead.
@@ -64,7 +63,6 @@ It is not clear whether "sets up in two minutes" is the person's own step or IT 
 - **Question:** Is "sets up in two minutes" the person's own experience, or is IT doing the heavy lifting?
 - **Owner:** @solution-lead
 - **State:** open
-- **Blocks:** nothing yet, since no app, contract or requirement exists
 - **Ask by:** 2026-10-18
 - **Opened:** 2026-10-11
 - **Notes:** [[sources#SRC-03|The tenant note]] says staff cannot install software and IT pushes everything through Intune and Jamf, while [[sources#SRC-02|the CIO's brief]] says staff install Heron themselves in two minutes. So the person's own step cannot be the install; what IT does for Heron is still open under [[#UNK-011 IT packaging|IT packaging]].
@@ -76,7 +74,6 @@ The CIO's "tells you what matters" does not say whose morning it is: a tool for 
 - **Question:** Who is "what matters" for: a user tool, or dashboarding for someone else?
 - **Owner:** @solution-lead
 - **State:** open
-- **Blocks:** nothing yet, since no app, contract or requirement exists
 - **Ask by:** 2026-10-18
 - **Opened:** 2026-10-11
 
@@ -87,7 +84,6 @@ Nobody has listed the stakeholders for the desk helper, or found the one who hol
 - **Question:** Who are the stakeholders for the desk helper, and who among them holds the meaning of the CIO's sentence?
 - **Owner:** @solution-lead
 - **State:** open
-- **Blocks:** nothing yet, since no app, contract or requirement exists
 - **Ask by:** 2026-10-16
 - **Opened:** 2026-10-11
 - **Notes:** The product owner wants the digest as well as the prep note ([[sources#SRC-04|the product one-pager]]), and the solution lead says the CIO wants an adoption dashboard, which is the solution lead's word and in no source. The prep note gives neither, and the solution lead will tell both.
@@ -99,7 +95,6 @@ The solution lead does not know who asked the CIO for the desk helper, and the C
 - **Question:** Who asked the CIO for the desk helper?
 - **Owner:** @solution-lead
 - **State:** open
-- **Blocks:** nothing yet, since no app, contract or requirement exists
 - **Ask by:** 2026-10-18
 - **Opened:** 2026-10-11
 
@@ -122,7 +117,6 @@ The security pack for the CISO's review is due in 30 days, and nobody on the pro
 - **Question:** What does the CISO's review need in the security pack, and who holds that requirement?
 - **Owner:** @solution-lead
 - **State:** open
-- **Blocks:** nothing yet, since no app, contract or requirement exists
 - **Ask by:** 2026-10-15
 - **Opened:** 2026-10-11
 
@@ -144,7 +138,6 @@ The solution lead believes 70 percent of the pilot team's work comes from client
 - **Question:** How does the solution lead know that 70 percent of the pilot team's work comes from client calls: a figure from a report, from the team's lead, or an impression?
 - **Owner:** @solution-lead
 - **State:** open
-- **Blocks:** nothing yet, since no app, contract or requirement exists
 - **Ask by:** 2026-10-18
 - **Opened:** 2026-10-11
 - **Notes:** The solution lead says the team's lead gave the figure, second-hand; no document was read, so it has no row in sources.
@@ -190,7 +183,6 @@ The CIO's brief says Heron needs only each person's own Microsoft 365 sign-in. T
 - **Question:** Does Heron need only each person's own Microsoft 365 sign-in ([[sources#SRC-02|the CIO's brief]]) or a Graph app registration with a security review first ([[sources#SRC-03|the tenant note]], [[sources#SRC-06|the CISO's position]])?
 - **Owner:** @solution-lead
 - **State:** open
-- **Blocks:** nothing yet, since no app, contract or requirement exists
 - **Ask by:** 2026-10-23
 - **Opened:** 2026-10-11
 
@@ -223,7 +215,6 @@ The solution lead does not know who holds the firm's Microsoft 365 agreement, so
 - **Question:** Who holds the firm's Microsoft 365 agreement?
 - **Owner:** @solution-lead
 - **State:** open
-- **Blocks:** nothing yet, since no app, contract or requirement exists
 - **Ask by:** 2026-10-23
 - **Opened:** 2026-10-11
 - **Notes:** The solution lead's guess at the holder is from memory, with no document behind it.
@@ -364,7 +355,6 @@ The solution lead believes the CTO named @agent-lead on 9 October as the person 
 - **Question:** Which message, channel or document carried the CTO's naming of @agent-lead on 9 October?
 - **Owner:** @sim-lead
 - **State:** open
-- **Blocks:** nothing yet, since the epics wait on [[#UNK-010 Who owns Heron|who owns Heron]] first
 - **Ask by:** 2026-10-16
 - **Opened:** 2026-10-11
 

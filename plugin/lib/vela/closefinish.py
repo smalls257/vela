@@ -122,7 +122,7 @@ def _who(origin):
 
 
 def team_names(app_meta):
-    """Who the vault names as the app's team: its `owner`, and the person in its `handed_off` (`<name>, <date>, PR`)."""
+    """Who the vault names as the app's team: its `owner`, and the person in its `handed_off` (`<name>, <date>`)."""
     names = {_who(str(app_meta.get("owner") or ""))}
     value = str(app_meta.get("handed_off") or "")
     if schema.HANDED_OFF_RE.match(value):

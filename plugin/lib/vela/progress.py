@@ -121,8 +121,9 @@ def in_grill_stage(app):
 
 
 def is_boundary_stub(app):
-    """A page a Boundary wrote as a stub and has not read back yet: its stub line, and no containers table."""
-    return (schema.BOUNDARY_STUB_LINE in app.text
+    """A page a Boundary wrote as a stub and has not read back yet: its `stub: boundary` field, and no containers
+    table. The field, not any sentence on the page, because a model rewrites sentences."""
+    return (app.meta.get("stub") == "boundary"
             and not any(t.header[:2] == schema.CONTAINERS_HEADER for t in app.tables))
 
 

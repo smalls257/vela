@@ -62,7 +62,9 @@ Both runbooks have been walked through in a rehearsal with the on-call rota befo
 
 ## Traces to
 
-<!-- generated:traces-to sha=7709ed8f: do not edit, run vela render -->
+<!-- generated:traces-to sha=47771177: do not edit, run vela render -->
+_Kept up to date by vela from the pages it reads._
+
 | Traces to | Items |
 |---|---|
 | Apps | [[booking-building-blocks\|Booking]] |

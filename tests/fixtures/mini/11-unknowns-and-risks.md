@@ -8,7 +8,9 @@ authored: mixed
 
 # Unknowns and risks
 
-<!-- generated:unknowns-index sha=228602bc: do not edit, run vela render -->
+<!-- generated:unknowns-index sha=1ce543ee: do not edit, run vela render -->
+_Kept up to date by vela from the pages it reads._
+
 **Questions**
 
 | Question | Who answers | Status | Answer needed by |
@@ -32,7 +34,6 @@ authored: mixed
 - **Opened:** 2026-01-10
 - **State:** open
 - **Ask by:** 2026-02-01
-- **Blocks:** nothing
 
 ### UNK-002 Receipt format
 

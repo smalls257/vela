@@ -59,7 +59,9 @@ None from another app in the first release. If the text call goes to cloud, a ho
 
 ## Where it fits
 
-<!-- generated:app-context sha=293ab397: do not edit, run vela render -->
+<!-- generated:app-context sha=762040f4: do not edit, run vela render -->
+_Kept up to date by vela from the pages it reads._
+
 ```mermaid
 flowchart LR
   n_APP_desktop_agent["Desktop agent (new)"]
@@ -74,8 +76,10 @@ flowchart LR
 Key: dark blue: the app this page is about · green: new in this initiative · an arrow is a contract (an agreed interface), labeled with its name, pointing from the side that provides it to the app that uses it.
 <!-- /generated:app-context -->
 
-<!-- generated:contracts-consumed sha=140bedbf: do not edit, run vela render -->
-none
+<!-- generated:contracts-consumed sha=f00bb14c: do not edit, run vela render -->
+_Kept up to date by vela from the pages it reads._
+
+This app doesn't use any contract yet.
 <!-- /generated:contracts-consumed -->
 
 ## History

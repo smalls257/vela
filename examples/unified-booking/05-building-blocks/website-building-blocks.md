@@ -27,7 +27,9 @@ The website no longer decides whether a booking is confirmed and no longer talks
 |---|---|
 | Changed: calls the Booking API. The FM screen adapter is retired. | Digital team |
 
-<!-- generated:app-context sha=685f9b01: do not edit, run vela render -->
+<!-- generated:app-context sha=4fbd3363: do not edit, run vela render -->
+_Kept up to date by vela from the pages it reads._
+
 ```mermaid
 flowchart LR
   n_APP_booking["Booking (new)"]
@@ -75,7 +77,9 @@ None. The website only consumes.
 
 ## Contracts this app consumes
 
-<!-- generated:contracts-consumed sha=0e14b175: do not edit, run vela render -->
+<!-- generated:contracts-consumed sha=764ec3ac: do not edit, run vela render -->
+_Kept up to date by vela from the pages it reads._
+
 | Contract | Provided by | Who can change it, and how | How sure |
 |---|---|---|---|
 | [[booking-building-blocks#CON-001 Booking API\|Booking API (CON-001)]] | [[booking-building-blocks\|Booking]] | versioned. Each version is kept at least 6 months because kiosks update twice a year ([[ADR-0003-versioned-booking-api\|ADR-0003]]). | decided |
@@ -83,7 +87,9 @@ None. The website only consumes.
 
 ## Epics
 
-<!-- generated:epics-for-app sha=583b7a5e: do not edit, run vela render -->
+<!-- generated:epics-for-app sha=8b407b02: do not edit, run vela render -->
+_Kept up to date by vela from the pages it reads._
+
 | Epic | Owner | State |
 |---|---|---|
 | [[EPC-033-website-to-booking\|EPC-033 Website moves to Booking]] | @harborline/digital-team | decided |

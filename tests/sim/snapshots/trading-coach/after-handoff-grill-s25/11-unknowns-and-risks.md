@@ -55,7 +55,6 @@ authored: mixed
 - **Question:** Does the CEO mean the product places orders the model picked, or just coaches through the trade, or something else? The CEO's one-liner does not say what "trades for them" means, and the product lead fears he changes his mind halfway through and the product is rebranded twice.
 - **Owner:** @sim-lead (product lead), answer from the CEO
 - **State:** resolved
-- **Blocks:** nothing
 - **Outcome:** the CEO means the trade ideas the coach shows, and the user clicks buy themselves; the product places no order for them (the CEO's words as the product lead gives them, [[2026-10-08-first-instruments-signal#^c19]]). Counsel's reply (SRC-06) calls a trade idea for a particular customer a recommendation, see UNK-024 and UNK-025.
 - **Resolved in:** [[2026-10-08-first-instruments-signal]]
 - **Opened:** 2026-10-08
@@ -66,7 +65,6 @@ authored: mixed
 - **Question:** Does the CEO mean March this year or next? The product lead does not know, and counts four months to March, which would make it next year.
 - **Owner:** @sim-lead (product lead), answer from the CEO
 - **State:** open
-- **Blocks:** nothing yet
 - **Ask by:** 2026-10-23
 - **Opened:** 2026-10-08
 
@@ -75,7 +73,6 @@ authored: mixed
 - **Question:** Who knows where the CEO's idea came from? The CEO did not say, he handed it down.
 - **Owner:** @sim-lead (product lead), answer from the CEO
 - **State:** open
-- **Blocks:** nothing yet
 - **Ask by:** 2026-10-23
 - **Opened:** 2026-10-08
 
@@ -94,7 +91,6 @@ authored: mixed
 - **Question:** How good is Signal's backtest, and does it overfit and lose money on real money, leaving TickerTalk liable? The backtest is held by the ML team.
 - **Owner:** @sim-lead (product lead), answer from the ML team
 - **State:** open
-- **Blocks:** nothing yet
 - **Ask by:** 2026-10-16
 - **Opened:** 2026-10-08
 - **Notes:** SRC-03 is one short paragraph with no method or price-data source. Whether it is the ML team's summary or the full backtest is not known; the product lead will find out, 2026-10-08.
@@ -104,7 +100,6 @@ authored: mixed
 - **Question:** Who holds TickerTalk's user terms and privacy notice? The product lead did not say who holds them.
 - **Owner:** @sim-lead (product lead), answer from unknown holder
 - **State:** open
-- **Blocks:** nothing yet
 - **Ask by:** 2026-10-16
 - **Opened:** 2026-10-08
 - **Notes:** the product lead thinks mobile probably holds them (belief, not confirmed), 2026-10-08.
@@ -115,7 +110,6 @@ authored: mixed
 - **Question:** What document or approval stands behind the CFO's 2.5 million, and what does it cover? The product lead fears it disappears into infra and lawyers before March.
 - **Owner:** @sim-lead (product lead), answer from the CFO
 - **State:** open
-- **Blocks:** nothing yet
 - **Ask by:** 2026-10-16
 - **Opened:** 2026-10-08
 
@@ -124,7 +118,6 @@ authored: mixed
 - **Question:** Where would the quotes in the product come from, and on what terms? Source and holder of that agreement were not named.
 - **Owner:** @sim-lead (product lead), answer from unknown holder
 - **State:** open
-- **Blocks:** nothing yet
 - **Ask by:** 2026-10-16
 - **Opened:** 2026-10-08
 - **Notes (SRC-07):** Brightwater's written reply says Coach may show Brightwater's quotes in its trade screens, so Brightwater is a second candidate beside Quoteline (SRC-02: 15-minute delayed US equity quotes in Kestrel's own apps, no options data). Nothing yet says which one the product would use ([[2026-10-08-brightwater-written-reply#^c11]]).
@@ -134,7 +127,6 @@ authored: mixed
 - **Question:** Is the build a new team or people pulled from existing teams? Mobile is on the news app and the ML team is three people. The product lead fears burning out the mobile team and breaking TickerTalk.
 - **Owner:** @sim-lead (product lead), answer from the CEO
 - **State:** open
-- **Blocks:** nothing yet
 - **Ask by:** 2026-10-23
 - **Opened:** 2026-10-08
 - **Notes:** the product lead needs mobile's room for the Coach entry before the pitch to the CEO on 2026-10-09, earlier than the ask-by date ([[2026-10-08-first-release-boundary#^c22]]).
@@ -144,7 +136,6 @@ authored: mixed
 - **Question:** Does calling the product education, not advice, avoid registration? One consultant two days a week is all the product lead has to rest that on, and the company may have no counsel beyond the consultant. The product lead fears the consultant says registration as advisers is needed.
 - **Owner:** @sim-lead (product lead), answer from the consultant
 - **State:** open
-- **Blocks:** nothing yet
 - **Ask by:** 2026-10-16
 - **Opened:** 2026-10-08
 - **Notes:** The product lead holds "education beats registration" as a belief with no source, load-bearing: yes (2026-10-08, [[2026-10-08-counsel-reply#^c20]]). The consultant has not said it. If the consultant reads the lessons plan and calls it advice, the plan changes ([[2026-10-08-counsel-reply#^c21]]). Outside counsel's reply (SRC-06) calls options lessons education, but which counsel wrote it is open, see UNK-023.
@@ -165,7 +156,6 @@ authored: mixed
 - **Question:** Has anyone on the team placed a trade, so that nothing about how orders work is missed? Nobody on the team is known to have done so.
 - **Owner:** @sim-lead (product lead), answer from the product lead
 - **State:** open
-- **Blocks:** nothing yet
 - **Ask by:** 2026-10-23
 - **Opened:** 2026-10-08
 
@@ -174,7 +164,6 @@ authored: mixed
 - **Question:** Do TickerTalk's readers want a trading coach, and how does options trading fit a news product? The product lead needs to know the demand before pitching the CEO.
 - **Owner:** @sim-lead (product lead)
 - **State:** open
-- **Blocks:** nothing yet
 - **Ask by:** 2026-10-16
 - **Opened:** 2026-10-08
 
@@ -194,7 +183,6 @@ authored: mixed
 - **Question:** How big is Signal's edge? The CEO's memo (SRC-04) says it beats the market by 31% a year. The backtest (SRC-03) says 31% a year against 11% for the index, which is a 20-point gap, on the 50 largest stocks over 2015 to 2025. Which figure may the plan use, and does it hold outside that test?
 - **Owner:** @sim-lead (product lead), answer from the ML team
 - **State:** open
-- **Blocks:** nothing yet
 - **Ask by:** 2026-10-16
 - **Opened:** 2026-10-08
 
@@ -203,7 +191,6 @@ authored: mixed
 - **Question:** Does the Brightwater agreement allow the coach to place orders for a user and to link a user's account, and does any approval rule in it reach what the coach shows users? The summary (SRC-01) is silent on these, and the CEO's memo (SRC-04) assumes Brightwater handles the brokerage side. Settled by reading the agreement, see UNK-004.
 - **Owner:** @sim-lead (product lead), answer from Partnerships
 - **State:** resolved
-- **Blocks:** nothing
 - **Outcome:** The product lead read the full agreement on 2026-10-08: paper and live stock orders both work through Brightwater's API (SRC-05, first-hand). Whether the agreement also covers the account link, and whether an approval rule reaches what the coach shows, was not stated. Brightwater's counsel still needs a separate sign-off, see UNK-022.
 - **Resolved in:** [[2026-10-08-coach-first-instruments]]
 - **Opened:** 2026-10-08
@@ -213,7 +200,6 @@ authored: mixed
 - **Question:** Is the Brightwater API link Kestrel's or TickerTalk's? The Context page says TickerTalk has been on Brightwater's API since June, per the product lead, and the summary (SRC-01) speaks of Kestrel. It is not recorded whether TickerTalk is a Kestrel app.
 - **Owner:** @sim-lead (product lead)
 - **State:** open
-- **Blocks:** nothing yet
 - **Ask by:** 2026-10-16
 - **Opened:** 2026-10-08
 - **Notes:** the product lead needs this before the pitch to the CEO on 2026-10-09, earlier than the ask-by date ([[2026-10-08-first-release-boundary#^c22]]).
@@ -223,7 +209,6 @@ authored: mixed
 - **Question:** Who carries the customer money Brightwater holds ([[03-context-and-scope#SV-01 Customer money at Brightwater|SV-01]]) as money owed to customers? The summary (SRC-01) says Brightwater holds it and Kestrel never does, but not who owes it to the customer.
 - **Owner:** @sim-lead (product lead), answer from Partnerships
 - **State:** open
-- **Blocks:** nothing yet
 - **Ask by:** 2026-10-16
 - **Opened:** 2026-10-08
 
@@ -242,7 +227,6 @@ authored: mixed
 - **Question:** Where did the price data for Signal's backtest and training come from, and if it came from Quoteline, does clause 9 of the license (SRC-02), which bars use in models, algorithms and derived data without an addendum, cover training, backtesting and running Signal? Neither SRC-03 nor SRC-02 says.
 - **Owner:** @sim-lead (product lead), answer from the ML team and the data engineer
 - **State:** open
-- **Blocks:** nothing yet
 - **Ask by:** 2026-10-16
 - **Opened:** 2026-10-08
 
@@ -298,7 +282,6 @@ authored: mixed
 - **Question:** Does the Quoteline license (SRC-02) count ETFs as US equity quotes for display, and does Brightwater's agreement (SRC-01, SRC-05) take ETFs on its paper and live accounts? Neither source mentions them. Release one holds ETFs out until both confirm, see [[04-solution-strategy#First instruments|First instruments]].
 - **Owner:** @sim-lead (product lead), answer from the data engineer
 - **State:** open
-- **Blocks:** nothing yet
 - **Ask by:** 2026-10-23
 - **Opened:** 2026-10-08
 - **Notes:** the product lead named the data engineer, already on UNK-021, to take both ([[2026-10-08-first-instruments-signal#^c13]]). The ask-by date is proposed by claude; the product lead may change it.
@@ -360,7 +343,6 @@ authored: mixed
 - **Question:** Brightwater's written reply (SRC-07) says live options trading needs "our options agreement" and each customer's options approval, and the agreement summary (SRC-01) and the product lead's full read (SRC-05) say options are not in the API agreement. Is the options agreement a separate document that exists and is signed, one still to be written, or something Kestrel does not hold? What does it cost and who signs it?
 - **Owner:** @sim-lead (product lead), answer from Partnerships
 - **State:** open
-- **Blocks:** nothing yet
 - **Ask by:** 2026-10-16
 - **Opened:** 2026-10-08
 - **Notes:** the two sides fit together only if the options agreement is separate; the reply does not say ([[2026-10-08-brightwater-written-reply#^c08]]). Settles part of UNK-014.

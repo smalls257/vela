@@ -79,7 +79,7 @@ The reviewer is the solution lead: the `owner:` of `01-goals.md`. Strip the lead
 3. Run `git push -u origin session/<id>`. If it fails, say in one plain sentence that the challenge didn't go up and why, without pasting the push's own message, give the commands for the user to run, and stop.
 4. Write the PR body to a temporary file, each item by name with its ID beside it:
    - **Challenge.** The item, the question, the case and the proposal, quoted from the captures.
-   - **Open question.** Its short name, `UNK-nnn`, owner and ask-by date.
+   - **Open question.** Its short name, `UNK-nnn`, owner and, when it has one, ask-by date.
    - **Check.** The check's first line and the E316 line, if any.
    - **The red check.** Never promise a red check for an item that is not `decided`. Not decided (an `assumption`, a `draft`): nothing blocks this merge; the dispute lives in `UNK-nnn` and the `**Dissent:**` line, and the item can't be decided while the question is open. Decided: E316 is deliberate. It blocks the merge wherever vela-check is a required check, so the PR can't merge while `main` reads `decided` with an open blocker. The solution lead answers on this branch, either by resolving `UNK-nnn` with a grill or by setting the item back: a contract to `assumption`, an epic to `reopened`, which a later grill decides again with `| EPC-nnn | reopened | decided | ... |`. Then the check turns green and the PR can merge. `/vela:grill` naming this PR or <ID> opens an answer session on this branch, and `/vela:close` pushes the answer here and comments on this PR. Say: "Run `/vela:grill` and name this PR or <ID>."
    - **Since handoff.** The `vela handoff verify` output.

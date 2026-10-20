@@ -41,7 +41,9 @@ Lets a customer change or cancel a booking they already have.
 
 ## Delivered by
 
-<!-- generated:delivered-by sha=79de1ada: do not edit, run vela render -->
+<!-- generated:delivered-by sha=c5dcdec1: do not edit, run vela render -->
+_Kept up to date by vela from the pages it reads._
+
 | Epic | Owner | State |
 |---|---|---|
 | [[EPC-034-call-center-to-booking\|EPC-034 Call center moves to Booking]] | @harborline/contact-center-systems | decided |

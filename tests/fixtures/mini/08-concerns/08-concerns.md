@@ -8,7 +8,9 @@ authored: mixed
 
 # Concerns
 
-<!-- generated:concern-matrix sha=c8f028b8: do not edit, run vela render -->
+<!-- generated:concern-matrix sha=eb36e6b8: do not edit, run vela render -->
+_Kept up to date by vela from the pages it reads._
+
 | App | [[concern-testing\|Testing]] |
 |---|---|
 | [[shop-building-blocks\|Shop]] | covered |

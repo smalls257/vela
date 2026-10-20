@@ -206,7 +206,7 @@ def test_pages_leaves_to_add_what_add_writes():
     assert "| Case | When | Status | Answer | Emits | Sets |" in pages  # the case table stays the session's
 
 
-# --- plugin/skills/boundary/PAGES.md, MODES.md: the stub writes a "Not looked at yet:" line and no row. A skill that
+# --- plugin/skills/boundary/PAGES.md, MODES.md: the stub writes no row and no line. A skill that
 # still said to replace or write an `unexamined` row (a Fossil Comment) had the model write empty rows the code
 # deliberately left out; the judge scored them as padding (full3, four duplicates).
 def test_no_skill_or_reference_tells_the_model_to_write_an_unexamined_row():
@@ -217,9 +217,10 @@ def test_no_skill_or_reference_tells_the_model_to_write_an_unexamined_row():
     assert found == []
 
 
-def test_pages_names_the_line_the_code_writes():
+def test_pages_names_the_field_the_code_writes_and_no_line():
     pages = read("skills/boundary/PAGES.md")
-    assert "Not looked at yet:" in pages
+    assert "`stub: boundary`" in pages and "Not looked at yet" not in pages
+    assert "touched no concern page" in pages
 
 
 

@@ -39,6 +39,6 @@ def test_vela_style_does_not_tell_a_session_to_delete_an_ask_line():
     from vela import parse, reading
     text = ("# Unknowns\n\nOpen questions.\n\n### UNK-001 Call tools\n\nNobody knows which tools the team uses.\n\n"
             "- **Question:** Which call tools?\n- **Owner:** @lead\n- **Ask:** @pilot-lead\n- **State:** open\n"
-            "- **Blocks:** nothing\n- **Ask by:** 2026-11-01\n\n## Release one\n\n- **Target:** 2027-02-02\n- **Owning team:** @agent-lead\n")
+            "- **Ask by:** 2026-11-01\n\n## Release one\n\n- **Target:** 2027-02-02\n- **Owning team:** @agent-lead\n")
     problems = reading.style_problems(text, "unknowns", parse.KNOWN_LABELS.values())
     assert not [why for _, why in problems if "not a fact bullet" in why], problems

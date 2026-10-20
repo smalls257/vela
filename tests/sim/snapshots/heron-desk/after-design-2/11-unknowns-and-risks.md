@@ -54,7 +54,6 @@ Nobody has settled whether meeting text may leave the laptop in the pilot, and n
 - **Question:** Who settles whether meeting, mail and document text may leave the laptop in the pilot, and which design is meant?
 - **Owner:** @solution-lead (Solution lead)
 - **State:** open
-- **Blocks:** nothing is decided on it yet; the ledger rows that wait on it are under Question ledger
 - **Ask by:** 2026-11-06
 - **Opened:** 2026-10-12
 - **Notes:** The solution lead believes the CIO settles it as budget holder, with no source named, so this is a belief and not a finding. The two ends are the CISO's rule and the product owner's cloud design. The CIO's brief also says the data never leaves the machine, which the product owner's one-pager contradicts; both are plans, not facts.
@@ -67,7 +66,6 @@ The solution lead does not know whether the CIO has heard the CISO's hard line, 
 - **Owner:** @solution-lead (Solution lead)
 - **Ask:** @cio
 - **State:** open
-- **Blocks:** nothing is decided on it yet; the ledger rows that wait on it are under Question ledger
 - **Ask by:** 2026-11-06
 - **Opened:** 2026-10-12
 
@@ -79,7 +77,6 @@ The documents give the CISO's position and the product owner's design but not ho
 - **Owner:** @solution-lead (Solution lead)
 - **Ask:** @cio
 - **State:** open
-- **Blocks:** nothing is decided on it yet; the ledger rows that wait on it are under Question ledger
 - **Ask by:** 2026-11-06
 - **Opened:** 2026-10-12
 - **Notes:** The solution lead expects the CIO to call it, which is a belief with no source. This is the route to a decision; [[11-unknowns-and-risks#UNK-051 Text call|the text call]] is the decision itself.
@@ -130,7 +127,6 @@ The CIO's brief says staff install Heron themselves in two minutes, while the te
 - **Question:** Which holds, self-install or push from Intune and Jamf, and who owns the answer?
 - **Owner:** @endpoint-lead (IT endpoint lead)
 - **State:** resolved
-- **Blocks:** nothing is decided on it yet; the ledger rows that wait on it are under Question ledger
 - **Opened:** 2026-10-12
 - **Outcome:** Staff cannot install software, so [[sources#SRC-013|the tenant note]] settles it: Intune and Jamf push it and a person can only switch it on. The CIO's two-minute self-install does not hold.
 - **Resolved in:** [[2026-10-12-desks-today-and-m365]]
@@ -142,7 +138,6 @@ The CIO's brief says everyone is on Windows and starts there, while the first as
 - **Question:** Is the Mac in the first release or later?
 - **Owner:** @product-owner (Product owner)
 - **State:** open
-- **Blocks:** nothing is decided on it yet; the ledger rows that wait on it are under Question ledger
 - **Ask by:** 2026-11-06
 - **Opened:** 2026-10-12
 
@@ -153,7 +148,6 @@ The pilot starts with Client Delivery and Frankfurt stays out of it, but nobody 
 - **Question:** Does Client Delivery include anyone in Frankfurt, and how is their data kept out of the pilot?
 - **Owner:** @pilot-lead (Pilot lead)
 - **State:** open
-- **Blocks:** nothing is decided on it yet; the ledger rows that wait on it are under Question ledger
 - **Ask by:** 2026-11-06
 - **Opened:** 2026-10-12
 
@@ -164,7 +158,6 @@ The product owner calls the on-device model poor and the CISO allows only on-dev
 - **Question:** Has anyone tried an on-device model on a managed laptop against the digest, and who would know?
 - **Owner:** @product-owner (Product owner)
 - **State:** open
-- **Blocks:** nothing is decided on it yet; the ledger rows that wait on it are under Question ledger
 - **Ask by:** 2026-11-06
 - **Opened:** 2026-10-12
 - **Notes:** The solution lead says the product owner owns the on-device model trial before January and will align with the endpoint lead; neither has been asked, so this is a belief. The solution lead names this trial as the real gate for the laptop-only first release.
@@ -177,7 +170,6 @@ Transcripts exist only where the organizer turned them on and need tenant admin 
 - **Owner:** @endpoint-lead (IT endpoint lead)
 - **Ask:** @identity-lead
 - **State:** open
-- **Blocks:** nothing is decided on it yet; the ledger rows that wait on it are under Question ledger
 - **Ask by:** 2026-11-06
 - **Opened:** 2026-10-12
 - **Notes:** The CIO's brief says Heron needs only each person's own Microsoft 365 sign-in. The tenant note says reading transcripts needs tenant admin approval and the CISO says any new app registration needs a security review first, so the two do not agree.
@@ -189,7 +181,6 @@ No document describes any design of Heron, research with the people who would us
 - **Question:** Does any design, user research or trial result exist, and where is it?
 - **Owner:** @product-owner (Product owner)
 - **State:** open
-- **Blocks:** nothing is decided on it yet; the ledger rows that wait on it are under Question ledger
 - **Ask by:** 2026-11-06
 - **Opened:** 2026-10-12
 - **Notes:** The solution lead says the design belongs to the product owner.
@@ -201,7 +192,6 @@ The product owner's one-pager says Heron reads Zoom, but the tenant note covers 
 - **Question:** What can Heron read from Zoom meetings and how, and how much of Client Delivery's meeting time is on Zoom?
 - **Owner:** @pilot-lead (Pilot lead)
 - **State:** open
-- **Blocks:** nothing is decided on it yet; the ledger rows that wait on it are under Question ledger
 - **Ask by:** 2026-11-06
 - **Opened:** 2026-10-12
 - **Notes:** The solution lead puts Zoom at 70 percent of Client Delivery's day, a figure with no document behind it. The pilot lead knows how the team uses Zoom; the product owner is building Heron, not running Client Delivery.

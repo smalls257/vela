@@ -125,13 +125,13 @@ def test_pending_pr_number_written(tmp_path, monkeypatch):
     spec = importlib.util.spec_from_file_location("sim_run_for_pr", REPO / "tests" / "sim" / "run.py")
     sim = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(sim)
-    vault, bare = pushed(tmp_path, stock_meta='handed_off: "Stock senior, 2026-10-20, PR pending"')
+    vault, bare = pushed(tmp_path, stock_meta='handed_off: "Stock senior, 2026-10-20"\nhanded_off_pr: pending')
     sim.write_gh_stub(tmp_path / "simbin", bare)
     monkeypatch.setenv("PATH", f"{tmp_path / 'simbin'}:{__import__('os').environ['PATH']}")
     code, out = pr(vault)
     assert code == 0, out
     page = (vault / "05-building-blocks" / "stock-building-blocks.md").read_text(encoding="utf-8")
-    assert 'handed_off: "Stock senior, 2026-10-20, PR #1"' in page
+    assert 'handed_off: "Stock senior, 2026-10-20"\nhanded_off_pr: 1\n' in page
     assert git(vault, "log", "-1", "--format=%s") == "Handoff PR number for APP-stock"
     assert git(bare, "rev-parse", BRANCH) == git(vault, "rev-parse", "HEAD")
 

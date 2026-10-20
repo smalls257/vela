@@ -70,7 +70,9 @@ Once the September 2027 image is rolled out, FERRYMASTER sees no direct sessions
 
 ## Traces to
 
-<!-- generated:traces-to sha=311354eb: do not edit, run vela render -->
+<!-- generated:traces-to sha=a8049f0e: do not edit, run vela render -->
+_Kept up to date by vela from the pages it reads._
+
 | Traces to | Items |
 |---|---|
 | Apps | [[kiosks-building-blocks\|Port kiosks]], [[booking-building-blocks\|Booking]] |

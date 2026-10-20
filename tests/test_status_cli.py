@@ -5,7 +5,7 @@ FIXTURE = REPO / "examples" / "unified-booking"
 
 
 def test_status_prints_one_line_per_app_with_ages(mini):
-    edit(mini / "11-unknowns-and-risks.md", "- **Blocks:** nothing", "- **Blocks:** [[till-building-blocks|Till]]")
+    edit(mini / "11-unknowns-and-risks.md", "- **Opened:** 2026-01-10", "- **Opened:** 2026-01-10\n- **Blocks:** [[till-building-blocks|Till]]")
     code, out = run("status", "--vault", str(mini), "--today", "2026-02-03")
     assert code == 0, out
     lines = out.splitlines()
@@ -62,7 +62,7 @@ def test_a_stub_app_page_with_no_containers_goes_back_to_boundary(tmp_path):
     (tmp_path / "05-building-blocks").mkdir()
     (tmp_path / "05-building-blocks" / "links-building-blocks.md").write_text(
         "---\nid: APP-links\ntype: app-building-blocks\ntitle: Links\nstate: inkling\nchange: new\nstage: baseline\n"
-        "owner: \"@lead\"\nauthored: authored\n---\n# Links\n\nIts boundary sheet is still to be read back.\n", encoding="utf-8")
+        "stub: boundary\nowner: \"@lead\"\nauthored: authored\n---\n# Links\n", encoding="utf-8")
     code, out = run("next", "--vault", str(tmp_path), "--today", "2026-01-15")
     assert code == 0 and out.startswith("vela next: Links: read back the boundary of Links (APP-links). Links has only a placeholder page")
 

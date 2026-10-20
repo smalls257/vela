@@ -17,5 +17,3 @@ Running cost, licenses and shared budgets such as mainframe processing.
 
 | App | State | Why |
 |---|---|---|
-
-Not looked at yet: [[northway-id-building-blocks\|Northway ID]], [[seabook-building-blocks\|SeaBook]], [[ferrymaster-building-blocks\|FERRYMASTER]], [[account-link-service-building-blocks\|Account link service]], [[railcore-building-blocks\|RailCore]].

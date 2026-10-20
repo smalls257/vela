@@ -8,7 +8,9 @@ authored: mixed
 
 # Unknowns and risks
 
-<!-- generated:unknowns-index sha=35b031bc: do not edit, run vela render -->
+<!-- generated:unknowns-index sha=ee8f3258: do not edit, run vela render -->
+_Kept up to date by vela from the pages it reads._
+
 No questions or risks yet.
 <!-- /generated:unknowns-index -->
 
@@ -18,7 +20,9 @@ No questions or risks yet.
 
 ## Question ledger
 
-<!-- generated:undisposed-questions sha=425a48cb: do not edit, run vela render -->
+<!-- generated:undisposed-questions sha=9ceea065: do not edit, run vela render -->
+_Kept up to date by vela from the pages it reads._
+
 **Questions:** 12 owed, 12 undisposed, against catalog v1.
 
 | Ref | Status | Area | How serious | About | Question |

@@ -17,5 +17,3 @@ Running cost, licenses and shared budgets such as mainframe processing.
 
 | App | State | Why |
 |---|---|---|
-
-Not looked at yet: [[heron-building-blocks\|Heron]].

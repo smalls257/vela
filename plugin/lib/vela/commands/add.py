@@ -38,7 +38,7 @@ from vela.edge.vaultgit import GitUnavailable
 NAME = "add"
 LISTS = ("blocks", "apps", "delivers", "consumes", "flows", "trace", "concerns", "after", "rejected", "consumers",
          "criteria", "traces")
-SUMMARY = {"unknown": "an open question with an owner, an ask-by date and what it blocks",
+SUMMARY = {"unknown": "an open question with an owner and what it blocks (an ask-by date only if the lead gave one)",
            "constraint": "a row on the constraints page: something the initiative can't change",
            "subject": "an outside party or value held for customers, with its required facts",
            "adr": "a decision record's skeleton, linked from the decisions page",
@@ -61,7 +61,7 @@ def register(sub):
         one = each.add_parser(kind, help=SUMMARY[kind], description=module.__doc__,
                               formatter_class=argparse.RawDescriptionHelpFormatter)
         one.add_argument("--vault", default=".", help="vault root or reader workspace (default: current directory)")
-        one.add_argument("--today", help="the date written (Opened, on, ask-by defaults), YYYY-MM-DD (default: today)")
+        one.add_argument("--today", help="the date written (Opened, and the day on a record line), YYYY-MM-DD (default: today)")
         for field, hint in module.FIELDS.items():
             flag = "--" + field.replace("_", "-")
             if field in LISTS:
@@ -165,8 +165,10 @@ def report(item, ident, written, blocks, view, reader):
     lines = [say.Line(f"added {kind} {ident or item.get('name', '')}: wrote {', '.join(written)}.",
                       plain=f"I've written down {_plain_name(kind, name)}.")]
     if kind == "unknown":
-        lines.append(say.Line(f"ask by: {_fact(view, ident, 'Ask by')}",
-                              plain=f"I've set it to be asked by {_fact(view, ident, 'Ask by')}."))
+        ask_by = _fact(view, ident, "Ask by")
+        lines.append(say.Line(f"ask by: {ask_by or 'no date set'}",
+                              plain=f"I've set it to be asked by {ask_by}." if ask_by else
+                              "There's no date to ask it by yet. Do you want one?"))
     if blocks:
         names = [textedit.name_of(view, b) for b in blocks]
         lines.append(say.Line(f"now blocks on the agenda: {', '.join(blocks)} (off the agenda until it is answered, "
@@ -198,7 +200,7 @@ def _quoted(name):
 def _fact(view, ident, label):
     found = textedit.find(view, ident)
     if found is None:
-        return "the date I worked out"
+        return ""
     text = view.text(found[0])
     start = text.find(f"### {ident}")
     for line in text[start:].split("\n")[1:]:
@@ -206,5 +208,5 @@ def _fact(view, ident, label):
             break
         if line.startswith(f"- **{label}:**"):
             return line.split(":**", 1)[1].strip()
-    return "the date I worked out"
+    return ""
 

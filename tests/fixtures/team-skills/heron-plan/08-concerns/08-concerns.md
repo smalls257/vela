@@ -10,12 +10,14 @@ authored: mixed
 
 One row per app, one column per concern.
 
-<!-- generated:concern-matrix sha=6cda4b11: do not edit, run vela render -->
+<!-- generated:concern-matrix sha=3ad7814d: do not edit, run vela render -->
+_Kept up to date by vela from the pages it reads._
+
 | App | [[concern-cost\|Cost]] | [[concern-data\|Data]] | [[concern-observability\|Observability]] | [[concern-operations\|Operations]] | [[concern-ownership\|Ownership]] | [[concern-rollout\|Rollout]] | [[concern-security\|Security]] | [[concern-testing\|Testing]] |
 |---|---|---|---|---|---|---|---|---|
-| [[consent-and-identity-building-blocks\|Consent and identity]] | not looked at yet | waiting on an open question | not looked at yet | not looked at yet | waiting on an open question | waiting on an open question | waiting on an open question | not looked at yet |
-| [[desktop-agent-building-blocks\|Desktop agent]] | not looked at yet | waiting on an open question | not looked at yet | not looked at yet | not looked at yet | waiting on an open question | waiting on an open question | not looked at yet |
-| [[summarizer-building-blocks\|Summarizer]] | not looked at yet | waiting on an open question | not looked at yet | not looked at yet | waiting on an open question | not looked at yet | waiting on an open question | waiting on an open question |
+| [[consent-and-identity-building-blocks\|Consent and identity]] | not reviewed yet | waiting on an open question | not reviewed yet | not reviewed yet | waiting on an open question | waiting on an open question | waiting on an open question | not reviewed yet |
+| [[desktop-agent-building-blocks\|Desktop agent]] | not reviewed yet | waiting on an open question | not reviewed yet | not reviewed yet | not reviewed yet | waiting on an open question | waiting on an open question | not reviewed yet |
+| [[summarizer-building-blocks\|Summarizer]] | not reviewed yet | waiting on an open question | not reviewed yet | not reviewed yet | waiting on an open question | not reviewed yet | waiting on an open question | waiting on an open question |
 <!-- /generated:concern-matrix -->
 
 ## Concern pages

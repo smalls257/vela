@@ -40,6 +40,8 @@ Lets a customer or an agent see which crossings run on a route and date, and how
 
 ## Delivered by
 
-<!-- generated:delivered-by sha=227c9e85: do not edit, run vela render -->
+<!-- generated:delivered-by sha=c0f0be02: do not edit, run vela render -->
+_Kept up to date by vela from the pages it reads._
+
 No epics yet.
 <!-- /generated:delivered-by -->

@@ -7,11 +7,11 @@ def primary(out):
     return sorted(f for f in findings(out) if f[0] != "W402")
 
 
-def test_missing_cell(mini):
+def test_an_app_with_no_row_is_unexamined_not_an_error(mini):
+    """No row is the state `unexamined`: the check reads rows, and the page needs no sentence saying so."""
     edit(mini / TESTING, "| [[stock-building-blocks\\|Stock]] | unchanged | Existing tests hold |\n", "")
     _, out = check(mini)
-    assert primary(out) == [("E315", TESTING)]
-    assert "APP-stock" in out
+    assert primary(out) == []
 
 
 def test_bad_cell_state(mini):
@@ -36,7 +36,7 @@ def test_unknown_cell_needs_an_unknown_link(mini):
 def test_cell_row_without_app_link(mini):
     edit(mini / TESTING, "| [[stock-building-blocks\\|Stock]] |", "| Stock |")
     _, out = check(mini)
-    assert primary(out) == [("E301", TESTING), ("E315", TESTING)]
+    assert primary(out) == [("E301", TESTING)]
 
 
 def test_new_app_with_no_cell_anywhere(mini):
@@ -44,7 +44,7 @@ def test_new_app_with_no_cell_anywhere(mini):
         "---\nid: APP-web\ntype: app-building-blocks\ntitle: Web\nstate: inkling\nchange: new\nstage: baseline\n"
         "owner: \"@mini/web-team\"\nauthored: authored\n---\n# Web\n", encoding="utf-8")
     _, out = check(mini)
-    assert primary(out) == [("E315", TESTING)]
+    assert primary(out) == []
 
 
 def test_cell_linking_a_page_that_is_not_an_app(mini):
@@ -52,27 +52,3 @@ def test_cell_linking_a_page_that_is_not_an_app(mini):
     _, out = check(mini)
     assert ("E301", TESTING) in primary(out)
     assert "not an app page" in out
-
-
-def test_an_app_on_the_not_looked_at_yet_line_is_covered(mini):
-    edit(mini / TESTING, "| [[stock-building-blocks\\|Stock]] | unchanged | Existing tests hold |\n",
-         "\nNot looked at yet: [[stock-building-blocks\\|Stock]].\n")
-    _, out = check(mini)
-    assert primary(out) == []
-
-
-def test_an_app_on_neither_the_table_nor_the_line_still_errors(mini):
-    edit(mini / TESTING, "| [[stock-building-blocks\\|Stock]] | unchanged | Existing tests hold |\n",
-         "\nNot looked at yet: [[shop-building-blocks\\|Shop]].\n")
-    _, out = check(mini)
-    assert primary(out) == [("E315", TESTING)] and "APP-stock" in out
-
-
-def test_the_line_add_app_stub_writes_is_the_line_check_reads(mini):
-    from vela.decisions import textedit
-    path = mini / TESTING
-    edit(path, "| [[stock-building-blocks\\|Stock]] | unchanged | Existing tests hold |\n", "")
-    path.write_text(textedit.add_not_looked(path.read_text(encoding="utf-8"), ("App", "State"),
-                                            "[[stock-building-blocks\\|Stock]]"), encoding="utf-8")
-    _, out = check(mini)
-    assert primary(out) == []

@@ -22,13 +22,13 @@ def record_text(captures=()):
     return "\n".join(lines) + "\n"
 
 
-def hand_off(vault, value):
+def hand_off(vault, value, pr="pending"):
     page = vault / STOCK
     text = page.read_text(encoding="utf-8")
     meta_end = text.index("\n---", 3)
     head, rest = text[:meta_end], text[meta_end:]
-    head = "\n".join(line for line in head.split("\n") if not line.startswith("handed_off:"))
-    page.write_text(f'{head}\nhanded_off: "{value}"{rest}', encoding="utf-8")
+    head = "\n".join(line for line in head.split("\n") if not line.startswith("handed_off"))
+    page.write_text(f'{head}\nhanded_off: "{value}"\nhanded_off_pr: {pr}{rest}', encoding="utf-8")
 
 
 def session(tmp_path, sync=True, handed=None, captures=(), on_main=None):
@@ -69,7 +69,7 @@ def record_meta(vault):
 
 def manifest_already_accepted(vault):
     """On main, before the session: stock was handed off and its team accepted the manifest."""
-    hand_off(vault, "@stock-team, 2026-10-01, PR #7")
+    hand_off(vault, "@stock-team, 2026-10-01", pr="7")
     assert run("render", "--vault", str(vault))[0] == 0
     git(vault, "add", "-A")
     git(vault, "commit", "-q", "-m", "hand off stock")
@@ -83,7 +83,7 @@ TEAM_YES = '- [decision] (@stock-team) "Yes, we take the changes to stock." → 
 
 
 def test_commit_order_close_then_manifest_then_dashboard(tmp_path):
-    vault = session(tmp_path, handed="@stock-team, 2026-10-20, PR pending")
+    vault = session(tmp_path, handed="@stock-team, 2026-10-20")
     code, out = finish(vault)
     assert code == 0, out
     assert subjects(vault, 3) == ["Rebuild dashboard", "Handoff manifest for APP-stock", f"Close session {RECORD}"]
@@ -96,7 +96,7 @@ def test_commit_order_close_then_manifest_then_dashboard(tmp_path):
 
 
 def test_manifest_written_after_close_commit_and_names_it(tmp_path):
-    vault = session(tmp_path, handed="@stock-team, 2026-10-20, PR pending")
+    vault = session(tmp_path, handed="@stock-team, 2026-10-20")
     code, out = finish(vault, "--for-lead")
     assert code == 0, out
     close_sha = git(vault, "rev-parse", "--short", "HEAD~2")
@@ -112,7 +112,7 @@ def test_the_lead_hears_what_is_not_settled_at_handoff(tmp_path):
                         encoding="utf-8")
         git(vault, "commit", "-qam", "stock level is only assumed")
         git(vault, "push", "-q", "origin", "main")
-    vault = session(tmp_path, handed="@stock-team, 2026-10-20, PR pending", on_main=assumed)
+    vault = session(tmp_path, handed="@stock-team, 2026-10-20", on_main=assumed)
     code, out = finish(vault, "--for-lead", "--more")
     assert code == 0, out
     assert closefinish.NOT_SETTLED_HEAD.format(app="Stock") in out
@@ -120,7 +120,7 @@ def test_the_lead_hears_what_is_not_settled_at_handoff(tmp_path):
 
 
 def test_replace_without_team_yes_exits_3(tmp_path):
-    vault = session(tmp_path, handed="@stock-team, 2026-10-20, PR pending", on_main=manifest_already_accepted)
+    vault = session(tmp_path, handed="@stock-team, 2026-10-20", on_main=manifest_already_accepted)
     head = git(vault, "rev-parse", "HEAD")
     for flags in ((), ("--replace",)):
         code, out = finish(vault, "--json", *flags)
@@ -135,7 +135,7 @@ def test_replace_without_team_yes_exits_3(tmp_path):
 
 
 def test_a_bare_ok_from_the_team_is_not_a_yes():
-    meta = {"owner": "@stock-team", "handed_off": "Sam Lee, 2026-10-20, PR pending"}
+    meta = {"owner": "@stock-team", "handed_off": "Sam Lee, 2026-10-20", "handed_off_pr": "pending"}
     assert closefinish.team_yes(record_text(['- [decision] (@stock-team) "ok" → park ^c01']), meta) is None
     assert closefinish.team_yes(record_text(['- [decision] (claude, from @stock-team) yes → park ^c01']), meta) is None
     assert closefinish.team_yes(record_text(['- [decision] (@someone-else) "Yes, go." → park ^c01']), meta) is None

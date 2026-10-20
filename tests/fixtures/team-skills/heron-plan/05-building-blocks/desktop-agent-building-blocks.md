@@ -5,7 +5,8 @@ title: Desktop agent
 state: assumption
 change: new
 stage: handoff
-handed_off: "@agent-lead, 2026-10-12, PR pending"
+handed_off: "@agent-lead, 2026-10-12"
+handed_off_pr: pending
 domain: Capture
 owner: "@sim-lead"
 authored: authored
@@ -72,7 +73,9 @@ The Desktop agent reads the signed-in person's calendar entries and existing Tea
 
 ## Where it fits
 
-<!-- generated:app-context sha=9a59b12f: do not edit, run vela render -->
+<!-- generated:app-context sha=2571aa67: do not edit, run vela render -->
+_Kept up to date by vela from the pages it reads._
+
 ```mermaid
 flowchart LR
   n_APP_consent_and_identity["Consent and identity (new)"]
@@ -94,13 +97,15 @@ flowchart LR
 Key: dark blue: the app this page is about · green: new in this initiative · white, dashed: outside this initiative (another company or system) · an arrow is a contract (an agreed interface), labeled with its name, pointing from the side that provides it to the app that uses it.
 <!-- /generated:app-context -->
 
-<!-- generated:contracts-consumed sha=089120f8: do not edit, run vela render -->
+<!-- generated:contracts-consumed sha=eded2317: do not edit, run vela render -->
+_Kept up to date by vela from the pages it reads._
+
 | Contract | Provided by | Who can change it, and how | How sure |
 |---|---|---|---|
-| [[desktop-agent-building-blocks#CON-001 Calendar and Teams transcripts\|Calendar and Teams transcripts (CON-001)]] | [[03-context-and-scope#PTY-01 Microsoft\|Microsoft]] | Not recorded. Microsoft runs the interface, and no agreement with Microsoft is registered. | assumed |
-| [[summarizer-building-blocks#CON-002 Note request\|Note request (CON-002)]] | [[summarizer-building-blocks\|Summarizer]] | A change is agreed by the product owner and the agent's team before the January package. | assumed |
-| [[consent-and-identity-building-blocks#CON-003 Consent check\|Consent check (CON-003)]] | [[consent-and-identity-building-blocks\|Consent and identity]] | A change is agreed by the product owner and the agent's team before the January package. | assumed |
-| [[consent-and-identity-building-blocks#CON-004 Record consent\|Record consent (CON-004)]] | [[consent-and-identity-building-blocks\|Consent and identity]] | A change is agreed by the product owner and the agent's team before the January package. | assumed |
+| [[desktop-agent-building-blocks#CON-001 Calendar and Teams transcripts\|Calendar and Teams transcripts (CON-001)]] | [[03-context-and-scope#PTY-01 Microsoft\|Microsoft]] | Not recorded. Microsoft runs the interface, and no agreement with Microsoft is registered. | not decided yet |
+| [[summarizer-building-blocks#CON-002 Note request\|Note request (CON-002)]] | [[summarizer-building-blocks\|Summarizer]] | A change is agreed by the product owner and the agent's team before the January package. | not decided yet |
+| [[consent-and-identity-building-blocks#CON-003 Consent check\|Consent check (CON-003)]] | [[consent-and-identity-building-blocks\|Consent and identity]] | A change is agreed by the product owner and the agent's team before the January package. | not decided yet |
+| [[consent-and-identity-building-blocks#CON-004 Record consent\|Record consent (CON-004)]] | [[consent-and-identity-building-blocks\|Consent and identity]] | A change is agreed by the product owner and the agent's team before the January package. | not decided yet |
 <!-- /generated:contracts-consumed -->
 
 ## History

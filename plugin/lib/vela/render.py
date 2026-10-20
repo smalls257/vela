@@ -59,7 +59,8 @@ def title(page):
 # --------------------------------------------------------------- the blocks
 
 def block_content(vault, page, name):
-    return normalize(GENERATORS[name](vault, page))
+    """A block's text: the caption that says the tool keeps it, a blank line, then what the generator drew."""
+    return normalize(f"{schema.GENERATED_CAPTION}\n\n{GENERATORS[name](vault, page)}")
 
 
 def contracts_consumed(vault, page):
@@ -147,7 +148,7 @@ def where_it_stands(vault, page):
         out.append("**Where each app has got to:** no app is being built or changed yet")
     handed = [a for a in vault.apps if schema.HANDED_OFF_RE.match(str(a.meta.get("handed_off", "")))]
     if handed:
-        out += ["", "**Handed to its team:** " + "; ".join(f"{plain_link(a.name, title(a))} ({a.meta['handed_off']})" for a in handed)]
+        out += ["", "**Handed to its team:** " + "; ".join(f"{plain_link(a.name, title(a))} ({schema.handed_off_label(a.meta)})" for a in handed)]
     out.append("")
     open_unknowns = [u for u in vault.unknowns if u.fact("State") == "open"]
     if open_unknowns:

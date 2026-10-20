@@ -70,7 +70,7 @@ def test_render_reverify_and_handed_off_are_not_changes(mini):
 
 def test_a_new_blocking_unknown_is_added_but_does_not_fail(mini):
     hand_off(mini)
-    edit(mini / "11-unknowns-and-risks.md", "- **Blocks:** nothing", "- **Blocks:** [[shop-building-blocks#CON-001 Sale API|CON-001]]")
+    edit(mini / "11-unknowns-and-risks.md", "- **Opened:** 2026-01-10", "- **Opened:** 2026-01-10\n- **Blocks:** [[shop-building-blocks#CON-001 Sale API|CON-001]]")
     code, out = verify(mini)
     assert code == 0
     assert "added: open question Till test rig (UNK-001), on 11-unknowns-and-risks.md, open" in out
@@ -96,7 +96,7 @@ def test_an_item_deleted_from_the_vault_is_removed(mini):
 
 
 def test_a_resolved_blocking_unknown_is_changed_not_removed(mini):
-    edit(mini / "11-unknowns-and-risks.md", "- **Blocks:** nothing", "- **Blocks:** [[stock-building-blocks#CON-002 Stock level|CON-002]]")
+    edit(mini / "11-unknowns-and-risks.md", "- **Opened:** 2026-01-10", "- **Opened:** 2026-01-10\n- **Blocks:** [[stock-building-blocks#CON-002 Stock level|CON-002]]")
     assert hand_off(mini)[0] == 0
     edit(mini / "11-unknowns-and-risks.md", "- **State:** open\n- **Ask by:**", "- **State:** resolved\n- **Ask by:**")
     code, out = verify(mini)
@@ -232,7 +232,7 @@ def test_reopened_is_an_epic_state_and_counts_as_not_decided(mini):
 def test_a_reopened_epic_trips_neither_e316_nor_e303(mini):
     (mini / "13-epics").mkdir()
     (mini / "13-epics" / "EPC-001-sell.md").write_text(EPIC, encoding="utf-8")
-    edit(mini / "11-unknowns-and-risks.md", "- **Blocks:** nothing", "- **Blocks:** [[EPC-001-sell|EPC-001]]")
+    edit(mini / "11-unknowns-and-risks.md", "- **Opened:** 2026-01-10", "- **Opened:** 2026-01-10\n- **Blocks:** [[EPC-001-sell|EPC-001]]")
     codes = [c for c, _ in findings(check(mini)[1])]
     assert "E316" not in codes and "E303" not in codes
 

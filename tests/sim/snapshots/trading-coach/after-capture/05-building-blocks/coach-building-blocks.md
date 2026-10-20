@@ -5,7 +5,8 @@ title: Coach
 state: decided
 change: new
 stage: contracts
-handed_off: "@coach-lead, 2026-10-09, PR pending"
+handed_off: "@coach-lead, 2026-10-09"
+handed_off_pr: pending
 owner: "@sim-lead"
 authored: authored
 sources: [SRC-03, SRC-08, SRC-10, SRC-11, 2026-10-09-first-instruments, 2026-10-09-first-release-apps]

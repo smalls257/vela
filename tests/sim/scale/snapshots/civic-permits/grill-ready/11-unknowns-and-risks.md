@@ -10,7 +10,9 @@ authored: mixed
 
 Three questions hold up the requirements for applying for a residential permit: [[#UNK-001 When the state's review clock starts|when the state's review clock starts for an online application]], [[#UNK-002 Who pays the card charge|who pays the card charge]], and whether the city can rely on [[#UNK-003 Checking licenses online|checking licenses online]]. Each is with the Permit Center for now. No risks are recorded yet.
 
-<!-- generated:unknowns-index sha=7650edb5: do not edit, run vela render -->
+<!-- generated:unknowns-index sha=ae9483ab: do not edit, run vela render -->
+_Kept up to date by vela from the pages it reads._
+
 **Questions**
 
 | Question | Who answers | Status | Answer needed by |

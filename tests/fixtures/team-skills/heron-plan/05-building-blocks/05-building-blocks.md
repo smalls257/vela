@@ -10,7 +10,9 @@ authored: mixed
 
 One page per app in scope, named `<app>-building-blocks.md`. Contracts live on the provider's page.
 
-<!-- generated:context-map sha=e649af20: do not edit, run vela render -->
+<!-- generated:context-map sha=a7d25d43: do not edit, run vela render -->
+_Kept up to date by vela from the pages it reads._
+
 ```mermaid
 flowchart LR
   n_APP_consent_and_identity["Consent and identity (new)"]

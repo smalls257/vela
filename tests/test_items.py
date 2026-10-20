@@ -26,20 +26,22 @@ def test_unknown_owner_must_be_a_handle(mini):
     assert codes(out) == [("E302", UNK)]
 
 
-def test_open_unknown_with_no_ask_by(mini):
+def test_open_unknown_with_no_ask_by_is_fine(mini):
+    """No date was given, so none is set: that is the lead's state, not a missing field."""
     edit(mini / UNK, "- **Ask by:** 2026-02-01\n", "")
     _, out = check(mini)
-    assert codes(out) == [("E302", UNK)]
+    assert [c for c in codes(out) if c[0] != "W402"] == []
 
 
-def test_unknown_with_no_blocks(mini):
-    edit(mini / UNK, "- **Blocks:** nothing\n", "")
+def test_unknown_with_no_blocks_blocks_nothing(mini):
+    """The mini fixture's first question has no Blocks line, and checks clean."""
+    assert "**Blocks:** nothing" not in (mini / UNK).read_text(encoding="utf-8")
     _, out = check(mini)
-    assert codes(out) == [("E302", UNK)]
+    assert codes(out) == []
 
 
 def test_blocks_in_words_only(mini):
-    edit(mini / UNK, "- **Blocks:** nothing\n", "- **Blocks:** the till rollout\n")
+    edit(mini / UNK, "- **Opened:** 2026-01-10\n", "- **Opened:** 2026-01-10\n- **Blocks:** the till rollout\n")
     _, out = check(mini)
     assert codes(out) == [("E302", UNK)]
 
@@ -140,14 +142,14 @@ def test_requirements_session_cannot_decide(mini):
 
 
 def test_gate_four_blocked_item_cannot_be_decided(mini):
-    edit(mini / UNK, "- **Blocks:** nothing\n", "- **Blocks:** [[shop-building-blocks#CON-001 Sale API|CON-001]]\n")
+    edit(mini / UNK, "- **Opened:** 2026-01-10\n", "- **Opened:** 2026-01-10\n- **Blocks:** [[shop-building-blocks#CON-001 Sale API|CON-001]]\n")
     _, out = check(mini)
     assert codes(out) == [("E316", SHOP)]
     assert "open unknown UNK-001 blocks it" in out
 
 
 def test_gate_four_on_a_page(mini):
-    edit(mini / UNK, "- **Blocks:** nothing\n", "- **Blocks:** [[01-goals|Goals]]\n")
+    edit(mini / UNK, "- **Opened:** 2026-01-10\n", "- **Opened:** 2026-01-10\n- **Blocks:** [[01-goals|Goals]]\n")
     _, out = check(mini)
     assert ("E316", GOALS) in codes(out)
 
@@ -195,21 +197,21 @@ def test_label_case_does_not_matter(mini):
 # fix round 1: GATE-4 reach, decided rows, malformed anchors and Decision links
 
 def test_gate_four_page_link_reaches_items_on_the_page(mini):
-    edit(mini / UNK, "- **Blocks:** nothing\n", "- **Blocks:** [[shop-building-blocks|Shop]]\n")
+    edit(mini / UNK, "- **Opened:** 2026-01-10\n", "- **Opened:** 2026-01-10\n- **Blocks:** [[shop-building-blocks|Shop]]\n")
     _, out = check(mini)
     assert ("E316", SHOP) in codes(out)
     assert "CON-001 is decided, but open unknown UNK-001 blocks it" in out
 
 
 def test_gate_four_anchor_id_matches_in_any_case(mini):
-    edit(mini / UNK, "- **Blocks:** nothing\n", "- **Blocks:** [[shop-building-blocks#con-001 Sale API|CON-001]]\n")
+    edit(mini / UNK, "- **Opened:** 2026-01-10\n", "- **Opened:** 2026-01-10\n- **Blocks:** [[shop-building-blocks#con-001 Sale API|CON-001]]\n")
     _, out = check(mini)
     assert ("E316", SHOP) in codes(out)  # E202 also fires: the anchor is not exact
 
 
 def test_gate_four_page_link_reaches_decided_goal_rows(mini):
     edit(mini / GOALS, "state: decided\n", "state: assumption\n")
-    edit(mini / UNK, "- **Blocks:** nothing\n", "- **Blocks:** [[01-goals|Goals]]\n")
+    edit(mini / UNK, "- **Opened:** 2026-01-10\n", "- **Opened:** 2026-01-10\n- **Blocks:** [[01-goals|Goals]]\n")
     _, out = check(mini)
     assert "G1 is decided, but open unknown UNK-001 blocks it" in out
 
@@ -223,7 +225,7 @@ def test_decided_goal_row_needs_a_grill(mini):
 
 
 def test_whitespace_only_anchor_is_not_a_crash(mini):
-    edit(mini / UNK, "- **Blocks:** nothing\n", "- **Blocks:** [[shop-building-blocks# ]]\n")
+    edit(mini / UNK, "- **Opened:** 2026-01-10\n", "- **Opened:** 2026-01-10\n- **Blocks:** [[shop-building-blocks# ]]\n")
     code, out = check(mini)
     assert code in (0, 1), out
     assert "internal error" not in out
