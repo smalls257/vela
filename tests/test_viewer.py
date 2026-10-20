@@ -11,7 +11,7 @@ import pytest
 
 import pathlib
 
-from conftest import MINI, REPO, edit, run
+from conftest import MINI, REPO, edit, run, chrome_profile
 
 FIXTURE = REPO / "examples" / "unified-booking"
 ASSETS = REPO / "plugin" / "lib" / "vela" / "assets"
@@ -434,7 +434,7 @@ def audit(html):
 
 def dump_dom(viewer_file, route):
     result = subprocess.run(
-        [CHROME, "--headless=new", "--disable-gpu", "--virtual-time-budget=20000", "--dump-dom",
+        [CHROME, "--headless=new", chrome_profile(), "--disable-gpu", "--virtual-time-budget=20000", "--dump-dom",
          f"file://{viewer_file}#/{route}"],
         capture_output=True, text=True, timeout=90)
     assert result.returncode == 0, result.stderr[-500:]

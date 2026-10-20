@@ -155,3 +155,21 @@ def _no_installed_plugins(tmp_path_factory, monkeypatch):
     """No test may find a vela plugin installed on the machine that runs it (~/.claude/plugins): point the plugins root at
     an empty folder. A test that wants an installed copy sets CLAUDE_CODE_PLUGIN_CACHE_DIR itself."""
     monkeypatch.setenv("CLAUDE_CODE_PLUGIN_CACHE_DIR", str(tmp_path_factory.mktemp("no-plugins")))
+
+
+_CHROME_PROFILES = []
+
+
+def chrome_profile():
+    """A `--user-data-dir` flag naming a fresh profile folder for one headless Chrome launch. Without it, parallel
+    launches share the default profile, and while the user's own Chrome holds that profile's lock a headless one can
+    hang with no output until the test's timeout (the browser-test flakes under `-n auto`, E86)."""
+    import tempfile
+    folder = tempfile.mkdtemp(prefix="vela-chrome-")
+    _CHROME_PROFILES.append(folder)
+    return f"--user-data-dir={folder}"
+
+
+def pytest_unconfigure(config):
+    for folder in _CHROME_PROFILES:
+        shutil.rmtree(folder, ignore_errors=True)  # nosemgrep: except-pass -- best-effort cleanup of temp profiles

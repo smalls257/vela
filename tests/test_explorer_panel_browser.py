@@ -13,6 +13,8 @@ import shutil
 import subprocess
 import sys
 
+from conftest import chrome_profile
+
 import pytest
 from test_explorer_browser import find_chrome
 
@@ -48,7 +50,7 @@ WANTED = [
 
 
 def selftest_lines(chrome, html_path, size):
-    dom = subprocess.run([str(chrome), "--headless=new", "--disable-gpu", "--no-sandbox", f"--window-size={size}", "--virtual-time-budget=90000", "--dump-dom",
+    dom = subprocess.run([str(chrome), "--headless=new", chrome_profile(), "--disable-gpu", "--no-sandbox", f"--window-size={size}", "--virtual-time-budget=90000", "--dump-dom",
                           f"file://{html_path}#inside&selftest"], timeout=300, capture_output=True, text=True).stdout
     found = re.search(r'data-selftest="([^"]*)"', dom)
     assert found, f"the page produced no selftest report at {size}"
