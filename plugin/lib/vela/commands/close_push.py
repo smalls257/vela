@@ -279,7 +279,7 @@ def consent_refusal(root, session, ref):
     if first is not None:
         return first, None
     yes = record.capture(ref)
-    not_theirs = consents.from_the_lead(yes, own_handle(root, PUSH))
+    not_theirs = consents.from_the_lead(yes, own_handle(root, PUSH), sessiongit.lead_names(root))
     if not_theirs is not None:
         return not_theirs, yes
     marker = read_marker(root, close_file(session.id, "push-notice"))

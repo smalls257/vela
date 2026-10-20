@@ -294,3 +294,22 @@ def test_check_without_for_lead_unchanged(tmp_path):
     assert len([line for line in out.splitlines() if " W807 " in line]) == 3
     assert run("check", "--vault", str(vault), "--gate", "grill", "--item", "CON-099", "--for-lead")[0] == 2
     assert run("check", "--vault", str(vault), "--json")[0] == 2, "--json goes with --gate grill --item"
+
+
+# ------------------------------------------------------------------ --all: one call finds what is ready
+
+def test_gate_all_lists_every_waiting_item_with_the_ready_ones_first(ub):
+    ids = grill.candidates(cli.load_vault(ub))
+    assert "CON-001" in ids and "CON-002" in ids
+    block_booking(ub)
+    code, out = run("check", "--vault", str(ub), "--today", TODAY, "--gate", "grill", "--all", "--json")
+    data = json.loads(out)["items"]
+    assert {i["id"] for i in data} == set(ids)
+    flags = [i["ready"] for i in data]
+    assert flags == sorted(flags, reverse=True)  # ready first
+    assert any(not f for f in flags)
+
+
+def test_gate_all_refuses_a_named_item_and_a_non_grill_gate(ub):
+    assert run("check", "--vault", str(ub), "--gate", "grill", "--all", "--item", "CON-001")[0] == 2
+    assert run("check", "--vault", str(ub), "--gate", "shape", "--all")[0] == 2

@@ -236,6 +236,29 @@ def write_state(root, state):
     return write_text(root, STATE_FILE, json.dumps(state, indent=2) + "\n")
 
 
+NAME_FILE = ".vela/name"
+
+
+def _first_line(path):
+    """The first line of a small personal file, or "" when there is no such file (no name kept is no name)."""
+    try:
+        return path.read_text(encoding="utf-8").split("\n", 1)[0].strip()
+    except (FileNotFoundError, UnicodeDecodeError):
+        return ""
+
+
+def lead_names(root):
+    """The lead's display names, lower-cased: the first line of `.vela/name` (`vela whoami --name`) and git's
+    `user.name`. A name the model typed as an origin ("Sim Lead", "Jo Smith") is the lead's own words under another
+    spelling; the handle is what the checks compare, so these let it be rewritten to the handle."""
+    found = {_first_line(pathlib.Path(root) / NAME_FILE)}
+    if not is_read_copy(root):  # a reader copy runs no git
+        code, value, _ = run_git(root, "config", "user.name")
+        if code == 0:
+            found.add(value.strip())
+    return {n.casefold() for n in found if n}
+
+
 def read_handle(root):
     """The first line of `.vela/handle`, or ""."""
     try:

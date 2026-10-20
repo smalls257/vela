@@ -72,7 +72,7 @@ def same_handle(origin, handle):
     return bool(handle) and origin.strip().lstrip("@").casefold() == handle.strip().lstrip("@").casefold()
 
 
-def from_the_lead(capture, handle):
+def from_the_lead(capture, handle, names=()):
     """A send's yes must be the lead's own: `from_a_person` alone let an operator's account email, a name the model
     guessed, or a reviewer stand in for them (the confirm run recorded the sends in S14, S18 and S21 under an email
     address). `handle` is `vela whoami`'s; "" when it isn't known, which is refused too, since then nobody's yes can
@@ -87,8 +87,8 @@ def from_the_lead(capture, handle):
                                               "Did you say yes to sending it?",
                         f"^c{capture.n} is unverified (no log of what was typed). Ask the lead; on their yes run "
                         "vela record confirm, then vela close push --consent again.", override=NO_PUSH_OVERRIDE)
-    if same_handle(capture.origin, handle):
-        return None
+    if same_handle(capture.origin, handle) or capture.origin.strip().casefold() in {n.casefold() for n in names}:
+        return None  # the lead's own display name is the lead
     return _refusal("consent-not-the-lead",
                     f"That yes is written down as coming from {capture.origin}, not from you, so I haven't sent "
                     "anything. Shall I send it?",

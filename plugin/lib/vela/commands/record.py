@@ -163,6 +163,8 @@ def spells_the_lead(root, origin):
     word = origin.strip().casefold()
     if word in LEAD_WORDS:
         return True
+    if word in sessiongit.lead_names(root):
+        return True  # the lead's display name ("Jo Smith"), from git or `vela whoami --name`
     handle = sessiongit.read_handle(root).lstrip("@").casefold()
     return bool(handle) and word.lstrip("@") == handle
 
