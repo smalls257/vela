@@ -174,11 +174,12 @@ not taste. Read the quoted turns in `transcript.html` before you believe a score
 ### Precision
 
 Recall against the brief can rise because a session wrote more. So the scorecard also asks what share of what the
-vault holds can be trusted. `precision.py` draws 30 items from the final vault (`origin/main`, as the comparison
+vault holds can be trusted. `precision.py` draws 4 passes of 30 items (seeds 101, 202, 303, 404; pooled 120, reported with a plus-minus, the half-range of the per-seed precisions; `--quick` for one pass, which swings about 15 points) from the final vault (`origin/main`, as the comparison
 reads it): a section under an item heading, or on a page with none a paragraph, bullet or table row. The sample is
 stratified by page type with a fixed seed, so two runs are sampled the same way and a rerun draws the same items.
-Session records (`sessions/`), the team's documents (`docs/`) and any text the vault template already holds word
-for word are left out. One judge call (capped at $1.50, thinking on, in the preflight like every other category)
+Session records (`sessions/`), the team's documents (`docs/`), any text the vault template already holds word
+for word, and everything the tool generated rather than the model wrote are left out: handoff pages, an epic's
+`- Trace:` and decision-link lines, template and retired template lines, CLI-rendered tables. One judge call (capped at $1.50, thinking on, in the preflight like every other category)
 classes each item:
 
 - **backed**: in a source document or the lead's own words (the judge quotes the place), or plainly an open

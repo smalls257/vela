@@ -19,7 +19,22 @@ A citation the driver can't find (a quote not in the document, the turn or the i
 the item unsupported, and the reason is listed under `dropped`, as run.py's judge drops an unquoted yes.
 Precision is 1 - (unsupported + padding) / sampled; the duplicate rate is reported beside it.
 
-The sample is stratified by page type with a fixed seed, so two runs are sampled the same way and a rerun of one run
+Only text the model wrote is sampled. The Violation this prevents is a Paper Tiger of the measurement itself: a
+generated or fixed-format line judged as padding moves the score with the tool's output, not with the voice. These
+kinds are excluded from the population by rule (GENERATED_KINDS below), whatever the persona or the run:
+- handoff pages (handoffs/): written whole by vela handoff, its table rows and "Not settled" sentences included;
+- "- Trace:" lines (epics, capabilities, slices, any page) and the "- **Decision:** [[link]]" line of an epic:
+  bookkeeping the CLI's format fixes, the model only picks the IDs;
+- lines a template generates: any line in plugin/catalog/template-lines.txt or template-lines-retired.txt, and any
+  paragraph the vault template already holds word for word;
+- tables and rows the CLI renders verbatim: the <!-- generated: --> blocks.
+A table cell, a sentence or a capture the model wrote stays in, however thin it is.
+
+The default pass is POOLED: SEEDS (4 seeds of SAMPLE_SIZE 30 = 120 items), one judge call per seed. One 30-item pass
+swings about 15 points, so the headline is the pooled precision with a plus-minus, the half-range of the per-seed
+precisions. --quick runs one pass, for a cheap look; its score has no plus-minus and carries that swing.
+
+Each pass is stratified by page type with a fixed seed, so two runs are sampled the same way and a rerun of one run
 picks the same items. Session records (sessions/) and the team's documents (docs/) are left out: the first copy the
 lead's words by design, and the second are the team's, not the plan's.
 
@@ -42,7 +57,8 @@ import types
 
 HERE = pathlib.Path(__file__).resolve().parent
 SAMPLE_SIZE = 30
-SEED = 20261015
+SEED = 20261015  # the single quick pass
+SEEDS = (101, 202, 303, 404)  # the default pooled pass: 4 x SAMPLE_SIZE
 CLASSES = ("backed", "duplicate", "padding", "unsupported")
 BASES = ("source", "lead", "question")
 AGAINST = ("unsupported", "padding")  # what counts against precision
@@ -127,6 +143,38 @@ def loose_units(body):
 
 
 TEMPLATE = HERE.parent.parent / "template"
+CATALOG = HERE.parent.parent / "plugin" / "catalog"
+GENERATED_KINDS = ("handoff page", "epic trace line", "epic decision link", "template line", "generated block")
+BOOKKEEPING = {  # name: (page types it applies to, or None for every page, the line)
+    "epic trace line": (None, re.compile(r"^\s*[-*+]\s+Trace:")),
+    "epic decision link": ({"epic"}, re.compile(r"^\s*[-*+]\s+\*\*Decision:\*\*\s+\[\[[^\]]*\]\]\s*$")),
+}
+
+
+def is_handoff_page(rel):
+    return pathlib.PurePosixPath(rel).parts[0] == "handoffs"
+
+
+def template_lines(catalog=CATALOG):
+    """Normalized lines the templates generate, current and retired, so a vault that still carries one is not sampled."""
+    out = set()
+    for name in ("template-lines.txt", "template-lines-retired.txt"):
+        path = pathlib.Path(catalog) / name
+        if path.is_file():
+            out |= {normalize(x) for x in path.read_text(encoding="utf-8").splitlines() if x.strip()}
+    return out
+
+
+def without_generated_lines(body, page_type, lines_given):
+    """The body minus the lines the tool wrote: an epic's trace and decision-link lines, and template sentences."""
+    kept = []
+    for line in body.splitlines():
+        if any(r.match(line) for types, r in BOOKKEEPING.values() if types is None or page_type in types):
+            continue
+        if line.strip() and normalize(line.strip()) in lines_given:
+            continue
+        kept.append(line)
+    return "\n".join(kept)
 
 
 def template_text(rel, template=TEMPLATE):
@@ -134,18 +182,18 @@ def template_text(rel, template=TEMPLATE):
     return normalize(path.read_text(encoding="utf-8", errors="replace")) if path.is_file() else ""
 
 
-def units_of(vault, template=TEMPLATE):
-    """Every item the sessions wrote, in page order. A paragraph or section the vault template already holds, word
+def units_of(vault, template=TEMPLATE, catalog=CATALOG):
+    """Every item the model wrote, in page order (nothing in GENERATED_KINDS). A paragraph or section the vault template already holds, word
     for word, was never written by a session, so it is not sampled (it would read as padding the run never wrote)."""
-    out = []
+    out, lines_given = [], template_lines(catalog)
     for rel, text in compare.vault_files(pathlib.Path(vault)):
-        if rel.parts[0] in SKIP_TOP:
+        if rel.parts[0] in SKIP_TOP or is_handoff_page(rel.as_posix()):
             continue
         meta, body = compare.frontmatter(text)
         page_type = meta.get("type") or f"untyped ({rel.parts[0] if len(rel.parts) > 1 else 'root'})"
         if page_type == "session":
             continue
-        body, given = clean(body), template_text(rel, template)
+        body, given = without_generated_lines(clean(body), page_type, lines_given), template_text(rel, template)
         written = lambda text: not (given and normalize(text) in given)
         found = item_sections(body.splitlines())
         if found:
@@ -393,6 +441,33 @@ def score(vault, docs, spoken, send, size=SAMPLE_SIZE, seed=SEED, vault_ref=""):
     return summarize(rows, dropped, len(units), cuts=cuts, **base)
 
 
+def pool(records, seeds):
+    """One record from the passes of several seeds: items and counts added up, precision over all of them, and the
+    spread between the passes (plus-minus is the half-range of the per-seed precisions)."""
+    rows = [r for rec in records for r in rec["items"]]
+    dropped = [f"seed {rec['seed']}: {d}" for rec in records for d in rec["dropped"]]
+    pooled = summarize(rows, dropped, records[0]["population"], cuts=sorted({c for rec in records for c in rec["cuts"]}),
+                       seed=list(seeds), size=sum(rec["sampled"] for rec in records), vault=records[0]["vault"])
+    per_seed = [{"seed": rec["seed"], "sampled": rec["sampled"], "precision": rec["precision"],
+                 "counts": rec["counts"]} for rec in records]
+    values = [p["precision"] for p in per_seed]
+    pooled["passes"] = per_seed
+    pooled["plus_minus"] = round((max(values) - min(values)) / 2, 3)
+    pooled["precision_range"] = [min(values), max(values)]
+    return pooled
+
+
+def score_pooled(vault, docs, spoken, send, size=SAMPLE_SIZE, seeds=SEEDS, vault_ref=""):
+    """The default precision record: one pass per seed, pooled. Any pass not scored makes the whole record missing,
+    since a pooled score over fewer items than asked would read as a full one."""
+    records = [score(vault, docs, spoken, send, size, seed, vault_ref) for seed in seeds]
+    for rec in records:
+        if "missing" in rec:
+            return {"size": size, "vault": rec["vault"], "seed": list(seeds), "sampled": rec["sampled"],
+                    "population": rec["population"], "missing": rec["missing"] if not rec["sampled"] else f"seed {rec['seed']}: {rec['missing']}"}
+    return pool(records, seeds)
+
+
 # ------------------------------------------------------------------ the preflight's made-up run
 
 PREFLIGHT_DOCS = [{"name": "cio-note.md", "text": "The pilot is 40 desks in Leeds. Legal reviews the privacy notice."}]
@@ -432,7 +507,8 @@ def parse_args(argv):
     p.add_argument("--arm", default="vela")
     p.add_argument("--stub", action="store_true", help="use the scripted fake claude in tests/sim/stub/")
     p.add_argument("--size", type=int, default=SAMPLE_SIZE)
-    p.add_argument("--seed", type=int, default=SEED)
+    p.add_argument("--seeds", default=",".join(map(str, SEEDS)), help="comma-separated seeds, one pass of --size each, pooled")
+    p.add_argument("--quick", action="store_true", help=f"one pass of --size with seed {SEED}, no plus-minus")
     return p.parse_args(argv)
 
 
@@ -458,7 +534,8 @@ def main(argv=None):
                 return 4
         with tempfile.TemporaryDirectory(prefix="precision-") as work:
             vault, ref = final_vault(arm.dir, work)
-            record = sim.judge_precision(arm, vault, ref, size=args.size, seed=args.seed)
+            seeds = (SEED,) if args.quick else tuple(int(x) for x in args.seeds.split(","))
+            record = sim.judge_precision(arm, vault, ref, size=args.size, seeds=seeds, quick=args.quick)
     except (sim.ToolFailure, JudgeFailure) as exc:
         print(f"precision: {exc}", file=sys.stderr)
         return 2
@@ -474,7 +551,8 @@ def render(record):
     if "missing" in record:
         return f"Precision: not scored ({record['missing']})"
     c, r = record["counts"], record["rates"]
-    return (f"Precision {record['precision']:.0%} over {record['sampled']} sampled items of {record['population']}: "
+    pm = f" ±{record['plus_minus'] * 100:.0f} points (seed spread, {len(record['passes'])} passes)" if "passes" in record else ""
+    return (f"Precision {record['precision']:.0%}{pm} over {record['sampled']} sampled items of {record['population']}: "
             + ", ".join(f"{k} {c[k]} ({r[k]:.0%})" for k in CLASSES)
             + (f"; {len(record['dropped'])} citations failed and read unsupported" if record["dropped"] else ""))
 
