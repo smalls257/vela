@@ -33,11 +33,13 @@ HEADING_MAX_WORDS = 6
 
 # --- the view's context ---------------------------------------------------------------------------------------------
 
-def attach(view, today, branch_texts):
-    """Give a `decisions.Staged` view what the pure kinds can't read themselves: today's date and the texts of the
-    other branches' IDs. The shell calls this before `decisions.plan`."""
+def attach(view, today, branch_texts, lead=None):
+    """Give a `decisions.Staged` view what the pure kinds can't read themselves: today's date, the texts of the
+    other branches' IDs, and who the lead is as (handle, display names), None when unknown. The shell calls this
+    before `decisions.plan`."""
     view.today = str(today)
     view.branch_texts = list(branch_texts)
+    view.lead = lead
     return view
 
 

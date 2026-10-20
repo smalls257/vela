@@ -234,7 +234,22 @@ class Finish:
         self.result.wrote.append(self.record.path)
         self.say(f"vela close finish: {self.record.path}: status: closed, with its summary.",
                  None if self.reader else "I've closed the session record, with its summary.")
+        self.say_what_waits_for_a_grill()
         return True
+
+    def say_what_waits_for_a_grill(self):
+        """The lead's yeses from this session that sit on items not yet decided, so they hear the next grill has them
+        (E81: a yes in a session that can't decide was recorded and then forgotten)."""
+        from vela import decisions
+        from vela.decisions import decide, ready, textedit
+        from vela.edge import apply as disk
+        staged = textedit.attach(decisions.Staged(self.vault, disk.reader(self.root)), self.today, [])
+        found = ready.waiting([self.closed], lambda ident: decide.already(staged, ident) is not None)
+        names = [self.vault.name_of(e["id"]) for e in found]
+        self.result.data["ready_to_decide"] = [e["id"] for e in found]
+        if found:
+            self.say("vela close finish: ready to decide: " + ", ".join(e["id"] for e in found),
+                     ready.sentence([n if n != e["id"] else "an item" for n, e in zip(names, found)]))
 
     def close_commit(self, _):
         code, output = call("close", "stage", "--close", "--session", self.record.id, "--vault", self.root, "--json")
