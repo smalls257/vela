@@ -131,13 +131,15 @@ def asks(vault, keys, as_of):
 # ---------------------------------------------------------------- decisions, for the decision log
 
 def parse_options(text):
-    """'A (picked); B: rejected, why' or 'B. Rejected: why' -> (picked, [rejected])."""
+    """'A (picked); B: rejected, why' or 'B. Rejected: why' -> (picked, [rejected]). A pick may carry its reason: 'A (picked): why'."""
     picked, rejected = None, []
     for part in re.split(r";\s+(?![^()]*\))", plain(text)):
         part = part.strip()
-        m = re.match(r"(.+?)\s*\((picked[^)]*)\)\s*$", part)
+        m = re.match(r"(.+?)\s*\((picked[^)]*)\)(?::\s*(.*))?$", part)  # "A (picked)" or "A (picked): the reason it won"
         if m:
             picked = {"label": m.group(1).strip(), "condition": m.group(2)[len("picked"):].strip(" ,")}
+            if m.group(3):
+                picked["why"] = m.group(3).strip().strip('"\u201c\u201d').strip()
             continue
         m = re.match(r"(.+?)(?::\s*|\.\s+)rejected(?: for now)?[,:]?\s*(.*)$", part, re.I)
         if m:

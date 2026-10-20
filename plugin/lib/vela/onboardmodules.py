@@ -9,6 +9,7 @@ Pure: `facts` is the dict `explorer.build.extract` returns (the page's D). Links
 key the data doesn't hold gets no link, so a dead link can't be written (the page's selftest follows each one).
 """
 import math
+import re
 from urllib.parse import quote
 
 from vela import onboarding, plainwords, say
@@ -123,9 +124,16 @@ def state_item(f, key, note="", pill=None):
                 TONE_OF_STATE.get(state, ""))
 
 
-def person(handle):
-    words = say.person_words(handle)
+def person(handle, f=None):
+    """A handle as a name: the name Who to ask gives them when the plan has one ("DPO", never "Dpo"), else the handle as words."""
+    named = next((a["ask"]["name"] for a in (f["asks"] if f else []) if a["ask"]["key"] == handle and a["ask"]["name"]), "")
+    words = named or say.person_words(handle)
     return words[:1].upper() + words[1:]
+
+
+def owner_key(handle):
+    """The key the dashboard opens a person under: the details of what they own and what waits on them."""
+    return "owner:" + handle if handle.startswith("@") else ""
 
 
 def date_phrase(iso):
@@ -135,13 +143,13 @@ def date_phrase(iso):
 def most_owning_person(f):
     """The owner with the most pages and items, as a name: who to ask when a part has no owner of its own."""
     ranked = sorted(f["owners"].values(), key=lambda o: (-len(o["owns"]), o["handle"]))
-    return person(ranked[0]["handle"]) if ranked else ""
+    return person(ranked[0]["handle"], f) if ranked else ""
 
 
 def who_to_ask(f, page_key=""):
     e = entity(f, page_key) if page_key else None
     owner = e["ownerKey"] if e and e.get("ownerKey") else ""
-    return person(owner) if owner else most_owning_person(f) or "whoever shared this plan with you"
+    return person(owner, f) if owner else most_owning_person(f) or "whoever shared this plan with you"
 
 
 def section_page(f, section_id):
@@ -233,6 +241,28 @@ def decision_key(tree):
     return (tree.get("adr") or {}).get("key") or tree["carriedBy"][0]["key"]
 
 
+def question_label(f, ask):
+    """A question as a person would put it. One whose own words hold a code is named by the plan's title for it, then by who holds
+    it, never dropped: an open question must not vanish from the list because of how it was worded."""
+    return say_text(ask["question"]) or title(f, ask["id"]) or f"A question waiting on {ask['ask']['name']}"
+
+
+def decision_label(tree):
+    """What was picked, as a name. A pick whose own words hold a code is named for the page that records it instead of
+    being dropped: a decision must never vanish from the list because of how it was worded."""
+    said = say_text(tree["picked"]["label"])
+    if said:
+        return said
+    page = say_text(tree["carriedBy"][0].get("pageTitle", "")) if tree["carriedBy"] else ""
+    return f"A decision recorded on {page}" if page else "A decision with no name yet"
+
+
+def decision_ref(tree):
+    """The key the dashboard opens a decision's record under (the decision log's own), not the page that carries it: a flow or an
+    epic page can carry a decision and still be a flow or an epic when picked."""
+    return "decision:" + ((tree.get("adr") or {}).get("id") or tree["id"])
+
+
 def standing(f):
     trees = [t for t in f["garden"]["trees"] if t.get("state")]
     open_asks = [a for a in f["asks"] if a["state"] == "open"]
@@ -255,32 +285,41 @@ def standing(f):
             reason = cut(say_text(gone[0]["reason"]), 160)
             why = f" We ruled out {say_text(gone[0]['label'])}" + (f": {reason}" if reason else "")
             why += "" if why[-1] in ".!?…" else "."  # a reason that ends in its own punctuation is not followed by another period
-        body.append(f"{say_text(t['picked']['label'])} is {plainwords.state_word(t['state'])}.{why}")
+        body.append(f"{decision_label(t)} is {plainwords.state_word(t['state'])}.{why}")
     items = []
     for t in decided + others:
         key = decision_key(t)
         gone = ", ".join(say_text(r["label"]) for r in t["rejected"] if say_text(r["label"]))
-        items.append(item(cut(say_text(t["picked"]["label"]), 100), plainwords.state_word(t["state"]), f"Ruled out: {gone}" if gone else "",
-                          route(f, key), key if entity(f, key) else "", TONE_OF_STATE.get(t["state"], "")))
+        items.append(item(cut(decision_label(t), 100), plainwords.state_word(t["state"]), f"Ruled out: {gone}" if gone else "",
+                          route(f, key), decision_ref(t), TONE_OF_STATE.get(t["state"], "")))
     for a in sorted(open_asks, key=lambda a: -a["light"]["urgency"])[:OPEN_LISTED]:  # the most urgent few; the rest are one link away
         by = f" by {date_phrase(a['askBy'])}" if a["askBy"] else ""
         late = a["light"]["level"] == "warning"
-        items.append(item(cut(say_text(a["question"]), 110), "overdue" if late else "open", f"Ask {a['ask']['name']}{by}", route(f, a["id"]), a["id"], "late" if late else "open"))
+        items.append(item(cut(question_label(f, a), 110), "overdue" if late else "open", f"Ask {a['ask']['name']}{by}", route(f, a["id"]), a["id"], "late" if late else "open"))
     return make("standing", gist[:1].upper() + gist[1:] + ".", body, items, [link("The decision log", "#s=decisions"), link("Who to ask", "#asks" if open_asks else "")])
 
 
 def fit(f, audience):
     label = onboarding.AUDIENCE_LABELS[audience]
     touched = touches(f, audience)
-    if not touched["keys"]:
+    items = exec_items(f, touched["keys"]) if audience == "exec" else [state_item(f, k, note=LEVEL_WORD.get(f["lights"].get(k, {}).get("level", ""), "")) for k in touched["keys"]]
+    if not items:
         return not_recorded(f, "fit", f"what {NOUN[audience]} touches here", section_page(f, "apps"))
-    n = len(touched["keys"])
     lit = [k for k in f["ranked"] if k in touched["keys"]]
     first = lit[:3] or touched["keys"][:3]
-    gist = f"As {NOUN[audience]}, you will mostly deal with {touched['phrase']}: {n} here."
+    gist = f"As {NOUN[audience]}, you will mostly deal with {touched['phrase']}: {len(items)} here."
     body = [f"What needs attention first: {', '.join(title(f, k) for k in first)}." if lit else "Nothing in them is overdue or waiting on someone right now."]
-    items = [state_item(f, k, note=LEVEL_WORD.get(f["lights"].get(k, {}).get("level", ""), "")) for k in touched["keys"]]
     return make("fit", gist, body, items, [link(f"The {label} view", f"#role={audience}" if audience != "lead" else "#home")])
+
+
+def exec_items(f, keys):
+    """An exec's decisions are the choices, one each, named by what was picked (not by the epic or strategy page that records
+    them), then the risks. A decision on a page the dashboard has no entry for is still listed."""
+    trees = [t for t in f["garden"]["trees"] if t.get("state")]
+    items = [item(cut(decision_label(t), 100), plainwords.state_word(t["state"]), "", route(f, decision_key(t)), decision_ref(t), TONE_OF_STATE.get(t["state"], "")) for t in trees]
+    carriers = {decision_key(t) for t in trees}
+    items += [state_item(f, k, note=LEVEL_WORD.get(f["lights"].get(k, {}).get("level", ""), "")) for k in keys if k not in carriers]
+    return items
 
 
 def touches(f, audience):
@@ -301,14 +340,13 @@ def people(f, audience):
     keys = set(touches(f, audience)["keys"])
     owners = sorted(f["owners"].values(), key=lambda o: (-len(keys & set(o["owns"])), -len(o["owns"]), o["handle"]))
     items = []
-    for o in owners[:6]:
+    for o in owners:
         mine = [title(f, k) for k in o["owns"] if k in keys and title(f, k)][:2]
         role = o["names"][0] if o["names"] else ""
         note = ("Owns " + " and ".join(mine)) if mine else f"Owns {count_phrase(len(o['owns']), 'page or item', 'pages and items')}"
-        items.append(item(person(o["handle"]), role, note, "#asks"))
-    asks = who_holds(f)
-    for name, mine in asks[:3]:
-        items.append(item(name, "holds answers", count_phrase(len(mine), "open question"), "#asks"))
+        items.append(item(person(o["handle"], f), role, note, "#asks", owner_key(o["handle"])))
+    for name, handle, mine in who_holds(f):
+        items.append(item(name, "holds answers", count_phrase(len(mine), "open question"), "#asks", owner_key(handle)))
     if not items:
         return not_recorded(f, "people", "who owns what", section_page(f, "unknowns"))
     names = [i["label"] for i in items[:3]]
@@ -316,12 +354,12 @@ def people(f, audience):
 
 
 def who_holds(f):
-    """[(name, [open asks])], most first: who the open questions wait on."""
+    """[(name, handle, [open asks])], most first: who the open questions wait on."""
     held = {}
     for a in f["asks"]:
         if a["state"] == "open":
-            held.setdefault(a["ask"]["name"], []).append(a)
-    return sorted(held.items(), key=lambda kv: (-len(kv[1]), kv[0]))
+            held.setdefault((a["ask"]["name"], a["ask"]["key"]), []).append(a)
+    return sorted(((name, handle, mine) for (name, handle), mine in held.items()), key=lambda t: (-len(t[2]), t[0]))
 
 
 # --------------------------------------------------------------------------- the role specifics
@@ -343,7 +381,7 @@ def open_questions(f):
     for a in asks:
         by = f" by {date_phrase(a['askBy'])}" if a["askBy"] else ""
         late = a["light"]["level"] == "warning"
-        items.append(item(cut(say_text(a["question"]), 110), "overdue" if late else "open", f"Ask {a['ask']['name']}{by}", f"#asks&open={quote(a['id'], safe='')}", a["id"], "late" if late else "open"))
+        items.append(item(cut(question_label(f, a), 110), "overdue" if late else "open", f"Ask {a['ask']['name']}{by}", f"#asks&open={quote(a['id'], safe='')}", a["id"], "late" if late else "open"))
     late = sum(1 for i in items if i["tone"] == "late")
     gist = f"{count_phrase(len(asks), 'question')} open" + (f", {of_them(late, len(asks), 'past their date')}" if late else "")
     return make("open-questions", gist + ".", [], items, [link("Who to ask", "#asks")])
@@ -356,23 +394,59 @@ def risks(f):
     items = []
     for r in rows:
         state = r["facts"].get("State", "")
-        items.append(item(cut(say_text(r["title"]), 100), plainwords.state_word(state), cut(say_text(r["facts"].get("Mitigation", "")), 140), route(f, r["id"]), r["id"] if entity(f, r["id"]) else "",
-                          TONE_OF_STATE.get(state, "open")))
-    return make("risks", f"{count_phrase(len(rows), 'risk')} written down.", [], items, [link("Unknowns and risks", "#s=unknowns")])
+        mitigation = cut(say_text(r["facts"].get("Mitigation", "")), 140)
+        owner = owner_name(f, r["facts"].get("Owner", ""))
+        note = " · ".join(p for p in (f"Owner: {owner}" if owner else "", f"Mitigation: {mitigation}" if mitigation else "No mitigation written") if p)
+        items.append(item(cut(say_text(r["title"]), 100), plainwords.state_word(state), note, route(f, r["id"]), r["id"] if entity(f, r["id"]) else "", TONE_OF_STATE.get(state, "open")))
+    open_ones = sum(1 for i in items if i["tone"] == "open")
+    return make("risks", f"{count_phrase(len(rows), 'risk')} written down" + (f", {open_ones} still open." if open_ones else "."), [], items, [link("Unknowns and risks", "#s=unknowns")])
+
+
+def owner_name(f, raw):
+    """A risk's Owner line ("@hl-solution-lead (solution lead)") as a name: the plan's own name for them, else the words as written."""
+    handle = next(iter(re.findall(r"@[\w/-]+", raw or "")), "")
+    return person(handle, f) if handle else say_text(raw or "")
+
+def release_items(f):
+    """One item per planned release, dated or not: what it ships and what it changes. Its key opens the release's own details."""
+    items = []
+    for j, s in enumerate(f["releases"]["states"]):
+        if j == 0:
+            continue  # "Today" is where the plan stands, not a release
+        name = say_text(s.get("heading") or s["name"])
+        shipped = [title(f, r) for r in s.get("delivers", []) if title(f, r)]
+        changed = [title(f, k) for k, how in s["apps"].items() if how in ("new", "changes") and title(f, k)]
+        ships = f"ships {count_phrase(len(shipped), 'requirement')}: {cut(', '.join(shipped[:3]), 110)}{' and more' if len(shipped) > 3 else ''}" if shipped else "ships nothing written down yet"
+        bits = [plainwords.state_word(s["state"]) if s["state"] else "", ships, f"changes {cut(', '.join(changed), 80)}" if changed else ""]
+        items.append(item(name, date_phrase(s["target"]) if s["target"] else "no date yet", "; ".join(b for b in bits if b), f"#s=releases&state={j}", f"release:{j}",
+                          "open" if s["state"] in ("assumption", "proposed", "draft") else "ok"))
+    return items
+
+
+def on_no_release(f):
+    """The requirements the plan holds that no release ships, by name; none when the plan has no releases to compare with."""
+    if not f["releases"]["count"]:
+        return []
+    shipped = {r for s in f["releases"]["states"] for r in s.get("delivers", [])}
+    return [title(f, k) for k, e in sorted(f["entities"].items()) if e["kind"] == "requirement" and k not in shipped and title(f, k)]
 
 
 def dates(f):
-    items = []
-    for s in f["releases"]["states"][1:]:
-        if s["target"]:
-            items.append(item(say_text(s["heading"] if "heading" in s else s["name"]), date_phrase(s["target"]), plainwords.state_word(s["state"]), "#s=releases", ""))
-    for s in f["slicePlan"]["list"]:
-        if s["journeyDue"]:
-            items.append(item(say_text(s["name"]), date_phrase(s["journeyDue"]), say_text(s["overdue"]) if s["overdue"] else "journey due", route(f, s["key"]) or "#s=slices", s["key"],
-                              "late" if s["overdue"] else ""))
+    releases = release_items(f)
+    slice_dates = [item(say_text(s["name"]), date_phrase(s["journeyDue"]), say_text(s["overdue"]) if s["overdue"] else "journey due", route(f, s["key"]) or "#s=slices", s["key"],
+                        "late" if s["overdue"] else "") for s in f["slicePlan"]["list"] if s["journeyDue"]]
+    items = releases + slice_dates
     if not items:
         return not_recorded(f, "dates", "any dates", section_page(f, "releases"))
-    return make("dates", f"{count_phrase(len(items), 'date')} on the plan.", [], items, [link("The timeline", "#s=releases"), link("The slices", "#s=slices" if f["slicePlan"]["list"] else "")])
+    undated = sum(1 for i in releases if i["pill"] == "no date yet")
+    parts = [count_phrase(len(releases), "release") + " planned" + (f", {undated} with no date yet" if undated else "") if releases else "",
+             f"{count_phrase(len(slice_dates), 'slice')} with a journey date" if slice_dates else ""]
+    unplaced = on_no_release(f)
+    body = [f"{count_phrase(len(unplaced), 'requirement')} {verb(len(unplaced), 'is', 'are')} on no release yet: {cut(', '.join(unplaced[:4]), 160)}{' and more' if len(unplaced) > 4 else ''}." if unplaced else ""]
+    return make("dates", "; ".join(p for p in parts if p), body, items, [link("The timeline", "#s=releases"), link("The slices", "#s=slices" if f["slicePlan"]["list"] else "")])
+
+
+
 
 
 def decisions_waiting(f):
@@ -383,7 +457,7 @@ def decisions_waiting(f):
     items = []
     for t in waiting:
         key = decision_key(t)
-        items.append(item(cut(say_text(t["picked"]["label"]), 100), words[t["state"]], "", route(f, key), key if entity(f, key) else "", "open"))
+        items.append(item(cut(decision_label(t), 100), words[t["state"]], "", route(f, key), decision_ref(t), "open"))
     return make("decisions-waiting", f"{count_phrase(len(waiting), 'decision')} waiting to be settled.", [], items, [link("The decision log", "#s=decisions")])
 
 
@@ -408,9 +482,17 @@ def slices(f):
     if not rows:
         return not_recorded(f, "slices", "any slices", section_page(f, "strategy"))
     done = sum(1 for s in rows if s["status"] in ("journey passes", "live but off", "on"))
-    items = [item(say_text(s["name"]), s["status"] or "not planned yet", say_text(s["overdue"]) if s["overdue"] else ("The tracer" if s["tracer"] else ""),
+    items = [item(say_text(s["name"]), s["status"] or "not planned yet", slice_note(s),
                   route(f, s["key"]) or "#s=slices", s["key"], "late" if s["overdue"] else "ok" if s["status"] in ("journey passes", "on") else "") for s in rows]
     return make("slices", f"{done} of {count_phrase(len(rows), 'slice')} {verb(done, 'has', 'have')} passed {verb(done, 'its', 'their')} journey.", [], items, [link("The slices", "#s=slices")], terms=["slice"])
+
+
+def slice_note(s):
+    """What a slice is, for someone deciding what ships: whether it is the tracer, what is late, when its journey is due, and when it is done."""
+    done_when = cut(say_text(s.get("doneWhen", "")), 110)
+    bits = ["The tracer" if s["tracer"] else "", say_text(s["overdue"]) if s["overdue"] else (f"journey due {date_phrase(s['journeyDue'])}" if s["journeyDue"] else ""),
+            f"Done when {done_when}" if done_when else ""]
+    return " · ".join(b for b in bits if b)
 
 
 def apps(f):
@@ -479,9 +561,9 @@ def blocked(f):
     if not held:
         return make("blocked", "Nobody is holding anything up.", [], [], [link("Who to ask", "#asks")])
     items = []
-    for name, mine in held:
+    for name, handle, mine in held:
         late = sum(1 for a in mine if a["light"]["level"] == "warning")
-        items.append(item(name, count_phrase(len(mine), "open question"), f"{late} overdue" if late else "", "#asks", "", "late" if late else "open"))
+        items.append(item(name, count_phrase(len(mine), "open question"), f"{late} overdue" if late else "", "#asks", owner_key(handle), "late" if late else "open"))
     return make("blocked", f"{count_phrase(len(held), 'person', 'people')} {verb(len(held), 'holds', 'hold')} answers the plan is waiting on.", [], items, [link("Who to ask", "#asks")])
 
 

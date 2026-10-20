@@ -248,7 +248,18 @@ const Nodes = (() => {
 function ent(key) {
   if (E[key]) return E[key];
   if (key && key.startsWith("node:")) return Nodes.ent(key);
-  if (key && key.startsWith("owner:")) { const o = D.owners[key.slice(6)]; return o ? { key, kind: "owner", title: o.handle, id: "" } : null; }
+  if (key && key.startsWith("owner:")) {
+    const o = D.owners[key.slice(6)], asked = D.asks.find((u) => u.ask.key === key.slice(6));  // a person who owns nothing but is asked is still a person
+    return o ? { key, kind: "owner", title: o.handle, id: "" } : asked ? { key, kind: "owner", title: asked.ask.name, id: "" } : null;
+  }
+  if (key && key.startsWith("decision:")) {  // a decision as the decision log records it, whatever page carries it
+    const t = [...D.garden.trees, ...D.garden.bare].find((x) => (x.adr ? x.adr.id : x.id) === key.slice(9));
+    return t ? { key, kind: "decision-record", title: t.picked.label, id: "" } : null;
+  }
+  if (key && key.startsWith("release:")) {
+    const at = +key.slice(8), s = D.releases.count && at > 0 ? D.releases.states[at] : null;  // 0 is Today, not a release
+    return s ? { key, kind: "release", title: s.heading || s.name, id: "" } : null;
+  }
   if (EXTERNAL[key]) return { key, kind: "external", title: EXTERNAL[key].title, id: "" };
   if (key === "lights") return { key, kind: "lights", title: "What's waiting", id: "" };
   if (key && key.startsWith("inside:")) return typeof Inside !== "undefined" ? Inside.ent(key) : null;

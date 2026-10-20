@@ -188,6 +188,39 @@
   }
   const st_depth = (d) => { Onboard.st.depth = d; const k = `onboard:${D.vaultId}:${O_who()}:depth`; if (d) localStorage.setItem(k, d); else localStorage.removeItem(k); };
   const O_who = () => (D.onboard.mine ? D.onboard.mine.handle : "reader");
+  /* A click on an item is the real Details of that kind of thing, the same ones its own page shows, never a generic summary:
+     one section each kind must carry, and no code shown as text. Releases and people have no page of their own, so theirs are
+     the shared Details builders'. Every kind the plan has an item for, across every role's path, is clicked. */
+  const DETAILS = { unknown: ["Open question", "Who to ask", "It holds up"], app: ["App", "In these flows"], contract: ["Contract", "Who provides it, who calls it"],
+    flow: ["Journey", "Steps"], slice: ["Slice", "Where it stands"], decision: ["Decision", "What was chosen"], owner: ["Who to ask", "Their open questions"], release: ["Release", "What it ships"] };
+  const sections = () => $$("#panel-body h3").map((x) => x.firstChild.textContent.trim());
+  async function itemKinds(ok) {
+    const bad = [], seen = new Set(), asked = [];
+    st_depth("everything");  // a long list shows its questions only past the first few items
+    for (const role of roles) for (const k of wanted(role)) {
+      Onboard.st.shape = "cards"; Nav.onboard(role, k); await frames();
+      for (const el of $$(".onb-view [data-opens]")) {
+        const key = el.dataset.opens, e = ent(key);
+        if (!e) continue;
+        const kind = decided(key) ? "decision" : e.kind, want = DETAILS[kind];
+        if (!want || seen.has(kind + "|" + (kind === "owner" ? (D.asks.some((u) => u.ask.key === key.slice(6) && u.state === "open") ? "asked" : "quiet") : ""))) continue;
+        seen.add(kind + "|" + (kind === "owner" ? (D.asks.some((u) => u.ask.key === key.slice(6) && u.state === "open") ? "asked" : "quiet") : ""));
+        asked.push(kind);
+        go("lights", { reset: true }); el.click(); await frames();
+        const body = $("#panel-body"), text = body.textContent, got = sections();
+        if (heading() !== (kind === "decision" ? decided(key).name : kind === "owner" ? PlanDetails.label(key) : titleOf(key))) bad.push(`${kind}: the panel shows "${heading()}"`);
+        if (!$(".dp-trail", body) || !$(".dp-tabs", body)) bad.push(`${kind}: it is not the shared Details panel`);
+        for (const sec of want.slice(1)) if (!got.includes(sec) && !(kind === "owner" && sec === "Their open questions" && !D.asks.some((u) => u.ask.key === key.slice(6)))) bad.push(`${kind}: no "${sec}" section (has ${got.join(", ")})`);
+        if (kind === "unknown" && !$(".big-q", body)) bad.push("unknown: the question is not in plain words");
+        if (kind === "unknown" && !$$(".dp-open-row", body).length && !$(".dp-open", body)) bad.push("unknown: nothing to Open");
+        if (/\b(UNK|CAP|ADR|SLC|FLO|CON|EPC|APP)-\d/.test(text.replace(/CAP-\d+\.FR\d+/g, "")) && kind === "unknown") bad.push(`unknown: a code is shown as text`);
+      }
+    }
+    Onboard.st.shape = null; go("lights", { reset: true });
+    ok(!bad.length && asked.includes("unknown"), `onboarding: clicking an item opens its real Details (${[...new Set(asked)].join(", ")}), the same as on its own page`, `onboarding details: ${bad.slice(0, 5).join(" | ") || "no question item was clicked"}`);
+    st_depth(null);
+  }
+  const decided = (k) => (k.startsWith("decision:") && typeof Decisions !== "undefined" ? Decisions.entries.find((x) => x.id === k.slice(9)) || null : null);
   async function keyAndFit(ok) {
     const keyBad = [], fitBad = [];
     const roleList = roles.filter((r) => ["eng", "exec", "mgr"].includes(r));
@@ -208,7 +241,7 @@
   SelfTest.run = async () => {
     const report = await base(), lines = [], errors = window.__errors.length, at = location.hash;
     const ok = (cond, good, bad) => { lines.push(cond ? "ok " + good : "FAIL " + (bad || good)); if (HASH.has("trace")) console.log("[selftest] " + lines[lines.length - 1]); };
-    try { await paths(ok); await silent(ok); await whoAmI(ok); await backToThePart(ok); await termsOnce(ok); await linksLand(ok); await itemsOpen(ok); await progressAndDepth(ok); await oddProgress(ok); await keyAndFit(ok); } catch (e) { lines.push("FAIL the onboarding checks threw: " + e.message + " " + (e.stack || "").split("\n")[1]); }
+    try { await paths(ok); await silent(ok); await whoAmI(ok); await backToThePart(ok); await termsOnce(ok); await linksLand(ok); await itemsOpen(ok); await itemKinds(ok); await progressAndDepth(ok); await oddProgress(ok); await keyAndFit(ok); } catch (e) { lines.push("FAIL the onboarding checks threw: " + e.message + " " + (e.stack || "").split("\n")[1]); }
     history.replaceState(null, "", at); Nav.home(); go("lights", { reset: true });
     if (window.__errors.length > errors) lines.push("FAIL JS ERRORS in the onboarding checks: " + window.__errors.slice(errors).join(" | "));
     const body = report.slice(1).concat(lines), fails = body.filter((l) => l.startsWith("FAIL")).length;

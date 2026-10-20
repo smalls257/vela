@@ -20,7 +20,7 @@ VAULTS = {"heron-after-full-1": (SNAPSHOTS / "heron-desk" / "after-full-1", "des
           "booking-example": (REPO / "examples" / "unified-booking", "delivery"),
           "coastal-empty": (SNAPSHOTS / "coastal-merger" / "empty", "discovery"),
           "mini": (REPO / "tests" / "fixtures" / "mini", None)}
-ROUTE = re.compile(r"^#(?:home|map|asks|role=\w+|s=[a-z]+)(?:&open=[^&#]+)?$|^#(?:map|asks)&open=[^&#]+$|^#s=apps&v=progress$")
+ROUTE = re.compile(r"^#(?:home|map|asks|role=\w+|s=[a-z]+)(?:&open=[^&#]+)?(?:&state=\d+)?$|^#(?:map|asks)&open=[^&#]+$|^#s=apps&v=progress$")
 _cache = {}
 
 
@@ -85,7 +85,7 @@ def test_every_link_and_item_goes_to_a_route_the_dashboard_has_and_a_thing_it_ho
                 from urllib.parse import unquote
                 assert unquote(found.group(1)) in facts["entities"], (name, key, href)
         for it in module["items"]:
-            assert not it["key"] or it["key"] in facts["entities"], (name, key, it["key"])
+            assert not it["key"] or it["key"] in facts["entities"] or it["key"].startswith(("decision:", "owner:@", "release:")), (name, key, it["key"])
 
 
 def test_two_builds_of_one_plan_say_the_same_thing(vault):
@@ -110,7 +110,7 @@ def test_where_things_stand_counts_decisions_and_says_what_was_ruled_out():
     first = standing["items"][0]
     assert first["label"] == "One Booking application rather than a shared adapter library" and first["pill"] == "decided"
     assert first["note"].startswith("Ruled out: Shared adapter library used by all three front ends")
-    assert first["href"] == "#s=decisions&open=ADR-0001" and first["key"] == "ADR-0001"
+    assert first["href"] == "#s=decisions&open=ADR-0001" and first["key"] == "decision:ADR-0001"
     assert [i["pill"] for i in standing["items"]] == ["decided"] * 4 + ["open"] * 2, "the decisions, then the most urgent open questions"
 
 
@@ -210,7 +210,7 @@ def test_the_exec_fit_finds_decisions_the_way_decisions_waiting_does_so_it_never
     facts = data("heron-after-full-1")
     assert facts["garden"]["trees"], "the snapshot has decisions"
     fit = onboardmodules.build_all(facts)["fit@exec"]
-    stated = [onboardmodules.decision_key(t) for t in facts["garden"]["trees"] if t.get("state") and onboardmodules.decision_key(t) in facts["entities"]]
+    stated = [onboardmodules.decision_ref(t) for t in facts["garden"]["trees"] if t.get("state") and onboardmodules.decision_key(t) in facts["entities"]]
     assert stated, "at least one decision sits on a page the dashboard has"
     assert not fit["notRecorded"] and set(stated) <= {i["key"] for i in fit["items"]}
 
