@@ -6,8 +6,9 @@ set -uo pipefail
 if [ "$(git symbolic-ref --quiet --short HEAD)" = "gh-pages" ]; then
   # The published example site holds built pages, not code: the linters below have nothing to read, and the
   # check that matters is for leaks. tools/check_site.py lives in the code branches, beside the shared .git.
+  # The git name is not forbidden: it is the GitHub handle the public repo is named for (see pre-push).
   exec python3 "$(git rev-parse --git-common-dir)/../tools/check_site.py" "$(git rev-parse --show-toplevel)" \
-    --forbid "$(git config user.name)" --forbid "$(git config user.email)"
+    --forbid "$(git config user.email)"
 fi
 export SEMGREP_SEND_METRICS=off SEMGREP_ENABLE_VERSION_CHECK=0
 files=()
