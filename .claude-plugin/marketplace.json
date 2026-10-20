@@ -1,6 +1,6 @@
 {
-  "name": "vela",
-  "description": "The vela plugin for initiative planning vaults.",
+  "name": "vela-next",
+  "description": "The vela plugin for initiative planning vaults, from the vela-next integration branch (ahead of main).",
   "owner": {
     "name": "Jason Smith"
   },
