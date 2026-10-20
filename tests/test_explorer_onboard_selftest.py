@@ -19,7 +19,7 @@ BOOKING = REPO / "examples" / "unified-booking"
 VELA = [sys.executable, str(REPO / "plugin" / "scripts" / "vela")]
 WANT = ("onboarding: each of the 6 roles lists its path", "onboarding: all ", "onboarding: the first items of every module open the panel",
         "onboarding: Next ticks a part", "onboarding: in the diagram, every look drawn is in the key", "onboarding: in cards and in the diagram, every label fits",
-        "onboarding: a kept term is defined on its first use", "onboarding: a progress value that is not JSON", "onboarding: who the reader is comes from the plan's record first",
+        "onboarding: a kept term is defined on its first use", "onboarding: a progress value that is not JSON", "onboarding: who the reader is comes from the role they picked first",
         "onboarding: Back from somewhere else returns to the part the reader left")
 
 

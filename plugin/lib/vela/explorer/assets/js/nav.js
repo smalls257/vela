@@ -323,8 +323,9 @@ const Nav = (() => {
       h("div", { class: "side-kids side-read", id: "side-read", hidden: !open }, reads.flatMap((s) => item(s)))];
   }
   /* "Viewing as": the one place the reader says who they are. It is the same setting as onboarding's "Reading as" and the
-     role door (Onboard.myRole), so the "Waiting on you" filter, the door and the path all follow it. A role the plan's own
-     record or the person's choice already fixes shows as that role, and the title says so. Lead is the whole plan: its door is What's waiting. */
+     role door (Onboard.myRole), so the "Waiting on you" filter, the door and the path all follow it. A pick always applies;
+     the plan's record and the person's own choice only decide the default before anything is picked. When the pick differs
+     from the plan's record for this handle, a line under the menu says so and offers the way back. */
   function viewingNow() { const m = Onboard.myRole(); return { id: m.role || "lead", source: m.source }; }
   const roleName = (id) => (Roles.ROLES.find(([r]) => r === id) || [id, id])[1];
   function viewAs(r) {
@@ -335,13 +336,12 @@ const Nav = (() => {
     refresh();
   }
   function viewingAs() {
-    const now = viewingNow(), label = roleName(now.id);
-    const fixed = now.source === "record" || now.source === "choice";
+    const now = viewingNow(), label = roleName(now.id), rec = Onboard.recorded();
     const menu = Menus.menu({ id: "viewing-as", label: "Viewing as", current: label, extraClass: "side-as-btn",
-      title: fixed ? `Viewing as ${label}: ${now.source === "record" ? "the lead's plan names you for this role" : "your own choice, from vela whoami"}. Pick another to look through it.` : `Viewing as ${label}`,
       items: () => Roles.ROLES.map(([id, name, say]) => ({ id, label: name, say, checked: id === viewingNow().id, run: () => viewAs(id) })) });
     const id = now.id, onRole = App.section === "role:" + id || (id === "lead" && App.section === "home");
-    return h("div", { class: "side-group side-as" }, menu,
+    const note = rec && rec !== id ? h("p", { class: "side-note small muted" }, `Your recorded role is ${roleName(rec)}. `, h("button", { class: "linkish", type: "button", onclick: () => viewAs(rec) }, "Switch back")) : null;
+    return h("div", { class: "side-group side-as" }, menu, note,
       h("button", { class: "side-sub side-overview" + (onRole ? " on" : ""), "aria-current": onRole ? "page" : null, onclick: () => role(id) }, `Overview for ${label} ›`),
       h("button", { class: "side-sub side-onboard" + (App.section.startsWith("onboard:") ? " on" : ""), "aria-current": App.section.startsWith("onboard:") ? "page" : null,
         title: "A short path through the plan for your role", onclick: () => onboard(id) }, `Get up to speed as ${label} ›`));

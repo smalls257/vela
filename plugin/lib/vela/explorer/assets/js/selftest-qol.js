@@ -283,6 +283,7 @@
   async function viewingAs(ok) {
     const was = { me: D.me, chosen: Roles.st.chosen, role: Roles.st.role, mine: Queue.st.mine }, bad = [], settle = () => new Promise((r) => setTimeout(r, 40));
     D.me = { handle: "" }; Roles.st.chosen = false; Nav.home(); Nav.refresh(); await tick();
+    const roleLabel = (id) => (Roles.ROLES.find(([r]) => r === id) || [id, id])[1];
     const menu = () => $("#side .dmenu[data-dmenu='viewing-as']"), btn = () => $(".dmenu-btn", menu()), items = () => $$("[role='menuitemradio']", menu());
     const pick = async (id) => { btn().click(); await tick(); items().find((x) => x.dataset.item === id).click(); await settle(); };
     const reading = () => $(".dmenu[data-dmenu='onb-role'] .dmenu-btn");
@@ -315,6 +316,18 @@
     }
     await pick("lead"); Nav.home(); await tick();
     if (Onboard.myRole().role !== "lead" || $(".q-mine")) bad.push(`Lead: role ${Onboard.myRole().role}, filter ${!!$(".q-mine")}`);
+    // a recorded role is only the default: with no pick the menu shows it, a pick always applies, and the note offers the way back
+    const wasO = [D.onboard.me, D.onboard.roles], key = `onboard:${D.vaultId}:role`, rec = ["qa", "eng"].find((r) => D.onboard.paths[r]), pk = ["exec", "mgr"].find((r) => D.onboard.paths[r] && r !== rec);
+    if (rec && pk) {
+      D.onboard.me = { handle: "zed", role: "" }; D.onboard.roles = { zed: rec }; Settings.write(key, ""); Roles.st.chosen = false; Nav.home(); Nav.refresh(); await tick();
+      if (!btn().textContent.includes(roleLabel(rec)) || $("#side .side-note")) bad.push(`default: shows ${btn().textContent}, note ${!!$("#side .side-note")}, wanted ${rec} and no note`);
+      await pick(pk);
+      if (Onboard.myRole().role !== pk || !btn().textContent.includes(roleLabel(pk))) bad.push(`pick ${pk} over the record ${rec} did not apply: ${Onboard.myRole().role}`);
+      const note = $("#side .side-note");
+      if (!note || !note.textContent.includes(`Your recorded role is ${roleLabel(rec)}`)) bad.push(`no note naming the recorded role ${rec}: ${note ? note.textContent : "none"}`);
+      else { $("button", note).click(); await settle(); if (Onboard.myRole().role !== rec || $("#side .side-note")) bad.push("Switch back did not return to the recorded role"); }
+    }
+    D.onboard.me = wasO[0]; D.onboard.roles = wasO[1];
     ok(!bad.length, "viewing as: the sidebar menu sets the one role (onboarding's Reading as, the role door, Waiting on you); its two links go to the overview and the path", `viewing as: ${bad.join(" | ")}`);
     Onboard.rememberDoor(was.chosen ? was.role : ""); D.me = was.me; Roles.st.chosen = was.chosen; Roles.st.role = was.role; Queue.st.mine = was.mine; Nav.home(); Nav.refresh(); await tick();
   }
