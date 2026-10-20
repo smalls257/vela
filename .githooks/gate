@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
 # The repo's gate, one script for every layer that runs it: pre-push, CI, and by hand.
 #   .githooks/gate fast   rules + sync + vault checks + the fast test subset   (about 70 s)
-#   .githooks/gate full   the same with the whole pytest suite                 (about 160 s)
+#   .githooks/gate full   the same with the pytest suite scoped to what changed; it prints every skip and why
+#   .githooks/gate all    the same with the whole pytest suite, nothing skipped; run it before a merge
 #   .githooks/gate static rules + sync + vault checks, no tests                (about 10 s)
+# `full` skips the browser tests unless the explorer, its prototypes, the snapshots or a browser test changed, and skips
+# the sim and probe tests unless tests/sim, their tests, plugin/skills or plugin/lib/vela changed, measured against the
+# base (GATE_BASE, else the upstream, else origin/main, else main). With no base it skips nothing.
 # Each stage prints its name and its time, so a failure says where and a slow push says which stage.
 set -uo pipefail
 mode="${1:-fast}"
@@ -53,11 +57,54 @@ stage "check example"      vela_check examples/unified-booking
 PARALLEL=()
 if python3 -c 'import xdist' 2>/dev/null; then PARALLEL=(-n auto); else
   echo "gate: pytest-xdist is not installed, so the tests run on one core; pip install pytest-xdist for a parallel run" >&2; fi
+
+changed_files() {  # every path that differs from the base, committed or not, one per line; fails when there is no base
+  local base candidate
+  base="${GATE_BASE:-}"
+  if [ -z "$base" ]; then
+    for candidate in '@{upstream}' origin/main main; do
+      if git rev-parse --verify -q "$candidate" >/dev/null 2>&1; then base="$candidate"; break; fi
+    done
+  fi
+  [ -n "$base" ] || return 1
+  base="$(git merge-base HEAD "$base" 2>/dev/null)" || return 1
+  { git diff --name-only "$base"; git ls-files --others --exclude-standard; } | sort -u
+}
+
+# What can break each slow family: its own tests and helpers, and the code it drives.
+BROWSER_PATHS='^(plugin/lib/vela/explorer/|prototypes/explorer/|tests/explorer_stub/|tests/sim/snapshots/|tests/conftest\.py|tests/sharing\.py|tests/test_[a-z_]*browser[a-z_]*\.py)'
+SIM_PATHS='^(tests/sim/|tests/test_sim[a-z_]*\.py|tests/test_probe[a-z_]*\.py|tests/conftest\.py|plugin/skills/|plugin/lib/vela/)'
+
+scoped_pytest_args() {  # one pytest argument per line to drop the families nothing touched; every skip is said on stderr
+  local files
+  if ! files="$(changed_files)"; then
+    echo "gate: no base to compare with (set GATE_BASE); nothing is skipped" >&2; return 0
+  fi
+  if ! printf '%s\n' "$files" | grep -Eq "$BROWSER_PATHS"; then
+    echo "gate: SKIPPED browser tests: nothing changed under plugin/lib/vela/explorer, prototypes/explorer, the snapshots, or a browser test" >&2
+    printf '%s\n' -m "not browser"
+  fi
+  if ! printf '%s\n' "$files" | grep -Eq "$SIM_PATHS"; then
+    echo "gate: SKIPPED sim and probe tests: nothing changed under tests/sim, the sim/probe tests, plugin/skills or plugin/lib/vela" >&2
+    printf '%s\n' --ignore=tests/sim "--ignore-glob=tests/test_sim*" "--ignore-glob=tests/test_probe*"
+  fi
+  return 0
+}
+
+pytest_stage() {  # pytest_stage <label> [pytest args...]
+  local label="$1"; shift
+  stage "$label" python3 -m pytest -q -p no:cacheprovider ${PARALLEL[@]+"${PARALLEL[@]}"} "$@"
+}
+
 case "$mode" in
   static) ;;
-  fast)   stage "pytest (fast)" python3 -m pytest -q -p no:cacheprovider "${PARALLEL[@]}" tests "${FAST_IGNORES[@]}" ;;
-  full)   stage "pytest (full)" python3 -m pytest -q -p no:cacheprovider "${PARALLEL[@]}" ;;
-  *) echo "gate: unknown mode '$mode' (static, fast, full)" >&2; exit 2 ;;
+  fast)   pytest_stage "pytest (fast)" tests "${FAST_IGNORES[@]}" ;;
+  full)
+    scoped=()
+    while IFS= read -r arg; do scoped+=("$arg"); done < <(scoped_pytest_args)
+    pytest_stage "pytest (full)" ${scoped[@]+"${scoped[@]}"} ;;
+  all)    pytest_stage "pytest (all)" ;;
+  *) echo "gate: unknown mode '$mode' (static, fast, full, all)" >&2; exit 2 ;;
 esac
 
 if [ ${#failed[@]} -gt 0 ]; then

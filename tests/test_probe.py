@@ -2,9 +2,11 @@
 money: every probe passes --stub, and --out and --loop-ledger keep results in tmp_path.
 
 Tests that touch the holdout persona assert on counts only, so a failing test never prints its brief."""
+import hashlib
 import importlib.util
 import json
 import os
+import pathlib
 import re
 import shutil
 import subprocess
@@ -13,7 +15,7 @@ import sys
 import pytest
 import yaml
 
-from conftest import REPO
+from conftest import REPO, built_once
 
 SIM = REPO / "tests" / "sim"
 spec = importlib.util.spec_from_file_location("sim_probe", SIM / "probe.py")
@@ -30,15 +32,47 @@ def persona(name):
 
 
 def run_probe(tmp_path, case, name, *extra, env=None, budget="1", loop_budget="5"):
-    """One stub invocation. Returns (exit code, stdout, stderr, run folders)."""
-    out = tmp_path / "out"
-    full_env = {**os.environ, **(env or {})}
-    done = subprocess.run([sys.executable, str(SIM / "probe.py"), case, "--persona", name, "--stub", *MODELS,
-                           "--budget", budget, "--loop-ledger", str(tmp_path / "ledger.json"),
-                           "--loop-budget", loop_budget, "--out", str(out), *extra],
-                          capture_output=True, text=True, env=full_env, timeout=600)
-    runs = sorted(p for p in out.iterdir() if p.is_dir()) if out.is_dir() else []
-    return done.returncode, done.stdout, done.stderr, runs
+    """One stub invocation. Returns (exit code, stdout, stderr, run folders).
+
+    The same invocation (case, persona, flags, budgets and the same stub environment) always gives the same runs, so it
+    is made once per session and each test gets a private copy of its folders and ledger. A test that calls twice
+    into one tmp_path, whose second call would add to the first one's folders and ledger, runs for real."""
+    out, ledger = tmp_path / "out", tmp_path / "ledger.json"
+    env = dict(env or {})
+
+    def execute(out_dir, ledger_file, run_env):
+        done = subprocess.run([sys.executable, str(SIM / "probe.py"), case, "--persona", name, "--stub", *MODELS,
+                               "--budget", budget, "--loop-ledger", str(ledger_file), "--loop-budget", loop_budget,
+                               "--out", str(out_dir), *extra],
+                              capture_output=True, text=True, env={**os.environ, **run_env}, timeout=600)
+        return done.returncode, done.stdout, done.stderr
+
+    def folders():
+        return sorted(p for p in out.iterdir() if p.is_dir()) if out.is_dir() else []
+
+    if out.exists() or ledger.exists():  # a ledger or folders already there are part of this call's input
+        return (*execute(out, ledger, env), folders())
+
+    if "SIM_STUB_REPLY" in env:  # a file in this test's tmp_path: the same words are the same input
+        words = pathlib.Path(env["SIM_STUB_REPLY"]).read_text(encoding="utf-8")
+    key = "probe-" + hashlib.sha1(json.dumps([case, name, extra, budget, loop_budget, sorted(
+        (k, words if k == "SIM_STUB_REPLY" else v) for k, v in env.items())]).encode()).hexdigest()
+
+    def build(folder):
+        run_env = dict(env)
+        if "SIM_STUB_REPLY" in env:
+            (folder / "reply.md").write_text(words, encoding="utf-8")
+            run_env["SIM_STUB_REPLY"] = str(folder / "reply.md")
+        result = execute(folder / "out", folder / "ledger.json", run_env)
+        (folder / "done.json").write_text(json.dumps(result), encoding="utf-8")
+
+    shared = built_once(None, key, build)
+    if (shared / "out").is_dir():
+        shutil.copytree(shared / "out", out)
+    if (shared / "ledger.json").is_file():
+        shutil.copy(shared / "ledger.json", ledger)
+    code, stdout, stderr = json.loads((shared / "done.json").read_text(encoding="utf-8"))
+    return code, stdout, stderr, folders()
 
 
 def reply(tmp_path, text):

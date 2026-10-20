@@ -6,6 +6,7 @@ Requires Chrome or Chromium. Set env var CHROME to override the default search p
 If Chrome is not found and CI env var is set, the test fails instead of skipping.
 """
 import functools
+import hashlib
 import html
 import http.server
 import os
@@ -18,6 +19,7 @@ import sys
 import threading
 
 import pytest
+from conftest import built_once
 from sharing import draft_workspace, git, make_vault
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
@@ -42,6 +44,50 @@ SNAPSHOTS = {
 }
 
 
+VELA = REPO / "plugin" / "scripts" / "vela"
+DEMO_DESIGNS = ("booking", "pricing", "notifications")
+
+
+# Each page is built once per session and each (page, window, route) is loaded in Chrome once: the same snapshot was
+# rebuilt and re-run in a dozen tests, each paying for `vela explore` and a headless load (Computational Friction).
+# The folders are shared and read-only; a test that changes a page or its vault copies it (or builds its own) first.
+
+def built_snapshot(name, today="2026-10-10"):
+    """The snapshot `name` with its explorer page built by `vela explore --selftest`. Returns the vault folder."""
+    def build(folder):
+        shutil.copytree(SNAPSHOTS[name], folder / "vault")
+        result = subprocess.run([sys.executable, str(VELA), "explore", "--selftest", str(folder / "vault"), "--today", today],
+                                timeout=180, capture_output=True, text=True)
+        assert result.returncode == 0, f"vela explore failed: {result.stderr}"
+    return built_once(None, f"explorer-vault-{name.replace('/', '-')}-{today}", build) / "vault"
+
+
+def built_booking_demo_page():
+    """The unified-booking demo with its three team designs, as a page with the selftest built in."""
+    def build(folder):
+        demo = folder / "booking-demo"
+        made = subprocess.run([sys.executable, str(REPO / "prototypes/explorer/make_demo_vault.py"), str(demo)], timeout=120, capture_output=True, text=True)
+        assert made.returncode == 0, made.stderr
+        designs = REPO / "prototypes/explorer/demo_designs"
+        built = subprocess.run([sys.executable, str(REPO / "prototypes/explorer/build.py"), str(demo), str(folder / "booking-demo.html"), "--today", "2026-11-20", "--selftest",
+                                "--pins", str(REPO / "prototypes/explorer/pins/unified-booking.json"),
+                                *[f"--design=APP-{name}={designs / name / 'docs/tech-design' / (name + '.md')}" for name in DEMO_DESIGNS]],
+                               timeout=120, capture_output=True, text=True)
+        assert built.returncode == 0, built.stderr
+    return built_once(None, "explorer-booking-demo-page", build) / "booking-demo.html"
+
+
+def chrome_dom(chrome_path, html_path, viewport="1600,1000", route="map&selftest", budget=60000):
+    """The DOM Chrome dumps for a page, loaded once per session for each window size and route."""
+    key = "chrome-dom-" + hashlib.sha1(f"{html_path}|{viewport}|{route}|{budget}".encode()).hexdigest()
+
+    def build(folder):
+        cmd = [str(chrome_path), "--headless=new", "--disable-gpu", "--no-sandbox", f"--window-size={viewport}",
+               f"--virtual-time-budget={budget}", "--dump-dom", f"file://{html_path}#{route}"]
+        (folder / "dom.html").write_text(subprocess.run(cmd, timeout=180, capture_output=True, text=True).stdout, encoding="utf-8")
+    return (built_once(None, key, build) / "dom.html").read_text(encoding="utf-8")
+
+
 @pytest.mark.browser
 def test_plain_names_and_trace_rows_pass_the_selftest(tmp_path, chrome_path):
     """The heron vault with its calendar epic rewritten in plain words: Trace lines under each criterion, subheadings
@@ -62,13 +108,7 @@ def test_maps_move_free_form_and_pan_by_dragging_the_background(tmp_path, chrome
     should pan. The selftest's own lines must be there and passing: a box dropped between cells stays there, the
     rule's cases agree with pins.check_move, a background drag pans the cockpit and a drawing inside an app, a box
     drag still moves the box, and every map drawing is pannable. A selftest that quietly skipped them would pass."""
-    vault = tmp_path / "vault"
-    shutil.copytree(SNAPSHOTS["heron-desk/after-design-2"], vault)
-    cmd = [sys.executable, str(REPO / "plugin" / "scripts" / "vela"), "explore", "--selftest", str(vault), "--today", "2026-10-10"]
-    assert subprocess.run(cmd, timeout=120, capture_output=True, text=True).returncode == 0
-    dom = subprocess.run([str(chrome_path), "--headless=new", "--disable-gpu", "--no-sandbox", "--window-size=1600,1000",
-                          "--virtual-time-budget=60000", "--dump-dom", f"file://{vault / 'dashboard.html'}#map&selftest"],
-                         timeout=180, capture_output=True, text=True).stdout
+    dom = chrome_dom(chrome_path, built_snapshot("heron-desk/after-design-2") / "dashboard.html")
     lines = html.unescape(re.search(r'data-selftest="([^"]*)"', dom).group(1)).split(" || ")
     wanted = ["ok the page's overlap rule gives pins.check_move's answer", "it stays exactly there, between cells",
               "it lands clear of it on the line it was dragged along",
@@ -130,30 +170,12 @@ def chrome_path():
     [(name, path) for name, path in SNAPSHOTS.items() if path.exists()],
     ids=lambda x: x[0] if isinstance(x, tuple) else None,
 )
-def test_explorer_selftest(tmp_path, chrome_path, vault_name, vault_path):
+def test_explorer_selftest(chrome_path, vault_name, vault_path):
     """Build explorer for a vault and check #selftest in headless Chrome."""
     if chrome_path is None:
         pytest.skip("Chrome not available")
 
-    # Copy vault to tmp
-    vault_copy = tmp_path / "vault"
-    shutil.copytree(vault_path, vault_copy)
-
-    # Run vela explore
-    cmd = [
-        sys.executable,
-        str(REPO / "plugin" / "scripts" / "vela"),
-        "explore",
-        "--selftest",
-        str(vault_copy),
-        "--today",
-        "2026-10-10",
-    ]
-    result = subprocess.run(cmd, timeout=120, capture_output=True, text=True)
-    assert result.returncode == 0, f"vela explore failed: {result.stderr}"
-
-    # Run Chrome to extract selftest
-    html_path = vault_copy / "dashboard.html"
+    html_path = built_snapshot(vault_name) / "dashboard.html"
     assert html_path.exists(), f"dashboard.html not found at {html_path}"
 
     # Extract and check selftest
@@ -167,7 +189,7 @@ def test_explorer_selftest(tmp_path, chrome_path, vault_name, vault_path):
 
 
 @pytest.mark.browser
-def test_explorer_selftest_800x600(tmp_path, chrome_path):
+def test_explorer_selftest_800x600(chrome_path):
     """Test explorer at small viewport (800x600)."""
     if chrome_path is None:
         pytest.skip("Chrome not available")
@@ -177,64 +199,32 @@ def test_explorer_selftest_800x600(tmp_path, chrome_path):
     if not vault_path.exists():
         pytest.skip(f"{vault_name} not found")
 
-    # Copy vault to tmp
-    vault_copy = tmp_path / "vault"
-    shutil.copytree(vault_path, vault_copy)
-
-    # Run vela explore
-    cmd = [
-        sys.executable,
-        str(REPO / "plugin" / "scripts" / "vela"),
-        "explore",
-        "--selftest",
-        str(vault_copy),
-        "--today",
-        "2026-10-10",
-    ]
-    result = subprocess.run(cmd, timeout=120, capture_output=True, text=True)
-    assert result.returncode == 0, f"vela explore failed: {result.stderr}"
-
-    # Run Chrome at small viewport
-    html_path = vault_copy / "dashboard.html"
+    html_path = built_snapshot(vault_name) / "dashboard.html"
     assert html_path.exists()
     _check_selftest_in_chrome(chrome_path, html_path, vault_name, viewport="800,600")
 
 
 @pytest.mark.browser
-def test_the_heron_design_vault_passes_the_selftest_at_800x600(tmp_path, chrome_path):
-    vault = tmp_path / "vault"
-    shutil.copytree(SNAPSHOTS["heron-desk/after-design-2"], vault)
-    cmd = [sys.executable, str(REPO / "plugin" / "scripts" / "vela"), "explore", "--selftest", str(vault), "--today", "2026-10-10"]
-    assert subprocess.run(cmd, timeout=120, capture_output=True, text=True).returncode == 0
+def test_the_heron_design_vault_passes_the_selftest_at_800x600(chrome_path):
+    vault = built_snapshot("heron-desk/after-design-2")
     _check_selftest_in_chrome(chrome_path, vault / "dashboard.html", "heron-desk/after-design-2", viewport="800,600")
 
 
 def _text_fit_lines(chrome_path, html_path, viewport):
-    cmd = [str(chrome_path), "--headless=new", "--disable-gpu", "--no-sandbox", f"--window-size={viewport}", "--virtual-time-budget=60000", "--dump-dom", f"file://{html_path}#map&selftest"]
-    match = re.search(r'data-selftest="([^"]*)"', subprocess.run(cmd, timeout=180, capture_output=True, text=True).stdout)
+    match = re.search(r'data-selftest="([^"]*)"', chrome_dom(chrome_path, html_path, viewport))
     assert match, "data-selftest not found in Chrome output"
     return html.unescape(match.group(1)).split(" || ")
 
 
 @pytest.mark.browser
 @pytest.mark.parametrize("viewport", ["720,800", "900,700"])
-def test_no_label_runs_past_its_box_in_a_narrow_window(tmp_path, chrome_path, viewport):
+def test_no_label_runs_past_its_box_in_a_narrow_window(chrome_path, viewport):
     """The selftest's text-fit sweep alone, at windows narrower than the layout is built for (the other checks assume the
     three columns at 800 or wider): no pill, chip, badge, button, tab or heading in any view, theme or Plain runs out of
     its box. A failure names the view, the label's words and its class. The Heron design vault and the demo with three
     designs, so the sweep is not tuned to one vault."""
-    heron = tmp_path / "heron"
-    shutil.copytree(SNAPSHOTS["heron-desk/after-design-2"], heron)
-    assert subprocess.run([sys.executable, str(REPO / "plugin" / "scripts" / "vela"), "explore", "--selftest", str(heron), "--today", "2026-10-10"], timeout=120, capture_output=True, text=True).returncode == 0
-    demo = tmp_path / "booking-demo"
-    assert subprocess.run([sys.executable, str(REPO / "prototypes/explorer/make_demo_vault.py"), str(demo)], timeout=120, capture_output=True, text=True).returncode == 0
-    designs = REPO / "prototypes/explorer/demo_designs"
-    page = tmp_path / "booking-demo.html"
-    built = subprocess.run([sys.executable, str(REPO / "prototypes/explorer/build.py"), str(demo), str(page), "--today", "2026-11-20", "--selftest",
-                            "--pins", str(REPO / "prototypes/explorer/pins/unified-booking.json"),
-                            *[f"--design=APP-{name}={designs / name / 'docs/tech-design' / (name + '.md')}" for name in ("booking", "pricing", "notifications")]],
-                           timeout=120, capture_output=True, text=True)
-    assert built.returncode == 0, built.stderr
+    heron = built_snapshot("heron-desk/after-design-2")
+    page = built_booking_demo_page()
     for name, path in (("heron-desk/after-design-2", heron / "dashboard.html"), ("booking-demo with designs", page)):
         fit = [line for line in _text_fit_lines(chrome_path, path, viewport) if "text fits" in line]
         failed = [line for line in fit if line.startswith("FAIL")]
@@ -242,18 +232,14 @@ def test_no_label_runs_past_its_box_in_a_narrow_window(tmp_path, chrome_path, vi
 
 
 @pytest.mark.browser
-def test_names_not_codes_whole_prose_and_one_needs_you_count_pass_the_selftest(tmp_path, chrome_path):
+def test_names_not_codes_whole_prose_and_one_needs_you_count_pass_the_selftest(chrome_path):
     """The Fix-first findings, each as a line of the page's own selftest: the sensors that flag prose cut mid-sentence and
     titles that are codes see planted defects, the sweep finds none in any view or theme, and "waiting" is a number
     once, in the top bar (the label sweep, 2026-10-16: the same 21 showed four times on Home). The voice gate's lines
     must be there and passing: its sensors see planted leaks, repeats and wrong counts, and no view leaks a lead
     pattern, says a count sentence twice, or gives a quantity a number its source and the other views don't (E60).
     Run against the old page these lines are absent or FAIL."""
-    vault = tmp_path / "vault"
-    shutil.copytree(SNAPSHOTS["heron-desk/after-full-1"], vault)
-    cmd = [sys.executable, str(REPO / "plugin" / "scripts" / "vela"), "explore", "--selftest", str(vault), "--today", "2026-10-10"]
-    assert subprocess.run(cmd, timeout=120, capture_output=True, text=True).returncode == 0
-    lines = _text_fit_lines(chrome_path, vault / "dashboard.html", "1600,1000")
+    lines = _text_fit_lines(chrome_path, built_snapshot("heron-desk/after-full-1") / "dashboard.html", "1600,1000")
     ok = [line for line in lines if line.startswith("ok ")]
     assert any(line.startswith("ok waiting: ") and "in the top bar only" in line for line in ok), "the waiting-count check did not run or failed"
     for wanted in ("ok voice: the leak sensor flags", "ok voice: the repeat sensor flags", "ok voice: the count sensor flags",
@@ -269,21 +255,10 @@ def test_names_not_codes_whole_prose_and_one_needs_you_count_pass_the_selftest(t
 
 def _check_selftest_in_chrome(chrome_path, html_path, vault_name, viewport="1600,1000"):
     """Run Chrome headless and check #selftest output."""
-    cmd = [
-        str(chrome_path),
-        "--headless=new",
-        "--disable-gpu",
-        "--no-sandbox",
-        f"--window-size={viewport}",
-        "--virtual-time-budget=60000",
-        "--dump-dom",
-        f"file://{html_path}#map&selftest",
-    ]
-
-    result = subprocess.run(cmd, timeout=180, capture_output=True, text=True)
+    stdout = chrome_dom(chrome_path, html_path, viewport)
 
     # Extract selftest data from DOM
-    match = re.search(r'data-selftest="([^"]*)"', result.stdout)
+    match = re.search(r'data-selftest="([^"]*)"', stdout)
     assert match, f"data-selftest not found in Chrome output for {vault_name}"
 
     selftest_text = html.unescape(match.group(1))
@@ -442,19 +417,10 @@ def test_gallery_pages_load_the_plugins_art(chrome_path, page, said):
 
 @pytest.mark.browser
 @pytest.mark.parametrize("viewport", ["1600,1000", "1280,720", "800,600"])
-def test_explorer_selftest_with_three_designs_loaded(tmp_path, chrome_path, viewport):
+def test_explorer_selftest_with_three_designs_loaded(chrome_path, viewport):
     """The demo vault with its three team designs: Inside this app draws components and the data model, which the
     snapshot vaults above have no design for. Run at a wide, a laptop and a small window."""
-    demo = tmp_path / "booking-demo"
-    made = subprocess.run([sys.executable, str(REPO / "prototypes/explorer/make_demo_vault.py"), str(demo)], timeout=120, capture_output=True, text=True)
-    assert made.returncode == 0, made.stderr
-    designs = REPO / "prototypes/explorer/demo_designs"
-    page = tmp_path / "booking-demo.html"
-    built = subprocess.run([sys.executable, str(REPO / "prototypes/explorer/build.py"), str(demo), str(page), "--today", "2026-11-20", "--selftest",
-                            "--pins", str(REPO / "prototypes/explorer/pins/unified-booking.json"),
-                            *[f"--design=APP-{name}={designs / name / 'docs/tech-design' / (name + '.md')}" for name in ("booking", "pricing", "notifications")]],
-                           timeout=120, capture_output=True, text=True)
-    assert built.returncode == 0, built.stderr
+    page = built_booking_demo_page()
     _check_selftest_in_chrome(chrome_path, page, "booking-demo with designs", viewport=viewport)
 
 
@@ -486,12 +452,12 @@ def test_the_built_line_shows_at_the_top_with_the_commit(tmp_path, chrome_path):
 
 
 def _explore_and_dump(chrome_path, source, tmp_path, today, route, viewport="1600,1000"):
-    """Build `source` as a vault copy and return the page's DOM after loading `route`."""
-    vault = tmp_path / "vault"
-    shutil.copytree(source, vault)
-    subprocess.run([sys.executable, str(REPO / "plugin" / "scripts" / "vela"), "explore", "--selftest", str(vault), "--today", today], timeout=120, check=True, capture_output=True)
-    return subprocess.run([str(chrome_path), "--headless=new", "--disable-gpu", "--no-sandbox", f"--window-size={viewport}", "--virtual-time-budget=20000", "--dump-dom",
-                           f"file://{vault / 'dashboard.html'}#{route}"], timeout=180, capture_output=True, text=True).stdout
+    """The page's DOM after loading `route`, for `source` built once as a vault (a snapshot name or a folder)."""
+    def build(folder):
+        shutil.copytree(SNAPSHOTS[source] if isinstance(source, str) else source, folder / "vault")
+        subprocess.run([sys.executable, str(VELA), "explore", "--selftest", str(folder / "vault"), "--today", today], timeout=120, check=True, capture_output=True)
+    vault = built_once(None, f"explorer-dump-{source}-{today}".replace("/", "-"), build) / "vault"
+    return chrome_dom(chrome_path, vault / "dashboard.html", viewport, route, budget=20000)
 
 
 @pytest.mark.browser
@@ -499,7 +465,7 @@ def _explore_and_dump(chrome_path, source, tmp_path, today, route, viewport="160
 def test_the_home_page_lists_a_short_queue_not_a_strip_of_chips(tmp_path, chrome_path, viewport):
     """The heron vault holds 34 question-and-thing pairs above the map. Home shows at most five rows of the queue, in
     plain words, with no strip of chips, at a wide and at a small window."""
-    dom = _explore_and_dump(chrome_path, SNAPSHOTS["heron-desk/after-full-1"], tmp_path, "2026-10-10", "home&still", viewport)
+    dom = _explore_and_dump(chrome_path, "heron-desk/after-full-1", tmp_path, "2026-10-10", "home&still", viewport)
     assert 'class="q-card' in dom and 'class="above"' not in dom and "Held above the map" not in dom
     rows = re.findall(r'<button class="q-row[^"]*" data-ref="([^"]+)"', dom)
     assert 1 <= len(rows) <= 5 and len(set(rows)) == len(rows), rows
@@ -515,23 +481,13 @@ def test_the_old_garden_route_opens_the_decision_log_at_the_decision(tmp_path, c
 
 
 @pytest.mark.browser
-def test_every_diagram_node_opens_the_panel_on_heron_and_the_booking_demo(tmp_path, chrome_path):
+def test_every_diagram_node_opens_the_panel_on_heron_and_the_booking_demo(chrome_path):
     """E44: the selftest clicks every node of every diagram and presses Enter on it, and fails on an empty panel. This holds
     it to the diagrams that were inert: the data model's entities, the sequence steps, the line map, the releases corridors,
     the due-by-week bars, the cluster mini-lamps, and the flows canvas (through its list), on a vault with designs and plans
     (Heron) and on the demo, so the fix is in the builder and not tuned to one vault."""
-    heron = tmp_path / "heron"
-    shutil.copytree(SNAPSHOTS["heron-desk/after-design-2"], heron)
-    assert subprocess.run([sys.executable, str(REPO / "plugin" / "scripts" / "vela"), "explore", "--selftest", str(heron), "--today", "2026-10-10"], timeout=120, capture_output=True, text=True).returncode == 0
-    demo = tmp_path / "booking-demo"
-    assert subprocess.run([sys.executable, str(REPO / "prototypes/explorer/make_demo_vault.py"), str(demo)], timeout=120, capture_output=True, text=True).returncode == 0
-    designs = REPO / "prototypes/explorer/demo_designs"
-    page = tmp_path / "booking-demo.html"
-    built = subprocess.run([sys.executable, str(REPO / "prototypes/explorer/build.py"), str(demo), str(page), "--today", "2026-11-20", "--selftest",
-                            "--pins", str(REPO / "prototypes/explorer/pins/unified-booking.json"),
-                            *[f"--design=APP-{name}={designs / name / 'docs/tech-design' / (name + '.md')}" for name in ("booking", "pricing", "notifications")]],
-                           timeout=120, capture_output=True, text=True)
-    assert built.returncode == 0, built.stderr
+    heron = built_snapshot("heron-desk/after-design-2")
+    page = built_booking_demo_page()
     must = ["map, cockpit", "map, line map", "map, grouped by domain, clusters closed", "releases", "progress, open questions by week", "the minimap",
             ", context", ", containers", ", components", ", data model", ", key flows", "flow FLO-"]
     for name, path in (("heron-desk/after-design-2", heron / "dashboard.html"), ("booking-demo with designs", page)):

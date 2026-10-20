@@ -1,7 +1,9 @@
 """Shared test helpers. Tests build broken copies of a vault in tmp_path."""
+import fcntl
 import io
 import os
 import pathlib
+import pickle
 import re
 import shutil
 import sys
@@ -76,10 +78,10 @@ def pytest_configure(config):
         config.option.loadgroup = True  # a worker learns the mode from its own reading of the options, not the controller's
 
 
-# Module fixtures that build something costly, and the xdist group their tests share. Under `-n auto` a module fixture
-# is built once per worker that runs one of its tests: test_sim's full_run (three simulated arms, about 20 s) was built
-# on twelve workers in one run, about 240 s of CPU for one result. Grouped, it is built once.
-SHARED_BUILDS = {"full_run": "sim-full-run"}
+# Fixtures that build something costly, and the xdist group their tests share. `built_once` already builds each of them
+# once per session, but a worker that asks while another is building sits idle behind the lock for up to two minutes;
+# grouped, the tests that need the build all run on the worker that builds it, and the others take other work.
+SHARED_BUILDS = {"full_run": "sim-full-run", "complete_run": "sim-complete-run", "plugin_leaks": "seal-plugin-leaks"}
 
 
 @pytest.hookimpl(tryfirst=True)  # before xdist's own hook, which reads the group marks to schedule by them
@@ -89,6 +91,54 @@ def pytest_collection_modifyitems(config, items):
             if fixture in getattr(item, "fixturenames", ()):
                 item.add_marker(pytest.mark.xdist_group(group))
 
+
+# ---------------------------------------------------------------- builds shared across the whole session
+# A module fixture runs once per xdist worker that needs it, so a 135 s stub run was built on three workers at once
+# (Computational Friction: the same result paid for N times). `built_once` builds each distinct thing one time per
+# pytest session, behind a file lock every worker can see, and hands every test the same read-only folder. A test that
+# changes what it is given copies it first (shutil.copytree) so tests stay independent.
+
+_FACTORY = []  # the session's tmp_path_factory, for helpers that are plain functions and cannot ask for a fixture
+
+
+@pytest.fixture(autouse=True, scope="session")
+def _remember_tmp_path_factory(tmp_path_factory):
+    _FACTORY[:] = [tmp_path_factory]
+
+
+def _shared_root(tmp_path_factory):
+    base = (tmp_path_factory or _FACTORY[0]).getbasetemp()
+    root = (base.parent if os.environ.get("PYTEST_XDIST_WORKER") else base) / "shared-builds"
+    root.mkdir(exist_ok=True)
+    return root
+
+
+def built_once(tmp_path_factory, key, build):  # tmp_path_factory may be None once a test has run
+    """The folder `build(folder)` filled, built on the first request in this session and reused after. `key` names
+    the inputs: two requests with the same key must want the same result. The folder is read-only to callers."""
+    root = _shared_root(tmp_path_factory)
+    folder, done = root / key, root / f"{key}.done"
+    with open(root / f"{key}.lock", "w") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        if not done.exists():
+            shutil.rmtree(folder, ignore_errors=True)
+            folder.mkdir()
+            build(folder)
+            done.write_text("ok", encoding="utf-8")
+    return folder
+
+
+def value_built_once(tmp_path_factory, key, produce):
+    """Like built_once for a plain picklable value that `produce()` returns."""
+    def build(folder):
+        (folder / "value.pickle").write_bytes(pickle.dumps(produce()))
+    return pickle.loads((built_once(tmp_path_factory, key, build) / "value.pickle").read_bytes())
+
+
+def copy_of(shared, destination):
+    """A private copy of a shared folder, for a test that is going to change it."""
+    shutil.copytree(shared, destination)
+    return destination
 
 
 def skill_text(name):
