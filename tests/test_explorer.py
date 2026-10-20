@@ -3,7 +3,7 @@
     python3 -m pytest tests/test_explorer.py
 
 The builder is the plugin's (plugin/lib/vela/explorer, run by `vela explore`). These tests drive it through
-prototypes/explorer/build.py, the wrapper that keeps the README's commands and pins in pins/, so both stay working;
+tests/fixtures/explorer/build.py, the wrapper that seeds a new pins file from seed-pins/ and takes any assets config;
 tests/test_explore_cli.py covers the command a vault's user runs.
 
 The page's own #selftest checks it in a browser; these check the build: the facts come from vela's
@@ -24,7 +24,7 @@ from conftest import REPO
 from vela import allocation, attention, cli, handoff, releases
 from vela.explorer import build, design_data, icons_data, inside_data
 
-PROTOTYPE = REPO / "prototypes" / "explorer"
+PROTOTYPE = REPO / "tests" / "fixtures" / "explorer"
 sys.path.insert(0, str(PROTOTYPE))
 
 import make_demo_vault  # noqa: E402
@@ -92,7 +92,7 @@ def test_the_two_live_call_paths_have_their_data(trading):
 def test_positions_are_pinned_and_lanes_follow_them(trading):
     _, data = trading
     cells = {n["key"]: (n["col"], n["row"]) for n in data["nodes"]}
-    assert cells["APP-tickertalk"] == (0, 0) and cells["APP-coach"] == (1, 0)  # the gallery's pins, kept
+    assert cells["APP-tickertalk"] == (0, 0) and cells["APP-coach"] == (1, 0)  # the seed pins, kept
     assert [l["id"] for l in data["lanes"]] == ["APP-tickertalk", "APP-coach", "PTY-01", "PTY-02"]
 
 
@@ -159,10 +159,8 @@ def test_no_unescaped_vault_text(tmp_path):
 
 
 def test_assets_only_through_the_slot_contract(tmp_path):
-    root = REPO / "prototypes/gallery/assets"  # the provider folder: the slot contract and builtin art are the plugin's
-    config = tmp_path / "assets"
-    skip = {"comfyui", "emblems", "test", "__pycache__", ".staging"}  # generated folders at the top only
-    shutil.copytree(root, config, ignore=lambda d, names: [n for n in names if pathlib.Path(d) == root and n in skip])
+    config = tmp_path / "assets"  # a provider folder with no files: the slot contract and builtin art are the plugin's
+    config.mkdir()
     (config / "assets.config.json").write_text(json.dumps({"provider": "nonexistent"}))
     page, _ = built(tmp_path, BOOKING, "2026-11-20", "assets", "--assets", str(config / "assets.config.json"))
     report = json.loads(re.search(r"window\.ASSET_REPORT = (.*?);</script>", page).group(1))

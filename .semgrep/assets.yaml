@@ -2,22 +2,21 @@ rules:
   # Forensic Coding / Shield. The asset slot contract (plugin/lib/vela/explorer/art/slots.json) says pages name
   # slot ids through resolve.js and never a file or a provider; the ComfyUI server lives in
   # assets.config.json only. A hard-coded address or file path re-couples a page to one provider's output.
-  - id: prototype-no-hardcoded-server
+  - id: no-hardcoded-server
     languages: [generic]
     severity: ERROR
     message: >-
       A network address is hard-coded here. The ComfyUI server belongs in
-      prototypes/gallery/assets/assets.config.json and is read by comfy.py; pages never call it at runtime.
+      the assets config and is read by the asset provider's own tooling; pages never call it at runtime.
     paths:
-      include: ["/prototypes/**/*.py", "/prototypes/**/*.js", "/prototypes/**/*.html", "/plugin/**/*.py", "/tests/sim/**/*.py"]
-      exclude: ["/prototypes/gallery/assets/index.html"]
+      include: ["/plugin/**/*.py", "/tests/sim/**/*.py", "/tests/fixtures/explorer/**/*.py"]
     pattern-regex: (https?://)?(\b(?:\d{1,3}\.){3}\d{1,3}\b|\blocalhost\b)(:\d{2,5})?|:8188\b
-  - id: prototype-asset-by-slot-id
+  - id: asset-by-slot-id
     languages: [generic]
     severity: ERROR
     message: >-
       This names a provider's asset file. Ask the resolver for a slot id instead (`assets.url('emblem.learning')`)
       so the builtin fallback and the per-slot report keep working; see plugin/lib/vela/explorer/art/slots.json.
     paths:
-      include: ["/prototypes/explorer/**", "/plugin/lib/vela/explorer/**", "/prototypes/gallery/maps/**", "/prototypes/gallery/flows/**", "/prototypes/gallery/asks/**"]
+      include: ["/plugin/lib/vela/explorer/**", "/tests/fixtures/explorer/**"]
     pattern-regex: \b(builtin|comfyui)/(emblems|textures|audio|video|loops)/[\w.-]+\.(png|svg|jpg|webp|mp4|webm|wav|mp3|ogg)

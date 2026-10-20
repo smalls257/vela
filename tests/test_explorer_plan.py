@@ -22,7 +22,7 @@ sys.path.insert(0, str(REPO / "tools"))
 import breakdown_to_tickets as b2t  # noqa: E402
 
 EXAMPLE = REPO / "examples" / "unified-booking"
-DEMO_DESIGNS = REPO / "prototypes" / "explorer" / "demo_designs"
+DEMO_DESIGNS = REPO / "tests" / "fixtures" / "explorer" / "demo_designs"
 DEMO_PLAN = DEMO_DESIGNS / "booking" / "docs" / "plan" / "booking-breakdown.md"
 PRICING_PAGE = "05-building-blocks/pricing-building-blocks.md"
 PRICING_DOC = "docs/tech-design/pricing.md"
@@ -248,7 +248,7 @@ def test_a_story_blocked_by_an_open_vault_question_says_which(tmp_path):
 
 def test_the_demo_build_gives_the_booking_plan_its_tickets_and_the_reverse_trace_data(tmp_path):
     vault = tmp_path / "vault"
-    sys.path.insert(0, str(REPO / "prototypes" / "explorer"))
+    sys.path.insert(0, str(REPO / "tests" / "fixtures" / "explorer"))
     import make_demo_vault
     make_demo_vault.main(vault)
     out = tmp_path / "page.html"

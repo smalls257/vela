@@ -1,0 +1,42 @@
+{
+  "APP-booking": [
+    1,
+    2
+  ],
+  "APP-call-center": [
+    0,
+    0
+  ],
+  "APP-customer-identity": [
+    2,
+    0
+  ],
+  "APP-ferrymaster": [
+    2,
+    1
+  ],
+  "APP-kiosks": [
+    0,
+    1
+  ],
+  "APP-notifications": [
+    0,
+    2
+  ],
+  "APP-pricing": [
+    2,
+    2
+  ],
+  "APP-vessel-schedule": [
+    2,
+    3
+  ],
+  "APP-website": [
+    0,
+    3
+  ],
+  "PTY-01": [
+    1.0,
+    4
+  ]
+}

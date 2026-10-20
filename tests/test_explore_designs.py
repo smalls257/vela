@@ -13,7 +13,7 @@ import pytest
 from conftest import REPO, edit, run
 
 EXAMPLE = REPO / "examples" / "unified-booking"
-DEMO_DESIGNS = REPO / "prototypes" / "explorer" / "demo_designs"
+DEMO_DESIGNS = REPO / "tests" / "fixtures" / "explorer" / "demo_designs"
 PRICING_PAGE = "05-building-blocks/pricing-building-blocks.md"
 DATA = re.compile(r'<script type="application/json" id="data">(.*?)</script>', re.S)
 PRICING_DOC = "docs/tech-design/pricing.md"

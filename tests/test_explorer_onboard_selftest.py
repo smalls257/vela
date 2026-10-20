@@ -14,7 +14,7 @@ import sys
 import pytest
 from test_explorer_browser import REPO, SNAPSHOTS, _check_selftest_in_chrome, chrome_path  # noqa: F401  (chrome_path is a fixture)
 
-sys.path.insert(0, str(REPO / "prototypes" / "explorer"))
+sys.path.insert(0, str(REPO / "tests" / "fixtures" / "explorer"))
 BOOKING = REPO / "examples" / "unified-booking"
 VELA = [sys.executable, str(REPO / "plugin" / "scripts" / "vela")]
 WANT = ("onboarding: each of the 6 roles lists its path", "onboarding: all ", "onboarding: the first items of every module open the panel",

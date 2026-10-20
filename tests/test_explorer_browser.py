@@ -5,10 +5,8 @@
 Requires Chrome or Chromium. Set env var CHROME to override the default search paths.
 If Chrome is not found and CI env var is set, the test fails instead of skipping.
 """
-import functools
 import hashlib
 import html
-import http.server
 import os
 import pathlib
 import re
@@ -66,11 +64,11 @@ def built_booking_demo_page():
     """The unified-booking demo with its three team designs, as a page with the selftest built in."""
     def build(folder):
         demo = folder / "booking-demo"
-        made = subprocess.run([sys.executable, str(REPO / "prototypes/explorer/make_demo_vault.py"), str(demo)], timeout=120, capture_output=True, text=True)
+        made = subprocess.run([sys.executable, str(REPO / "tests/fixtures/explorer/make_demo_vault.py"), str(demo)], timeout=120, capture_output=True, text=True)
         assert made.returncode == 0, made.stderr
-        designs = REPO / "prototypes/explorer/demo_designs"
-        built = subprocess.run([sys.executable, str(REPO / "prototypes/explorer/build.py"), str(demo), str(folder / "booking-demo.html"), "--today", "2026-11-20", "--selftest",
-                                "--pins", str(REPO / "prototypes/explorer/pins/unified-booking.json"),
+        designs = REPO / "tests/fixtures/explorer/demo_designs"
+        built = subprocess.run([sys.executable, str(REPO / "tests/fixtures/explorer/build.py"), str(demo), str(folder / "booking-demo.html"), "--today", "2026-11-20", "--selftest",
+                                "--pins", str(REPO / "tests/fixtures/explorer/pins/unified-booking.json"),
                                 *[f"--design=APP-{name}={designs / name / 'docs/tech-design' / (name + '.md')}" for name in DEMO_DESIGNS]],
                                timeout=120, capture_output=True, text=True)
         assert built.returncode == 0, built.stderr
@@ -122,7 +120,7 @@ def test_maps_move_free_form_and_pan_by_dragging_the_background(tmp_path, chrome
 @pytest.mark.browser
 def test_fourteen_flows_are_grouped_in_the_picker_and_pass_the_selftest(tmp_path, chrome_path):
     """The synthetic stress vault has 14 flows, past the ten the picker lists flat: grouped, filtered and driven by key."""
-    sys.path.insert(0, str(REPO / "prototypes" / "explorer"))
+    sys.path.insert(0, str(REPO / "tests" / "fixtures" / "explorer"))
     import make_stress_vault
     vault = tmp_path / "stress"
     make_stress_vault.main(vault)
@@ -388,31 +386,6 @@ def test_a_replayed_workspace_lists_its_conflicts_first_and_the_badge_counts_the
     assert lines[0].startswith("SELFTEST OK"), [line for line in lines if line.startswith("FAIL")]
     assert any(line.startswith("ok drafts view: the Conflict badge shows its word, ink and ring in every theme") for line in lines)
     assert any(line.startswith("ok drafts view: 4 conflicts listed before every other change, and the draft badge counts them") for line in lines)
-
-
-@pytest.mark.browser
-@pytest.mark.parametrize("page,said", [("maps/cockpit.html", '[maps] assets from provider "comfyui"'),
-                                       ("flows/played.html", '[flows] assets from provider "comfyui"')])
-def test_gallery_pages_load_the_plugins_art(chrome_path, page, said):
-    """The gallery has no copy of the resolver, slots or builtin art; its pages must still load them from the plugin
-    (with the ComfyUI provider from the gallery's own folder) and fall back to nothing."""
-    handler = functools.partial(http.server.SimpleHTTPRequestHandler, directory=str(REPO))
-    handler.log_message = lambda *args: None
-    server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler)
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
-    try:
-        result = subprocess.run(
-            [str(chrome_path), "--headless=new", "--disable-gpu", "--no-sandbox", "--virtual-time-budget=8000",
-             "--enable-logging=stderr", "--v=0", "--dump-dom",
-             f"http://127.0.0.1:{server.server_address[1]}/prototypes/gallery/{page}"],
-            timeout=120, capture_output=True, text=True)
-    finally:
-        server.shutdown()
-        server.server_close()
-    console = [line for line in result.stderr.splitlines() if "CONSOLE" in line]
-    assert any(said in line for line in console), "\n".join(console) or result.stderr[-500:]
-    assert not [line for line in console if "fell back" in line or "[assets]" in line], "\n".join(console)
 
 
 @pytest.mark.browser

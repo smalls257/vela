@@ -17,11 +17,11 @@ from conftest import REPO
 from vela import cli
 from vela.explorer import design_data
 
-sys.path.insert(0, str(REPO / "prototypes" / "explorer"))
+sys.path.insert(0, str(REPO / "tests" / "fixtures" / "explorer"))
 
 import make_demo_vault  # noqa: E402
 
-DESIGNS = REPO / "prototypes" / "explorer" / "demo_designs"
+DESIGNS = REPO / "tests" / "fixtures" / "explorer" / "demo_designs"
 BOOKING = DESIGNS / "booking/docs/tech-design/booking.md"
 PRICING = DESIGNS / "pricing/docs/tech-design/pricing.md"
 NOTIFICATIONS = DESIGNS / "notifications/docs/tech-design/notifications.md"

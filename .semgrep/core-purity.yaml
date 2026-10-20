@@ -2,7 +2,7 @@ rules:
   # Infected Core. Every vela module except cli.py and edge/ is pure: no files, no clock, no network,
   # no process. cli.py is the one shell. edge/ is the explicit I/O boundary. Keep it that way so the core
   # passes the Airplane Test.
-  # Known debt (C36 in docs/FIX-LEDGER.md): explorer/design_data.py, draft_data.py and plan_data.py still read
+  # Known debt: explorer/design_data.py, draft_data.py and plan_data.py still read
   # files themselves. They are excluded by name so the rule guards every other data module; remove each
   # exclusion when its reads move to build.py.
   - id: vela-core-no-io-imports

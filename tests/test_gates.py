@@ -60,8 +60,8 @@ def test_the_setting_named_inside_a_commit_message_is_not_a_change():
 IGNORE = (REPO / ".semgrepignore").read_text().splitlines()
 
 
-@pytest.mark.parametrize("path", ["prototypes/explorer/out/booking-demo.html", "plugin/lib/vela/assets/d3.min.js",
-                                  "prototypes/gallery/assets/assets.bundle.js", ".semgrep/prototypes.js",
+@pytest.mark.parametrize("path", ["plugin/lib/vela/assets/d3.min.js", "plugin/lib/yaml/__init__.py",
+                                  ".semgrep/assets.js",
                                   "plugin/lib/vela/__pycache__/x.py"])
 def test_files_semgrepignore_names_are_not_scanned_even_when_named(path):
     # Naming a file on semgrep's command line scans it despite .semgrepignore; a generated page then pasted
@@ -69,7 +69,7 @@ def test_files_semgrepignore_names_are_not_scanned_even_when_named(path):
     assert gates.semgrep_ignores(path, IGNORE)
 
 
-@pytest.mark.parametrize("path", ["prototypes/explorer/build.py", "plugin/lib/vela/explorer/assets/js/core.js",
+@pytest.mark.parametrize("path", ["tests/fixtures/explorer/build.py", "plugin/lib/vela/explorer/assets/js/core.js",
                                   "tests/sim/test_x.py", "plugin/lib/vela/assets/app.js"])
 def test_hand_written_files_are_scanned(path):
     assert not gates.semgrep_ignores(path, IGNORE)
@@ -96,9 +96,9 @@ def test_every_path_a_semgrep_rule_names_still_exists(file, rule, glob):
 
 
 def test_the_asset_slot_rule_watches_the_explorer_where_it_lives_now():
-    # The explorer's page code moved from prototypes/explorer into the plugin; the rule that keeps its JS to slot ids
+    # The explorer's page code lives in the plugin; the rule that keeps its JS to slot ids
     # has to follow it, or it passes by scanning nothing.
-    globs = [g for _, rule, g in rule_paths() if rule == "prototype-asset-by-slot-id"]
+    globs = [g for _, rule, g in rule_paths() if rule == "asset-by-slot-id"]
     assert "/plugin/lib/vela/explorer/**" in globs
     assert (REPO / "plugin/lib/vela/explorer/assets/js/assets.js").is_file()
 

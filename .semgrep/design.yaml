@@ -37,7 +37,7 @@ rules:
       - pattern-not-inside: |
           def parse_today(...):
               ...
-  # Silent Fallback in the browser prototypes. An empty catch makes a broken page look like an empty one.
+  # Silent Fallback in the browser pages. An empty catch makes a broken page look like an empty one.
   - id: js-empty-catch
     languages: [javascript]
     severity: WARNING

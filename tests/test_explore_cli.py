@@ -9,7 +9,6 @@ import filecmp
 import json
 import os
 import pathlib
-import re
 import shutil
 import subprocess
 import sys
@@ -130,11 +129,11 @@ def test_a_date_that_is_not_a_date_is_named(vault):
 
 
 def test_the_demo_vault_arrives_with_its_pins_and_keeps_them(tmp_path):
-    sys.path.insert(0, str(REPO / "prototypes/explorer"))
+    sys.path.insert(0, str(REPO / "tests/fixtures/explorer"))
     import make_demo_vault
     demo = tmp_path / "demo"
     make_demo_vault.main(demo)
-    shipped = REPO / "prototypes/explorer/pins/unified-booking.json"
+    shipped = REPO / "tests/fixtures/explorer/pins/unified-booking.json"
     assert filecmp.cmp(shipped, demo / PINS, shallow=False)
     code, said = run("explore", str(demo), "--today", "2026-11-20")
     assert code == 0 and "pinned new positions" not in said
@@ -146,7 +145,7 @@ def tree(root):
 
 
 def test_it_runs_from_a_copy_of_the_plugin_alone(vault, tmp_path):
-    # Nothing but plugin/ is copied: no prototypes/, no tests/, no repo layout above it. If the builder reached for
+    # Nothing but plugin/ is copied: no tests/, no repo layout above it. If the builder reached for
     # anything outside the plugin, this build fails where a user's install would.
     alone = tmp_path / "installed" / "vela"
     shutil.copytree(PLUGIN, alone, ignore=shutil.ignore_patterns("__pycache__"))
@@ -176,29 +175,9 @@ def test_a_copy_of_the_plugin_alone_pins_a_first_build_in_the_vault(vault, tmp_p
     assert "first build" in done.stdout and (vault / PINS).is_file() and (vault / PAGE).is_file()
 
 
-def test_the_plugin_imports_nothing_from_the_prototypes_and_never_edits_the_path():
+def test_the_plugin_imports_nothing_from_the_tests_and_never_edits_the_path():
     for path in (PLUGIN / "lib/vela/explorer").glob("*.py"):
         for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
             names = [a.name for a in node.names] if isinstance(node, ast.Import) else [node.module or ""] if isinstance(node, ast.ImportFrom) else []
-            assert not any(n.split(".")[0] in ("prototypes", "tests") for n in names), path
+            assert not any(n.split(".")[0] in ("tests",) for n in names), path
             assert not (isinstance(node, ast.Attribute) and node.attr == "path" and getattr(node.value, "id", "") == "sys"), path
-
-
-def test_the_gallery_reads_the_plugins_art_and_keeps_no_copy():
-    # The plugin holds the one copy of the slot contract, the resolver and the hand-drawn art. The gallery's pages
-    # point at it and keep only the ComfyUI provider beside them, so there is nothing to drift (Distributed Monolith).
-    art, assets = PLUGIN / "lib/vela/explorer/art", REPO / "prototypes/gallery/assets"
-    for name in ("resolve.js", "slots.json", "builtin"):
-        assert not (assets / name).exists(), f"prototypes/gallery/assets/{name} is a second copy of the plugin's art"
-    gallery = REPO / "prototypes/gallery"
-    pages = [p for p in gallery.rglob("*") if p.suffix in (".html", ".js") and p.name != "assets.bundle.js"]
-    referenced = {}
-    for page in pages:
-        for ref in re.findall(r"""["']([^"']*?/resolve\.js)["']""", page.read_text(encoding="utf-8")):
-            referenced[page] = (page.parent / ref).resolve()
-    assert {p.relative_to(gallery).as_posix() for p in referenced} >= {
-        "asks/garden.html", "asks/strips.html", "asks/timelapse.html", "maps/cockpit.html", "maps/transit.html",
-        "flows/common.js", "assets/index.html"}, sorted(referenced)
-    assert {target for target in referenced.values()} == {(art / "resolve.js").resolve()}, referenced
-    for page in pages:
-        assert "../assets/resolve.js" not in page.read_text(encoding="utf-8"), page

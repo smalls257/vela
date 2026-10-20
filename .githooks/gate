@@ -4,7 +4,7 @@
 #   .githooks/gate full   the same with the pytest suite scoped to what changed; it prints every skip and why
 #   .githooks/gate all    the same with the whole pytest suite, nothing skipped; run it before a merge
 #   .githooks/gate static rules + sync + vault checks, no tests                (about 10 s)
-# `full` skips the browser tests unless the explorer, its prototypes, the snapshots or a browser test changed, and skips
+# `full` skips the browser tests unless the explorer, its test fixtures, the snapshots or a browser test changed, and skips
 # the sim and probe tests unless tests/sim, their tests, plugin/skills or plugin/lib/vela changed, measured against the
 # base (GATE_BASE, else the upstream, else origin/main, else main). With no base it skips nothing.
 # Each stage prints its name and its time, so a failure says where and a slow push says which stage.
@@ -72,7 +72,7 @@ changed_files() {  # every path that differs from the base, committed or not, on
 }
 
 # What can break each slow family: its own tests and helpers, and the code it drives.
-BROWSER_PATHS='^(plugin/lib/vela/explorer/|prototypes/explorer/|tests/explorer_stub/|tests/sim/snapshots/|tests/conftest\.py|tests/sharing\.py|tests/test_[a-z_]*browser[a-z_]*\.py)'
+BROWSER_PATHS='^(plugin/lib/vela/explorer/|tests/fixtures/explorer/|tests/explorer_stub/|tests/sim/snapshots/|tests/conftest\.py|tests/sharing\.py|tests/test_[a-z_]*browser[a-z_]*\.py)'
 SIM_PATHS='^(tests/sim/|tests/test_sim[a-z_]*\.py|tests/test_probe[a-z_]*\.py|tests/conftest\.py|plugin/skills/|plugin/lib/vela/)'
 
 scoped_pytest_args() {  # one pytest argument per line to drop the families nothing touched; every skip is said on stderr
@@ -81,7 +81,7 @@ scoped_pytest_args() {  # one pytest argument per line to drop the families noth
     echo "gate: no base to compare with (set GATE_BASE); nothing is skipped" >&2; return 0
   fi
   if ! grep -Eq "$BROWSER_PATHS" <<<"$files"; then  # a here-string, not a pipe: grep -q closes early and pipefail would read the SIGPIPE as "no match"
-    echo "gate: SKIPPED browser tests: nothing changed under plugin/lib/vela/explorer, prototypes/explorer, the snapshots, or a browser test" >&2
+    echo "gate: SKIPPED browser tests: nothing changed under plugin/lib/vela/explorer, tests/fixtures/explorer, the snapshots, or a browser test" >&2
     printf '%s\n' -m "not browser"
   fi
   if ! grep -Eq "$SIM_PATHS" <<<"$files"; then

@@ -41,7 +41,7 @@ import webbrowser
 from . import pins as pinning
 from . import vault_files
 
-# nosemgrep: prototype-no-hardcoded-server -- the policy itself: the helper listens on loopback and nowhere else, under these two names
+# nosemgrep: no-hardcoded-server -- the policy itself: the helper listens on loopback and nowhere else, under these two names
 LOOPBACK, LOCAL_NAME = "127.0.0.1", "localhost"
 MODELS = {"haiku": "claude-haiku-4-5-20251001", "sonnet": "claude-sonnet-5-5"}
 DEFAULT_MODEL = "haiku"

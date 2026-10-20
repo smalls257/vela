@@ -17,7 +17,7 @@ optional (assets_inline.py).
 design beside the vault (design_data.py reads it, inside_data.py checks it against the vault; DESIGN-INSIDE.md).
 
 `generate` is the one entry point. It takes the date and every path as arguments and returns the report lines;
-the caller (cli.cmd_explore, or prototypes/explorer/build.py) reads the clock and does the printing.
+the caller (cli.cmd_explore, or the tests' wrapper) reads the clock and does the printing.
 """
 import base64
 import hashlib
@@ -690,7 +690,7 @@ def render(data, assets=None, selftest=False):
             raise assets_inline.AssetError("resolve.js contains </script and cannot be inlined")
         inline = (f"<script>window.ASSET_BUNDLE = {safe_json(assets['bundle'])};\n"
                   # the bundle is keyed by the resolver's own manifest paths; the page asks resolve.js by slot id
-                  "// nosemgrep: prototype-asset-by-slot-id -- the resolver's inlined manifest, keyed by its own paths\n"
+                  "// nosemgrep: asset-by-slot-id -- the resolver's inlined manifest, keyed by its own paths\n"
                   f"window.ASSET_FILES = {safe_json(assets['files'])};\nwindow.ASSET_REPORT = {safe_json(assets['report'])};</script>\n"
                   # resolve.js finds its folder from document.currentScript.src, which an inline script lacks; a
                   # document whose currentScript is null makes it fall back to "./", and the bundle does the rest.

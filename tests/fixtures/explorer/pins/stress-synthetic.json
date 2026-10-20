@@ -1,0 +1,110 @@
+{
+  "APP-agent-portal": [
+    2,
+    1
+  ],
+  "APP-audit-log": [
+    2,
+    3
+  ],
+  "APP-booking": [
+    6,
+    2
+  ],
+  "APP-call-center": [
+    2,
+    2
+  ],
+  "APP-consent": [
+    1,
+    1
+  ],
+  "APP-data-warehouse": [
+    1,
+    4
+  ],
+  "APP-fraud-check": [
+    4,
+    1
+  ],
+  "APP-identity": [
+    6,
+    3
+  ],
+  "APP-inventory": [
+    0,
+    2
+  ],
+  "APP-kiosks": [
+    0,
+    3
+  ],
+  "APP-ledger": [
+    3,
+    2
+  ],
+  "APP-loyalty": [
+    5,
+    1
+  ],
+  "APP-messaging-hub": [
+    3,
+    3
+  ],
+  "APP-mobile-app": [
+    0,
+    0
+  ],
+  "APP-notifications": [
+    0,
+    1
+  ],
+  "APP-partner-gateway": [
+    4,
+    2
+  ],
+  "APP-payments": [
+    3,
+    1
+  ],
+  "APP-pricing": [
+    6,
+    1
+  ],
+  "APP-refunds": [
+    1,
+    3
+  ],
+  "APP-reporting": [
+    5,
+    2
+  ],
+  "APP-schedule": [
+    4,
+    3
+  ],
+  "APP-search": [
+    1,
+    2
+  ],
+  "APP-vouchers": [
+    2,
+    4
+  ],
+  "APP-website": [
+    6,
+    0
+  ],
+  "PTY-01": [
+    0.0,
+    4
+  ],
+  "PTY-02": [
+    3,
+    4
+  ],
+  "PTY-03": [
+    6.0,
+    4
+  ]
+}

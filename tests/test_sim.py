@@ -1213,7 +1213,7 @@ def test_a_run_whose_breakdown_is_missing_says_so_in_tickets_and_the_transcript_
 
 # ---------------------------------------------------------------- the explorer the tool builds at the end of a run
 
-DEMO = REPO / "prototypes" / "explorer" / "demo_designs"
+DEMO = REPO / "tests" / "fixtures" / "explorer" / "demo_designs"
 EXPLORER_DATA = re.compile(r'<script type="application/json" id="data">(.*?)</script>', re.S)
 
 
