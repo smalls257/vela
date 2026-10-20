@@ -218,6 +218,7 @@
       }
     }
     Onboard.st.shape = null; go("lights", { reset: true });
+    if (!bad.length && !Object.keys(UNKNOWN).length) { ok(true, "onboarding: clicking an item opens its real Details (skipped: no question on this path, the plan has no unknowns)"); st_depth(null); return; }
     ok(!bad.length && asked.includes("unknown"), `onboarding: clicking an item opens its real Details (${[...new Set(asked)].join(", ")}), the same as on its own page`, `onboarding details: ${bad.slice(0, 5).join(" | ") || "no question item was clicked"}`);
     st_depth(null);
   }
