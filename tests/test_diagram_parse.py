@@ -8,7 +8,7 @@ import subprocess
 
 import pytest
 
-from conftest import REPO, check, findings, run
+from conftest import REPO, check, findings, run, run_chrome
 from vela import diagramcheck, diagrams, parse, render
 from vela.edge import mermaidjs
 
@@ -225,9 +225,9 @@ def test_node_and_chrome_agree_on_what_parses(tmp_path):
 <script>(async () => { mermaid.initialize({startOnLoad: false, securityLevel: 'strict'}); const out = [];
 for (const s of %s) { try { await mermaid.parse(s); out.push(true); } catch (e) { out.push(false); } }
 document.getElementById('out').textContent = JSON.stringify(out); })();</script>""" % json.dumps(AGREEMENT).replace("</", "<\\/"))
-    dom = subprocess.run([CHROME, "--headless=new", "--disable-gpu", "--no-sandbox", "--allow-file-access-from-files",
+    dom = run_chrome([CHROME, "--headless=new", "--disable-gpu", "--no-sandbox", "--allow-file-access-from-files",
                           f"--user-data-dir={tmp_path / 'profile'}", "--virtual-time-budget=10000", "--dump-dom",
-                          page.as_uri()], capture_output=True, text=True, timeout=60).stdout
+                          page.as_uri()], 60)[1]
     chrome = json.loads(dom.split('<pre id="out">', 1)[1].split("</pre>", 1)[0])
     in_node = [v is None for v in mermaidjs.parse_all(AGREEMENT)]
     assert in_node == chrome

@@ -1,4 +1,5 @@
 """Shared test helpers. Tests build broken copies of a vault in tmp_path."""
+import contextlib
 import fcntl
 import io
 import os
@@ -173,3 +174,59 @@ def chrome_profile():
 def pytest_unconfigure(config):
     for folder in _CHROME_PROFILES:
         shutil.rmtree(folder, ignore_errors=True)  # nosemgrep: except-pass -- best-effort cleanup of temp profiles
+
+
+ATTEMPTS = 3
+
+
+class ChromeStalled(Exception):
+    """One headless Chrome launch outlasted its share of the timeout."""
+
+
+def _launch_chrome_once(cmd, timeout):
+    import signal
+    import subprocess
+    import tempfile
+    import time
+    started = time.monotonic()
+    with tempfile.TemporaryFile() as out, tempfile.TemporaryFile() as err:
+        proc = subprocess.Popen(cmd, stdout=out, stderr=err, stdin=subprocess.DEVNULL, start_new_session=True)
+        try:
+            try:
+                proc.wait(timeout=timeout)
+            except subprocess.TimeoutExpired:
+                out.seek(0, os.SEEK_END)
+                raise ChromeStalled(f"did not exit within {timeout:.0f}s (waited {time.monotonic() - started:.1f}s, "
+                                    f"{out.tell()} bytes of DOM written)") from None
+        finally:
+            with contextlib.suppress(ProcessLookupError):  # the whole group may already be gone, which is the goal
+                os.killpg(proc.pid, signal.SIGKILL)  # group id is the main pid (start_new_session)
+            proc.wait()
+        out.seek(0)
+        err.seek(0)
+        dom = out.read().decode("utf-8", errors="replace")
+        if proc.returncode != 0:
+            sys.stderr.write(f"headless Chrome exited {proc.returncode}: {cmd}\n{err.read().decode('utf-8', errors='replace')[-500:]}\n")
+        return proc.returncode, dom
+
+
+def run_chrome(cmd, timeout):
+    """Run one headless Chrome launch and return (returncode, dom text). Chrome's output goes to temp files, not pipes,
+    and only the main process is waited on. With a pipe, Chrome can dump the DOM and exit while a leftover helper
+    keeps the pipe open, so `communicate` waits out the whole timeout for an EOF that never comes (E87). Chrome runs in
+    its own process group, and the group is killed after the main process ends so no helper lingers.
+    Separately, under load a launch sometimes stalls with an idle Chrome and 0 bytes written, however long it is
+    given (seen: a renderer alive, nothing happening). A healthy launch takes seconds, so `timeout` is split into
+    ATTEMPTS equal shares: a stalled share is killed, printed to stderr, and the launch tried again. When every share
+    stalls this raises TimeoutError naming the command and each stall; it never returns empty output."""
+    share = timeout / ATTEMPTS
+    stalls = []
+    for attempt in range(1, ATTEMPTS + 1):
+        if attempt > 1:  # the stalled attempt may have saved page state (localStorage) in its profile
+            cmd = [chrome_profile() if arg.startswith("--user-data-dir=") else arg for arg in cmd]
+        try:
+            return _launch_chrome_once(cmd, share)
+        except ChromeStalled as stall:
+            stalls.append(f"attempt {attempt}: {stall}")
+            sys.stderr.write(f"E87: headless Chrome stalled ({stalls[-1]}); {'trying again' if attempt < ATTEMPTS else 'giving up'}\n")
+    raise TimeoutError(f"headless Chrome stalled on every attempt ({'; '.join(stalls)}): {cmd}")

@@ -6,7 +6,7 @@ import shutil
 import subprocess
 import sys
 
-from conftest import chrome_profile
+from conftest import chrome_profile, run_chrome
 
 import pytest
 from test_explorer_browser import REPO, _check_selftest_in_chrome, chrome_path  # noqa: F401  (chrome_path is a fixture)
@@ -27,7 +27,7 @@ def staged(tmp_path):
 def dom(chrome_path, page, hash_):  # noqa: F811
     cmd = [str(chrome_path), "--headless=new", chrome_profile(), "--disable-gpu", "--no-sandbox", "--window-size=1400,900", "--virtual-time-budget=20000",
            "--dump-dom", f"file://{page}#{hash_}"]
-    return subprocess.run(cmd, timeout=180, capture_output=True, text=True).stdout
+    return run_chrome(cmd, 180)[1]
 
 
 @pytest.mark.browser

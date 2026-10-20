@@ -17,7 +17,7 @@ import sys
 import threading
 
 import pytest
-from conftest import built_once, chrome_profile
+from conftest import built_once, chrome_profile, run_chrome
 from sharing import draft_workspace, git, make_vault
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
@@ -82,7 +82,7 @@ def chrome_dom(chrome_path, html_path, viewport="1600,1000", route="map&selftest
     def build(folder):
         cmd = [str(chrome_path), "--headless=new", chrome_profile(), "--disable-gpu", "--no-sandbox", f"--window-size={viewport}",
                f"--virtual-time-budget={budget}", "--dump-dom", f"file://{html_path}#{route}"]
-        (folder / "dom.html").write_text(subprocess.run(cmd, timeout=180, capture_output=True, text=True).stdout, encoding="utf-8")
+        (folder / "dom.html").write_text(run_chrome(cmd, 180)[1], encoding="utf-8")
     return (built_once(None, key, build) / "dom.html").read_text(encoding="utf-8")
 
 
@@ -296,7 +296,7 @@ def test_a_served_page_finds_its_helper(tmp_path, chrome_path):
         assert url.startswith("http://127.0.0.1:")
         cmd = [str(chrome_path), "--headless=new", chrome_profile(), "--disable-gpu", "--no-sandbox", "--window-size=1600,1000", "--virtual-time-budget=60000",
                "--dump-dom", f"{url}#home&selftest"]
-        dom = subprocess.run(cmd, timeout=180, capture_output=True, text=True).stdout
+        dom = run_chrome(cmd, 180)[1]
         assert 'data-ask="served"' in dom, "the page did not detect the helper"
         selftest = html.unescape(re.search(r'data-selftest="([^"]*)"', dom).group(1))
         assert selftest.startswith("SELFTEST OK"), [line for line in selftest.split(" || ") if line.startswith("FAIL")]
@@ -325,8 +325,8 @@ def test_a_reader_workspace_shows_its_draft_and_its_pending_decision(tmp_path, c
                             timeout=120, capture_output=True, text=True)
     assert result.returncode == 0, result.stderr
     page = workspace / "dashboard.html"
-    dom = subprocess.run([str(chrome_path), "--headless=new", chrome_profile(), "--disable-gpu", "--no-sandbox", "--window-size=1600,1000", "--virtual-time-budget=60000",
-                          "--dump-dom", f"file://{page}#home&selftest"], timeout=180, capture_output=True, text=True).stdout
+    dom = run_chrome([str(chrome_path), "--headless=new", chrome_profile(), "--disable-gpu", "--no-sandbox", "--window-size=1600,1000", "--virtual-time-budget=60000",
+                          "--dump-dom", f"file://{page}#home&selftest"], 180)[1]
     lines = _selftest_lines(dom)
     assert lines[0].startswith("SELFTEST OK"), [line for line in lines if line.startswith("FAIL")]
     assert 'ok draft badge: "Draft: 2 pages changed" in the top bar of this reader\'s page' in lines
@@ -354,8 +354,8 @@ def test_a_served_reader_page_asks_freshness_once_on_load(tmp_path, chrome_path)
                 url = found.group(1)
                 break
         assert url, "vela explore --serve never printed its address"
-        dom = subprocess.run([str(chrome_path), "--headless=new", chrome_profile(), "--disable-gpu", "--no-sandbox", "--window-size=1600,1000", "--virtual-time-budget=60000",
-                              "--dump-dom", f"{url}#home&selftest"], timeout=180, capture_output=True, text=True).stdout
+        dom = run_chrome([str(chrome_path), "--headless=new", chrome_profile(), "--disable-gpu", "--no-sandbox", "--window-size=1600,1000", "--virtual-time-budget=60000",
+                              "--dump-dom", f"{url}#home&selftest"], 180)[1]
         lines = _selftest_lines(dom)
         assert lines[0].startswith("SELFTEST OK"), [line for line in lines if line.startswith("FAIL")]
         assert "ok freshness when served: at most one /freshness request at load" in lines
@@ -380,8 +380,8 @@ def test_a_replayed_workspace_lists_its_conflicts_first_and_the_badge_counts_the
     rebuilt = subprocess.run([sys.executable, str(REPO / "plugin" / "scripts" / "vela"), "explore", "--selftest", str(workspace), "--today", "2026-10-12"],
                              timeout=120, capture_output=True, text=True)
     assert rebuilt.returncode == 0, rebuilt.stderr  # re-open writes the page without its checks; this test needs them
-    dom = subprocess.run([str(chrome_path), "--headless=new", chrome_profile(), "--disable-gpu", "--no-sandbox", "--window-size=1600,1000", "--virtual-time-budget=60000",
-                          "--dump-dom", f"file://{page}#home&selftest"], timeout=180, capture_output=True, text=True).stdout
+    dom = run_chrome([str(chrome_path), "--headless=new", chrome_profile(), "--disable-gpu", "--no-sandbox", "--window-size=1600,1000", "--virtual-time-budget=60000",
+                          "--dump-dom", f"file://{page}#home&selftest"], 180)[1]
     lines = _selftest_lines(dom)
     assert lines[0].startswith("SELFTEST OK"), [line for line in lines if line.startswith("FAIL")]
     assert any(line.startswith("ok drafts view: the Conflict badge shows its word, ink and ring in every theme") for line in lines)
@@ -407,8 +407,8 @@ def test_the_built_line_shows_at_the_top_with_the_commit(tmp_path, chrome_path):
     page = vault / "dashboard.html"
 
     def built_tag():
-        dom = subprocess.run([str(chrome_path), "--headless=new", chrome_profile(), "--disable-gpu", "--no-sandbox", "--virtual-time-budget=20000", "--dump-dom",
-                              f"file://{page}#home"], timeout=180, capture_output=True, text=True).stdout
+        dom = run_chrome([str(chrome_path), "--headless=new", chrome_profile(), "--disable-gpu", "--no-sandbox", "--virtual-time-budget=20000", "--dump-dom",
+                              f"file://{page}#home"], 180)[1]
         tag = re.search(r'<div class="built" id="built"[^>]*>(.*?)</div>', dom, re.S)
         return html.unescape(tag.group(1)), html.unescape(tag.group(0).split(">", 1)[0])
 

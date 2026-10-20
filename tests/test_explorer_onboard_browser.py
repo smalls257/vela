@@ -13,7 +13,7 @@ import shutil
 import subprocess
 import sys
 
-from conftest import chrome_profile
+from conftest import chrome_profile, run_chrome
 
 import pytest
 from test_explorer_browser import REPO, chrome_path  # noqa: F401  (chrome_path is a fixture)
@@ -32,7 +32,7 @@ def vela(*argv):
 
 def dom(chrome_path, page, hash_):  # noqa: F811
     cmd = [str(chrome_path), "--headless=new", chrome_profile(), "--disable-gpu", "--no-sandbox", "--window-size=1600,1000", "--virtual-time-budget=20000", "--dump-dom", f"file://{page}#{hash_}"]
-    return subprocess.run(cmd, timeout=180, capture_output=True, text=True).stdout
+    return run_chrome(cmd, 180)[1]
 
 
 @pytest.fixture
@@ -103,7 +103,7 @@ def test_waiting_on_you_on_the_shared_page_comes_from_the_role_door_and_survives
 
     def home(hash_):
         cmd = [str(chrome_path), "--headless=new", "--disable-gpu", "--no-sandbox", f"--user-data-dir={profile}", "--window-size=1600,1000", "--virtual-time-budget=20000", "--dump-dom", f"file://{page}#{hash_}"]
-        return subprocess.run(cmd, timeout=180, capture_output=True, text=True).stdout
+        return run_chrome(cmd, 180)[1]
     assert chip(home("home&still")) is None, "no handle and no door picked: the filter is not offered"
     home("onboard=qa&still")  # choosing the QA door by its route; this vault's queue is empty on that page, so the chip shows on Home
     assert chip(home("home&still")).group(1) == "role", "after choosing QA, in a new load of the page, Waiting on you is offered for the role"
@@ -125,7 +125,7 @@ def test_a_persons_page_opens_on_their_paths_role_and_depth_saved_on_the_shared_
 
     def load(page, hash_):
         cmd = [str(chrome_path), "--headless=new", "--disable-gpu", "--no-sandbox", f"--user-data-dir={profile}", "--window-size=1600,1000", "--virtual-time-budget=20000", "--dump-dom", f"file://{page}#{hash_}"]
-        return subprocess.run(cmd, timeout=180, capture_output=True, text=True).stdout
+        return run_chrome(cmd, 180)[1]
     load(seed, "")
     own = load(vault / ".vela" / "onboard" / "ana.html", "onboard&still")
     assert 'data-role="product"' in own, "their path's role, not the role they recorded"

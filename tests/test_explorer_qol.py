@@ -14,7 +14,7 @@ import shutil
 import subprocess
 import sys
 
-from conftest import chrome_profile
+from conftest import chrome_profile, run_chrome
 
 import pytest
 from test_explorer_browser import find_chrome
@@ -52,7 +52,7 @@ def selftest(chrome, page, width, hash_="s=apps", height=900):
     """The qol group's lines, as the page wrote them."""
     cmd = [str(chrome), "--headless=new", chrome_profile(), "--disable-gpu", "--no-sandbox", f"--window-size={width},{height}", "--virtual-time-budget=90000",
            "--dump-dom", f"file://{page}#{hash_}&selftest&only=qol"]
-    dom = subprocess.run(cmd, timeout=180, capture_output=True, text=True).stdout
+    dom = run_chrome(cmd, 180)[1]
     found = re.search(r'data-selftest="([^"]*)"', dom)
     assert found, "the page wrote no selftest report"
     lines = html.unescape(found.group(1)).split(" || ")
