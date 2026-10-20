@@ -7,8 +7,6 @@ authored: mixed
 
 # Epics
 
-One page per epic, named `EPC-nnn-<slug>.md`.
-
 ## Traceability
 
 <!-- generated:traceability sha=c3a557ed: do not edit, run vela render -->

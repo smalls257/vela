@@ -12,7 +12,7 @@ import re
 
 from conftest import REPO
 
-SNAPSHOTS = REPO / "tests" / "sim" / "snapshots"
+SNAPSHOTS = REPO / "tests" / "sim"  # the starting snapshots and the scaled probes' snapshots both
 RETIRED = REPO / "plugin" / "catalog" / "template-lines-retired.txt"
 
 
