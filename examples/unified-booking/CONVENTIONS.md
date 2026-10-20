@@ -578,7 +578,7 @@ Run `python3 .claude/skills/vela/scripts/vela check` from the vault root. It rea
 
 The table is generated from the codes `vela check` uses, so it cannot drift from them, and each finding's fix line says how to put it right. `vela upgrade` brings a vault's copy up to date.
 
-<!-- generated:check-codes sha=9b50e6c4: do not edit, run vela render -->
+<!-- generated:check-codes sha=13ec2081: do not edit, run vela render -->
 | Code | Finding |
 |---|---|
 | E101 | page has no frontmatter |
@@ -659,6 +659,7 @@ The table is generated from the codes `vela check` uses, so it cannot drift from
 | W370 | an epic criterion has no AC id on its Trace line, or two share one |
 | W371 | two or more openings above the first heading, over 150 words together |
 | W372 | a British spelling in the page's own words |
+| W373 | a concern page pads what is not looked at: a sentence in an unexamined row's Why cell, or a Strategy section that only says none is set |
 | W380 | contract has no case table |
 | W381 | a case table row, or a Can time out, Retries or Idempotent line, cannot be read |
 | W382 | two cases of one contract share a key |
