@@ -16,8 +16,15 @@ SNAPSHOTS = REPO / "tests" / "sim"  # the starting snapshots and the scaled prob
 RETIRED = REPO / "plugin" / "catalog" / "template-lines-retired.txt"
 
 
+RESULTS = SNAPSHOTS / "results"  # git-ignored run outputs: what past runs wrote, not what a run starts from
+
+
+def tracked(paths):
+    return sorted(p for p in paths if RESULTS not in p.parents)
+
+
 def snapshot_pages():
-    return sorted(SNAPSHOTS.rglob("*.md"))
+    return tracked(SNAPSHOTS.rglob("*.md"))
 
 
 def test_the_retired_list_is_read_and_the_snapshots_exist():
@@ -44,7 +51,7 @@ def test_every_snapshot_vault_passes_vela_check_with_no_error():
     """Including the concern pages, whose unlooked-at apps sit on the one "Not looked at yet:" line (E315 reads it)."""
     from conftest import check
     bad = {}
-    for goals in sorted(SNAPSHOTS.rglob("01-goals.md")):
+    for goals in tracked(SNAPSHOTS.rglob("01-goals.md")):
         code, out = check(goals.parent, "2026-10-19")
         errors = [l for l in out.splitlines() if re.search(r" E\d+ ", l)]
         if errors:

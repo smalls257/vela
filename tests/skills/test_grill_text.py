@@ -227,7 +227,7 @@ def test_grill_leaves_options_considered_to_the_gate():
 
 def test_grill_holds_the_loop_and_files_each_decision_at_once():
     grill = text("skills/grill/SKILL.md")
-    assert "If no item passes and the user overrides none, do not start the grill: make no change to any page" in grill
+    assert "If no item passes and the user overrides none after you offered it for each item their answers settled, do not start the grill: make no change to any page" in grill
     assert "claude, from <name>" in grill
     assert "Keep your recommendation when the user pushes back without a reason." in grill
     assert "Never answer your own question." in grill

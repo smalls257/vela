@@ -49,7 +49,7 @@ Run the steps in `${CLAUDE_PLUGIN_ROOT}/references/START.md` with mode `grill`. 
 
 `vela session brief` lists items the lead already said yes to in a session that couldn't decide ("ready to decide"). Open the agenda with them, and still read each wording back for its own yes.
 
-**Lead with a ready item.** On turn 1 run `vela check --gate grill --all --for-lead`: one call, every item still waiting, ready ones first, each with what it needs. Open with a ready one as a proposal: "I'd decide <item> as <answer>, because <reason>. OK?" Recaps and reading come after that, or only if needed. If nothing is ready, say so in one line and ask the question that would make the nearest item ready.
+**Lead with a ready item.** On turn 1 run `vela check --gate grill --all --for-lead`: one call, every item still waiting, ready ones first, each with what it needs. Open with a ready one as a proposal: "I'd decide <item> as <answer>, because <reason>. OK?" Recaps and reading come after that, or only if needed. If nothing is ready, say so in one line and ask the question that would make the nearest item ready. When an answer settles an item that isn't ready, offer to decide it anyway in that same turn, with its read-back: "That settles <item>. It isn't ready because <reason>. Decide it anyway?" Never file a settling answer as a note without that offer.
 
 If the lead names a challenge to answer, by its PR number or the challenged item, START will take its "Answer a challenge" path, on the challenge's own branch, with `modes: [answer, grill]`; read the Answer row of `MODES.md` too. The agenda holds the challenge's unknown and the challenged item. Resolve the unknown with the team lead as its owner, with the `resolve` kind. If the answer changes the item, set it back first with `vela decide --reopen <ID> --why ^cN`, then decide it again through the gate below.
 
@@ -69,7 +69,7 @@ Run the review checkpoint in `${CLAUDE_PLUGIN_ROOT}/references/REVIEW.md` "on th
 
 **Deciding it anyway.** The lead may override anything (`START.md`). Offer "Decide it anyway (I'll note that the open question was skipped)", ask the reason once and capture it. Never refuse, and never ask twice. The rest of the grill runs as normal, read-back and yes included, and the override is filed with the decision in section 4. If the lead decides for an owner who isn't here, say how that ends. Tell the user the owner confirms later: "Ines can confirm it later by adding a 'Confirmed by' line to the page, or challenge it with /vela:challenge if she disagrees."
 
-If no item passes and the user overrides none, do not start the grill: make no change to any page, say why, and offer Shape or stopping. If the lead takes neither, end as `MODES.md` says under "Unknowns".
+If no item passes and the user overrides none after you offered it for each item their answers settled, do not start the grill: make no change to any page, say why, and offer Shape or stopping. If the lead takes neither, end as `MODES.md` says under "Unknowns".
 
 ## Handing an app over
 

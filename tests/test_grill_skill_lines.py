@@ -26,3 +26,9 @@ def test_the_review_checkpoint_waits_for_the_first_decision_or_a_pause():
 
 def test_a_yes_right_after_the_agenda_is_accepted_not_asked_again():
     assert "a yes right after the agenda is accepted in that turn, so never ask for it again" in SKILL
+
+
+def test_an_answer_that_settles_a_not_ready_item_gets_the_override_offer_at_once():
+    # E79: an early grill filed three clear yeses as notes and said the lead "chose not to override" without offering.
+    assert "When an answer settles an item that isn't ready, offer to decide it anyway in that same turn" in SKILL
+    assert "Never file a settling answer as a note without that offer." in SKILL
