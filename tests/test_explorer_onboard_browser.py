@@ -48,7 +48,7 @@ def test_the_route_opens_the_path_at_the_named_part_and_the_sidebar_has_the_door
     out = dom(chrome_path, vault / "dashboard.html", "onboard=eng&m=contracts&still")
     assert 'data-role="eng"' in out and re.search(r'class="onb-mod on" data-module="contracts"', out) and 'aria-current="step"' in out
     assert MODULES.findall(out) == ["goal", "approach", "standing", "fit@eng", "people@eng", "handoff", "contracts", "journeys", "blocked"]
-    assert "Get up to speed" in out and 'class="side-home side-onboard' in out
+    assert "Get up to speed" in out and 'side-onboard' in out and 'Viewing as' in out
 
 
 @pytest.mark.browser
@@ -140,3 +140,14 @@ def test_an_arrow_that_only_opens_a_section_is_named_for_the_section_not_for_the
     assert ("#asks", "Open Who to ask") in links
     for href, label in links:
         assert label.endswith(" in its own view") == ("open=" in href), (href, label)
+
+
+@pytest.mark.browser
+@pytest.mark.parametrize("route,section,viewing", [("role=qa&still", "qa", "QA"), ("onboard=eng&still", "eng", "Engineering")])
+def test_both_routes_set_the_one_viewing_as_role_and_the_links_follow_it(vault, chrome_path, route, section, viewing):  # noqa: F811
+    """The role door and the onboarding route are one setting: the sidebar's Viewing as menu shows it, and its two links name it."""
+    vela("explore", str(vault), "--today", TODAY)
+    out = dom(chrome_path, vault / "dashboard.html", route)
+    assert re.search(r'data-dmenu="viewing-as".*?<small>Viewing as</small><b>' + viewing + "</b>", out, re.S)
+    assert f"Overview for {viewing} ›" in out
+    assert f"Get up to speed as {viewing} ›" in out

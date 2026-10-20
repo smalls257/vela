@@ -22,6 +22,10 @@
     $("#side-toggle").click(); await tick();
     ok(shown("#side") && rect("#side").right <= innerWidth && getComputedStyle($("#side")).position === "fixed" && $("#side-toggle").getAttribute("aria-expanded") === "true",
       "compact: the hamburger slides the menu over the diagram", `compact: menu shown ${shown("#side")} at ${Math.round(rect("#side").width)} px`);
+    const vb = $("#side .dmenu[data-dmenu='viewing-as'] .dmenu-btn"); vb.click(); await tick();
+    const vp = $("#side .dmenu[data-dmenu='viewing-as'] .dmenu-pop");
+    ok(!vp.hidden && rect(vp).left >= 0 && rect(vp).right <= innerWidth && rect("#side").right <= innerWidth && $("#side").scrollWidth <= $("#side").clientWidth + 1, `compact: the Viewing as menu opens inside the slide-over menu at ${innerWidth} px with no sideways scroll`, `compact: Viewing as list ${Math.round(rect(vp).left)}..${Math.round(rect(vp).right)}, side scrollWidth ${$("#side").scrollWidth} of ${$("#side").clientWidth}`);
+    vb.click(); await tick();
     $("#side .side-link[data-section='apps']").click(); await tick();
     ok(!shown("#side") && App.section === "apps", "compact: choosing a section closes the menu and shows its diagram", `compact: menu still shown ${shown("#side")} after choosing Apps`);
     const key = D.nodes.find((n) => n.kind === "app");
@@ -136,7 +140,7 @@
     ok(n > 0 && !bad.length, `one Read full page: ${n} sections beside their pages show it once, and the file link is only in the ... menu`, `one Read full page: ${bad.join(" | ") || "no section had a page"}`);
     const doors = [];
     for (const [id] of Roles.ROLES.slice(1)) { Nav.role(id); await tick(); doors.push(`${id}:${$$("#main .door-switch").length}`); }
-    ok(doors.every((x) => x.endsWith(":0")) && $$("#side .side-roles button").length === Roles.ROLES.length - 1, `role doors: the sidebar's ${Roles.ROLES.length - 1} buttons are the only doors; no tab strip on any door page`, `role doors: ${doors.join(" ")}`);
+    ok(doors.every((x) => x.endsWith(":0")) && $$("#side .dmenu[data-dmenu='viewing-as'] .dmenu-item").length === Roles.ROLES.length, `role doors: the sidebar's Viewing as menu (${Roles.ROLES.length} roles) is the only way in; no tab strip on any door page`, `role doors: ${doors.join(" ")}`);
     const pct = [];
     for (const id of ["exec", "mgr"]) { Nav.role(id); await tick(); if (/\d+%/.test($("#main").textContent) || $(".mini-time", $("#main"))) pct.push(id); if (!$("#main [data-to='releases']")) pct.push(id + " has no link to the timeline"); }
     Nav.open("apps"); showView("progress"); await tick();
@@ -274,6 +278,47 @@
     Nav.home(); await tick();
   }
 
+  /* "Viewing as": one menu in the sidebar sets the one role. It is onboarding's "Reading as" and the role door, so Onboard.myRole,
+     the "Waiting on you" filter and both menus agree. The two links under it go to that role's door and its path. */
+  async function viewingAs(ok) {
+    const was = { me: D.me, chosen: Roles.st.chosen, role: Roles.st.role, mine: Queue.st.mine }, bad = [], settle = () => new Promise((r) => setTimeout(r, 40));
+    D.me = { handle: "" }; Roles.st.chosen = false; Nav.home(); Nav.refresh(); await tick();
+    const menu = () => $("#side .dmenu[data-dmenu='viewing-as']"), btn = () => $(".dmenu-btn", menu()), items = () => $$("[role='menuitemradio']", menu());
+    const pick = async (id) => { btn().click(); await tick(); items().find((x) => x.dataset.item === id).click(); await settle(); };
+    const reading = () => $(".dmenu[data-dmenu='onb-role'] .dmenu-btn");
+    if (!menu() || items().length !== Roles.ROLES.length) bad.push(`menu has ${items().length} radio items, wanted ${Roles.ROLES.length}`);
+    if (!/Viewing as\s*Lead/.test(btn().textContent)) bad.push(`opens as "${btn().textContent}", wanted Lead`);
+    if ($("#side .side-roles")) bad.push("the old role buttons are still there");
+    for (const [id, name] of Roles.ROLES.filter(([id]) => id !== "lead" && D.onboard.paths[id])) {
+      await pick(id);
+      if (Onboard.myRole().role !== id) bad.push(`${id}: Onboard.myRole says ${Onboard.myRole().role}`);
+      if (!btn().textContent.includes(name)) bad.push(`${id}: button says ${btn().textContent}`);
+      btn().click(); await tick();
+      if (!items().some((x) => x.dataset.item === id && x.getAttribute("aria-checked") === "true")) bad.push(`${id}: not the checked item`);
+      btn().click(); await tick();
+      const links = $$("#side .side-sub").map((b) => b.textContent);
+      if (!links.includes(`Overview for ${name} ›`) || !links.includes(`Get up to speed as ${name} ›`)) bad.push(`${id}: links read ${links.join(" / ")}`);
+      $("#side .side-overview").click(); await tick();
+      if (App.section !== "role:" + id) bad.push(`${id}: Overview went to ${App.section}`);
+      $("#side .side-onboard").click(); await settle();
+      if (App.section !== "onboard:" + id) bad.push(`${id}: Get up to speed went to ${App.section}`);
+      if (!reading() || !reading().textContent.includes(name)) bad.push(`${id}: onboarding's Reading as does not follow`);
+    }
+    const other = Roles.ROLES.find(([id]) => id !== "lead" && D.onboard.paths[id] && id !== Onboard.myRole().role);
+    if (other) {  // the other way round: onboarding's menu moves the sidebar
+      Nav.onboard(other[0]); await settle();
+      if (!btn().textContent.includes(other[1])) bad.push(`onboarding set ${other[0]} but the sidebar says ${btn().textContent}`);
+    }
+    if (D.onboard.paths.product) {
+      await pick("product"); Nav.home(); await tick();
+      if (!$(".q-mine") || $(".q-mine").dataset.me !== "role") bad.push("Waiting on you does not follow the Viewing as pick");
+    }
+    await pick("lead"); Nav.home(); await tick();
+    if (Onboard.myRole().role !== "lead" || $(".q-mine")) bad.push(`Lead: role ${Onboard.myRole().role}, filter ${!!$(".q-mine")}`);
+    ok(!bad.length, "viewing as: the sidebar menu sets the one role (onboarding's Reading as, the role door, Waiting on you); its two links go to the overview and the path", `viewing as: ${bad.join(" | ")}`);
+    Onboard.rememberDoor(was.chosen ? was.role : ""); D.me = was.me; Roles.st.chosen = was.chosen; Roles.st.role = was.role; Queue.st.mine = was.mine; Nav.home(); Nav.refresh(); await tick();
+  }
+
   /* The wording: the page does not know who is reading, so it says "waiting", one number, and each item says who it is waiting
      on. "Waiting on you" is a filter that exists only when the build knew the reader's handle or the reader picked a role door. */
   async function waitingOnYou(ok) {
@@ -345,7 +390,7 @@
     const only = HASH.get("only") === "qol";
     const report = only ? ["head"] : await base(), lines = [], errors = window.__errors.length;
     const ok = (cond, good, bad) => { lines.push(cond ? "ok " + good : "FAIL " + (bad || good)); if (HASH.has("trace")) console.log("[selftest] " + lines[lines.length - 1]); };
-    try { if (!wide()) await compact(ok); else { await appPanel(ok); await searchRows(ok); await oneNumber(ok); await onceEach(ok); await gear(ok); await sideNames(ok); await slicesQuiet(ok); await overviewAndNames(ok); await waitingOnYou(ok); } await underTheDiagram(ok); await menusOnTop(ok); } catch (e) { lines.push("FAIL the quality-of-life checks threw: " + e.message + " " + (e.stack || "").split("\n")[1]); }
+    try { if (!wide()) await compact(ok); else { await appPanel(ok); await searchRows(ok); await oneNumber(ok); await onceEach(ok); await gear(ok); await sideNames(ok); await slicesQuiet(ok); await overviewAndNames(ok); await waitingOnYou(ok); await viewingAs(ok); } await underTheDiagram(ok); await menusOnTop(ok); } catch (e) { lines.push("FAIL the quality-of-life checks threw: " + e.message + " " + (e.stack || "").split("\n")[1]); }
     Nav.home(); go("lights", { reset: true });
     if (window.__errors.length > errors) lines.push("FAIL JS ERRORS in the quality-of-life checks: " + window.__errors.slice(errors).join(" | "));
     const body = report.slice(1).concat(lines), fails = body.filter((l) => l.startsWith("FAIL")).length;

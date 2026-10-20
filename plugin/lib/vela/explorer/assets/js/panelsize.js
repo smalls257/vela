@@ -142,6 +142,6 @@ const SideSize = (() => {
     cssVar: "--side-w", hiddenClass: "side-hidden", dragClass: "side-dragging", min: 150, maxShare: 0.34, edge: "right", key: "[", on: "true", off: "false" });
   hideBtn.addEventListener("click", () => edge.hide(!edge.hidden));
   /* A slide-over bar closes once a section is chosen, so the diagram it opened is what shows. */
-  $("#side").addEventListener("click", (ev) => { if (isCompact() && ev.target.closest(".side-link, .side-kid, .side-home, .side-roles button")) edge.hide(true); });
+  $("#side").addEventListener("click", (ev) => { if (isCompact() && ev.target.closest(".side-link, .side-kid, .side-home, .side-sub, .side-as .dmenu-item")) edge.hide(true); });
   return edge;
 })();

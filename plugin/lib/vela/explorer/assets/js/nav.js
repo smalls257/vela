@@ -322,21 +322,41 @@ const Nav = (() => {
         h("button", { class: "side-link", "data-group": "read", title: "Pages that are mostly words: " + reads.map((s) => s.label).join(", "), onclick: toggle }, h("span", { class: "side-label" }, "Read"))),
       h("div", { class: "side-kids side-read", id: "side-read", hidden: !open }, reads.flatMap((s) => item(s)))];
   }
+  /* "Viewing as": the one place the reader says who they are. It is the same setting as onboarding's "Reading as" and the
+     role door (Onboard.myRole), so the "Waiting on you" filter, the door and the path all follow it. A role the plan's own
+     record or the person's choice already fixes shows as that role, and the title says so. Lead is the whole plan: its door is What's waiting. */
+  function viewingNow() { const m = Onboard.myRole(); return { id: m.role || "lead", source: m.source }; }
+  const roleName = (id) => (Roles.ROLES.find(([r]) => r === id) || [id, id])[1];
+  function viewAs(r) {
+    Onboard.rememberDoor(r);
+    if (App.section.startsWith("role:")) role(r);
+    else if (App.section.startsWith("onboard:")) onboard(r);
+    else { rerender(); Panel.render(); }
+    refresh();
+  }
+  function viewingAs() {
+    const now = viewingNow(), label = roleName(now.id);
+    const fixed = now.source === "record" || now.source === "choice";
+    const menu = Menus.menu({ id: "viewing-as", label: "Viewing as", current: label, extraClass: "side-as-btn",
+      title: fixed ? `Viewing as ${label}: ${now.source === "record" ? "the lead's plan names you for this role" : "your own choice, from vela whoami"}. Pick another to look through it.` : `Viewing as ${label}`,
+      items: () => Roles.ROLES.map(([id, name, say]) => ({ id, label: name, say, checked: id === viewingNow().id, run: () => viewAs(id) })) });
+    const id = now.id, onRole = App.section === "role:" + id || (id === "lead" && App.section === "home");
+    return h("div", { class: "side-group side-as" }, menu,
+      h("button", { class: "side-sub side-overview" + (onRole ? " on" : ""), "aria-current": onRole ? "page" : null, onclick: () => role(id) }, `Overview for ${label} ›`),
+      h("button", { class: "side-sub side-onboard" + (App.section.startsWith("onboard:") ? " on" : ""), "aria-current": App.section.startsWith("onboard:") ? "page" : null,
+        title: "A short path through the plan for your role", onclick: () => onboard(id) }, `Get up to speed as ${label} ›`));
+  }
   function refresh() {
     const side = $("#side");
     if (!side) return;
     side.innerHTML = "";
     const late = Queue.needsYou().late;
-    side.append(h("div", { class: "side-group" }, h("div", { class: "side-h" }, "Start here"),
+    side.append(viewingAs(), h("div", { class: "side-group" }, h("div", { class: "side-h" }, "Start here"),
       // the top bar carries the needs-you number; the side door shows only the overdue part, and only when there is one
       h("button", { class: "side-home" + (App.section === "home" ? " on" : ""), "aria-current": App.section === "home" ? "page" : null, title: Queue.needsYouSays(), onclick: home },
         h("span", { class: "side-label" }, "What's waiting"), late ? h("span", { class: "side-n lit warning", title: `${late} overdue`, "data-quantity": "overdue", "data-n": late }, late) : null),
       typeof Ask !== "undefined" && Ask.served() ? h("button", { class: "side-home side-ask" + (App.section === "ask" ? " on" : ""), "aria-current": App.section === "ask" ? "page" : null, title: "Ask Claude about the plan", onclick: () => Ask.open() },
-        h("span", { class: "side-label" }, "Ask Claude"), Ask.count() ? h("span", { class: "side-n" }, Ask.count()) : null) : null,
-      h("button", { class: "side-home side-onboard" + (App.section.startsWith("onboard:") ? " on" : ""), "aria-current": App.section.startsWith("onboard:") ? "page" : null, title: "A short path through the plan for your role",
-        onclick: () => onboard() }, h("span", { class: "side-label" }, "Get up to speed")),
-      h("div", { class: "side-roles", role: "tablist", "aria-label": "Views by role" }, Roles.ROLES.slice(1).map(([id, label, say]) =>
-        h("button", { role: "tab", "aria-selected": String(App.section === "role:" + id), title: say, onclick: () => role(id) }, label)))));
+        h("span", { class: "side-label" }, "Ask Claude"), Ask.count() ? h("span", { class: "side-n" }, Ask.count()) : null) : null));
     const vault = h("div", { class: "side-group" }, h("div", { class: "side-h" }, "Plan pages"));
     const reads = D.sections.filter((s) => READ.includes(s.id));
     for (const s of D.sections) if (!READ.includes(s.id)) vault.append(...item(s));
@@ -344,5 +364,5 @@ const Nav = (() => {
     side.append(vault);
     side.append(h("div", { class: "side-foot" }, h("span", { class: "muted", title: D.initiative ? `Initiative ${D.initiative}` : null }, `Search all ${plural(Object.keys(D.reader).length, "page")} with /`)));
   }
-  return { where, whereLabel, back, title, sectionPage, pageBeside, missingPage, pageActions, viewMenu, moreMenu, moreItems, ledeLink, viewItems, open, home, role, onboard, readWide, adopt, focusApp, trace, openRelease, syncHash, followHash, boot, refresh, st, VISUALS, SECTIONS };
+  return { where, whereLabel, back, title, sectionPage, pageBeside, missingPage, pageActions, viewMenu, moreMenu, moreItems, ledeLink, viewItems, open, home, role, onboard, viewAs, readWide, adopt, focusApp, trace, openRelease, syncHash, followHash, boot, refresh, st, VISUALS, SECTIONS };
 })();

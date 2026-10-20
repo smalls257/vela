@@ -166,6 +166,6 @@ const Onboard = (() => {
         h("section", { class: "onb-stage", "aria-live": "polite" }, h("h2", {}, `${st.at + 1} · ${m.title}`), h("p", { class: "lede" }, m.lede),
           h("div", { class: "onb-grid" }, viewColumn(m), explainColumn(m, ks, done))))));
   }
-  return { render, open, st, keys, mod, hashParts, current, defaultRole, myRole };
+  return { render, open, rememberDoor, st, keys, mod, hashParts, current, defaultRole, myRole };
 })();
 View("onboard", { label: "Get up to speed", title: "A path through the plan for your role", render: Onboard.render });
