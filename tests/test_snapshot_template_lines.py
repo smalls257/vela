@@ -12,7 +12,7 @@ import re
 
 from conftest import REPO
 
-SNAPSHOTS = REPO / "tests" / "sim" / "snapshots"
+SNAPSHOTS = REPO / "tests" / "sim"  # the starting snapshots and the scaled probes' snapshots both
 RETIRED = REPO / "plugin" / "catalog" / "template-lines-retired.txt"
 
 
@@ -31,6 +31,13 @@ def test_no_snapshot_page_carries_a_retired_template_line():
              for line in page.read_text(encoding="utf-8").split("\n") if line in retired]
     assert found == []
 
+
+def test_the_shipped_template_writes_no_retired_line():
+    """What `vela init` copies is the generation path itself; a retired line there would seed every new vault."""
+    retired = {l for l in RETIRED.read_text(encoding="utf-8").split("\n") if l.strip()}
+    found = [f"{p.relative_to(REPO)}: {l}" for p in sorted((REPO / "template").rglob("*.md"))
+             for l in p.read_text(encoding="utf-8").split("\n") if l in retired]
+    assert found == []
 
 
 def test_every_snapshot_vault_passes_vela_check_with_no_error():

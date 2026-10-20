@@ -1159,6 +1159,25 @@ def not_looked_at(concern):
     return {t.strip().lower() for t in LINK_TARGET.findall(found["apps"])} if found else set()
 
 
+STRATEGY_SECTION = re.compile(r"^## Strategy[ \t]*\n(?P<body>.*?)(?=^## |\Z)", re.M | re.S)
+NOTHING_YET = re.compile(r"\b(yet|unexamined|not (?:been )?(?:set|decided|chosen|written|looked)|no [\w ]{0,30}(?:set|chosen|written))\b", re.I)
+PLACEHOLDER_WORDS = 25
+
+
+def placeholder_strategy(concern):
+    """(line, sentence) when a concern's Strategy section holds only a short "nothing is set yet" sentence, else None.
+    The empty section already says it; a sentence saying so again is padding (Silent Fallback's polite cousin)."""
+    found = STRATEGY_SECTION.search(concern.text)
+    if not found:
+        return None
+    body = " ".join(found["body"].split())
+    if not body or len(body.split()) > PLACEHOLDER_WORDS or len(re.findall(r"[.!?](?:\s|$)", body)) > 1:
+        return None
+    if not NOTHING_YET.search(body):
+        return None
+    return concern.text[:found.start("body")].count("\n") + 1, body
+
+
 def concern_rules(vault, today):
     app_names = {a.name.lower(): a for a in vault.apps}
     for concern in sorted(vault.of_type("concern"), key=lambda p: p.id):
@@ -1170,6 +1189,9 @@ def concern_rules(vault, today):
                 continue
             seen.add(cell.app.lower())
             label = cell.app or "a row"
+            if cell.state == "unexamined" and cell.text:
+                yield _f(concern, cell.line, "W373", f"{label} is unexamined and its Why cell says so again.",
+                         "Leave the Why cell blank: the page's 'Not looked at yet:' line already says it.")
             if not cell.app:
                 yield _f(concern, cell.line, "E301", "A cell row does not link an app page in its App column.",
                          "Write the App column as [[<app>-building-blocks|<App name>]].")
@@ -1188,6 +1210,10 @@ def concern_rules(vault, today):
             elif cell.state == "unknown" and not any(l.anchor.startswith("UNK-") for l in cell.links):
                 yield _f(concern, cell.line, "E301", f"Cell for {label} is unknown but links no unknown.",
                          "Link the unknown, for example [[11-unknowns-and-risks#UNK-004 Kiosk authentication|UNK-004]].")
+        empty_strategy = placeholder_strategy(concern)
+        if empty_strategy:
+            yield _f(concern, empty_strategy[0], "W373", f"The Strategy section only says no strategy is set: \"{empty_strategy[1]}\"",
+                     "Leave the section empty until there is a strategy to write.")
         line = cell_table(concern).line if cell_table(concern) else 1
         covered = not_looked_at(concern)
         for name, app in sorted(app_names.items()):

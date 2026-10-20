@@ -8,4 +8,3 @@ authored: authored
 
 # Decisions
 
-One page per decision, named `ADR-nnnn-<slug>.md`.

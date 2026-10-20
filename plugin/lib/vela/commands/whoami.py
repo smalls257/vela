@@ -28,6 +28,7 @@ def register(sub):
     who = sub.add_parser("whoami", help="the lead's handle: cached in .vela/handle, else from gh, else ask them once")
     who.add_argument("--vault", default=".", help="vault root or reader workspace (default: current directory)")
     who.add_argument("--set", default="", metavar="HANDLE", help="write the handle the lead gave (after an exit 3)")
+    who.add_argument("--name", default="", metavar="NAME", help="write your display name (such as the name git has), so a capture said under it counts as yours")
     who.add_argument("--role", default="", metavar="ROLE", help="write your role, one of lead, exec, product, qa, eng, mgr (or say it: engineer, QA lead); it shows as `role` and defaults onboarding")
     say.add_output_flags(who)
     who.set_defaults(func=cmd_whoami)
@@ -36,6 +37,8 @@ def register(sub):
 def cmd_whoami(args, out):
     root = pathlib.Path(args.vault).resolve()
     try:
+        if args.name.strip():
+            sessiongit.write_text(root, sessiongit.NAME_FILE, args.name.strip() + "\n")
         result = set_both(root, args.set, args.role) if args.role and args.set else set_role(root, args.role) if args.role else set_handle(root, args.set) if args.set else find_handle(root)
     except OSError as exc:
         file = ROLE_FILE if args.role and not args.set else sessiongit.HANDLE_FILE

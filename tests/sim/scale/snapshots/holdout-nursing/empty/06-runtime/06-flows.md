@@ -8,4 +8,3 @@ authored: authored
 
 # Flows
 
-Flow pages live in `flows/` and app runtime pages in `apps/`.

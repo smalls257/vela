@@ -145,6 +145,24 @@ def test_a_role_origin_is_not_taken_for_the_lead(tmp_path, monkeypatch):
     assert "(the security officer)" in record_of(vault).read_text(encoding="utf-8")
 
 
+def test_the_leads_display_name_is_written_as_the_handle(tmp_path, monkeypatch):
+    """A "Name Surname" the model took from git or gh ("Sim Lead") is the lead; the record holds the handle, so
+    `vela decide` and the send's consent check never refuse on how the model spelled them."""
+    from vela import closegate
+    from vela.decisions import consent
+    vault = started(tmp_path, monkeypatch)
+    assert run("whoami", "--vault", str(vault), "--set", "sim-lead", "--name", "Sim Lead")[0] == 0
+    typed(vault, "Yes, that is right.")
+    assert add(vault, "--origin", "sim lead", "--tag", "decision", "Yes, that is right.")[0] == 0
+    line = next(l for l in record_of(vault).read_text(encoding="utf-8").splitlines() if l.startswith("- [decision]"))
+    assert line.startswith("- [decision] (@sim-lead) ")
+    named = closegate.Capture("01", "decision", "Sim Lead", "Yes.")
+    assert consent.from_the_lead(named, "sim-lead", ("Sim Lead",)) is None
+    assert consent.from_the_lead(named, "sim-lead") is not None  # unknown names still refuse
+    other = closegate.Capture("02", "decision", "Ines Ruiz", "Yes.")
+    assert consent.from_the_lead(other, "sim-lead", ("Sim Lead",)) is not None
+
+
 def test_the_lead_spelled_loosely_with_no_known_handle_asks_once(tmp_path, monkeypatch):
     vault = started(tmp_path, monkeypatch)
     before = record_of(vault).read_text(encoding="utf-8")

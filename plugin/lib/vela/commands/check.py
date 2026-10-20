@@ -35,6 +35,9 @@ def register(sub):
                             "questions nobody has dealt with; shape: as shaping ends, warn on questions still answered by "
                             "assumption; grill: before a grill, warn on open questions that hold up the items named with --item")
     check.add_argument("--item", action="append", help="with --gate grill: the ID of an item the grill will decide; repeat for each")
+    check.add_argument("--all", action="store_true",
+                       help="with --gate grill: gate every item still waiting to be decided (ready ones listed first), "
+                            "instead of naming each with --item")
     check.add_argument("--app", help="with --gate epics: check only this app and the things on its handoff list (give its ID, "
                                      "like APP-booking); other apps, and the check that every requirement has an app, are skipped")
     check.add_argument("--fix", metavar="CODE",
@@ -56,6 +59,8 @@ def run(args, out):
     from vela import cli
     if args.fix is not None:
         return fix(args, out)
+    if args.all:
+        everything(args)
     grill_items = args.gate == "grill" and bool(args.item)
     if args.json and not grill_items:
         raise cli.ToolError("--json prints the grill verdicts (or, with --fix W326, what changed), so it goes with "
@@ -63,6 +68,17 @@ def run(args, out):
     if grill_items and say.mode_of(args) != "default":
         return verdicts(args, out)
     return cli.cmd_check(args, out)
+
+
+def everything(args):
+    """`--all`: fill --item with every candidate, so one call answers "what is ready to decide?"."""
+    from vela import cli
+    if args.gate != "grill" or args.item:
+        raise cli.ToolError("--all gates every item waiting to be decided, so it goes with --gate grill and no --item.")
+    vault = cli.load_vault(pathlib.Path(args.vault).resolve())
+    args.item = gates.candidates(vault)
+    if not args.item:
+        raise cli.ToolError("No item is waiting to be decided, so there is nothing for a grill to gate.")
 
 
 def open_record_text(root):

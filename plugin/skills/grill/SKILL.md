@@ -24,6 +24,7 @@ This is what a grill is for; the other sections only set the agenda and file wha
 - Look things up in the plan rather than ask.
 - Use a concrete scenario at the edge of the item to force a precise answer. Pick an edge case, not the happy path, and frame it as a hypothetical ("Suppose it's 8:58, the call starts at nine, and the calendar service doesn't answer. What does the person see?"). Build it only from what the plan, the inbox or the lead has said. Never state a new dated event, or what a third party reported, as if it had happened.
 - Check each answer against what the plan already holds and what the lead said earlier. Say so when they disagree.
+- Recommend an answer, not "hold" or "keep it open", unless the gate says the item isn't ready.
 - Keep your recommendation when the user pushes back without a reason. Change it only for a reason, and say what the reason was.
 - Never answer your own question.
 - Answer first, then put about four things at most to the lead to judge. Show an agenda of more than about seven items in groups; the lead may take it in two sessions.
@@ -48,6 +49,8 @@ Run the steps in `${CLAUDE_PLUGIN_ROOT}/references/START.md` with mode `grill`. 
 
 `vela session brief` lists items the lead already said yes to in a session that couldn't decide ("ready to decide"). Open the agenda with them, and still read each wording back for its own yes.
 
+**Lead with a ready item.** On turn 1 run `vela check --gate grill --all --for-lead`: one call, every item still waiting, ready ones first, each with what it needs. Open with a ready one as a proposal: "I'd decide <item> as <answer>, because <reason>. OK?" Recaps and reading come after that, or only if needed. If nothing is ready, say so in one line and ask the question that would make the nearest item ready.
+
 If the lead names a challenge to answer, by its PR number or the challenged item, START will take its "Answer a challenge" path, on the challenge's own branch, with `modes: [answer, grill]`; read the Answer row of `MODES.md` too. The agenda holds the challenge's unknown and the challenged item. Resolve the unknown with the team lead as its owner, with the `resolve` kind. If the answer changes the item, set it back first with `vela decide --reopen <ID> --why ^cN`, then decide it again through the gate below.
 
 ## 3. The gate, per item
@@ -58,9 +61,9 @@ Then run `vela check --gate grill --item <ID> --for-lead`, repeating `--item` pe
 
 Left to you: a concern cell passes when the lead states what the initiative does for the app under it (`vela conventions "Concern cells and waivers"`); one they call `unchanged` or `n/a` is written as they say. For a missing case table, say it plainly ("Nobody has written down what Stock says back when the item is unknown") and offer to write it here, one case at a time with your recommendation, or to go back to Boundary (`vela conventions "Fact bullets"`).
 
-Run the review checkpoint in `${CLAUDE_PLUGIN_ROOT}/references/REVIEW.md` "on the agenda", and route its questions and the owed ones through REVIEW's digest (at most three questions at a time). An owed question is to ask, not a gate. If the lead decides with one still open, capture "decided with <copy IDs> open (W807)" with the lead as origin: that capture is the record.
+Run the review checkpoint in `${CLAUDE_PLUGIN_ROOT}/references/REVIEW.md` "on the agenda" after the first decision or a natural pause, never on turn 1, and route its questions and the owed ones through REVIEW's digest (at most three questions at a time). An owed question is to ask, not a gate. If the lead decides with one still open, capture "decided with <copy IDs> open (W807)" with the lead as origin: that capture is the record.
 
-**The agenda.** Show it with the open questions under each item and get an explicit yes. Capture the yes and file the agenda with the `agenda` kind; `decide` and `add unknown` keep it current, and START's resume reads it. Each item's owner says yes in person, or their async answer is captured with them as origin, channel and date; otherwise offer to reschedule, collect it first, or decide on their behalf.
+**The agenda.** Show it with the open questions under each item and get an explicit yes. Capture the agenda as you show it, then the yes; a yes right after the agenda is accepted in that turn, so never ask for it again. File the agenda with the `agenda` kind; `decide` and `add unknown` keep it current, and START's resume reads it. Each item's owner says yes in person, or their async answer is captured with them as origin, channel and date; otherwise offer to reschedule, collect it first, or decide on their behalf.
 
 **Not ready.** One sentence ("The Summarizer can't be decided yet: nobody has said how slow is too slow, and the product owner isn't here") and the one thing that would make it ready. For a blocking unknown, ask whether the lead knows the answer now (`MODES.md`, "Unknowns"). It stays off the agenda until the lead chooses. Never draft an ask, an email or a chase for the user to send.
 

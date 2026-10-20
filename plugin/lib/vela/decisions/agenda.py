@@ -111,7 +111,11 @@ def validate(item, vault, record):
                                       f"override names {', '.join(map(str, bad))}; give gates as GATE-n.",
                                       override="none: name the gate"))
     if item.get("yes"):
-        refusal = consent.a_yes(item["yes"], record, readback=item.get("readback"))
+        # The agenda is read back in the chat, then both are captured together; capture order says when the model
+        # wrote them down, not when the lead spoke, so only the read-back's existence is checked, not its order.
+        refusal = consent.a_yes(item["yes"], record)
+        if refusal is None and item.get("readback"):
+            refusal = consent.exists(item["readback"], record)
         if refusal is not None:
             found.append(refusal)
     return found

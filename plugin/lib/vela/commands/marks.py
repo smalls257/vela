@@ -103,7 +103,7 @@ def context(root, vault, record, today):
     return markrules.Context(record_id=record.id, modes=tuple(modes) if isinstance(modes, (list, tuple)) else (modes,),
                              today=today, lead=("@" + handle.lstrip("@")) if handle else "",
                              hard_dates=markrules.hard_dates(vault), open_items=markrules.open_items(vault),
-                             ledger_copies=copies)
+                             ledger_copies=copies, lead_names=frozenset(sessiongit.lead_names(root)))
 
 
 def unapplied(path):

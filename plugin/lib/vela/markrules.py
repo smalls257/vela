@@ -198,10 +198,12 @@ class Context:
     open_items: frozenset = frozenset()
     ledger_copies: frozenset = frozenset()
     reviews: tuple = ()
+    lead_names: frozenset = frozenset()  # the lead's display names, lower-cased
 
     def is_lead(self, origin):
         said = origin.strip().lower().lstrip("@")
-        return bool(said) and (said == self.lead.strip().lower().lstrip("@") or said in LEAD_WORDS)
+        return bool(said) and (said == self.lead.strip().lower().lstrip("@") or said in LEAD_WORDS
+                               or origin.strip().casefold() in self.lead_names)
 
     def owner_for(self, note):
         """The lead chasing a new unknown: the kept handle, else the handle the capture was said by. Never asked."""

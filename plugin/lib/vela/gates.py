@@ -118,6 +118,18 @@ def unit(vault, item_id):
     raise ValueError(f"{item_id} is not an ID in this vault")
 
 
+UNDECIDED = ("inkling", "assumption", "draft")
+
+
+def candidates(vault):
+    """IDs a grill could decide: contracts and requirements whose State is not yet decided or fact, and pages whose own
+    state is still a guess. `check --gate grill --all` gates every one on turn 1, so the grill can open with the ready
+    one instead of reading the vault to find it (the reading spree is Computational Friction at the lead's expense)."""
+    ids = [i.id for i in vault.contracts + vault.requirements if i.fact("State") in UNDECIDED]
+    ids += [p.id for p in vault.pages if p.meta.get("state") in UNDECIDED and p.id]
+    return sorted(set(ids))
+
+
 def app_of(vault, found):
     """The app page whose item this is, or None for an initiative-level item."""
     page = found.page
@@ -413,6 +425,7 @@ def report(vault, verdicts, notes=()):
     ready = sum(1 for v in verdicts if v.ready)
     head = (f"All {len(verdicts)} items are ready to decide." if ready == len(verdicts) and len(verdicts) > 1
             else f"{ready} of {len(verdicts)} items {'is' if ready == 1 else 'are'} ready to decide.")
+    verdicts = sorted(verdicts, key=lambda v: not v.ready)  # ready ones first: the grill leads with one
     lines = [say.Line(head, plain=head)] if len(verdicts) > 1 else []
     for found in verdicts:
         lines += lines_for(found, resolver)

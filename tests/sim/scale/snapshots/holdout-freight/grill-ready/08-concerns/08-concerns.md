@@ -8,8 +8,6 @@ authored: mixed
 
 # Concerns
 
-One row per app, one column per concern.
-
 <!-- generated:concern-matrix sha=aed11f14: do not edit, run vela render -->
 No concerns to check against the apps yet.
 <!-- /generated:concern-matrix -->
