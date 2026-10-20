@@ -3,19 +3,18 @@ section 2).
 
 - **Every later link has a page to point at.** A stub is written for each `new` or `changed` app of the cut before any
   sheet is read back, so a link to it never dangles and an app the session doesn't reach is never lost: `vela next`
-  sends a stub (a page with `schema.BOUNDARY_STUB_LINE` and no containers table) back to Boundary.
-- **The exact stub line** under the title, `schema.BOUNDARY_STUB_LINE`, which boundary section 4 replaces. Exact,
-  because `vela next` matches it to find the stubs.
+  sends a stub (a page with `stub: boundary` and no containers table) back to Boundary.
+- **The stub is a field, not a sentence**: `stub: boundary` in the frontmatter, which boundary section 4 removes. The
+  body holds the title and nothing the tool wrote. `vela next` reads the field, so a model rewriting the page's prose
+  can never lose the state (Forensic Coding and Silent Fallback: code that recovers state from a sentence).
 - **Frontmatter** as CONVENTIONS "Frontmatter" requires for `app-building-blocks`, at `state: inkling` and
   `stage: boundaries` (a new or changed app needs a stage), with `domain` when the lead named one.
-- **One plain line on each concern page**, "Not looked at yet: <apps>." under the table, and no empty row: an app
-  with no row already counts as unexamined, and an empty row per app read as padding. The boundary session adds the
-  app's real row and takes the app off the line.
+- **No concern page is touched.** An app with no row on a concern page is unexamined; render and the checker read it
+  from the rows. The boundary session adds the app's real row when the lead said yes to its state.
 - **A `## Changes` row** `| APP-<slug> | - | inkling | ... |` citing the capture of the picked cut.
 """
 import re
 
-from vela import schema as vault_schema
 from vela.decisions import add_unknown, textedit
 from vela.decisions.schema import Write
 
@@ -57,21 +56,16 @@ def page_text(item, vault):
     lines = ["---", f"id: APP-{item['slug']}", "type: app-building-blocks", f"title: {textedit.yaml_value(item['name'])}"]
     if config.get("initiative"):
         lines.append(f"initiative: {config['initiative']}")
-    lines += ["state: inkling", f"change: {item['change']}", "stage: boundaries", f'owner: "{item["owner"]}"',
-              "authored: authored"]
+    lines += ["state: inkling", f"change: {item['change']}", "stage: boundaries", "stub: boundary",
+              f'owner: "{item["owner"]}"', "authored: authored"]
     if item.get("domain"):
         lines.append(f"domain: {textedit.yaml_value(item['domain'])}")
-    return "\n".join(lines + ["---", "", f"# {item['name']}", "", vault_schema.BOUNDARY_STUB_LINE]) + "\n"
+    return "\n".join(lines + ["---", "", f"# {item['name']}"]) + "\n"
 
 
 def apply(item, vault, record):
     name = f"{item['slug']}-building-blocks"
     writes = [Write(f"{FOLDER}/{name}.md", page_text(item, vault))]
-    for concern in sorted(vault.model.of_type("concern"), key=lambda p: p.path):
-        text = vault.text(concern.path)
-        edited = textedit.add_not_looked(text, ("App", "State"), f"[[{name}\\|{item['name']}]]")
-        if edited is not None:
-            writes.append(Write(concern.path, edited))
     rec = textedit.record_text(record, vault)
     if item.get("capture"):
         rec = textedit.add_change(rec, f"APP-{item['slug']}", "-", "inkling",

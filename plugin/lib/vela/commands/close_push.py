@@ -34,7 +34,7 @@ it's checked whatever the host.
 `org/team`), the body `prbody.body` builds (the Consent list now lives there, with the push yes added), and
 `gh pr create`; for an answer session, `gh pr comment` on the challenge's open PR instead. When `gh` fails, or prints
 no URL, the body is saved to `.vela/pr-body.md` and the lead hears one sentence; a PR is never said to exist unless
-`gh` printed its URL. When a PR was created and the session wrote `handed_off: "..., PR pending"`, the number replaces
+`gh` printed its URL. When a PR was created and the session wrote `handed_off_pr: pending`, the number replaces
 `pending`, committed as `Handoff PR number for <APP-id>` and pushed; if `gh` failed, `pending` stays and W325 says so.
 
 Exit codes. push: 0 pushed; 1 refused (a reader copy, a host that can't send, the yes doesn't qualify, something
@@ -60,7 +60,7 @@ BODY_FILE = ".vela/pr-body.md"
 VERSION = 1
 HANDOFF_MESSAGE = "Handoff PR number for {app}"
 READER_SENTENCE = "This is your copy, so close writes your session record and stops. Nothing is committed, pushed or sent."
-PENDING = re.compile(r"^(handed_off:.*\bPR )pending(\"?\s*)$", re.M)
+PENDING = re.compile(r"^(handed_off_pr:[ \t]*)pending([ \t]*)$", re.M)
 
 
 class Stop(Exception):
@@ -446,17 +446,16 @@ def comment_on_challenge(root, session, body_file):
 
 
 def write_pr_number(root, vault, session, sent, before_texts, data, lines):
-    """`handed_off: "..., PR pending"` on an app page this session changed -> `PR #<n>`, committed and pushed."""
+    """`handed_off_pr: pending` on an app page this session changed -> the number, committed and pushed."""
     wrote = []
     for app in vault.apps:
-        value = str(app.meta.get("handed_off") or "")
-        if app.path not in before_texts or not value.endswith("PR pending"):
+        if app.path not in before_texts or str(app.meta.get("handed_off_pr")) != "pending":
             continue
         page = root / app.path
-        new = PENDING.sub(lambda m: f"{m.group(1)}#{sent.number}{m.group(2)}", page.read_text(encoding="utf-8"), 1)
+        new = PENDING.sub(lambda m: f"{m.group(1)}{sent.number}{m.group(2)}", page.read_text(encoding="utf-8"), 1)
         wrote.append(sessiongit.write_text(root, app.path, new))
         sessiongit.commit(root, HANDOFF_MESSAGE.format(app=app.id), [app.path])
-        lines.append(say.Line(f"wrote PR #{sent.number} into {app.path} handed_off and committed it",
+        lines.append(say.Line(f"wrote PR #{sent.number} into {app.path} handed_off_pr and committed it",
                               plain=f"{app.meta.get('title') or app.name}'s handoff now names this pull request."))
     if not wrote:
         return say.Result(PR, data=data, lines=lines)

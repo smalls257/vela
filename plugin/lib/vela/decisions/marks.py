@@ -58,7 +58,7 @@ SCHEMA = schema.KindSchema(
             "name": "for a new unknown: its short name",
             "owner": "for a new unknown: the lead chasing it",
             "ask": "for a new unknown: who would actually know",
-            "ask_by": "for a new unknown: its ask-by date (marks plan works it out)",
+            "ask_by": "for a new unknown: the date the lead gave or said yes to (never one the tool works out)",
             "blocks": "for a new unknown: the IDs it blocks",
             "lead_answer": "for a leftover: the capture holding the lead's answer (\"^c31\"), never their words",
             "needs_lead": "drafted by marks plan: true when only the lead can settle it",

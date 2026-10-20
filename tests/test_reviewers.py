@@ -136,7 +136,6 @@ def test_the_ledger_grammar_close_describes_passes_check(tmp_path):
 - **Opened:** 2026-11-20 Dump
 - **State:** open
 - **Ask by:** 2026-12-18
-- **Blocks:** nothing in INI-002
 
 ## Risks
 """)
@@ -265,7 +264,6 @@ def _write_unknown(vault, opened, said):
 - **Opened:** {TODAY} {opened}
 - **State:** open
 - **Ask by:** {said['ask_by']}
-- **Blocks:** nothing in INI-002
 
 """)
     return heading, unk

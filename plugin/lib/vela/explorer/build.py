@@ -421,7 +421,7 @@ def overrides_awaiting(vault, keys):
 
 def handoff_status(vault, root, keys, app):
     path = root / "handoffs" / f"{app.id}.md"
-    status = {"handedOff": str(app.meta.get("handed_off") or ""), "manifest": "", "changed": 0, "added": 0,
+    status = {"handedOff": schema.handed_off_label(app.meta), "manifest": "", "changed": 0, "added": 0,
               "removed": 0, "problem": "", "written": ""}
     if not path.is_file():
         return status

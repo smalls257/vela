@@ -6,7 +6,7 @@ import datetime
 import re
 
 from vela import allocation, cases, deferrals, flows, handoffwarn, links, override, parse, pending, progress, questions, readability, readload, releases, render, schema, slices, trace, wording
-from vela.model import Finding, blocked_units, cell_table, decided_goal_rows, goal_rows_at, meta_line
+from vela.model import Finding, blocked_units, decided_goal_rows, goal_rows_at, meta_line
 
 
 def check(vault, today, gate=None, items=(), app=None):
@@ -118,7 +118,7 @@ def frontmatter_rules(vault, today):
 def _enum_findings(vault, page, page_type, spec):
     meta = page.meta
     checks = [("authored", schema.ENUMS["authored"]), ("c4", schema.ENUMS["c4"]),
-              ("origin", schema.ENUMS["origin"]), ("stage", schema.ENUMS["stage"]),
+              ("origin", schema.ENUMS["origin"]), ("stage", schema.ENUMS["stage"]), ("stub", schema.ENUMS["stub"]),
               ("status", schema.ENUMS["status"])]
     if spec["states"]:
         checks.append(("state", spec["states"]))
@@ -146,11 +146,14 @@ def _enum_findings(vault, page, page_type, spec):
         yield _f(page, meta_line(page, "verified_by"), "E105", f"verified_by '{meta['verified_by']}' is not a GitHub handle.",
                  "Write verified_by: \"@handle\".")
     if "handed_off" in meta and not (isinstance(meta["handed_off"], str) and schema.HANDED_OFF_RE.match(meta["handed_off"])):
-        yield _f(page, meta_line(page, "handed_off"), "E105", "'handed_off' is not in the form '<name>, <date>, PR #N'.",
-                 "Write handed_off: \"Booking senior, 2026-11-20, PR #41\".")
-    elif isinstance(meta.get("handed_off"), str) and meta["handed_off"].endswith("PR pending"):
-        yield _f(page, meta_line(page, "handed_off"), "W325", f"{vault.named(page.id)} is handed off, but the number of its pull request isn't recorded yet.",
-                 "Once the pull request exists, write its number in place of 'pending' in handed_off.")
+        yield _f(page, meta_line(page, "handed_off"), "E105", "'handed_off' is not in the form '<name>, <date>'.",
+                 "Write handed_off: \"Booking senior, 2026-11-20\", and the pull request in handed_off_pr.")
+    elif "handed_off" in meta and str(meta.get("handed_off_pr")) == "pending":
+        yield _f(page, meta_line(page, "handed_off_pr"), "W325", f"{vault.named(page.id)} is handed off, but the number of its pull request isn't recorded yet.",
+                 "Once the pull request exists, write its number in place of 'pending' in handed_off_pr.")
+    if "handed_off_pr" in meta and ("handed_off" not in meta or not schema.HANDED_OFF_PR_RE.match(str(meta["handed_off_pr"]))):
+        yield _f(page, meta_line(page, "handed_off_pr"), "E105", "'handed_off_pr' is 'pending' or a pull request number, beside 'handed_off'.",
+                 "Write handed_off_pr: 41 (or pending until the pull request exists), and set handed_off too.")
     initiative = vault.config.get("initiative")
     if "initiative" in meta and meta["initiative"] != initiative:
         yield _f(page, meta_line(page, "initiative"), "E105",
@@ -528,9 +531,9 @@ def unknown_rules(vault, today):
             yield _f(page, unknown.facts["Ask"].line, "E302", f"{unknown.id} ask '{ask}' starts like a handle but is not one.",
                      "Write a handle, @handle or @org/team, or the person's role in words, such as 'outside counsel'.")
         blocks = unknown.facts.get("Blocks")
-        if blocks and blocks.value and not blocks.links and not blocks.value.lower().startswith("nothing"):
+        if blocks and blocks.value and not blocks.links:
             yield _f(page, blocks.line, "E302", f"{unknown.id} says what it blocks in words only.",
-                     "List links to what it blocks, or write 'nothing'.")
+                     "List links to what it blocks, or leave the Blocks line out when it blocks nothing.")
         ask_by = unknown.fact("Ask by")
         if ask_by and not is_date(ask_by):
             yield _f(page, unknown.facts["Ask by"].line, "E106", f"{unknown.id} ask-by '{ask_by}' is not a YYYY-MM-DD date.",
@@ -1148,17 +1151,6 @@ def stage_rules(vault, today):
 
 # ------------------------------------------------------------------ concerns
 
-NOT_LOOKED_LINE = re.compile(r"^Not looked at yet:\s*(?P<apps>.+)$", re.M)
-LINK_TARGET = re.compile(r"\[\[([^\]|\\#]+)")
-
-
-def not_looked_at(concern):
-    """Lower-cased page names of the apps a concern page names on its "Not looked at yet:" line: the one plain line
-    `add app-stub` writes in place of an empty row per app. They count as unexamined, which is what E315 asks for."""
-    found = NOT_LOOKED_LINE.search(concern.text)
-    return {t.strip().lower() for t in LINK_TARGET.findall(found["apps"])} if found else set()
-
-
 STRATEGY_SECTION = re.compile(r"^## Strategy[ \t]*\n(?P<body>.*?)(?=^## |\Z)", re.M | re.S)
 NOTHING_YET = re.compile(r"\b(yet|unexamined|not (?:been )?(?:set|decided|chosen|written|looked)|no [\w ]{0,30}(?:set|chosen|written))\b", re.I)
 PLACEHOLDER_WORDS = 25
@@ -1191,7 +1183,7 @@ def concern_rules(vault, today):
             label = cell.app or "a row"
             if cell.state == "unexamined" and cell.text:
                 yield _f(concern, cell.line, "W373", f"{label} is unexamined and its Why cell says so again.",
-                         "Leave the Why cell blank: the page's 'Not looked at yet:' line already says it.")
+                         "Leave the Why cell blank: an unexamined app needs no reason.")
             if not cell.app:
                 yield _f(concern, cell.line, "E301", "A cell row does not link an app page in its App column.",
                          "Write the App column as [[<app>-building-blocks|<App name>]].")
@@ -1214,12 +1206,6 @@ def concern_rules(vault, today):
         if empty_strategy:
             yield _f(concern, empty_strategy[0], "W373", f"The Strategy section only says no strategy is set: \"{empty_strategy[1]}\"",
                      "Leave the section empty until there is a strategy to write.")
-        line = cell_table(concern).line if cell_table(concern) else 1
-        covered = not_looked_at(concern)
-        for name, app in sorted(app_names.items()):
-            if name not in seen and name not in covered:
-                yield _f(concern, line, "E315", f"No cell for {app.id} on this concern page, so it counts as unexamined.",
-                         f"Add a row for [[{app.name}|{str(app.meta.get('title') or app.name)}]] with its state.")
 
 
 # ------------------------------------------------------------------ diagrams

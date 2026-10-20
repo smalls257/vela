@@ -10,7 +10,8 @@ skill's own precedence ("this rule wins over the park default for claude lines")
 and `tests/test_markrules.py` has one case per row, so a deleted rule fails by name.
 
 "Filing is the tool's work, not the lead's." So nothing here asks for bookkeeping: the owner of a new unknown is the
-lead's handle (else the handle the capture was said by), its ask-by date comes from `ask_by`, and the ledger rows for
+lead's handle (else the handle the capture was said by), it gets no ask-by date (the lead gives or agrees one, never the
+tool), and the ledger rows for
 `## Reviews` findings the lead didn't take are drafted with their checkpoint cited. What reaches the lead (`leftovers`)
 is only what the rules say a person must choose: Claude's own unknown or deferral (keep or drop; Claude never decides
 an unknown alone), and a line someone other than the lead said that would be copied word for word.
@@ -31,19 +32,16 @@ The drafted items follow Task 4's decision-file format (`vela.decisions.schema`)
 capture in `seen`, so `apply` refuses an answer whose words changed after this ran.
 """
 import dataclasses
-import datetime
 import re
 from dataclasses import dataclass, field
 
 from vela import closegate, deferrals, parse
 from vela.decisions import schema
 
-NEW_UNKNOWN_DAYS = 14  # "else two weeks from today": long enough to reach a person, short enough to stay in view
 UNKNOWNS_PAGE = "11-unknowns-and-risks"
 LEDGER_HEADING = "Question ledger"
 REVIEWS_HEADING = "Reviews"
 
-_ISO = re.compile(r"\b\d{4}-\d{2}-\d{2}\b")
 _COPY = r"Q-[A-Z]{3}-\d{2}@[\w*.-]*[\w*]"
 _FINDING = r"F\d+\.\d+"
 _REVIEWER = r"R-[A-Z]{3}-\d{2,}"
@@ -188,13 +186,12 @@ def format_mark(mark):
 @dataclass(frozen=True)
 class Context:
     """What the defaults need beyond the record. `lead` is the lead's handle ("@sam", or "" when none is kept);
-    `hard_dates` are the vault's ISO constraint dates and release targets; `open_items` the IDs of items not yet decided
+    `open_items` the IDs of items not yet decided
     (what a leftover can hold up); `ledger_copies` the Copy cells the question ledger already has."""
     record_id: str
     modes: tuple
     today: str
     lead: str = ""
-    hard_dates: tuple = ()
     open_items: frozenset = frozenset()
     ledger_copies: frozenset = frozenset()
     reviews: tuple = ()
@@ -211,19 +208,6 @@ class Context:
             return self.lead
         origin = note.origin.strip()
         return origin if origin.startswith("@") else None
-
-
-def ask_by(words, hard_dates, today):
-    """A new unknown's ask-by date: the date the lead gave (an ISO date in the capture), else the nearest hard date the
-    vault holds that is still ahead (a constraint or a release target), else two weeks from today. Fixed, so the lead
-    is told the date chosen instead of being asked for one."""
-    said = _ISO.search(words or "")
-    if said:
-        return said.group(0)
-    ahead = sorted(d for d in hard_dates if d >= today)
-    if ahead:
-        return ahead[0]
-    return (datetime.date.fromisoformat(today) + datetime.timedelta(days=NEW_UNKNOWN_DAYS)).isoformat()
 
 
 def blocks(note, ctx):
@@ -250,8 +234,7 @@ def _keep(to, state, **more):
 
 
 def _new_unknown(note, ctx, **more):
-    return _keep("unknown", "open", id=None, owner=ctx.owner_for(note), ask_by=ask_by(note.words, ctx.hard_dates,
-                 ctx.today), blocks=blocks(note, ctx), **more)
+    return _keep("unknown", "open", id=None, owner=ctx.owner_for(note), blocks=blocks(note, ctx), **more)
 
 
 def _is_deferral(note):
@@ -328,7 +311,7 @@ RULES = (
          lambda n, c: bool(_ledger_ids(n)[0]), _copy_ledger),
     Rule("claude-unknown",
          "An unknown Claude raised, or a deferral Claude wrote, is never Claude's to keep or drop alone: the lead "
-         "chooses, kept as a question with an owner and an ask-by date, or dropped with a reason. This wins over the "
+         "chooses, kept as a question with an owner, or dropped with a reason. This wins over the "
          "park default for claude lines.",
          lambda n, c: n.is_claude and (n.tag == "unknown" or _is_deferral(n)),
          lambda n, c: _new_unknown(n, c), leftover=("keep", "drop"),
@@ -347,13 +330,12 @@ RULES = (
          "may want it back.",
          lambda n, c: n.tag == "wild", lambda n, c: dict(mark="park", to=None, state=None, id=None)),
     Rule("deferral-unknown",
-         "A capture saying something is left for a grill becomes an open unknown with an owner, an ask-by date and "
-         "what it blocks, so the record says who will answer and by when; prose that defers with no open question "
-         "draws W389.",
+         "A capture saying something is left for a grill becomes an open unknown with an owner and what it "
+         "blocks, so the record says who will answer; prose that defers with no open question draws W389.",
          lambda n, c: _is_deferral(n), lambda n, c: _new_unknown(n, c, deferral=True)),
     Rule("person-unknown",
          "A person's unknown or worry is kept as an unknown (an unknown is never parked), owned by the lead who is "
-         "chasing it, with the ask-by date the fixed rule gives; the model may make it a concern cell instead.",
+         "chasing it, with no ask-by date unless the lead gives one; the model may make it a concern cell instead.",
          lambda n, c: n.tag in UNKNOWN_TAGS, lambda n, c: _new_unknown(n, c)),
     Rule("shape-pick",
          "In a shape session the picked option is kept as an assumption with its options considered, never an "
@@ -532,17 +514,6 @@ def draft_files(result, session, record):
                            "items": [schema.seal(row, record, [row["capture"]] if row["capture"] else [])
                                      for row in result.ledger]}
     return files
-
-
-def hard_dates(vault):
-    """The vault's hard dates, for `ask_by`: ISO dates on constraint rows and every release target."""
-    from vela import releases  # needs a built vault model, which only the shell hands in
-    found = set()
-    for row_id, (page, line) in vault.row_ids.items():
-        if row_id.startswith("CST-"):
-            found.update(_ISO.findall(page.text.split("\n")[line - 1]))
-    found.update(r.target for r in releases.releases(vault) if r.target and _ISO.fullmatch(r.target))
-    return tuple(sorted(found))
 
 
 SETTLED_STATES = ("decided", "fact", "resolved", "closed", "not-applicable", "retired")

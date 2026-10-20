@@ -21,7 +21,7 @@ LEAD = "@sam"
 
 
 def ctx(**over):
-    base = dict(record_id=RECORD_ID, modes=("dump",), today=TODAY, lead=LEAD, hard_dates=(),
+    base = dict(record_id=RECORD_ID, modes=("dump",), today=TODAY, lead=LEAD,
                 open_items=frozenset(), ledger_copies=frozenset())
     base.update(over)
     return markrules.Context(**base)
@@ -71,8 +71,7 @@ RULES = [
     ("person-idea-inkling", '- [idea] (@sam) "A morning digest might help." ^c01', {},
      {"rule": "person-inkling", "mark": "keep", "to": "inkling", "state": "inkling"}),
     ("person-unknown", '- [unknown] (@sam) "Who signs off the pack?" ^c01', {},
-     {"rule": "person-unknown", "mark": "keep", "to": "unknown", "state": "open", "owner": LEAD,
-      "ask_by": "2026-10-28"}),
+     {"rule": "person-unknown", "mark": "keep", "to": "unknown", "state": "open", "owner": LEAD}),
     ("deferral-unknown", '- [thought] (@sam) "The retention period is left for a grill." ^c01', {},
      {"rule": "deferral-unknown", "mark": "keep", "to": "unknown", "state": "open", "owner": LEAD}),
 ]
@@ -137,21 +136,23 @@ def test_mode_written_marks_left_alone():
     assert alone["^c02"]["promoted_on_a_nod"] and not alone["^c01"]["promoted_on_a_nod"]
 
 
-def test_ask_by_default_rule():
-    said = markrules.ask_by("ask by 2026-10-20 at the latest", ("2026-11-10",), TODAY)
-    hard = markrules.ask_by("who signs it off?", ("2026-09-01", "2026-12-04", "2026-11-10"), TODAY)
-    fallback = markrules.ask_by("who signs it off?", ("2026-09-01",), TODAY)
-    assert (said, hard, fallback) == ("2026-10-20", "2026-11-10", "2026-10-28")
+def test_no_default_picks_an_ask_by_date():
+    """A date nobody chose is not the owner's plan. The lead gives one, or agrees the model's proposal, and `add
+    unknown` files it with their capture; a default that wrote one (the nearest hard date, two weeks on) is gone."""
+    lines = ['- [unknown] (@sam) "Who signs off the pack? Ask by 2026-10-20." ^c01',
+             '- [thought] (@sam) "The retention period is left for a grill." ^c02']
+    for item in planned(lines).items:
+        assert "ask_by" not in item, item
 
 
 def test_never_asks_for_bookkeeping():
-    """Handle, ask-by date and owner are computed; no leftover is about bookkeeping."""
+    """Handle and owner are computed; no leftover is about bookkeeping, and no date is made up."""
     lines = ['- [unknown] (@sam) "Who signs off the pack?" ^c01', '- [worry] (@sam) "The council may say no." ^c02',
              '- [thought] (@sam) "The retention period is left for a grill." ^c03']
-    plan = planned(lines, hard_dates=("2026-11-10",))
+    plan = planned(lines)
     assert not plan.leftovers
     for item in plan.items:
-        assert item["owner"] == LEAD and item["ask_by"] == "2026-11-10", item
+        assert item["owner"] == LEAD and "ask_by" not in item, item
     assert not any(word in json.dumps(plan.leftovers) for word in ("handle", "minutes", "sources"))
 
 

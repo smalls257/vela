@@ -72,20 +72,21 @@ def test_add_unknown_takes_id_counting_branches(tmp_path):
     page = writes[UNKNOWNS]
     assert "### UNK-008 Till rig owner" in page
     assert "- **Question:** Who owns the till test rig?" in page
-    assert "- **Owner:** @priya" in page and "- **State:** open" in page and "- **Blocks:** nothing" in page
+    assert "- **Owner:** @priya" in page and "- **State:** open" in page
+    assert "**Blocks:**" not in page.split("### UNK-008")[1]
     record = writes[RECORD]
     assert "| UNK-008 | - | open | [[2026-10-20-grill-stock#^c01]] |" in record
     assert '→ keep: [[11-unknowns-and-risks#UNK-008 Till rig owner|UNK-008]] (open) ^c01' in record
 
 
-def test_ask_by_default_rule(tmp_path):
+def test_ask_by_is_the_leads_date_or_absent(tmp_path):
     root = make_vault(tmp_path)
     no_date = filed(root, "add", [{"type": "unknown", "name": "Till rig owner", "capture": "^c01", "owner": "@priya"}])
-    assert "- **Ask by:** 2026-11-03" in no_date[UNKNOWNS]  # two weeks from today: nothing said, no hard date ahead
+    assert "Ask by" not in no_date[UNKNOWNS].split("### UNK-003")[1]  # nothing said: no line, and no date the tool chose
     said = filed(root, "add", [{"type": "unknown", "name": "Opening day", "capture": "^c02", "owner": "@priya"}])
-    assert "- **Ask by:** 2026-11-02" in said[UNKNOWNS]  # the date the lead gave wins
+    assert "Ask by" not in said[UNKNOWNS].split("### UNK-003")[1]  # a date inside the capture's words is not the lead giving one
     given = filed(root, "add", [{"type": "unknown", "name": "Opening day", "question": "When does it open?",
-                                 "owner": "@priya", "ask_by": "2026-10-30"}])
+                                 "capture": "^c03", "owner": "@priya", "ask_by": "2026-10-30"}])
     assert "- **Ask by:** 2026-10-30" in given[UNKNOWNS]
 
 
@@ -216,17 +217,15 @@ def test_epic_ac_numbered_after_highest(tmp_path):
     assert page.index("AC5") < page.index("## History")
 
 
-def test_app_stub_has_the_exact_stub_line(tmp_path):
+def test_app_stub_carries_its_state_in_a_field(tmp_path):
     root = make_vault(tmp_path)
     writes = filed(root, "add", [{"type": "app-stub", "slug": "desk", "name": "Desk", "change": "new",
                                   "owner": "@desk-team", "capture": "^c03"}])
     page = writes["05-building-blocks/desk-building-blocks.md"]
     meta, _, problem = parse.split_frontmatter(page)
     assert problem is None and meta["id"] == "APP-desk" and meta["state"] == "inkling" and meta["change"] == "new"
-    assert schema.BOUNDARY_STUB_LINE in page.split("\n")
-    concern = writes["08-concerns/concern-testing.md"]
-    assert "| unexamined |" not in concern
-    assert "\nNot looked at yet: [[desk-building-blocks\\|Desk]].\n" in concern
+    assert meta["stub"] == "boundary" and "Its boundary sheet" not in page
+    assert "08-concerns/concern-testing.md" not in writes  # an app with no row is unexamined; no page says so
     assert "| APP-desk | - | inkling | [[2026-10-20-grill-stock#^c03]] |" in writes[RECORD]
 
 
@@ -310,16 +309,6 @@ def test_every_type_has_an_example_its_own_validate_accepts_in_shape(kind):
     assert set(module.EXAMPLE) <= set(module.FIELDS) | {"type"}, kind
     assert set(module.REQUIRED) <= set(module.FIELDS), kind
     assert module.__doc__ and "Violation" in (add.__doc__ or ""), kind
-
-
-def test_a_second_stub_joins_the_one_not_looked_at_line_and_no_empty_row_is_written(tmp_path):
-    from vela.decisions import textedit
-    page = "# Testing\n\n| App | State | Why |\n|---|---|---|\n\nNext.\n"
-    once = textedit.add_not_looked(page, ("App", "State"), "[[a\\|A]]")
-    twice = textedit.add_not_looked(once, ("App", "State"), "[[b\\|B]]")
-    assert twice.count("Not looked at yet:") == 1
-    assert "\nNot looked at yet: [[a\\|A]], [[b\\|B]].\n" in twice
-    assert "unexamined" not in twice and textedit.add_not_looked("no table", ("App", "State"), "x") is None
 
 
 # --- add unknown: no second copy of an open question (full3 P14: UNK-070 and UNK-073 asked "will the 18 January slot

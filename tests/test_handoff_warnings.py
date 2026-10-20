@@ -44,7 +44,7 @@ def test_an_app_not_at_handoff_draws_no_handoff_warning(heron):
     # the same vault with the app taken off the handoff stage: its drafts are ordinary work in progress
     page = heron / "05-building-blocks" / "desktop-agent-building-blocks.md"
     text = page.read_text(encoding="utf-8")
-    page.write_text(text.replace("stage: handoff\n", "stage: target\n").replace('handed_off: "@agent-lead, 2026-10-12, PR pending"\n', ""),
+    page.write_text(text.replace("stage: handoff\n", "stage: target\n").replace('handed_off: "@agent-lead, 2026-10-12"\nhanded_off_pr: pending\n', ""),
                     encoding="utf-8")
     _, out = check(heron, TODAY)
     assert "W386" not in codes(out) and "W387" not in codes(out)

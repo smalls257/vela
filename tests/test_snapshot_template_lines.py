@@ -5,8 +5,8 @@ lists the opening sentences older templates wrote (W368 still recognizes them), 
 snapshots a run starts from kept them, so a new run's index pages opened with "One page per decision, named
 `ADR-nnnn-<slug>.md`." and the precision judge scored the line as padding (full3 P12).
 
-The empty `unexamined` rows on the per-concern pages are gone too: an app on the "Not looked at yet:" line counts as
-unexamined (E315 reads the line), which is what `add app-stub` writes.
+The empty `unexamined` rows on the per-concern pages are gone too: an app with no row counts as unexamined, which is
+what `add app-stub` leaves (it writes no row and no sentence).
 """
 import re
 
@@ -48,7 +48,7 @@ def test_the_shipped_template_writes_no_retired_line():
 
 
 def test_every_snapshot_vault_passes_vela_check_with_no_error():
-    """Including the concern pages, whose unlooked-at apps sit on the one "Not looked at yet:" line (E315 reads it)."""
+    """Including the concern pages, whose unlooked-at apps have no row."""
     from conftest import check
     bad = {}
     for goals in tracked(SNAPSHOTS.rglob("01-goals.md")):

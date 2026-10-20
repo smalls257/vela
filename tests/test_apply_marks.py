@@ -54,7 +54,7 @@ def test_marks_plan_draft_is_accepted_as_drafted(tmp_path):
     _, refusals = plan(root, "marks", drafted)
     assert {r.rule for r in refusals} == {"decision-unfilled"}  # only the lead's answer is missing, no field refused
     leftover.update(mark="keep", to="unknown", state="open", lead_answer="^c03", name="VAT line on receipts",
-                    owner="@priya", ask_by=leftover["recommend"]["ask_by"])
+                    owner="@priya")
     for item in drafted:
         if item["mark"] is None:  # the answer line itself, which no default covers: the model marks it
             item["mark"] = "park"

@@ -241,27 +241,6 @@ def add_row(text, first_cells, row):
     return _join(lines[:end] + [row] + lines[end:])
 
 
-NOT_LOOKED = "Not looked at yet: "
-
-
-def add_not_looked(text, first_cells, link):
-    """`text` with `link` on the one plain "Not looked at yet: a, b." line under the table whose header starts with
-    `first_cells` (the line is made when it isn't there), or None when there is no such table. One line for the
-    apps nobody has examined, never an empty row per app: an empty row reads as padding."""
-    lines = _lines(text)
-    header = find_table(lines, first_cells)
-    if header is None:
-        return None
-    end = table_rows_end(lines, header)
-    at = end
-    while at < len(lines) and not lines[at].strip():
-        at += 1
-    if at < len(lines) and lines[at].startswith(NOT_LOOKED):
-        lines[at] = lines[at].rstrip().rstrip(".") + f", {link}."
-        return _join(lines)
-    return _join(lines[:end] + ["", f"{NOT_LOOKED}{link}."] + lines[end:])
-
-
 def heading_above(text, first_cells):
     """The text of the nearest heading above the table whose header starts with `first_cells`."""
     lines = _lines(text)

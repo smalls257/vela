@@ -65,7 +65,7 @@ Every page starts with a YAML block. Quote any value that holds a colon or start
 |---|---|---|---|
 | `index` | `id`, `type`, `title`, `authored` | `initiative`, `arc42`, `c4`, `owner`, `sources` | none |
 | `initiative-section` | `id`, `type`, `title`, `state`, `owner`, `authored` | `initiative`, `arc42`, `c4`, `sources` | `inkling`, `assumption`, `fact`, `decided` |
-| `app-building-blocks` | as above, plus `change` | `stage`, `initiative`, `arc42`, `c4`, `sources`, `handed_off`, `domain`, `icon`, `design` | `inkling`, `assumption`, `fact`, `decided` |
+| `app-building-blocks` | as above, plus `change` | `stage`, `stub`, `initiative`, `arc42`, `c4`, `sources`, `handed_off`, `handed_off_pr`, `domain`, `icon`, `design` | `inkling`, `assumption`, `fact`, `decided` |
 | `app-runtime` | `id`, `type`, `title`, `state`, `owner`, `authored` | `initiative`, `arc42`, `sources` | `inkling`, `assumption`, `fact`, `decided` |
 | `flow` | `id`, `type`, `title`, `state`, `owner`, `authored` | `initiative`, `arc42`, `sources`, `capabilities` | `inkling`, `assumption`, `fact`, `decided` |
 | `concern` | `id`, `type`, `title`, `owner`, `authored` | `initiative`, `arc42`, `sources` | none: the cells hold the states |
@@ -89,7 +89,8 @@ Field values:
 - `change` on an app page: `new`, `changed`, `integrated`, `unchanged` or `retired`.
 - `stage`: `baseline`, `target`, `boundaries`, `contracts`, `handoff`, `epics`. Required when `change` is `new` or `changed`, absent otherwise.
 - `last_verified`: the date someone last reread the page against its sources, `YYYY-MM-DD`. `verified_by`: that person's handle, `"@handle"`. Set both together. A page without them is never judged stale.
-- `handed_off`: set once a senior takes the app. Form: `"<name>, <date>, PR #N"`, or `"<name>, <date>, PR pending"` until the PR exists; W325 warns until the number is written.
+- `handed_off`: set once a senior takes the app. Form: `"<name>, <date>"`. `handed_off_pr`: the pull request that hands it over, `pending` until the PR exists, then its number (`41`); W325 warns until the number is written. A `handed_off_pr` with no `handed_off` is E105.
+- `stub`: `boundary` on an app page `vela add app-stub` wrote and nobody has read back yet. `vela next` sends such a page (with no containers table) to Boundary. Boundary removes the field when the lead has said yes to the page. State lives in this field, never in a sentence on the page, so rewriting the prose cannot lose it.
 - `change` on a capability page: `new`, `extend`, `replace`, `narrow`, `retire` or `unchanged`. `origin`: `proposed` or `imported`. Proposed capabilities keep their IDs and are mapped to an official map later, never renamed.
 - `domain` on a capability page: a short name for the business area it belongs to, such as `Booking`. The `capability-map` block groups capabilities by it. A capability with no `domain` is drawn under "No domain".
 - `capabilities` on a flow page: a list of `CAP-` IDs, the capability or capabilities the journey serves, the first one primary. The explorer's flow picker groups a long list of flows by the primary one; without the field it guesses from the capabilities the steps link and says so. Leave it out while the initiative has no capability pages. W358 warns when a flow has none and capability pages exist; E359 fails an ID that is not a capability page.
@@ -116,7 +117,7 @@ IDs are never reused or renumbered. A file's basename is frozen once anything li
 
 ## Certainty and sources
 
-Every item has a state. `inkling` is a hunch. `assumption` is believed but not checked. `fact` has a source. `decided` came out of a Grill. `unknown` is a question with an owner, an ask-by date and a list of what it blocks.
+Every item has a state. `inkling` is a hunch. `assumption` is believed but not checked. `fact` has a source. `decided` came out of a Grill. `unknown` is a question with an owner, and a list of what it blocks when it blocks anything.
 
 - **Only a Grill decides,** unless the user overrides it (see Overrides). A `decided` page carries a page-level `- **Decision:** [[<session>]]` bullet, and a `decided` contract or functional requirement carries one under its heading. The linked session's `modes` must include `grill`, or an `**Override:**` on the item names `grill`. Goal rows take their decision from the Goals page's bullet.
 - **A decision a document states** is the one exception. When a registered source records a decision ("approved by the CTO on 3 March") and the lead says yes to it in an import, it is `decided` with `- **Decision:** [[<session>]], as SRC-nn states`, which `vela decide --stated-in SRC-nn` writes. The lead's yes is on the session's Changes row, as for any decision. What the lead isn't sure of stays an `assumption`, with the document noted.
@@ -126,7 +127,7 @@ Every item has a state. `inkling` is a hunch. `assumption` is believed but not c
 - **What counts as a source.** A document describing what exists gives a fact. A document stating intent gives an assumption. A person's first-hand knowledge gives a fact. Claude's general knowledge is never a source.
 - **Sources live in the register.** `sources.md` has one row per document: `ID | Title | Owner | Date | Kind | Location`. `Kind` is `exists`, `intends` or `repo`. A `repo` source is a code repository read at a commit, with Location `<url>@<sha>`. Raw files stay in `.inbox/`; document text is never copied into the vault, except as an import keeps it below.
 - **An import keeps a document's own words where they carry weight.** Requirements, contract and legal terms, numbers and direct quotes go in word for word, as a quote (`> "..."`) with its source linked. Whether the page's own sentences are written in the house voice is the lead's answer to one question the import asks. Each page records it in `source-wording`: `keep` (every word as the documents have it, the default until the lead answers), `split` (quotes kept, the explaining sentences voiced) or `voice`. A `split` or `voice` page links the capture of the lead's answer in `source-wording-yes: "[[<session>#^cNN]]"`; E361 is a page voiced without it. Close never redrafts a `keep` page, and `vela voicecheck` holds its kept lines exactly.
-- **Nothing is left for a Grill in prose.** A matter a session leaves for a Grill, or says is decided later, is an open unknown with an owner and an ask-by date, and the page links it. Close writes the unknown when a capture or a sentence defers; `vela check` warns W389 on page prose that says it is left for a Grill, or decided later, and links no open unknown in the same paragraph. Session records, History and generated blocks are not read, and nor is the unknowns page, where the question lives.
+- **Nothing is left for a Grill in prose.** A matter a session leaves for a Grill, or says is decided later, is an open unknown with an owner, and the page links it. Close writes the unknown when a capture or a sentence defers; `vela check` warns W389 on page prose that says it is left for a Grill, or decided later, and links no open unknown in the same paragraph. Session records, History and generated blocks are not read, and nor is the unknowns page, where the question lives.
 - **Disputes are unknowns.** When two sources or two people disagree, write an unknown naming both. Do not pick one.
 - **State a value once.** The item that owns a value states it. Every other page links to it.
 
@@ -198,8 +199,8 @@ Unknown, under `### UNK-nnn <short name>` on `11-unknowns-and-risks.md`:
 | `**Owner:**` | Required. Starts with a handle: `@hl-platform-lead (Platform lead)`. |
 | `**Ask:**` | Optional. Who holds the answer, when that is not the owner: a handle such as `@privacy-lead`, or a role in words such as `outside counsel`. The owner answers for the question; the person to ask answers it. Views of who to ask group by this, then by the owner. |
 | `**State:**` | Required. `open` or `resolved`. |
-| `**Blocks:**` | Required. Links to what it blocks, or a value starting `nothing`. |
-| `**Ask by:**` | Required while `open`. `YYYY-MM-DD`. Past this date the check warns. |
+| `**Blocks:**` | Optional. Links to what it blocks. Left out when it blocks nothing: a missing line means nothing is held up, and a line of words alone is E302. |
+| `**Ask by:**` | Optional. `YYYY-MM-DD`, a date the lead gave or said yes to; vela never picks one. Left out when no date is set, and then nothing about the question is due or overdue. Past this date the check warns. |
 | `**Outcome:**`, `**Resolved in:**` | Required once `resolved`. |
 | `**Opened:**`, `**Notes:**` | Optional. |
 
@@ -498,7 +499,7 @@ A generated block sits between two markers and is written only by `vela render`:
 <!-- /generated:unknowns-index -->
 ```
 
-The `sha` is the first 8 hex digits of SHA-256 over the block's text, with trailing spaces and blank edge lines removed. A text that no longer matches its `sha` was edited by hand. To add a block, write both markers with `sha=00000000` and nothing between them, then run `vela render`. Blocks hold links and numbers and dates, never ages or prose.
+The `sha` is the first 8 hex digits of SHA-256 over the block's text, with trailing spaces and blank edge lines removed. A text that no longer matches its `sha` was edited by hand. Every block opens with the one line `_Kept up to date by vela from the pages it reads._` (the caption), so a reader sees that the tool keeps it; `vela render` writes it. To add a block, write both markers with `sha=00000000` and nothing between them, then run `vela render`. Blocks hold links and numbers and dates, never ages or prose.
 
 | Block | Page | What it shows |
 |---|---|---|
@@ -529,7 +530,7 @@ For each app the first rule that matches picks the mode. `vela next` takes the a
 | Rule | Mode | Matches when |
 |---|---|---|
 | 1 | Probe | an open unknown that blocks the app is past its ask-by date |
-| 2 | Boundary | the app page is a Boundary stub: it says "Its boundary sheet is still to be read back." and has no containers table |
+| 2 | Boundary | the app page is a Boundary stub: its frontmatter says `stub: boundary` and it has no containers table |
 | 2 | Discover | the app page lists no `sources` |
 | 3 | Discover | the app is `integrated` or `unchanged`, and one of its items no open unknown blocks is at `inkling` or `assumption`: what exists needs a source to reach `fact` |
 | 3 | Shape | one of its items is at `inkling`, or at `assumption` with no `**Options considered:**` |
@@ -578,7 +579,7 @@ Run `python3 .claude/skills/vela/scripts/vela check` from the vault root. It rea
 
 The table is generated from the codes `vela check` uses, so it cannot drift from them, and each finding's fix line says how to put it right. `vela upgrade` brings a vault's copy up to date.
 
-<!-- generated:check-codes sha=13ec2081: do not edit, run vela render -->
+<!-- generated:check-codes sha=546376ac: do not edit, run vela render -->
 | Code | Finding |
 |---|---|
 | E101 | page has no frontmatter |
@@ -604,7 +605,6 @@ The table is generated from the codes `vela check` uses, so it cannot drift from
 | W304 | fact without a source, by override |
 | E306 | fact table row is not valid |
 | E311 | consumers name no app |
-| E315 | app has no cell on a concern page |
 | E316 | decided while an open unknown blocks it |
 | W316 | decided while an open unknown blocks it, by override |
 | E317 | a requirements session cannot decide |
@@ -1092,7 +1092,7 @@ A cell that starts `no work` but does not follow the waiver form covers nothing,
 - Every contract it consumes is `decided` or `fact`, or links an open unknown.
 - No concern cell for the app is `unexamined`.
 - The runtime page says how the app behaves when something fails.
-- Every open unknown that blocks the app has an owner and an ask-by date.
+- Every open unknown that blocks the app has an owner, and the lead has said whether it has a date.
 - Every contract it provides or consumes has a case table with an error case.
 
 The handoff order is: releases, then handoff in a Grill, then epics for that app (`/vela:epics`) while the senior designs it (`/vela:design`), then the build plan and the tickets. The guide draws the same order.

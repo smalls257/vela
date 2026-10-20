@@ -40,6 +40,6 @@ def test_a_handoff_may_say_pr_pending_until_the_pr_exists(tmp_path):
     write_app(tmp_path, "decided")
     page = tmp_path / "05-building-blocks" / "coach-building-blocks.md"
     page.write_text(page.read_text(encoding="utf-8").replace("stage: target\n",
-                    "stage: target\nhanded_off: \"Coach lead, 2026-10-09, PR pending\"\n"), encoding="utf-8")
+                    "stage: target\nhanded_off: \"Coach lead, 2026-10-09\"\nhanded_off_pr: pending\n"), encoding="utf-8")
     out = run("check", "--vault", str(tmp_path), "--today", "2026-10-09")[1]
     assert "W325" in out and "E105" not in out

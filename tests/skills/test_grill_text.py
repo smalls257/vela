@@ -111,7 +111,7 @@ def test_grill_hands_an_app_over():
     grill = (REPO / "plugin" / "skills" / "grill" / "SKILL.md").read_text(encoding="utf-8")
     handoff = (REPO / "plugin" / "skills" / "grill" / "HANDOFF.md").read_text(encoding="utf-8")
     assert "## Handing an app over" in grill and "skills/grill/HANDOFF.md" in grill
-    assert 'handed_off: "<team lead\'s handle>, <today>, PR pending"' in handoff  # no handoff kind yet (15b)
+    assert 'handed_off: "<team lead\'s handle>, <today>"` and `handed_off_pr: pending' in handoff  # no handoff kind yet (15b)
     assert "Say once what is not met, as one list" in handoff and "Do not ask about each line." in handoff
     assert "`vela handoff preview <APP-id> --for-lead`" in handoff
 

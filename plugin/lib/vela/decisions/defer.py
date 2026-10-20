@@ -3,8 +3,8 @@
 
 The Violation this exists to prevent is a Silent Fallback at process level: "we'll come back to it" with nobody
 chasing it. A deferral is only honest while an open question with an owner and an ask-by date carries it, so a
-deferral IS an unknown: `### UNK-nnn <name>` with `**Owner:**` the handle the lead named, `**Ask by:**` by the fixed
-rule (the date the lead gave, the nearest hard date, else two weeks), and `**Blocks:**` the owed question's copy or
+deferral IS an unknown: `### UNK-nnn <name>` with `**Owner:**` the handle the lead named, `**Ask by:**` only if the
+lead gave or agreed a date (never one the tool picks), and `**Blocks:**` the owed question's copy or
 `R-` ID as written, so the gate can see the question has someone chasing it. The capture is kept as that unknown.
 
 The question-ledger row `unknown` that disposes of the copy is the `ledger` kind's to write at close; until then the
@@ -22,7 +22,7 @@ SCHEMA = schema.KindSchema(
             "question": "the question, in the lead's words (leave null to take the capture's words)",
             "owner": "the handle of whoever the lead said answers it",
             "ask": "who would actually know, when that isn't the owner",
-            "ask_by": "YYYY-MM-DD; leave null for the fixed rule",
+            "ask_by": "YYYY-MM-DD, only a date the lead gave or said yes to; leave null otherwise",
             "capture": "the capture holding the lead's word on who answers it"},
     judgment=("owner", "capture"), required=("copy", "name", "owner", "capture"),
     example={"copy": "Q-FIN-02@INI-001", "name": "Stored value liability", "owner": "@cfo", "capture": "^c41"})

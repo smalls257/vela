@@ -109,7 +109,7 @@ def test_decided_this_session_listed_for_readback(tmp_path):
 def test_lists_over_seven_are_named(tmp_path):
     vault = session(tmp_path)
     more = "".join(f"\n### UNK-{n:03d} Question {n}\n\n- **Question:** Is {n} enough?\n- **Owner:** @mini-qa\n"
-                   f"- **Opened:** 2026-10-20\n- **State:** open\n- **Ask by:** 2026-11-01\n- **Blocks:** nothing\n"
+                   f"- **Opened:** 2026-10-20\n- **State:** open\n- **Ask by:** 2026-11-01\n"
                    for n in range(3, 10))
     edit(vault, UNKNOWNS, "\n## Risks", more + "\n## Risks")
     data = drafts_json(vault)

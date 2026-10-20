@@ -7,11 +7,14 @@ The rules, each with the reason the skills gave:
   you would guess, and two headings with one ID fail the check (E208).
 - **Owner is a handle**, the lead chasing it, because the unknown's owner and ask-by date are the record of who is asked
   and by when. The person who would actually know goes on `**Ask:**`, a handle or a role in words.
-- **Ask by**, when not given, is the fixed rule (`markrules.ask_by`): the date the lead said, else the nearest hard date
-  the vault holds (a constraint or a release target), else two weeks from today. Fixed so the lead is told the date
-  chosen instead of being asked for bookkeeping.
+- **Ask by is the lead's date or none.** The tool never picks one (a value nobody chose reads as the owner's plan and
+  was wrong in 41 of 44 entries). With no date the entry has no `**Ask by:**` line; the dashboard says "no date set".
+  A date is filed only with a `capture` behind it, the lead's own words (their date, or their yes to the date the
+  model proposed with its reason), and the capture is cited on the record's Changes row. Without a capture, or with
+  one that isn't a person's, the date is refused and nothing is written (Silent Fallback: a fake decision).
 - **Blocks** links each item it blocks by its heading (an open unknown that lists an item stops it being decided), or
-  names an owed question's copy ID as written (an E805 deferral blocks the question), or says `nothing`.
+  names an owed question's copy ID as written (an E805 deferral blocks the question). An unknown that blocks nothing
+  has no `**Blocks:**` line: the missing line is the state, not a sentinel word.
 - **The agenda follows** (grill section 5): every agenda item it blocks comes off the agenda, `off-agenda: UNK-nnn`,
   unless the lead overrode GATE-4 for it, and `now_blocks` says which so the CLI can tell the lead by name.
 - **No second copy of an open question** (a Silent Fallback of the ledger: two owners chase one answer, and the page
@@ -23,8 +26,8 @@ The rules, each with the reason the skills gave:
 """
 import re
 
-from vela import markrules, schema as vault_schema
-from vela.decisions import agenda, textedit
+from vela import schema as vault_schema
+from vela.decisions import agenda, consent, textedit
 from vela.decisions.schema import Write
 
 PAGE = "11-unknowns-and-risks"
@@ -44,8 +47,9 @@ FIELDS = {"name": "the short name for the heading: at most six words, none of # 
           "capture": "the capture the question came from (\"^c12\")",
           "owner": "the handle of the lead chasing it: run vela whoami",
           "ask": "who would actually know, when that isn't the owner: a handle or a role in words",
-          "ask_by": "YYYY-MM-DD; leave null for the fixed rule (the lead's date, the nearest hard date, else +14 days)",
-          "blocks": "the IDs it blocks (items, pages, or an owed question's copy ID); empty for nothing",
+          "ask_by": "YYYY-MM-DD, only a date the lead gave or said yes to, with their capture; leave null otherwise "
+                    "(vela never picks one)",
+          "blocks": "the IDs it blocks (items, pages, or an owed question's copy ID); empty when it blocks nothing",
           "different_because": "only when vela names an open question that is nearly the same: why this one is "
                                "different, in the lead's words (it is written on the new question)",
           "id": "leave null: vela numbers it past every open branch"}
@@ -58,18 +62,8 @@ def question_of(item, record):
     return item.get("question") or textedit.quote(record, item.get("capture"))
 
 
-def ask_by(item, vault, record):
-    if item.get("ask_by"):
-        return item["ask_by"]
-    words = item.get("question") or ""
-    capture = record.capture(item["capture"]) if item.get("capture") else None
-    if capture is not None:
-        words = f"{capture.words} {words}"
-    return markrules.ask_by(words, markrules.hard_dates(vault.model), textedit.today(vault))
-
-
 def blocks_value(item, vault):
-    """(the `**Blocks:**` value, [IDs it can't find])."""
+    """(the `**Blocks:**` value, "" when it blocks nothing; [IDs it can't find])."""
     parts, missing = [], []
     for ident in item.get("blocks") or []:
         ident = str(ident).strip()
@@ -81,7 +75,7 @@ def blocks_value(item, vault):
             missing.append(ident)
         else:
             parts.append(found)
-    return (", ".join(parts) if parts else "nothing"), missing
+    return ", ".join(parts), missing
 
 
 def content_words(text):
@@ -138,7 +132,8 @@ def validate(item, vault, record):
                                       "Give question, or a capture holding the lead's words."))
     if item.get("ask_by") and not DATE.match(str(item["ask_by"])):
         found.append(textedit.refusal("add-ask-by", "That ask-by date isn't a date I can read.",
-                                      "Give ask_by as YYYY-MM-DD, or leave it null for the fixed rule."))
+                                      "Give ask_by as YYYY-MM-DD, or leave it null: vela files no date of its own."))
+    found += ask_by_capture_refusals(item, record)
     same = None if found or item.get("different_because") else duplicate_of(item, vault, record)
     if same:
         found.append(textedit.refusal(
@@ -155,8 +150,23 @@ def validate(item, vault, record):
                                                     "nothing.",
                                       f"blocks names {', '.join(missing)}, which the vault doesn't hold. Use an item "
                                       "or page ID, or an owed question's copy ID.",
-                                      override="none: Blocks links what exists, or says nothing"))
+                                      override="none: Blocks links what exists, or is left out"))
     return found
+
+
+def ask_by_capture_refusals(item, record):
+    """A date is the lead's: it needs the capture holding their date or their yes, said by a person."""
+    if not item.get("ask_by"):
+        return []
+    if not item.get("capture"):
+        return [textedit.refusal(
+            "add-ask-by-capture", "I can't file a date nobody gave me. Shall I leave it without one for now?",
+            f"ask_by {item['ask_by']} has no capture behind it. Propose the date to the lead with its reason, "
+            "capture their yes (or their own date), and give that capture; or leave ask_by out.",
+            override="none: an ask-by date is filed only on the lead's own words")]
+    said = record.capture(item["capture"])
+    refused = None if said is None else consent.from_a_person(said)
+    return [refused] if refused else []
 
 
 def block_lines(ident, item, vault, record):
@@ -167,9 +177,12 @@ def block_lines(ident, item, vault, record):
         lines.append(f"- **Ask:** {textedit.inline(item['ask'])}")
     if item.get("different_because"):
         lines.append(f"- **Not the same as an open question because:** {textedit.inline(item['different_because'])}")
-    lines += [f"- **Opened:** {textedit.today(vault)}", "- **State:** open",
-              f"- **Ask by:** {ask_by(item, vault, record)}",
-              f"- **Blocks:** {blocks_value(item, vault)[0]}"]
+    lines += [f"- **Opened:** {textedit.today(vault)}", "- **State:** open"]
+    if item.get("ask_by"):
+        lines.append(f"- **Ask by:** {item['ask_by']}")
+    blocked = blocks_value(item, vault)[0]
+    if blocked:
+        lines.append(f"- **Blocks:** {blocked}")
     return lines
 
 

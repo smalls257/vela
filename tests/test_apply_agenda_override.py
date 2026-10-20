@@ -73,7 +73,8 @@ def test_override_reason_must_be_the_leads(tmp_path):
 def test_defer_writes_an_unknown_blocking_the_copy(tmp_path):
     root = make_vault(tmp_path, captures=CAPTURES)
     writes = filed(root, "defer", [{"copy": "Q-FIN-02@INI-900", "name": "Stored value liability", "owner": "@cfo",
-                                    "capture": "^c05", "question": "Who carries the vouchers as money owed?"}])
+                                    "capture": "^c05", "ask_by": "2026-11-05",
+                                    "question": "Who carries the vouchers as money owed?"}])
     page = writes[UNKNOWNS]
     assert "### UNK-003 Stored value liability" in page
     assert "- **Blocks:** Q-FIN-02@INI-900" in page and "- **Ask by:** 2026-11-05" in page

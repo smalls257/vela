@@ -117,7 +117,7 @@ def test_where_it_stands_lists_open_unknowns_with_owner_and_ask_by(mini):
 
 
 def test_where_it_stands_counts_blocking_unknowns(mini):
-    edit(mini / "11-unknowns-and-risks.md", "- **Blocks:** nothing\n", "- **Blocks:** [[till-building-blocks|Till]]\n")
+    edit(mini / "11-unknowns-and-risks.md", "- **Opened:** 2026-01-10\n", "- **Opened:** 2026-01-10\n- **Blocks:** [[till-building-blocks|Till]]\n")
     render(mini)
     text = (mini / GOALS).read_text(encoding="utf-8")
     assert "| [[till-building-blocks\\|Till]] | named in scope | 1 | 0 | 1 of 1 |" in text

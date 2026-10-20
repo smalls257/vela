@@ -14,7 +14,7 @@ from vela.parse import split_row
 
 # Lines a hash ignores: they change when a page is reread, handed off, or an owner confirms a decision
 # made on their behalf, not when its content does.
-VOLATILE = re.compile(r"^(last_verified|verified_by|handed_off):|^- \*\*[Cc]onfirmed [Bb]y:\*\*")
+VOLATILE = re.compile(r"^(last_verified|verified_by|handed_off|handed_off_pr):|^- \*\*[Cc]onfirmed [Bb]y:\*\*")
 KIND_ORDER = ("app", "runtime", "provides", "consumes", "requirement", "epic", "slice", "release", "unknown")
 HEADER = ("ID", "Kind", "Page", "State", "Hash")
 FACT = re.compile(r"^- \*\*(App|Commit|Written|Items):\*\* (.+)$")

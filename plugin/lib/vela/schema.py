@@ -25,7 +25,7 @@ PAGE_TYPES = {
     },
     "app-building-blocks": {
         "required": ("id", "type", "title", "state", "owner", "authored", "change"),
-        "optional": ("stage", "initiative", "arc42", "c4", "sources", "handed_off", "domain"),
+        "optional": ("stage", "initiative", "arc42", "c4", "sources", "handed_off", "handed_off_pr", "domain", "stub"),
         "states": STATE_ITEM,
     },
     "app-runtime": {
@@ -105,6 +105,7 @@ ENUMS = {
     "change@capability": ("new", "extend", "replace", "narrow", "retire", "unchanged"),
     "origin": ("proposed", "imported"),
     "stage": ("baseline", "target", "boundaries", "contracts", "handoff", "epics"),
+    "stub": ("boundary",),
     "status": ("open", "closed"),
 }
 LIST_FIELDS = ("sources", "apps", "delivers", "consumes", "flows", "depends_on", "modes", "capabilities")
@@ -115,8 +116,20 @@ LADDERED_CHANGES = ("new", "changed")  # app pages with these carry `stage`
 HANDLE = r"@[A-Za-z0-9][A-Za-z0-9-]*(?:/[A-Za-z0-9._-]+)?"
 OWNER_RE = re.compile(rf"^{HANDLE}(?: {HANDLE})*$")
 OWNER_BULLET_RE = re.compile(rf"^{HANDLE}\b")
-# "PR pending" until close has opened the PR and knows its number; W325 warns until then.
-HANDED_OFF_RE = re.compile(r"^.+, \d{4}-\d{2}-\d{2}, PR (?:#\d+|pending)$")
+# `handed_off` is who took the app and when; the pull request is its own field, `handed_off_pr`: "pending" until close
+# has opened the PR and knows its number (W325 warns until then), then the number.
+HANDED_OFF_RE = re.compile(r"^.+, \d{4}-\d{2}-\d{2}$")
+HANDED_OFF_PR_RE = re.compile(r"^(?:pending|\d+)$")
+
+
+def handed_off_label(meta):
+    """How a handoff reads where a reader sees it: "<who>, <date>, PR pending" or "..., PR #41", made from the two
+    fields. Display only: nothing parses this back."""
+    base = str(meta.get("handed_off") or "")
+    pr = str(meta.get("handed_off_pr") or "")
+    if not base or not pr:
+        return base
+    return f"{base}, PR {'pending' if pr == 'pending' else '#' + pr}"
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 INITIATIVE_RE = re.compile(r"^INI-\d{3}$")
 
@@ -176,12 +189,14 @@ CONTRACT_OPTIONAL = ("Provider", "Tested by", "Source", "Decision", WHY_LABEL, "
 CONTRACT_STATES = ("inkling", "assumption", "fact", "decided")
 CONTRACT_CHANGES = ("new", "changed", "new consumers", "unchanged")
 
-UNKNOWN_REQUIRED = ("Question", "Owner", "State", "Blocks")
-UNKNOWN_OPEN_REQUIRED = ("Ask by",)
+UNKNOWN_REQUIRED = ("Question", "Owner", "State")
+UNKNOWN_OPEN_REQUIRED = ()
 UNKNOWN_RESOLVED_REQUIRED = ("Outcome", "Resolved in")
 # Ask is who holds the answer when that is not the owner. It must be a known label: vela style tells a session to
 # turn every unknown label into prose, and close then deletes the Ask line the views that group by who to ask read.
-UNKNOWN_OPTIONAL = ("Opened", "Notes", "Ask")
+# Ask by is a date the lead gave or agreed, never one the tool picks, and Blocks is left out when nothing is held up;
+# a missing line says "no date set" and "blocks nothing".
+UNKNOWN_OPTIONAL = ("Opened", "Notes", "Ask", "Ask by", "Blocks")
 UNKNOWN_STATES = ("open", "resolved")
 
 RISK_REQUIRED = ("Owner", "State")
@@ -261,8 +276,6 @@ ALLOCATION_HEADER = ("Requirement", "Share", "Through", "State")
 # it holds an item's history. HISTORY_LABELS are the bullets that belong there.
 HISTORY_HEADING = "History"
 HISTORY_LABELS = ("Decision", WHY_LABEL, "Override", "Decided by", "Confirmed by", "Options considered", "Dissent")
-# The line a Boundary writes under a stub app page's title; vela next sends such a page back to Boundary.
-BOUNDARY_STUB_LINE = "Its boundary sheet is still to be read back."
 CONTAINER_STATES = ("assumption", "confirmed", "unchanged", "retired")
 CELLS_HEADER = ("App", "State")
 CELL_STATES = ("addressed", "unchanged", "n/a", "unknown", "unexamined")
@@ -288,6 +301,9 @@ BLOCKS = {
     "progress-map": "goals",
     "undisposed-questions": "unknowns-and-risks",
 }
+# The one line every generated block opens with, so a reader who never sees the HTML marker still sees that the tool
+# keeps the block and the owner's pages are the thing to edit.
+GENERATED_CAPTION = "_Kept up to date by vela from the pages it reads._"
 NEW_BLOCK_SHA = "00000000"
 
 # ------------------------------------------------------------------ diagrams
@@ -331,7 +347,6 @@ CODES = {
     "E304": "fact without a source",
     "E306": "fact table row is not valid",
     "E311": "consumers name no app",
-    "E315": "app has no cell on a concern page",
     "E316": "decided while an open unknown blocks it",
     "E317": "a requirements session cannot decide",
     "E318": "decided contract has no Tested by",
