@@ -400,7 +400,7 @@ def precision_section(run):
         return {"missing": f"precision not scored: {data['missing']}"}
     return {"precision": data["precision"], "sampled": data["sampled"], "population": data.get("population"),
             "counts": data["counts"], "rates": data["rates"], "dropped": len(data.get("dropped") or []),
-            "seed": data.get("seed"), "vault": data.get("vault"), "spent_usd": data.get("spent_usd"),
+            "seed": data.get("seed"), "plus_minus": data.get("plus_minus"), "vault": data.get("vault"), "spent_usd": data.get("spent_usd"),
             "items": data.get("items") or []}
 
 
@@ -1221,7 +1221,7 @@ def section_missing(sec, path):
 
 RECALL_DROP = 0.05  # pooled recall over about 60 key items: 5 points is 3 items, past one judge's coin-flips
 RECALL_STOP = 0.15
-PRECISION_DROP = 0.10  # precision over 30 sampled items: 10 points is 3 items
+PRECISION_DROP = 0.10  # pooled precision over 4 x 30 items swings about 5 points by seed; a --quick pass about 15
 PRECISION_STOP = 0.20
 KIND_LOST, KIND_SHARE = 2, 0.20  # a kind that lost 2 or more items and 20 points of its share is named on its own
 RECALL_GROUP = "Recall against the persona key (sets the verdict)"

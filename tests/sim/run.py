@@ -2394,7 +2394,8 @@ def score_arm(arm):
     data = judge(arm, hits)
     with tempfile.TemporaryDirectory(prefix="sim-precision-") as work:
         vault, ref = PRECISION.final_vault(arm.dir, work)
-        arm.precision = judge_precision(arm, vault, ref)
+        quick = bool(getattr(arm.args, "precision_quick", False))
+        arm.precision = judge_precision(arm, vault, ref, seeds=(PRECISION.SEED,) if quick else PRECISION.SEEDS, quick=quick)
     card = build_scorecard(arm, data, hits)
     card["precision"] = {k: v for k, v in arm.precision.items() if k != "items"}
     if "missing" in arm.precision:
@@ -2402,7 +2403,7 @@ def score_arm(arm):
     return card
 
 
-def judge_precision(arm, vault, ref="", size=PRECISION.SAMPLE_SIZE, seed=PRECISION.SEED):
+def judge_precision(arm, vault, ref="", size=PRECISION.SAMPLE_SIZE, seeds=PRECISION.SEEDS, quick=False):
     """The precision record for the arm's final vault: one judge call on the arm's ledger, capped small, its raw reply
     kept beside the other judge calls. A reply that is bad twice is a tool failure; a refusal reads "not scored"."""
     def send(text):
@@ -2421,8 +2422,10 @@ def judge_precision(arm, vault, ref="", size=PRECISION.SAMPLE_SIZE, seed=PRECISI
         return result
 
     try:
-        return PRECISION.score(vault, arm.persona.get("docs") or [], arm.transcript.spoken(), send, size, seed,
-                               ref or "working tree")
+        docs, spoken, where = arm.persona.get("docs") or [], arm.transcript.spoken(), ref or "working tree"
+        if quick:
+            return PRECISION.score(vault, docs, spoken, send, size, seeds[0], where)
+        return PRECISION.score_pooled(vault, docs, spoken, send, size, seeds, where)
     except PRECISION.JudgeFailure as exc:
         raise ToolFailure(str(exc)) from exc
 
@@ -2900,6 +2903,8 @@ def parse_args(argv):
     parser.add_argument("--model", help="assistant model, pinned for every arm; required unless --rejudge")
     parser.add_argument("--persona-model", help="persona model, pinned; required unless --rejudge")
     parser.add_argument("--judge-model", help="judge model, pinned; required unless --dry-judge")
+    parser.add_argument("--precision-quick", action="store_true",
+                        help="one 30-item precision pass instead of the pooled 4 x 30 (it swings about 15 points)")
     parser.add_argument("--budget", type=float, help="USD ceiling for the whole run; required unless --dry-judge")
     parser.add_argument("--script", help="script name in tests/sim/scripts/, or a .yaml path; default 'default'")
     parser.add_argument("--stub", action="store_true", help="use the scripted fake claude in tests/sim/stub/; costs nothing")
