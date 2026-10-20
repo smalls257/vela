@@ -659,6 +659,7 @@ The table is generated from the codes `vela check` uses, so it cannot drift from
 | W370 | an epic criterion has no AC id on its Trace line, or two share one |
 | W371 | two or more openings above the first heading, over 150 words together |
 | W372 | a British spelling in the page's own words |
+| W373 | a concern page pads what is not looked at: a sentence in an unexamined row's Why cell, or a Strategy section that only says none is set |
 | W380 | contract has no case table |
 | W381 | a case table row, or a Can time out, Retries or Idempotent line, cannot be read |
 | W382 | two cases of one contract share a key |
