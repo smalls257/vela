@@ -52,14 +52,16 @@ const Onboard = (() => {
     if (at >= 0) st.at = at;
     else { const done = readDone(st.role), first = ks.findIndex((k) => !done.has(k)); st.at = first < 0 ? 0 : first; }
   }
-  /* Who the reader is, as a role, in this order (the same order as onboarding.role_for): the plan's record for the handle this
-     page was built for, then that person's own choice (`vela whoami --role`), then the role door the reader picked (the front
-     doors' or this page's menu; this browser remembers the last one). A reader of the shared copy has no handle, so only the
-     door speaks. The "Waiting on you" filter asks this too (queue.js). Returns {role, source} or {role: "", source: ""}. */
+  /* Who the reader is, as a role. A role the reader picked (the Viewing as menu, onboarding's Reading as, a role door or
+     #role= / #onboard= route; this browser remembers the last one) always wins: a pick that did nothing would be a dead
+     control. When nothing has been picked, the default follows the same order as onboarding.role_for: the plan's record for
+     the handle this page was built for, then that person's own choice (`vela whoami --role`). The "Waiting on you" filter
+     asks this too (queue.js). Returns {role, source} (source "pick", "record" or "choice") or {role: "", source: ""}. */
   const recordFor = (handle) => { const at = Object.keys(O.roles).find((k) => k.toLowerCase() === String(handle).toLowerCase()); return at ? O.roles[at] : ""; };
+  const recorded = () => { const r = O.me ? recordFor(O.me.handle) : ""; return r && O.paths[r] ? r : ""; };
   function myRole() {
-    const door = Roles.st.chosen ? Roles.st.role : Settings.read(lastKey);
-    const picks = [["record", O.me ? recordFor(O.me.handle) : ""], ["choice", O.me ? O.me.role : ""], ["door", door]];
+    const pick = Roles.st.chosen ? Roles.st.role : Settings.read(lastKey);
+    const picks = [["pick", pick], ["record", O.me ? recordFor(O.me.handle) : ""], ["choice", O.me ? O.me.role : ""]];
     const found = picks.find(([, r]) => r && O.paths[r]);
     return found ? { role: found[1], source: found[0] } : { role: "", source: "" };
   }
@@ -182,6 +184,6 @@ const Onboard = (() => {
     open: (k) => (decided(k) ? { label: "Open", title: "See it in the decision log", run: () => { showView("decisions"); Decisions.showFor(decided(k).key); } } : PlanDetails.openFor(k, "onboard")),
     waiting: (k) => PlanDetails.waitingTab(k, "queue"), waitingCount: () => PlanDetails.waitingCount("queue"), focus: () => {},
   });
-  return { render, open, st, keys, mod, hashParts, current, defaultRole, myRole };
+  return { render, open, rememberDoor, st, keys, mod, hashParts, current, defaultRole, myRole, recorded };
 })();
 View("onboard", { label: "Get up to speed", title: "A path through the plan for your role", render: Onboard.render });

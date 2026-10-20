@@ -81,22 +81,23 @@
     ok(!bad.length, `onboarding: ${quiet.length} modules the plan is silent on say "Not recorded yet" and who to ask, and stay on the path`, `onboarding silent modules: ${bad.slice(0, 5).join(" | ")}`);
   }
   /* A kept term (slice, tracer) is defined where a person first meets it on their path, and only there. */
-  /* Who the reader is: the plan's record for the handle wins, then the person's own choice, then the role door; none is "". */
+  /* Who the reader is: a role the reader picked always wins; with no pick the default is the plan's record for the handle, then the person's own choice; none is "". */
   async function whoAmI(ok) {
-    const was = [O.me, O.roles], bad = [], door = "exec";
-    const cases = [["record beats choice and door", { handle: "zed", role: "eng" }, { zed: "qa" }, "qa", "record"], ["choice beats the door", { handle: "zed", role: "eng" }, {}, "eng", "choice"],
-      ["the door when no one is named", null, {}, door, "door"], ["a role the page does not have is not used", { handle: "zed", role: "nonsense" }, { zed: "nonsense" }, door, "door"]];
+    const was = [O.me, O.roles, Roles.st.chosen, Roles.st.role, Settings.read(`onboard:${D.vaultId}:role`)], bad = [], lastKey = `onboard:${D.vaultId}:role`, door = "exec";
+    const cases = [["with no pick, the record beats the choice", { handle: "zed", role: "eng" }, { zed: "qa" }, false, "qa", "record"], ["with no pick, the choice is the default", { handle: "zed", role: "eng" }, {}, false, "eng", "choice"],
+      ["a pick beats the record", { handle: "zed", role: "eng" }, { zed: "qa" }, true, door, "pick"], ["a pick with no one named", null, {}, true, door, "pick"],
+      ["no pick, no one named", null, {}, false, "", ""], ["a role the page does not have is not used", { handle: "zed", role: "nonsense" }, { zed: "nonsense" }, false, "", ""]];
     try {
-      for (const [what, me, record, role, source] of cases) {
-        O.me = me; O.roles = record; Nav.role(door); await frames();
+      for (const [what, me, record, picked, role, source] of cases) {
+        O.me = me; O.roles = record; Settings.write(lastKey, ""); Roles.st.chosen = false; Nav.home(); if (picked) Nav.role(door); await frames();
         const got = Onboard.myRole();
         if (got.role !== role || got.source !== source) bad.push(`${what}: ${got.role}/${got.source}, wanted ${role}/${source}`);
       }
-      O.me = { handle: "zed", role: "mgr" }; O.roles = {}; Nav.home(); Settings.write(`onboard:${D.vaultId}:role`, "exec");
-      const wanted = O.mine ? O.mine.audience : "mgr";  // a person's own page opens on their path's role; the shared copy on the best guess
+      O.me = { handle: "zed", role: "mgr" }; O.roles = {}; Roles.st.chosen = false; Nav.home(); Settings.write(lastKey, "exec");
+      const wanted = O.mine ? O.mine.audience : "exec";  // a person's own page opens on their path's role; otherwise a remembered pick is the role
       if (Onboard.defaultRole() !== wanted) bad.push(`the door in the sidebar opened as ${Onboard.defaultRole()}, wanted ${wanted}`);
-    } finally { [O.me, O.roles] = was; Nav.home(); go("lights", { reset: true }); }
-    ok(!bad.length, "onboarding: who the reader is comes from the plan's record first, then their own choice, then the role door", `onboarding who: ${bad.join(" | ")}`);
+    } finally { [O.me, O.roles, Roles.st.chosen, Roles.st.role] = was; Settings.write(lastKey, was[4] || ""); Nav.home(); go("lights", { reset: true }); }
+    ok(!bad.length, "onboarding: who the reader is comes from the role they picked first, and with no pick from the plan's record, then their own choice", `onboarding who: ${bad.join(" | ")}`);
   }
   async function backToThePart(ok) {
     const role = roles[0], ks = Onboard.keys(role), key = ks[Math.min(2, ks.length - 1)];
