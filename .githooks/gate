@@ -80,11 +80,11 @@ scoped_pytest_args() {  # one pytest argument per line to drop the families noth
   if ! files="$(changed_files)"; then
     echo "gate: no base to compare with (set GATE_BASE); nothing is skipped" >&2; return 0
   fi
-  if ! printf '%s\n' "$files" | grep -Eq "$BROWSER_PATHS"; then
+  if ! grep -Eq "$BROWSER_PATHS" <<<"$files"; then  # a here-string, not a pipe: grep -q closes early and pipefail would read the SIGPIPE as "no match"
     echo "gate: SKIPPED browser tests: nothing changed under plugin/lib/vela/explorer, prototypes/explorer, the snapshots, or a browser test" >&2
     printf '%s\n' -m "not browser"
   fi
-  if ! printf '%s\n' "$files" | grep -Eq "$SIM_PATHS"; then
+  if ! grep -Eq "$SIM_PATHS" <<<"$files"; then
     echo "gate: SKIPPED sim and probe tests: nothing changed under tests/sim, the sim/probe tests, plugin/skills or plugin/lib/vela" >&2
     printf '%s\n' --ignore=tests/sim "--ignore-glob=tests/test_sim*" "--ignore-glob=tests/test_probe*"
   fi
