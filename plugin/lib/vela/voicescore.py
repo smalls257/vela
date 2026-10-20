@@ -3,7 +3,7 @@ Pure: the CLI reads the files, owns the model and the cache, and hands in an `em
 
 This is information for the drafter and the voice reviewer, never a gate. The voice reviewer is
 an LLM judging LLM output; a style embedding is a second reading of a different kind, so it can
-see drift the reviewer cannot (docs/research/2026-10-06-voice-models.md). Per-paragraph scores
+see drift the reviewer cannot. Per-paragraph scores
 on short text are noisy, so a paragraph is placed against the owner's own spread, never against
 a fixed threshold, and never reported as a bare number.
 """

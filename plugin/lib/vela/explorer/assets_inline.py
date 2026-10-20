@@ -7,7 +7,7 @@ or texture.cockpit and never names a file or a provider.
 The slot contract, the builtin hand-drawn art and the resolver ship in art/ beside this file, and this is the only
 copy: the gallery reads it from here. Provider art (ComfyUI renders) does not ship: `vela explore --assets
 <assets.config.json>` reads the config and the provider's folder (<provider>/manifest.json and its files) from the
-config's own folder (the gallery's prototypes/gallery/assets is one). Each slot's file is picked the way resolve.js
+config's own folder. Each slot's file is picked the way resolve.js
 does (the provider's when it has one and the file exists, otherwise builtin, with the reason logged, never
 silently), and the chosen files are inlined as data URIs beside resolve.js and a bundle it can read from file://.
 With no --assets, the builtin provider alone is used.

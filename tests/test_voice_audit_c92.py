@@ -1,4 +1,4 @@
-"""The 14 October voice audit rows C92 covers (FIX-LEDGER C92): what the lead hears from epics, reviewers, voice,
+"""The 14 October voice audit rows C92 covers (audit row C92): what the lead hears from epics, reviewers, voice,
 where --probe, check --fix, terms and prose replace. Each test holds a line's shape, not just its words: the answer
 before the list, a count in words, the model's own slips kept from the lead, one name for a reader's copy.
 """

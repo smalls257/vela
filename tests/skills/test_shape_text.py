@@ -41,8 +41,7 @@ def test_shape_shows_the_top_conditions_and_sends_the_rest_through_the_digest():
     assert "the shape gate will warn" not in shape and "tell the lead only that close will list what is still assumed" in shape
 
 
-# --- From tests/test_session_experience.py: What the skills make a lead go through (docs/research/2026-10-12-session-
-# experience-review.md and the friction pass).
+# --- From tests/test_session_experience.py: What the skills make a lead go through (the constraints the skills put on a lead's session).
 
 # --- S24: close starts on the lead's word, and still confirms before anything leaves the machine
 

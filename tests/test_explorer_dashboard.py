@@ -1,4 +1,4 @@
-"""Fixes to the explorer dashboard found in the 2026-10-12 platform review (docs/research/2026-10-12-platform-review.md).
+"""Fixes to the explorer dashboard found in the 2026-10-12 platform review.
 Each test names the ledger ID it guards."""
 import pathlib
 import re
@@ -232,7 +232,7 @@ def test_e32_a_default_build_leaves_out_the_selftest_and_a_flagged_build_has_it(
 def test_e3_the_stress_vault_is_the_same_every_time_it_is_made_in_one_process(tmp_path):
     import filecmp
     import sys
-    sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "prototypes" / "explorer"))
+    sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "tests" / "fixtures" / "explorer"))
     import make_stress_vault
     make_stress_vault.main(tmp_path / "one")
     make_stress_vault.main(tmp_path / "two")

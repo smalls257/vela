@@ -2,7 +2,7 @@
 
 A simulated solution lead runs real multi-turn Claude Code sessions in a scratch vault, once per arm. Each arm
 gets the same persona and the same script. Every run leaves transcripts you can read and a scorecard measured
-against the lead's hidden brief. The design is `docs/design-sessions/08-session-simulator.md`.
+against the lead's hidden brief.
 
 It answers one question. When a lead starts from a vague idea, do the vela skills guide them to figure
 things out better than plain Claude Code does?

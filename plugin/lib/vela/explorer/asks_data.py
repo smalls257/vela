@@ -1,4 +1,4 @@
-"""Who holds each answer, and why things are the way they are. Ported from prototypes/gallery/asks/extract.py.
+"""Who holds each answer, and why things are the way they are.
 
 Who to ask comes from the unknown's own **Ask:** line when it has one. Only when it is absent does the build guess,
 from the parenthesis in **Owner:** ("asking @x", "who asks the y"), and the guess is marked `inferred` with the rule

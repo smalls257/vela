@@ -1,4 +1,4 @@
-"""What the skills make a lead go through (docs/research/2026-10-12-session-experience-review.md and the friction pass).
+"""What the skills make a lead go through.
 
 These test the constraint, not the wording: who may start a close and what stops a push, how many questions a digest puts
 to the lead, what the lead's words may contain, what the tool files without asking. Each one fails on the skill text the

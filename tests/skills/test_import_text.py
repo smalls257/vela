@@ -27,8 +27,7 @@ def test_import_skips_git_for_a_reader():
     assert "in a reader copy, which has no git, write the batch and skip the commit" in text("skills/import/SKILL.md")
 
 
-# --- From tests/test_session_experience.py: What the skills make a lead go through (docs/research/2026-10-12-session-
-# experience-review.md and the friction pass).
+# --- From tests/test_session_experience.py: What the skills make a lead go through (the constraints the skills put on a lead's session).
 
 # --- S36 to S47
 

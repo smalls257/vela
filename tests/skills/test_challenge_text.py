@@ -147,8 +147,7 @@ def test_challenge_refuses_in_a_reader_copy_naming_the_owner():
     assert "Only the owner can record a challenge here." in text("skills/challenge/SKILL.md") and "published.json" in text("skills/challenge/SKILL.md")
 
 
-# --- From tests/test_session_experience.py: What the skills make a lead go through (docs/research/2026-10-12-session-
-# experience-review.md and the friction pass).
+# --- From tests/test_session_experience.py: What the skills make a lead go through (the constraints the skills put on a lead's session).
 
 # --- S36 to S47
 

@@ -1,5 +1,4 @@
-/* The flow kit: one canvas renderer for a played flow, and the clip recorder. Ported from
-   prototypes/gallery/flows/common.js.
+/* The flow kit: one canvas renderer for a played flow, and the clip recorder.
 
    One renderer draws the live stage, present mode and the saved clip, so the three cannot drift apart. The renderer
    is a pure function of (flow, step, time in step): a clip is deterministic because every frame is computed from

@@ -4,7 +4,7 @@
 # under "Questions and the ledger".
 #
 # Every entry cites the `why` that earned it a place: a regulation, a practice, or a miss in a simulated
-# session. The research is in docs/research/2026-10-06-deterministic-elicitation.md. Keep the catalog
+# session. Keep the catalog
 # small. Add an entry when a gap was found late or by luck, and prune one that nearly always ends
 # not-applicable (`vela questions --stats` counts them). Bump `version` when entries change meaning.
 version: 1

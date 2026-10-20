@@ -1,8 +1,7 @@
 /* Rehearse this flow: rebuild it from memory, then reveal the real one over yours. Getting it wrong first and then
    seeing the real flow fixes it better than reading it twice (the testing effect). Drag the apps into lanes, plug a
    contract from the lane that sends to the lane that receives, step by step, then reveal. Scoring aligns the attempt
-   with the record and keeps both orders; a direction the record only infers counts either way. Ported from
-   prototypes/gallery/flows/rehearse.html. Tries are kept in this browser's storage, nowhere else. */
+   with the record and keeps both orders; a direction the record only infers counts either way. Tries are kept in this browser's storage, nowhere else. */
 const Rehearse = (() => {
   const ROW_H = 60, ROW_TOP = 46;
   const lanes = D.lanes, laneOf = (id) => lanes[LANE_INDEX[id]];

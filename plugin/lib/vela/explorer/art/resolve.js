@@ -52,7 +52,7 @@
       return { config, slots, builtin, provider, providerError, recipes: null, checkFiles: true };
     } catch (e) {
       const b = global.ASSET_BUNDLE;
-      if (!b) throw new Error(`[assets] cannot read asset config (${e.message}). Serve over http, e.g. "python3 -m http.server" in prototypes/gallery, or load assets/assets.bundle.js first.`);
+      if (!b) throw new Error(`[assets] cannot read asset config (${e.message}). Serve over http, e.g. "python3 -m http.server" in the folder that holds the asset config, or load assets/assets.bundle.js first.`);
       console.warn(`[assets] fetch failed (${e.message}); using assets.bundle.js snapshot built ${b.built}. Rebuild it after changing config.`);
       const config = configOverride || b.config;
       const provider = config.provider === "builtin" ? null : b.providers[config.provider] || null;

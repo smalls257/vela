@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Run a simulated solution lead through real multi-turn Claude Code sessions, once per arm, and score each run
-against the lead's hidden brief. The design is docs/design-sessions/08-session-simulator.md.
+against the lead's hidden brief.
 
 This costs money: every assistant turn, persona turn and judge call is a real `claude -p` call on your account.
 `--stub` swaps `claude` for the scripted fake in tests/sim/stub/, which costs nothing.

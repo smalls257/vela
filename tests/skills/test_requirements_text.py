@@ -59,8 +59,7 @@ def test_the_habit_is_short_and_sits_before_anything_is_written():
     assert text.index("**Fix each term once.**") < text.index("## 3. Write the confirmed requirements")
 
 
-# --- From tests/test_session_experience.py: What the skills make a lead go through (docs/research/2026-10-12-session-
-# experience-review.md and the friction pass).
+# --- From tests/test_session_experience.py: What the skills make a lead go through (the constraints the skills put on a lead's session).
 
 # --- S24: close starts on the lead's word, and still confirms before anything leaves the machine
 

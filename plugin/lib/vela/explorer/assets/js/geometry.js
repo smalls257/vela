@@ -7,7 +7,7 @@
    route between two boxes nearly in line runs straight. The cockpit, the minimap and the releases view scale by
    Layout.FRAME, the frame the overlap rule measures in; the line map keeps its own, wider spacing.
    A station with several corridors on one side becomes an interchange bar with one port per corridor, so lines fan
-   out instead of piling onto one point. Ported from prototypes/gallery/maps/shared/geometry.js. */
+   out instead of piling onto one point. */
 const Geo = (() => {
   const LINE_W = 6, LINE_GAP = 8.5, PORT_GAP = 16, MIN_SIDE = 26, NEAR_LEVEL = 8;
   // Flow line colors per theme (--lines in themes.css), kept apart from the lamp colors; past the sixth a line is

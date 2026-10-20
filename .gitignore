@@ -11,6 +11,15 @@ tests/evals/.results/
 tests/sim/results/
 **/.vela/
 
-# The explorer with generated art inlined: about 13 MB, rebuilt on demand (see prototypes/explorer/README.md)
-prototypes/explorer/out/*-art.html
+
+# Internal working notes and prototypes: kept on disk locally, not published.
+docs/design-sessions/
+docs/plans/
+docs/research/
+docs/superpowers/
+docs/FIX-LEDGER.md
+docs/v1-build-rulings.md
+docs/blueprint.html
+docs/mockups.html
+prototypes/
 .worktrees/

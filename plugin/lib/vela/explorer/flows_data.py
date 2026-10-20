@@ -1,6 +1,6 @@
 """Each flow as a played sequence: lanes, the messages each step sends, and the open questions pinned to it.
 
-Ported from prototypes/gallery/flows/extract.py and widened to the explorer's vaults. Everything is read with the
+Widened to every vault the explorer opens. Everything is read with the
 vela's own parser and model. Two things the record does not say directly, each labeled on the page:
 
 - Direction. A step that starts "Sender -> Receiver:" records it, and is "stated". Otherwise a step names a
