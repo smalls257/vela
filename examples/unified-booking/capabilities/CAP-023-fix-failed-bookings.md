@@ -37,7 +37,9 @@ None after this initiative. The retry path in [[FLO-001-hold-pay-confirm|Hold, p
 
 ## Delivered by
 
-<!-- generated:delivered-by sha=e556a87b: do not edit, run vela render -->
+<!-- generated:delivered-by sha=c7fbbade: do not edit, run vela render -->
+_Kept up to date by vela from the pages it reads._
+
 | Epic | Owner | State |
 |---|---|---|
 | [[EPC-034-call-center-to-booking\|EPC-034 Call center moves to Booking]] | @harborline/contact-center-systems | decided |

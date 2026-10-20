@@ -10,7 +10,9 @@ authored: mixed
 
 Three questions hold up the requirements for recording a delivery: [[#UNK-001 Extra charges and the invoice|how extra charges at a stop reach the invoice]], [[#UNK-002 The language of the app in Quebec|which language the app must be in for the Quebec drivers]], and [[#UNK-003 The app while the truck moves|what the app may do while the truck moves]]. Each is with Dispatch. No risks are recorded yet.
 
-<!-- generated:unknowns-index sha=99167a89: do not edit, run vela render -->
+<!-- generated:unknowns-index sha=3fae8b6a: do not edit, run vela render -->
+_Kept up to date by vela from the pages it reads._
+
 **Questions**
 
 | Question | Who answers | Status | Answer needed by |

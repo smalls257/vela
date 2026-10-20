@@ -27,7 +27,9 @@ Pricing does not hold seats or know if a booking is confirmed. Booking does that
 |---|---|
 | Changed: callers narrowed from the three front ends to Booking only | Revenue team |
 
-<!-- generated:app-context sha=203d1f99: do not edit, run vela render -->
+<!-- generated:app-context sha=38150fe3: do not edit, run vela render -->
+_Kept up to date by vela from the pages it reads._
+
 ```mermaid
 flowchart LR
   n_APP_booking["Booking (new)"]
@@ -86,13 +88,17 @@ flowchart LR
 
 ## Contracts this app consumes
 
-<!-- generated:contracts-consumed sha=51528a2d: do not edit, run vela render -->
+<!-- generated:contracts-consumed sha=f00bb14c: do not edit, run vela render -->
+_Kept up to date by vela from the pages it reads._
+
 This app doesn't use any contract yet.
 <!-- /generated:contracts-consumed -->
 
 ## Epics
 
-<!-- generated:epics-for-app sha=d2445171: do not edit, run vela render -->
+<!-- generated:epics-for-app sha=e697d08e: do not edit, run vela render -->
+_Kept up to date by vela from the pages it reads._
+
 | Epic | Owner | State |
 |---|---|---|
 | [[EPC-038-pricing-serves-booking\|EPC-038 Pricing serves Booking only]] | @harborline/revenue-team | decided |

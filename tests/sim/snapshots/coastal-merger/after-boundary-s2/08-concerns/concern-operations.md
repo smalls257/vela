@@ -18,5 +18,3 @@ Who is on call, and the runbooks for the failures that hurt customers.
 | App | State | Why |
 |---|---|---|
 | [[ferrymaster-building-blocks\|FERRYMASTER]] | unknown | [[11-unknowns-and-risks#UNK-014 FERRYMASTER people and docs\|UNK-014]]: who can run and fix the sign-in once they have gone? |
-
-Not looked at yet: [[northway-id-building-blocks\|Northway ID]], [[seabook-building-blocks\|SeaBook]], [[account-link-service-building-blocks\|Account link service]], [[railcore-building-blocks\|RailCore]].

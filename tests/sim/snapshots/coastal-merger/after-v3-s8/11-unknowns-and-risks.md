@@ -44,7 +44,6 @@ authored: mixed
 - **Question:** What does "one customer" mean: one identity across ferry and rail, or one person de-duplicated across existing records?
 - **Owner:** @solution-lead (Solution lead)
 - **State:** open
-- **Blocks:** nothing yet, no item is past inkling
 - **Ask by:** 2026-10-20
 - **Opened:** 2026-10-06, [[2026-10-06-one-customer-mandate#^c02]]
 
@@ -53,7 +52,6 @@ authored: mixed
 - **Question:** What does "one journey" mean: one ticket for a ferry leg plus a rail leg, one booking flow, or one trip view after the fact?
 - **Owner:** @solution-lead (Solution lead)
 - **State:** open
-- **Blocks:** nothing yet, no item is past inkling
 - **Ask by:** 2026-10-20
 - **Opened:** 2026-10-06, [[2026-10-06-one-customer-mandate#^c03]]
 
@@ -62,7 +60,6 @@ authored: mixed
 - **Question:** What does "one account" mean: one login, one wallet or balance, one set of preferences, or one customer record behind several logins? The solution lead says nobody has defined it and it blocks everything else.
 - **Owner:** @solution-lead (Solution lead)
 - **State:** open
-- **Blocks:** nothing yet, no item is past inkling
 - **Ask by:** 2026-10-20
 - **Opened:** 2026-10-06, [[2026-10-06-one-customer-mandate#^c04]]
 
@@ -71,7 +68,6 @@ authored: mixed
 - **Question:** What does "by next summer" mean: a date, a pilot on one route, or everything live? What does "live" mean for the CIO: all customers, a first group, or a demo? Does a pilot on SeaBook and RailCore alone count? Who set the date and what is it tied to?
 - **Owner:** @solution-lead (Solution lead)
 - **State:** open
-- **Blocks:** nothing yet, no item is past inkling
 - **Ask by:** 2026-10-20
 - **Opened:** 2026-10-06, [[2026-10-06-one-customer-mandate#^c05]]
 
@@ -80,7 +76,6 @@ authored: mixed
 - **Question:** Who gave the mandate, is it in writing, and who can say what the CIO meant? To fetch: the CIO's mandate in writing, held by the CIO's office. Has the CIO said more about "one account" in a slide, memo or town hall? Who in the CIO's office does the solution lead reach, and is asking the CIO direct the right route?
 - **Owner:** @solution-lead (Solution lead)
 - **State:** open
-- **Blocks:** nothing yet, no item is past inkling
 - **Ask by:** 2026-10-13
 - **Opened:** 2026-10-06, [[2026-10-06-one-customer-mandate#^c06]]
 
@@ -89,7 +84,6 @@ authored: mixed
 - **Question:** FERRYMASTER is off limits May to September per the Ferry Operations director. Is the freeze a written rule or a request, who set it, can it be waived, and does "next summer" fall inside it? To fetch: the freeze policy, held by the Ferry Operations director. The solution lead fears the freeze dates never move while the definition is still argued in May.
 - **Owner:** @solution-lead (Solution lead)
 - **State:** open
-- **Blocks:** nothing yet, no item is past inkling
 - **Ask by:** 2026-10-20
 - **Opened:** 2026-10-06, [[2026-10-06-one-customer-mandate#^c21]]
 
@@ -98,7 +92,6 @@ authored: mixed
 - **Question:** Does "one account" need any change inside FERRYMASTER, or can it be done from outside by reading from it or sitting in front of it?
 - **Owner:** @solution-lead (Solution lead)
 - **State:** open
-- **Blocks:** nothing yet, no item is past inkling
 - **Ask by:** 2026-10-27
 - **Opened:** 2026-10-06, [[2026-10-06-one-customer-mandate#^c24]]
 
@@ -107,7 +100,6 @@ authored: mixed
 - **Question:** What would persuade the Ferry Operations director, and what do they fear most about a change near the season: lost bookings, boarding failures or something else? The solution lead is not sure what would persuade them and worries they block every change.
 - **Owner:** @solution-lead (Solution lead)
 - **State:** open
-- **Blocks:** nothing yet, no item is past inkling
 - **Ask by:** 2026-10-27
 - **Opened:** 2026-10-06, [[2026-10-06-one-customer-mandate#^c31]]
 
@@ -116,7 +108,6 @@ authored: mixed
 - **Question:** Who else in the merged company has a stake in the date, such as finance, marketing or the CIO's sponsor, and what does the date mean to them?
 - **Owner:** @solution-lead (Solution lead)
 - **State:** open
-- **Blocks:** nothing yet, no item is past inkling
 - **Ask by:** 2026-10-27
 - **Opened:** 2026-10-06, [[2026-10-06-one-customer-mandate#^c29]]
 
@@ -125,7 +116,6 @@ authored: mixed
 - **Question:** Is ferry or rail already building its own customer-account work, and who can tell them to stop and avoid three teams trying different things at once?
 - **Owner:** @solution-lead (Solution lead)
 - **State:** open
-- **Blocks:** nothing yet, no item is past inkling
 - **Ask by:** 2026-10-27
 - **Opened:** 2026-10-06, [[2026-10-06-one-customer-mandate#^c42]]
 - **Notes:** The solution lead will first find out whether ferry and rail, Kestrel Bay and Dunmere, are already building and spending, before going to the CIO. Ownership comes first and the definition second. See [[2026-10-06-what-two-companies-run#^c36]] and [[2026-10-06-what-two-companies-run#^c37]]. The solution lead will not pick between the "one account" options until this is answered, [[2026-10-06-what-one-account-means#^c05]], [[2026-10-06-what-one-account-means#^c07]] and [[2026-10-06-what-one-account-means#^c08]]. If Monday shows ferry has people on this and nobody owns it, the contract questions become academic, and the work is stopping an unauthorized project rather than designing options, [[2026-10-06-customer-identity-ferry-rail#^c09]]. See also [[#UNK-024 Initiative owner|UNK-024]].
@@ -135,7 +125,6 @@ authored: mixed
 - **Question:** If the CIO moves on or next summer slips to autumn, how long do both systems run in parallel, and who carries that?
 - **Owner:** @solution-lead (Solution lead)
 - **State:** open
-- **Blocks:** nothing yet, no item is past inkling
 - **Ask by:** 2026-11-10
 - **Opened:** 2026-10-06, [[2026-10-06-one-customer-mandate#^c43]]
 
@@ -144,7 +133,6 @@ authored: mixed
 - **Question:** What do the CFO and the Rail Product director each want from this, and how do they differ?
 - **Owner:** @solution-lead (Solution lead)
 - **State:** open
-- **Blocks:** nothing yet, no item is past inkling
 - **Ask by:** 2026-11-10
 - **Opened:** 2026-10-06, [[2026-10-06-one-customer-mandate#^c44]]
 
@@ -153,7 +141,6 @@ authored: mixed
 - **Question:** Which features must work wherever a customer logs in, so they do not log in somewhere and find half the features missing?
 - **Owner:** @solution-lead (Solution lead)
 - **State:** open
-- **Blocks:** nothing yet, no item is past inkling
 - **Ask by:** 2026-11-10
 - **Opened:** 2026-10-06, [[2026-10-06-one-customer-mandate#^c47]]
 
@@ -162,7 +149,6 @@ authored: mixed
 - **Question:** How many ferry and rail customers want their accounts merged, and what did they agree to when they signed up? Nobody has asked them.
 - **Owner:** @solution-lead (Solution lead)
 - **State:** open
-- **Blocks:** nothing yet, no item is past inkling
 - **Ask by:** 2026-11-10
 - **Opened:** 2026-10-06, [[2026-10-06-one-customer-mandate#^c48]]
 
@@ -171,7 +157,6 @@ authored: mixed
 - **Question:** What does each of SeaBook, FERRYMASTER and RailCore do, and which holds customer records, logins or payment details? Who owns each? Do SeaBook and FERRYMASTER do the same job on the ferry side, or one per route or brand?
 - **Owner:** @solution-lead (Solution lead)
 - **State:** open
-- **Blocks:** nothing yet, no item is past inkling
 - **Ask by:** 2026-10-20
 - **Opened:** 2026-10-06, [[2026-10-06-one-customer-mandate#^c14]]
 
@@ -180,7 +165,6 @@ authored: mixed
 - **Question:** Which of Kestrel Bay and Dunmere is the ferry company and which the rail company, and who leads each?
 - **Owner:** @solution-lead (Solution lead)
 - **State:** open
-- **Blocks:** nothing yet, no item is past inkling
 - **Ask by:** 2026-10-13
 - **Opened:** 2026-10-06, [[2026-10-06-one-customer-mandate#^c22]]
 
@@ -189,7 +173,6 @@ authored: mixed
 - **Question:** Tidemiles (ferry) and Northway Plus (rail) exist. Which system holds their balances: FERRYMASTER, a separate CRM, or the loyalty platform itself? Who owes the balances to customers, and what happens to them if accounts are linked? The solution lead does not know.
 - **Owner:** @solution-lead (Solution lead)
 - **State:** open
-- **Blocks:** nothing yet, no item is past inkling
 - **Ask by:** 2026-10-20
 - **Opened:** 2026-10-06, [[2026-10-06-one-customer-mandate#^c58]]
 
@@ -198,7 +181,6 @@ authored: mixed
 - **Question:** When does the FERRYMASTER vendor contract end: March 2029 with an 18-month notice period (SRC-02, Harborline systems list), or December 2027 (SRC-01, CIO memo)? SRC-02 owns the contract term; SRC-01 states the retirement date. Neither is picked.
 - **Owner:** @sim-lead (Solution lead)
 - **State:** open
-- **Blocks:** nothing yet, no item is past inkling
 - **Ask by:** 2026-10-20
 - **Opened:** 2026-10-06, [[2026-10-06-what-two-companies-run#^c18]]
 - **Notes:** The solution lead will ask the Ferry Operations director. If the contract runs to March 2029, retiring in December 2027 means leaving early, and the notice date matters.
@@ -208,7 +190,6 @@ authored: mixed
 - **Question:** How can Tidemiles and Northway Plus be combined one for one (SRC-03, SRC-01) when they earn at different rates ([[03-context-and-scope#SV-01 Tidemiles|SV-01]] and [[03-context-and-scope#SV-02 Northway Plus|SV-02]])? What is a Northway Plus point worth on redemption, which rate wins, and who owes the difference to customers?
 - **Owner:** @sim-lead (Solution lead)
 - **State:** open
-- **Blocks:** nothing yet, no item is past inkling
 - **Ask by:** 2026-10-20
 - **Opened:** 2026-10-06, [[2026-10-06-what-two-companies-run#^c20]], [[2026-10-06-what-two-companies-run#^c25]] and [[2026-10-06-customer-identity-ferry-rail#^c03]]
 
@@ -217,7 +198,6 @@ authored: mixed
 - **Question:** What service level applies to a joint ferry and rail journey, when SeaBook has round-the-clock on-call and RailCore support runs only in weekday office hours?
 - **Owner:** @sim-lead (Solution lead)
 - **State:** open
-- **Blocks:** nothing yet, no item is past inkling
 - **Ask by:** 2026-10-20
 - **Opened:** 2026-10-06, [[2026-10-06-what-two-companies-run#^c21]]
 
@@ -226,7 +206,6 @@ authored: mixed
 - **Question:** Who owns the ferry customer database after the reorganization? SRC-02 says to be confirmed.
 - **Owner:** @sim-lead (Solution lead)
 - **State:** open
-- **Blocks:** nothing yet, no item is past inkling
 - **Ask by:** 2026-10-20
 - **Opened:** 2026-10-06, [[2026-10-06-what-two-companies-run#^c24]]
 - **Notes:** The solution lead calls this the critical gap, [[2026-10-06-customer-identity-ferry-rail#^c02]]. The owner is needed once they pick between the options on Monday. Taken now with R-DAT-06 and R-REG-06, [[2026-10-06-customer-identity-ferry-rail#^c06]].
@@ -236,7 +215,6 @@ authored: mixed
 - **Question:** Does the Northway capability map exist, where is it held, and who owns it? SRC-04 points to it in an appendix, but the solution lead has not seen it.
 - **Owner:** @sim-lead (Solution lead)
 - **State:** open
-- **Blocks:** nothing yet, no item is past inkling
 - **Ask by:** 2026-10-20
 - **Opened:** 2026-10-06, [[2026-10-06-what-two-companies-run#^c23]]
 
@@ -245,7 +223,6 @@ authored: mixed
 - **Question:** Who owns this initiative and decides between ferry and rail? None of the four sources names an owner.
 - **Owner:** @sim-lead (Solution lead)
 - **State:** open
-- **Blocks:** nothing yet, no item is past inkling
 - **Ask by:** 2026-10-13
 - **Opened:** 2026-10-06, [[2026-10-06-what-two-companies-run#^c31]]
 - **Notes:** The solution lead finds out on Monday who is moving and who owns this, and reshapes the "one account" options around the answer, [[2026-10-06-what-one-account-means#^c06]].
@@ -255,7 +232,6 @@ authored: mixed
 - **Question:** What does rail actually run today? The only rail source is SRC-04, a slide of the target architecture, so every rail line is a plan, not a fact. Is there a current systems list for rail, like Harborline's SRC-02 for ferry, who owns it, and can the solution lead get it?
 - **Owner:** @sim-lead (Solution lead)
 - **State:** open
-- **Blocks:** nothing yet, no item is past inkling
 - **Ask by:** 2026-10-20
 - **Opened:** 2026-10-06, [[2026-10-06-customer-identity-ferry-rail#^c04]]
 - **Notes:** Until it exists, the rail lines on [[03-context-and-scope]] stay assumptions. Related: [[#UNK-016 What each system does|UNK-016]], [[#UNK-023 Capability map|UNK-023]].

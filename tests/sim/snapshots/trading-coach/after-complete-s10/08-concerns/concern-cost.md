@@ -22,5 +22,3 @@ The CFO says, in [[sources#SRC-16|the answers the product lead gathered by 9 Oct
 | App | State | Why |
 |---|---|---|
 | [[coach-building-blocks\|Coach]] | unknown | [[11-unknowns-and-risks#UNK-022 Owner and budget for the stock list\|Owner and budget for the stock list]]: who owns and pays for the list and the lessons |
-
-Not looked at yet: [[tickertalk-building-blocks\|TickerTalk]].

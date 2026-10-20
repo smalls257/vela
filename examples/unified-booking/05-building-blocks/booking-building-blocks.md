@@ -8,7 +8,8 @@ c4: container
 state: decided
 change: new
 stage: epics
-handed_off: "Booking senior, 2026-11-10, PR #23"
+handed_off: "Booking senior, 2026-11-10"
+handed_off_pr: 23
 owner: "@harborline/booking-team"
 authored: mixed
 sources: ["Booking senior container review", "UNK-001 ledger latency measurement 2026-09-02", SRC-04, SRC-05]
@@ -28,7 +29,9 @@ Booking does not own fares, capacity, customer records, card payments or the led
 |---|---|
 | New ([[ADR-0001-one-booking-context\|ADR-0001]]) | Booking team (new) |
 
-<!-- generated:app-context sha=f8f26c9f: do not edit, run vela render -->
+<!-- generated:app-context sha=2ef7185a: do not edit, run vela render -->
+_Kept up to date by vela from the pages it reads._
+
 ```mermaid
 flowchart LR
   n_APP_booking["Booking (new)"]
@@ -161,7 +164,9 @@ Tidepay is external and has no page in this vault, so its contract with Booking 
 
 ## Contracts this app consumes
 
-<!-- generated:contracts-consumed sha=d38c8e7b: do not edit, run vela render -->
+<!-- generated:contracts-consumed sha=f1e63ae4: do not edit, run vela render -->
+_Kept up to date by vela from the pages it reads._
+
 | Contract | Provided by | Who can change it, and how | How sure |
 |---|---|---|---|
 | [[pricing-building-blocks#CON-003 Quote a fare\|Quote a fare (CON-003)]] | [[pricing-building-blocks\|Pricing]] | the existing API, unchanged. Only the list of callers narrows. | decided |
@@ -173,7 +178,9 @@ Tidepay is external and has no page in this vault, so its contract with Booking 
 
 ## Epics
 
-<!-- generated:epics-for-app sha=f4a1d9b1: do not edit, run vela render -->
+<!-- generated:epics-for-app sha=2135ced4: do not edit, run vela render -->
+_Kept up to date by vela from the pages it reads._
+
 | Epic | Owner | State |
 |---|---|---|
 | [[EPC-031-holds-and-confirms\|EPC-031 Booking holds and confirms crossings]] | @harborline/booking-team | decided |

@@ -76,7 +76,9 @@ No request or response on the Booking API or on Tidepay's payment outcome carrie
 
 ## Traces to
 
-<!-- generated:traces-to sha=43cbb6de: do not edit, run vela render -->
+<!-- generated:traces-to sha=24607219: do not edit, run vela render -->
+_Kept up to date by vela from the pages it reads._
+
 | Traces to | Items |
 |---|---|
 | Apps | [[booking-building-blocks\|Booking]] |

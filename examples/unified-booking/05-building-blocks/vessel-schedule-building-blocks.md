@@ -24,7 +24,9 @@ Vessel schedule does not hold seats. Booking holds them and FERRYMASTER records 
 |---|---|
 | Unchanged. Booking becomes a new caller of the existing read API. | Marine Ops Systems team |
 
-<!-- generated:app-context sha=2f065e1e: do not edit, run vela render -->
+<!-- generated:app-context sha=eddd6089: do not edit, run vela render -->
+_Kept up to date by vela from the pages it reads._
+
 ```mermaid
 flowchart LR
   n_APP_booking["Booking (new)"]

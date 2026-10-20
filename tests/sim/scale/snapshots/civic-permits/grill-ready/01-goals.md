@@ -12,7 +12,9 @@ authored: mixed
 
 ## Where it stands
 
-<!-- generated:where-it-stands sha=9677b6f6: do not edit, run vela render -->
+<!-- generated:where-it-stands sha=0a27f4df: do not edit, run vela render -->
+_Kept up to date by vela from the pages it reads._
+
 **Where each app has got to:** no app is being built or changed yet
 
 **Open questions**
@@ -28,7 +30,9 @@ authored: mixed
 
 ## Progress by app
 
-<!-- generated:progress-map sha=140bedbf: do not edit, run vela render -->
+<!-- generated:progress-map sha=b2366061: do not edit, run vela render -->
+_Kept up to date by vela from the pages it reads._
+
 none
 <!-- /generated:progress-map -->
 

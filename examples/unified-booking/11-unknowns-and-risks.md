@@ -13,7 +13,9 @@ sources: ["session 2026-07-14 Discover"]
 
 This page keeps every question nobody could answer when it was asked, and every risk the team watches. The table says which are still open and who must answer; each unknown and risk then has its own section.
 
-<!-- generated:unknowns-index sha=c3b1e888: do not edit, run vela render -->
+<!-- generated:unknowns-index sha=59cec3f0: do not edit, run vela render -->
+_Kept up to date by vela from the pages it reads._
+
 **Questions**
 
 | Question | Who answers | Status | Answer needed by |
@@ -94,7 +96,6 @@ This page keeps every question nobody could answer when it was asked, and every 
 - **Opened:** 2026-10-07 Grill
 - **State:** open
 - **Ask by:** 2027-03-01
-- **Blocks:** nothing in INI-002
 - **Notes:** Deferred to INI-005. CON-002 is additive-only, so Finance can subscribe later without a Booking change.
 
 ### UNK-007 Booking on-call
@@ -114,7 +115,6 @@ This page keeps every question nobody could answer when it was asked, and every 
 - **Opened:** 2026-11-19 Discover
 - **State:** open
 - **Ask by:** 2026-12-15
-- **Blocks:** nothing in INI-002
 - **Notes:** Nobody has been named to review it yet. The Data concern lists what Booking holds, and it says nothing about who checks that.
 
 ## Risks
@@ -139,7 +139,9 @@ Kiosk images ship in March and September. If March slips, kiosks wait six months
 
 Catalog v1 owes these questions. Each row says where one stands. A wildcard row answers every copy it matches, and a copy with its own row is an exception to it.
 
-<!-- generated:undisposed-questions sha=89cc3278: do not edit, run vela render -->
+<!-- generated:undisposed-questions sha=75a848d9: do not edit, run vela render -->
+_Kept up to date by vela from the pages it reads._
+
 **Questions:** 57 owed, 0 undisposed, 1 asked, 1 open reviewer question, against catalog v1.
 
 | Ref | Status | Area | How serious | About | Question |

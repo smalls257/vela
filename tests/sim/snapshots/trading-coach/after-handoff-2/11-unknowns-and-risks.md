@@ -75,7 +75,6 @@ The CEO's meaning of the coach, of "ready" and of "trades for them" is not recor
 - **Question:** What does the CEO mean by the coach, by "ready" and by "trades for them", and is "trades for them" the same for a learner as for someone who is ready?
 - **Owner:** @sim-lead (product lead)
 - **State:** open
-- **Blocks:** nothing yet, since no plan item exists to block
 - **Ask by:** 2026-11-13
 - **Opened:** 2026-10-09
 - **Notes:** Her definition has to come in writing from her. [[sources#SRC-09|The CEO's note]] puts trading for customers in a later release after counsel and Brightwater sign off. It does not define "ready" or "trades for them", so the question stays open.
@@ -87,7 +86,6 @@ The product lead does not know whether the coach is for the whole TickerTalk bas
 - **Question:** Are the target users the whole TickerTalk reader base or only readers interested in trading?
 - **Owner:** @sim-lead (product lead)
 - **State:** open
-- **Blocks:** nothing yet, since no plan item exists to block
 - **Ask by:** 2026-11-13
 - **Opened:** 2026-10-09
 
@@ -98,7 +96,6 @@ The compliance ruling on live trading exists only as what people said in meeting
 - **Question:** Who in compliance ruled that there is no live trading in year one, and where is that ruling in writing?
 - **Owner:** @sim-lead (product lead)
 - **State:** open
-- **Blocks:** nothing yet, since no plan item exists to block
 - **Ask by:** 2026-10-23
 - **Opened:** 2026-10-09
 - **Notes:** The product lead will supply the compliance person's name later. The product lead does not know the compliance consultant's name and would check the contract or ask ops ([[2026-10-09-stakeholder-replies#^c21]]).
@@ -109,7 +106,6 @@ It is not recorded whether compliance's ban covers automatic orders placed throu
 - **Question:** Does "no live trading" cover automatic orders placed through a partner broker, or only TickerTalk placing orders itself?
 - **Owner:** @sim-lead (product lead)
 - **State:** open
-- **Blocks:** nothing yet, since no plan item exists to block
 - **Ask by:** 2026-10-23
 - **Opened:** 2026-10-09
 
@@ -120,7 +116,6 @@ The budget is said to be allocated, but its amount, its holder and what it cover
 - **Question:** How much is the allocated budget, who holds it, and what is it for?
 - **Owner:** @sim-lead (product lead)
 - **State:** open
-- **Blocks:** nothing yet, since no plan item exists to block
 - **Ask by:** 2026-10-30
 - **Opened:** 2026-10-09
 - **Notes:** The budget document is held by the budget owner, whose name is not recorded.
@@ -132,7 +127,6 @@ Outside Counsel has said in writing how it treats the coach's output: lessons an
 - **Question:** Does counsel treat the coach's output as investment advice, and who in legal will say so in writing?
 - **Owner:** @sim-lead (product lead)
 - **State:** resolved
-- **Blocks:** nothing yet, since no plan item exists to block
 - **Opened:** 2026-10-09
 - **Notes:** The product lead will try to find the legal owner once they are out of back-to-back calls.
 - **Outcome:** [[sources#SRC-08|Outside Counsel's written reply]] says lessons and paper trading may launch once the marketing and any shown results are reviewed, and that a trade idea for a particular customer is a recommendation, allowed only as Brightwater's. Whether that clears the stock list is still asked in [[#UNK-021 Legal clearance of the stock list|the question on the stock list]].
@@ -145,7 +139,6 @@ It is not recorded whether compliance's year one runs from March, from today or 
 - **Question:** What date does "year one" start from, and when does the ban end?
 - **Owner:** @sim-lead (product lead)
 - **State:** open
-- **Blocks:** nothing yet, since no plan item exists to block
 - **Ask by:** 2026-11-13
 - **Opened:** 2026-10-09
 
@@ -156,7 +149,6 @@ Nobody has been named to decide when the CEO and compliance disagree. The produc
 - **Question:** Who decides when the CEO and compliance disagree, and when will both be put in the same room?
 - **Owner:** @sim-lead (product lead)
 - **State:** open
-- **Blocks:** nothing yet, since no plan item exists to block
 - **Ask by:** 2026-12-04
 - **Opened:** 2026-10-09
 - **Notes:** The product lead wants both in the room by the end of the year, early January at the latest. [[sources#SRC-09|The CEO's note]] expects to decide where compliance and the CEO disagree, once counsel has ruled. Compliance has not agreed to that, so the question stays open.
@@ -168,7 +160,6 @@ The terms of the broker agreement signed with Brightwater in June are not record
 - **Question:** What do the signed Brightwater agreement's terms say on consent, data, notice, exit and live trading, and who holds it?
 - **Owner:** @sim-lead (product lead)
 - **State:** open
-- **Blocks:** nothing yet, since no plan item exists to block
 - **Ask by:** 2026-10-16
 - **Opened:** 2026-10-09
 - **Notes:** Owned by the product lead for now. It probably belongs to the partnerships manager once they are named. [[sources#SRC-11|Partnerships' reading of the signed agreement]] gives the scope (equities only, options need a separate agreement) and 90 days' notice for either side to exit. It is silent on consent, data, live trading and section 7.2, so those stay open. The product lead needs this and [[11-unknowns-and-risks#UNK-037 Brightwater test side of the sandbox|the Brightwater test side of the sandbox]] by 16 October: if Brightwater says no on the consumer product, the Coach plan is rewritten before the board demo ([[2026-10-09-coach-page-contracts#^c26]]).
@@ -180,7 +171,6 @@ The product lead has the resources but cannot see how the CEO's automatic orderi
 - **Question:** How do the CEO's automatic ordering by March and compliance's no live trading in year one fit the same timeline?
 - **Owner:** @sim-lead (product lead)
 - **State:** open
-- **Blocks:** nothing yet, since no plan item exists to block
 - **Ask by:** 2026-12-04
 - **Opened:** 2026-10-09
 
@@ -191,7 +181,6 @@ Brightwater holds the customers' money, but who carries those balances as money 
 - **Question:** Who carries the balances Brightwater holds as money owed to customers?
 - **Owner:** @sim-lead (product lead)
 - **State:** open
-- **Blocks:** nothing yet, since no plan item exists to block
 - **Ask by:** 2026-10-30
 - **Opened:** 2026-10-09
 
@@ -202,7 +191,6 @@ The product lead believed Brightwater's agreement covered options, but [[sources
 - **Question:** Does the signed Brightwater agreement cover options orders, and is any options data licensed, given that both summaries say no?
 - **Owner:** @sim-lead (product lead)
 - **State:** open
-- **Blocks:** nothing yet, since no plan item exists to block
 - **Ask by:** 2026-10-23
 - **Opened:** 2026-10-09
 - **Notes:** The signed agreement owns the answer, not the summary or the product lead's belief. The partnerships manager holds it. [[sources#SRC-11|Partnerships' reading]] says options need a separate options agreement, so the signed agreement does not cover them. Whether a separate options agreement exists, and whether any options data is licensed, is still not recorded.
@@ -214,7 +202,6 @@ The product lead believed Brightwater's agreement covered options, but [[sources
 - **Question:** What is the baseline for Signal's 31%, and does a stock list fixed in September 2026 and tested back to 2015 change the result?
 - **Owner:** @sim-lead (product lead)
 - **State:** open
-- **Blocks:** nothing yet, since no plan item exists to block
 - **Ask by:** 2026-10-30
 - **Opened:** 2026-10-09
 - **Notes:** The ML team holds the answer. The backtest summary does not say whether the list was picked again for each year.
@@ -226,7 +213,6 @@ The product lead believed Brightwater's agreement covered options, but [[sources
 - **Question:** What data feeds Signal, now and in the watchlist plan, and what does the Quoteline license mean for it, including whether training on users' watchlists counts as non-display use that needs the separate addendum?
 - **Owner:** @sim-lead (product lead)
 - **State:** open
-- **Blocks:** nothing yet, since no plan item exists to block
 - **Ask by:** 2026-10-23
 - **Opened:** 2026-10-09
 - **Notes:** The ML team holds what feeds Signal, and the product lead puts that and the licensing question to them as one ask. The product lead holds that clause 9 is the load-bearing question and that they cannot go to the CEO without knowing whether the model already broke the contract. The first is shown by what feeds Signal, answered by the ML lead this week. The second is shown by the actual backtest code and a validated 31% figure. It is also not known whether options data in Quoteline blocks anything. [[sources#SRC-10|Quoteline]] says training or running a model on its prices is non-display use that needs an addendum with its own fees. What feeds Signal today is still not recorded.
@@ -238,7 +224,6 @@ The summaries point at two clauses: the Brightwater agreement's rule on approvin
 - **Question:** What do section 7.2 of the Brightwater agreement and clause 9 of the Quoteline license say in the full documents?
 - **Owner:** @sim-lead (product lead)
 - **State:** open
-- **Blocks:** nothing yet, since no plan item exists to block
 - **Ask by:** 2026-10-23
 - **Opened:** 2026-10-09
 
@@ -249,7 +234,6 @@ No document says what the coach tells a reader when it suggests a trade, who sig
 - **Question:** What does the coach say when it suggests a trade, who signs that wording off, and does Signal explain why?
 - **Owner:** @sim-lead (product lead)
 - **State:** open
-- **Blocks:** nothing yet, since no plan item exists to block
 - **Ask by:** 2026-10-30
 - **Opened:** 2026-10-09
 - **Notes:** The product lead holds the wording as the point everything else waits on. The ask-by date is a proposal for the product lead to confirm.
@@ -296,7 +280,6 @@ No source says who owns, maintains or retrains Signal. The product lead says nob
 - **Question:** Who owns, maintains and retrains Signal after launch?
 - **Owner:** @sim-lead (product lead)
 - **State:** open
-- **Blocks:** nothing yet, since no plan item exists to block
 - **Ask by:** 2026-10-30
 - **Opened:** 2026-10-09
 - **Notes:** The ML team is the likely holder of the answer.
@@ -427,7 +410,6 @@ Coach needs an identifier for each reader from TickerTalk. The vault does not re
 - **Question:** Who at Brightwater runs the content review, and how do we reach them?
 - **Owner:** @partnerships-manager (partnerships manager, for Brightwater)
 - **State:** open
-- **Blocks:** nothing yet, since no plan item records the review's timing
 - **Ask by:** 2026-10-12
 - **Opened:** 2026-10-09
 - **Notes:** The product lead called the partnerships manager on 9 October and got no answer, only a message left ([[2026-10-09-brightwater-reply#^c19]]). The vault holds no name. The ask-by date is a proposal for the partnerships manager to confirm.
@@ -439,7 +421,6 @@ The review takes ten business days, and the product lead fears that kills the Ja
 - **Question:** Can Brightwater shorten or move the ten-business-day review for the January demo, and who decides?
 - **Owner:** @partnerships-manager (partnerships manager, for Brightwater)
 - **State:** open
-- **Blocks:** nothing yet, since no plan item records the review's timing
 - **Ask by:** 2026-10-16
 - **Opened:** 2026-10-09
 - **Notes:** This waits on the name asked for in [[11-unknowns-and-risks#UNK-031 Who at Brightwater runs the content review|the question on who runs the review]] ([[2026-10-09-brightwater-reply#^c18]]). The ask-by date is a proposal.
@@ -451,7 +432,6 @@ The reply puts the review on content shown to Brightwater's customers. A board d
 - **Question:** Does Brightwater's content review apply to the January board demo, or is an internal demo exempt?
 - **Owner:** @partnerships-manager (partnerships manager, for Brightwater)
 - **State:** open
-- **Blocks:** nothing yet, since no plan item records the review's timing
 - **Ask by:** 2026-10-12
 - **Opened:** 2026-10-09
 - **Notes:** The product lead plans to ask partnerships whether January is exempt ([[2026-10-09-brightwater-reply#^c24]]), and believes the ten days matter less if the demo is internal only ([[2026-10-09-brightwater-reply#^c22]]); that belief depends on who sees the demo, asked in [[11-unknowns-and-risks#UNK-034 Who sees the January demo|the question on who sees the demo]]. The question came from Claude and the product lead kept it ([[2026-10-09-brightwater-reply#^c21]]). The ask-by date is a proposal.
@@ -463,7 +443,6 @@ Whether the January demo is shown to anyone outside the board, such as early use
 - **Question:** Who does the CEO want to show the January demo to?
 - **Owner:** @sim-lead (product lead, asking the CEO)
 - **State:** open
-- **Blocks:** nothing yet, since no plan item records the review's timing
 - **Ask by:** 2026-10-16
 - **Opened:** 2026-10-09
 - **Notes:** The product lead is not sure what the CEO wants to show early users ([[2026-10-09-brightwater-reply#^c23]]). The date of the January demo is not recorded either. The ask-by date is a proposal.
@@ -475,7 +454,6 @@ The reply does not say whether a rejected or changed lesson or screen starts the
 - **Question:** Does a rejected or changed lesson or screen restart the ten business days, and how many rounds does Brightwater allow?
 - **Owner:** @partnerships-manager (partnerships manager, for Brightwater)
 - **State:** open
-- **Blocks:** nothing yet, since no plan item records the review's timing
 - **Ask by:** 2026-10-16
 - **Opened:** 2026-10-09
 - **Notes:** The question came from Claude and the product lead kept it ([[2026-10-09-brightwater-reply#^c25]]). It waits on the name in [[11-unknowns-and-risks#UNK-031 Who at Brightwater runs the content review|the question on who runs the review]]. The ask-by date is a proposal.

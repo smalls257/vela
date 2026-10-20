@@ -9,7 +9,9 @@ authored: mixed
 
 ## Traceability
 
-<!-- generated:traceability sha=09876084: do not edit, run vela render -->
+<!-- generated:traceability sha=5eeec39b: do not edit, run vela render -->
+_Kept up to date by vela from the pages it reads._
+
 **Gaps in the planned work:** twelve; the table below lists them.
 
 | Item | What is missing |

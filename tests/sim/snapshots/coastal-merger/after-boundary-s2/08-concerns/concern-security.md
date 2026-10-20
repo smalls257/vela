@@ -17,5 +17,3 @@ Who can call what, and what data each boundary carries.
 
 | App | State | Why |
 |---|---|---|
-
-Not looked at yet: [[northway-id-building-blocks\|Northway ID]], [[seabook-building-blocks\|SeaBook]], [[ferrymaster-building-blocks\|FERRYMASTER]], [[account-link-service-building-blocks\|Account link service]], [[railcore-building-blocks\|RailCore]].

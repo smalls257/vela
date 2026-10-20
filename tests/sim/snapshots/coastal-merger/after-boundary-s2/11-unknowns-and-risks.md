@@ -68,7 +68,6 @@ authored: mixed
 - **Question:** What do "one customer", "one journey" and "one account" mean: one identity or a merged record, one ticket or one planned trip, a login, a wallet, a loyalty balance or all three? Do we link the records or merge them?
 - **Owner:** @solution-lead (asking CIO office)
 - **State:** open
-- **Blocks:** nothing yet, no item depends on it
 - **Ask by:** 2026-10-09
 - **Opened:** 2026-10-06
 - **Notes:** The CIO is the one to pick. Rail Product and the CFO may want different readings. From [[2026-10-06-decode-cio-mandate#^c02]], [[2026-10-06-decode-cio-mandate#^c04]], [[2026-10-06-decode-cio-mandate#^c05]], [[2026-10-06-decode-cio-mandate#^c06]], [[2026-10-06-decode-cio-mandate#^c16]]. Option B, a linked household account, was decided on 2026-10-06 and stands until challenged: [[2026-10-06-what-one-account-means-2#^c12]]. From [[2026-10-06-what-one-account-means#^c01]], [[2026-10-06-what-one-account-means#^c11]]. The solution lead said on 2026-10-06 that they will ship Option B without waiting for the CIO to answer. That was an intention on [[2026-10-06-dpo-decision#^c05]]; it became a decision in [[2026-10-06-what-one-account-means-2]]. The CIO has not answered, so this stays open.
@@ -78,7 +77,6 @@ authored: mixed
 - **Question:** Which date is "next summer", and is it a launch for customers or a first release for staff? What will the customer see by then?
 - **Owner:** @solution-lead (asking CIO office)
 - **State:** open
-- **Blocks:** nothing yet, no item depends on it
 - **Ask by:** 2026-10-13
 - **Opened:** 2026-10-06
 - **Notes:** From [[2026-10-06-decode-cio-mandate#^c07]], [[2026-10-06-decode-cio-mandate#^c61]]. Earlier note, now contested: Sarah Chen's sign-off is due two weeks before go-live, and no go-live date is recorded: [[2026-10-06-dpo-decision#^c23]]. Whether she signs off or only wants to see the design then is [[#UNK-041 Review or sign-off before go-live|UNK-041]]. The lead also says the documents never say what the customer sees differently at the end of this: [[2026-10-06-dpo-decision-2#^c19]].
@@ -88,7 +86,6 @@ authored: mixed
 - **Question:** Who in the CIO's office can say what the mandate means, and who can decide in the CIO's place while they are unreachable?
 - **Owner:** @solution-lead (asking CFO)
 - **State:** open
-- **Blocks:** nothing yet, no item depends on it
 - **Ask by:** 2026-10-09
 - **Opened:** 2026-10-06
 - **Notes:** Worry: if the CIO stays silent the wrong thing is built and ripped out. From [[2026-10-06-decode-cio-mandate#^c08]], [[2026-10-06-decode-cio-mandate#^c11]], [[2026-10-06-decode-cio-mandate#^c46]], [[2026-10-06-decode-cio-mandate#^c51]], [[2026-10-06-decode-cio-mandate#^c58]], [[2026-10-06-decode-cio-mandate#^c72]]. On 2026-10-06 the solution lead's calls to the CIO's office went unanswered and they emailed the ask instead; they say a silent CIO is what will stall this if nobody moves: [[2026-10-06-customer-data-identity#^c07]]. The CFO said by phone on 2026-10-06 (second-hand, no document seen) that the CIO is in the building but has not answered for about two weeks, that only the CFO and the solution lead have pushed the ferry question, and that nobody above the CIO would move faster. The CFO advised the solution lead to make the call and let the CIO correct it after. That is the CFO's advice, not the CIO's decision. The CFO later said in writing (channel not given, relayed by the solution lead) that they would back shipping Option B if the CIO is still unreachable past Friday: [[2026-10-06-what-one-account-means-2#^c02]]. Three voicemails to the CIO's office on 2026-10-06 went unanswered: [[2026-10-06-what-one-account-means-2#^c03]]. From [[2026-10-06-dpo-decision#^c01]], [[2026-10-06-dpo-decision#^c02]], [[2026-10-06-dpo-decision#^c03]], [[2026-10-06-dpo-decision#^c04]].
@@ -98,7 +95,6 @@ authored: mixed
 - **Question:** Is a CIO meeting booked, with whom, when, and who set it up?
 - **Owner:** @solution-lead (asking CIO office)
 - **State:** open
-- **Blocks:** nothing yet, no item depends on it
 - **Ask by:** 2026-10-09
 - **Opened:** 2026-10-06
 - **Notes:** The solution lead plans to send the CIO note on 2026-10-06. From [[2026-10-06-decode-cio-mandate#^c68]], [[2026-10-06-decode-cio-mandate#^c73]], [[2026-10-06-decode-cio-mandate#^c75]], [[2026-10-06-decode-cio-mandate#^c85]].
@@ -108,7 +104,6 @@ authored: mixed
 - **Question:** Is the CFO's "one platform" the same goal as the CIO's "one account", or a second goal?
 - **Owner:** @solution-lead (asking CFO)
 - **State:** open
-- **Blocks:** nothing yet, no item depends on it
 - **Ask by:** 2026-10-13
 - **Opened:** 2026-10-06
 - **Notes:** From [[2026-10-06-decode-cio-mandate#^c12]], [[2026-10-06-decode-cio-mandate#^c17]].
@@ -118,7 +113,6 @@ authored: mixed
 - **Question:** What does Rail Product mean by "rail-first": first to launch, first to be served or first to be rebuilt?
 - **Owner:** @solution-lead (asking Rail Product)
 - **State:** open
-- **Blocks:** nothing yet, no item depends on it
 - **Ask by:** 2026-10-13
 - **Opened:** 2026-10-06
 - **Notes:** From [[2026-10-06-decode-cio-mandate#^c13]], [[2026-10-06-decode-cio-mandate#^c18]].
@@ -128,7 +122,6 @@ authored: mixed
 - **Question:** Does the May freeze start in May and end on a date, or end in May? What date, and does it cover any change to SeaBook, ferry operations or any ask of the team? What can be done inside it?
 - **Owner:** @solution-lead (asking Ferry Ops)
 - **State:** open
-- **Blocks:** nothing yet, no item depends on it
 - **Ask by:** 2026-10-13
 - **Opened:** 2026-10-06
 - **Notes:** The solution lead means the freeze is when Ferry Ops will not touch anything, not that it runs through September (c62). Worry: Ferry Ops answers "we'll decide in May". From [[2026-10-06-decode-cio-mandate#^c14]], [[2026-10-06-decode-cio-mandate#^c19]], [[2026-10-06-decode-cio-mandate#^c59]], [[2026-10-06-decode-cio-mandate#^c78]].
@@ -138,7 +131,6 @@ authored: mixed
 - **Question:** What customer data do SeaBook and RailCore each hold, and what did their customers agree to?
 - **Owner:** @solution-lead (asking system owner)
 - **State:** open
-- **Blocks:** nothing yet, no item depends on it
 - **Ask by:** 2026-10-13
 - **Opened:** 2026-10-06
 - **Notes:** From [[2026-10-06-decode-cio-mandate#^c20]].
@@ -148,7 +140,6 @@ authored: mixed
 - **Question:** Ferry families share one email and every rail account needs a unique one: how are the two linked without asking a very large number of customers to change anything?
 - **Owner:** @solution-lead (asking system owner)
 - **State:** open
-- **Blocks:** nothing yet, no item depends on it
 - **Ask by:** 2026-10-13
 - **Opened:** 2026-10-06
 - **Notes:** From [[2026-10-06-decode-cio-mandate#^c27]], [[2026-10-06-decode-cio-mandate#^c28]]. The solution lead infers, from Ferry Ops saying the booking ID is the primary key, that the family email may not be a blocker. Not checked: [[2026-10-06-dpo-decision#^c07]]. Sarah Chen, as recalled by the solution lead, said a shared email can become one household at login: [[2026-10-06-dpo-decision#^c21]]. That wording is withdrawn. In her later answer, as recalled by the solution lead, people link their own accounts to the household themselves: [[2026-10-06-dpo-decision-2#^c07]].
@@ -158,7 +149,6 @@ authored: mixed
 - **Question:** Who is the Data Protection Officer, have they been asked, and what do they need to see before they let the link go live given the family-email handling?
 - **Owner:** @solution-lead (asking DPO)
 - **State:** open
-- **Blocks:** nothing yet, no item depends on it
 - **Ask by:** 2026-10-13
 - **Opened:** 2026-10-06
 - **Notes:** Worry: touching ferry customer data at all is a real problem. From [[2026-10-06-decode-cio-mandate#^c30]], [[2026-10-06-decode-cio-mandate#^c60]]. The solution lead holds that the matching, lawful-basis and DPO-review questions are one question for one person: [[2026-10-06-what-one-account-means#^c12]], [[2026-10-06-what-one-account-means#^c15]]. The CFO said by phone on 2026-10-06 (second-hand, no document seen) that the DPO is Sarah Chen, in Legal. This stays open until she confirms it herself or a document names her: [[2026-10-06-dpo-decision#^c16]]. The solution lead holds that her sign-off on the household is the blocker, not the CIO answering: [[2026-10-06-dpo-decision#^c09]], [[2026-10-06-dpo-decision#^c18]]. The three-part ask for her is in [[2026-10-06-dpo-decision#^c12]], and whether the sign-off comes before the lead moves or only before go-live is in [[2026-10-06-dpo-decision#^c11]]. As recalled by the solution lead, not recorded or written, she said on a call on 2026-10-06 that a shared email can become one household at login and people are placed under it, and that they must be matched correctly when they link accounts ([[2026-10-06-dpo-decision#^c21]]). She wants to see how ferry people are matched to the right person when the email is shared, where consent is collected, and what happens if the match is wrong ([[2026-10-06-dpo-decision#^c22]]). She wants it written and sent to her two weeks before go-live, and that is when she signs off ([[2026-10-06-dpo-decision#^c23]]). Two readings are the solution lead's, not hers: approval is needed before go-live and not before build ([[2026-10-06-dpo-decision#^c24]]), and the household shape is acceptable if the design passes ([[2026-10-06-dpo-decision#^c25]]). Not yet asked of her: whether it is lawful to ask a family which person is which ([[#UNK-034 Lawful basis for asking who is who|UNK-034]]), and whether her sign-off covers the loyalty view ([[#UNK-035 DPO scope loyalty view|UNK-035]]). Corrected on the solution lead's word, from her later answer: the household shape she described is people linking their own accounts, not people placed under the household at login, so the "placed under it" wording above is withdrawn ([[2026-10-06-dpo-decision-2#^c07]]). Whether she signs off two weeks before go-live or only wants to see the design then is open: [[#UNK-041 Review or sign-off before go-live|UNK-041]]. She has not said herself, in either call, that she holds the role, and the lead has no document, only the CFO's word: [[2026-10-06-dpo-decision-2#^c09]]. How she came to hold the role, and who appointed her, is not recorded: [[2026-10-06-dpo-decision-2#^c16]]. No written confirmation from her exists, and the lead may ask for one: [[2026-10-06-dpo-decision-2#^c12]]. Identity part answered on the lead's first-hand word (SRC-08): the 7 October reply (SRC-07) came from Sarah Chen as Data Protection Officer ([[2026-10-07-login-owner-and-offer#^c37]], [[2026-10-07-login-owner-and-offer#^c38]]). The saved copy of the reply names no one. What she needs to see before go-live is not answered, so this stays open.
@@ -168,7 +158,6 @@ authored: mixed
 - **Question:** How do SeaBook, the ferry customer DB and FERRYMASTER relate: one system, three, or layers of one? Are SeaBook and RailCore fully separate stacks?
 - **Owner:** @solution-lead (asking Ferry Ops)
 - **State:** open
-- **Blocks:** nothing yet, no item depends on it
 - **Ask by:** 2026-10-13
 - **Opened:** 2026-10-06
 - **Notes:** From [[2026-10-06-decode-cio-mandate#^c15]], [[2026-10-06-decode-cio-mandate#^c31]].
@@ -188,7 +177,6 @@ authored: mixed
 - **Question:** How many ferry customers share an email with another customer, and how many rail accounts exist?
 - **Owner:** @solution-lead (asking system owner)
 - **State:** open
-- **Blocks:** nothing yet, no item depends on it
 - **Ask by:** 2026-10-13
 - **Opened:** 2026-10-06
 - **Notes:** From [[2026-10-06-decode-cio-mandate#^c33]]. The lead says no data exists on how many ferry customers use rail. The previous lead guessed about a third, with nothing behind it, so it is a belief and not a number. The lead says the answer changes what release one needs to be. From [[2026-10-07-cio-dpo-replies#^c21]].
@@ -198,7 +186,6 @@ authored: mixed
 - **Question:** Who are the two people who understand FERRYMASTER, are they leaving and when, and is any of it written down?
 - **Owner:** @solution-lead (asking Ferry Ops)
 - **State:** open
-- **Blocks:** nothing yet, no item depends on it
 - **Ask by:** 2026-10-13
 - **Opened:** 2026-10-06
 - **Notes:** Worry: they leave before anyone else can read the code, in a window of about three months. From [[2026-10-06-decode-cio-mandate#^c29]], [[2026-10-06-decode-cio-mandate#^c34]], [[2026-10-06-decode-cio-mandate#^c35]], [[2026-10-06-decode-cio-mandate#^c57]]. The solution lead stresses that the only people who can read FERRYMASTER are leaving, and no document records it: [[2026-10-06-what-two-companies-run#^c33]]. On a call with Ferry Ops on 2026-10-06 the solution lead was told both are probably leaving around Christmas this year, maybe early in the new year, and that nothing is written down that Ferry Ops knows of. Ferry Ops gave no names, saying HR holds them; which company's HR is not recorded. Ferry Ops' word, by phone, no document: [[2026-10-06-ferrymaster-handover#^c03]], [[2026-10-06-ferrymaster-handover#^c04]], [[2026-10-06-ferrymaster-handover#^c05]].
@@ -208,7 +195,6 @@ authored: mixed
 - **Question:** Does anything in the customer link need to read from or write to FERRYMASTER, or can it stay outside it?
 - **Owner:** @solution-lead (asking Ferry Ops)
 - **State:** open
-- **Blocks:** nothing yet, no item depends on it
 - **Ask by:** 2026-10-13
 - **Opened:** 2026-10-06
 - **Notes:** From [[2026-10-06-decode-cio-mandate#^c36]].
@@ -218,7 +204,6 @@ authored: mixed
 - **Question:** Who owned the ferry customer database before the reorganization, and who owns it now?
 - **Owner:** @solution-lead (asking CIO)
 - **State:** open
-- **Blocks:** nothing yet, no item depends on it
 - **Ask by:** 2026-10-13
 - **Opened:** 2026-10-06
 - **Notes:** The solution lead believes Finance owns it. No source (c64, c84). From [[2026-10-06-decode-cio-mandate#^c44]], [[2026-10-06-decode-cio-mandate#^c50]]. The solution lead will ask the CIO who owns the ferry side: [[2026-10-06-what-one-account-means#^c17]]. The CIO's office has also been asked, in the email of 2026-10-06 ([[#UNK-031 Ferry customers and Northway ID|UNK-031]]); no reply yet.
@@ -228,7 +213,6 @@ authored: mixed
 - **Question:** Who in Ferry Finance owns the revenue side, and does anyone in Rail Finance own the same thing?
 - **Owner:** @solution-lead (asking CFO)
 - **State:** open
-- **Blocks:** nothing yet, no item depends on it
 - **Ask by:** 2026-10-13
 - **Opened:** 2026-10-06
 - **Notes:** From [[2026-10-06-decode-cio-mandate#^c43]], [[2026-10-06-decode-cio-mandate#^c47]].
@@ -238,7 +222,6 @@ authored: mixed
 - **Question:** What will the Kestrel Bay customer service team do differently when a ferry customer has a linked account?
 - **Owner:** @solution-lead (asking Kestrel Bay team lead)
 - **State:** open
-- **Blocks:** nothing yet, no item depends on it
 - **Ask by:** 2026-10-13
 - **Opened:** 2026-10-06
 - **Notes:** From [[2026-10-06-decode-cio-mandate#^c48]].
@@ -248,7 +231,6 @@ authored: mixed
 - **Question:** Which port teams touch customer data or check customers in, and who speaks for them?
 - **Owner:** @solution-lead (asking Ferry Ops)
 - **State:** open
-- **Blocks:** nothing yet, no item depends on it
 - **Ask by:** 2026-10-13
 - **Opened:** 2026-10-06
 - **Notes:** From [[2026-10-06-decode-cio-mandate#^c49]].
@@ -258,7 +240,6 @@ authored: mixed
 - **Question:** Who else is affected by this and not yet in the room?
 - **Owner:** @solution-lead (asking CIO office)
 - **State:** open
-- **Blocks:** nothing yet, no item depends on it
 - **Ask by:** 2026-10-13
 - **Opened:** 2026-10-06
 - **Notes:** From [[2026-10-06-decode-cio-mandate#^c21]]. The solution lead adds that none of the four documents carries the voice of the people who run ferry or rail: [[2026-10-06-what-two-companies-run#^c28]], [[2026-10-06-what-two-companies-run#^c29]].
@@ -268,7 +249,6 @@ authored: mixed
 - **Question:** Which date is real for the end of the FERRYMASTER vendor contract: March 2029 with 18 months' notice (the Harborline systems list, SRC-02), or December 2027 (the CIO memo, SRC-01)? Has notice already been given, or has it passed? If it was given, what end date did the notice name?
 - **Owner:** @solution-lead (asking Procurement and Ferry Ops)
 - **State:** open
-- **Blocks:** nothing yet, no item depends on it
 - **Ask by:** 2026-10-09
 - **Opened:** 2026-10-06
 - **Notes:** Two sources disagree and neither is picked. The ask-by date is proposed and has not been agreed with Procurement. The solution lead says the answer changes the whole exit plan. The solution lead asked for Ferry Ops to be added, as they will know the contract dates better than Procurement and are being called this afternoon anyway. From [[2026-10-06-what-two-companies-run#^c19]], [[2026-10-06-what-two-companies-run#^c27]]. On 2026-10-06 Ferry Ops said by phone that the contract ends March 2029 and that notice was given last year; no document was seen, so neither point is settled: [[2026-10-06-ferrymaster-handover#^c01]], [[2026-10-06-ferrymaster-handover#^c02]]. If notice was given last year (2025) under the 18 months' notice of SRC-02, the end date it named may sit nearer the CIO's December 2027 than March 2029, so the notice letter, held by Procurement or Ferry Ops, is the thing to fetch: [[2026-10-06-ferrymaster-handover#^c08]].
@@ -278,7 +258,6 @@ authored: mixed
 - **Question:** Can Tidemiles and Northway Plus be combined one for one when they earn at different rates (1 point per pound against 5)? What is a Northway Plus point worth on redemption, and who carries the balances as money owed to customers?
 - **Owner:** @solution-lead (asking Finance)
 - **State:** open
-- **Blocks:** nothing yet, no item depends on it
 - **Ask by:** 2026-10-13
 - **Opened:** 2026-10-06
 - **Notes:** The marketing draft (SRC-03) promises a one-for-one merge into a single balance. The Harborline systems list (SRC-02) gives the Tidemiles earn and redemption rates, and the rail slide (SRC-04) gives only the Northway Plus earn rate. The Northway Plus redemption value is not recorded in any source. The solution lead holds that one for one cannot work on those rates and puts the question with Finance, not Marketing. From [[2026-10-06-what-two-companies-run#^c20]], [[2026-10-06-what-two-companies-run#^c21]]. The same question went to the CIO's office on 2026-10-06 at 14:47 ([[2026-10-06-customer-data-identity#^c06]]); no reply yet.
@@ -288,7 +267,6 @@ authored: mixed
 - **Question:** What does the capability map in the appendix of the rail target-architecture slide (SRC-04) show, and does it change what runs on the rail side?
 - **Owner:** @solution-lead (asking Northway Digital)
 - **State:** open
-- **Blocks:** nothing yet, no item depends on it
 - **Ask by:** 2026-10-13
 - **Opened:** 2026-10-06
 - **Notes:** The appendix has not been read, so the rail side is incomplete. From [[2026-10-06-what-two-companies-run#^c22]].
@@ -298,7 +276,6 @@ authored: mixed
 - **Question:** Are Halyard CRM (Kestrel Bay contact center) and Signal CRM (Dunmere contact center) separate systems, or do the two contact centers already share a CRM? If they share one, what customer data does it hold?
 - **Owner:** @solution-lead (asking Ferry Ops)
 - **State:** open
-- **Blocks:** nothing yet, no item depends on it
 - **Ask by:** 2026-10-13
 - **Opened:** 2026-10-06
 - **Notes:** The Harborline systems list (SRC-02) names Halyard and the rail slide (SRC-04) names Signal, as two products at two sites. Neither says whether they are linked. The solution lead recalled that the two centers might already share a CRM, which no source supports. The solution lead will ask Ferry Ops directly. From [[2026-10-06-what-two-companies-run#^c23]]. The contact-center view for Option B waits on this: [[2026-10-06-what-one-account-means#^c20]].
@@ -308,7 +285,6 @@ authored: mixed
 - **Question:** Who runs each system on the ferry and rail sides day to day, who can fix it when it breaks, and how many people each system has? The systems list (SRC-02) and the rail slide (SRC-04) name systems and not staff.
 - **Owner:** @solution-lead (asking Ferry Ops)
 - **State:** open
-- **Blocks:** nothing yet, no item depends on it
 - **Ask by:** 2026-10-13
 - **Opened:** 2026-10-06
 - **Notes:** From [[2026-10-06-what-two-companies-run#^c30]].
@@ -318,7 +294,6 @@ authored: mixed
 - **Question:** What happens to the people who run a system when it retires: does anyone from the Kestrel Bay team move, and does anyone on the FERRYMASTER side have a role afterwards?
 - **Owner:** @solution-lead (asking Ferry Ops)
 - **State:** open
-- **Blocks:** nothing yet, no item depends on it
 - **Ask by:** 2026-10-13
 - **Opened:** 2026-10-06
 - **Notes:** From [[2026-10-06-what-two-companies-run#^c31]]. Related: [[#UNK-014 FERRYMASTER people and docs|UNK-014]], [[#UNK-018 Kestrel Bay team change|UNK-018]].
@@ -328,7 +303,6 @@ authored: mixed
 - **Question:** How are ferry customers brought onto a linked account: asked to link, linked quietly at the back, or helped by the contact center? About 1.2 million ferry records are involved (SRC-02).
 - **Owner:** @solution-lead (asking CIO office)
 - **State:** open
-- **Blocks:** nothing yet, no item depends on it
 - **Ask by:** 2026-10-30
 - **Opened:** 2026-10-06
 - **Notes:** The solution lead says this waits until "one account" has a meaning, so it follows [[#UNK-001 Meaning of the mandate|UNK-001]]. The ask-by date is set to match. From [[2026-10-06-what-two-companies-run#^c32]], [[2026-10-06-what-two-companies-run#^c40]]. If customers are asked to link themselves, the matching problem moves to the customer and is not solved: [[2026-10-06-what-one-account-means#^c13]].
@@ -359,7 +333,6 @@ authored: mixed
 - **Question:** Who owns handing FERRYMASTER knowledge over before the two people who understand it leave, and who runs the link once they have gone?
 - **Owner:** @solution-lead (asking CIO office)
 - **State:** open
-- **Blocks:** nothing yet, no item depends on it
 - **Ask by:** 2026-10-13
 - **Opened:** 2026-10-06
 - **Notes:** Ferry Ops does not think the handover is theirs and says it is a CIO question: [[2026-10-06-ferrymaster-handover#^c06]]. The solution lead worries about a gap of about 26 months, from leaving around January 2027 to the March 2029 end date, with nobody who understands the code. The 26 months is the solution lead's own sum of two inputs, both still open in [[#UNK-014 FERRYMASTER people and docs|UNK-014]] and [[#UNK-021 FERRYMASTER contract end date|UNK-021]]; Ferry Ops did not say it: [[2026-10-06-ferrymaster-handover#^c07]].
@@ -389,7 +362,6 @@ authored: mixed
 - **Question:** Who in Ferry Ops said the customer ID ties a ferry customer across SeaBook, FERRYMASTER and Halyard, and is the booking ID the key for the customer or only for the booking?
 - **Owner:** @sim-lead (asking Ferry Ops)
 - **State:** open
-- **Blocks:** nothing yet, no item depends on it
 - **Ask by:** 2026-10-13
 - **Opened:** 2026-10-06
 - **Notes:** Second-hand from Ferry Ops, no document named: [[2026-10-06-dpo-decision#^c06]]. To fetch: the key definitions in SeaBook, FERRYMASTER and Halyard, and who holds them. It narrows [[#UNK-032 What a ferry customer is across systems|UNK-032]]. From [[2026-10-06-dpo-decision#^c08]].
@@ -399,7 +371,6 @@ authored: mixed
 - **Question:** Is it lawful to ask a family which person is which, and on what basis and with what wording?
 - **Owner:** @sim-lead (asking Sarah Chen)
 - **State:** resolved
-- **Blocks:** nothing yet, no item depends on it
 - **Opened:** 2026-10-06
 - **Outcome:** As recalled by the solution lead, Sarah Chen said asking a family who is who is allowed if consent covers it: the family is shown what data is being linked and agrees, and she wants that in the design. The consent wording and the lawful basis are design gates she wants to see, not an approval, and not a legal opinion the vault holds: [[03-context-and-scope#What Sarah Chen has said|context-and-scope]].
 - **Resolved in:** [[2026-10-06-dpo-decision-2]]
@@ -410,7 +381,6 @@ authored: mixed
 - **Question:** Does Sarah Chen's sign-off cover the loyalty view (L1) as well as the household?
 - **Owner:** @sim-lead (asking Sarah Chen)
 - **State:** resolved
-- **Blocks:** nothing yet, no item depends on it
 - **Opened:** 2026-10-06
 - **Outcome:** As recalled by the solution lead, Sarah Chen said she wants to see the loyalty view separately from the household, with what data it holds and who sees it, so her review covers it as a separate design. What the view holds and who sees it are design gates, not an approval: [[03-context-and-scope#What Sarah Chen has said|context-and-scope]].
 - **Resolved in:** [[2026-10-06-dpo-decision-2]]
@@ -421,7 +391,6 @@ authored: mixed
 - **Question:** Who writes the matching design Sarah Chen asked for: the solution lead, whoever owns the ferry customer data ([[#UNK-016 Ferry customer DB owner|UNK-016]], not yet known), or a new Shape session? It must show how ferry people are matched to the right person when the email is shared, where consent is collected, and what happens if the match is wrong, and reach her two weeks before go-live.
 - **Owner:** @sim-lead (asking the ferry customer data owner, not yet known)
 - **State:** open
-- **Blocks:** nothing yet, no item depends on it
 - **Ask by:** 2026-10-13
 - **Opened:** 2026-10-06
 - **Notes:** The solution lead does not want a Grill on the household, holds that Sarah's condition is a design gate and not a yes-or-no gate, and has not decided who writes the design: [[2026-10-06-dpo-decision#^c29]]. What she asked to see is in [[2026-10-06-dpo-decision#^c22]] and [[2026-10-06-dpo-decision#^c23]]. From [[2026-10-06-dpo-decision#^c30]].
@@ -441,7 +410,6 @@ authored: mixed
 - **Question:** Does Sarah Chen sign off the design two weeks before go-live, or only want to see it then, and who can stop go-live if it does not pass?
 - **Owner:** @sim-lead (asking Sarah Chen)
 - **State:** open
-- **Blocks:** nothing yet, no item depends on it
 - **Ask by:** 2026-10-13
 - **Opened:** 2026-10-06
 - **Notes:** Two recollections by the same person differ, and this unknown names both without picking one. On the first call, as recalled, she said two weeks before go-live is when she signs off: [[2026-10-06-dpo-decision#^c23]]. In the later answer, as recalled, she wants to see the design two weeks before go-live, and the lead holds her conditions are design gates and not approvals: [[2026-10-06-dpo-decision-2#^c06]], [[2026-10-06-dpo-decision-2#^c11]]. The pages UNK-002 and UNK-010 still say sign-off. From [[2026-10-06-dpo-decision-2#^c20]].
@@ -451,7 +419,6 @@ authored: mixed
 - **Question:** What happens if the matching design Sarah Chen wants to see does not pass her review: who decides what next, and what is the fallback?
 - **Owner:** @sim-lead (asking Sarah Chen)
 - **State:** open
-- **Blocks:** nothing yet, no item depends on it
 - **Ask by:** 2026-10-13
 - **Opened:** 2026-10-06
 - **Notes:** The lead says the documents do not say. From [[2026-10-06-dpo-decision-2#^c17]].
@@ -461,7 +428,6 @@ authored: mixed
 - **Question:** Who tells a family they are now in a household, and what does a wrong match look like to the customer?
 - **Owner:** @sim-lead (asking the matching design owner, not yet known, see UNK-036)
 - **State:** open
-- **Blocks:** nothing yet, no item depends on it
 - **Ask by:** 2026-10-13
 - **Opened:** 2026-10-06
 - **Notes:** The lead says the documents do not say. Relates to what Sarah Chen asked to see about a wrong match: [[03-context-and-scope#What Sarah Chen has said|context-and-scope]]. From [[2026-10-06-dpo-decision-2#^c18]].
@@ -481,7 +447,6 @@ authored: mixed
 - **Question:** Is "one account" the CIO's one sign-in linking two accounts with no merged records (SRC-06), or the single identity for every group customer in the memo (SRC-01)?
 - **Owner:** @sim-lead (asking the CIO)
 - **State:** open
-- **Blocks:** nothing yet, no item depends on it
 - **Ask by:** 2026-10-13
 - **Opened:** 2026-10-07
 - **Notes:** Both are from the CIO and both are statements of intent, so neither is a fact. Bears on [[#UNK-001 Meaning of the mandate|UNK-001]] and [[#UNK-031 Ferry customers and Northway ID|UNK-031]]. From [[2026-10-07-cio-dpo-replies#^c09]].
@@ -491,7 +456,6 @@ authored: mixed
 - **Question:** Do the Data Protection Officer's written reply (SRC-07: a household needs each adult's own consent, keep households out of release one) and Sarah Chen's phone call (SRC-05: a household per shared email works where people link their own accounts) describe the same position? And is Sarah Chen the officer who wrote the reply?
 - **Owner:** @sim-lead (asking the Data Protection Officer)
 - **State:** open
-- **Blocks:** nothing yet, no item depends on it
 - **Ask by:** 2026-10-13
 - **Opened:** 2026-10-07
 - **Notes:** The lead is not sure the two are the same person. The call is recalled and not written; the reply is written. The lead's wording of the call is on the page as corrected: [[03-context-and-scope#What Sarah Chen has said|context-and-scope]]. Relates to [[#UNK-010 Data Protection Officer|UNK-010]]. From [[2026-10-07-cio-dpo-replies#^c10]]. Second question answered on the lead's first-hand word (SRC-08): Sarah Chen is the officer who wrote the 7 October reply ([[2026-10-07-login-owner-and-offer#^c38]]). Whether the reply and the call describe the same position is still open.
@@ -501,7 +465,6 @@ authored: mixed
 - **Question:** Who is the build team the CIO wants open questions handed to as named risks: Central IT, the Northway Platform team, or someone else? Do they know about the DPO's request to keep households out of release one?
 - **Owner:** @sim-lead (asking the CIO's office)
 - **State:** open
-- **Blocks:** nothing yet, no item depends on it
 - **Ask by:** 2026-10-13
 - **Opened:** 2026-10-07
 - **Notes:** The CIO's reply asks for anything still open to go to the build team as a named risk with an owner, and names no team (SRC-06). The strategy page says Central IT is building Option B, and the CFO's written answer says Central IT carries the matching and consent work ([[#UNK-029 Who pays for the household link|UNK-029]]), but neither calls Central IT the build team. The Northway Platform team owns the shared account service (SRC-06), so it may be part of it. The lead worries Central IT does not know households are in play and will speak to them this week. From [[2026-10-07-cio-dpo-replies#^c26]], [[2026-10-07-cio-dpo-replies#^c27]].
@@ -511,7 +474,6 @@ authored: mixed
 - **Question:** Have the two FERRYMASTER people been told what is planned, and has the leadership chain spoken to HR about their leaving and the handover?
 - **Owner:** @sim-lead (asking Ferry Ops and HR)
 - **State:** open
-- **Blocks:** nothing yet, no item depends on it
 - **Ask by:** 2026-10-13
 - **Opened:** 2026-10-07
 - **Notes:** The two leave around Christmas or early in the new year, and the CIO's live date is 1 June 2027, so about five months pass with no one who knows FERRYMASTER, and only what they write down. Whether they have been told, and whether HR has been engaged, is not recorded anywhere. This adds to [[#UNK-030 Who owns the FERRYMASTER handover|UNK-030]] (who owns the handover), [[#UNK-014 FERRYMASTER people and docs|UNK-014]] and [[#UNK-026 People affected by retirements|UNK-026]]. The lead is not sure any of it has been lined up. From [[2026-10-07-cio-dpo-replies#^c16]], [[2026-10-07-cio-dpo-replies#^c24]].
@@ -521,7 +483,6 @@ authored: mixed
 - **Question:** Are the Kestrel Bay and Dunmere contact centers in the room, and do their leads know that one account means their agents see both sides?
 - **Owner:** @sim-lead (asking the CIO's office)
 - **State:** open
-- **Blocks:** nothing yet, no item depends on it
 - **Ask by:** 2026-10-13
 - **Opened:** 2026-10-07
 - **Notes:** Both centers need to see both sides for the customer. Nothing records that either has been told. They run different systems, Halyard at Kestrel Bay and Signal at Dunmere, and whether those connect is open: [[#UNK-024 Halyard and Signal CRM overlap|UNK-024]]. Related: [[#UNK-020 Others affected not in room|UNK-020]], [[#UNK-018 Kestrel Bay team change|UNK-018]]. Claude's point, which the lead accepted as something to design for, is that an agent seeing the other side's account is itself a use of the data the DPO's consent rule covers (SRC-07), so what agents may see belongs in the consent wording and not only in the build. That is the lead's view and not a decision. From [[2026-10-07-cio-dpo-replies#^c19]], [[2026-10-07-cio-dpo-replies#^c20]], [[2026-10-07-cio-dpo-replies#^c25]].
@@ -738,7 +699,7 @@ authored: mixed
 | R-OPS-12 | answered | question: Which owner option is actually chosen for Login owner and offer: 1, 2, 3 or a mix? Will the lead show the CIO text, since a remark the session has not read in a registered source cannot carry the override?; quote: "Go with option 2 and 3 for ”Login owner and offer” only" in [[2026-10-07-one-account-login-owner]]; severity: high; item: [[04b-identity-provider#Login owner and offer]]; answer: Owner option 1 is picked, and option 2 and 3 meant the gate-failure choices to override GATE-4 and decide on behalf for GATE-5; source: "Owner option 1, Northway ID owns the login and offers sign-in only" in [[04b-identity-provider]] | @sim-lead | 2026-10-07 |
 | R-OPS-13 | open | question: Does the team that would run Northway ID know it is meant to take on ferry customers, and has it agreed?; quote: "Northway ID itself is an assumption from the rail slide (SRC-04)" in [[04b-identity-provider]] | | |
 | R-OPS-14 | unknown | question: Who builds and supports FERRYMASTER's sign-in through Northway ID once the two FERRYMASTER people have left?; quote: "both are probably leaving around Christmas this year" in [[11-unknowns-and-risks]]; severity: high; unknown: [[11-unknowns-and-risks#UNK-030 Who owns the FERRYMASTER handover\|UNK-030]] | @sim-lead | 2026-10-07 |
-| R-FIN-19 | open | question: What does it cost to build and run the Account link service and the Northway ID extension, and from whose budget?; quote: "Not looked at yet: [[northway-id-building-blocks\|Northway ID]]" in [[concern-cost]]; severity: high | | |
+| R-FIN-19 | open | question: What does it cost to build and run the Account link service and the Northway ID extension, and from whose budget?; quote: "Running cost, licenses and shared budgets such as mainframe processing." in [[concern-cost]]; severity: high | | |
 | R-FIN-20 | open | question: Does the CFO's funding of Central IT cover the Account link service, or does the Northway Platform team need its own funded commitment?; quote: "The strategy page says Central IT is building Option B, and the CFO's written answer says Central IT carries the matching and consent work" in [[11-unknowns-and-risks]]; severity: high | | |
 | R-PTN-17 | open | question: Which legal entity is the controller for the Account link service, and what inter-company agreement lets it hold both sides' data?; quote: "it holds ferry and rail data on a basis the DPO has not seen" in [[2026-10-07-login-owner-and-offer]]; severity: high | | |
 | R-PTN-18 | open | question: Will the contract notice, SLA hours and consent rules be recorded as constraints with their sources?; quote: "\| ID \| Constraint \| Where it comes from \| What it forces \|" in [[02-constraints]]; severity: normal | | |

@@ -5,7 +5,8 @@ title: Heron
 state: decided
 change: new
 stage: contracts
-handed_off: "@agent-lead, 2026-10-12, PR pending"
+handed_off: "@agent-lead, 2026-10-12"
+handed_off_pr: pending
 domain: Capture
 owner: "@sim-lead"
 authored: authored

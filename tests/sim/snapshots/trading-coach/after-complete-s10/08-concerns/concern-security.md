@@ -21,5 +21,3 @@ The platform engineer's security review, relayed in [[sources#SRC-16|the answers
 
 | App | State | Why |
 |---|---|---|
-
-Not looked at yet: [[coach-building-blocks\|Coach]], [[tickertalk-building-blocks\|TickerTalk]].

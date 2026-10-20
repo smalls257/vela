@@ -27,7 +27,9 @@ Kiosks no longer decide if a booking is confirmed and no longer cache FERRYMASTE
 |---|---|
 | Changed: Booking API v1 client ships in the March 2027 image. The FM adapter is removed in the September 2027 image. | Port Systems team |
 
-<!-- generated:app-context sha=0d1863fc: do not edit, run vela render -->
+<!-- generated:app-context sha=9de4007d: do not edit, run vela render -->
+_Kept up to date by vela from the pages it reads._
+
 ```mermaid
 flowchart LR
   n_APP_booking["Booking (new)"]
@@ -77,7 +79,9 @@ None. The kiosks only consume.
 
 ## Contracts this app consumes
 
-<!-- generated:contracts-consumed sha=0e14b175: do not edit, run vela render -->
+<!-- generated:contracts-consumed sha=764ec3ac: do not edit, run vela render -->
+_Kept up to date by vela from the pages it reads._
+
 | Contract | Provided by | Who can change it, and how | How sure |
 |---|---|---|---|
 | [[booking-building-blocks#CON-001 Booking API\|Booking API (CON-001)]] | [[booking-building-blocks\|Booking]] | versioned. Each version is kept at least 6 months because kiosks update twice a year ([[ADR-0003-versioned-booking-api\|ADR-0003]]). | decided |
@@ -87,7 +91,9 @@ Version 1 must stay available until at least the September 2027 image, and longe
 
 ## Epics
 
-<!-- generated:epics-for-app sha=c0d8c230: do not edit, run vela render -->
+<!-- generated:epics-for-app sha=5c732e2b: do not edit, run vela render -->
+_Kept up to date by vela from the pages it reads._
+
 | Epic | Owner | State |
 |---|---|---|
 | [[EPC-035-kiosks-to-booking\|EPC-035 Kiosks move to Booking in the March image]] | @harborline/port-systems | decided |

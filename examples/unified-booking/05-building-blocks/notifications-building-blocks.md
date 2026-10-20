@@ -27,7 +27,9 @@ Notifications does not decide what state a booking is in. It reports what Bookin
 |---|---|
 | Changed: a new Booking event consumer. The existing email and SMS sender is reused. | Platform team |
 
-<!-- generated:app-context sha=9ef33887: do not edit, run vela render -->
+<!-- generated:app-context sha=8966e2a0: do not edit, run vela render -->
+_Kept up to date by vela from the pages it reads._
+
 ```mermaid
 flowchart LR
   n_APP_booking["Booking (new)"]
@@ -69,7 +71,9 @@ None. Notifications only consumes.
 
 ## Contracts this app consumes
 
-<!-- generated:contracts-consumed sha=4ea6ddb0: do not edit, run vela render -->
+<!-- generated:contracts-consumed sha=cc076497: do not edit, run vela render -->
+_Kept up to date by vela from the pages it reads._
+
 | Contract | Provided by | Who can change it, and how | How sure |
 |---|---|---|---|
 | [[booking-building-blocks#CON-002 Booking state changed\|Booking state changed (CON-002)]] | [[booking-building-blocks\|Booking]] | additive changes only. | decided |
@@ -77,7 +81,9 @@ None. Notifications only consumes.
 
 ## Epics
 
-<!-- generated:epics-for-app sha=89ec5c52: do not edit, run vela render -->
+<!-- generated:epics-for-app sha=24b6ba43: do not edit, run vela render -->
+_Kept up to date by vela from the pages it reads._
+
 | Epic | Owner | State |
 |---|---|---|
 | [[EPC-037-events-and-notifications\|EPC-037 Booking events and customer notifications]] | @harborline/booking-team @harborline/platform-team | decided |

@@ -21,5 +21,3 @@ The Coach lead says, in [[sources#SRC-16|the answers the product lead gathered b
 
 | App | State | Why |
 |---|---|---|
-
-Not looked at yet: [[coach-building-blocks\|Coach]], [[tickertalk-building-blocks\|TickerTalk]].

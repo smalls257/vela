@@ -19,5 +19,3 @@ The order apps cut over, and how each one rolls back.
 |---|---|---|
 | [[desktop-agent-building-blocks\|Desktop agent]] | unknown | [[11-unknowns-and-risks#UNK-054 Mac in the first release\|Mac in the first release]], [[11-unknowns-and-risks#UNK-069 When the registration request goes in\|When the registration request goes in]] |
 | [[consent-and-identity-building-blocks\|Consent and identity]] | unknown | [[11-unknowns-and-risks#UNK-058 Security review pack\|Security review pack]], [[11-unknowns-and-risks#UNK-069 When the registration request goes in\|When the registration request goes in]] |
-
-Not looked at yet: [[summarizer-building-blocks\|Summarizer]].
