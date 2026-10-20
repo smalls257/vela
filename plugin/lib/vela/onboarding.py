@@ -24,8 +24,10 @@ SPECIFICS = {
     "lead": {"discovery": ("open-questions", "needs-you", "risks"),
              "design": ("needs-you", "open-questions", "handoff"),
              "delivery": ("needs-you", "slices", "blocked")},
-    "exec": {"discovery": ("risks", "dates", "decisions-waiting"),
-             "design": ("risks", "dates", "decisions-waiting"),
+    # An exec asks "what ships when, and in what pieces" at every stage, so the slices are on the path from discovery on;
+    # before the plan has any, the module says so and who to ask rather than being absent.
+    "exec": {"discovery": ("risks", "dates", "slices", "decisions-waiting"),
+             "design": ("risks", "dates", "slices", "decisions-waiting"),
              "delivery": ("risks", "dates", "slices", "decisions-waiting")},
     "product": {"discovery": ("capabilities", "open-questions", "journeys"),
                 "design": ("capabilities", "journeys", "dates", "open-questions"),

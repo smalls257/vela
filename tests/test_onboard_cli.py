@@ -54,11 +54,11 @@ def test_show_gives_the_standard_path_for_a_role_at_the_projects_stage(vault):
 def test_show_says_the_answer_first_and_never_a_code_to_the_lead(vault):
     code, said = onboard(vault, "show", "--role", "exec", mode="--for-lead")
     lines = said.strip().splitlines()
-    assert code == 0 and lines[0].startswith("This project is at the design stage. The Exec path is 8 parts, about ")
+    assert code == 0 and lines[0].startswith("This project is at the design stage. The Exec path is 9 parts, about ")
     assert len(lines) <= 6 and lines[-1].endswith("more; want them?")
     assert say.leak_in(said) is None
     code, everything = onboard(vault, "show", "--role", "exec", "--more", mode="--for-lead")
-    assert len(everything.strip().splitlines()) == 9
+    assert len(everything.strip().splitlines()) == 10
 
 
 def test_the_leads_page_orders_hides_and_notes_what_the_command_shows(vault):

@@ -166,6 +166,22 @@ const Onboard = (() => {
         h("section", { class: "onb-stage", "aria-live": "polite" }, h("h2", {}, `${st.at + 1} · ${m.title}`), h("p", { class: "lede" }, m.lede),
           h("div", { class: "onb-grid" }, viewColumn(m), explainColumn(m, ks, done))))));
   }
+  /* ------------------------------------------------------------ the Details panel (detailspanel.js)
+     Picking an item here shows what picking it on its own page shows: a question is the Who to ask question, a decision the
+     decision log's record, a person their waiting questions and what they own, a release what it ships. Nothing here words them. */
+  const decided = (k) => (k.startsWith("decision:") && typeof Decisions !== "undefined" ? Decisions.entries.find((x) => x.id === k.slice(9)) || null : null);
+  function summaryNodes() {
+    const m = mod(current());
+    return [PlanDetails.head("Get up to speed", m.title), h("div", { class: "p-body" }, h("div", { class: "p-note" }, `Pick a thing in ${m.title} to read its details here: what it is, who it waits on and what it holds up.`))];
+  }
+  DetailsPanel.register("onboard", {
+    view: "onboard", live: () => true, rootLabel: "Get up to speed", summary: summaryNodes,
+    owns: (k) => !!decided(k) || PlanDetails.owns(k),
+    detail: (k) => (decided(k) ? Decisions.decisionNodes(decided(k)) : PlanDetails.detail(k, "onboard")),
+    label: (k) => (decided(k) ? decided(k).name : PlanDetails.label(k)),
+    open: (k) => (decided(k) ? { label: "Open", title: "See it in the decision log", run: () => { showView("decisions"); Decisions.showFor(decided(k).key); } } : PlanDetails.openFor(k, "onboard")),
+    waiting: (k) => PlanDetails.waitingTab(k, "queue"), waitingCount: () => PlanDetails.waitingCount("queue"), focus: () => {},
+  });
   return { render, open, st, keys, mod, hashParts, current, defaultRole, myRole };
 })();
 View("onboard", { label: "Get up to speed", title: "A path through the plan for your role", render: Onboard.render });

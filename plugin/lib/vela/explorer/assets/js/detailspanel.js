@@ -171,7 +171,8 @@ const PlanDetails = (() => {
   const isQuestion = (k) => !!(UNKNOWN[k] && ASK[k]);
   const kindOf = (k) => (ent(k) || {}).kind;
   const isOutside = (k) => ["party", "external"].includes(kindOf(k));
-  const owns = (k) => isStep(k) || !!whoOf(k) || !!CONTRACT[k] || isQuestion(k) || isOutside(k) || !!APPS[k];
+  const isRelease = (k) => k.startsWith("release:") && !!ent(k);
+  const owns = (k) => isStep(k) || !!whoOf(k) || !!CONTRACT[k] || isQuestion(k) || isOutside(k) || !!APPS[k] || isRelease(k);
   const label = (k) => {
     if (whoOf(k)) return personLabel(whoOf(k));
     if (isStep(k)) { const p = parseStep(k), s = FlowKit.flowOf(p.flow).steps[p.i]; return s ? `Step ${s.n}: ${s.short}` : "A step"; }
@@ -209,6 +210,7 @@ const PlanDetails = (() => {
     if (isQuestion(key)) return view === "asks" ? null : jump("See it in Who to ask");
     if (whoOf(key)) return view === "asks" || typeof Asks === "undefined" ? null : { label: "Open", title: "Go to their place on Who to ask", run: () => Asks.meet(whoOf(key)) };
     if (kindOf(key) === "decision") return view === "decisions" ? null : jump("See it in the decision log");
+    if (isRelease(key)) return view === "releases" ? null : { label: "Open", title: "See it on the Releases view", run: () => Nav.openRelease(+key.slice(8)) };
     return null;
   }
   /* A link that shows details, and beside it the Open that jumps, for a list of things each with a view of its own. */
@@ -290,7 +292,28 @@ const PlanDetails = (() => {
     return [head("Who to ask", personLabel(who), h("span", { class: "pill" }, plural(open.length, "open question")), first ? h("span", { class: "pill" }, `First due ${day(first.askBy)}`) : null),
       h("div", { class: "p-body" },
         sec("Their open questions", open.length || null, open.length ? open.map((u) => questionRow(u.id)) : quiet("Nothing is waiting on them.")),
-        done.length ? sec("Answered", done.length, bullets(done.map((u) => link(u.id)))) : null)];
+        done.length ? sec("Answered", done.length, bullets(done.map((u) => link(u.id)))) : null,
+        ownedBy(who))];
+  }
+  /* What a person owns besides the questions: the pages and items the plan gives them, each a link to its details. */
+  function ownedBy(who) {
+    const o = D.owners[who], rest = o ? o.owns.filter((k) => ent(k) && !["unknown", "session"].includes(kindOf(k))) : [];
+    return rest.length ? sec("What they own", rest.length, bullets(rest.map((k) => link(k)))) : null;
+  }
+
+  /* ---- a release: what it ships, which apps and contracts it brings or changes, and what holds it up */
+  function releaseNodes(key, view) {
+    const j = +key.slice(8), S = D.releases.states[j], c = Releases.changes(j), title = titleOf(key);
+    const shipped = (S.rows || []).filter((r) => r.requirement && ent(r.requirement));
+    const criteria = (r) => (!r.criteria.length ? "all criteria" : `${r.criteria.length === 1 ? "criterion" : "criteria"} ${r.criteria.join(", ")} of ${r.of}`);
+    const touched = [...c.arrive, ...c.change, ...(S.through || [])], held = [...new Set(touched.flatMap((k) => [...(D.blockedBy[k] || []), ...(D.apps[k] ? D.apps[k].questions.map((q) => q.id) : [])]))].filter((id) => UNKNOWN[id] && isOpen(UNKNOWN[id]));
+    const group = (heading, keys) => (keys.length ? sec(heading, keys.length, bullets(keys.map((k) => openRow(k, view)))) : null);
+    return [head("Release", title, S.target ? h("span", { class: "pill" }, `${day(S.target)} ${S.target.slice(0, 4)}`) : h("span", { class: "pill" }, "No date yet"), S.state ? statePill(S.state) : null),
+      h("div", { class: "p-body" },
+        sec("What it ships", shipped.length || null, shipped.length ? bullets(shipped.map((r) => [link(r.requirement), h("span", { class: "muted" }, " " + criteria(r) + (r.note ? `: ${r.note}` : ""))])) : quiet("Not recorded: no requirement is written against this release yet.")),
+        group("New apps", c.arrive), group("Changed apps", c.change), group("Retired apps", c.gone), group("New contracts", c.appear),
+        sec("What holds it up", held.length || null, held.length ? held.map(questionRow) : quiet("No open question holds up an app or contract it touches.")),
+        readLink("releases"))];
   }
 
   /* ---- the What's waiting tab: what holds up the pick first, then the rest. "queue" is the one count every page gives
@@ -329,6 +352,7 @@ const PlanDetails = (() => {
     if (CONTRACT[key]) return contractNodes(key, view);
     if (isQuestion(key)) return questionNodes(key, view);
     if (isOutside(key)) return outsideNodes(key, view);
+    if (isRelease(key)) return releaseNodes(key, view);
     return appNodes(key);
   }
 

@@ -315,7 +315,7 @@ const Decisions = (() => {
     const keys = e ? e.t.carriedBy.map((w) => w.key).flatMap(mapAnchors) : [];
     return keys.length ? keys : null;
   }
-  return { render, select, showFor, here, highlight: (k) => { if (App.view === "decisions" && !PlanDetails.owns(k)) showFor(k); }, trees, entries, st, visible, STATES };
+  return { entryFor, decisionNodes, render, select, showFor, here, highlight: (k) => { if (App.view === "decisions" && !PlanDetails.owns(k)) showFor(k); }, trees, entries, st, visible, STATES };
 })();
 View("decisions", { label: "Decisions", alias: "garden", title: "The decisions: what was chosen, what was turned down, and what each waits on", render: Decisions.render, here: Decisions.here, highlight: Decisions.highlight,
   count: () => String(Decisions.trees.length) });
