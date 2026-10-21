@@ -16,4 +16,5 @@ Who tests each contract from each side, the end-to-end suites, and the test data
 Each decision big enough to need its own page gets one here: what was decided, the options turned down, and why. Smaller decisions are recorded on the pages they affect.
 One paragraph per term: the term in bold, then what it means in this initiative.
 Each epic is one team's block of work, with the checks that say when it is done.
-Every document, spec, design and link the plan rests on or builders need. Facts cite the ID. Files the owner agreed to keep live in `library/`; raw material stays in `.inbox/`, which git ignores.
+Every document, spec, design and link the plan rests on or builders need. Files the owner agreed to keep live in `library/`.
+Every document a fact rests on. Facts cite the ID. Raw files go in `.inbox/`, which git ignores.
