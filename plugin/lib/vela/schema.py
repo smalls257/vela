@@ -113,7 +113,10 @@ DOMAIN_MIN_APPS = 6  # W352 applies from this many apps
 SESSION_MODES = ("dump", "discover", "shape", "boundary", "allocate", "releases", "grill", "requirements", "epics", "challenge", "answer")
 LADDERED_CHANGES = ("new", "changed")  # app pages with these carry `stage`
 
-HANDLE = r"@[A-Za-z0-9][A-Za-z0-9-]*(?:/[A-Za-z0-9._-]+)?"
+# A GitHub login: letters, digits and hyphens, and an underscore too, since an Enterprise Managed User's login is
+# `name_shortcode`. Every handle pattern in vela is built from this one, so a login that works here works everywhere.
+HANDLE_NAME = r"[A-Za-z0-9][A-Za-z0-9_-]*"
+HANDLE = rf"@{HANDLE_NAME}(?:/[A-Za-z0-9._-]+)?"
 OWNER_RE = re.compile(rf"^{HANDLE}(?: {HANDLE})*$")
 OWNER_BULLET_RE = re.compile(rf"^{HANDLE}\b")
 # `handed_off` is who took the app and when; the pull request is its own field, `handed_off_pr`: "pending" until close

@@ -304,7 +304,7 @@ function levelForKey(key) {
 function personName(handle) {
   const o = D.owners[handle], said = o && o.names && o.names[0];
   if (said && said.split(/\s+/).length <= 3 && !/^asking\b/i.test(said)) return said;
-  const w = String(handle || "").replace(/^@/, "").replace(/^[^/]*\//, "").replace(/-/g, " ");
+  const w = String(handle || "").replace(/^@/, "").replace(/^[^/]*\//, "").replace(/[-_]/g, " ");
   return w.charAt(0).toUpperCase() + w.slice(1);
 }
 /* Free text a page wrote with handles and ISO dates in it ("@agent-lead, 2026-10-12, PR pending"), said as a reader

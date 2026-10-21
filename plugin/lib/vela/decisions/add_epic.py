@@ -15,12 +15,13 @@ and traceability").
 """
 import re
 
+from vela import schema as vault_schema
 from vela.decisions import textedit
 from vela.decisions.schema import Write
 
 FOLDER = "13-epics"
 DOT = "  ·  "
-HANDLE_IN = re.compile(r"@[A-Za-z0-9][A-Za-z0-9-]*(?:/[A-Za-z0-9._-]+)?")
+HANDLE_IN = re.compile(vault_schema.HANDLE)
 
 FIELDS = {"id": "an existing epic's ID to add a criterion to; leave null for a new epic",
           "title": "a new epic's title, in plain words",

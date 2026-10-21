@@ -11,10 +11,10 @@ is never drawn.
 """
 import re
 
-from vela import attention, model, progress
+from vela import attention, model, progress, schema
 from .record import plain, refs_in
 
-HANDLE = re.compile(r"@[a-z0-9][a-z0-9-]*", re.I)
+HANDLE = re.compile(rf"@{schema.HANDLE_NAME}")
 NOTHING = re.compile(r"^\s*nothing", re.I)
 HISTORY_LABELS = ("Decision", "Options considered", "Decided by", "Confirmed by", "Dissent", "Override")
 ACRONYMS = {"ceo": "CEO", "cto": "CTO", "cio": "CIO", "ciso": "CISO", "cfo": "CFO", "coo": "COO", "dpo": "DPO",
@@ -53,7 +53,7 @@ def who_to_ask(unknown, handles):
                 "rule": f"{human(key) if h else recorded}, named on the question"}
     paren = " ".join(re.findall(r"\(([^)]*)\)", owner))
     owner_role = paren.split(",")[0].split(";")[0].strip() if paren else ""
-    m = re.search(r"asking (@[a-z0-9-]+)", paren, re.I)
+    m = re.search(rf"asking (@{schema.HANDLE_NAME})", paren)
     if m:
         return {**base, "key": m.group(1), "name": human(m.group(1)), "inferred": True,
                 "rule": f"A guess: the owner's note says to ask {human(m.group(1))}."}

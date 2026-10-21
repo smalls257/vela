@@ -12,10 +12,10 @@ import json
 import re
 from dataclasses import dataclass
 
-from vela import onboarding
+from vela import onboarding, schema
 
 FOLDER = ".vela/onboard"
-HANDLE = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})\Z")  # a GitHub login's shape, the one pattern for a handle (whoami, explore and every verb use it), so a handle can't name a path; \Z, not $, so "sam\n" is no handle
+HANDLE = re.compile(rf"^(?=.{{1,39}}\Z){schema.HANDLE_NAME}\Z")  # a GitHub login's shape, the one pattern for a handle (whoami, explore and every verb use it), so a handle can't name a path; \Z, not $, so "sam\n" is no handle
 DEPTHS = ("gist", "normal", "everything")
 KEYS = {"audience", "modules", "depth", "diagrams", "broughtBack"}
 
