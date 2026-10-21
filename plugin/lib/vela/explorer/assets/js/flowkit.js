@@ -35,6 +35,7 @@ const FlowKit = (() => {
   }
   /* A flow whose steps never say who sends: every arrow is drawn from the contract's provider. On a call an arrow
      reads as fact, so such a flow carries one line saying so (a flow with some named senders is labeled per arrow). */
+  const UNRECORDED = "Who sends to whom isn't recorded.";
   const INFERRED_NOTE = "The flow page doesn't say who sends each step, so the arrows are a guess. Say who sends in the step text.";
   function inferredNote(key) {
     const msgs = FLOW[key].steps.flatMap((stp) => stp.messages);
@@ -51,7 +52,7 @@ const FlowKit = (() => {
     }
     if (step.self && LANE_INDEX[step.self] !== undefined) return [{ kind: "self", lane: step.self }];
     if (step.ref) return [{ kind: "ref", ref: step.ref }];
-    return [{ kind: "note" }];
+    return [{ kind: "note", unrecorded: !!step.unrecorded }];
   }
   const openPins = (step) => step.unknowns.filter((p) => ASK[p.id] && ASK[p.id].state === "open");
   function flowQuestions(flow) {
@@ -83,7 +84,7 @@ const FlowKit = (() => {
     guess: (k) => `italic 400 ${px(10.5, k)}px ${SERIF}`, lane: (base, k) => `600 ${px(base, k)}px ${UI}`,
   };
   const leading = (k, base = 12.5) => Math.round(px(base, k) * 1.3);
-  const SAY_PREFIX = /^[^:→]{1,80}→[^:]{1,80}:\s+/;
+  const SAY_PREFIX = /^[^:→]{1,80}(?:→|->)[^:]{1,80}:\s+/;
   const plainShort = (step) => step.short.replace(SAY_PREFIX, "").replace(/\s*…$/, "").replace(/\.$/, "");
   /* What a step says in the flow's own words, whole: the step's text without its sender-to-receiver prefix and without "over <contract>". */
   const stepSays = (step) => step.says || plainShort(step);
@@ -91,7 +92,7 @@ const FlowKit = (() => {
      ("... and gets a reading token"), and otherwise names the contract it travels over. */
   function sayOf(step, u) {
     const m = u.msg;
-    if (u.kind === "reply" && m.kind !== "answer") return m.answer || `replies over ${CONTRACT[m.contract].title}`;
+    if (u.kind === "reply" && m.kind !== "answer") return m.answer || (CONTRACT[m.contract] ? `replies over ${CONTRACT[m.contract].title}` : "replies");
     return m.says || stepSays(step);
   }
   /* The caption for present mode and clips: the step's short text, or its whole sentence when the short one was cut at a clause. */
@@ -103,13 +104,20 @@ const FlowKit = (() => {
     while (box.fit && G.needH > box.h && k > 0.5) { k *= 0.94; G = layoutAt(flow, box, k); }
     return G;
   }
+  /* A lane the plan does not know (a gap) says so under its name: it is drawn, never dropped, and never passed off as an app. */
   function laneLabel(lane, width, on, k) {
+    const base = laneLabelOf(lane, width, on, k);
+    if (!lane.gap) return base;
+    const lines = [...base.lines, NOT_IN_PLAN];
+    return { ...base, lines, h: Math.max(base.h, lines.length * leading(k, 12) + 14 * k) };
+  }
+  const NOT_IN_PLAN = "not in the plan";
+  function laneLabelOf(lane, width, on, k) {
     const name = lane.full || lane.name;
-    if (!on && width < 64 * k) return { mark: true, lines: [], h: 32 * k, width };
     const room = Math.max(40 * k, width - 40 * k);
     for (const base of [14, 12]) { MEASURE.font = FONT.lane(base, k); if (MEASURE.measureText(name).width <= room) return { font: FONT.lane(base, k), lines: [name], h: 32 * k, width }; }
     MEASURE.font = FONT.lane(12, k);
-    // A narrow (idle) column still keeps whole words: the pill may be wider than its column rather than break a word.
+    // A narrow column still keeps whole words: the pill may be wider than its column rather than break a word.
     const lines = wrap(MEASURE, name, Math.max(room, ...name.split(/\s+/).map((t) => MEASURE.measureText(t).width)));
     return { font: FONT.lane(12, k), lines, h: Math.max(32 * k, lines.length * leading(k, 12) + 14 * k), width };
   }
@@ -133,10 +141,11 @@ const FlowKit = (() => {
       const reach = Math.abs(x2 - x1);
       MEASURE.font = FONT.say(k);
       r.lines = wrap(MEASURE, sayOf(step, u), Math.max(70 * k, reach - 24 * k)); r.lh = lh;
-      r.chip = u.kind === "msg" && !r.noChip ? chipOf(CONTRACT[u.msg.contract], Math.max(60 * k, reach - 34 * k), k) : null;
+      r.chip = u.kind === "msg" && !r.noChip && CONTRACT[u.msg.contract] ? chipOf(CONTRACT[u.msg.contract], Math.max(60 * k, reach - 34 * k), k) : null;
       r.guessed = u.kind === "msg" && u.msg.direction !== "stated";
+      r.noContract = u.kind === "msg" && !u.msg.contract;  // a recorded pair that names no contract: a plain arrow, said so under its words
       r.up = (r.chip ? r.chip.h + 6 * k : 0) + 8 * k;
-      r.down = 8 * k + r.lines.length * lh + (r.guessed ? leading(k, 10.5) + 2 * k : 0) + 5 * k;
+      r.down = 8 * k + r.lines.length * lh + (r.guessed || r.noContract ? leading(k, 10.5) + 2 * k : 0) + 5 * k;
     } else if (u.kind === "self") {
       const X = G.laneX[LANE_INDEX[u.lane]], lw = 34 * k;
       r.room = Math.max(80 * k, Math.min(G.colW * 1.8, G.x + G.w - (X + lw + 8 * k) - 8 * k));
@@ -147,16 +156,17 @@ const FlowKit = (() => {
       r.x0 = xs.length ? Math.min(...xs) - G.colW * 0.32 : G.x + G.gutter; r.x1 = xs.length ? Math.max(...xs) + G.colW * 0.32 : G.x + G.w - 10;
       const ref = u.ref && FLOW[u.ref];
       MEASURE.font = FONT.say(k); r.lines = wrap(MEASURE, ref ? `Repeats “${E[u.ref].title}”` : stepSays(step), Math.max(80 * k, r.x1 - r.x0 - 24 * k)); r.lh = lh;
-      r.bh = Math.max(26 * k, r.lines.length * lh + 12 * k); r.up = r.down = r.bh / 2 + 4 * k;
+      r.marker = !ref && u.unrecorded ? UNRECORDED : "";  // several lanes and no recorded pair: said on the band, never drawn as an arrow
+      if (r.marker) { MEASURE.font = FONT.guess(k); r.markerLines = wrap(MEASURE, r.marker, Math.max(80 * k, r.x1 - r.x0 - 24 * k)); }
+      r.bh = Math.max(26 * k, (r.lines.length + (r.markerLines ? r.markerLines.length : 0)) * lh + 12 * k); r.up = r.down = r.bh / 2 + 4 * k;
     }
   }
   function layoutAt(flow, box, k) {
     const { x, y, w, h: ht } = box;
     const gutter = 46 * k, bottomPad = 10 * k;
     const touched = touchedLanes(flow);
-    // Untouched lanes keep their place but narrow; past ten lanes they narrow to a mark, so the touched ones get the room.
-    const idle = lanes.length > 10 ? 0.22 : 0.5;
-    const weight = lanes.map((l) => (touched.has(l.id) ? 1 : idle));
+    // Only the lanes this flow's steps touch are drawn, in the map's order, and they share the whole width. Any other lane is not drawn at all.
+    const weight = lanes.map((l) => (touched.has(l.id) ? 1 : 0));
     const unit = (w - gutter) / Math.max(1, weight.reduce((a, b) => a + b, 0));
     let acc = x + gutter;
     const laneX = weight.map((wt) => { const c = acc + (wt * unit) / 2; acc += wt * unit; return c; });
@@ -172,7 +182,7 @@ const FlowKit = (() => {
       const same = before.u.msg.contract === r.u.msg.contract && new Set([before.u.from, before.u.to, r.u.from, r.u.to]).size === 2;
       if (same) r.noChip = true;
     });
-    const G = { x, y, w, s: k, gutter, headerH, colW: unit, idle, laneX, rows, top, touched, flow, names };
+    const G = { x, y, w, s: k, gutter, headerH, colW: unit, laneX, rows, top, touched, flow, names };
     rows.forEach((r) => measureRow(r, flow, G));
     const stepGap = 12 * k, rowGap = 4 * k;
     const gapBefore = (r, i) => (i === 0 ? 0 : r.si !== rows[i - 1].si ? stepGap : rowGap);
@@ -216,31 +226,27 @@ const FlowKit = (() => {
     const { s: k, flow } = G, Dt = st.D ?? 0.8, hits = [], cur = st.cur, tau = st.tau ?? 99, still = reducedMotion() && !st.recording;
     const curTiming = flow.steps[cur] ? stepTiming(flow.steps[cur], Dt) : [];
     const hl = st.highlight ? new Set(st.highlight) : null;
+    const absent = (lane) => !G.touched.has(lane.id);
     lanes.forEach((lane, i) => {
+      if (absent(lane)) return;
       const X = G.laneX[i], y0 = G.y + G.headerH + 4 * k, y1 = G.bottom;
       let amp = 0, dt = 0;
       if (!still) for (const { u, t1, t0 } of curTiming) {
         const hitLane = u.kind === "self" ? u.lane : u.to, ta = u.kind === "self" ? t0 + Dt * 0.45 : t1;
         if (hitLane === lane.id && tau >= ta && tau < ta + 1.6) { dt = tau - ta; amp = 5.5 * k * Math.exp(-dt / 0.38); }
       }
-      const on = G.touched.has(lane.id);
-      ctx.strokeStyle = hexA(laneColor(lane.id), on ? 0.45 : 0.14); ctx.lineWidth = on ? 1.6 * k : 1 * k;
+      ctx.strokeStyle = hexA(laneColor(lane.id), 0.45); ctx.lineWidth = 1.6 * k;
+      ctx.setLineDash(lane.gap ? [6 * k, 5 * k] : []);
       ctx.beginPath();
       for (let j = 0; j <= 40; j++) { const yy = y0 + ((y1 - y0) * j) / 40, off = amp * Math.sin((Math.PI * j) / 40) * Math.sin(2 * Math.PI * 7 * dt); j ? ctx.lineTo(X + off, yy) : ctx.moveTo(X + off, yy); }
-      ctx.stroke();
+      ctx.stroke(); ctx.setLineDash([]);
     });
     lanes.forEach((lane, i) => {
-      const X = G.laneX[i], on = G.touched.has(lane.id), width = on ? G.colW : G.colW * G.idle;
-      if (st.seen) { st.seen.add("flow.lane"); if (!on) st.seen.add("flow.lane.idle"); }
+      if (absent(lane)) return;
+      const X = G.laneX[i];
+      if (st.seen) st.seen.add("flow.lane");
       const lab = G.names[i];
-      ctx.save(); ctx.globalAlpha = on ? 1 : 0.4;
-      if (lab.mark) {  // too narrow for a name: a mark in its place, the name on hover
-        ctx.beginPath(); ctx.arc(X, G.y + 22 * k, 4 * k, 0, 7);
-        if (lane.kind === "partner") { ctx.strokeStyle = laneColor(lane.id); ctx.lineWidth = 1.5 * k; ctx.stroke(); } else { ctx.fillStyle = laneColor(lane.id); ctx.fill(); }
-        ctx.restore();
-        hits.push({ type: "lane", id: lane.id, x: X - width / 2, y: G.y + 6 * k, w: width, h: 32 * k });
-        return;
-      }
+      ctx.save();
       // A name too long for one line wraps (layout measured it), so the pill grows taller before the name is ever cut.
       ctx.font = lab.font;
       const lines = lab.lines, lhL = leading(k, 12), tw = Math.max(...lines.map((t) => ctx.measureText(t).width));
@@ -250,7 +256,8 @@ const FlowKit = (() => {
       if (hl && hl.has(lane.id)) glow = Math.max(glow, 0.7);
       if (glow > 0.02 && (glowOn() || st.recording)) { ctx.shadowColor = hexA(laneColor(lane.id), 0.75 * glow); ctx.shadowBlur = 24 * k * glow; }
       rr(ctx, bx, by, bw, bh, bh / 2); ctx.fillStyle = C.deck2; ctx.fill(); ctx.shadowBlur = 0;
-      ctx.strokeStyle = hexA(laneColor(lane.id), 0.45 + 0.5 * glow); ctx.lineWidth = (hl && hl.has(lane.id) ? 2 : 1) * k; ctx.stroke();
+      ctx.strokeStyle = hexA(laneColor(lane.id), 0.45 + 0.5 * glow); ctx.lineWidth = (hl && hl.has(lane.id) ? 2 : 1) * k;
+      ctx.setLineDash(lane.gap ? [5 * k, 4 * k] : []); ctx.stroke(); ctx.setLineDash([]);
       const dx = bx + 16 * k, dy = by + bh / 2, img = st.images !== false && emblemImg[lane.id];
       if (img && img.complete && img.naturalWidth) { ctx.save(); ctx.beginPath(); ctx.arc(dx, dy, 9 * k, 0, 7); ctx.clip(); ctx.drawImage(img, dx - 9 * k, dy - 9 * k, 18 * k, 18 * k); ctx.restore(); }
       // no emblem: the lane's own glyph, in the lane's color, so the color still says which lane it is
@@ -347,6 +354,10 @@ const FlowKit = (() => {
         ctx.font = FONT.guess(k); ctx.fillStyle = C.heuristic; ctx.textAlign = "center"; ctx.textBaseline = "top";
         say(ctx, st, "direction guessed", mid, y + 9 * k + r.lines.length * r.lh + 2 * k);
       }
+      if (r.noContract && phase !== "future" && st.labels !== false) {
+        ctx.font = FONT.guess(k); ctx.fillStyle = C.muted; ctx.textAlign = "center"; ctx.textBaseline = "top";
+        say(ctx, st, "no contract named", mid, y + 9 * k + r.lines.length * r.lh + 2 * k);
+      }
       ctx.globalAlpha = 1;
       hits.push({ type: "row", si: r.si, line: y, x: Math.min(x1, x2), y: y - r.up, w: Math.abs(x2 - x1), h: r.up + r.down });
     } else if (u.kind === "self") {
@@ -375,7 +386,10 @@ const FlowKit = (() => {
       if (step.differs && st.seen) st.seen.add("flow.differs");
       const ref = u.ref && FLOW[u.ref];
       ctx.font = FONT.say(k); ctx.textBaseline = "middle"; ctx.textAlign = "center"; ctx.fillStyle = C.ink;
-      r.lines.forEach((t, j) => say(ctx, st, t, (x0 + x1) / 2, y - r.lines.length * r.lh / 2 + (j + 0.5) * r.lh));
+      const more = r.markerLines || [], top = y - (r.lines.length + more.length) * r.lh / 2;
+      r.lines.forEach((t, j) => say(ctx, st, t, (x0 + x1) / 2, top + (j + 0.5) * r.lh));
+      ctx.font = FONT.guess(k); ctx.fillStyle = C.heuristic;
+      more.forEach((t, j) => say(ctx, st, t, (x0 + x1) / 2, top + (r.lines.length + j + 0.5) * r.lh));
       ctx.globalAlpha = 1;
       hits.push({ type: ref ? "ref" : "row", id: ref && u.ref, si: r.si, x: x0, y: y - bh / 2, w: x1 - x0, h: bh });
     }
@@ -575,10 +589,9 @@ const FlowKit = (() => {
   Legend.define("flow.pin", [{ k: "dot", fill: "caution", r: 4.5 }], "Glowing dot at a step: an open question about this step, in its status color");
   Legend.define("flow.pin.settled", [{ k: "dot", fill: "room", stroke: "ink-3", w: 1.3, r: 5 }, { k: "text", t: "✓", fill: "ink-3", y: 11, size: 8 }], "Ring with a check mark: a question about this step that's been answered");
   Legend.define("flow.lane", [bx({ fill: "deck-2", stroke: "ink-3", w: 1.2, rx: 4.5, y: 3.5, height: 9 }), { k: "dot", fill: "ink-2", x: 9, r: 2 }], "Pill at the top: one app or outside service, in its own color");
-  Legend.define("flow.lane.idle", [bx({ fill: "deck-2", stroke: "ink-3", w: 1.2, rx: 4.5, y: 3.5, height: 9, opacity: 0.4 })], "Faded pill: this app or service takes no part in the flow");
   Legend.define("flow.differs", [ln({ stroke: "caution", w: 2.2, head: "fill" }), bx({ stroke: "caution", w: 1.4, rx: 4, x: 9, y: 1, width: 14, height: 5 })], "Amber: differs from the happy path, on the branch chosen in Show");
   Legend.define("flow.stepno", [{ k: "dot", fill: "ink", r: 5.5 }, { k: "text", t: "2", fill: "room", y: 11, size: 8 }], "Numbered circle at the left: a step; the one playing is filled");
-  const LOOK_ORDER = ["flow.stated", "flow.inferred", "flow.reply", "flow.self", "flow.band", "flow.future", "flow.chip", ...Legend.LAMPS.map((lv) => "lamp." + lv), "flow.pin", "flow.pin.settled", "flow.lane", "flow.lane.idle", "flow.stepno", "flow.differs"];
+  const LOOK_ORDER = ["flow.stated", "flow.inferred", "flow.reply", "flow.self", "flow.band", "flow.future", "flow.chip", ...Legend.LAMPS.map((lv) => "lamp." + lv), "flow.pin", "flow.pin.settled", "flow.lane", "flow.stepno", "flow.differs"];
   function census(flow) {
     const seen = new Set(), canvas = document.createElement("canvas");
     canvas.width = 1040; canvas.height = 700;
@@ -611,13 +624,13 @@ const FlowKit = (() => {
     if (has(({ u }) => u.kind === "self")) out.add("flow.self");
     if (has(({ u }) => u.kind === "ref" || u.kind === "note")) out.add("flow.band");
     if (has(({ u, si }) => si >= 1 && (u.kind === "msg" || u.kind === "self"))) out.add("flow.future");
-    for (const { u } of units) if (u.kind === "msg") { out.add("flow.chip"); const lv = levelOf(u.msg.contract); if (lv !== "dark") out.add("lamp." + lv); }
+    for (const { u } of units) if (u.kind === "msg" && CONTRACT[u.msg.contract]) { out.add("flow.chip"); const lv = levelOf(u.msg.contract); if (lv !== "dark") out.add("lamp." + lv); }
     for (const step of flow.steps) for (const pin of step.unknowns) {
       if (!ASK[pin.id]) continue;
       const lv = unknownLevel(pin.id);
       if (lv === "resolved" || lv === "dark") out.add("flow.pin.settled"); else { out.add("flow.pin"); out.add("lamp." + lv); }
     }
-    out.add("flow.lane"); if (lanes.some((l) => !touchedLanes(flow).has(l.id))) out.add("flow.lane.idle");
+    out.add("flow.lane");
     if (flow.steps.length) out.add("flow.stepno");
     if (flow.steps.some((step) => step.differs && unitsOf(step).some((u) => u.kind !== "ref"))) out.add("flow.differs");
     return out;

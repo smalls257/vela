@@ -125,3 +125,11 @@ def test_import_map_has_a_library_block_with_counts_kept_and_links():
     assert "a **Library** block" in IMPORT
     assert "how many sources by type" in IMPORT and "which local files would be kept" in IMPORT
     assert "which stay as links" in IMPORT
+
+
+def test_import_settles_the_flow_end_codes_with_the_lead_before_the_session_closes():
+    # Flow steps whose ends are not apps or parties used to be drawn as an app sending to itself.
+    assert "`Sender -> Receiver: ...`" in IMPORT
+    assert "settle E351, W354 and W374 from `vela check` with the lead" in IMPORT
+    assert "an outside actor becomes a party (`vela add subject --subject-type PTY`) only on their yes" in IMPORT
+    assert "flow-end codes settled" in IMPORT.split("## Done only when", 1)[1]

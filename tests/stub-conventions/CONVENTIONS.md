@@ -596,7 +596,7 @@ Run `vela check` from the vault root. It reads, never writes, and never stops at
 
 The table is generated from the codes `vela check` uses, so it cannot drift from them, and each finding's fix line says how to put it right. `vela upgrade` brings a vault's copy up to date.
 
-<!-- generated:check-codes sha=d5e4d5b2: do not edit, run vela render -->
+<!-- generated:check-codes sha=a2ae549c: do not edit, run vela render -->
 | Code | Finding |
 |---|---|
 | E101 | page has no frontmatter |
@@ -661,9 +661,11 @@ The table is generated from the codes `vela check` uses, so it cannot drift from
 | W348 | a release's Slices names no slice page, or a slice's Milestone names a release that does not list it |
 | W349 | an early-idea release has no Target yet |
 | E350 | flow step names a sender or receiver its contract does not join |
+| E351 | flow step names a sender or receiver that is neither an app in the plan nor a registered outside party |
 | W351 | flow step links a contract but names no sender and receiver |
 | W352 | app has no domain though other apps in a large initiative do |
 | W353 | two domains differ only by case or a trailing s |
+| W354 | flow step writes an app as plain text where a link belongs |
 | W355 | unknown asks the person who owns it |
 | W356 | changing capability has no functional requirements |
 | W357 | functional requirement lists no acceptance criteria |
@@ -684,6 +686,7 @@ The table is generated from the codes `vela check` uses, so it cannot drift from
 | W371 | two or more openings above the first heading, over 150 words together |
 | W372 | a British spelling in the page's own words |
 | W373 | a concern page pads what is not looked at: a sentence in an unexamined row's Why cell, or a Strategy section that only says none is set |
+| W374 | flow step names two or more apps or parties but not who hands what to whom |
 | W380 | contract has no case table |
 | W381 | a case table row, or a Can time out, Retries or Idempotent line, cannot be read |
 | W382 | two cases of one contract share a key |
@@ -910,6 +913,8 @@ A flow page lists its journey under `## Steps`, one numbered line per step. A st
 ```
 
 `->` reads the same as `→`. An outside party is named by its name or by a link to its party page. The pair is the recorded direction: the explorer draws it as stated, and guesses a direction only for a step without one. A step with no hand-over, such as a rider opting in, needs no pair. `vela check` reports E350 when the sender or receiver is not a party the linked contract joins (its provider, an outside **Provider:**, or a consumer), or when both ends are the same, and W351 when a step links a contract and names no pair.
+
+Both ends of a pair are an app in the plan or an outside party the plan knows. `vela check` reports E351 when an end is neither (link the app's page, or add the party with `vela add subject --subject-type PTY`), and W354 when an app is written as plain text where a link belongs (the message gives the link to write). W374 warns when a step names two or more apps or parties but has no pair and links no contract, because who hands what to whom is not recorded. The dashboard draws a recorded pair as an arrow even when the step names no contract, gives an end the plan doesn't know its own dashed lane marked "not in the plan", and draws a step as one app's own action only when it names exactly one lane and no pair.
 
 ## Flow check
 

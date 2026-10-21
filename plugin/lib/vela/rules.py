@@ -1041,6 +1041,31 @@ def flow_sender_rules(vault, today):
                 break
 
 
+def flow_end_rules(vault, today):
+    """E351, W354 and W374. Each end of a step's sender-to-receiver pair must be an app in the plan or an outside
+    party the plan knows, and an app is a link: the explorer draws the step between lanes it recognizes, and an end it
+    cannot place would vanish or be drawn as a guess (a Silent Fallback). A step that names two or more lanes and
+    gives no pair and no contract leaves who hands what to whom unrecorded."""
+    outside = flows.outside_names(vault)
+    for step in flows.steps(vault):
+        if not step.pair:
+            if not step.contracts and len(flows.lanes_named(vault, step)) >= 2:
+                yield _f(step.page, step.line, "W374", f"Step {step.number} names more than one app or party but not who hands what "
+                         "to whom, so the dashboard can't draw an arrow.",
+                         "Start the step with 'Sender -> Receiver:', or split it into one step for each hand-over.")
+            continue
+        for role, text in zip(("sender", "receiver"), step.pair):
+            kind = flows.end_kind(vault, step.page, text, outside)
+            if kind == flows.UNKNOWN:
+                yield _f(step.page, step.line, "E351", f"Step {step.number} names '{text}' as the {role}, and that is neither an app "
+                         "in the plan nor an outside party the plan knows.",
+                         "If it is an app, link its page, such as [[rider-app-building-blocks|Rider app]]. If it is an outside "
+                         f"party, add it with `vela add subject --subject-type PTY --name \"{text}\"` once the lead agrees.")
+            elif kind == flows.APP_PLAIN:
+                yield _f(step.page, step.line, "W354", f"Step {step.number} writes '{text}' as plain text, and it is an app in the plan.",
+                         f"Write the link: {flows.app_link(vault, step.page, text)}")
+
+
 def flow_capability_rules(vault, today):
     """W358 and E359. A flow's `capabilities:` is what groups it in the explorer's flow picker, first one primary. A
     vault that has capability pages should say which one each journey serves (a warning: the picker guesses from the
@@ -1462,5 +1487,5 @@ def link_pipe_rules(vault, today):
 
 
 RULES = (parse_errors, frontmatter_rules, duplicate_rules, link_rules, reference_rules, table_rules,
-         history_rules, page_state_rules, stale_mention_rules, allocation_rules, release_rules, slice_rules, flow_sender_rules, flow_capability_rules, domain_rules, ask_rules, requirement_coverage_rules, contract_rules, case_table_rules, handoff_rules, deferral_rules, why_rules, wording_rules, requirement_rules, unknown_rules, risk_rules, subject_rules, question_rules, certainty_rules, stage_rules, concern_rules,
+         history_rules, page_state_rules, stale_mention_rules, allocation_rules, release_rules, slice_rules, flow_sender_rules, flow_end_rules, flow_capability_rules, domain_rules, ask_rules, requirement_coverage_rules, contract_rules, case_table_rules, handoff_rules, deferral_rules, why_rules, wording_rules, requirement_rules, unknown_rules, risk_rules, subject_rules, question_rules, certainty_rules, stage_rules, concern_rules,
          diagram_rules, block_rules, trace_rules, freshness_rules, link_field_rules, link_pipe_rules, reading_load_rules)

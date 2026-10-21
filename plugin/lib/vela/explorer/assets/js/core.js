@@ -264,6 +264,7 @@ function ent(key) {
   }
   if (key && key.startsWith("grill:")) return typeof Grills !== "undefined" ? Grills.entry(key) : null;  // a grill waiting, as the Grills waiting view lists it
   if (key && key.startsWith("lib:")) return typeof Library !== "undefined" ? Library.entry(key) : null;  // a Library row, whatever page cites it
+  if (key && key.startsWith("gap:")) { const l = D.lanes[LANE_INDEX[key]]; return l ? { key, kind: "gap", title: l.name, id: "" } : null; }  // an end a flow step names that the plan doesn't know
   if (EXTERNAL[key]) return { key, kind: "external", title: EXTERNAL[key].title, id: "" };
   if (key === "lights") return { key, kind: "lights", title: "What's waiting", id: "" };
   if (key && key.startsWith("inside:")) return typeof Inside !== "undefined" ? Inside.ent(key) : null;
@@ -364,6 +365,7 @@ function touch(key, flow, why) {
 for (const f of D.flows) {
   for (const r of f.refs) { touch(r, f.key, "linked from the flow page"); if (RUNTIME_TO_APP[r]) touch(RUNTIME_TO_APP[r], f.key, "linked from the flow page"); }
   for (const st of f.steps) {
+    for (const m of st.messages) if (!m.contract) { touch(m.from, f.key, `step ${st.n} sends it`); touch(m.to, f.key, `step ${st.n} sends it`); }  // a recorded pair that names no contract
     for (const c of st.contracts) {
       touch(c, f.key, `step ${st.n} sends over it`);
       const con = CONTRACT[c];
@@ -390,9 +392,16 @@ function firstStepTouching(f, key) {
     || st.unknowns.some((p) => p.id === k));
   return Math.max(0, i);
 }
+/* The lanes a step draws: its senders and receivers, or the app it happens in. The minimap and the lanes follow this one set. */
+function laneEnds(st) {
+  const ends = new Set();
+  for (const m of st.messages) { ends.add(m.from); ends.add(m.to); }
+  if (st.self) ends.add(st.self);
+  return ends;
+}
 function flowStations(f) {
   const out = [];
-  for (const st of f.steps) for (const k of stepEnds(st)) if (NODE[k] && !out.includes(k)) out.push(k);
+  for (const st of f.steps) for (const k of laneEnds(st)) if (NODE[k] && !out.includes(k)) out.push(k);
   return out;
 }
 

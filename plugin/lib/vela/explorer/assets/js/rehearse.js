@@ -312,7 +312,8 @@ const Rehearse = (() => {
   function realUnits(f) {
     const out = [];
     f.steps.forEach((x) => {
-      if (x.messages.length) x.messages.forEach((m) => out.push({ kind: "msg", from: m.from, to: m.to, contract: m.contract, direction: m.direction, n: x.n, short: x.short }));
+      const sent = x.messages.filter((m) => m.contract);  // the drill rebuilds a flow from its contracts: a pair that names none is left to the context rows
+      if (sent.length) sent.forEach((m) => out.push({ kind: "msg", from: m.from, to: m.to, contract: m.contract, direction: m.direction, n: x.n, short: x.short }));
       else if (x.self) out.push({ kind: "self", lane: x.self, n: x.n, short: x.short });
       else out.push({ kind: "context", n: x.n, short: x.short, ref: x.ref });
     });

@@ -80,7 +80,7 @@ Then run `vela render`, `vela check --fix W326` and `vela check --for-lead`. Two
 - a fact that names points, a clause, a license or the like, with no subject of that kind typed (W809): offer to type the subject with the facts the lead gives (`vela add subject`), or to answer the existence question in the ledger;
 - a ledger row that no longer fits its subject, or covers nothing (W804): offer to fix the row or keep it as a record. Never delete it without a yes.
 
-Fix each error with the lead. An override the check can't read: fix its grammar, never delete it. Never delete a ledger row or an override to quiet the check; the gate stops a close that did. If the lead leaves an error in place, say CI will block the merge until it's fixed.
+Flow steps whose sender or receiver is no app or party the plan knows (E351), an app written as plain text (W354) or two apps with no recorded sender (W374) get fixed with the lead before the session closes; an outside actor becomes a party only on their yes. Fix each error with the lead. An override the check can't read: fix its grammar, never delete it. Never delete a ledger row or an override to quiet the check; the gate stops a close that did. If the lead leaves an error in place, say CI will block the merge until it's fixed.
 
 ## 7. Finish and send
 

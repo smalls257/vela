@@ -170,9 +170,10 @@ const PlanDetails = (() => {
   const personLabel = (who) => { const u = askedOf(who)[0]; return u ? u.ask.name : personName(who); };
   const isQuestion = (k) => !!(UNKNOWN[k] && ASK[k]);
   const kindOf = (k) => (ent(k) || {}).kind;
+  const isGap = (k) => kindOf(k) === "gap";
   const isOutside = (k) => ["party", "external"].includes(kindOf(k));
   const isRelease = (k) => k.startsWith("release:") && !!ent(k);
-  const owns = (k) => isStep(k) || !!whoOf(k) || !!CONTRACT[k] || isQuestion(k) || isOutside(k) || !!APPS[k] || isRelease(k);
+  const owns = (k) => isStep(k) || !!whoOf(k) || !!CONTRACT[k] || isQuestion(k) || isOutside(k) || isGap(k) || !!APPS[k] || isRelease(k);
   const label = (k) => {
     if (whoOf(k)) return personLabel(whoOf(k));
     if (isStep(k)) { const p = parseStep(k), s = FlowKit.flowOf(p.flow).steps[p.i]; return s ? `Step ${s.n}: ${s.short}` : "A step"; }
@@ -262,6 +263,17 @@ const PlanDetails = (() => {
         Library.backlinks(key), Grills.readyLine(key),
         h("div", { class: "p-note" }, "An outside service has no status of its own. Check the contracts that connect to it."),
         readLink(key))];
+  }
+
+  /* ---- a name a flow step uses that the plan has no app or outside party for: say what to do about it */
+  function gapNodes(key, view) {
+    const flows = flowsFor(key).filter((r) => FLOW[r.flow]);
+    return [head("Not in the plan", titleOf(key)),
+      h("div", { class: "p-body", "data-gap-panel": key },
+        sec("What to do", null, h("div", {}, `A flow step names "${titleOf(key)}" as a sender or receiver, and the plan has no app or outside party by that name.`),
+          bullets([["If it is an app, write its link in the step, such as [[rider-app-building-blocks|Rider app]]."],
+            ["If it is an outside party, ask Claude to add it as a party. It needs your yes first. The lane then stops being dashed."]])),
+        sec("Flows it appears in", flows.length || null, flows.length ? flows.map((r) => flowRow(r.flow, key, view)) : quiet("No flow names it yet.")))];
   }
 
   /* ---- a question: what is asked, who answers and by when, and what it holds up */
@@ -354,6 +366,7 @@ const PlanDetails = (() => {
     if (whoOf(key)) return personNodes(key, view);
     if (CONTRACT[key]) return contractNodes(key, view);
     if (isQuestion(key)) return questionNodes(key, view);
+    if (isGap(key)) return gapNodes(key, view);
     if (isOutside(key)) return outsideNodes(key, view);
     if (isRelease(key)) return releaseNodes(key, view);
     return appNodes(key);

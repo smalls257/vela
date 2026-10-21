@@ -44,7 +44,7 @@ The user corrects the map. Write nothing until they have.
 
 ## 3. Work the queue
 
-`vela import next --for-lead` gives the next batch, about four, each with your proposal. Ask them in one turn. Capture the answer, settle each by its number (`vela import close 1 --as decided --how "<a line>"`, or the outcome the lead chose), and only then ask for the next batch.
+`vela import next --for-lead` gives the next batch, about four, each with your proposal, asked in one turn. Capture the answer, settle each by its number (`vela import close 1 --as decided --how "<a line>"`, or the outcome the lead chose), and only then ask for the next batch.
 
 - **A stated decision the lead says yes to** is decided, citing the document: `vela decide <ID> --readback <capture> --yes <capture> --stated-in <SRC>`. One they aren't sure of stays an `assumption`, the document noted. Never write `decided` any other way.
 - **A clash** goes the way the lead picks. If they don't know, both sides become one open question naming both sources: `vela add unknown --name "<name>" --owner <handle> --for-lead`, and an ask-by date only if the lead gives one.
@@ -55,7 +55,8 @@ Write pages in the format `vela conventions "<section>"` gives, committing after
 - Every line cites its source. `exists` or `repo` gives a `fact`, `intends` an `assumption` (an `inkling` if vague), and anything about the future is an `assumption`.
 - A requirement, a contract or legal term, a number or a direct quote keeps the source's words, as `> "<their words>"` with the source linked. Explaining sentences follow `house-voice` on a page the lead agreed to voice.
 - Don't build case tables, strict diagrams or slices from imported material unless the source states them; leave those for boundary and grill, and let the warnings show.
-- A gap stays a gap. General knowledge is never a source.
+- A gap stays a gap; general knowledge is no source.
+- Write a hand-over step as `Sender -> Receiver: ...`, with linked apps or registered parties. Before closing, settle E351, W354 and W374 from `vela check` with the lead: link plain-text apps; an outside actor becomes a party (`vela add subject --subject-type PTY`) only on their yes.
 
 Keep an `## Import ledger` in the session record, one line per source, `processed` or `pending`, so a later import resumes.
 
@@ -65,9 +66,9 @@ Keep an `## Import ledger` in the session record, one line per source, `processe
 - [ ] The user corrected the map and answered the voice question (or the words stayed as written) before any page was written.
 - [ ] `vela import show --for-lead` shows nothing asked and unsettled.
 - [ ] Every written line cites a source, and every written page is stamped.
-- [ ] `vela check` has run (errors fixed, warnings listed), then `vela capture` and `vela next`.
+- [ ] `vela check` has run (errors fixed, flow-end codes settled, warnings listed), then `vela capture` and `vela next`.
 - [ ] The record holds the ledger and an `## Import report`: coverage per section (rich, thin or empty), skipped sources, open clashes, the next session.
 
 ## Ends when
 
-The checklist holds, or the user stops; write the ledger and report for what was done. In an owner's vault, run `git status` and confirm nothing under `.inbox/` is staged. Rebuild the dashboard with `vela explore` (no `--serve`). If it exits 0, say: "The dashboard is up to date: dashboard.html — open it, or run /vela:explore to ask Claude from it". If it fails, say "The dashboard could not be built: <message>." and go on; a failed build never ends the import. Then say: "Run `/vela:close` to finish the session and open the PR."
+The checklist holds, or the user stops; write the ledger and report for what was done. In an owner's vault, confirm with `git status` that nothing under `.inbox/` is staged. Rebuild the dashboard with `vela explore` (no `--serve`). If it exits 0, say: "The dashboard is up to date: dashboard.html — open it, or run /vela:explore to ask Claude from it". If it fails, say "The dashboard could not be built: <message>." and go on; a failed build never ends the import. Then say: "Run `/vela:close` to finish the session and open the PR."

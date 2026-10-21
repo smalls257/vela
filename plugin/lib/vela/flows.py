@@ -4,6 +4,10 @@ A step that crosses between two lanes begins with a sender-to-receiver pair, the
 `3. [[rider-building-blocks|Rider app]] -> [[docks-building-blocks|Dock service]]: sends the unlock code over [[...#CON-005 Dock unlock|Dock unlock]].`
 The pair is the recorded direction. Without it a reader (the explorer) can only guess the direction from the
 contract's provider and consumers. E350 and W351 read the same steps through `steps()`.
+
+Each end of a pair must be an app in the plan or an outside party the plan knows, and an app is written as a link,
+so the explorer can draw the step between two lanes it recognizes (E351, W354). A step that names several lanes and
+gives no pair, no contract, leaves the explorer unable to say who hands what to whom (W374).
 """
 import re
 from dataclasses import dataclass
@@ -114,3 +118,48 @@ def passes_through(vault, flow_ids):
             if contract.id in contract_ids and contract.id not in contracts:
                 contracts.append(contract.id)
     return apps, contracts
+
+
+APP, APP_PLAIN, PARTY, UNKNOWN = "app", "app written as plain text", "party", "unknown"
+
+
+def outside_names(vault):
+    """Lower-cased names of every outside party the plan knows: registered parties, and the providers and
+    consumers its contracts name."""
+    names = {_name(p.name) for p in vault.parties}
+    for contract in vault.contracts:
+        names |= {k for k in contract_parties(vault, contract) if not k.startswith("APP-")}
+    return names
+
+
+def end_kind(vault, page, text, outside):
+    """How one end of a pair reads: APP, APP_PLAIN (an app named without a link), PARTY, or UNKNOWN (neither an app
+    in the plan nor a party it knows)."""
+    key = endpoint(vault, page, text)
+    if key in {a.id for a in vault.apps}:
+        return APP if parse.WIKILINK.search(text) else APP_PLAIN
+    return PARTY if key in outside else UNKNOWN
+
+
+def app_link(vault, page, text):
+    """The link to write for an app named in plain text: [[rider-app-building-blocks|Rider app]]."""
+    app = vault.by_id.get(endpoint(vault, page, text), ())
+    return f"[[{app[0].name}|{' '.join(text.split())}]]" if app else ""
+
+
+def lanes_named(vault, step):
+    """Keys of the apps and outside parties a step's words name, linked or not, each once."""
+    found = []
+    text = step.raw
+    for link in parse.links_in(text, step.line):
+        target = vault.resolve(link, step.page)
+        if target is not None and target.type == "app-building-blocks" and target.id not in found:
+            found.append(target.id)
+    text = parse.WIKILINK.sub(lambda m: " ", text)
+    candidates = [(a.id, str(a.meta.get("title") or a.name)) for a in vault.apps]
+    candidates += [(_name(p.name), p.name) for p in vault.parties]
+    for key, word in candidates:
+        flags = re.I if word[:1].islower() else 0
+        if key not in found and re.search(r"(?<![\w-])" + re.escape(word) + r"(?![\w-])", text, flags):
+            found.append(key)
+    return found

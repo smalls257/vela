@@ -15,5 +15,5 @@ Consent and identity needs a tenant app registration, which the identity team ra
 ## Steps
 
 1. The CISO clears the security pack, due December 4.
-2. [[consent-and-identity-building-blocks|Consent and identity]] → the identity team: sends the registration request, in mid-December.
-3. The identity team → [[consent-and-identity-building-blocks|Consent and identity]]: raises the registration.
+2. [[consent-and-identity-building-blocks|Consent and identity]] sends the registration request to the identity team, in mid-December.
+3. The identity team raises the registration in [[consent-and-identity-building-blocks|Consent and identity]].

@@ -80,6 +80,33 @@
     }
     ok(!cut.length && !lost.length, `flows: no label on any of ${D.flows.length} flows is cut with an ellipsis, and every arrow's words are drawn whole (1040, 760 and 520 px, and the clip)`,
       `flows: labels cut or missing: ${cut.concat(lost).slice(0, 6).join("; ")}`);
+    // No arrow from an app to itself is invented: a loop on one column is drawn only for a step whose words name exactly one lane and that records no pair.
+    const loops = [];
+    for (const f of D.flows) for (const stp of f.steps) for (const u of FlowKit.unitsOf(stp)) {
+      if (u.kind === "self" && (stp.recordsPair || stp.lanesNamed !== 1 || stp.messages.length)) loops.push(`${f.key} step ${stp.n}: a loop on ${u.lane} for a step with ${stp.lanesNamed} lanes named${stp.recordsPair ? " and a pair" : ""}`);
+      if ((u.kind === "msg" || u.kind === "reply") && u.from === u.to) loops.push(`${f.key} step ${stp.n}: an arrow from ${u.from} to itself`);
+    }
+    ok(!loops.length, `flows: a loop on one app is drawn only for a step that names exactly one lane and records no pair, and no arrow runs from an app to itself (${D.flows.length} flows)`, `flows: self-arrows drawn without cause: ${loops.slice(0, 6).join("; ")}`);
+    // A lane the flow's steps don't touch is not drawn at all: no faded pill, no narrow column, no dot.
+    const extra = [];
+    for (const f of D.flows) {
+      const flow = FlowKit.flowOf(f.key), touched = FlowKit.touchedLanes(flow), ctx = document.createElement("canvas").getContext("2d");
+      const hits = FlowKit.drawScene(ctx, FlowKit.layout(flow, { x: 0, y: 6, w: 1032, h: 694, s: 1 }), { cur: flow.steps.length, tau: 99, clock: 0, D: 0.8, images: false }).filter((t) => t.type === "lane");
+      for (const t of hits) if (!touched.has(t.id)) extra.push(`${f.key}: ${t.id}`);
+      if (hits.length !== touched.size) extra.push(`${f.key}: ${hits.length} lanes drawn for ${touched.size} touched`);
+    }
+    ok(!extra.length, `flows: only the lanes a flow's steps touch are drawn, and the columns share the full width (${D.flows.length} flows)`, `flows: lanes drawn that the flow doesn't touch: ${extra.slice(0, 6).join("; ")}`);
+    const said = (flow) => FlowKit.drawnText(flow, 1040).drawn.join(" | ");
+    const gaps = D.lanes.filter((l) => l.gap), bands = D.flows.filter((f) => f.steps.some((stp) => stp.unrecorded)), bare = D.flows.filter((f) => f.steps.some((stp) => stp.messages.some((m) => !m.contract)));
+    if (gaps.length) {
+      const f = D.flows.find((x) => x.steps.some((stp) => stp.messages.some((m) => m.from === gaps[0].id || m.to === gaps[0].id)));
+      ok(!!f && said(FlowKit.flowOf(f.key)).includes(gaps[0].name + " | not in the plan"), `flows: an end the plan doesn't know ("${gaps[0].name}") has its own lane, labeled "not in the plan"`, `flows: the gap lane "${gaps[0].name}" is not drawn labeled`);
+      Nav.open("flows", f.key); Flows.select(f.key, -1); await frames(); DetailsPanel.show(gaps[0].id, { reset: true }); await frames(2);
+      const panel = $("#panel-body [data-gap-panel]");
+      ok(!!panel && /write its link/.test(panel.textContent) && /add it as a party/.test(panel.textContent) && /Not in the plan/.test($("#panel-body").textContent), "flows: a gap lane opens the panel, which says what to do", `flows: the gap lane's panel says "${$("#panel-body") && $("#panel-body").textContent.slice(0, 120)}"`);
+    }
+    if (bands.length) ok(bands.every((f) => said(FlowKit.flowOf(f.key)).includes("Who sends to whom isn't recorded.")), `flows: a step that names several lanes and records no pair is a band that says who sends to whom isn't recorded (${bands.length} flows)`, "flows: an unrecorded band is missing its words");
+    if (bare.length) ok(bare.every((f) => said(FlowKit.flowOf(f.key)).includes("no contract named")), `flows: a recorded pair with no contract draws an arrow marked "no contract named" (${bare.length} flows)`, "flows: a no-contract arrow is not marked");
     const roomy = D.flows.length ? FlowKit.drawnText(FlowKit.flowOf(D.flows[0].key), 520, 300).G : null;
     ok(!roomy || roomy.h >= roomy.needH, "flows: a flow taller than its stage grows its canvas to fit the wrapped words, and the stage scrolls", "flows: the layout is shorter than the words it holds");
     if (!keys.length) return;

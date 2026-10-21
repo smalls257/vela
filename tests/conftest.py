@@ -28,8 +28,9 @@ def run(*argv):
 
 # Findings about the example's own content that no rule under test is about: its decided items record no Why yet
 # (design 20: the example carries no reasons in the lead's words, and none are invented for it), and its flows were
-# drawn before the flow check's strict form, so each slice is not fully checked (W391) until a boundary redraws them.
-OPEN_IN_THE_EXAMPLE = ("W390", "W391")
+# drawn before the flow check's strict form, so each slice is not fully checked (W391) until a boundary redraws them. Its steps were also written before the sender-to-receiver pair, so the steps that name
+# several apps carry W374 until the lead says who hands what to whom.
+OPEN_IN_THE_EXAMPLE = ("W390", "W391", "W374")
 
 
 def findings(output, keep_open=False):

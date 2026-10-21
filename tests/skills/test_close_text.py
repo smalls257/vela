@@ -616,3 +616,7 @@ def test_close_loads_the_conversation_voice_before_its_first_command_and_questio
 def test_close_keeps_the_one_relay_line_and_the_hard_stop():
     assert "When a command can't express what the lead wants, say so and stop" in CLOSE_SKILL
     assert "Never say a PR exists unless `gh` printed its URL." in CLOSE_SKILL
+
+
+def test_close_has_flow_end_codes_fixed_with_the_lead_before_the_session_closes():
+    assert "(E351)" in CLOSE_SKILL and "(W354)" in CLOSE_SKILL and "(W374)" in CLOSE_SKILL and "only on their yes" in CLOSE_SKILL

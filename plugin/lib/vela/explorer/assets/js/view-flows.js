@@ -156,6 +156,7 @@ const Flows = (() => {
     }
     for (const m of groups) {
       const c = CONTRACT[m.contract];
+      if (!c) { facts.append(h("li", { "data-no-contract": "" }, h("i", { class: "lane-dot", style: `background:${FlowKit.laneColor(m.from)}` }), h("span", {}, h("b", {}, `${titleOf(m.from)} to ${m.to.map(titleOf).join(", ")}`), ", no contract named."))); continue; }
       facts.append(h("li", {}, h("i", { class: "lane-dot", style: `background:${FlowKit.laneColor(m.from)}` }),
         h("span", {}, h("b", {}, `${titleOf(m.from)} to ${m.to.map(titleOf).join(", ")}`), " over ", refChip(m.contract), m.kind === "request" ? ", and the answer comes back." : ".",
           m.direction === "inferred" ? h("span", { class: "heuristic", title: `The arrow is drawn from ${titleOf(c.provider)}, the contract's provider${m.to.length > 1 ? `, to all ${m.to.length} of its users` : ""}` }, " (The page doesn't say who sends this; fix the step text to say.)") : null,
@@ -163,6 +164,7 @@ const Flows = (() => {
     }
     if (!stp.messages.length && stp.self) facts.append(h("li", {}, h("i", { class: "lane-dot", style: `background:${FlowKit.laneColor(stp.self)}` }),
       h("span", {}, "Inside ", h("b", {}, titleOf(stp.self)), "; no other app is involved.")));
+    if (stp.unrecorded) facts.append(h("li", { "data-unrecorded": "" }, h("i", { class: "lane-dot named" }), h("span", { class: "heuristic" }, "The step names more than one app or party, and the page doesn't say who sends to whom. Start the step with \"Sender -> Receiver:\".")));
     for (const pin of stp.unknowns) {
       const q = ASK[pin.id]; if (!q) continue;
       const lv = unknownLevel(pin.id);
@@ -304,7 +306,7 @@ const Flows = (() => {
   function here() {
     if (!st.key || App.view !== "flows") return null;
     const f = FlowKit.flowOf(st.key);  // the branch shown, when one is picked
-    return st.cur >= 0 ? [...stepEnds(f.steps[st.cur])] : flowStations(f);
+    return st.cur >= 0 ? [...laneEnds(f.steps[st.cur])] : flowStations(f);
   }
   function highlight(key) { if (FLOW[key] && key !== st.key) select(key, -1); paintFocus(key); }
   /* ------------------------------------------------------------ the Details panel (detailspanel.js) */
@@ -356,7 +358,8 @@ const Flows = (() => {
       if (g) g.to.push(m.to); else groups.push({ ...m, to: [m.to] });
     }
     const senders = groups.map((m) => h("li", {}, h("i", { class: "lane-dot", style: `background:${FlowKit.laneColor(m.from)}` }), " ", PlanDetails.link(m.from), " to ", ...PlanDetails.joined(m.to.map((k) => PlanDetails.link(k))),
-      " over ", PlanDetails.link(m.contract), m.kind === "request" ? ", and the answer comes back." : ".", m.direction === "inferred" ? h("div", { class: "heuristic" }, "The page doesn't say who sends this; the contract's provider is shown.") : null));
+      ...(m.contract ? [" over ", PlanDetails.link(m.contract)] : [", no contract named"]), m.kind === "request" ? ", and the answer comes back." : ".", m.direction === "inferred" ? h("div", { class: "heuristic" }, "The page doesn't say who sends this; the contract's provider is shown.") : null));
+    if (!groups.length && s.unrecorded) senders.push(h("li", {}, "More than one app or party is named, and the page doesn't say who sends to whom."));
     if (!groups.length && s.self) senders.push(h("li", {}, "Inside ", PlanDetails.link(s.self), "; no other app is involved."));
     const contracts = [...new Set(s.contracts)].filter((c) => CONTRACT[c]), branches = (D.branches || {})[p.flow];
     const ways = (c) => {

@@ -11,6 +11,14 @@ vela's own parser and model. Two things the record does not say directly, each l
 - Steps that link no contract in their text. A flow's "Contracts used" table can give a step its contracts; those
   messages are always "inferred", and the step says the contracts came from the table.
 
+- Ends. Every sender and receiver a step records is an app or an outside party, and gets a lane. One the plan does
+  not know (no link to an app page, no registered party) gets its own lane marked `gap`: the dashboard draws it dashed,
+  "not in the plan", so the end is never dropped and never guessed. A recorded pair with no contract draws a plain
+  arrow with `contract: ""`.
+- Self and bands. A step is drawn as one lane's own action (`self`) only when its words name exactly one lane and it
+  records no pair. A step that names two or more lanes and records no usable pair sets `unrecorded`: the dashboard draws
+  a band with "who sends to whom isn't recorded", never an arrow from an app to itself.
+
 An open question's state always comes from the unknown itself, never from the flow's prose: a sentence that still
 calls an answered question open is flagged (textSaysOpen) and the marker shows the record's state.
 
@@ -87,8 +95,10 @@ def sentences(text):
     return [s for s in re.split(r"(?<=[.!?])\s+(?=[A-Z«\[])", text.strip()) if s]
 
 
-def lane_of(vault, keys, flow, end, words):
-    """The lane a step's recorded sender or receiver names: an app link by its key, anything else by the lane name."""
+def lane_of(vault, keys, flow, end, words, outside=None):
+    """The lane a step's recorded sender or receiver names: an app link by its key, an app written as plain text by
+    its title, name or ID, anything else by the lane's whole name or alias; `outside` ({name: lane id}) holds the lanes of parties
+    and gaps the plan does not draw from a contract. None when the end is on no lane."""
     from vela.parse import WIKILINK, parse_link
     found = WIKILINK.search(end)
     if found:
@@ -97,8 +107,37 @@ def lane_of(vault, keys, flow, end, words):
         if target is not None and target.type == "app-building-blocks":
             return keys.page(target)
         end = link_label(vault, link, flow)
-    named = mentions(plain(end), words)
-    return named[0][1] if named else None
+    key = flow_steps.endpoint(vault, flow, end)
+    app = next((a for a in vault.apps if a.id == key), None)
+    if app is not None:
+        return keys.page(app)
+    if key in (outside or {}):
+        return outside[key]
+    # By the lane's whole name, as the check reads it: "FERRYMASTER vendor" is a party, not the FERRYMASTER app it mentions.
+    return next((lane for lane, names in words.items() if key in {flow_steps._name(n) for n in names}), None)
+
+
+def outside_lanes(vault, keys, lanes, words):
+    """(lanes, {name: lane id}) for every recorded end that is on no lane yet: a registered party that no contract
+    joins gets a party lane, and anything else gets a `gap` lane named as written. Sorted by name, so a rebuild never
+    reshuffles them."""
+    from vela.parse import WIKILINK, parse_link
+    parties = {flow_steps._name(p.name): p for p in vault.parties}
+    made, index = {}, {}
+    for step in flow_steps.steps(vault):
+        for end in step.pair:
+            if lane_of(vault, keys, step.page, end, words, index) is not None:
+                continue
+            key = flow_steps.endpoint(vault, step.page, end)
+            found = WIKILINK.search(end)
+            written = link_label(vault, parse_link(found.group(1), 0), step.page) if found else plain(end)
+            written = " ".join(flow_steps.PARENTHETICAL.sub("", written).split()) or written
+            party = parties.get(key)
+            lane = ({"id": party.id, "name": party.name, "kind": "partner"} if party is not None
+                    else {"id": "gap:" + key, "name": written, "kind": "outside", "gap": True})
+            made[lane["id"]] = lane
+            index[key] = lane["id"]
+    return sorted(made.values(), key=lambda l: (l["kind"] != "partner", l["name"].lower(), l["id"])), index
 
 
 def message(sentence, c, words, pair=()):
@@ -147,7 +186,7 @@ def short_caption(text, tokens, contracts, limit=130):
     return first
 
 
-PAIR_PREFIX = re.compile(r"^[^:→]{1,80}→[^:]{1,80}:\s+")
+PAIR_PREFIX = re.compile(r"^[^:→]{1,80}(?:→|->)[^:]{1,80}:\s+")
 ANSWER_CLAUSE = re.compile(r",?\s+and\s+(?:then\s+)?((?:gets|receives|returns|hears|answers)\b.*)$", re.I)
 
 
@@ -203,7 +242,7 @@ def domain_of(steps, app_domains):
     return min(counts, key=lambda d: (-counts[d], d)) if counts else ""
 
 
-def flow_record(vault, keys, flow, contracts_by_id, lanes, words, blockers, names):
+def flow_record(vault, keys, flow, contracts_by_id, lanes, words, blockers, names, outside=None):
     steps_heading = next((h for h in flow.headings if h.level == 2 and h.text.strip().lower() == "steps"), None)
     lines = flow.text.split("\n")
     from_table = table_contracts(flow, keys)
@@ -218,7 +257,7 @@ def flow_record(vault, keys, flow, contracts_by_id, lanes, words, blockers, name
             number, raw = int(match.group(1)), match.group(2)
             text, tokens = masked(raw, keys, flow, vault)
             ends = flow_steps.split_pair(raw)
-            pair = tuple(lane_of(vault, keys, flow, e, words) for e in ends) if ends else ()
+            pair = tuple(lane_of(vault, keys, flow, e, words, outside) for e in ends) if ends else ()
             messages, pins, cited = [], [], []
             for sentence in sentences(text):
                 for tok in re.findall(r"«(\d+)»", sentence):
@@ -231,6 +270,7 @@ def flow_record(vault, keys, flow, contracts_by_id, lanes, words, blockers, name
                     elif item is not None and item.kind == "unknown" and key not in [p["id"] for p in pins]:
                         pins.append({"id": key, "why": "cited", "textSaysOpen": bool(OPEN_WORDS.search(sentence))})
             named_here = [lane for _, lane in mentions(text, words)]
+            lanes_named = list(dict.fromkeys(named_here))
             table_only = [k for k in dict.fromkeys(from_table.get(number, [])) if k in contracts_by_id and k not in cited]
             first_says, first_answer = arrow_words(text, tokens, contracts_by_id)
             for key in table_only:
@@ -241,6 +281,10 @@ def flow_record(vault, keys, flow, contracts_by_id, lanes, words, blockers, name
                 if sig not in seen:
                     seen.add(sig)
                     unique.append(m)
+            usable = len(pair) == 2 and all(pair) and pair[0] != pair[1]
+            if not unique and usable:  # a recorded pair is drawn even when the step names no contract
+                unique = [{"from": pair[0], "to": pair[1], "contract": "", "direction": "stated", "kind": "send", "says": first_says, "answer": ""}]
+            alone = lanes_named[0] if not unique and not ends and len(lanes_named) == 1 else None
             for m in unique:
                 for u in blockers.get(m["contract"], []):
                     if u.fact("State") == "open" and u.id not in pinned and u.id not in [p["id"] for p in pins]:
@@ -252,7 +296,8 @@ def flow_record(vault, keys, flow, contracts_by_id, lanes, words, blockers, name
             named = [k for k, t in title_names if re.search(rf"(?<![\w-]){re.escape(t)}(?![\w-])", visible)]
             steps.append({
                 "n": number, "html": inline_html(raw, keys, flow), "text": visible, "short": short_caption(text, tokens, contracts_by_id), "says": first_says,
-                "messages": unique, "self": None if unique else (named_here[0] if named_here else None),
+                "messages": unique, "self": alone, "recordsPair": bool(ends), "lanesNamed": len(lanes_named),
+                "unrecorded": not unique and alone is None and (len(lanes_named) > 1 or bool(ends)),
                 "ref": refs[0] if refs else None, "unknowns": pins,
                 "contracts": list(dict.fromkeys(cited + table_only)), "linked": linked, "named": named,
                 "fromTable": bool(table_only),
@@ -316,12 +361,14 @@ def flows(vault, keys, contracts, pins, names):
     """{"lanes": [...], "flows": [...]} for every FLO page, with each flow's journey for the line map."""
     by_id = {c["id"]: c for c in contracts}
     lanes = lanes_of(vault, keys, contracts, pins, names)
+    extra, outside = outside_lanes(vault, keys, lanes, aliases(lanes, contracts))
+    lanes += extra
     words = aliases(lanes, contracts)
     blockers = model.blockers(vault)
     app_domains = {keys.page(a): str(a.meta.get("domain") or "").strip() for a in vault.apps}
     out = []
     for page in sorted(vault.of_type("flow"), key=lambda p: p.id):
-        record = flow_record(vault, keys, page, by_id, lanes, words, blockers, names)
+        record = flow_record(vault, keys, page, by_id, lanes, words, blockers, names, outside)
         record["domain"] = domain_of(record["steps"], app_domains)
         record["hops"], record["segments"] = journey(record["steps"], by_id)
         out.append(record)
