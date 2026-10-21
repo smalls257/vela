@@ -1585,7 +1585,7 @@ def cmd_view(args, out):
         "errors": errors,
         "warnings": len(findings) - errors,
     }
-    html, problems = viewer.build(vault, read_asset("marked.min.js"), read_asset("mermaid.min.js"), stamp)
+    html, problems = viewer.build(vault, read_asset("marked.min.js"), read_asset("mermaid.min.js"), read_asset("mermaid-safe.js"), stamp)
     if problems:
         print(f"vela view: wrote nothing, {len(problems)} links would break in the viewer.", file=out)
         for problem in problems:

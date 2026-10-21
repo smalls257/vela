@@ -459,6 +459,8 @@ function go(key, opts = {}) {
   App.focus = key === "lights" ? null : key;
   Panel.render();
   const e = ent(key);
+  // a capability picked on the map, or revealed from a chip, narrows the map and the sidebar to what it touches
+  if (e && e.kind === "capability" && !opts.quiet && (App.view === "map" || opts.reveal) && !CapFocus.isIt(key)) { Nav.open("capabilities", key); return; }
   if (opts.reveal && e) {
     const target = revealView(e);
     if (target && target !== App.view) { showView(target); afterReveal(key, e); Minimap.refresh(); return; }

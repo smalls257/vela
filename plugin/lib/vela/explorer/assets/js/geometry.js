@@ -27,8 +27,9 @@ const Geo = (() => {
   }
   function layout(opts) {
     const o = Object.assign({}, DEFAULTS, opts || {});
-    const stations = {};
+    const stations = {}, scope = o.scope ? CapFocus.scope() : null;  // with a capability in focus, the drawing keeps only what it touches
     for (const n of D.nodes) {
+      if (scope && !scope.nodes.has(n.key)) continue;
       const outside = n.kind !== "app";
       stations[n.key] = { key: n.key, node: n, outside, x: o.padX + n.col * o.cw, y: o.padY + n.row * o.rh + (outside ? o.bandGap : 0),
         ports: { L: [], R: [], U: [], D: [] }, lines: new Set() };
@@ -36,12 +37,14 @@ const Geo = (() => {
     const corridors = {};
     const pairKey = (a, b) => (a < b ? `${a}|${b}` : `${b}|${a}`);
     for (const c of D.map.contracts) for (const consumer of c.consumers) {
+      if (scope && !scope.contracts.has(c.id)) continue;
       if (consumer === c.provider || !stations[consumer] || !stations[c.provider]) continue;
       const k = pairKey(c.provider, consumer), [a, b] = k.split("|");
       corridors[k] = corridors[k] || { key: k, a, b, contracts: [], flows: [] };
       if (!corridors[k].contracts.includes(c.id)) corridors[k].contracts.push(c.id);
     }
     for (const f of D.flows) for (const sg of f.segments || []) {
+      if (scope && !scope.flows.has(f.key)) continue;
       const k = pairKey(sg.a, sg.b);
       if (corridors[k] && !corridors[k].flows.includes(f.key)) corridors[k].flows.push(f.key);
     }

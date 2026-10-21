@@ -97,6 +97,32 @@ ADR_FILE = re.compile(r"^(\d{4})-.+\.md$")
 ER_ENTITY = re.compile(r"^\s*([A-Za-z][\w-]*)\s*\{\s*$")
 ER_RELATION = re.compile(r"^\s*([A-Za-z][\w-]*)\s+([|}o{.\-]{4,6})\s+([A-Za-z][\w-]*)\s*:\s*\"?([^\"]*)\"?\s*$")
 SEQ_PARTICIPANT = re.compile(r"^\s*(?:participant|actor)\s+(\S+)(?:\s+as\s+(.+?))?\s*$")
+SEQ_MESSAGE = re.compile(r"^\s*([^\s:>-][^:>]*?)\s*(-->>|->>|-->|->|--x|-x|--\)|-\))\s*[+-]?\s*([^:]+?)\s*:\s*(.*)$")
+SEQ_NOTE = re.compile(r"^\s*note\s+(?:over|left of|right of)\s+([^:]+?)\s*:\s*(.*)$", re.I)
+SEQ_BLOCK = re.compile(r"^\s*(?:loop|alt|opt|else|par|critical|break)\b")
+SEQ_NOISE = re.compile(r"^\s*(?:%%.*|autonumber|end)?\s*$")
+
+
+def stepper_reads(text):
+    """True when the dashboard's step-through reader (inside.js parseSequence) reads every line of this sequence diagram
+    and finds at least one step. Anything else (rect, box, activate, quoted names, a diagram of another kind) is drawn
+    by the bundled Mermaid renderer instead, so a diagram is never shown with steps missing. inside.js applies the same
+    patterns; this flag is the one place that decides."""
+    lines = text.split("\n")
+    if not lines or lines[0].strip() != "sequenceDiagram":
+        return False
+    steps = 0
+    for line in lines[1:]:
+        if SEQ_NOISE.match(line) or (SEQ_PARTICIPANT.match(line) and '"' not in line):
+            continue
+        message = SEQ_MESSAGE.match(line)
+        if message and '"' not in message.group(1) + message.group(3):
+            steps += 1
+        elif SEQ_NOTE.match(line) or SEQ_BLOCK.match(line):
+            steps += 1
+        else:
+            return False
+    return steps > 0
 VAULT_PREREQ = re.compile(r"^(?P<vault>.*?)/?05-building-blocks/(?P<app>[a-z0-9-]+)-building-blocks\.md$")
 SPEC = re.compile(r"^(APP-[A-Za-z0-9-]+)=(.+)$")
 PERSISTENCE_LABELS = ("persistence", "store", "stores", "storage")
@@ -687,7 +713,7 @@ def _diagrams(section):
             participants = [{"id": m.group(1), "name": (m.group(2) or m.group(1)).strip()}
                             for m in map(SEQ_PARTICIPANT.match, text.split("\n")) if m]
             out.append({"title": title, "kind": first[0] if first else "", "mermaid": text,
-                        "participants": participants, "line": start})
+                        "participants": participants, "line": start, "stepper": stepper_reads(text)})
     return out
 
 
@@ -946,3 +972,9 @@ def _context(doc, context, problems):
     if not out["glossary"]:
         _problem(problems, None, "CONTEXT.md", "no ### term under ## Glossary")
     return out
+
+
+def needs_drawing_library(designs):
+    """True when some diagram in these designs cannot go through the step-through reader, so the dashboard must carry
+    the Mermaid renderer (3 MB) to draw it. A dashboard whose diagrams are all readable sequences stays small."""
+    return any(not d["stepper"] for design in designs.values() for d in [*design["flows"], *design["diagrams"]])

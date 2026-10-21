@@ -235,3 +235,9 @@ body:has(#main.inside-full[data-view="inside"]) { --side-w: 0px; --panel-w: 0px;
 body:has(#main.inside-full[data-view="inside"]) #side, body:has(#main.inside-full[data-view="inside"]) #panel, body:has(#main.inside-full[data-view="inside"]) #side-grip,
 body:has(#main.inside-full[data-view="inside"]) #panel-grip, body:has(#main.inside-full[data-view="inside"]) .view-head { display: none; }
 @media (max-width: 1000px) { .comp-sec { padding: 4px 11px 10px; } }
+
+/* a diagram drawn by Mermaid (diagrams.js): fitted to its card, zoomed and panned like every other drawing */
+.mm-frame { position: relative; display: grid; place-items: center; overflow: hidden; max-height: 70vh; min-height: 120px; background: var(--board); border: 1px solid var(--rule); border-radius: 8px; padding: 8px; }
+.mm-frame .mm-svg { display: block; width: 100%; height: auto; max-height: calc(70vh - 16px); }
+.mm-error .in-src { margin-top: 6px; }
+.mm-stage { position: fixed; left: -10000px; top: 0; width: 1200px; visibility: hidden; pointer-events: none; }

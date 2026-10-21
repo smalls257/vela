@@ -208,6 +208,8 @@ const Pan = (() => {
     for (const holder of document.querySelectorAll(".pannable")) { const svg = holder.__pan && !holder.__pan.own && holder.__pan.svg(); if (svg && svg.dataset.panBase) showView(svg, holder.__pan.key, null); }
     for (const k of Object.keys(views)) delete views[k];
   }
-  return { attach, reset, view: (key) => viewOf(key), engineOf: (holder) => holder.__pan && holder.__pan.engine,
+  /* Forget the saved view of drawings whose content has just changed, so they open fitted to what they now show. */
+  const forget = (...keys) => { for (const k of keys) delete views[k]; };
+  return { attach, reset, forget, view: (key) => viewOf(key), engineOf: (holder) => holder.__pan && holder.__pan.engine,
     get pans() { return pans; }, get zooms() { return zooms; }, MOVE, STEP };
 })();

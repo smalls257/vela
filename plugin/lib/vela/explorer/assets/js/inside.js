@@ -961,7 +961,7 @@ const Inside = (() => {
     return [card(null, d.context.glossary.map((g) => h("div", { class: "in-term" }, h("b", {}, g.term), h("div", {}, np(g.definition)), g.not_to_be_confused_with ? h("div", { class: "muted small" }, "Not to be confused with: ", np(g.not_to_be_confused_with)) : null)))];
   }
 
-  /* Key flows: each sequence diagram drawn from its mermaid source, stepped through; other diagrams as source.
+  /* Key flows: each sequence diagram the step-through reader reads fully is drawn from its mermaid source and stepped through; every other diagram is drawn by Mermaid (diagrams.js).
      The explorer's flow player plays vault lanes only, so a design's flow is drawn here; one the design ties to a
      vault flow (FLO-nnn in its title) can be played there too. */
   function flowsTab(app, d) {
@@ -970,7 +970,8 @@ const Inside = (() => {
     return all.map((f, i) => {
       const flo = (f.title || "").match(/\bFLO-\d{3}\b/), fk = flo ? keyForId(flo[0]) : null;
       const head = h("h3", {}, said(f.title) || `${f.from}, line ${f.line}`, fk && FLOW[fk] ? h("button", { class: "btn tiny", onclick: () => go(fk, { reveal: true }) }, `▶ Play “${titleOf(fk)}” on the map`) : null);
-      if (f.kind !== "sequenceDiagram") return card(null, head, h("div", { class: "muted small" }, "A diagram this page can't draw; here is its source."), h("pre", { class: "in-src" }, said(f.mermaid)));
+      // the stepper reads a plain sequence to the end (design_data.stepper_reads); every other diagram, and a sequence it can't read, is drawn by Mermaid
+      if (!f.stepper) return card(null, head, Diagrams.draw(f.mermaid, { key: `mm-${app}:${i}`, label: f.title || `${f.kind} in the design` }));
       return card(null, head, sequence(app, d, f, `${app}:${i}`));
     });
   }
@@ -1214,7 +1215,7 @@ const Inside = (() => {
     const comps = f.who.filter((n) => d.components.some((c) => c.name === n));
     return [phead("Key flow", f.title),
       block(comps.length ? bullets([[h("b", {}, "Components in it: "), ...comps.flatMap((n, j) => (j ? [", ", DetailsPanel.link(key(app, "c", n), n)] : [DetailsPanel.link(key(app, "c", n), n)]))]]) : null),
-      h("div", { class: "inside-tab-body" }, raw.kind === "sequenceDiagram" ? card(null, sequence(app, d, raw, `${app}:${i}`)) : card(null, h("pre", { class: "in-src" }, said(raw.mermaid))))];
+      h("div", { class: "inside-tab-body" }, raw.stepper ? card(null, sequence(app, d, raw, `${app}:${i}`)) : card(null, Diagrams.draw(raw.mermaid, { key: `mm-${app}:flow:${i}`, label: f.title })))];
   }
   function oqPanel(app, d, id) {
     const q = PD(app).waiting.find((x) => x.id === id);

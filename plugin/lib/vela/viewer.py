@@ -230,7 +230,7 @@ def script_safe(source):
     return source.replace("</script", "<\\/script")
 
 
-def build(vault, marked_js, mermaid_js, stamp):
+def build(vault, marked_js, mermaid_js, mermaid_safe_js, stamp):
     """(html text, problems). `stamp` is {"commit", "date", "repo", "errors", "warnings"}."""
     problems = link_problems(vault)
     names = readability.NameIndex(vault)
@@ -243,7 +243,7 @@ def build(vault, marked_js, mermaid_js, stamp):
         "pages": [page_data(p, names) for p in sorted(bundled(vault), key=lambda p: p.path)],
     }
     payload = script_json(data)
-    scripts = {"MARKED": script_safe(marked_js), "MERMAID": script_safe(mermaid_js), "APP": APP_JS.replace("__MARKER_TEXT__", MARKER_TEXT)}
+    scripts = {"MARKED": script_safe(marked_js), "MERMAID": script_safe(mermaid_js), "APP": APP_JS.replace("__MARKER_TEXT__", MARKER_TEXT).replace("__MERMAID_SAFE__", mermaid_safe_js)}
     values = {"TITLE": html_lib.escape(data["title"]), "DATA": payload, "CSP": content_security_policy(scripts.values()),
               **scripts}
     html = PLACEHOLDER.sub(lambda m: values[m.group(1)], TEMPLATE)
@@ -367,12 +367,7 @@ const NONCE = Array.from(crypto.getRandomValues(new Uint32Array(3)), n => n.toSt
 const OWN_CLASS = { ['gen-' + NONCE]: 'gen', ['offline-link-' + NONCE]: 'offline-link', ['missing-' + NONCE]: 'missing' };
 const excluded = new Set(DATA.excluded);
 const dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-if (window.mermaid) mermaid.initialize({
-  startOnLoad: false, theme: dark ? 'dark' : 'neutral', securityLevel: 'strict', htmlLabels: false,
-  flowchart: { htmlLabels: false }, sequence: { useMaxWidth: true }, class: { htmlLabels: false }, state: { htmlLabels: false },
-  secure: ['secure', 'securityLevel', 'startOnLoad', 'maxTextSize', 'maxEdges', 'themeCSS', 'themeVariables', 'htmlLabels',
-    'flowchart', 'class', 'state', 'fontFamily', 'theme'],
-});
+if (window.mermaid) mermaid.initialize(mermaidSettings(dark));
 ui['vault-title'].textContent = DATA.title;
 ui.stamp.textContent =
   `${DATA.initiative} · Built from ${DATA.stamp.commit} on ${DATA.stamp.date}. Newer versions: ${DATA.stamp.repo}`;
@@ -463,32 +458,7 @@ function sanitizeHtml(html) {
   cleanChildren(holder.content);
   return holder.content;
 }
-const SVG_DROP = new Set(['script', 'image', 'foreignobject', 'iframe', 'object', 'embed', 'animate', 'set', 'animatemotion', 'animatetransform', 'video', 'audio']);
-// Style text that could name an off-page resource is dropped whole. Escapes (\75rl) and
-// image-set() are refused too, because deciding what such CSS means is the regex trap.
-function offPageUrl(css) { return /@import|\\|image-set|cross-fade|element\(|\bsrc\(|url\(\s*(?!['"]?#)/i.test(css); }
-function cleanSvgChildren(parent) {
-  for (const el of [...parent.children]) {
-    const tag = el.localName.toLowerCase();
-    if (SVG_DROP.has(tag)) { el.remove(); continue; }
-    for (const attr of [...el.attributes]) {
-      const name = attr.name.toLowerCase();
-      const off = (name === 'href' || name === 'xlink:href') && !attr.value.trim().startsWith('#');
-      if (name.startsWith('on') || off || (name === 'style' && offPageUrl(attr.value))) el.removeAttribute(attr.name);
-    }
-    if (tag === 'style' && offPageUrl(el.textContent)) { el.remove(); continue; }
-    cleanSvgChildren(el);
-  }
-}
-function sanitizeSvg(svg) {
-  const holder = document.createElement('template');
-  holder.innerHTML = svg;
-  cleanSvgChildren(holder.content);
-  return holder.content;
-}
-// A diagram cannot carry its own configuration, and no attempt is made to clean
-// it: init directives and frontmatter are refused so the reader sees why.
-function hasDiagramConfig(source) { return /%%\{/.test(source) || /^\s*---/.test(source); }
+__MERMAID_SAFE__
 function toNodes(body) {
   let md = body.replace(/\[\[([^\]]+?)\]\]/g, (_, inner) => linkHtml(inner));
   md = md.replace(/<!--\s*generated:[a-z0-9-]+ sha=[0-9a-f]{8}: __MARKER_TEXT__\s*-->/g, '<div class="gen-' + NONCE + '">\n')

@@ -105,6 +105,7 @@ const Nav = (() => {
     if (typeof Motion !== "undefined") Motion.clear();
     let view = (VISUALS[id] || [])[0] ? VISUALS[id][0][0] : "doc";
     MapView.st.focus = null;
+    CapFocus.set(id === "capabilities" ? st.child : ""); Pan.forget("cockpit", "transit");
     if (id === "apps") { MapView.st.lens = MapView.st.lens === "releases" ? null : MapView.st.lens; if (st.child) { MapView.st.focus = st.child; MapView.st.lens = "cockpit"; } if (MapView.st.group === "capability") MapView.st.group = null; }
     if (id === "capabilities") { MapView.st.group = "capability"; MapView.st.lens = "cockpit"; }
     if (id === "flows" && st.child) { Flows.st.key = st.child; Flows.st.cur = -1; }
@@ -122,6 +123,7 @@ const Nav = (() => {
   function home() {
     App.section = "home"; st.child = ""; App.root = "lights"; App.trail = []; App.focus = null;
     MapView.st.focus = null; if (MapView.st.group === "capability") MapView.st.group = null;
+    CapFocus.set(""); Pan.forget("cockpit", "transit");
     App.view = "map"; syncHash(); rerender(); Panel.render();
   }
   function role(r) {
@@ -152,6 +154,7 @@ const Nav = (() => {
     App.section = view === "map" ? "apps" : owner ? owner[0] : App.section;
     st.child = "";
     MapView.st.focus = null;
+    if (App.section !== "capabilities") CapFocus.set("");
     if (App.section !== "capabilities" && MapView.st.group === "capability") MapView.st.group = null;
     const keep = App.trail.slice();
     setRoot();
@@ -306,16 +309,17 @@ const Nav = (() => {
   /* The triangle and the row's name both fold a list: the name is the bigger target, and readers kept looking for the click there. */
   function foldList(id) { st.expanded.has(id) ? st.expanded.delete(id) : st.expanded.add(id); write(OPEN_KEY, [...st.expanded]); }
   function item(s) {
-    const here = App.section === s.id, has = s.children.length > 0, openList = st.expanded.has(s.id);
+    const here = App.section === s.id, has = s.children.length > 0, openList = st.expanded.has(s.id), kept = CapFocus.kids(s);
     const lv = sectionLamp(s), missing = !s.page && !(s.id === "slices" && D.slicePlan.list.length) && s.id !== "library";  // slices have no index page: each slice is one; the library is a view of the register
     const row = h("div", { class: "side-row" + (here && !st.child ? " on" : here ? " in" : "") + (missing ? " missing" : "") },
       has ? h("button", { class: "side-caret", "aria-expanded": String(openList), "aria-label": `${openList ? "Hide" : "Show"} the ${s.label.toLowerCase()}`, onclick: () => { foldList(s.id); refresh(); } }, openList ? "▾" : "▸") : h("span", { class: "side-caret blank" }),
       h("button", { class: "side-link", "data-section": s.id, "aria-current": here && !st.child ? "page" : null, ...(has ? { "aria-expanded": String(openList) } : {}),
         title: missing ? `The ${s.label.toLowerCase()} page isn't written yet` : s.id === "slices" ? `${s.title}. ${termTip("slice")}` : s.id === "library" ? "Every spec, design, document and link the plan rests on, grouped by what it is" : s.title,
         onclick: () => { if (has) foldList(s.id); open(s.id); refresh(); } },
-        h("span", { class: "side-label" }, s.label), lv !== "dark" ? lampEl(lv) : null, lv !== "dark" && count(s) ? sideCount(s) : null));
+        h("span", { class: "side-label" }, s.label), lv !== "dark" ? lampEl(lv) : null, lv !== "dark" && count(s) ? sideCount(s) : null,
+        CapFocus.narrowed(s) ? h("span", { class: "side-n capfocus-count", title: `${kept.length} of ${s.children.length} ${s.label.toLowerCase()} touch ${ent(CapFocus.key()).title}` }, `${kept.length} of ${s.children.length}`) : null));
     const out = [row];
-    if (has && openList) out.push(h("div", { class: "side-kids" }, s.children.map((k) => {
+    if (has && openList) out.push(h("div", { class: "side-kids" }, kept.map((k) => {
       const lvk = levelOf(k), cur = here && st.child === k;
       return h("button", { class: "side-kid" + (cur ? " on" : ""), "data-section": s.id, "data-child": k, "aria-current": cur ? "page" : null, onclick: () => open(s.id, k), title: E[k].title },
         s.id === "apps" && NODE[k] ? Icons.forKey(k, "side-glyph") : null,
@@ -370,7 +374,7 @@ const Nav = (() => {
         h("span", { class: "side-label" }, "Grills waiting"), Grills.count() ? h("span", { class: "side-n lit caution", "data-grills-count": Grills.count() }, Grills.count()) : null) : null,
       typeof Ask !== "undefined" && Ask.served() ? h("button", { class: "side-home side-ask" + (App.section === "ask" ? " on" : ""), "aria-current": App.section === "ask" ? "page" : null, title: "Ask Claude about the plan", onclick: () => Ask.open() },
         h("span", { class: "side-label" }, "Ask Claude"), Ask.count() ? h("span", { class: "side-n" }, Ask.count()) : null) : null));
-    const vault = h("div", { class: "side-group" }, h("div", { class: "side-h" }, "Plan pages"));
+    const vault = h("div", { class: "side-group" }, CapFocus.bar("side"), h("div", { class: "side-h" }, "Plan pages"));
     const reads = D.sections.filter((s) => READ.includes(s.id));
     for (const s of D.sections) if (!READ.includes(s.id)) vault.append(...item(s));
     if (reads.length) vault.append(...readGroup(reads));
