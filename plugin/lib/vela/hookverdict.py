@@ -353,8 +353,8 @@ def stages_broadly(sub, args):
     letters = {c for w in flags if not w.startswith("--") for c in w[1:]}
     if sub in ("add", "stage"):
         return bool(letters & SHORT_BROAD or set(flags) & LONG_BROAD) and not named_paths(args)
-    if sub == "commit":
-        return "a" in letters or "--all" in flags or not named_paths(args)
+    if sub == "commit":  # a commit that names a path is judged by that path; a plain one by what the index holds
+        return bool(letters & set("aip")) or bool(set(flags) & {"--all", "--include", "--patch", "--interactive"})
     return sub in ("apply", "update-index") and not named_paths(args)
 
 
@@ -369,19 +369,22 @@ def reaches_a_plan(path, cwd, plan_roots):
                for root in plan_roots)
 
 
-def bash_verdict(command, cwd="", plan_roots=None):
+def bash_verdict(command, cwd="", plan_roots=None, staged=()):
     """The hook's verdict on one Bash command line, or None for no opinion.
 
     In a plan every index-writing git run is denied. Opened at a repo's root (or a folder with no plan above it) that
     holds plans, `plan_roots` lists their absolute folders and only a run that reaches a plan is denied: one that
     names a path inside a plan or over one, or stages broadly. Named paths outside every plan are the owner's own
-    work and pass."""
+    work and pass. A plain `git commit` commits only the index, so it is denied only when `staged` (absolute paths the
+    index holds; None when they could not be read, which counts as holding a plan's) reaches a plan."""
     denied, forbidden, asked = False, [], False
     for words in simple_commands(command):
         name = posixpath.basename(words[0])
         if name == "git":
             sub, args = git_subcommand(words)
-            if writes_index(sub, args):
+            if sub == "commit" and plan_roots is not None and not writes_index(sub, args):
+                denied = denied or staged is None or any(reaches_a_plan(p, cwd, plan_roots) for p in staged)
+            elif writes_index(sub, args):
                 if plan_roots is None:
                     denied = True
                     forbidden += [p for p in named_paths(args) if guard.never_rule(p) is not None]

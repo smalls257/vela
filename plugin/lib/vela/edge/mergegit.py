@@ -133,6 +133,16 @@ def conflicted_files(root):
     return [line for line in out.splitlines() if line]
 
 
+def conflicts_outside(root):
+    """Repository-relative paths in conflict that are not under the plan's folder. The plan's own `conflicted_files`
+    cannot see them (`--relative` hides what is outside), and a re-merge with `-X ours` would settle them in this
+    branch's favor and drop main's changes to files that are not this plan's to decide."""
+    prefix = vaultgit.plan_prefix(root)
+    if not prefix:
+        return []
+    return [p for p in _out(root, "diff", "--name-only", "--diff-filter=U").splitlines() if p and not p.startswith(prefix)]
+
+
 def merging(root):
     """True while a merge is stopped part-way (MERGE_HEAD exists)."""
     return _git(root, "rev-parse", "--verify", "--quiet", "MERGE_HEAD")[0] == 0

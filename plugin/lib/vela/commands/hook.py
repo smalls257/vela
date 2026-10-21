@@ -160,7 +160,21 @@ def cmd_bash(args, out):
     roots = plan_roots_around(folder) if "git" in command else []
     if not roots:
         return 0
-    return answer(out, hookverdict.bash_verdict(command, str(folder.resolve()), roots))
+    return answer(out, hookverdict.bash_verdict(command, str(folder.resolve()), roots, staged_in(folder, command)))
+
+
+def staged_in(folder, command):
+    """Absolute paths the index holds, read only for a command that might commit; None when git cannot say (the verdict
+    then treats the index as holding a plan's files: a hook that cannot look does not wave a commit through)."""
+    from vela.edge import stagegit, vaultgit
+    if "commit" not in command:
+        return ()
+    top = plans.repo_root(folder)
+    try:
+        return [str(top / path) for path in stagegit.staged_paths_in_repo(top) + stagegit.staged_deletions_in_repo(top)]
+    except vaultgit.GitUnavailable as exc:
+        warn(f"couldn't read the index ({exc}); a commit here is treated as holding a plan's files", "bash")
+        return None
 
 
 def plan_roots_around(folder):

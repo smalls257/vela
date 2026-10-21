@@ -68,7 +68,7 @@ def fetch_pr(root, number):
 
 
 def pages_of(root, oid):
-    return [p for p in git_out(root, "diff-tree", "--no-commit-id", "--name-only", "-r", oid).splitlines() if p]
+    return [p for p in git_out(root, "diff-tree", "--no-commit-id", "--name-only", "-r", "--relative", oid).splitlines() if p]
 
 
 def commits_touching(root, base, tip, page):

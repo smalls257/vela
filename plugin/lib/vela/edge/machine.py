@@ -14,7 +14,7 @@ import sys
 import yaml
 
 from vela import doctor
-from vela.edge import mermaidjs
+from vela.edge import mermaidjs, plans
 
 LIB = pathlib.Path(__file__).resolve().parents[2]  # plugin/lib, where the bundled yaml/ lives
 VERSION_TIMEOUT = 10
@@ -44,8 +44,11 @@ def hook_facts(root, environ=None, home=None):
     prefix = git_config(root, "--show-prefix") or ""  # "projects/heron/" for a plan that shares its repo
     depth = len([part for part in prefix.split("/") if part])
     top = root.resolve().parents[depth - 1] if depth else root.resolve()
-    on = bool(hooks) and (top / hooks).resolve() == (root / ".githooks").resolve()  # git reads a relative path from the repo's top
+    # git reads a relative path from the repo's top, and one hooks path serves the whole repo: any plan's .githooks counts
+    ours = {(root / ".githooks").resolve(), *((p / ".githooks").resolve() for p in plans.plans_in(top))}
+    on = bool(hooks) and (top / hooks).resolve() in ours
     return doctor.Hook(hook_file=(root / ".githooks" / "pre-commit").is_file(), hooks_on=on, hooks_dir=f"{prefix}.githooks",
+                       hooks_set="" if on else hooks,
                        env_vela=environ.get("VELA", ""), config_path=git_config(root, "vela.path") or "",
                        vendored=str(root / VENDORED), launcher=installed_launcher(environ, home))
 

@@ -568,11 +568,38 @@ def set_aside_vela_files(root):
     return aside, mergegit.set_aside(root, aside)
 
 
+def check_shared_repo(root, open_records, args):
+    """A plan that shares its repo starts a session by switching the whole repo's branch, so it starts only from a repo
+    that can take the switch: nothing unsaved outside this plan, and HEAD on the main branch or on this plan's own open
+    session. Otherwise exit 3, nothing changed (a plan that is its own repo has nothing else to disturb)."""
+    if not vaultgit.plan_scope(root):
+        return
+    outside = vaultgit.changed_outside_plan(root)
+    if outside:
+        count = say.count_words(len(outside))
+        question = (f"{count.capitalize()} file{'s' if len(outside) != 1 else ''} outside this plan {'have' if len(outside) != 1 else 'has'} "
+                    "unsaved changes, and starting a session moves the whole repository to another branch. Save them or "
+                    "set them aside first, then I'll start.")
+        raise Stop(say.Result(START, exit=say.NEEDS_LEAD, lines=[say.Line(
+            f"vela: uncommitted changes outside this plan ({', '.join(outside[:5])}); a session start switches the whole "
+            "repository's branch. Commit or stash them, then run again.", plain=question)],
+            needs_lead=[{"ask": "unsaved work outside the plan", "question": question, "paths": outside}]))
+    current = sessiongit.current_branch(root)
+    own = {record.branch for record in open_records}
+    if current not in ("main", "master") and current not in own and not args.answer:
+        question = ("The repository isn't on its main branch or on this plan's own session: it's on another plan's session "
+                    "or on a branch of yours. Switch it back to main, or to this plan's session, and I'll start.")
+        raise Stop(say.Result(START, exit=say.NEEDS_LEAD, lines=[say.Line(
+            f"vela: HEAD is on {current or 'no branch'}, not main or this plan's own open session; switch to main, then "
+            "run again.", plain=question)], needs_lead=[{"ask": "which branch", "question": question, "head": current}]))
+
+
 def start_owner(root, args, today, modes, plain, said, host):
     """The owner's start: every check, then the pull, the branch, the record and its commit."""
     config = config_of(root)
     pr, challenged = find_challenge(root, args.answer, plain) if args.answer else (None, "")
     open_records, problems = sessions.find_open(sessiongit.branch_records(root), vaultgit.plan_scope(root))
+    check_shared_repo(root, open_records, args)
     lines = said + problem_lines(problems)
     if args.resume:
         return resume(root, open_records, args.resume, False, lines, today, plain, host)

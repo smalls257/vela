@@ -52,6 +52,22 @@ def is_reader_copy(root):
     return facts.has_workspace and not facts.git_here and roles.decide(facts).role == roles.READER
 
 
+def on_another_branch(root):
+    """For a plan that shares its repo: the way back (words for the model) when HEAD is not the branch `session.json` says
+    this session is on, else "". A plan that is its own repo is not asked, as before."""
+    from vela.edge import sessiongit
+    if not vaultgit.plan_scope(root):
+        return ""
+    try:
+        state = sessiongit.read_json(root, sessiongit.STATE_FILE) or {}
+    except ValueError as exc:
+        return f"{exc}; I can't tell which branch the session is on."
+    want, now = str(state.get("branch") or ""), sessiongit.current_branch(root)
+    if want and now != want:
+        return f"HEAD is on {now or 'no branch'}, but the session is on {want}: switch to {want} (vela session open --switch)."
+    return ""
+
+
 def open_records(root):
     """Ids of the records in sessions/ whose frontmatter says `status: open`, in name order.
 
@@ -174,6 +190,14 @@ def cmd_close_stage(args, out):
     if is_reader_copy(root):
         result.lines.append(say.Line("vela close stage: this is a read copy, so nothing is staged or committed.",
                                      "This is your copy, so nothing is staged or committed here."))
+        return cli_emit(result, args, out)
+    wrong = on_another_branch(root)
+    if wrong:
+        result.exit = say.REFUSED
+        result.refusals.append(say.Refusal(
+            "wrong-branch", "The repository has moved to another branch since this session started, so I haven't saved "
+            "anything: it would land on the wrong branch.", wrong, "", recommend="I'd switch back to the session's branch first.",
+            waiver=""))
         return cli_emit(result, args, out)
     try:
         ident = session_id(args, root, result)

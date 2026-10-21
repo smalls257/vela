@@ -52,6 +52,7 @@ class Hook:
     config_path: str  # git config vela.path ("" when unset); the hook reads it second
     vendored: str  # the vendored launcher's path in the vault; the hook reads it last
     launcher: str  # the installed vela launcher doctor found ("" when none)
+    hooks_set: str = ""  # git's hooks path when it is set to something that is not a plan's .githooks (not vela's to replace)
     hooks_dir: str = ".githooks"  # where git is pointed, from the repo's top (`projects/heron/.githooks` for a plan in a subfolder)
 
 
@@ -90,8 +91,12 @@ def hook_line(hook, is_file):
     if not hook.hook_file:
         return Line("info", "this vault has no .githooks/pre-commit, so a commit typed by hand isn't checked for files "
                             "that must stay on this machine. Copy .githooks/ from vela's template folder.")
+    if hook.hooks_set:
+        return Line("info", f"git's hooks path is set to {hook.hooks_set}, which isn't one of this repo's vela .githooks "
+                            "folders, so a commit typed by hand isn't checked by vela's hook. I haven't suggested "
+                            "changing it: it may be yours. To use vela's hook as well, call it from that folder's hooks.")
     source, found = hook_finds(hook, is_file)
-    fix = f" Wire it: {wire_command(hook, found)}" if hook.launcher else " Install the plugin, then run vela doctor again."
+    fix =f" Wire it: {wire_command(hook, found)}" if hook.launcher else " Install the plugin, then run vela doctor again."
     if not hook.hooks_on:
         return Line("optional", "the vault's pre-commit hook is off, so a commit typed by hand isn't checked." + fix)
     if not found:

@@ -356,7 +356,8 @@ def pushed_marker(root, session):
 
 
 def commit_times(root):
-    out = vaultgit.git_out(root, "log", "--format=%ct", f"{close_gate.branch_point(root)}..HEAD", "--", ".")
+    out = vaultgit.git_out(root, "log", "--format=%ct", f"{close_gate.branch_point(root)}..HEAD",
+                           *vaultgit.plan_pathspec(root))
     return [int(t) for t in out.split()]
 
 

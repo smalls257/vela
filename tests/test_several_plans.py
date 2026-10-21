@@ -170,6 +170,7 @@ def test_each_plan_starts_a_session_on_a_branch_that_carries_its_name(docs):
     code, out = session_start(heron, "pilot scope")
     assert code == 0, out
     assert git(repo, "branch", "--show-current") == f"session/heron/{TODAY}-pilot-scope"
+    git(repo, "switch", "-q", "main")
     code, out = session_start(payments, "pilot scope")  # the same topic on the same day does not collide
     assert code == 0, out
     assert git(repo, "branch", "--show-current") == f"session/payments/{TODAY}-pilot-scope"
@@ -180,6 +181,7 @@ def test_each_plan_starts_a_session_on_a_branch_that_carries_its_name(docs):
 def test_one_plans_open_session_is_not_the_others(docs):
     repo, heron, payments = docs
     assert session_start(heron, "pilot scope")[0] == 0
+    git(repo, "switch", "-q", "main")
     assert session_start(payments, "ledger")[0] == 0
     code, out = run("session", "open", "--vault", str(heron), "--json")
     assert code == 0, out
@@ -203,12 +205,50 @@ def test_a_checkpoint_in_one_plan_stages_commits_and_leaves_alone_only_that_plan
     assert dirty(repo) == ["?? projects/payments/scratch.md", "M projects/payments/01-goals.md"]
 
 
-def test_the_other_plans_unsaved_work_does_not_stop_a_session_start(docs):
+def test_a_start_refuses_when_files_outside_the_plan_have_unsaved_changes_and_changes_nothing(docs):
     repo, heron, payments = docs
     (payments / "01-goals.md").write_text((payments / "01-goals.md").read_text(encoding="utf-8") + "\nUnsaved.\n", encoding="utf-8")
-    code, out = session_start(heron, "pilot scope")
+    code, out = run("session", "start", "--vault", str(heron), "--mode", "grill", "--topic", "pilot scope", "--for-lead")
+    assert code == 3 and "outside this plan" in out and "projects" not in out and "session/" not in out
+    assert git(repo, "branch", "--show-current") == "main" and dirty(repo) == ["M projects/payments/01-goals.md"]
+    assert not list((heron / "sessions").glob(f"{TODAY}-*"))
+
+
+def test_a_start_refuses_from_another_plans_session_branch_or_the_owners_own_branch(docs):
+    repo, heron, payments = docs
+    assert session_start(heron, "pilot scope")[0] == 0
+    code, out = run("session", "start", "--vault", str(payments), "--mode", "grill", "--topic", "ledger", "--for-lead")
+    assert code == 3 and "another plan's session" in out
+    assert git(repo, "branch", "--show-current") == f"session/heron/{TODAY}-pilot-scope"  # nothing moved
+    git(repo, "switch", "-q", "-c", "owner-feature")
+    assert run("session", "start", "--vault", str(payments), "--mode", "grill", "--topic", "ledger")[0] == 3
+
+
+def test_a_start_from_the_plans_own_open_session_branch_is_not_refused(docs):
+    repo, heron, _ = docs
+    assert session_start(heron, "pilot scope")[0] == 0
+    code, out = run("session", "start", "--vault", str(heron), "--mode", "grill", "--resume", f"{TODAY}-pilot-scope")
     assert code == 0, out
-    assert dirty(repo) == ["M projects/payments/01-goals.md"]
+
+
+def test_a_plan_that_is_its_own_repo_still_starts_from_any_branch(tmp_path):
+    folder = tmp_path / "solo"
+    folder.mkdir()
+    assert new_plan(folder, "Solo")[0] == 0
+    git(folder, "switch", "-q", "-c", "feature")
+    assert session_start(folder, "kickoff")[0] == 0
+
+
+def test_close_stage_and_close_push_refuse_when_head_left_the_sessions_branch(docs):
+    repo, heron, _ = docs
+    assert session_start(heron, "pilot scope")[0] == 0
+    git(repo, "switch", "-q", "-c", "elsewhere")  # the record is still in the tree: only the branch is wrong
+    (heron / "01-goals.md").write_text((heron / "01-goals.md").read_text(encoding="utf-8") + "\nGoal.\n", encoding="utf-8")
+    code, out = checkpoint(heron)
+    assert code == 1 and "wrong branch" in out.lower()
+    assert git(repo, "log", "--format=%s", "-1") != f"Checkpoint {TODAY}-pilot-scope"
+    code, out = run("close", "push", "--vault", str(heron), "--today", TODAY)
+    assert code != 0 and "HEAD is on elsewhere" in out
 
 
 def test_sync_main_ignores_the_other_plans_uncommitted_files(docs, tmp_path):
@@ -231,6 +271,48 @@ def test_sync_main_ignores_the_other_plans_uncommitted_files(docs, tmp_path):
     assert code == 0 and data["status"] == "merged", out
     assert data["wrote"] == ["02-constraints.md"]  # plan-relative, and no file of another plan
     assert dirty(repo) == ["M projects/payments/01-goals.md"]
+
+
+def test_sync_main_stops_and_says_so_when_main_and_the_branch_clash_outside_the_plan(docs, tmp_path):
+    repo, heron, _ = docs
+    bare = tmp_path / "origin.git"
+    git(tmp_path, "init", "-q", "--bare", "-b", "main", str(bare))
+    git(repo, "remote", "add", "origin", str(bare))
+    git(repo, "push", "-q", "-u", "origin", "main")
+    assert session_start(heron, "pilot scope")[0] == 0
+    (repo / "README.md").write_text("# docs, mine\n", encoding="utf-8")
+    git(repo, "add", "README.md")
+    git(repo, "commit", "-q", "-m", "my readme")
+    teammate = tmp_path / "teammate"
+    git(tmp_path, "clone", "-q", str(bare), str(teammate))
+    (teammate / "README.md").write_text("# docs, theirs\n", encoding="utf-8")
+    git(teammate, "add", "-A")
+    git(teammate, "commit", "-q", "-m", "their readme")
+    git(teammate, "push", "-q", "origin", "main")
+    code, out = run("close", "sync-main", "--vault", str(heron), "--today", TODAY, "--json")
+    assert code == 1, out
+    assert json.loads(out)["status"] == "conflict" and "outside" in out
+    assert (repo / "README.md").read_text(encoding="utf-8") == "# docs, mine\n"  # main's change was not settled away
+    assert git(repo, "status", "--short") == ""  # the merge was aborted
+
+
+def test_the_path_filter_is_added_only_for_a_plan_in_a_subfolder(docs, tmp_path):
+    from vela.edge import vaultgit
+    _, heron, _ = docs
+    solo = tmp_path / "solo"
+    solo.mkdir()
+    assert new_plan(solo, "Solo")[0] == 0
+    assert vaultgit.plan_pathspec(solo) == () and vaultgit.plan_pathspec(heron) == ("--", ".")
+
+
+def test_voice_harvest_names_pages_relative_to_the_plan(docs):
+    from vela.edge import voicegit
+    repo, heron, _ = docs
+    (heron / "01-goals.md").write_text((heron / "01-goals.md").read_text(encoding="utf-8") + "\nVoice.\n", encoding="utf-8")
+    (repo / "README.md").write_text("# docs, edited\n", encoding="utf-8")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "both")
+    assert voicegit.pages_of(heron, git(repo, "rev-parse", "HEAD")) == ["01-goals.md"]
 
 
 def test_freshness_counts_only_the_plans_own_uncommitted_files(docs):
@@ -275,6 +357,17 @@ def test_a_bash_hook_at_the_repo_root_or_in_a_plan_denies_staging_by_hand(docs):
     for folder in (repo, heron, heron / "sessions"):
         out = hook("bash", {"cwd": str(folder), "tool_input": {"command": "git add -A"}})
         assert verdict(out) == "deny", folder
+
+
+def test_a_plain_commit_at_a_repo_root_is_denied_only_when_the_index_holds_a_plans_files(docs):
+    repo, heron, _ = docs
+    (repo / "README.md").write_text("# docs, edited\n", encoding="utf-8")
+    git(repo, "add", "README.md")
+    assert stage_verdict(repo, "git commit -m wip")[0] is None  # the index holds only an owner's file
+    (heron / "01-goals.md").write_text((heron / "01-goals.md").read_text(encoding="utf-8") + "\nX.\n", encoding="utf-8")
+    git(repo, "add", "projects/heron/01-goals.md")
+    assert stage_verdict(repo, "git commit -m wip")[0] == "deny"
+    assert stage_verdict(repo, "git commit -am wip")[0] == "deny"
 
 
 def test_a_bash_hook_in_a_folder_with_no_plan_above_or_below_is_silent(docs, tmp_path):
@@ -405,6 +498,26 @@ def test_a_plan_that_is_its_own_repo_keeps_every_name_it_had(tmp_path):
 
 
 # ---------------------------------------------------------------------------------------------------- planscope
+
+def hook_facts(plan):
+    from vela.edge import machine
+    return machine.hook_facts(plan, environ={}, home=plan)
+
+
+def test_either_plans_githooks_folder_counts_as_the_hooks_being_on(docs):
+    repo, heron, payments = docs
+    git(repo, "config", "core.hooksPath", "projects/payments/.githooks")
+    assert hook_facts(heron).hooks_on and hook_facts(payments).hooks_on
+
+
+def test_doctor_never_suggests_replacing_a_hooks_path_that_is_not_velas(docs):
+    repo, heron, _ = docs
+    git(repo, "config", "core.hooksPath", ".husky")
+    facts = hook_facts(heron)
+    assert not facts.hooks_on and facts.hooks_set == ".husky"
+    line = doctor.hook_line(facts, lambda _: True)
+    assert ".husky" in line.text and "git config core.hooksPath" not in line.text
+
 
 def test_planscope_names_follow_the_plans_folder():
     assert planscope.slug_of("projects/heron/") == "heron"

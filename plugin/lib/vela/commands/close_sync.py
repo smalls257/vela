@@ -159,6 +159,10 @@ def _merge(run):
             f"sync-main: merged origin/main {run.main[:7]} into {run.branch}.",
             "I brought in what changed on main; nothing clashed."))
     paths = mergegit.conflicted_files(root)
+    outside = mergegit.conflicts_outside(root)
+    if outside:
+        mergegit.abort(root)
+        return _conflict_outside(run, outside)
     if not paths:  # the merge failed for a reason that is not a conflict: git's words are the only explanation
         _abort_if_stopped(root)
         raise mergegit.MergeGitFailed(f"git merge --no-edit {mergegit.MAIN} failed: {said}")
@@ -253,6 +257,20 @@ def _conflict(run, plans):
         fix="Show the lead both sides of each listed line range; the lead resolves; rerun vela close sync-main.",
         override=f"{ACCEPT} (go on without main; close gate lists it)")
     return run.finish(closestate.CONFLICT, say.REFUSED, lines, files=files, refusals=[refusal])
+
+
+def _conflict_outside(run, outside):
+    """Main and this branch changed the same lines of files that are not in this plan's folder: not this plan's to settle."""
+    shown = ", ".join(outside[:5]) + (f" and {len(outside) - 5} more" if len(outside) > 5 else "")
+    refusal = say.Refusal(
+        rule="sync-main conflict outside the plan",
+        plain="Main changed some files outside this plan that clash with this branch, so I stopped before mixing them. "
+              "Nothing changed. They belong to the rest of the repository, so they need settling there first.",
+        fix=f"Settle these files outside the plan, then rerun vela close sync-main: {shown}",
+        override=f"{ACCEPT} (go on without main; close gate lists it)")
+    lines = [say.Line(f"sync-main: conflict outside this plan: {shown}", plain="")]
+    return run.finish(closestate.CONFLICT, say.REFUSED, lines, files=[{"path": p, "lines": ["outside this plan"]} for p in outside],
+                      refusals=[refusal])
 
 
 def _fetch_failed(run, why):

@@ -112,6 +112,15 @@ def has_branches(root):
     raise GitUnavailable(f"git rev-parse --is-inside-work-tree failed: {err or out}")
 
 
+def changed_outside_plan(root):
+    """Repository-relative paths changed or untracked anywhere in the repo except the plan's own folder. [] for a plan
+    that is its own repo (nothing is outside it)."""
+    prefix = plan_prefix(root)
+    if not prefix:
+        return []
+    return status_paths(root, "--untracked-files=all", pathspec=(":/", f":(top,exclude){prefix.rstrip('/')}"))
+
+
 def plan_scope(root):
     """The name a plan that shares its repo goes by in branch names and pull request titles (`heron`); "" for a plan
     that is its own repo, whose names stay as they always were (planscope)."""
@@ -206,9 +215,15 @@ def fetch(root, timeout):
     return "" if code == 0 else ((err or out or "git fetch failed").splitlines() or ["git fetch failed"])[0]
 
 
+def plan_pathspec(root):
+    """("--", ".") for a plan in a subfolder of its repo, so a count or a log is the plan's own; () for a plan that is its
+    own repo, whose history is counted whole (a filter would skip merges and empty commits)."""
+    return ("--", ".") if plan_prefix(root) else ()
+
+
 def behind_ahead(root, upstream_ref, ref="HEAD"):
     """(commits behind, commits ahead) of `ref` against `upstream_ref`, from the remote state git last saw."""
-    left, _, right = git_out(root, "rev-list", "--left-right", "--count", f"{upstream_ref}...{ref}", "--", ".").partition("\t")
+    left, _, right = git_out(root, "rev-list", "--left-right", "--count", f"{upstream_ref}...{ref}", *plan_pathspec(root)).partition("\t")
     return int(left), int(right)
 
 
