@@ -170,7 +170,7 @@ def test_the_explorer_draws_a_recorded_sender_as_stated_even_against_the_provide
     flow = next(f for f in data["flows"] if f["key"] == "FLO-001")
     step = next(s for s in flow["steps"] if s["n"] == 6)
     assert step["messages"] == [{"from": "APP-website", "to": "APP-booking", "contract": "CON-001",
-                                 "direction": "stated", "kind": "send"}]
+                                 "direction": "stated", "kind": "send", "says": "waits on Booking API", "answer": ""}]
 
 
 def test_a_flow_that_names_its_capabilities_is_clean(tmp_path):
