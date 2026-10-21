@@ -7,9 +7,12 @@ stages). A Paper Tiger would be a command that copies files and leaves the first
 with the first commit, made by `stagegit` (the code path `vela close stage` commits through), staging exactly the
 template's files and nothing else.
 
-What it refuses (exit 1, nothing changed): a folder that already holds `.vela.yaml` or `.vela/`; a folder inside another
-repository's work tree; a folder with an entry named like one of the template's top-level entries (listed). It never
-overwrites. Material the folder already held goes into `.inbox/`, which the template's `.gitignore` keeps out of every
+A folder inside an existing repository is fine: one docs repo may hold several plans, each in its own folder. No new
+repo is made there, and the first commit holds only the new plan's files (a pathspec, never the whole index).
+
+What it refuses (exit 1, nothing changed): a folder that already holds `.vela.yaml` or `.vela/`; a folder inside
+another plan, or one with plans below it (a plan owns its whole folder, so the two would claim the same pages); a
+folder with an entry named like one of the template's top-level entries (listed). It never overwrites. Material the folder already held goes into `.inbox/`, which the template's `.gitignore` keeps out of every
 commit and `vela conventions` names as where documents dropped for Discover live; what the folder's own repository
 already tracks stays where it is.
 
@@ -24,7 +27,7 @@ import pathlib
 import shutil
 
 from vela import commands, newplan, rules, say
-from vela.edge import hostprobe, sessiongit, stagegit, vaultgit
+from vela.edge import hostprobe, plans, sessiongit, stagegit, vaultgit
 from vela.edge.vaultgit import GitUnavailable
 from vela.onboardpath import HANDLE
 
@@ -122,9 +125,17 @@ def folder_refusal(folder, files, entries):
                        "I'd start the new plan in a new folder.")
     repo = enclosing_repo(folder)
     if repo is not None and repo != folder:
-        return refused("inside-repo", f"This folder is inside another project's git repository ({repo.name}), and a plan "
-                       "needs a repository of its own.", f"start the plan in a folder outside {repo}",
-                       "I'd start the plan in a new folder outside that project.")
+        above = plans.plan_above(folder.parent)
+        if above is not None:
+            return refused("inside-plan", f"This folder is inside the plan in {above.name}, and a plan owns everything in "
+                           "its folder, so a second one here would claim the same pages.",
+                           f"start the plan in a folder beside {above.name}, not inside it",
+                           "I'd start the new plan in its own folder next to that one.")
+    below = [p for p in plans.plans_in(folder) if p != folder]
+    if below:
+        return refused("plan-below", f"There's already a plan in {below[0].relative_to(folder).as_posix()}, below this folder, "
+                       "and a plan here would claim its pages too.", "start the new plan in a folder beside it",
+                       "I'd start the new plan in a folder of its own.")
     clash = newplan.clashes([rel for rel, _ in files], entries)
     if clash:
         shown = [n for n in clash if say.leak_in(n) is None]
@@ -207,10 +218,12 @@ def make_plan(folder, args, files, entries, title, handle, cli):
     if errors:
         return failed_check(f"the new plan's own check found {errors} errors", "\n".join(first))
     paths = [rel for rel, _ in files]
+    scope = vaultgit.plan_scope(folder)
+    message = f"{FIRST_COMMIT}: {scope}" if scope else FIRST_COMMIT
     stagegit.stage(folder, paths)
-    commit = stagegit.commit(folder, FIRST_COMMIT, paths)
+    commit = stagegit.commit(folder, message, paths)
     sessiongit.write_text(folder, sessiongit.HANDLE_FILE, handle + "\n")
-    return started(folder, args, title, handle, len(paths), commit, moving, warnings)
+    return started(folder, args, title, handle, len(paths), commit, moving, warnings, scope)
 
 
 def copy_template(folder, files, initiative, title, handle):
@@ -242,14 +255,23 @@ def failed_check(what, detail):
                  plain="Something went wrong on my side while setting up the plan, so I stopped before saving it.")])
 
 
-def started(folder, args, title, handle, count, commit, moved, warnings):
+def started(folder, args, title, handle, count, commit, moved, warnings, scope=""):
+    saved = f"{FIRST_COMMIT}: {scope}" if scope else FIRST_COMMIT
     lines = [say.Line(f"vela new: started {args.initiative} {title!r} for @{handle} in {folder}: {count} files, committed "
-                      f"{commit}: {FIRST_COMMIT}.", plain="I've started the plan in this folder and saved its first version."),
+                      f"{commit}: {saved}.", plain="I've started the plan in this folder and saved its first version."),
              say.Line(f"vela check: 0 errors, {warnings} warnings.", plain="", audience=say.MODEL)]
     if moved:
         lines.append(say.Line(f"vela new: moved {len(moved)} existing entries into .inbox/ (never committed): "
                               f"{', '.join(moved)}.", plain="What was already in this folder is in the plan's inbox "
                               "now. The plan never saves the inbox, and Discover reads from it."))
+    if scope:
+        lines.append(say.Line(
+            f"This plan shares its repository with others. Its sessions are on session/{scope}/..., and its pull requests "
+            f"are titled [{scope}]. GitHub runs workflows only from the repository's own .github/workflows/: copy this "
+            "plan's .github/workflows/ files there once; they check every plan whose folder changed.",
+            plain="This plan shares its repository with other plans, so its sessions and pull requests carry its name. "
+                  "For the check to run on GitHub, the workflow files in the plan's .github folder need copying to the "
+                  "repository's top level, once; it then checks every plan."))
     lines.append(say.Line("Left for a person: a GitHub repository, the required check, Obsidian (see README.md).",
                           plain="What's left for you is in the plan's README: GitHub, the required check and Obsidian."))
     return say.Result(NAME, lines=lines, wrote=[], data={

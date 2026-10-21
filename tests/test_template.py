@@ -62,7 +62,9 @@ def test_pr_check_workflow_runs_vela_check():
     assert "pull_request" in triggers
     steps = workflow["jobs"]["vela-check"]["steps"]
     commands = [s.get("run", "") for s in steps]
-    assert "python .vela/tool/plugin/scripts/vela check" in commands  # vela comes from its public repository, not a copy in the plan
+    # vela comes from its public repository, not a copy in the plan; it checks each plan whose folder changed
+    assert any('python .vela/tool/plugin/scripts/vela check --vault "$plan"' in c for c in commands)
+    assert any("vela plans --changed-since" in c for c in commands)
     assert not any("pyyaml" in c for c in commands)  # the plugin brings its own
 
 

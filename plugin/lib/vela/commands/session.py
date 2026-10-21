@@ -44,9 +44,9 @@ import io
 import pathlib
 import re
 
-from vela import closestate, commands, guard, progress, records, say, sessions
+from vela import closestate, commands, guard, planscope, progress, records, say, sessions
 from vela.commands import close_sync
-from vela.edge import hostprobe, mergegit, sessiongit
+from vela.edge import hostprobe, mergegit, sessiongit, vaultgit
 from vela.edge.vaultgit import GitUnavailable
 
 NAME = "session open"
@@ -112,7 +112,7 @@ def cmd_open(args, out):
         found = sessiongit.folder_records(root) if reader else sessiongit.branch_records(root)
     except GitUnavailable as exc:
         return commands.emit(git_failed(str(exc)), args, out, resolver)
-    records, problems = sessions.find_open(found)
+    records, problems = sessions.find_open(found, vaultgit.plan_scope(root) if not reader else "")
     chosen = sessions.pick(records, args.id) if args.id else records
     result = report(records, chosen, problems, args.id, words(resolver), datetime.date.today())
     result.data.update(reader=reader, switched=None)
@@ -224,7 +224,7 @@ def cmd_start(args, out):
     from vela import cli  # cli builds the parser, so it is loaded by the time this runs
     root = pathlib.Path(args.vault).resolve()
     if not (root / ".vela.yaml").is_file():
-        return commands.emit(no_plan_yet(), args, out)
+        return commands.emit(no_plan_here(root), args, out)
     today = cli.parse_today(args.today)[0]
     resolver = lead_resolver(root) if say.mode_of(args) == "for-lead" else None
     plain = words(resolver)
@@ -240,6 +240,23 @@ def cmd_start(args, out):
             say.Line(f"vela: couldn't write: {exc}", plain="I couldn't write the session's files to disk, so I "
                                                            "haven't started.")])
     return commands.emit(result, args, out, resolver)
+
+
+def no_plan_here(root):
+    """A folder with no `.vela.yaml`: the plan it sits in, the plans a repo's root holds (the lead says which), or none."""
+    from vela.commands import plans as plans_command
+    from vela.edge import plans
+    top = plans.repo_root(root)
+    above = plans.plan_above(root)
+    if above is not None and above != root:
+        name = plans_command.said_name(plans_command.describe(above, top or above))
+        return say.Result(START, exit=say.REFUSED, refusals=[say.Refusal(
+            "inside-plan", f"This folder is inside the plan {name}, but a session starts from the plan's own folder.",
+            f"run the command with --vault {above}", "", recommend="I'd start it from the plan's own folder.", waiver="")])
+    held = [plans_command.describe(folder, top) for folder in plans.plans_in(top)] if top == root else []
+    if held:
+        return plans_command.which_plan(held)
+    return no_plan_yet()
 
 
 def no_plan_yet():
@@ -546,9 +563,8 @@ def set_aside_vela_files(root):
     """(paths, kept bytes): the tracked files with uncommitted changes that `guard.set_aside_unasked` says are not
     the lead's work, put back to HEAD's copy, as sync-main does before its merge. `.vela/` is left alone: start writes
     `.vela/session.json` itself, and writing an old copy back would undo that."""
-    prefix = mergegit.vault_prefix(root)
-    aside = [path for path in mergegit.tracked_changes(root) if path.startswith(prefix)
-             and not sessions.is_tool_state(path[len(prefix):]) and guard.set_aside_unasked(path[len(prefix):])]
+    aside = [path for path in mergegit.tracked_changes(root)
+             if not sessions.is_tool_state(path) and guard.set_aside_unasked(path)]
     return aside, mergegit.set_aside(root, aside)
 
 
@@ -556,7 +572,7 @@ def start_owner(root, args, today, modes, plain, said, host):
     """The owner's start: every check, then the pull, the branch, the record and its commit."""
     config = config_of(root)
     pr, challenged = find_challenge(root, args.answer, plain) if args.answer else (None, "")
-    open_records, problems = sessions.find_open(sessiongit.branch_records(root))
+    open_records, problems = sessions.find_open(sessiongit.branch_records(root), vaultgit.plan_scope(root))
     lines = said + problem_lines(problems)
     if args.resume:
         return resume(root, open_records, args.resume, False, lines, today, plain, host)
@@ -620,12 +636,14 @@ def bring_main_in(root, today, host, lines, base_words):
 def open_record(root, args, today, modes, challenged, on_branch, lines, carried, plain=lambda text: text):
     """START step 5: the id, the branch (an answer stays on its challenge's), the record, `Open session <id>`, then
     the initiative's name when the lead gave one, and `.vela/session.json`."""
+    scope = vaultgit.plan_scope(root)
+
     def taken(candidate):
         on_disk = (root / "sessions" / f"{candidate}.md").exists()
-        return on_disk or (not on_branch and sessiongit.branch_taken(root, f"session/{candidate}"))
+        return on_disk or (not on_branch and sessiongit.branch_taken(root, planscope.session_branch(scope, candidate)))
 
     record_id = sessions.answer_id(today, challenged, taken) if challenged else sessions.new_id(today, args.topic, taken)
-    branch = on_branch or f"session/{record_id}"
+    branch = on_branch or planscope.session_branch(scope, record_id)
     if not on_branch:
         ok, said = sessiongit.create_branch(root, branch)
         if not ok:

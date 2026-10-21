@@ -12,8 +12,8 @@ Exit codes: 0 nothing forbidden; 1 refused, each path named with its plain reaso
 import pathlib
 import shlex
 
-from vela import guard, say
-from vela.edge import stagegit, vaultgit
+from vela import guard, planscope, say
+from vela.edge import plans, stagegit, vaultgit
 
 
 def register(sub):
@@ -42,15 +42,34 @@ def refuse(result, found):
     result.data = {"forbidden": [{"path": p, "rule": r.key, "reason": r.plain} for p, r in found]}
 
 
+def plan_paths(root, staged):
+    """[(path as git names it, path inside its plan)] for every staged path. A commit carries the whole index, so the
+    pre-commit hook, run from the repo's top, judges every plan's files, each by its own plan's rules. Pointed at one
+    plan's folder, it judges that plan's. A path in no plan is no plan's business and is left alone; a repo with no
+    plan at all is judged as one plan, as before."""
+    top = plans.repo_root(root)
+    if top is None:
+        return [(path, path) for path in staged]
+    folders = [plans.prefix_of(root, top)] if plans.is_plan(root) else [plans.prefix_of(f, top) for f in plans.plans_in(root)]
+    if not folders:
+        return [(path, path) for path in staged]
+    owned = [(path, planscope.plan_of(path, folders)) for path in staged]
+    return [(path, planscope.inside(path, folder)) for path, folder in owned if folder is not None]
+
+
 def cmd_guard_staged(args, out):
     from vela import cli, commands
     root = pathlib.Path(args.vault).resolve()
     try:
-        staged = stagegit.staged_paths(root)
+        staged = stagegit.staged_paths_in_repo(root)
     except vaultgit.GitUnavailable as exc:
         raise cli.ToolError(f"guard staged: {exc}. The staged files were not checked.") from exc
     result = say.Result("guard staged")
-    found = guard.forbidden(staged)
+    found = []
+    for path, inner in plan_paths(root, staged):
+        rule = guard.never_rule(inner)
+        if rule is not None:
+            found.append((guard.normal(path), rule))
     if found:
         refuse(result, found)
     else:

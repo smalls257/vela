@@ -186,6 +186,8 @@ def test_reader_copy_runs_no_git(tmp_path, monkeypatch):
 
     def no_git(*args, **kwargs):
         raise AssertionError(f"a read copy ran git: {args}")
+    from vela import cli
+    cli.build_parser()  # import every command module first: one that imports run_git by name during the patch would keep no_git for good
     monkeypatch.setattr(vaultgit, "run_git", no_git)
     code, out = run("close", "sync-main", "--vault", str(copy), "--today", TODAY, "--for-lead")
     assert code == 0 and out.strip() == "This is your copy, so there is no main to bring in.", out
@@ -310,7 +312,7 @@ def test_the_template_ignores_every_vela_working_file_but_the_shared_layout(tmp_
     for name in ("flowcheck-cache.json", "close/session__x.json", "findings/a.txt", "pr-body.md", "explorer-pins.json"):
         (tmp_path / ".vela" / name).parent.mkdir(parents=True, exist_ok=True)
         (tmp_path / ".vela" / name).write_text("{}\n", encoding="utf-8")
-    assert vaultgit.status_paths(tmp_path, "--untracked-files=all", "--", ".vela") == [".vela/explorer-pins.json"]
+    assert vaultgit.status_paths(tmp_path, "--untracked-files=all", pathspec=(".vela",)) == [".vela/explorer-pins.json"]
 
 
 def test_the_lead_s_files_still_block_and_are_named_whole(repos):
@@ -371,4 +373,4 @@ def test_c83_a_subfolder_vault_conflict_in_writing_names_the_page_and_its_lines(
     commit(lead, {"plan/01-goals.md": page(intro="Our intro.")}, "session")
     code, out = sync(lead / "plan")
     assert code == 1, out
-    assert state(lead / "plan")["files"] == [{"path": "plan/01-goals.md", "title": "Goals", "lines": ["9"]}]
+    assert state(lead / "plan")["files"] == [{"path": "01-goals.md", "title": "Goals", "lines": ["9"]}]

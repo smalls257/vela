@@ -52,6 +52,7 @@ class Hook:
     config_path: str  # git config vela.path ("" when unset); the hook reads it second
     vendored: str  # the vendored launcher's path in the vault; the hook reads it last
     launcher: str  # the installed vela launcher doctor found ("" when none)
+    hooks_dir: str = ".githooks"  # where git is pointed, from the repo's top (`projects/heron/.githooks` for a plan in a subfolder)
 
 
 # The hook's own order (plugin/template/.githooks/pre-commit), kept here so doctor says what the hook will do; a test runs the
@@ -70,7 +71,7 @@ def hook_finds(hook, is_file):
 def wire_command(hook, found):
     """The one command that wires the hook to the installed launcher: turns the vault's hooks on when they are off, and
     records the launcher when the hook would not find it."""
-    steps = [] if hook.hooks_on else ["git config core.hooksPath .githooks"]
+    steps = [] if hook.hooks_on else [f"git config core.hooksPath {hook.hooks_dir}"]
     if found != hook.launcher:
         steps.append(f"git config vela.path {shell_quote(hook.launcher)}")
     return " && ".join(steps)

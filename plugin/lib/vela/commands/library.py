@@ -267,7 +267,7 @@ def consent_stop(root, args, plan):
 def dirty_register(root):
     """sources.md edited and not yet saved would ride into this commit; stop and say so."""
     try:
-        dirty = vaultgit.status_paths(root, "--", "sources.md")
+        dirty = vaultgit.status_paths(root, pathspec=("sources.md",))
     except GitUnavailable as exc:
         return add_command.failed(f"git can't answer: {exc}", "I couldn't check the plan's saved state, so I added nothing.")
     if dirty:

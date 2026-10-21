@@ -41,15 +41,18 @@ def hook_facts(root, environ=None, home=None):
     if not (root / ".vela.yaml").is_file() or git_config(root, "--git-dir") is None:
         return None
     hooks = git_config(root, "core.hooksPath") or ""
-    on = bool(hooks) and (root / hooks).resolve() == (root / ".githooks").resolve()
-    return doctor.Hook(hook_file=(root / ".githooks" / "pre-commit").is_file(), hooks_on=on,
+    prefix = git_config(root, "--show-prefix") or ""  # "projects/heron/" for a plan that shares its repo
+    depth = len([part for part in prefix.split("/") if part])
+    top = root.resolve().parents[depth - 1] if depth else root.resolve()
+    on = bool(hooks) and (top / hooks).resolve() == (root / ".githooks").resolve()  # git reads a relative path from the repo's top
+    return doctor.Hook(hook_file=(root / ".githooks" / "pre-commit").is_file(), hooks_on=on, hooks_dir=f"{prefix}.githooks",
                        env_vela=environ.get("VELA", ""), config_path=git_config(root, "vela.path") or "",
                        vendored=str(root / VENDORED), launcher=installed_launcher(environ, home))
 
 
 def git_config(root, key):
     """`git config --get <key>` in the vault (`--git-dir` asks whether it is a repository at all), or None."""
-    argv = ["git", "-C", str(root), "rev-parse", "--git-dir"] if key == "--git-dir" else ["git", "-C", str(root), "config", "--get", key]
+    argv = ["git", "-C", str(root), "rev-parse", key] if key in ("--git-dir", "--show-prefix") else ["git", "-C", str(root), "config", "--get", key]
     try:
         done = subprocess.run(argv, capture_output=True, text=True, timeout=VERSION_TIMEOUT)
     except (OSError, subprocess.TimeoutExpired):

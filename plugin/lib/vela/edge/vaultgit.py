@@ -12,7 +12,7 @@ import tarfile
 
 import yaml
 
-from vela import publish, roles
+from vela import planscope, publish, roles
 
 GIT_TIMEOUT = 20
 FETCH_TIMEOUT = 8  # an owner's session start must not hang on a dead network
@@ -84,12 +84,54 @@ def parse_porcelain(out):
     return paths
 
 
-def status_paths(root, *args):
-    """The paths `git status --porcelain=v1 -z <args>` names, repository-relative and exactly as on disk."""
-    code, out, err = run_git(root, "status", "--porcelain=v1", "-z", *args, binary=True)
+def plan_prefix(root):
+    """The plan's folder inside its repo as git writes it (`projects/heron/`), "" at the repo's root or when the
+    folder is in no repository at all."""
+    code, out, err = run_git(root, "rev-parse", "--show-prefix")
+    if code == 0:
+        return out
+    if "not a git repository" in err.lower():
+        return ""
+    raise GitUnavailable(f"git rev-parse --show-prefix failed: {err or out}")
+
+
+def has_branches(root):
+    """True when this folder is in a git work tree whose branches carry its numbers: a plan that is its own repo, or
+    one in a subfolder of a repo. False for a published copy (no `.git`, with `.vela/workspace.json`), which has no
+    branches even when it was copied into some other repository."""
+    root = pathlib.Path(root)
+    if (root / ".git").exists():
+        return True
+    if (root / ".vela" / "workspace.json").is_file():
+        return False
+    code, out, err = run_git(root, "rev-parse", "--is-inside-work-tree")
+    if code == 0:
+        return out == "true"
+    if "not a git repository" in err.lower():
+        return False
+    raise GitUnavailable(f"git rev-parse --is-inside-work-tree failed: {err or out}")
+
+
+def plan_scope(root):
+    """The name a plan that shares its repo goes by in branch names and pull request titles (`heron`); "" for a plan
+    that is its own repo, whose names stay as they always were (planscope)."""
+    return planscope.slug_of(plan_prefix(root))
+
+
+def vault_relative(paths, prefix):
+    """Repository-relative paths from git, as the plan's folder sees them. A path outside the folder stays as git
+    gave it, so nothing is dropped silently."""
+    return [path[len(prefix):] if prefix and path.startswith(prefix) else path for path in paths]
+
+
+def status_paths(root, *flags, pathspec=(".",)):
+    """The plan-relative paths `git status --porcelain=v1 -z <flags> -- <pathspec>` names, exactly as on disk. The
+    pathspec is relative to the plan's folder and defaults to all of it, so a second plan's changes in the same repo
+    are never listed, counted or staged on this plan's behalf (Distributed Monolith)."""
+    code, out, err = run_git(root, "status", "--porcelain=v1", "-z", *flags, "--", *pathspec, binary=True)
     if code != 0:
         raise GitUnavailable(f"git status failed: {err or out.decode('utf-8', 'replace').strip()}")
-    return parse_porcelain(out.decode("utf-8"))
+    return vault_relative(parse_porcelain(out.decode("utf-8")), plan_prefix(root))
 
 
 def tracked_paths(root):
@@ -108,7 +150,7 @@ def uncommitted(root):
     explorer build writes itself (the dashboard and the pinned layout, publish.KEPT) are left out: the build counts what
     is uncommitted and then writes them, so counting them would make a page built before a commit differ from the same
     page built after it."""
-    return status_paths(root, "--", ".", *(f":(exclude){path}" for path in publish.KEPT))
+    return status_paths(root, pathspec=[".", *(f":(exclude){path}" for path in publish.KEPT)])
 
 
 def user_identity(root):
@@ -166,8 +208,15 @@ def fetch(root, timeout):
 
 def behind_ahead(root, upstream_ref, ref="HEAD"):
     """(commits behind, commits ahead) of `ref` against `upstream_ref`, from the remote state git last saw."""
-    left, _, right = git_out(root, "rev-list", "--left-right", "--count", f"{upstream_ref}...{ref}").partition("\t")
+    left, _, right = git_out(root, "rev-list", "--left-right", "--count", f"{upstream_ref}...{ref}", "--", ".").partition("\t")
     return int(left), int(right)
+
+
+def changed_since(root, ref):
+    """Repository-relative paths changed between `ref` and HEAD, compared from where HEAD left `ref` (three dots), for
+    the plans a pull request or a push touched. GitUnavailable with git's words when git fails."""
+    out = git_out(root, "diff", "--name-only", "-z", f"{ref}...HEAD", "--", ":/")
+    return [path for path in out.split("\0") if path]
 
 
 def current_branch(root):

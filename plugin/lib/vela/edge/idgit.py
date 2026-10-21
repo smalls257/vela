@@ -9,12 +9,12 @@ and other open branches can link to, so a number an open session branch already 
 - `main`/`master`, local and on origin: a session branch that merged and was deleted leaves its numbers only there.
 
 One `git grep -h -o` per ref prints only the ID-shaped tokens of its Markdown files, not the files, so a large vault
-costs one call per branch. A reader copy (no `.git`) has no branches: the list is empty and nothing runs. A git that
+costs one call per branch. A published copy (no `.git`) has no branches: the list is empty and nothing runs. A git that
 fails raises GitUnavailable with git's words; it never reads as "no other branch holds a number".
 """
 import pathlib
 
-from vela.edge.vaultgit import GitUnavailable, git_out, run_git
+from vela.edge.vaultgit import GitUnavailable, git_out, has_branches, run_git
 
 PATTERNS = ("refs/heads/session/", "refs/remotes/origin/session/")
 MAIN_REFS = ("refs/heads/main", "refs/heads/master", "refs/remotes/origin/main", "refs/remotes/origin/master")
@@ -22,9 +22,10 @@ ID_TOKENS = r"[A-Z]{1,4}-[0-9]+(\.[A-Z]+[0-9]+)?"
 
 
 def branch_texts(root):
-    """[text] per branch: the ID-shaped tokens written there, one per line. [] in a folder with no `.git`."""
+    """[text] per branch: the ID-shaped tokens written there under the plan's folder (the grep runs there, so a second
+    plan in the same repo never lends or takes a number), one per line. [] in a folder that is in no git work tree."""
     root = pathlib.Path(root)
-    if not (root / ".git").exists():
+    if not has_branches(root):
         return []
     refs = git_out(root, "for-each-ref", "--format=%(refname)", *PATTERNS, *MAIN_REFS).split()
     found = []

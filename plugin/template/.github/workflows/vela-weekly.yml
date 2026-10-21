@@ -1,7 +1,12 @@
 # Every Monday, posts the vault's health as the one open issue titled
 # "Vault health": stale pages and sources, overdue unknowns with their
 # owners @-mentioned, and the days since the last session. It creates the
-# issue the first time and edits it after that. Run it by hand from the
+# issue the first time and edits it after that. A repository that holds
+# several plans (`vela plans` lists them, one folder each) gets one issue per
+# plan, titled "Vault health: <folder>", so one plan's owners are never
+# mentioned about another's pages. GitHub runs workflows only from the
+# repository's own .github/workflows/: a plan in a subfolder copies this file
+# there once. Run it by hand from the
 # Actions tab to see it at once. If gh fails, the job fails and shows red;
 # it never reports success for an issue it did not write. Built and tested
 # with a stand-in for gh; it has not yet run against a live repository.
@@ -37,16 +42,29 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Build the report
-        run: python .vela/tool/plugin/scripts/vela health > vault-health.md
-      - name: Open or update the Vault health issue
+      - name: List the plans
+        run: python .vela/tool/plugin/scripts/vela plans --paths > plans.txt
+      - name: Build the reports
+        run: |
+          n=0
+          while IFS= read -r plan; do
+            n=$((n + 1))
+            python .vela/tool/plugin/scripts/vela health --vault "$plan" > "vault-health-$n.md"
+          done < plans.txt
+      - name: Open or update the Vault health issues
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          number=$(gh issue list --state open --search 'in:title "Vault health"' --json number,title --jq '[.[] | select(.title == "Vault health") | .number] | first // empty')
-          if [ -n "$number" ]; then
-            gh issue edit "$number" --body-file vault-health.md
-          else
-            gh issue create --title "Vault health" --body-file vault-health.md
-          fi
+          n=0
+          while IFS= read -r plan; do
+            n=$((n + 1))
+            if [ "$plan" = "." ]; then TITLE="Vault health"; else TITLE="Vault health: $plan"; fi
+            export TITLE
+            number=$(gh issue list --state open --search "in:title \"$TITLE\"" --json number,title --jq '[.[] | select(.title == $ENV.TITLE) | .number] | first // empty')
+            if [ -n "$number" ]; then
+              gh issue edit "$number" --body-file "vault-health-$n.md"
+            else
+              gh issue create --title "$TITLE" --body-file "vault-health-$n.md"
+            fi
+          done < plans.txt

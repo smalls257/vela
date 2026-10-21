@@ -212,8 +212,9 @@ def test_pr_workflow_fails_a_stale_generated_block():
     import yaml
     workflow = yaml.safe_load(read("plugin/template/.github/workflows/vela-check.yml"))
     commands = [s.get("run", "") for s in workflow["jobs"]["vela-check"]["steps"]]
-    assert "python .vela/tool/plugin/scripts/vela render && git diff --exit-code" in commands
-    assert commands.index("python .vela/tool/plugin/scripts/vela check") < commands.index(commands[-1])
+    render = next(c for c in commands if 'vela render --vault "$plan"' in c)
+    assert "git diff --exit-code" in render  # the diff comes after every plan's render, so a stale block fails the job
+    assert commands.index(next(c for c in commands if 'vela check --vault "$plan"' in c)) < commands.index(render)
 
 
 def test_template_wrapper_readme_and_claude_md():

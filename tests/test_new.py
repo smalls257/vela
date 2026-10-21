@@ -111,13 +111,17 @@ def test_a_name_clash_is_listed_and_nothing_is_overwritten(tmp_path):
     assert sorted(p.name for p in tmp_path.iterdir()) == ["CLAUDE.md", "README.md", "other.txt"]
 
 
-def test_a_folder_inside_another_repository_is_refused_naming_it(tmp_path):
+def test_a_folder_inside_another_repository_becomes_a_plan_without_a_new_repo(tmp_path):
     outer = tmp_path / "bigproject"
     inner = outer / "plans"
     inner.mkdir(parents=True)
     git(outer, "init", "-q")
     code, out = new(inner)
-    assert code == 1 and "bigproject" in out and not (inner / ".vela.yaml").exists()
+    assert code == 0, out
+    assert not (inner / ".git").exists()
+    assert git(outer, "rev-parse", "--show-toplevel").strip() == str(outer.resolve())
+    assert git(outer, "log", "--format=%s").split("\n")[:-1] == ["Start the plan: plans"]
+    assert {p.split("/")[0] for p in git(outer, "ls-files").split()} == {"plans"}
 
 
 def test_a_folder_that_is_its_own_repository_is_used_as_it_is(tmp_path):

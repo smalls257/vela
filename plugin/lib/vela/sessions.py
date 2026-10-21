@@ -41,7 +41,7 @@ import datetime
 import re
 from dataclasses import dataclass
 
-from vela import parse, say, schema
+from vela import parse, planscope, say, schema
 
 LOCAL, REMOTE, FOLDER = "refs/heads/", "refs/remotes/origin/", ""
 _DATED_HEADING = re.compile(r"^#\s+(?:\d{4}-\d{2}-\d{2}\s+)?(?P<title>.+?)\s*$", re.M)
@@ -113,21 +113,23 @@ def _one_per_branch(records):
     return list(chosen.values())
 
 
-def _one_per_id(records):
-    """A record id on several branches is the session on `session/<id>` when that branch is among them."""
+def _one_per_id(records, scope=""):
+    """A record id on several branches is the session on `session/<id>` (`session/<plan>/<id>` in a plan that shares
+    its repo, see planscope) when that branch is among them."""
     by_id = {}
     for record in records:
         by_id.setdefault(record.id, []).append(record)
     out = []
     for group in by_id.values():
-        own = [r for r in group if r.branch == f"session/{r.id}"]
+        own = [r for r in group if r.branch == planscope.session_branch(scope, r.id)]
         out.extend(own if own else group)
     return out
 
 
-def find_open(found):
-    """(open records, problems) from `(ref, path, text)` tuples. `problems` names each candidate whose frontmatter
-    could not be read, so a broken record is reported, never silently skipped."""
+def find_open(found, scope=""):
+    """(open records, problems) from `(ref, path, text)` tuples. `scope` is the plan's name when it shares its repo
+    with other plans (planscope), "" otherwise. `problems` names each candidate whose frontmatter could not be read,
+    so a broken record is reported, never silently skipped."""
     records, problems = [], []
     for ref, path, text in found:
         record, why = read(ref, path, text)
@@ -136,7 +138,7 @@ def find_open(found):
         else:
             records.append(record)
     still_open = [r for r in _one_per_branch(records) if r.status == "open"]
-    ordered = sorted(_one_per_id(still_open), key=lambda r: (r.date, r.id, r.branch or ""))
+    ordered = sorted(_one_per_id(still_open, scope), key=lambda r: (r.date, r.id, r.branch or ""))
     return ordered, problems
 
 

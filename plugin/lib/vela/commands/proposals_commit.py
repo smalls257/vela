@@ -79,9 +79,9 @@ def why_not(top, stage, already):
 def commit_step(top, prefix, stage, message):
     """Stage `stage` by exact path, check the whole index against guard.py, and commit it. Returns (hash, forbidden):
     a forbidden path already in the index (put there by hand) stops the commit, named, before git runs it."""
-    deleted = set(stagegit.staged_deletions(top))  # already gone from the index: naming it again fails the add
+    deleted = set(stagegit.staged_deletions_in_repo(top))  # already gone from the index: naming it again fails the add
     stagegit.stage(top, [p for p in stage if p not in deleted])
-    forbidden = guard.forbidden([vault_relative(p, prefix) for p in stagegit.staged_paths(top)])
+    forbidden = guard.forbidden([vault_relative(p, prefix) for p in stagegit.staged_paths_in_repo(top)])  # the whole index goes in
     if forbidden:
         return None, forbidden
     return stagegit.commit_index(top, message), []
@@ -96,10 +96,11 @@ def cmd_proposals_commit(args, out):
     result = say.Result("proposals commit")
     try:
         prefix = reviewgit.prefix(vault_dir)
-        changed = stagegit.changed_paths(top)
+        changed = [prefix + p for p in stagegit.changed_paths(vault_dir)]  # this plan's folder only, repo-relative
         never = [(p, rule) for p, rule in ((p, guard.never_rule(vault_relative(p, prefix))) for p in changed) if rule]
         stage = [p for p in changed if p not in {p for p, _ in never}]
-        stop = why_not(top, stage, stagegit.staged_paths(top) + stagegit.staged_deletions(top))
+        already = [prefix + p for p in stagegit.staged_paths(vault_dir) + stagegit.staged_deletions(vault_dir)]
+        stop = why_not(top, stage, already)
         if stop:
             refuse(result, *stop)
             return commands.emit(result, args, out)

@@ -67,7 +67,7 @@ class _Run:
     def __init__(self, root, today, keep_record=True):
         self.root, self.today, self.branch, self.main, self.head = root, today, "", "", ""
         self.keep_record = keep_record
-        self.prefix, self.kept, self.set_aside = "", {}, []
+        self.kept, self.set_aside = {}, []
 
     def put_back(self):
         """The set-aside files back as they were, before anything else is written: the state file may be one of them."""
@@ -93,14 +93,12 @@ class _Run:
         return say.Result(COMMAND, exit_code, list(lines), list(refusals), list(needs_lead), list(wrote), data)
 
 
-def never_committed(path, prefix):
-    """True for a repository-relative path inside the vault whose change is not the lead's unsaved work
+def never_committed(path):
+    """True for a plan-relative path whose change is not the lead's unsaved work
     (`guard.set_aside_unasked`: vela's own `.vela/` files, the inbox, private voice, and the dashboard vela rebuilds).
     A dirty one neither blocks a sync nor appears in advice to commit it: that advice contradicted close stage
     (Distributed Monolith), and following it could never succeed."""
-    if not path.startswith(prefix):
-        return False
-    return guard.set_aside_unasked(path[len(prefix):])
+    return guard.set_aside_unasked(path)
 
 
 def sync_main(root, today, accept=False, timeout=mergegit.FETCH_TIMEOUT):
@@ -144,12 +142,11 @@ def _sync_owner(run, accept, timeout):
         return run.finish(closestate.UP_TO_DATE, say.DONE, [say.Line(
             f"sync-main: up to date: origin/main {run.main[:7]} is already in {run.branch}.",
             "This branch already has everything on main.")])
-    run.prefix = mergegit.vault_prefix(root)
     dirty = mergegit.tracked_changes(root)
-    mine = [path for path in dirty if not never_committed(path, run.prefix)]
+    mine = [path for path in dirty if not never_committed(path)]
     if mine:
         return _uncommitted(run, mine)
-    run.set_aside = [path for path in dirty if never_committed(path, run.prefix)]
+    run.set_aside = [path for path in dirty if never_committed(path)]
     run.kept = mergegit.set_aside(root, run.set_aside)
     return _merge(run)
 
@@ -167,7 +164,7 @@ def _merge(run):
         raise mergegit.MergeGitFailed(f"git merge --no-edit {mergegit.MAIN} failed: {said}")
     # A file close stage never commits is nobody's writing: -X ours settles it like a generated block
     plans = [mergeplan.plan_file(path, mergegit.conflicted_text(root, path)) for path in paths
-             if not never_committed(path, run.prefix)]
+             if not never_committed(path)]
     mergegit.abort(root)
     if plans and not mergeplan.generated_only(plans):
         return _conflict(run, _with_vault_titles(root, plans))

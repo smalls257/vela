@@ -887,8 +887,8 @@ def run_render_and_check(vault_dir, worktree, today):
     rendered = ""
     if render_code != 0:
         rendered = "render refused: " + (buffer.getvalue().strip().splitlines() or ["no reason given"])[0]
-    elif reviewgit.has_changes(worktree):
-        rendered = f"render changed generated blocks; committed {reviewgit.commit_all(worktree, 'Render generated blocks after the proposal')}"
+    elif reviewgit.has_changes(vault_dir):
+        rendered = f"render changed generated blocks; committed {reviewgit.commit_all(vault_dir, 'Render generated blocks after the proposal')}"
     found = vault_findings(vault_dir, today)
     errors = [f for f in found if f.is_error]
     return rendered, {"errors": len(errors), "warnings": len(found) - len(errors), "error_lines": [f.format() for f in errors[:10]]}
@@ -953,7 +953,7 @@ def cmd_proposals_review(args, out):
         commit, check, notes = "", None, []
         vault_dir = folder / prefix if prefix else folder
         if clean:
-            commit = reviewgit.commit_all(folder, f"Proposal: {title} (from {author})")
+            commit = reviewgit.commit_all(vault_dir, f"Proposal: {title} (from {author})")
             rendered, check = run_render_and_check(vault_dir, folder, today)
             if rendered:
                 notes.append(rendered)
@@ -984,7 +984,7 @@ def cmd_proposals_accept(args, out):
         target = vault_dir / entry.path
         text, by, date = review.accept_pending(entry.path, target.read_text(encoding="utf-8"), entry.item, args.by)
         target.write_bytes(text.encode("utf-8"))
-        commit = reviewgit.commit_all(top, f"Accept {item} proposed by {by} on {date}: decided by {args.by}")
+        commit = reviewgit.commit_all(vault_dir, f"Accept {item} proposed by {by} on {date}: decided by {args.by}")
     except (review.ReviewError, OSError, UnicodeDecodeError) as exc:
         raise ToolError(str(exc)) from exc
     except vaultgit.GitUnavailable as exc:
@@ -1002,12 +1002,12 @@ def cmd_proposals_reject(args, out):
     if not args.reason.strip():
         raise ToolError("--reason is needed: the reader will read why their change was turned down.")
     try:
-        if reviewgit.unmerged(top) or reviewgit.has_changes(top):
+        if reviewgit.unmerged(top) or reviewgit.has_changes(vault_dir):
             raise ToolError("This worktree has uncommitted or conflicted files. Resolve and commit them first, so the rejection is a clean step of its own.")
         ok, words = reviewgit.revert(top, review.subpatch(parsed, group), reviewgit.prefix(vault_dir))
         if not ok:
             raise ToolError(f"I could not take '{group.key}' back out automatically (the pages have changed since): {words} Edit the files yourself, then record it as edited.")
-        commit = reviewgit.commit_all(top, f"Reject {group.key} from the proposal: {' '.join(args.reason.split())}")
+        commit = reviewgit.commit_all(vault_dir, f"Reject {group.key} from the proposal: {' '.join(args.reason.split())}")
     except review.ReviewError as exc:
         raise ToolError(str(exc)) from exc
     except vaultgit.GitUnavailable as exc:
@@ -1531,7 +1531,7 @@ def cmd_next_id(args, out):
     root = pathlib.Path(args.vault).resolve()
     load_config(root)  # a folder that is not a vault has no IDs to count
     texts = [path.read_text(encoding="utf-8") for path in vault_files(root)[0]]
-    if (root / ".git").exists() and ids.PREFIX_RE.match(args.prefix):
+    if vaultgit.has_branches(root) and ids.PREFIX_RE.match(args.prefix):
         refs = git_strict(root, "for-each-ref", "--format=%(refname)", "refs/heads/session/", "refs/remotes/origin/session/",
                           *MAIN_REFS)
         for ref in refs.split():

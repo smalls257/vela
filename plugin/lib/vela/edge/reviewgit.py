@@ -84,17 +84,20 @@ def changed_entries(worktree):
     return [(meta.split()[-1][0], meta.split()[1], path) for meta, path in zip(fields[0::2], fields[1::2])]
 
 
-def has_changes(worktree):
-    return bool(status_paths(worktree))
+def has_changes(folder):
+    """True when the plan's folder in the worktree has changes; another plan's files in the repo are not looked at."""
+    return bool(status_paths(folder))
 
 
 def unmerged(worktree):
     return git_out(worktree, "diff", "--name-only", "--diff-filter=U").splitlines()
 
 
-def commit_all(worktree, message):
-    """Stage everything and commit with the owner's identity and hooks. Returns the short hash."""
-    git_out(worktree, "add", "-A", timeout=COMMIT_TIMEOUT)
+def commit_all(folder, message):
+    """Stage everything under the plan's folder (not the rest of the repo) and commit with the owner's identity and
+    hooks. Returns the short hash."""
+    worktree = folder
+    git_out(worktree, "add", "-A", "--", ".", timeout=COMMIT_TIMEOUT)
     git_out(worktree, "commit", "-q", "-m", message, timeout=COMMIT_TIMEOUT)
     return git_out(worktree, "rev-parse", "--short", "HEAD")
 
