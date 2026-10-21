@@ -39,7 +39,7 @@
     // nothing picked: the design at a glance, one right panel, two tabs, no separate design-tabs column
     const tabs = $$("#panel-body .dp-tabs [role=tab]").map((b) => b.textContent.replace(/\s+/g, " ").trim());
     const cards = $$("#panel-body .glance .in-card h3").map((x) => x.textContent.replace(/\s+/g, " ").trim());
-    ok(head() === "The design at a glance" && tabs.length === 2 && tabs[0] === "Details" && /^What's waiting/.test(tabs[1]) && !$(".inside-side, .inside-tabs") && !$("#panel-body .comp-sec"),
+    ok(head() === "The design at a glance" && tabs.length === 0 && !$(".inside-side, .inside-tabs") && !$("#panel-body .comp-sec"),
       `details panel: nothing picked shows the design at a glance, with the tabs ${tabs.join(" and ")}, and no column of design tabs`, `details panel: nothing picked shows "${head()}", tabs ${tabs.join(" | ")}`);
     const want = ["About this section", "What it is", "The stack in one line", "Top risks", "Quality targets", "Coverage gaps"];
     ok(want.every((w) => cards.some((c) => c.startsWith(w))) && $$("#panel-body .glance [data-open-section]").length >= want.length - 1,
@@ -90,19 +90,15 @@
       ok($$("#inside-draw path.in-edge.near").length >= 1 && dimmed() > 0, `details panel: the contract's line and both ends are lit`, "details panel: the contract's line is not lit");
     } else out.push("skip details panel: no single-contract label is drawn");
 
-    // a waiting item shows its question and lights the parts it holds up
+    // an open question shows its question and lights the parts it holds up
     const q = P.waiting.find((x) => x.holds.length);
     if (q) {
       esc(); await frames();
-      DetailsPanel.setTab("waiting"); await frames();
-      const rows = $$("#panel-body .wq");
-      click(rows.find((r) => r.dataset.oq === q.id)); await frames();
+      go(key(app, "oq", q.id), { reset: true }); await frames();
       const held = $$("#inside-draw g.in-node.held").map((g) => g.dataset.nid);
-      ok(rows.length === P.waiting.length && $("#panel-body .kind").textContent === "Open question" && head() === q.question && DetailsPanel.tab === "details" && held.length === q.holds.length && q.holds.every((n) => held.includes("c:" + n)),
-        `details panel: the waiting item "${shorten(q.question, 40)}" shows its question and lights the ${q.holds.length} parts it holds up`, `details panel: the waiting item opened "${head()}", ${held.length} lit of ${q.holds.length}, tab ${DetailsPanel.tab}`);
+      ok($("#panel-body .kind").textContent === "Open question" && head() === q.question && held.length === q.holds.length && q.holds.every((n) => held.includes("c:" + n)),
+        `details panel: the open question "${shorten(q.question, 40)}" shows its question and lights the ${q.holds.length} parts it holds up`, `details panel: the open question opened "${head()}", ${held.length} lit of ${q.holds.length}`);
       esc(); await frames();
-      DetailsPanel.setTab("waiting");
-      click($(`#panel-body [data-dp-tab=details]`)); await frames();
     }
 
     // empty space goes back to the summary, as Escape does; hovering lights neighbors and leaves the panel alone
@@ -189,7 +185,7 @@
     // Context and Containers use the same panel
     for (const level of ["context", "containers"]) {
       Inside.open(app, level); await frames();
-      ok(head() === "The app at a glance" && $$("#panel-body .dp-tabs [role=tab]").length === 2 && !!$("#main .dia-bar [data-dmenu=key]"), `details panel: ${level} uses the same panel, tabs and diagram bar`, `details panel: ${level} shows "${head()}"`);
+      ok(head() === "The app at a glance" && !$$("#panel-body .dp-tabs [role=tab]").length && !!$("#main .dia-bar [data-dmenu=key]"), `details panel: ${level} uses the same panel and diagram bar`, `details panel: ${level} shows "${head()}"`);
     }
     Inside.open(app, "components"); await frames();
   }
@@ -221,7 +217,7 @@
       if (scene === "b") go(key(app, "c", name), { reset: true });
       if (scene === "c") { go(key(app, "c", name), { reset: true }); if (con) go(key(app, "con", con)); }
       if (scene === "d" && oq) go(key(app, "oq", oq.id), { reset: true });
-      if (scene === "e") { go(key(app, "c", name), { reset: true }); DetailsPanel.setTab("waiting"); }
+      if (scene === "e") { go(key(app, "c", name), { reset: true }); }
       if (isCompact()) PanelSize.hide(false);  // the slide-over is closed until asked for; a screenshot of the panel needs it open
       document.body.setAttribute("data-scene", scene);
     }, 300);

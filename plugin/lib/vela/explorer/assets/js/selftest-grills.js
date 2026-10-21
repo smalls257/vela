@@ -1,6 +1,6 @@
 /* ------------------------------------------------------------ Grills waiting (view-grills.js), driven as a person would:
-   the three groups in their order, who is viewing and what each person sees (the chips, the top-bar badge, the sidebar
-   count and the home line must all give the same number), every filter, the "more belong to other owners" link, a card
+   the three groups in their order, who is viewing and what each person sees (the chips, the sidebar
+   count and the ready ones in Needs you must all give the same number), every filter, the "more belong to other owners" link, a card
    opening in the right-hand panel, the prompt for Claude and its Copy button, the batch in the order that unblocks the
    most, the small "Ready for a grill" line on an item's own details, and the keyboard reaching everything. A vault with
    no grill waiting has no Grills waiting entry, and these checks say so and stop. A block of its own after the details
@@ -21,7 +21,7 @@
   async function grills(ok) {
     const rows = Grills.rows;
     if (!rows.length) { ok(!$$("#side .side-grills-door").length && !$("#grills-badge"), "grills: a vault with nothing waiting has no Grills waiting entry and no badge", "grills: an empty list still shows an entry"); return; }
-    Nav.home(); Grills.st.as = ""; Grills.st.scope = "mine"; Grills.st.owner = ""; Grills.st.app = ""; Grills.st.holds = ""; Grills.st.readyOnly = false; Grills.st.batch = [];
+    Nav.home(); Viewer.set(""); Grills.st.scope = "mine"; Grills.st.owner = ""; Grills.st.app = ""; Grills.st.holds = ""; Grills.st.readyOnly = false; Grills.st.batch = [];
     const everyone = () => { Grills.setViewer("*"); };
 
     // everyone: no person, so every grill shows, in the three groups' order
@@ -31,30 +31,29 @@
       `grills: with nobody viewing, all ${rows.length} grills show once, in the groups ${seen.join(", ")}`, `grills: groups ${seen.join(",")}, ${cards().length} cards for ${rows.length}; shown ${shownIds()}`);
     ok(["You already said yes", "Ready to decide", "One thing away"].some((t) => $$(".g-group h2").some((x) => x.textContent.startsWith(t))) && $$(".g-group h2").every((x) => ["You already said yes", "Ready to decide", "One thing away"].some((t) => x.textContent.startsWith(t))),
       "grills: the group headings say You already said yes, Ready to decide and One thing away", `grills: headings ${$$(".g-group h2").map((x) => x.textContent).join(" | ")}`);
-    ok(!$(".g-scope") && /everyone's grills/.test($(".g-scope-note").textContent) && $("#grills-badge b").textContent === String(rows.length) && /grills waiting/.test($("#grills-badge").textContent),
-      "grills: with nobody viewing there is no Mine chip, and the badge says how many grills are waiting", `grills: badge "${$("#grills-badge") && $("#grills-badge").textContent}"`);
+    ok(!$(".g-scope") && /everyone's grills/.test($(".g-scope-note").textContent) && !$("#grills-badge") && $(".side-grills-door .side-n").textContent === String(rows.length),
+      "grills: with nobody viewing there is no Mine chip, the sidebar counts every grill waiting, and the top bar has no grills badge (Needs you's \"for you\" is the one badge)", `grills: top-bar badge ${!!$("#grills-badge")}, sidebar "${($(".side-grills-door .side-n") || {}).textContent}"`);
 
-    // each person sees their own, and the badge, the sidebar, the chips and the home line all agree
+    // each person sees their own, and the badge, the sidebar, the chips and the ready grills in Needs you all agree
     const people = Grills.rows.flatMap((r) => [...r.owner, ...r.join]).filter((p, i, all) => all.indexOf(p) === i);
     const lower = (t) => t.toLowerCase(), owns = (p) => rows.filter((r) => r.owner.some((o) => lower(o) === lower(p))), joins = (p) => rows.filter((r) => !r.owner.some((o) => lower(o) === lower(p)) && r.join.some((j) => lower(j) === lower(p)));
     const perPerson = [];
     for (const p of people) {
       Grills.setViewer(p); Grills.st.scope = "mine"; Grills.open(); await tick();
       const mine = owns(p), asked = joins(p);
-      const badge = $("#grills-badge"), side = $(".side-grills-door .side-n"), home = (Nav.home(), $("[data-grills-home]"));
-      const fromHome = home ? home.dataset.grillsHome : "0";
+      const side = $(".side-grills-door .side-n"), fromNeeds = Needs.lines().filter((l) => l.kind === "grill").length;
       Grills.open(); await tick();
       const chips = [chipN("mine"), chipN("join"), chipN("all")].join("/"), want = [mine.length, asked.length, rows.length].join("/");
-      const badgeN = badge ? +badge.querySelector("b").textContent : 0, sideN = side ? +side.textContent : 0;
-      if (chips !== want || badgeN !== mine.length || sideN !== mine.length || +fromHome !== mine.length || (mine.length && !/grills? for you/.test(badge.textContent)) || shownIds() !== idsOf(mine)) {
-        perPerson.push(`${p}: chips ${chips} want ${want}, badge ${badgeN}, sidebar ${sideN}, home ${fromHome}, shown ${shownIds()} want ${idsOf(mine)}`);
+      const sideN = side ? +side.textContent : 0;
+      if (chips !== want || sideN !== mine.length || fromNeeds !== mine.filter((r) => r.group !== "one-away").length || !!$("#grills-badge") || shownIds() !== idsOf(mine)) {
+        perPerson.push(`${p}: chips ${chips} want ${want}, sidebar ${sideN}, needs-you grills ${fromNeeds}, shown ${shownIds()} want ${idsOf(mine)}`);
       }
       // I'm asked to join shows exactly the grills someone asked this person to join
       click($('.g-scope[data-scope="join"]')); await tick();
       if (shownIds() !== idsOf(asked)) perPerson.push(`${p}: asked-to-join shows ${shownIds()} want ${idsOf(asked)}`);
       click($('.g-scope[data-scope="mine"]')); await tick();
     }
-    ok(!perPerson.length, `grills: for each of ${people.length} people the Mine, I'm asked to join and Everyone's chips, the top-bar badge, the sidebar count and the home line agree (${people.map((p) => `${personName(p)} ${owns(p).length} + ${joins(p).length}`).join("; ")})`, `grills: ${perPerson.join(" | ")}`);
+    ok(!perPerson.length, `grills: for each of ${people.length} people the Mine, I'm asked to join and Everyone's chips, the sidebar count and the ready grills in Needs you agree (${people.map((p) => `${personName(p)} ${owns(p).length} + ${joins(p).length}`).join("; ")})`, `grills: ${perPerson.join(" | ")}`);
 
     // the others' grills sit behind a count, one click away
     const who = people.find((p) => owns(p).length && rows.length > owns(p).length);

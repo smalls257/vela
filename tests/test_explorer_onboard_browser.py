@@ -90,24 +90,30 @@ def test_the_door_opens_as_the_readers_role_the_leads_record_first_then_their_ch
     assert 'data-role="exec"' in shared, "a reader with no handle and no door picked gets exec; the door's own order is held by the selftest"
 
 
-def chip(out):
-    return re.search(r'class="chip q-mine[^"]*"[^>]*data-me="([^"]*)"', out)
+def needs_you(out):
+    """The text of the Needs you block on a role overview, or None when the page has none."""
+    found = re.search(r'<section class="needs-you[^"]*" id="needs-you"[^>]*>(.*?)</section>', out, re.S)
+    return re.sub(r"<[^>]+>", "", found.group(1)) if found else None
 
 
 @pytest.mark.browser
-def test_waiting_on_you_on_the_shared_page_comes_from_the_role_door_and_survives_a_reload(vault, chrome_path, tmp_path):  # noqa: F811
-    """Before any choice there is no Waiting on you; opening #onboard=qa makes it the QA door's, and a later visit to Home in the
-    same browser profile still has it (the role is remembered). The filter's rows are held by the page's own selftest."""
+def test_needs_you_on_the_shared_page_comes_from_the_role_door_and_survives_a_reload(vault, chrome_path, tmp_path):  # noqa: F811
+    """Before any choice nobody is viewing, so the overview cannot say what needs them; opening #onboard=qa makes the QA door
+    the viewer, and a later visit to the overview in the same browser profile is the QA door's and says what needs it (the role is
+    remembered). The lines themselves are held by the page's own selftest."""
     vela("explore", str(vault), "--today", TODAY)
     page, profile = vault / "dashboard.html", tmp_path / "profile"
 
-    def home(hash_):
+    def load(hash_):
         cmd = [str(chrome_path), "--headless=new", "--disable-gpu", "--no-sandbox", f"--user-data-dir={profile}", "--window-size=1600,1000", "--virtual-time-budget=20000", "--dump-dom", f"file://{page}#{hash_}"]
         return run_chrome(cmd, 180)[1]
-    assert chip(home("home&still")) is None, "no handle and no door picked: the filter is not offered"
-    home("onboard=qa&still")  # choosing the QA door by its route; this vault's queue is empty on that page, so the chip shows on Home
-    assert chip(home("home&still")).group(1) == "role", "after choosing QA, in a new load of the page, Waiting on you is offered for the role"
-    assert chip(home("home&still")).group(1) == "role", "and it stays"
+    before = needs_you(load("overview&still"))
+    assert before and "Nothing in the plan says who the lead is" in before, "no handle and no door picked: the block does not pretend to know who is viewing"
+    load("onboard=qa&still")  # choosing the QA door by its route
+    after = load("overview&still")
+    assert 'data-role="qa"' in after, "after choosing QA, in a new load of the page, the overview is QA's"
+    assert needs_you(after) and "Nothing in the plan says who" not in needs_you(after) and "Pick who is viewing" not in needs_you(after), "and the block knows who is viewing"
+    assert 'data-role="qa"' in load("overview&still"), "and it stays"
 
 
 @pytest.mark.browser

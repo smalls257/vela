@@ -210,7 +210,7 @@
         go("lights", { reset: true }); el.click(); await frames();
         const body = $("#panel-body"), text = body.textContent, got = sections();
         if (heading() !== (kind === "decision" ? decided(key).name : kind === "owner" ? PlanDetails.label(key) : titleOf(key))) bad.push(`${kind}: the panel shows "${heading()}"`);
-        if (!$(".dp-trail", body) || !$(".dp-tabs", body)) bad.push(`${kind}: it is not the shared Details panel`);
+        if (!$(".dp-trail", body)) bad.push(`${kind}: it is not the shared Details panel`);
         for (const sec of want.slice(1)) if (!got.includes(sec) && !(kind === "owner" && sec === "Their open questions" && !D.asks.some((u) => u.ask.key === key.slice(6)))) bad.push(`${kind}: no "${sec}" section (has ${got.join(", ")})`);
         if (kind === "unknown" && !$(".big-q", body)) bad.push("unknown: the question is not in plain words");
         if (kind === "unknown" && !$$(".dp-open-row", body).length && !$(".dp-open", body)) bad.push("unknown: nothing to Open");

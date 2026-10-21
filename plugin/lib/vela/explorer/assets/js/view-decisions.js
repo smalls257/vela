@@ -307,7 +307,6 @@ const Decisions = (() => {
     view: "decisions", live: () => trees.length > 0, rootLabel: "Decisions", summary: summaryNodes,
     owns: (k) => !!entryFor(k) || PlanDetails.owns(k), detail: (k) => (entryFor(k) ? decisionNodes(entryFor(k)) : PlanDetails.detail(k, "decisions")),
     label: (k) => (entryFor(k) ? entryFor(k).name : PlanDetails.label(k)), open: (k) => (entryFor(k) ? null : PlanDetails.openFor(k, "decisions")),
-    waiting: (k) => PlanDetails.waitingTab(k, "queue"), waitingCount: () => PlanDetails.waitingCount("queue"),
     focus: (k) => { if (!k) closeRecord(); else if (entryFor(k) && st.open !== entryFor(k).id) showFor(k); },
   });
   function here() {

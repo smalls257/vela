@@ -33,7 +33,7 @@ WANTED = [
     "Escape returns to the summary",
     "opens that contract",                               # a contract label on a line
     "says who provides it",
-    "the waiting item",                                  # a waiting item lights the parts it holds up
+    "the open question",                                  # a waiting item lights the parts it holds up
     "a click on empty space in the drawing returns to the summary",
     "hovering",                                          # hover lights neighbors, the panel stays
     "takes Tab, Enter picks it and Escape clears it",
@@ -45,7 +45,7 @@ WANTED = [
     "full screen hides the panel and Escape leaves it",
     "says Not recorded",
     "the page does not scroll sideways",
-    "uses the same panel, tabs and diagram bar",
+    "uses the same panel and diagram bar",
 ]
 
 

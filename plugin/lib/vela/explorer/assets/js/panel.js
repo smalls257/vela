@@ -1,5 +1,5 @@
-/* The one right-hand panel, on every view. Its home is what needs the lead, from attention.lights: the lit apps,
-   contracts and flows, and, where the home page's queue is not on screen, the queue itself. Anything picked anywhere opens here with a trail of breadcrumbs back, and every app, contract,
+/* The one right-hand panel, on every view. Its default is the section's own page beside its visual, or, where there is none,
+   what needs the person viewing (Needs you). Anything picked anywhere opens here with a trail of breadcrumbs back, and every app, contract,
    capability and question lists the flows that cross it, each with a Present button. */
 const Panel = (() => {
   const body = () => $("#panel-body");
@@ -11,23 +11,29 @@ const Panel = (() => {
   const empty = (text) => h("div", { class: "p-empty-line" }, text);
   const fact = (e, label) => (e.facts || []).find((f) => f.label === label);
 
-  /* The panel's two homes: the lights, and on a section, that section's own page beside its visual. */
+  /* A design loaded for the app: its design and the section's page are two homes, picked by tab. */
   function homes() {
     const page = typeof Nav !== "undefined" ? Nav.pageBeside() : "";
     // inside an app with its team's design loaded, the design is a third home
     const design = App.view === "inside" && typeof Inside !== "undefined" ? Inside.designKey() : "";
-    if (!page && !design) return null;
+    if (!design) return null;  // two homes only when a design is loaded; otherwise the section's page is the default, with no tab to pick
     const pick = (root) => { App.root = root; App.trail = []; render(); };
     return h("div", { class: "p-homes", role: "tablist" },
       design ? h("button", { role: "tab", "aria-selected": String(App.root === design), onclick: () => pick(design) }, "The design") : null,
       page ? h("button", { role: "tab", "aria-selected": String(App.root.startsWith("read:")), onclick: () => pick("read:" + page) }, "About this section") : null,
-      h("button", { role: "tab", "aria-selected": String(App.root === "lights"), onclick: () => pick("lights") }, "What's waiting"));
+      null);
+  }
+  /* Where the panel returns to: a picked root, else the section's page beside the visual, else nothing (Needs you). */
+  function rootKey() {
+    if (App.root !== "lights") return App.root;
+    const page = typeof Nav !== "undefined" ? Nav.pageBeside() : "";
+    return page ? "read:" + page : "";
   }
   function crumbs() {
     const box = h("nav", { class: "crumbs", "aria-label": "Trail" });
-    const rootIsPage = App.root.startsWith("read:") || App.root.startsWith("inside:");
-    box.append(h("a", { onclick: () => { App.trail = []; render(); }, class: App.trail.length ? "" : "cur", title: rootIsPage ? "Back to the page" : "What's waiting, most urgent first" },
-      rootIsPage ? "◧ " + shorten(titleOf(App.root), 22) : "◉ What's waiting"));
+    const root = rootKey(), rootIsPage = root.startsWith("read:") || root.startsWith("inside:");
+    box.append(h("a", { onclick: () => { App.trail = []; render(); }, class: App.trail.length ? "" : "cur", title: rootIsPage ? "Back to the page" : "What needs you" },
+      rootIsPage ? "◧ " + shorten(titleOf(root), 22) : "◉ Needs you"));
     App.trail.forEach((k, i) => {
       box.append(h("span", { class: "sep" }, "›"));
       box.append(i === App.trail.length - 1 ? h("span", { class: "cur", title: idOf(k) || null }, shorten(titleOf(k), 26)) : h("a", { "data-ref": k, title: idOf(k) ? `${titleOf(k)} (${idOf(k)})` : titleOf(k) }, shorten(titleOf(k), 20)));
@@ -51,9 +57,8 @@ const Panel = (() => {
   function render() {
     const root = body();
     root.innerHTML = "";
-    Queue.sync();
     if (typeof DetailsPanel !== "undefined" && DetailsPanel.active()) { DetailsPanel.render(root); root.scrollTop = 0; return; }  // a page that brings its own Details
-    const key = App.trail[App.trail.length - 1] || (App.root !== "lights" ? App.root : null);
+    const key = App.trail[App.trail.length - 1] || rootKey() || null;
     const tabs = homes();
     if (tabs) root.append(tabs);
     root.append(crumbs());
@@ -63,38 +68,15 @@ const Panel = (() => {
     if (!key.startsWith("read:") && !key.startsWith("bundle:")) root.scrollTop = 0;
   }
 
-  /* ------------------------------------------------------------ home: what's waiting */
-  /* Why it is this way: on the home page the work queue sits beside the map, so the panel does not list the same
-     questions again. It shows the other half: the apps, contracts and flows that are lit, one line each, with how many
-     questions hold each. On any other page the queue is not on screen, so the panel carries it. */
-  function litWhy(light) {
-    const held = new Set(light.reasons.filter((r) => r.kind === "held").map((r) => r.unknown));
-    const other = [...new Set(light.reasons.filter((r) => r.kind !== "held").map((r) => r.text))];
-    return [held.size ? `${plural(held.size, "open question")} ${held.size === 1 ? "holds" : "hold"} it up` : null, other[0] || null].filter(Boolean).join("; ");
-  }
+  /* ------------------------------------------------------------ home: the default summary */
+  /* The panel's default summary where no section page sits beside the visual: what needs the person viewing, as the same
+     lines the overview opens with. Where a page does sit beside the visual, that page is the default (see render). */
   function home(opts = {}) {
-    const lit = litSubjects(), dark = darkSubjects(), queue = Queue.items();
-    const beside = App.section === "home" && App.view === "map";  // the queue is on the page, beside the map
-    // Beside the map the queue card already says how many and what is due first, and the top bar's lamp carries the
-    // count, so the lede only says where to start; saying the count again made the same 21 show four times on Home.
-    const lede = !queue.length && !lit.length ? "Nothing is waiting. Every app, contract and flow is decided, and no open question is blocking any of them."
-      : opts.queue === false && !beside ? `${Queue.needsYou().n ? Queue.needsYou().n + " waiting. " : ""}${queue.length ? "Pick a box on the map to read it here, or a question under What's waiting." : "Pick a box on the map to read it here."}`
-      : beside ? (queue.length ? "Start with the questions on the left, most urgent first. Pick one, or a box on the map, to read it here." : "Pick a box on the map to read it here.")
-      : `${Queue.needsYou().n ? Queue.needsYou().n + " waiting. " : ""}${queue.length ? "Most urgent first; pick one to read it here." : ""}`.trim();  // the top bar's number; its parts are on hover
-    const out = [h("div", { class: "p-head" }, h("h2", {}, "What's waiting"),
-      lede ? h("p", { class: "p-lede", title: Queue.needsYou().n ? Queue.needsYouParts() : null, ...(!beside && Queue.needsYou().n ? { "data-quantity": "needsYou", "data-n": Queue.needsYou().n } : {}) }, lede) : null)];
-    if (!beside && queue.length && opts.queue !== false) out.push(section("Waiting on an answer", null, Queue.block()));
-    // a slice is not on the map: one whose journey is past its due date is waiting too, and is listed under its own heading
-    const lightRows = (list) => h("ul", { class: "lights" }, list.map(({ key, light }) => h("li", {},
-      h("button", { class: "light-row" + (key === App.focus ? " on" : ""), "data-ref": key, title: `${LIGHT[light.level].word}${idOf(key) ? ", " + idOf(key) : ""}` },
-        lampEl(light.level), h("span", {}, h("span", { class: "what" }, titleOf(key)), h("span", { class: "why" }, litWhy(light) || LIGHT[light.level].say))))));
-    const sliceLit = lit.filter((x) => ent(x.key).kind === "slice"), mapLit = lit.filter((x) => ent(x.key).kind !== "slice");
-    if (sliceLit.length) out.push(section("Slices whose ship date has passed", sliceLit.length, lightRows(sliceLit)));
-    out.push(section("Apps, contracts and flows that are waiting", null, mapLit.length ? lightRows(mapLit) : empty("No app, contract or flow is waiting.")));
+    const out = [h("div", { class: "p-head" }, h("h2", {}, "Needs you"), h("p", { class: "p-lede" }, Needs.lede(opts)))];
+    const lines = Needs.panel();
+    if (lines) out.push(lines);
     const challenged = typeof Inside !== "undefined" ? Inside.homeSection() : null;
     if (challenged) out.push(challenged);  // Element.append writes a null as the text "null"
-    out.push(section("Decided", dark.length, h("p", { class: "p-note" }, dark.map((k) => titleOf(k)).join(", ") || "None.")));
-    out.push(h("div", { class: "p-key" }, LEVELS.map((l) => h("span", {}, lampEl(l), LIGHT[l].word))));
     return out;
   }
 

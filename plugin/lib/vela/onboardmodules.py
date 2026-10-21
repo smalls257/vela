@@ -28,7 +28,7 @@ TITLES = {
     "standing": ("Where things stand", "What is decided and why, what was ruled out, and what is still open."),
     "fit": ("Where you fit", "What your role touches here, and what matters most for it."),
     "people": ("Who to talk to", "The people who own what you will touch, and who holds each open answer."),
-    "needs-you": ("What's waiting", "The things the plan is waiting on its lead for, most urgent first."),
+    "needs-you": ("Needs you", "The things the plan is waiting on its lead for, most urgent first."),
     "open-questions": ("Open questions", "What nobody has answered yet, who can, and by when."),
     "risks": ("Risks", "What could go wrong, and what is being done about it."),
     "dates": ("Dates", "The dates the plan commits to."),
@@ -48,7 +48,7 @@ TRY = {
     "approach": ("slices", "Open Slices and switch to Path to see what can be built side by side."),
     "standing": ("garden", "Open the decision log and pick a decision to see what it ruled out."),
     "open-questions": ("asks", "Open Who to ask and find the person with the most open questions."),
-    "needs-you": ("ranked", "Open What's waiting; the most urgent thing is first."),
+    "needs-you": ("ranked", "Open the lead's overview; Needs you lists the most urgent thing first."),
     "journeys": ("flows", "Open a journey and press Present to watch it step by step."),
     "contracts": ("contracts", "Open the map and pick a line to see the contract behind it."),
     "slices": ("slices", "Open Slices and open a row to see what it is done when."),
@@ -309,7 +309,7 @@ def fit(f, audience):
     first = lit[:3] or touched["keys"][:3]
     gist = f"As {NOUN[audience]}, you will mostly deal with {touched['phrase']}: {len(items)} here."
     body = [f"What needs attention first: {', '.join(title(f, k) for k in first)}." if lit else "Nothing in them is overdue or waiting on someone right now."]
-    return make("fit", gist, body, items, [link(f"The {label} view", f"#role={audience}" if audience != "lead" else "#home")])
+    return make("fit", gist, body, items, [link(f"The {label} view", f"#role={audience}")])
 
 
 def exec_items(f, keys):
@@ -367,10 +367,10 @@ def who_holds(f):
 def needs_you(f):
     lit = [k for k in f["ranked"] if entity(f, k) and f["lights"][k]["level"] in LEVEL_WORD]
     if not lit:
-        return make("needs-you", "Nothing is waiting on the lead right now.", [], [], [link("What's waiting", "#home")])
+        return make("needs-you", "Nothing is waiting on the lead right now.", [], [], [link("Needs you", "#role=lead")])
     late = [k for k in lit if f["lights"][k]["level"] == "warning"]
     items = [item(title(f, k), LEVEL_WORD[f["lights"][k]["level"]], "", route(f, k), k, "late" if f["lights"][k]["level"] == "warning" else "open") for k in lit]
-    return make("needs-you", f"{count_phrase(len(lit), 'thing')} {verb(len(lit), 'needs', 'need')} the lead" + (f", {of_them(len(late), len(lit), 'overdue')}" if late else "") + ".", [], items, [link("What's waiting", "#home")])
+    return make("needs-you", f"{count_phrase(len(lit), 'thing')} {verb(len(lit), 'needs', 'need')} the lead" + (f", {of_them(len(late), len(lit), 'overdue')}" if late else "") + ".", [], items, [link("Needs you", "#role=lead")])
 
 
 def open_questions(f):

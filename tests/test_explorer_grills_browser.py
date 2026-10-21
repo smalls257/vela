@@ -2,8 +2,8 @@
 
     python3 -m pytest -q -m browser tests/test_explorer_grills_browser.py
 
-The page's own selftest lists the three groups, switches who is viewing and checks that the chips, the top-bar badge, the
-sidebar count and the home line give the same number for each person, runs every filter, opens a card in the right-hand
+The page's own selftest lists the three groups, switches who is viewing and checks that the chips, the
+sidebar count and the ready ones in Needs you give the same number for each person, runs every filter, opens a card in the right-hand
 panel, checks the prompt and its Copy button, builds a batch in the order that unblocks the most, finds the "Ready for a
 grill" line on an item's own details, and walks the cards with the keyboard. A selftest that quietly skipped them would pass,
 so each named behavior must be present and ok, at a wide window and at 800 px. A vault with nothing waiting has no entry,
@@ -23,8 +23,8 @@ from test_explorer_browser import find_chrome
 WANTED = [
     "grills: with nobody viewing, all 4 grills show once, in the groups said-yes, ready, one-away",
     "grills: the group headings say You already said yes, Ready to decide and One thing away",
-    "grills: with nobody viewing there is no Mine chip, and the badge says how many grills are waiting",
-    "grills: for each of 3 people the Mine, I'm asked to join and Everyone's chips, the top-bar badge, the sidebar count and the home line agree",
+    "grills: with nobody viewing there is no Mine chip, the sidebar counts every grill waiting, and the top bar has no grills badge",
+    "grills: for each of 3 people the Mine, I'm asked to join and Everyone's chips, the sidebar count and the ready grills in Needs you agree",
     "grills: \"3 more grills belong to other owners. Show everyone's\" and the hidden tile say 3",
     "grills: Show everyone's brings the other owners' grills in",
     "grills: with no role picked and no page built for one person, nobody is viewing and everyone's grills show",

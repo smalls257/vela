@@ -6,11 +6,10 @@
    The Violation this exists to prevent is a Leaky Narrative on the page: whether an item is ready, whether the lead already
    said yes, who owns it and what it waits on are decided in vela/grills.py and arrive as fields. This file only filters
    and draws them. It also prevents a wall of everyone's work: "Mine" follows the person in "Viewing as", and the others'
-   grills sit one click away behind a count, so the top bar, the sidebar and the home line say how many are for you.
+   grills sit one click away behind a count, so the top bar, the sidebar and Needs you say how many are for you.
 
-   Who "Mine" means (viewerHandles): a person picked in this view's own menu, else the handle this page was built for
-   (D.me), else the people the lead recorded under the role chosen in the sidebar's Viewing as (D.onboard.roles); a role
-   nobody picked or recorded names nobody, as in "Waiting on you". With nobody, it shows everyone's. Routes: #s=grills, #s=grills&as=agent-lead&scope=all&ready. */
+   Who "Mine" means is Viewer's (viewer.js), the one answer Needs you and the badge read too; this view has a menu that writes
+   to it, and no lookup of its own. With nobody, it shows everyone's. Routes: #s=grills, #s=grills&as=agent-lead&scope=all&ready. */
 const Grills = (() => {
   const rows = (D.grills && D.grills.rows) || [];
   const BY = Object.fromEntries(rows.map((r) => [r.id, r]));
@@ -23,22 +22,14 @@ const Grills = (() => {
     ["one-away", "One thing away", "not ready yet", "wait", "Items with exactly one thing in the way. Each says what it is and who owes it."],
   ];
   const GROUP_ORDER = GROUPS.map(([id]) => id);
-  const AS_KEY = `explorer.grills.as.${D.vaultId}`;
-  const st = { scope: "mine", owner: "", app: "", holds: "", readyOnly: false, open: "", batch: [], as: Settings.read(AS_KEY) || "", copied: "" };
+  const st = { scope: "mine", owner: "", app: "", holds: "", readyOnly: false, open: "", batch: [], copied: "" };
   const lower = (t) => String(t || "").toLowerCase();
   const handleOf = (t) => { const x = String(t || "").trim(); return x && x !== "*" && !x.startsWith("@") ? "@" + x : x; };
 
   /* ------------------------------------------------------------ who is viewing */
-  function viewerHandles() {
-    if (st.as === "*") return [];
-    if (st.as) return [st.as];
-    if (D.me && D.me.handle) return ["@" + D.me.handle];
-    const role = typeof Onboard !== "undefined" ? Onboard.myRole().role : "";  // only a role someone chose or the plan records: the same answer "Waiting on you" gives (queue.js)
-    return Object.entries((D.onboard && D.onboard.roles) || {}).filter(([, r]) => r === role).map(([hd]) => handleOf(hd));
-  }
-  const viewerSet = () => new Set(viewerHandles().map(lower));
-  const hasViewer = () => viewerHandles().length > 0;
-  const isYou = (handle) => viewerSet().has(lower(handle));
+  const viewerHandles = () => Viewer.viewer().handles;
+  const hasViewer = () => Viewer.hasPerson();
+  const isYou = (handle) => Viewer.isYou(handle);
   const isMine = (r) => r.owner.some(isYou);
   const isAsked = (r) => !isMine(r) && r.join.some(isYou);
   const viewerName = () => (hasViewer() ? personName(viewerHandles()[0]) : "Everyone");
@@ -47,14 +38,8 @@ const Grills = (() => {
   const readyNow = (r) => r.group !== "one-away";
   const forYou = () => (hasViewer() ? rows.filter(isMine) : rows);
   function setViewer(handle) {
-    st.as = handle;
-    if (handle) Settings.write(AS_KEY, handle); else { try { localStorage.removeItem(AS_KEY); } catch (e) { console.warn("[grills] this browser keeps no settings:", e.message); } }
     st.scope = "mine"; st.owner = "";
-    afterViewerChange();
-  }
-  function afterViewerChange() {
-    if (typeof renderMasters === "function") renderMasters();
-    if (typeof Nav !== "undefined") Nav.refresh();
+    Viewer.set(handle);  // the one setting; it redraws the bar and the sidebar, and this view redraws itself below
     if (App.view === "grills") refresh();
   }
 
@@ -173,9 +158,9 @@ const Grills = (() => {
   function viewerMenu() {
     const item = (id, label, say, run, checked) => ({ id, label, say, run, checked });
     return Menus.menu({ id: "grills-as", label: "Viewing as", current: viewerName(), extraClass: "g-as", items: () => [
-      item("follow", "Follow my role", "The people the plan records for the role in the sidebar", () => setViewer(""), !st.as),
-      ...people().map((p) => item("p:" + p, personName(p), p === st.as ? "Showing this person's grills" : null, () => setViewer(p), lower(st.as) === lower(p))),
-      item("everyone", "Everyone", "No one in particular: show every grill", () => setViewer("*"), st.as === "*")] });
+      item("follow", "Follow my role", "The people the plan records for the role in the sidebar", () => setViewer(""), !Viewer.pick()),
+      ...people().map((p) => item("p:" + p, personName(p), lower(p) === lower(Viewer.pick()) ? "Showing this person's grills" : null, () => setViewer(p), lower(Viewer.pick()) === lower(p))),
+      item("everyone", "Everyone", "No one in particular: show every grill", () => setViewer("*"), Viewer.pick() === Viewer.EVERYONE)] });
   }
   function scopeChips() {
     if (!hasViewer()) return [h("span", { class: "g-scope-note muted" }, `Showing everyone's grills. Pick a person above to see theirs.`)];
@@ -358,24 +343,14 @@ const Grills = (() => {
     view: "grills", live: () => rows.length > 0, rootLabel: "Grills waiting", summary: summaryNodes,
     owns: (k) => k.startsWith("grill:") || PlanDetails.owns(k), detail: (k) => (k.startsWith("grill:") ? nodes(k) : PlanDetails.detail(k, "grills")),
     label: (k) => (k.startsWith("grill:") ? (BY[k.slice(6)] || { name: k }).name : PlanDetails.label(k)), open: (k) => (k.startsWith("grill:") ? null : PlanDetails.openFor(k, "grills")),
-    waiting: (k) => PlanDetails.waitingTab(k, "queue"), waitingCount: () => PlanDetails.waitingCount("queue"),
     focus: (k) => { const was = st.open; st.open = k && k.startsWith("grill:") ? k : ""; if (was !== st.open && App.view === "grills") paint(); },
   });
 
-  /* ------------------------------------------------------------ the rest of the page: sidebar, top bar, home */
+  /* ------------------------------------------------------------ the rest of the page: sidebar and top bar */
   const exists = () => rows.length > 0;
   const count = () => forYou().length;
   const badgeWords = () => (hasViewer() ? "grills for you" : "grills waiting");
   const badgeTip = () => `${plural(count(), "grill")} ${hasViewer() ? `for ${viewerName()}` : "waiting"}, ${forYou().filter(readyNow).length} ready now. Click to see them.`;
-  function homeLine() {
-    if (!exists()) return null;
-    const mine = forYou(), ready = mine.filter(readyNow), next = byUnblocked(ready)[0];
-    if (!mine.length) return null;
-    const lead = hasViewer() ? `${plural(mine.length, "grill")} for you` : `${plural(mine.length, "grill")} waiting`;
-    const sub = next ? ` ${next.name}${next.holdsUp.length ? ` is the most urgent: it holds up ${plural(next.holdsUp.length, "thing")}.` : " is the first to run."}` : "";
-    return h("div", { class: "g-home", "data-grills-home": String(mine.length) }, h("span", { class: "g-home-t" }, h("b", {}, `${lead} · ${ready.length} ${ready.length === 1 ? "is" : "are"} ready now.`), h("span", { class: "g-home-sub" }, sub)),
-      h("button", { class: "btn tiny g-see", type: "button", onclick: () => open() }, "See them all"));
-  }
   function open() {
     if (App.view !== "grills") Grills.from = Nav.where();
     App.section = "grills"; App.root = "lights"; App.trail = []; App.focus = null;
@@ -388,13 +363,13 @@ const Grills = (() => {
     return true;
   }
   function readHash() {
-    if (HASH.has("as")) st.as = HASH.get("as") === "everyone" ? "*" : handleOf(HASH.get("as"));
+    if (HASH.has("as")) Viewer.fromLink(HASH.get("as"));
     if (HASH.get("scope") && SCOPE_TEST[HASH.get("scope")]) st.scope = HASH.get("scope");
     if (HASH.has("ready")) st.readyOnly = true;
   }
   function hashParts() {
     const p = [];
-    if (st.as) p.push("as=" + (st.as === "*" ? "everyone" : encodeURIComponent(st.as.replace(/^@/, ""))));
+    if (Viewer.pick()) p.push("as=" + (Viewer.pick() === Viewer.EVERYONE ? "everyone" : encodeURIComponent(Viewer.pick().replace(/^@/, ""))));
     if (st.scope !== "mine") p.push("scope=" + st.scope);
     if (st.readyOnly) p.push("ready");
     if (st.open) p.push("open=" + encodeURIComponent(st.open.slice(6)));
@@ -402,7 +377,7 @@ const Grills = (() => {
   }
   readHash();  // a link names who is viewing (#s=grills&as=agent-lead), and the top bar and sidebar count for them from the first paint
   const entry = (key) => (BY[key.slice(6)] ? { key, kind: "grill", title: BY[key.slice(6)].name, id: "" } : null);
-  return { rows, exists, count, forYou, badgeWords, badgeTip, homeLine, open, boot, readHash, hashParts, entry, nodes, readyLine, render, select, st, visible, countOf, hasViewer, viewerHandles,
+  return { rows, exists, count, forYou, badgeWords, badgeTip, open, boot, readHash, hashParts, entry, nodes, readyLine, render, select, st, visible, countOf, hasViewer, viewerHandles,
     isMine, isAsked, prompt, batchPrompt, byUnblocked, setViewer, toggleBatch, keyOf, waitingSentence, from: null };
 })();
 View("grills", { label: "Grills waiting", title: "What the plan is ready to decide, by who runs the grill", render: Grills.render, count: () => String(Grills.count()) });

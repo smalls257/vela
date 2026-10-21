@@ -98,20 +98,16 @@
     Search.type(""); Nav.home(); await tick();
   }
 
-  /* Finding 7: one number, "N waiting", wherever the count is said; the 18 + 3 split is on hover, and the side's count of
-     all open questions says so. Finding 13: no banner or notes above the Home map; the notes are an "i" in its bar. */
+  /* Finding 7: the plan-wide "N waiting" is said nowhere now: not in the top bar, not in the panel, not on an overview card; what is
+     counted for a person is "N for you". The side's count of all open questions says so. Finding 13: no banner or notes above
+     the map; the notes are an "i" in its bar. */
   async function oneNumber(ok) {
-    const n = Queue.needsYou().n, top = $("#masters .master.caution b");
-    Nav.home(); await tick();
-    const card = $(".q-card .q-count"), panelLede = $("#panel .p-lede");
     Nav.open("apps"); go("lights", { reset: true }); App.root = "lights"; Panel.render(); await tick();
-    const lede = $("#panel .p-lede");
+    Nav.role("mgr"); await tick();
     const words = [$("#main"), $("#panel"), $("#masters")].map((e) => e.textContent).join(" ");
-    if (!n) { ok(/Nothing/.test(card ? card.textContent : "Nothing") && +top.textContent === 0, "waiting: nothing waiting, and every place says so", `waiting: top ${top && top.textContent}, card "${card && card.textContent}"`); }
-    else ok(+top.textContent === n && card && card.textContent.startsWith(`${n} waiting`) && lede && lede.textContent.startsWith(`${n} waiting`) && / (isn't|aren't|blocking)/.test(lede.title) && !/\d+ questions? (blocks?|(is|are) blocking) work|other things? (isn|aren)/.test(words),
-      `waiting: one number, ${n}, on the top bar, the waiting card and the panel, with its parts on hover`, `waiting: top ${top && top.textContent}, card "${card && card.textContent}", panel "${lede && lede.textContent}", loose words ${(words.match(/\d+ questions? (block|are blocking)[^.]*/) || [""])[0]}`);
+    ok(!/\d+ waiting/.test(words) && !$("#masters .master.caution") && !$$("[data-quantity=needsYou]").length, "waiting: no \"N waiting\" in the top bar, the panel or the managers' Progress card", `waiting: ${(words.match(/.{20}\d+ waiting.{10}/) || ["a count"])[0]}`);
     const side = $("#side .side-link[data-section='unknowns'] .side-n");
-    ok(!side || (/in all/.test(side.title) && side.title.includes(`${Queue.needsYou().n}`)), "waiting: the sidebar's count says it is all open questions, and how many of the things waiting", `waiting: sidebar title "${side && side.title}"`);
+    ok(!side || (/in all/.test(side.title) && !/waiting/.test(side.title)), "waiting: the sidebar's count says it is all open questions", `waiting: sidebar title "${side && side.title}"`);
     Nav.home(); await tick();
     const note = $("#main [aria-controls^='dmenu-notes']");
     if (!note) { ok(!$("#main .q-kicker") && !$("#main .countline"), "Home: no banner or note line above the map, and no i when the diagram has no notes", "Home: a banner or note line is above the map"); return; }
@@ -150,11 +146,11 @@
     Nav.home(); await tick();
   }
 
-  /* Finding 10: the theme is one gear at the far right of the top bar, after the need-you button; no Theme select, no Animation. */
+  /* Finding 10: the theme is one gear at the far right of the top bar, after the top-bar badges; no Theme select, no Animation. */
   async function gear(ok) {
-    const btn = $("#settings .dmenu-btn"), top = $(".top"), need = $("#masters .master.caution");
+    const btn = $("#settings .dmenu-btn"), top = $(".top"), need = $("#masters");
     ok(!!btn && !$("#theme") && !$(".theme-pick") && !/Animation|Theme\b/.test(top.textContent.replace(/Theme\s*$/, "")) && need && need.compareDocumentPosition(btn) & Node.DOCUMENT_POSITION_FOLLOWING && btn.getBoundingClientRect().right > innerWidth - 60,
-      "top bar: one gear at the far right replaces the Theme select and the Animation switch, after the need-you button", `top bar: gear ${!!btn}, theme select ${!!$("#theme")}, top text "${top.textContent.trim().slice(0, 80)}"`);
+      "top bar: one gear at the far right replaces the Theme select and the Animation switch, after the top-bar badges", `top bar: gear ${!!btn}, theme select ${!!$("#theme")}, top text "${top.textContent.trim().slice(0, 80)}"`);
     const was = Theme.id, other = Theme.LIST.find((t) => t.id !== was);
     btn.click(); await tick();
     const pop = document.getElementById(btn.getAttribute("aria-controls")), items = $$("[role=menuitemradio]", pop), r = pop.getBoundingClientRect();
@@ -304,9 +300,9 @@
   }
 
   /* "Viewing as": one menu in the sidebar sets the one role. It is onboarding's "Reading as" and the role door, so Onboard.myRole,
-     the "Waiting on you" filter and both menus agree. The two links under it go to that role's door and its path. */
+     Viewer (Needs you) and both menus agree. The two links under it go to that role's door and its path. */
   async function viewingAs(ok) {
-    const was = { me: D.me, chosen: Roles.st.chosen, role: Roles.st.role, mine: Queue.st.mine }, bad = [], settle = () => new Promise((r) => setTimeout(r, 40));
+    const was = { me: D.me, chosen: Roles.st.chosen, role: Roles.st.role }, bad = [], settle = () => new Promise((r) => setTimeout(r, 40));
     D.me = { handle: "" }; Roles.st.chosen = false; Nav.home(); Nav.refresh(); await tick();
     const roleLabel = (id) => (Roles.ROLES.find(([r]) => r === id) || [id, id])[1];
     const menu = () => $("#side .dmenu[data-dmenu='viewing-as']"), btn = () => $(".dmenu-btn", menu()), items = () => $$("[role='menuitemradio']", menu());
@@ -336,11 +332,11 @@
       if (!btn().textContent.includes(other[1])) bad.push(`onboarding set ${other[0]} but the sidebar says ${btn().textContent}`);
     }
     if (D.onboard.paths.product) {
-      await pick("product"); Nav.home(); await tick();
-      if (!$(".q-mine") || $(".q-mine").dataset.me !== "role") bad.push("Waiting on you does not follow the Viewing as pick");
+      await pick("product");
+      if (Viewer.viewer().role !== "product" || !Viewer.known()) bad.push("Needs you's viewer does not follow the Viewing as pick");
     }
-    await pick("lead"); Nav.home(); await tick();
-    if (Onboard.myRole().role !== "lead" || $(".q-mine")) bad.push(`Lead: role ${Onboard.myRole().role}, filter ${!!$(".q-mine")}`);
+    await pick("lead"); Nav.open("goals"); go("lights", { reset: true }); await tick();
+    if (Onboard.myRole().role !== "lead" || Viewer.viewer().role !== "lead") bad.push(`Lead: role ${Onboard.myRole().role}, viewer ${Viewer.viewer().role}`);
     // a recorded role is only the default: with no pick the menu shows it, a pick always applies, and the note offers the way back
     const wasO = [D.onboard.me, D.onboard.roles], key = `onboard:${D.vaultId}:role`, rec = ["qa", "eng"].find((r) => D.onboard.paths[r]), pk = ["exec", "mgr"].find((r) => D.onboard.paths[r] && r !== rec);
     if (rec && pk) {
@@ -353,37 +349,8 @@
       else { $("button", note).click(); await settle(); if (Onboard.myRole().role !== rec || $("#side .side-note")) bad.push("Switch back did not return to the recorded role"); }
     }
     D.onboard.me = wasO[0]; D.onboard.roles = wasO[1];
-    ok(!bad.length, "viewing as: the sidebar menu sets the one role (onboarding's Reading as, the role door, Waiting on you); its two links go to the overview and the path", `viewing as: ${bad.join(" | ")}`);
-    Onboard.rememberDoor(was.chosen ? was.role : ""); D.me = was.me; Roles.st.chosen = was.chosen; Roles.st.role = was.role; Queue.st.mine = was.mine; Nav.home(); Nav.refresh(); await tick();
-  }
-
-  /* The wording: the page does not know who is reading, so it says "waiting", one number, and each item says who it is waiting
-     on. "Waiting on you" is a filter that exists only when the build knew the reader's handle or the reader picked a role door. */
-  async function waitingOnYou(ok) {
-    const was = { me: D.me, chosen: Roles.st.chosen, role: Roles.st.role }, bare = !(was.me && was.me.handle) && !was.chosen;
-    const rows = () => $$(".q-card .q-row");
-    const open = () => { Nav.home(); return tick(); };
-    D.me = { handle: "" }; Roles.st.chosen = false; await open();
-    const none = !$(".q-mine") && !Queue.me();
-    const text = [$("#main"), $("#panel"), $("#masters"), $("#side")].map((e) => e.textContent).join(" ");
-    ok(none && !/\bneeds? you\b|waiting on you|\byou\b/i.test(text.replace(/Search by name[^/]*/, "")), "waiting: with no handle and no role door there is no Waiting on you filter, and nothing on Home says you", `waiting: filter ${!!$(".q-mine")}, text says ${(text.match(/.{20}\byou\b.{20}/i) || [""])[0]}`);
-    const asked = Queue.items().map((x) => ASK[x.id].ask.key).find((k) => String(k).startsWith("@"));
-    if (asked) {
-      D.me = { handle: asked.slice(1) }; await open();
-      const all = rows().length, chip = $(".q-mine");
-      const want = Queue.items().filter((x) => [ASK[x.id].ask.key, ASK[x.id].ask.owner].some((k) => String(k).toLowerCase() === asked.toLowerCase())).length;
-      chip.click(); await tick();
-      const mineRows = rows().length;
-      ok(!!chip && chip.dataset.me === "handle" && want > 0 && mineRows === Math.min(want, Queue.TOP) && mineRows <= all && $(".q-mine").getAttribute("aria-pressed") === "true",
-        `waiting: with the handle ${asked}, Waiting on you shows the ${want} questions that name ${asked} as the owner or the one asked`, `waiting: handle ${asked}, rows ${mineRows} of ${all}, wanted ${want}`);
-    }
-    Queue.st.mine = false;  // the handle case above left the filter on, and the click below would switch it off
-    D.me = { handle: "" }; Roles.st.chosen = true; Roles.st.role = "product"; await open();
-    ok(!!$(".q-mine") && $(".q-mine").dataset.me === "role", "waiting: a reader who picked the Product door gets Waiting on you for that role", "waiting: no filter after picking a role door");
-    const who = Queue.me(), every = Queue.items().length, mineAll = Queue.items().filter((x) => who && who.waiting(ASK[x.id])).length;
-    if ($(".q-mine")) { $(".q-mine").click(); await tick(); }
-    ok(!!who && who.kind === "role" && Onboard.myRole().role === "product" && rows().length === Math.min(mineAll, Queue.TOP) && mineAll <= every, "waiting: Waiting on you for the Product door shows only the questions asked of, or owned by, that role (the role is Onboard.myRole's)", `waiting: role ${Onboard.myRole().role}, rows ${rows().length}, wanted ${mineAll} of ${every}`);
-    D.me = was.me; Roles.st.chosen = was.chosen; Roles.st.role = was.role; Queue.st.mine = false; await open();
+    ok(!bad.length, "viewing as: the sidebar menu sets the one role (onboarding's Reading as, the role door, Needs you); its two links go to the overview and the path", `viewing as: ${bad.join(" | ")}`);
+    Onboard.rememberDoor(was.chosen ? was.role : ""); D.me = was.me; Roles.st.chosen = was.chosen; Roles.st.role = was.role; Nav.home(); Nav.refresh(); await tick();
   }
 
   /* A menu opened from a diagram bar or a page head is the topmost thing at its middle and its two ends, in every section
@@ -428,7 +395,7 @@
     const only = HASH.get("only") === "qol";
     const report = only ? ["head"] : await base(), lines = [], errors = window.__errors.length;
     const ok = (cond, good, bad) => { lines.push(cond ? "ok " + good : "FAIL " + (bad || good)); if (HASH.has("trace")) console.log("[selftest] " + lines[lines.length - 1]); };
-    try { if (!wide()) await compact(ok); else { await appPanel(ok); await searchRows(ok); await oneNumber(ok); await onceEach(ok); await gear(ok); await sideNames(ok); await slicesQuiet(ok); await overviewAndNames(ok); await waitingOnYou(ok); await viewingAs(ok); } await underTheDiagram(ok); await menusOnTop(ok); } catch (e) { lines.push("FAIL the quality-of-life checks threw: " + e.message + " " + (e.stack || "").split("\n")[1]); }
+    try { if (!wide()) await compact(ok); else { await appPanel(ok); await searchRows(ok); await oneNumber(ok); await onceEach(ok); await gear(ok); await sideNames(ok); await slicesQuiet(ok); await overviewAndNames(ok); await viewingAs(ok); } await underTheDiagram(ok); await menusOnTop(ok); } catch (e) { lines.push("FAIL the quality-of-life checks threw: " + e.message + " " + (e.stack || "").split("\n")[1]); }
     Nav.home(); go("lights", { reset: true });
     if (window.__errors.length > errors) lines.push("FAIL JS ERRORS in the quality-of-life checks: " + window.__errors.slice(errors).join(" | "));
     const body = report.slice(1).concat(lines), fails = body.filter((l) => l.startsWith("FAIL")).length;

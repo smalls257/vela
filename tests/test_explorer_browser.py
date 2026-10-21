@@ -339,14 +339,14 @@ def test_no_label_runs_past_its_box_in_a_narrow_window(chrome_path, viewport):
 @pytest.mark.browser
 def test_names_not_codes_whole_prose_and_one_needs_you_count_pass_the_selftest(chrome_path):
     """The Fix-first findings, each as a line of the page's own selftest: the sensors that flag prose cut mid-sentence and
-    titles that are codes see planted defects, the sweep finds none in any view or theme, and "waiting" is a number
-    once, in the top bar (the label sweep, 2026-10-16: the same 21 showed four times on Home). The voice gate's lines
+    titles that are codes see planted defects, the sweep finds none in any view or theme, and the plan-wide "waiting"
+    number is said once, in the panel, never on the top bar (the label sweep, 2026-10-16: the same 21 showed four times on Home). The voice gate's lines
     must be there and passing: its sensors see planted leaks, repeats and wrong counts, and no view leaks a lead
     pattern, says a count sentence twice, or gives a quantity a number its source and the other views don't (E60).
     Run against the old page these lines are absent or FAIL."""
     lines = _text_fit_lines(chrome_path, built_snapshot("heron-desk/after-full-1") / "dashboard.html", "1600,1000")
     ok = [line for line in lines if line.startswith("ok ")]
-    assert any(line.startswith("ok waiting: ") and "in the top bar only" in line for line in ok), "the waiting-count check did not run or failed"
+    assert any(line.startswith("ok top bar: the plan-wide waiting number is gone") for line in ok), "the waiting-count check did not run or failed"
     for wanted in ("ok voice: the leak sensor flags", "ok voice: the repeat sensor flags", "ok voice: the count sensor flags",
                    "ok voice: no view shows a check code", "ok voice: no view says the same count sentence twice",
                    "ok voice: every view gives the same number for the same quantity"):
@@ -542,14 +542,14 @@ def _explore_and_dump(chrome_path, source, tmp_path, today, route, viewport="160
 
 @pytest.mark.browser
 @pytest.mark.parametrize("viewport", ["1600,1000", "800,600"])
-def test_the_home_page_lists_a_short_queue_not_a_strip_of_chips(tmp_path, chrome_path, viewport):
-    """The heron vault holds 34 question-and-thing pairs above the map. Home shows at most five rows of the queue, in
-    plain words, with no strip of chips, at a wide and at a small window."""
-    dom = _explore_and_dump(chrome_path, "heron-desk/after-full-1", tmp_path, "2026-10-10", "home&still", viewport)
-    assert 'class="q-card' in dom and 'class="above"' not in dom and "Held above the map" not in dom
-    rows = re.findall(r'<button class="q-row[^"]*" data-ref="([^"]+)"', dom)
-    assert 1 <= len(rows) <= 5 and len(set(rows)) == len(rows), rows
-    assert not re.search(r'class="q-title">[A-Z]+-\d', dom), "a queue row leads with an ID"
+def test_the_lead_overview_opens_with_needs_you_and_no_whats_waiting_page_remains(tmp_path, chrome_path, viewport):
+    """The What's waiting page (the map with a queue card beside it), its sidebar entry and its "waiting" badge are gone. The
+    lead's overview opens with Needs you instead, at a wide and at a small window; the strip of chips above the map is still gone."""
+    dom = _explore_and_dump(chrome_path, "heron-desk/after-full-1", tmp_path, "2026-10-10", "role=lead&still", viewport)
+    assert 'id="needs-you"' in dom and 'class="q-card' not in dom and 'class="above"' not in dom and "Held above the map" not in dom
+    assert dom.index('class="door-head"') < dom.index('id="needs-you"') < dom.index('class="door-grid')
+    assert not re.search(r'<button class="side-home(?! side-ask)', dom) and not re.search(r'class="side-label">What.s waiting', dom)
+    assert not re.search(r'class="master caution', dom), "the plan-wide waiting number is not on the top bar"
 
 
 @pytest.mark.browser

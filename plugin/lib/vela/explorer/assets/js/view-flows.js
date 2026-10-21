@@ -386,8 +386,7 @@ const Flows = (() => {
     rootLabel: () => (E[st.key] ? shorten(E[st.key].title, 26) : "The flow"), summary: flowSummary,
     owns: (k) => PlanDetails.owns(k) || (k === st.key && !!FLOW[k]),
     detail: (k) => (PlanDetails.isStep(k) ? stepNodes(k) : k === st.key && FLOW[k] ? flowSummary() : PlanDetails.detail(k, "flows")),
-    label: PlanDetails.label, open: (k) => PlanDetails.openFor(k, "flows"),
-    waiting: (k) => PlanDetails.waitingTab(k, "queue"), waitingCount: () => PlanDetails.waitingCount("queue"), focus: (k) => paintFocus(k),
+    label: PlanDetails.label, open: (k) => PlanDetails.openFor(k, "flows"), focus: (k) => paintFocus(k),
   });
   return { render, select, present, closePresent, here, highlight, st, player: () => player, presenter: () => presenter, saveClip };
 })();

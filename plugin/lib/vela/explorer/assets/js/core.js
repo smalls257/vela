@@ -319,7 +319,7 @@ function ent(key) {
   if (key && key.startsWith("lib:")) return typeof Library !== "undefined" ? Library.entry(key) : null;  // a Library row, whatever page cites it
   if (key && key.startsWith("gap:")) { const l = D.lanes[LANE_INDEX[key]]; return l ? { key, kind: "gap", title: l.name, id: "" } : null; }  // an end a flow step names that the plan doesn't know
   if (EXTERNAL[key]) return { key, kind: "external", title: EXTERNAL[key].title, id: "" };
-  if (key === "lights") return { key, kind: "lights", title: "What's waiting", id: "" };
+  if (key === "lights") return { key, kind: "lights", title: "Needs you", id: "" };
   if (key && key.startsWith("inside:")) return typeof Inside !== "undefined" ? Inside.ent(key) : null;
   if (key && key.startsWith("read:")) { const [pk] = key.slice(5).split("#"); const p = E[pk]; return p ? { key, kind: "reader", title: p.title, id: "", page: pk } : null; }
   return null;
@@ -484,9 +484,9 @@ function mapAnchors(key) {
 /* ------------------------------------------------------------------ views, the trail, and the router */
 const VIEWS = [];
 function View(id, def) { VIEWS.push(Object.assign({ id }, def)); }
-/* view: what fills the main area. section: the sidebar entry it belongs to ("home", "apps", "role:qa", ...).
+/* view: what fills the main area. section: the sidebar entry it belongs to ("apps", "role:qa", ...).
    root: what the panel returns to: "lights", or "read:<page key>" when a section's page sits beside its visual. */
-const App = { view: "map", trail: [], focus: null, section: "home", root: "lights" };
+const App = { view: "map", trail: [], focus: null, section: "apps", root: "lights" };
 const viewDef = (id) => VIEWS.find((v) => v.id === id);
 
 function showView(name, opts) {

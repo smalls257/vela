@@ -30,7 +30,7 @@ WANTED = [
     "(flows): the crumb that names the flow returns to its summary",
     "(flows): the first click only shows; Open is the second click",
     "(flows): Escape returns to the flow's summary",
-    "(flows): the waiting item",                          # lights what it holds up
+    "(flows): the open question",                          # lights what it holds up
     "(flows): say names, never codes",
     "(map): nothing picked shows the page summary",
     "(map): a contract label opens its own details",
@@ -38,11 +38,10 @@ WANTED = [
     "(map): Open goes inside the app",
     "(map): Escape returns to the summary",
     "(map): a click on empty space returns to the summary",
-    "(map): the waiting item",
+    "(map): the open question",
     "(asks): nothing picked says",
     "(asks): a person shows their",
     "(asks): picking a question shows it",
-    "(asks): the waiting tab lists all",
     "(asks): Escape returns to the summary",
     "(asks): empty space returns to the summary",
     "(decisions): nothing picked shows",
@@ -99,5 +98,5 @@ def test_the_details_panel_on_the_four_pages_passes_its_selftest_on_the_heron_de
 @pytest.mark.browser
 def test_a_contract_lists_every_way_it_answers_where_the_vault_records_them(booking):
     lines = report(find_chrome(), booking, "1440,900")
-    check(lines, except_for=("(flows): the waiting item", "(map): the waiting item"))  # the booking vault has no question that holds up a flow step
+    check(lines, except_for=("(flows): the open question", "(map): the open question"))  # the booking vault has no question that holds up a flow step
     assert any("ways Booking API can answer are listed, the errors marked" in x for x in lines), "the booking contract's case table shows in the panel"

@@ -59,7 +59,7 @@ MODULE_IDS = CORE + _all_specifics()
 # What the lead types on the tuning page and what `vela onboard` lists: a plain name per module, never the id.
 NAMES = {
     "goal": "Goal", "approach": "Approach", "standing": "Where things stand", "fit": "Where you fit", "people": "Who to talk to",
-    "needs-you": "What's waiting", "open-questions": "Open questions", "risks": "Risks", "dates": "Dates",
+    "needs-you": "Needs you", "open-questions": "Open questions", "risks": "Risks", "dates": "Dates",
     "decisions-waiting": "Decisions waiting", "capabilities": "Capabilities", "journeys": "Journeys", "slices": "Slices",
     "apps": "Apps", "contracts": "Contracts", "criteria": "Acceptance criteria", "failure": "Failure behavior",
     "handoff": "Handoff", "progress": "Progress", "blocked": "Who is blocking what",

@@ -307,7 +307,7 @@ The role specifics, by their names:
 | Part | What it holds |
 |---|---|
 | Open questions | What nobody has answered, who can, and by when |
-| What's waiting | What the plan is waiting on its lead for, most urgent first |
+| Needs you | What the plan is waiting on its lead for, most urgent first |
 | Risks | What could go wrong, and what is being done |
 | Dates | Release targets and slice journey dates |
 | Decisions waiting | Choices proposed but not settled |

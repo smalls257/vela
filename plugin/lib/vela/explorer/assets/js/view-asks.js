@@ -369,7 +369,6 @@ const Asks = (() => {
   DetailsPanel.register("asks", {
     view: "asks", live: () => true, rootLabel: "Who to ask", summary: summaryNodes,
     owns: PlanDetails.owns, detail: (k) => PlanDetails.detail(k, "asks"), label: PlanDetails.label, open: (k) => PlanDetails.openFor(k, "asks"),
-    waiting: (k) => PlanDetails.waitingTab(k, "asks"), waitingCount: () => PlanDetails.waitingCount("asks"),
     focus: (k) => { if (k && U(k)) highlight(k); else if (k && PlanDetails.whoOf(k)) jumpToRack(PlanDetails.whoOf(k)); },
   });
   function here() {
