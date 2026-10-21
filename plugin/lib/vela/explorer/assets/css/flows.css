@@ -30,6 +30,8 @@
 .stage { flex: 1; min-height: 240px; display: grid; grid-template-rows: 1fr auto; padding: 2px 14px 0 12px; position: relative;
   background: radial-gradient(900px 500px at 50% 0%, var(--board-light), transparent 70%); }
 .stage-canvas { width: 100%; height: 100%; display: block; min-height: 0; }
+/* A flow whose arrows need more height than the window gives them grows the canvas (view-flows.js) and the stage scrolls, rather than cutting the words. */
+.stage { overflow-y: auto; overflow-x: hidden; }
 .caption { flex: none; max-height: 27vh; overflow: auto; background: var(--room-2); border-top: 1px solid var(--rule); padding: 12px 26px 12px; }
 .cap-where { display: flex; justify-content: space-between; gap: 12px; font-size: 12.5px; color: var(--ink-3); }
 .cap-where b { color: var(--ink); }
@@ -74,6 +76,7 @@ ul.cap-facts .muted { font-size: 12.5px; }
 .present-top { padding: 22px 56px 0; }
 .pt-kicker { font-size: 14px; color: var(--ink-3); }
 .present-top h1 { margin: 2px 0 0; font: 400 32px/1.15 var(--serif); }
+.present-scroll { min-height: 0; overflow-y: auto; }
 .present-canvas { width: 100%; height: 100%; min-height: 0; display: block; padding: 0 40px; }
 .present-caption { padding: 6px 64px 18px; min-height: 140px; }
 .pc-n { color: var(--ink-3); font: 500 16px var(--ui); margin-bottom: 6px; }

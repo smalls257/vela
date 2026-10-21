@@ -21,7 +21,7 @@ const FlowKit = (() => {
   const SERIF = getComputedStyle(document.documentElement).getPropertyValue("--serif") || "Georgia, serif";
   const lanes = D.lanes;
   const laneColor = (id) => { readPalette(); return PALETTE[(LANE_INDEX[id] ?? 0) % PALETTE.length]; };
-  const laneName = (id) => (lanes[LANE_INDEX[id]] || { name: titleOf(id) }).name;
+  const laneName = (id) => { const l = lanes[LANE_INDEX[id]]; return l ? l.full || l.name : titleOf(id); };
   const emblemImg = {};
   Assets.onReady(() => { for (const l of lanes) { const url = Assets.emblem(l.id); if (url) { const img = new Image(); img.src = url; emblemImg[l.id] = img; } } });
 
@@ -73,9 +73,86 @@ const FlowKit = (() => {
   const lampLine = (lv) => (ringed() && lv === "override" ? Theme.c("override-edge") : LIGHT[lv].color);
   const markerColor = (id) => { const lv = unknownLevel(id); return lv === "resolved" || lv === "dark" ? null : LIGHT[lv].color; };
 
+  /* ---------- text: nothing in the canvas is cut. Words wrap, a row grows to hold them, and the canvas grows (scrolling) to hold the rows.
+     A font shrinks with the window only down to FLOOR pixels; after that the text wraps instead of shrinking further. */
+  const FLOOR = 11;
+  const px = (base, k) => Math.max(FLOOR, base * k);
+  const MEASURE = document.createElement("canvas").getContext("2d");
+  const FONT = {
+    say: (k) => `400 ${px(12.5, k)}px ${SERIF}`, chip: (k) => `600 ${px(11.5, k)}px ${UI}`, chipId: (k) => `400 ${px(10, k)}px ${UI}`,
+    guess: (k) => `italic 400 ${px(10.5, k)}px ${SERIF}`, lane: (base, k) => `600 ${px(base, k)}px ${UI}`,
+  };
+  const leading = (k, base = 12.5) => Math.round(px(base, k) * 1.3);
+  const SAY_PREFIX = /^[^:→]{1,80}→[^:]{1,80}:\s+/;
+  const plainShort = (step) => step.short.replace(SAY_PREFIX, "").replace(/\s*…$/, "").replace(/\.$/, "");
+  /* What a step says in the flow's own words, whole: the step's text without its sender-to-receiver prefix and without "over <contract>". */
+  const stepSays = (step) => step.says || plainShort(step);
+  /* The words under an arrow. A call says what the step does; the answer coming back says its own words when the flow page gives them
+     ("... and gets a reading token"), and otherwise names the contract it travels over. */
+  function sayOf(step, u) {
+    const m = u.msg;
+    if (u.kind === "reply" && m.kind !== "answer") return m.answer || `replies over ${CONTRACT[m.contract].title}`;
+    return m.says || stepSays(step);
+  }
+  /* The caption for present mode and clips: the step's short text, or its whole sentence when the short one was cut at a clause. */
+  const captionOf = (step) => (/…$/.test(step.short) && step.says ? step.says.charAt(0).toUpperCase() + step.says.slice(1) + "." : step.short);
+
   function layout(flow, box) {
-    const { x, y, w, h: ht } = box, k = box.s ?? 1;
-    const gutter = 46 * k, headerH = 44 * k, top = y + headerH + 18 * k, bottom = y + ht - 10 * k;
+    let k = box.s ?? 1, G = layoutAt(flow, box, k);
+    // A frame that cannot scroll (a clip, present mode) shrinks the scale until the rows fit, down to where the text hits its floor and the canvas grows instead.
+    while (box.fit && G.needH > box.h && k > 0.5) { k *= 0.94; G = layoutAt(flow, box, k); }
+    return G;
+  }
+  function laneLabel(lane, width, on, k) {
+    const name = lane.full || lane.name;
+    if (!on && width < 64 * k) return { mark: true, lines: [], h: 32 * k, width };
+    const room = Math.max(40 * k, width - 40 * k);
+    for (const base of [14, 12]) { MEASURE.font = FONT.lane(base, k); if (MEASURE.measureText(name).width <= room) return { font: FONT.lane(base, k), lines: [name], h: 32 * k, width }; }
+    MEASURE.font = FONT.lane(12, k);
+    // A narrow (idle) column still keeps whole words: the pill may be wider than its column rather than break a word.
+    const lines = wrap(MEASURE, name, Math.max(room, ...name.split(/\s+/).map((t) => MEASURE.measureText(t).width)));
+    return { font: FONT.lane(12, k), lines, h: Math.max(32 * k, lines.length * leading(k, 12) + 14 * k), width };
+  }
+  // The pill names the contract; its ID follows in small type only when there is room (names, not codes). A name wider than the arrow wraps inside the pill.
+  function chipOf(con, room, k) {
+    MEASURE.font = FONT.chipId(k); const idW = MEASURE.measureText(con.id).width;
+    MEASURE.font = FONT.chip(k);
+    const whole = MEASURE.measureText(con.title).width, inner = Math.max(50 * k, room - 16 * k);
+    const withId = whole + idW + 6 * k <= inner, lines = whole <= inner ? [con.title] : wrap(MEASURE, con.title, inner);
+    const textW = Math.max(...lines.map((t) => MEASURE.measureText(t).width));
+    const lh = leading(k, 11.5);
+    return { con, lines, withId, idW, lh, textW, w: textW + (withId ? idW + 6 * k : 0) + 16 * k, h: Math.max(19 * k, lines.length * lh + 7 * k) };
+  }
+  /* The height a row needs: `up` above its arrow (the pill) and `down` below it (the words). Rows are measured, then stacked, so a long
+     sentence makes its own row taller instead of being cut to fit a row that was sized before anyone read it. */
+  function measureRow(r, flow, G) {
+    const { u } = r, k = G.s, step = flow.steps[r.si], lh = leading(k);
+    if (u.kind === "msg" || u.kind === "reply") {
+      const x1 = G.laneX[LANE_INDEX[u.from]], x2 = G.laneX[LANE_INDEX[u.to]];
+      if (x1 === undefined || x2 === undefined) { r.up = r.down = 14 * k; r.lines = []; return; }
+      const reach = Math.abs(x2 - x1);
+      MEASURE.font = FONT.say(k);
+      r.lines = wrap(MEASURE, sayOf(step, u), Math.max(70 * k, reach - 24 * k)); r.lh = lh;
+      r.chip = u.kind === "msg" && !r.noChip ? chipOf(CONTRACT[u.msg.contract], Math.max(60 * k, reach - 34 * k), k) : null;
+      r.guessed = u.kind === "msg" && u.msg.direction !== "stated";
+      r.up = (r.chip ? r.chip.h + 6 * k : 0) + 8 * k;
+      r.down = 8 * k + r.lines.length * lh + (r.guessed ? leading(k, 10.5) + 2 * k : 0) + 5 * k;
+    } else if (u.kind === "self") {
+      const X = G.laneX[LANE_INDEX[u.lane]], lw = 34 * k;
+      r.room = Math.max(80 * k, Math.min(G.colW * 1.8, G.x + G.w - (X + lw + 8 * k) - 8 * k));
+      MEASURE.font = FONT.say(k); r.lines = wrap(MEASURE, stepSays(step), r.room - 12 * k); r.lh = lh;
+      r.up = r.down = Math.max(14 * k, (r.lines.length * lh + 12 * k) / 2);
+    } else {
+      const xs = [...G.touched].map((id) => G.laneX[LANE_INDEX[id]]).filter((x) => x !== undefined);
+      r.x0 = xs.length ? Math.min(...xs) - G.colW * 0.32 : G.x + G.gutter; r.x1 = xs.length ? Math.max(...xs) + G.colW * 0.32 : G.x + G.w - 10;
+      const ref = u.ref && FLOW[u.ref];
+      MEASURE.font = FONT.say(k); r.lines = wrap(MEASURE, ref ? `Repeats “${E[u.ref].title}”` : stepSays(step), Math.max(80 * k, r.x1 - r.x0 - 24 * k)); r.lh = lh;
+      r.bh = Math.max(26 * k, r.lines.length * lh + 12 * k); r.up = r.down = r.bh / 2 + 4 * k;
+    }
+  }
+  function layoutAt(flow, box, k) {
+    const { x, y, w, h: ht } = box;
+    const gutter = 46 * k, bottomPad = 10 * k;
     const touched = touchedLanes(flow);
     // Untouched lanes keep their place but narrow; past ten lanes they narrow to a mark, so the touched ones get the room.
     const idle = lanes.length > 10 ? 0.22 : 0.5;
@@ -83,12 +160,10 @@ const FlowKit = (() => {
     const unit = (w - gutter) / Math.max(1, weight.reduce((a, b) => a + b, 0));
     let acc = x + gutter;
     const laneX = weight.map((wt) => { const c = acc + (wt * unit) / 2; acc += wt * unit; return c; });
+    const names = lanes.map((l, i) => laneLabel(l, weight[i] * unit, touched.has(l.id), k));
+    const headerH = 12 * k + Math.max(32 * k, ...names.map((n) => n.h)), top = y + headerH + 18 * k;
     const rows = [];
     flow.steps.forEach((step, si) => unitsOf(step).forEach((u, ui) => rows.push({ si, ui, u })));
-    const gaps = Math.max(0, flow.steps.length - 1);
-    const rowH = Math.min(66 * k, (bottom - top) / Math.max(1, rows.length + gaps * 0.35));
-    let cy = top + rowH * 0.5, prev = -1;
-    for (const r of rows) { if (prev !== -1 && r.si !== prev) cy += rowH * 0.35; r.y = cy; cy += rowH; prev = r.si; }
     // One pill per call and answer: an arrow that answers the arrow just above it, over the same contract between the
     // same two lanes, carries no second pill (two pills for one exchange overlapped where rows are close).
     rows.forEach((r, i) => {
@@ -97,23 +172,38 @@ const FlowKit = (() => {
       const same = before.u.msg.contract === r.u.msg.contract && new Set([before.u.from, before.u.to, r.u.from, r.u.to]).size === 2;
       if (same) r.noChip = true;
     });
-    return { x, y, w, h: ht, s: k, gutter, headerH, colW: unit, idle, laneX, rows, rowH, top, bottom, touched, flow };
+    const G = { x, y, w, s: k, gutter, headerH, colW: unit, idle, laneX, rows, top, touched, flow, names };
+    rows.forEach((r) => measureRow(r, flow, G));
+    const stepGap = 12 * k, rowGap = 4 * k;
+    const gapBefore = (r, i) => (i === 0 ? 0 : r.si !== rows[i - 1].si ? stepGap : rowGap);
+    const natural = rows.reduce((sum, r, i) => sum + gapBefore(r, i) + r.up + r.down, 0);
+    G.needH = top - y + natural + bottomPad + 6 * k;
+    // Spare height is shared out between rows, up to a calm spacing; a taller flow than the stage keeps its natural height and the canvas scrolls.
+    const spare = Math.max(0, Math.min(ht - G.needH, rows.length * 24 * k)), pad = rows.length ? spare / rows.length : 0;
+    let cy = top;
+    rows.forEach((r, i) => { cy += gapBefore(r, i); r.y = cy + pad / 2 + r.up; cy += r.up + r.down + pad; });
+    G.h = Math.max(ht, G.needH + spare); G.bottom = y + G.h - bottomPad;
+    return G;
   }
 
   const ease = (p) => (p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2);
   function rr(ctx, x, y, w, ht, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + ht, r); ctx.arcTo(x + w, y + ht, x, y + ht, r); ctx.arcTo(x, y + ht, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
   function hexA(hex, a) { const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; }
+  // Greedy wrap; a single word wider than the line is broken by letters, so no text is ever left out.
   function wrap(ctx, text, maxW) {
-    const words = text.split(/\s+/), out = []; let line = "";
-    for (const w of words) { const t = line ? line + " " + w : w; if (ctx.measureText(t).width > maxW && line) { out.push(line); line = w; } else line = t; }
+    const out = []; let line = "";
+    for (let w of text.split(/\s+/).filter(Boolean)) {
+      while (ctx.measureText(w).width > maxW && w.length > 1) {
+        let n = w.length - 1;
+        while (n > 1 && ctx.measureText(w.slice(0, n)).width > maxW) n--;
+        if (line) { out.push(line); line = ""; }
+        out.push(w.slice(0, n)); w = w.slice(n);
+      }
+      const t = line ? line + " " + w : w;
+      if (ctx.measureText(t).width > maxW && line) { out.push(line); line = w; } else line = t;
+    }
     if (line) out.push(line);
     return out;
-  }
-  function fitText(ctx, text, maxW) {
-    if (ctx.measureText(text).width <= maxW) return text;
-    let t = text;
-    while (t.length > 1 && ctx.measureText(t + "…").width > maxW) t = t.slice(0, -1);
-    return t.trimEnd() + "…";
   }
   function arrowHead(ctx, x, y, dir, size, filled, color) {
     ctx.beginPath(); ctx.moveTo(x - dir * size, y - size * 0.62); ctx.lineTo(x, y); ctx.lineTo(x - dir * size, y + size * 0.62);
@@ -142,28 +232,19 @@ const FlowKit = (() => {
     lanes.forEach((lane, i) => {
       const X = G.laneX[i], on = G.touched.has(lane.id), width = on ? G.colW : G.colW * G.idle;
       if (st.seen) { st.seen.add("flow.lane"); if (!on) st.seen.add("flow.lane.idle"); }
+      const lab = G.names[i];
       ctx.save(); ctx.globalAlpha = on ? 1 : 0.4;
-      if (!on && width < 64 * k) {  // too narrow for a name: a mark in its place, the name on hover
+      if (lab.mark) {  // too narrow for a name: a mark in its place, the name on hover
         ctx.beginPath(); ctx.arc(X, G.y + 22 * k, 4 * k, 0, 7);
         if (lane.kind === "partner") { ctx.strokeStyle = laneColor(lane.id); ctx.lineWidth = 1.5 * k; ctx.stroke(); } else { ctx.fillStyle = laneColor(lane.id); ctx.fill(); }
         ctx.restore();
         hits.push({ type: "lane", id: lane.id, x: X - width / 2, y: G.y + 6 * k, w: width, h: 32 * k });
         return;
       }
-      const room = width - 40 * k;
-      ctx.font = `600 ${14 * k}px ${UI}`;
-      if (ctx.measureText(lane.name).width > room) ctx.font = `600 ${12 * k}px ${UI}`;
-      // A name too long for one line wraps to two before it is ever cut.
-      let lines = [lane.name];
-      if (ctx.measureText(lane.name).width > room && lane.name.includes(" ")) {
-        const words = lane.name.split(" "); let best = 1, bestW = Infinity;
-        for (let j = 1; j < words.length; j++) { const w = Math.max(ctx.measureText(words.slice(0, j).join(" ")).width, ctx.measureText(words.slice(j).join(" ")).width); if (w < bestW) { bestW = w; best = j; } }
-        lines = [words.slice(0, best).join(" "), words.slice(best).join(" ")];
-        if (Math.max(...lines.map((t) => ctx.measureText(t).width)) > room) ctx.font = `600 ${11 * k}px ${UI}`;
-      }
-      lines = lines.map((t) => fitText(ctx, t, Math.max(30 * k, room)));
-      const label = lines[0], tw = Math.max(...lines.map((t) => ctx.measureText(t).width));
-      const bw = Math.min(width - 8 * k, tw + 40 * k), bh = (lines.length > 1 ? 40 : 32) * k, bx = X - bw / 2, by = G.y + 6 * k - (lines.length > 1 ? 4 * k : 0);
+      // A name too long for one line wraps (layout measured it), so the pill grows taller before the name is ever cut.
+      ctx.font = lab.font;
+      const lines = lab.lines, lhL = leading(k, 12), tw = Math.max(...lines.map((t) => ctx.measureText(t).width));
+      const bw = tw + 40 * k, bh = lab.h, bx = X - bw / 2, by = G.y + 6 * k;
       let glow = 0;
       for (const { u, t1, t0 } of curTiming) { const hitLane = u.kind === "self" ? u.lane : u.to, ta = u.kind === "self" ? t0 : t1; if (hitLane === lane.id && tau >= ta) glow = Math.max(glow, Math.exp(-(tau - ta) / 0.7)); }
       if (hl && hl.has(lane.id)) glow = Math.max(glow, 0.7);
@@ -175,8 +256,7 @@ const FlowKit = (() => {
       // no emblem: the lane's own glyph, in the lane's color, so the color still says which lane it is
       else Icons.stroke(ctx, Icons.name(lane.id), dx, dy, 15 * k, laneColor(lane.id));
       ctx.fillStyle = C.ink; ctx.textBaseline = "middle"; ctx.textAlign = "left";
-      if (lines.length > 1) { ctx.fillText(lines[0], dx + 12 * k, dy - 7 * k); ctx.fillText(lines[1], dx + 12 * k, dy + 8 * k); }
-      else ctx.fillText(label, dx + 12 * k, dy + 0.5 * k);
+      lines.forEach((t, j) => { say(ctx, st, t, dx + 12 * k, dy + (j - (lines.length - 1) / 2) * lhL + 0.5 * k); });
       ctx.restore();
       hits.push({ type: "lane", id: lane.id, x: bx, y: by, w: bw, h: bh });
     });
@@ -207,8 +287,19 @@ const FlowKit = (() => {
     if (phase === "past") return hexA(C.ink, 0.5 * a);
     return hexA(C.ink, 0.14 * a);
   }
+  // Every string the canvas draws goes through here, so a test can read back exactly what was drawn (st.drawn) and see that nothing was cut.
+  function say(ctx, st, text, x, y) { if (st.drawn) st.drawn.push(text); ctx.fillText(text, x, y); }
+  // Wrapped words, each line on a faint backing so a lane's vertical line passing behind never strikes through a letter.
+  function drawLines(ctx, st, lines, cx, top, lh, align, ink) {
+    ctx.textBaseline = "middle"; ctx.textAlign = align;
+    lines.forEach((t, j) => {
+      const tw = ctx.measureText(t).width, bx = align === "center" ? cx - tw / 2 : cx;
+      ctx.fillStyle = hexA(C.room, 0.8); ctx.fillRect(bx - 3, top + j * lh, tw + 6, lh);
+      ctx.fillStyle = ink; say(ctx, st, t, cx, top + j * lh + lh / 2);
+    });
+  }
   function drawUnit(ctx, G, r, step, phase, p, st, hits) {
-    const k = G.s, u = r.u, y = r.y;
+    const k = G.s, u = r.u, y = r.y, ink = phase === "future" ? hexA(C.ink, 0.35) : phase === "now" ? C.ink : C.ink2;
     if (u.kind === "msg" || u.kind === "reply") {
       const x1 = G.laneX[LANE_INDEX[u.from]], x2 = G.laneX[LANE_INDEX[u.to]];
       if (x1 === undefined || x2 === undefined) return;
@@ -232,35 +323,32 @@ const FlowKit = (() => {
         ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(head, y, 18 * k, 0, 7); ctx.fill();
         ctx.fillStyle = C.ink; ctx.beginPath(); ctx.arc(head, y, 4.5 * k, 0, 7); ctx.fill();
       }
-      // Where rows sit close (a long flow on a short stage) the pill rides on its arrow instead of above it, and where even that
-      // would touch the next row it is left out: the caption and the panel still name the contract. Pills never overlap.
-      if (u.kind === "msg" && !r.noChip && G.rowH >= 21 * k) {
-        // the pill names the contract; its ID follows in small type only when there is room (names, not codes)
-        const con = CONTRACT[u.msg.contract], mid = (x1 + x2) / 2, span = Math.abs(x2 - x1) - 34 * k;
-        ctx.font = `400 ${10 * k}px ${UI}`;
-        const idW = ctx.measureText(con.id).width;
-        ctx.font = `600 ${11.5 * k}px ${UI}`;
-        const whole = ctx.measureText(con.title).width, withId = whole + idW + 6 * k <= span - 16 * k;
-        const name = fitText(ctx, con.title, Math.max(24 * k, span - 16 * k));
-        const nameW = ctx.measureText(name).width;
-        const cw = nameW + (withId ? idW + 6 * k : 0) + 16 * k, ch = 19 * k, cx = mid - cw / 2, cy = G.rowH >= 31 * k ? y - ch - 6 * k : y - ch / 2;
+      const mid = (x1 + x2) / 2;
+      if (r.chip) {
+        const { con, lines, withId, idW, lh } = r.chip, cw = r.chip.w, ch = r.chip.h, cx = mid - cw / 2, cy = y - ch - 6 * k;
         const lv = levelOf(con.id);
         if (st.seen) { st.seen.add("flow.chip"); if (lv !== "dark" && phase !== "future") st.seen.add("lamp." + lv); }
         ctx.globalAlpha = phase === "future" ? 0.4 : 1;
-        rr(ctx, cx, cy, cw, ch, ch / 2); ctx.fillStyle = C.deck; ctx.fill();
+        rr(ctx, cx, cy, cw, ch, Math.min(ch / 2, 11 * k)); ctx.fillStyle = C.deck; ctx.fill();
         ctx.strokeStyle = step.differs ? amber(phase) : lv !== "dark" && phase !== "future" ? hexA(lampLine(lv), 0.8) : phase === "now" ? hexA(laneColor(u.from), 0.7) : C.rule;
         ctx.lineWidth = (step.differs ? 1.8 : 1) * k; ctx.stroke();
         ctx.textBaseline = "middle"; ctx.textAlign = "left";
-        ctx.font = `600 ${11.5 * k}px ${UI}`; ctx.fillStyle = lv !== "dark" ? lampText(lv) : C.ink; ctx.fillText(name, cx + 8 * k, cy + ch / 2 + 0.5 * k);
-        if (withId) { ctx.font = `400 ${10 * k}px ${UI}`; ctx.fillStyle = C.muted; ctx.fillText(con.id, cx + 8 * k + nameW + 6 * k, cy + ch / 2 + 0.5 * k); }
+        ctx.font = FONT.chip(k); ctx.fillStyle = lv !== "dark" ? lampText(lv) : C.ink;
+        lines.forEach((t, j) => say(ctx, st, t, cx + 8 * k, cy + 3.5 * k + lh * (j + 0.5) + 0.5 * k));
+        if (withId) { ctx.font = FONT.chipId(k); ctx.fillStyle = C.muted; say(ctx, st, con.id, cx + 8 * k + r.chip.textW + 6 * k, cy + 3.5 * k + lh * 0.5 + 0.5 * k); }
         ctx.globalAlpha = 1;
         hits.push({ type: "contract", id: con.id, si: r.si, x: cx, y: cy, w: cw, h: ch });
-        if (!stated && phase === "now" && p >= 1 && st.labels !== false) {
-          ctx.font = `italic 400 ${10.5 * k}px ${SERIF}`; ctx.fillStyle = C.heuristic; ctx.textAlign = "center"; ctx.textBaseline = "top";
-          ctx.fillText("direction guessed", mid, y + 6 * k);
-        }
       }
-      hits.push({ type: "row", si: r.si, x: Math.min(x1, x2), y: y - 14 * k, w: Math.abs(x2 - x1), h: 28 * k });
+      // What the arrow does, in the step's own words, under its line.
+      ctx.globalAlpha = phase === "now" && p < 1 ? 0.35 + 0.65 * e : 1;
+      ctx.font = FONT.say(k);
+      drawLines(ctx, st, r.lines, mid, y + 9 * k, r.lh, "center", ink);
+      if (r.guessed && phase === "now" && p >= 1 && st.labels !== false) {
+        ctx.font = FONT.guess(k); ctx.fillStyle = C.heuristic; ctx.textAlign = "center"; ctx.textBaseline = "top";
+        say(ctx, st, "direction guessed", mid, y + 9 * k + r.lines.length * r.lh + 2 * k);
+      }
+      ctx.globalAlpha = 1;
+      hits.push({ type: "row", si: r.si, line: y, x: Math.min(x1, x2), y: y - r.up, w: Math.abs(x2 - x1), h: r.up + r.down });
     } else if (u.kind === "self") {
       const X = G.laneX[LANE_INDEX[u.lane]], col = step.differs ? amber(phase) : unitColor(phase, u.lane), lw = 34 * k, lh = 11 * k;
       if (step.differs && st.seen) st.seen.add("flow.differs");
@@ -272,26 +360,22 @@ const FlowKit = (() => {
       if (phase === "now" && !reducedMotion()) {
         ctx.strokeStyle = hexA(laneColor(u.lane), 0.6 * (1 - p)); ctx.lineWidth = 2 * k; ctx.beginPath(); ctx.arc(X, y, 6 * k + p * 22 * k, 0, 7); ctx.stroke();
       }
-      ctx.fillStyle = phase === "future" ? hexA(C.ink, 0.3) : phase === "now" ? C.ink : C.ink2;
-      ctx.font = `400 ${12.5 * k}px ${SERIF}`; ctx.textAlign = "left"; ctx.textBaseline = "middle";
-      const room = Math.min(G.colW * 1.8, G.x + G.w - (X + lw + 8 * k) - 8 * k);
-      if (room > 60 * k) {
-        const t = fitText(ctx, step.short.replace(/\.$/, ""), room), tw = ctx.measureText(t).width, fill = ctx.fillStyle;
-        rr(ctx, X + lw + 2 * k, y - 11 * k, tw + 12 * k, 22 * k, 6 * k); ctx.fillStyle = hexA(C.room, 0.9); ctx.fill();
-        ctx.fillStyle = fill; ctx.fillText(t, X + lw + 8 * k, y + 0.5 * k);
-      }
-      hits.push({ type: "row", si: r.si, x: X - 10 * k, y: y - 14 * k, w: lw + room, h: 28 * k });
+      ctx.font = FONT.say(k); ctx.textAlign = "left";
+      const tw = Math.max(...r.lines.map((t) => ctx.measureText(t).width), 0), boxH = r.lines.length * r.lh + 10 * k;
+      rr(ctx, X + lw + 2 * k, y - boxH / 2, tw + 12 * k, boxH, 6 * k); ctx.fillStyle = hexA(C.room, 0.9); ctx.fill();
+      ctx.fillStyle = ink; ctx.textBaseline = "middle";
+      r.lines.forEach((t, j) => say(ctx, st, t, X + lw + 8 * k, y - boxH / 2 + 5 * k + (j + 0.5) * r.lh));
+      hits.push({ type: "row", si: r.si, x: X - 10 * k, y: y - r.up, w: lw + tw + 20 * k, h: r.up + r.down });
     } else {
       if (st.seen) st.seen.add("flow.band");
-      const xs = [...G.touched].map((id) => G.laneX[LANE_INDEX[id]]).filter((x) => x !== undefined);
-      const x0 = xs.length ? Math.min(...xs) - G.colW * 0.32 : G.x + G.gutter, x1 = xs.length ? Math.max(...xs) + G.colW * 0.32 : G.x + G.w - 10, bh = Math.min(G.rowH * 0.66, 32 * k);
+      const { x0, x1, bh } = r;
       ctx.globalAlpha = phase === "future" ? 0.4 : 1;
       rr(ctx, x0, y - bh / 2, x1 - x0, bh, 8 * k); ctx.fillStyle = phase === "now" ? hexA(C.deck2, 0.95) : hexA(C.deck, 0.7); ctx.fill();
       ctx.setLineDash([4 * k, 4 * k]); ctx.strokeStyle = step.differs ? amber(phase) : phase === "now" ? C.ink2 : C.rule; ctx.lineWidth = (step.differs ? 1.6 : 1) * k; ctx.stroke(); ctx.setLineDash([]);
       if (step.differs && st.seen) st.seen.add("flow.differs");
       const ref = u.ref && FLOW[u.ref];
-      ctx.font = `400 ${12.5 * k}px ${SERIF}`; ctx.fillStyle = C.ink; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-      ctx.fillText(fitText(ctx, ref ? `Repeats “${E[u.ref].title}”` : step.short, x1 - x0 - 24 * k), (x0 + x1) / 2, y + 0.5 * k);
+      ctx.font = FONT.say(k); ctx.textBaseline = "middle"; ctx.textAlign = "center"; ctx.fillStyle = C.ink;
+      r.lines.forEach((t, j) => say(ctx, st, t, (x0 + x1) / 2, y - r.lines.length * r.lh / 2 + (j + 0.5) * r.lh));
       ctx.globalAlpha = 1;
       hits.push({ type: ref ? "ref" : "row", id: ref && u.ref, si: r.si, x: x0, y: y - bh / 2, w: x1 - x0, h: bh });
     }
@@ -362,7 +446,7 @@ const FlowKit = (() => {
     ctx.font = `500 ${21 * k * b}px ${UI}`;
     touched.forEach((id) => {
       const name = laneName(id);
-      if (xx + ctx.measureText(name).width > W * 0.6) return;
+      if (xx > 96 * k && xx + ctx.measureText(name).width > W * 0.6) { xx = 96 * k; yy += 34 * k * b; }  // a name that would run off the card goes on the next line
       ctx.fillStyle = laneColor(id); ctx.beginPath(); ctx.arc(xx + 6 * k * b, yy - 7 * k * b, 6 * k * b, 0, 7); ctx.fill();
       ctx.fillStyle = C.ink2; ctx.fillText(name, xx + 18 * k * b, yy); xx += ctx.measureText(name).width + 40 * k * b;
     });
@@ -397,16 +481,20 @@ const FlowKit = (() => {
     }
     ctx.globalAlpha = 1;
   }
-  function drawCaption(ctx, flow, si, W, H, bandTop) {
-    const k = W / 1280, step = flow.steps[si];
+  // The step's words under the diagram, at the largest size that fits two lines, then as many lines as it takes at the smallest.
+  function captionLines(ctx, step, W, k) {
+    let size = 29, lines;
+    do { ctx.font = `400 ${size * k}px ${SERIF}`; lines = wrap(ctx, captionOf(step), W - 128 * k); size -= 2; } while (lines.length > 2 && size > 20);
+    return { lines, size: size + 2 };
+  }
+  function drawCaption(ctx, flow, si, W, H, bandTop, cap, st = {}) {
+    const k = W / 1280, step = flow.steps[si], { lines, size } = cap || captionLines(ctx, step, W, k);
     ctx.fillStyle = C.deck; ctx.fillRect(0, bandTop, W, H - bandTop);
     ctx.fillStyle = C.rule; ctx.fillRect(0, bandTop, W, 1 * k);
     ctx.textAlign = "left"; ctx.textBaseline = "alphabetic"; ctx.fillStyle = C.muted; ctx.font = `500 ${17 * k}px ${UI}`;
-    ctx.fillText(`Step ${step.n} of ${flow.steps.length} · ${flow.title}`, 64 * k, bandTop + 40 * k);
-    let size = 29, lines;
-    do { ctx.font = `400 ${size * k}px ${SERIF}`; lines = wrap(ctx, step.short, W - 128 * k); size -= 2; } while (lines.length > 2 && size > 20);
-    ctx.fillStyle = C.ink;
-    lines.slice(0, 2).forEach((l, i) => ctx.fillText(l, 64 * k, bandTop + 80 * k + i * (size + 10) * k));
+    say(ctx, st, `Step ${step.n} of ${flow.steps.length} · ${flow.title}`, 64 * k, bandTop + 40 * k);
+    ctx.font = `400 ${size * k}px ${SERIF}`; ctx.fillStyle = C.ink;
+    lines.forEach((l, i) => say(ctx, st, l, 64 * k, bandTop + 80 * k + i * (size + 10) * k));
   }
   function drawClipFrame(ctx, flow, T, W = CLIP.W, H = CLIP.H, opts = {}) {
     const plan = clipPlan(flow), k = W / 1280;
@@ -415,10 +503,12 @@ const FlowKit = (() => {
     const tSteps = T - CLIP.title, j = Math.floor(tSteps / plan.stepDur);
     if (j >= flow.steps.length) { drawEndCard(ctx, flow, T - CLIP.title - plan.stepDur * flow.steps.length, W, H); ctx.restore(); return { phase: "end" }; }
     background(ctx, W, H);
-    const band = H - 150 * k;
-    const G = layout(flow, { x: 40 * k, y: 26 * k, w: W - 80 * k, h: band - 40 * k, s: k * 1.05 });
-    drawScene(ctx, G, { cur: j, tau: tSteps - j * plan.stepDur, clock: T, D: plan.D, images: opts.images, recording: true });
-    drawCaption(ctx, flow, j, W, H, band);
+    ctx.font = `400 ${29 * k}px ${SERIF}`;
+    const cap = captionLines(ctx, flow.steps[j], W, k), band = H - Math.max(150 * k, (84 + cap.lines.length * (cap.size + 10)) * k);
+    // A clip cannot scroll: the diagram shrinks to fit the words (to the text floor), never the words to fit the diagram.
+    const G = layout(flow, { x: 40 * k, y: 26 * k, w: W - 80 * k, h: band - 40 * k, s: k * 1.05, fit: true });
+    drawScene(ctx, G, { cur: j, tau: tSteps - j * plan.stepDur, clock: T, D: plan.D, images: opts.images, recording: true, drawn: opts.drawn });
+    drawCaption(ctx, flow, j, W, H, band, cap, opts);
     ctx.restore();
     return { phase: "step", k: j };
   }
@@ -496,6 +586,22 @@ const FlowKit = (() => {
     for (let cur = 0; cur <= flow.steps.length; cur++) drawScene(ctx, G, { cur, tau: 99, clock: 0, D: 0.8, seen, images: false });
     return seen;
   }
+  /* Test hook: every string the stage draws for a flow in a window `W` wide, step by step, as {text, layout}. The self-test reads it back to check
+     that every arrow's words are on the canvas whole and that none was cut with an ellipsis. */
+  function drawnText(flow, W, H = 700) {
+    const canvas = document.createElement("canvas"), drawn = [];
+    canvas.width = W; canvas.height = Math.max(H, 4000);
+    const ctx = canvas.getContext("2d"), G = layout(flow, { x: 0, y: 6, w: W - 8, h: H - 6, s: clamp(W / 1040, 0.8, 1.2) });
+    for (let cur = 0; cur <= flow.steps.length; cur++) drawScene(ctx, G, { cur, tau: 99, clock: 0, D: 0.8, images: false, drawn });
+    return { drawn, G };
+  }
+  function drawnClip(flow) {
+    const canvas = document.createElement("canvas"), drawn = [], plan = clipPlan(flow);
+    canvas.width = CLIP.W; canvas.height = CLIP.H;
+    const ctx = canvas.getContext("2d");
+    flow.steps.forEach((_, j) => drawClipFrame(ctx, flow, CLIP.title + plan.stepDur * (j + 0.9), CLIP.W, CLIP.H, { images: false, drawn }));
+    return drawn;
+  }
   function expected(flow) {
     const out = new Set(), units = flow.steps.flatMap((step, si) => unitsOf(step).map((u) => ({ u, si })));
     const has = (f) => units.some(f);
@@ -517,6 +623,6 @@ const FlowKit = (() => {
     return out;
   }
   const flowProbes = (keyOf) => Object.fromEntries(LOOK_ORDER.map((id) => [id, () => expected(flowOf(keyOf())).has(id)]));
-  return { census, expected, flowProbes, PALETTE, C, UI, SERIF, laneColor, laneName, flowOf, inferredNote, unitsOf, openPins, flowQuestions, touchedLanes, stepTiming, travelTime, layout, drawScene,
+  return { census, drawnText, drawnClip, sayOf, stepSays, captionOf, expected, flowProbes, PALETTE, C, UI, SERIF, laneColor, laneName, flowOf, inferredNote, unitsOf, openPins, flowQuestions, touchedLanes, stepTiming, travelTime, layout, drawScene,
     drawClipFrame, clipPlan, clipFormat, recordClip, download, hexA, markerColor, CLIP };
 })();

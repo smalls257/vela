@@ -315,10 +315,16 @@ def external_title(said):
     """The name to draw for a provider a contract names in running text: the words before the first comma, colon or
     bracket, cut at a word under NAME_CAP characters. "the pilot user, on their own laptop" is drawn "the pilot user".
     A short plain name ("Stripe") is returned unchanged. The full text stays on the node as `said`."""
-    head = PROSE_BREAK.split(said, 1)[0].strip() or said
+    head = external_name(said)
     if len(head) <= NAME_CAP:
         return head
     return head[:NAME_CAP].rsplit(" ", 1)[0].rstrip(" ,;:") + "\u2026"
+
+
+def external_name(said):
+    """The words before the first comma, colon or bracket, whole. The map's boxes are small and take external_title; a flow's column header
+    wraps, so it takes this and never shows the cut."""
+    return PROSE_BREAK.split(said, 1)[0].strip() or said
 
 
 def system_map(vault, keys):
@@ -621,6 +627,9 @@ def extract(vault, root, today, pins_path=None, designs=None, seed=None, plans=N
     names = {n["key"]: n["title"] for n in data["nodes"]}
     played = flows_data.flows(vault, keys, data["map"]["contracts"], {n["key"]: [n["col"], n["row"]] for n in data["nodes"]}, names)
     data["lanes"], data["flows"] = played["lanes"], played["flows"]
+    whole = {e["key"]: external_name(e["said"]) for e in data["map"]["externals"]}
+    for lane in data["lanes"]:
+        lane["full"] = whole.get(lane["id"], lane["name"])  # the flow's column header wraps the whole name; the map's box cuts it
     data.update(lights_data(vault, keys, today))
     data["asks"] = asks_data.asks(vault, keys, today)
     data["garden"] = asks_data.decisions(vault, keys)

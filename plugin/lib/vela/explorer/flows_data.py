@@ -130,9 +130,9 @@ def inferred(c, named):
     return [{"from": c["provider"], "to": k, "contract": c["id"], "direction": "inferred", "kind": "send"} for k in chosen]
 
 
-def short_caption(text, tokens, contracts):
-    """The first sentence, without "over <contract>" (the arrow carries it), cut at a clause if still long. For
-    present mode and clips, where a step is on screen for about two seconds."""
+def short_caption(text, tokens, contracts, limit=130):
+    """The first sentence, without "over <contract>" (the arrow carries it), cut at a clause if still long (limit
+    None keeps it whole). For present mode and clips, where a step is on screen for about two seconds."""
     parts = sentences(text) or [text]
     first = parts[0]
     if re.fullmatch(r"«\d+»[.:]?", first.strip()) and len(parts) > 1:
@@ -141,10 +141,26 @@ def short_caption(text, tokens, contracts):
     first = re.sub(r",?\s*\b(over|using|through|via)\s+«(\d+)»", drop, first)
     first = re.sub(r"«(\d+)»", lambda m: tokens[int(m.group(1))]["label"], first)
     first = re.sub(r"\s+([,.])", r"\1", first).strip()
-    if len(first) > 130:
-        cut = max(first.rfind(", and", 0, 130), first.rfind(", which", 0, 130), first.rfind(", so", 0, 130), first.rfind("; ", 0, 130))
-        first = first[:cut] + "." if cut > 40 else first[:127].rsplit(" ", 1)[0] + " …"
+    if limit and len(first) > limit:
+        cut = max(first.rfind(", and", 0, limit), first.rfind(", which", 0, limit), first.rfind(", so", 0, limit), first.rfind("; ", 0, limit))
+        first = first[:cut] + "." if cut > 40 else first[:limit - 3].rsplit(" ", 1)[0] + " …"
     return first
+
+
+PAIR_PREFIX = re.compile(r"^[^:→]{1,80}→[^:]{1,80}:\s+")
+ANSWER_CLAUSE = re.compile(r",?\s+and\s+(?:then\s+)?((?:gets|receives|returns|hears|answers)\b.*)$", re.I)
+
+
+def arrow_words(sentence, tokens, contracts):
+    """(what the arrow does, what the answer coming back says) for the explorer's arrow labels. The sentence whole, with
+    no sender-to-receiver prefix (the arrow draws that) and no "over <contract>" (the pill names it). When the sentence
+    says "... and gets a reading token", that clause is the reply's own words and the call keeps the rest. No cut: the
+    canvas wraps what it is given."""
+    text = PAIR_PREFIX.sub("", short_caption(sentence, tokens, contracts, limit=None)).rstrip(".").strip()
+    found = ANSWER_CLAUSE.search(text)
+    if not found:
+        return text, ""
+    return text[:found.start()].strip(), found.group(1).strip()
 
 
 def table_contracts(flow, keys):
@@ -210,13 +226,15 @@ def flow_record(vault, keys, flow, contracts_by_id, lanes, words, blockers, name
                     item = vault.item(key) if key else None
                     if key in contracts_by_id:
                         cited.append(key)
-                        messages += message(sentence, contracts_by_id[key], words, pair)
+                        says, answer = arrow_words(sentence, tokens, contracts_by_id)
+                        messages += [{**m, "says": says, "answer": answer} for m in message(sentence, contracts_by_id[key], words, pair)]
                     elif item is not None and item.kind == "unknown" and key not in [p["id"] for p in pins]:
                         pins.append({"id": key, "why": "cited", "textSaysOpen": bool(OPEN_WORDS.search(sentence))})
             named_here = [lane for _, lane in mentions(text, words)]
             table_only = [k for k in dict.fromkeys(from_table.get(number, [])) if k in contracts_by_id and k not in cited]
+            first_says, first_answer = arrow_words(text, tokens, contracts_by_id)
             for key in table_only:
-                messages += inferred(contracts_by_id[key], named_here)
+                messages += [{**m, "says": first_says, "answer": first_answer} for m in inferred(contracts_by_id[key], named_here)]
             seen, unique = set(), []
             for m in messages:
                 sig = (m["from"], m["to"], m["contract"])
@@ -233,7 +251,7 @@ def flow_record(vault, keys, flow, contracts_by_id, lanes, words, blockers, name
             refs = [k for k in linked if (vault.item(k) is None) and any(p.type == "flow" and keys.page(p) == k for p in vault.of_type("flow"))]
             named = [k for k, t in title_names if re.search(rf"(?<![\w-]){re.escape(t)}(?![\w-])", visible)]
             steps.append({
-                "n": number, "html": inline_html(raw, keys, flow), "text": visible, "short": short_caption(text, tokens, contracts_by_id),
+                "n": number, "html": inline_html(raw, keys, flow), "text": visible, "short": short_caption(text, tokens, contracts_by_id), "says": first_says,
                 "messages": unique, "self": None if unique else (named_here[0] if named_here else None),
                 "ref": refs[0] if refs else None, "unknowns": pins,
                 "contracts": list(dict.fromkeys(cited + table_only)), "linked": linked, "named": named,
