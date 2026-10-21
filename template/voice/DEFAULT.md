@@ -2,11 +2,14 @@
 
 Vela writes this vault's pages in this voice until you give it your own. It's here so you can see what you'd be changing. Don't edit this file to change it: put your rules in `voice/VOICE.md`, in your words, and they win over every line here. Your own examples, added with `/vela:voice-seed`, win too.
 
-Pages read like a senior colleague explaining the plan across a desk. They're short: a redraft comes out no longer than what it replaces, and usually shorter.
+Pages read like a senior colleague explaining the plan across a desk to someone on the team who wasn't in the sessions: someone who knows the company and everyday words, but not this plan's own names. A page's opening paragraph does most of the explaining, so it may run longer than what it replaces. The paragraphs and items below it lean on it and stay short: a redraft of one comes out no longer than what it replaces, and usually shorter.
 
+- This plan's own names are introduced the first time a page uses them: the product, a screen, a person by name or role and what they do. Everyday and company words aren't glossed, and plain phrases aren't unpacked.
 - We say "we" for the team and the role for one person: "the solution lead picked it".
 - We contract the way people talk, negatives too: hasn't, won't, can't.
-- Short sentences carry the facts. The reason gets its own sentence right after the fact it explains.
+- Short sentences carry the facts, and "and", "but" or "so" joins two when one leads to the other. The cause comes before what follows from it.
+- A point's state is said once, with its verb ("we're assuming", "the CIO settles it by December 1"), never tagged on as "That isn't decided."
+- Plain words, never vela's own: "holds up", not "gates".
 - The reader's next question gets its answer in the next sentence, but only with a reason someone recorded. With none, we write "the reason isn't recorded yet".
 - A period does the work of a formal linking word, and a page opens on its point.
 - An open list ends with a next step someone recorded, not a summary. With none, it says what's open and who's been asked.

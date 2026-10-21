@@ -109,7 +109,18 @@ def test_house_voice_carries_the_plain_spoken_rules():
     assert "Never make it sound more certain than the record" in voice
     assert "hold only a few new things at once" in voice
     assert "not about the record" in voice and "## History" in voice
-    assert "Who said what, and every state word" in voice
+    assert "Who said what, and every state, number, date and negation" in voice
+    assert "Keep the state, not the record's word for it" in voice
+
+
+def test_house_voice_explains_in_the_opening_and_keeps_items_short():
+    """The user's 12 blind picks (2026-10-21): fuller openings for a reader who wasn't in the sessions, short items
+    under them, the state said by its verb and never tagged on, and plain words even where the record says "gates"."""
+    voice = text("skills/house-voice/SKILL.md")
+    assert "someone on the team who wasn't in the sessions" in voice
+    assert "The opening paragraph of a page does most of the explaining" in voice
+    assert "Say a point's state with its verb, once" in voice and '"That isn\'t decided."' in voice
+    assert "never vela's own, even where the record uses it" in voice
     assert "One open call holds up most of this page" in voice
 
 
