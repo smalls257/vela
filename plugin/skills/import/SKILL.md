@@ -21,10 +21,10 @@ Propose each source's Kind (`exists`, `intends` or `repo`, as `vela conventions 
 
 Every source read is a Library row with a type. A link, a spec or a kept file goes in through the library commands below, not also with `vela add source`: one row, not two. `vela add source` stays for a file that stays in `.inbox/`.
 
-- **A Figma file, Confluence page, Jira item or web page** is a link: `vela library add "<url>" --title "<title>" --owner <handle> --date <YYYY-MM-DD> --kind exists --for-lead` (`intends` for a plan or roadmap). A link needs no yes.
+- **A design file, wiki page, tracker item or web page** is a link: `vela library add "<url>" --title "<title>" --owner <handle> --date <YYYY-MM-DD> --kind exists --for-lead` (`intends` for a plan or roadmap). A link needs no yes.
 - **A spec in the material** (OpenAPI, AsyncAPI, Swagger) goes in with its version: `vela library add "<path>" --type spec --version <v> --title "<title>" --for-lead`.
 - **A local file** stays in `.inbox/` unless the lead agrees to keep it in the Library. Ask once per file, or once for a group read back by name, and say it is company material that will be committed. Capture the answer, then `vela library add "<path>" --title "<title>" --keep-file --yes <capture> --for-lead`. With no yes it stays in `.inbox/`, never committed.
-- **A clash with a file the Library holds** is refused with the clash named. Relay it; never overwrite.
+- **A clash with a file the Library holds** stops the command, which names the clash. Relay it; never overwrite.
 
 As you read, queue what only the lead can settle, with the answer you'd give: `vela import add --type decision "<what a source says was decided, by whom, when>" --source <SRC> --propose "<answer>" --why "<why>"`. Use `--type clash` with both `--source`s for two sources that disagree, proposing which wins and why, and `--type stale` for a fact that may be out of date.
 
