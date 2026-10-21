@@ -23,7 +23,9 @@ MODEL_ID = "StyleDistance/styledistance"
 MODEL_REVISION = "b7df5f0b0480773c097ba3121d83ca32b71015ca"
 MODEL_SIZE = "about 0.5 GB"
 DEPENDENCY_SIZE = "it pulls in PyTorch, about 1–2 GB"
-INSTALL_HINT = f"python3 -m pip install sentence-transformers ({DEPENDENCY_SIZE})"
+def install_hint(python):
+    """`python` is the name of the interpreter running vela (cli passes it): on Windows that is `python`, not `python3`."""
+    return f"{python} -m pip install sentence-transformers ({DEPENDENCY_SIZE})"
 
 # TinyStyler and LUAR both build a reference from about 16 texts. Fewer than 5 gives a range
 # so coarse that one odd example decides it, so below this the score is flagged unreliable.

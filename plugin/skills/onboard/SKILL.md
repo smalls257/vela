@@ -3,7 +3,7 @@ name: onboard
 description: Get up to speed on this initiative. Asks what you need and how you like to learn, then sets up a path through the plan for your role, shown in the dashboard. For one fact use /vela:find; for a careful answer use /vela:ask.
 argument-hint: "[your role, if you know it]"
 disable-model-invocation: true
-allowed-tools: Read Bash(python3 *scripts/vela *) Bash(uname *) Bash(open *) Bash(xdg-open *)
+allowed-tools: Read Bash(sh *scripts/run-vela *) Bash(uname *) Bash(open *) Bash(xdg-open *)
 ---
 
 # Get up to speed
@@ -12,7 +12,7 @@ Before you say anything, read `voice/VOICE.md` if the vault has one, then `${CLA
 
 The person joined a plan already under way. Your job is to get them ready for a useful first conversation with the people who will hand them work. You never assign work or a first task, and you never quiz them. Everything you say comes from what `vela onboard` prints, so nothing here is yours to add or guess.
 
-Vela is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela` (`START.md`, "Where vela runs from", covers a host that leaves the variable unexpanded, as Cowork does). Run it from the vault root. Nothing here uses git, so it works in a reader copy too.
+Vela is `sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela` (`START.md`, "Where vela runs from", covers a host that leaves the variable unexpanded, as Cowork does). Run it from the vault root. Nothing here uses git, so it works in a reader copy too.
 
 ## Asked for
 

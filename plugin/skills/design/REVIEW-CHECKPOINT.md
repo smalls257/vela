@@ -4,7 +4,7 @@ Run this once the design's sections are written, before the self-audit. The inte
 
 ## 1. Dispatch five reviewers
 
-Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela reviewers prepare --team --checkpoint "design review" --focus <the design doc> <CONTEXT.md> <each ADR> <the app's vault pages>`. The vault pages are the ones `TECH-DESIGN-FROM-VAULT.md` lists (standalone, the requirements doc). It writes five packets, one per area (vendors and integrations, data and licensing, failure and recovery, security, operations), each with the area's questions, the pages to read and the shape of a finding, and prints where each packet is.
+Run `sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela reviewers prepare --team --checkpoint "design review" --focus <the design doc> <CONTEXT.md> <each ADR> <the app's vault pages>`. The vault pages are the ones `TECH-DESIGN-FROM-VAULT.md` lists (standalone, the requirements doc). It writes five packets, one per area (vendors and integrations, data and licensing, failure and recovery, security, operations), each with the area's questions, the pages to read and the shape of a finding, and prints where each packet is.
 
 Start five subagents in parallel, each with a fresh context, and give each only its packet: the subagent reads the packet and the pages it lists. Save each reply exactly as it came back, to the path its packet names. If a reviewer fails or can't be started, save what happened instead, and never an empty list: that would read as "checked, none". If the command fails, say in one plain sentence that the review couldn't be prepared, and why in your words.
 

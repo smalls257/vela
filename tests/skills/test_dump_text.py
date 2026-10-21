@@ -107,7 +107,7 @@ DUMP = text("skills/dump/SKILL.md")
 
 def test_dump_names_only_commands_that_exist():
     parser = cli.build_parser()
-    calls = re.findall(r"scripts/vela ([a-z][^`]*)`", DUMP) + re.findall(r"`vela ([a-z][^`]*)`", DUMP)
+    calls = re.findall(r"scripts/run-vela ([a-z][^`]*)`", DUMP) + re.findall(r"`vela ([a-z][^`]*)`", DUMP)
     assert calls, "dump names no vela call"
     for call in calls:
         argv = shlex.split(re.sub(r"<[^<>]*>", "X", call))

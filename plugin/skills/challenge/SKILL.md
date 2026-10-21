@@ -9,7 +9,7 @@ disable-model-invocation: true
 
 A team lead who accepted an app at handoff can still find a boundary or a contract wrong; so can an owner whose item someone decided on their behalf (`**Decided by:** @x, on behalf of @owner`; agreeing, they add `- **Confirmed by:** @owner on <date>` instead). The challenge records the dispute without settling it: the item keeps its state and text, and an open question the team lead owns blocks it.
 
-Vela is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela` (`START.md`, "Where vela runs from", covers a host that leaves the variable unexpanded). When a command can't express what the team lead wants, say so and stop.
+Vela is `sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela` (`START.md`, "Where vela runs from", covers a host that leaves the variable unexpanded). When a command can't express what the team lead wants, say so and stop.
 
 ## 1. Start
 
@@ -19,13 +19,13 @@ Run only the steps of `${CLAUDE_PLUGIN_ROOT}/references/START.md` that show the 
 
 ## 2. Find the challenged item
 
-Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela query get <ID> --json`.
+Run `sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela query get <ID> --json`.
 
 - If it says `not_found`, stop: "<ID> isn't in the plan." Do not guess another ID.
 - Go on if `kind` is `contract`, `app-building-blocks` or `epic` (its criteria or scope), or if `decided_by` names the user among its `on_behalf_of` owners, whatever the kind. Otherwise say a challenge doesn't cover it and name the item's owner, who answers for it. Never draft a message to them, and never offer to.
 - If `decided_by` is set, show who decided on whose behalf and the `override` bullets. The challenge leaves them alone.
 - Find the app (the contract's or app's page, or each app in an epic's `apps`). If it has no `handed_off:`, say a disagreement before handoff belongs in a shape or a grill with the solution lead, and ask whether to go on anyway. An owner challenging a decision made on their behalf goes on.
-- Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela handoff verify <APP-id> --for-lead` and say it by name: "Here's what changed since you took the app on." Exit 2 covers two cases, so read the tool's message to tell them apart; it's for you, not the team lead. If it says "doesn't exist", there is no manifest: say "There's no record of what you accepted at handover" and go on. Any other exit 2: say what changed since handoff could not be read, and go on without claiming anything about it.
+- Run `sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela handoff verify <APP-id> --for-lead` and say it by name: "Here's what changed since you took the app on." Exit 2 covers two cases, so read the tool's message to tell them apart; it's for you, not the team lead. If it says "doesn't exist", there is no manifest: say "There's no record of what you accepted at handover" and go on. Any other exit 2: say what changed since handoff could not be read, and go on without claiming anything about it.
 
 ## 3. Hear the challenge
 

@@ -2,7 +2,7 @@
 name: where
 description: Check what this host gives a vela session and where the vela program is. Use when a skill can't find vela, or on a new host.
 disable-model-invocation: true
-allowed-tools: Bash(echo *) Bash(pwd) Bash(ls *) Bash(python3 *scripts/vela *)
+allowed-tools: Bash(echo *) Bash(pwd) Bash(ls *) Bash(sh *scripts/run-vela *)
 disallowed-tools: Write Edit NotebookEdit
 ---
 
@@ -20,7 +20,7 @@ Before you say anything else, read `voice/VOICE.md` if the vault has one, then `
 
 Run it as a normal step:
 
-`python3 <program> where --probe --json --plugin-root "${CLAUDE_PLUGIN_ROOT}" --skill-dir "${CLAUDE_SKILL_DIR}" --injection <yes|no>`
+`sh <the program's folder>/run-vela where --probe --json --plugin-root "${CLAUDE_PLUGIN_ROOT}" --skill-dir "${CLAUDE_SKILL_DIR}" --injection <yes|no>`
 
 Exit 1 only means a check wasn't a yes. Answer first, in your words, from the `stance` sentence. The git, network and gh rows pick it:
 

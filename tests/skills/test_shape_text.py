@@ -118,7 +118,7 @@ SHAPE = read("skills/shape/SKILL.md")
 
 def test_shape_names_only_commands_that_exist():
     parser = cli.build_parser()
-    calls = re.findall(r"scripts/vela ([a-z][^`]*)`", SHAPE) + re.findall(r"`vela ([a-z][^`]*)`", SHAPE)
+    calls = re.findall(r"scripts/run-vela ([a-z][^`]*)`", SHAPE) + re.findall(r"`vela ([a-z][^`]*)`", SHAPE)
     assert len(calls) >= 2, calls
     for call in calls:
         argv = shlex.split(re.sub(r"<[^<>]*>", "X", call))

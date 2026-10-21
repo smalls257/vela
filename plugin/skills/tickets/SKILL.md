@@ -9,7 +9,7 @@ disable-model-invocation: true
 
 The plan is the source of truth and the tickets are copies of it. This session holds the plan against the vault once more, so the people downstream get tickets that still say what the vault says, then writes the copy the person chose.
 
-Vela is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela` (`START.md`, "Where vela runs from", covers a host that leaves the variable unexpanded). The converter is part of it as `vela tickets`, so this works from an installed plugin with no copy of the repo. The vault is the folder this runs in.
+Vela is `sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela` (`START.md`, "Where vela runs from", covers a host that leaves the variable unexpanded). The converter is part of it as `vela tickets`, so this works from an installed plugin with no copy of the repo. The vault is the folder this runs in.
 
 ## 1. Start
 
@@ -19,7 +19,7 @@ Find the plan: `docs/plan/<slug>-breakdown.md`, the one named, or the only one. 
 
 ## 2. Check the plan against the vault
 
-Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela tickets check --vault .` (add the plan's path, or `--app APP-x`, when there is more than one). It writes nothing. It checks traces, coverage, the quoted criteria, blockers, the tracer's place, `Slice:` lines and release fit. Exit 1 means it flagged something, which is a result and not a failure. Exit 2 means it couldn't run: say in one plain sentence that you couldn't check the plan, and why in your words.
+Run `sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela tickets check --vault .` (add the plan's path, or `--app APP-x`, when there is more than one). It writes nothing. It checks traces, coverage, the quoted criteria, blockers, the tracer's place, `Slice:` lines and release fit. Exit 1 means it flagged something, which is a result and not a failure. Exit 2 means it couldn't run: say in one plain sentence that you couldn't check the plan, and why in your words.
 
 Say what it found in your words, grouped by story, not as the tool printed it: "The withdraw story quotes five of its six criteria; the sixth is missing." Keep it to what the person has to decide, about four at a time. For each flag offer the same two ways out, with your recommendation: fix the plan now (in `/vela:breakdown`, or by a small edit the person agrees to), or go on and mention the flag in the ticket list. If they go on, say so in the summary at the end. Don't change the plan yourself, and never reword a criterion to make the check pass; the vault's words win, and a vault sentence that is wrong goes back as `/vela:challenge`.
 
@@ -33,7 +33,7 @@ Ask once, with your recommendation and why:
 
 ## 4. Write it
 
-- Markdown: `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela tickets write --vault . --format markdown` writes `docs/work/tickets.md`.
+- Markdown: `sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela tickets write --vault . --format markdown` writes `docs/work/tickets.md`.
 - CSV: the same with `--format csv` writes `docs/work/tickets.csv` and a `README.md` with the column mapping and Jira's import steps. Check the target tool's import page for its column names before telling the person which columns to map.
 - Jira tools: read the plan's "Ticket waves" and propose the first wave only. Show the first ticket exactly as it would be created (project, type, summary, description with its criteria, links) and wait for a yes. A yes covers that ticket; ask again before creating the rest, and again before any later wave. Write no script to create tickets; call the tool, or write the file.
 

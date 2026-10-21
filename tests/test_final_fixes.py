@@ -221,4 +221,4 @@ def test_template_wrapper_readme_and_claude_md():
     assert "`/ask`" not in read("template/CLAUDE.md") and "`/vela:ask`" in read("template/CLAUDE.md")
     readme = read("template/README.md")
     assert "Python 3.9" in readme and "Nothing to pip install" in readme and "pip install pyyaml" not in readme
-    assert "python3 .claude/skills/vela/scripts/vela view --out ~/Desktop/<name>.html" in readme
+    assert "sh .claude/skills/vela/scripts/run-vela view --out ~/Desktop/<name>.html" in readme

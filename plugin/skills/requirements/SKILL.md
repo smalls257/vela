@@ -9,7 +9,7 @@ disable-model-invocation: true
 
 Say what the business needs, once, before anyone decides which app does it. A requirement names no app: boundary and `/vela:allocate` come after. A requirements session never decides: what it writes is `assumption` (to the lead, "not decided yet") until a grill decides it.
 
-Vela is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela` (`START.md`, "Where vela runs from", covers a host that leaves the variable unexpanded). The format is `vela conventions "Requirements and allocation"`. When a command can't express what the lead wants, say so and stop.
+Vela is `sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela` (`START.md`, "Where vela runs from", covers a host that leaves the variable unexpanded). The format is `vela conventions "Requirements and allocation"`. When a command can't express what the lead wants, say so and stop.
 
 ## 1. Start
 

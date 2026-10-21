@@ -9,7 +9,7 @@ from sharing import make_vault
 
 PLUGIN = REPO / "plugin"
 SKILLS = sorted((PLUGIN / "skills").glob("*/SKILL.md"))
-VENDORED_PROGRAM = "python3 .claude/skills/vela/scripts/vela"
+VENDORED_PROGRAM = "sh .claude/skills/vela/scripts/run-vela"
 
 
 def meta(path):
@@ -24,7 +24,7 @@ def test_no_skill_hard_codes_the_vendored_program(path):
 @pytest.mark.parametrize("path", SKILLS, ids=lambda p: p.parent.name)
 def test_every_vela_permission_is_the_one_loose_pattern(path):
     allowed = meta(path).get("allowed-tools", "")
-    assert re.findall(r"Bash\(python3 [^)]*vela[^)]*\)", allowed) in ([], ["Bash(python3 *scripts/vela *)"]), path
+    assert re.findall(r"Bash\((?:python3|sh) [^)]*vela[^)]*\)", allowed) in ([], ["Bash(sh *scripts/run-vela *)"]), path
 
 
 @pytest.fixture

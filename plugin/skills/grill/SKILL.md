@@ -11,7 +11,7 @@ Contents: 1 questions; acceptance; 2 start; 3 the gate; handing over; 4 write ea
 
 A grill is the only session that makes an item `decided` (`vela terms` defines the word; say it once, the first time). It takes the items that are ready, or that the lead decides anyway, one question at a time, and files each decision as its branch closes.
 
-Vela is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela` (`START.md`, "Where vela runs from", covers a host that leaves the variable unexpanded). Read a format section with `vela conventions "<section>"`, never the whole file.
+Vela is `sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela` (`START.md`, "Where vela runs from", covers a host that leaves the variable unexpanded). Read a format section with `vela conventions "<section>"`, never the whole file.
 
 The conversation is yours; the writing is the CLI's. Relay `--for-lead` lines in your own voice and reason over `--json`. When a command can't express what the lead wants, say so and stop; never fall back to writing the page by hand. A kind with no command of its own is filed as `.vela/decisions/<session>/<n>-<kind>.json`, `{"version": 1, "kind": "<kind>", "session": "<id>", "items": [...]}` (`vela apply --schema <kind>` gives the fields), with `vela apply <file> --for-lead`.
 

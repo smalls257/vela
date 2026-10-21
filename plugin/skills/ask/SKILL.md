@@ -2,7 +2,7 @@
 name: ask
 description: Answer a question about this initiative from the plan alone, naming each source by its page and heading, flagging what isn't decided yet, and saying "Not recorded" with who to ask when the plan is silent. For a quick "where is it", use /vela:find.
 argument-hint: "<question>"
-allowed-tools: Read Grep Glob Bash(python3 *scripts/vela *)
+allowed-tools: Read Grep Glob Bash(sh *scripts/run-vela *)
 disallowed-tools: Write Edit NotebookEdit
 ---
 
@@ -16,12 +16,12 @@ $ARGUMENTS
 
 ## Steps
 
-Vela is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela` (`START.md`, "Where vela runs from", covers a host that leaves the variable unexpanded).
+Vela is `sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela` (`START.md`, "Where vela runs from", covers a host that leaves the variable unexpanded).
 
 1. Run `vela freshness --json`. When `state` is `current`, say nothing about freshness. When it is `newer` (exit 3), open the answer with one line in your words, from `behind` and the dates: "This answer comes from a copy that is 4 changes behind the latest plan (last updated October 10)." When it is `unreachable` or `unknown`, or the command fails, say in one plain sentence that you couldn't check for a newer plan. Never say a branch, a commit or the command's message.
 2. Find the pages: `vela query search <the asker's words> --json`, then `vela query find <words> --json` for exact titles and headings, then Grep and Glob. Never search or Read a file under `voice/` or `.inbox/`, other than `voice/VOICE.md` for how to talk. Search and Read `sessions/` only if the question asks about a session or what was said. Try two sets of words before you decide no page covers it: the asker's, and the plan's own from `12-glossary.md`.
 3. Open every section you will cite with Read. Cite nothing you did not open in this answer. Assert nothing you did not open and read. A Grep snippet alone does not count.
-4. Before you cite any ID, run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela query get <ID> --json`. It says the item exists, where it lives, and its state, `dissent`, `blocked_by`, `override` and `decided_by` for the flags. The ID stays behind the scenes. If the answer is `not_found`, never cite that ID or write it as if it existed: say `Not recorded: <ID> is not in this vault.` `vela query refs <ID> --json` finds every page that mentions an item. If `vela query` exits 2, it could not read the vault: say in one plain sentence that you couldn't check the items in this answer, and never treat that as `not_found` or "Not recorded".
+4. Before you cite any ID, run `sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela query get <ID> --json`. It says the item exists, where it lives, and its state, `dissent`, `blocked_by`, `override` and `decided_by` for the flags. The ID stays behind the scenes. If the answer is `not_found`, never cite that ID or write it as if it existed: say `Not recorded: <ID> is not in this vault.` `vela query refs <ID> --json` finds every page that mentions an item. If `vela query` exits 2, it could not read the vault: say in one plain sentence that you couldn't check the items in this answer, and never treat that as `not_found` or "Not recorded".
 5. Split the question into parts: each is answered, in conflict, or unanswered. Write the answer in the shape below. Never create, edit or delete a file.
 6. Name each thing in the sentence by its plain name, not its ID. Every claim rests on a page in the `Sources:` list or is labeled `Not from the vault:`. There is no third choice.
 

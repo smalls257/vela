@@ -9,7 +9,7 @@ disable-model-invocation: true
 
 Make every requirement somebody's. Allocation says, for each requirement, which app carries which part, and which contract carries the part that crosses between them, before anyone cuts epics. Allocation never decides: each row is `assumption` (to the lead, "not decided yet") until a grill decides it.
 
-Vela is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela` (`START.md`, "Where vela runs from", covers a host that leaves the variable unexpanded). The format is `vela conventions "Requirements and allocation"`. When a command can't express what the lead wants, say so and stop.
+Vela is `sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela` (`START.md`, "Where vela runs from", covers a host that leaves the variable unexpanded). The format is `vela conventions "Requirements and allocation"`. When a command can't express what the lead wants, say so and stop.
 
 ## 1. Start
 

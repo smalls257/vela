@@ -7,7 +7,7 @@ disable-model-invocation: true
 
 # Design
 
-The vault already says what the app must do. This session settles how the team builds it, and writes that where the team's review and the dashboard find it. The vault is the folder this runs in; `--app APP-x` names the app. Vela is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela` (`${CLAUDE_PLUGIN_ROOT}/references/START.md`, "Where vela runs from"). Every file this skill names sits beside this one.
+The vault already says what the app must do. This session settles how the team builds it, and writes that where the team's review and the dashboard find it. The vault is the folder this runs in; `--app APP-x` names the app. Vela is `sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela` (`${CLAUDE_PLUGIN_ROOT}/references/START.md`, "Where vela runs from"). Every file this skill names sits beside this one.
 
 ## 1. Start
 
@@ -69,7 +69,7 @@ A gap the team lead accepts goes into `gaps[]` in the same plain words, with the
 
 ## 7. Finish
 
-Before the pull request, run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela check-diagrams docs/tech-design/<slug>.md` with each ADR that has a diagram. Exit 1 names every diagram mermaid can't draw, at its line: fix each and run it again. A W604 means Node.js is missing and nothing was checked; tell the team lead so, and never call the diagrams checked.
+Before the pull request, run `sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela check-diagrams docs/tech-design/<slug>.md` with each ADR that has a diagram. Exit 1 names every diagram mermaid can't draw, at its line: fix each and run it again. A W604 means Node.js is missing and nothing was checked; tell the team lead so, and never call the diagrams checked.
 
 Push the branch and open the pull request when the design is `complete` or `complete-with-gaps`, after saying what will be sent and getting a yes. Its body holds the summary, the audit checklist and the challenges. Never say a push or a pull request exists unless the tool printed it; if git or GitHub fails, say in one plain sentence that it didn't go, never the raw error.
 

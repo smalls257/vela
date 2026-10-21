@@ -7,13 +7,13 @@ disable-model-invocation: true
 
 # Breakdown
 
-Turn a finished design into stories and tasks, and show that nothing was left out. The dashboard and `/vela:tickets` read the plan by code, so write it exactly as `${CLAUDE_PLUGIN_ROOT}/skills/breakdown/PLAN-FORMAT.md` says; read that file before the first story. Vela is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela` (`START.md`, "Where vela runs from"). The vault is the folder this runs in, and the plan sits in its `docs/` folder.
+Turn a finished design into stories and tasks, and show that nothing was left out. The dashboard and `/vela:tickets` read the plan by code, so write it exactly as `${CLAUDE_PLUGIN_ROOT}/skills/breakdown/PLAN-FORMAT.md` says; read that file before the first story. Vela is `sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela` (`START.md`, "Where vela runs from"). The vault is the folder this runs in, and the plan sits in its `docs/` folder.
 
 ## 1. Start
 
 Before your first question, read `voice/VOICE.md` if the vault has one, then `${CLAUDE_PLUGIN_ROOT}/references/CONVERSATION-VOICE.md`; write the plan's prose through `house-voice` (`${CLAUDE_PLUGIN_ROOT}/skills/house-voice/SKILL.md`, read as a file: only a person can start it). Acceptance criteria are never restyled. From `${CLAUDE_PLUGIN_ROOT}/references/START.md` follow "Plain names and a page a person can hold", "Relaying a command" and "The user may override any rule". When the terms slice or tracer first come up, define each once from `vela terms <word>`.
 
-Then run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela freshness --for-lead`. If it exits 3, this copy is behind the shared plan, and every check below would read old pages: say what it printed in your words and offer to bring it up to date (`git switch main`, then `git pull --ff-only`) before you go on. If it fails, say in one plain sentence that you couldn't check, then go on.
+Then run `sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela freshness --for-lead`. If it exits 3, this copy is behind the shared plan, and every check below would read old pages: say what it printed in your words and offer to bring it up to date (`git switch main`, then `git pull --ff-only`) before you go on. If it fails, say in one plain sentence that you couldn't check, then go on.
 
 A team session writes no session record. Work on the branch `design/<slug>` (create it if it doesn't exist), commit after each agreed story with `vela team commit --about "<the story>"`, and say so. The plan is reviewed like the design. If the team has no review rule, say you are committing to a branch and let the team lead decide.
 
@@ -21,7 +21,7 @@ Check the prerequisites:
 
 1. `docs/tech-design/<slug>.md` exists with `status: complete` or `complete-with-gaps`. If not, say in one sentence what is missing and offer `/vela:design`; stop there. A plan on an unfinished design is a plan for work that will change.
 2. `docs/plan/<slug>-breakdown.md` may already exist. Read back its summary in words, ask whether to continue it or start again, and say what you didn't re-check. Stories already agreed stay as they are.
-3. Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela handoff verify <APP-id> --for-lead` as `${CLAUDE_PLUGIN_ROOT}/references/TECH-DESIGN-FROM-VAULT.md` says. If the vault changed since the design, name what changed, by name, before the plan leans on it.
+3. Run `sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela handoff verify <APP-id> --for-lead` as `${CLAUDE_PLUGIN_ROOT}/references/TECH-DESIGN-FROM-VAULT.md` says. If the vault changed since the design, name what changed, by name, before the plan leans on it.
 4. Read your app's slices' flow check from the handoff rather than running it again: `handoffs/<APP-id>.md`, under `## Flow checks when written`. If the handoff record has no `## Flow checks when written` section, run `vela check-slice <slice> --for-lead` once. If a slice is 'not fully checked' or has open findings, tell the team lead before you design against it.
 
 ## 2. Read what the plan stands on
@@ -68,7 +68,7 @@ Keep "Ticket waves": which tickets to create now and which to hold because the w
 
 ## 6. Close the plan
 
-1. Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela tickets check --vault .`. It finds a target no story covers, a missing field, a story the build order leaves out, and every line it couldn't read. Fix each with the team lead, or record it as a plan gap (`PG-nnn`, never the design's `G-`) with who accepted it and why. Every `gaps[]` and `deferred[]` entry of the design is a story or sits under `## Not planned`.
+1. Run `sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela tickets check --vault .`. It finds a target no story covers, a missing field, a story the build order leaves out, and every line it couldn't read. Fix each with the team lead, or record it as a plan gap (`PG-nnn`, never the design's `G-`) with who accepted it and why. Every `gaps[]` and `deferred[]` entry of the design is a story or sits under `## Not planned`.
 2. Start a subagent with `${CLAUDE_PLUGIN_ROOT}/references/NEG-AUDIT.md` and the plan, and have it run that self-check against the plan. Two questions matter most: do the stories add up to what the requirements need, not only to the components? Can each story ship without waiting on all the others? A tracer story waits for another team's piece by design; its waits are named and stubbed.
 3. Tell the team lead the findings in plain words ("Reading the calendar shows nothing a person can see; I'd merge it into the digest story"), about four at a time, each with what you'd do. Write the result in `docs/plan/<slug>-audit.md` as plain checks, "Every requirement has a story: passes, except transcripts (deferred).", with the checklist's own names kept to the checklist. The plan carries one line: "Checked against the design self-check on October 12; see the audit file beside this plan."
 

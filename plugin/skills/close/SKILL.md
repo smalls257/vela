@@ -12,7 +12,7 @@ Before your first command and your first question, read `voice/VOICE.md` if the 
 
 Close files the session and sends it for review. The steps, in order: find the session (1), mark the captures (2), write the items (3), draft the prose (4), read back decided wording (5), bring in main and check (6), finish and send (7), open the pull request (8), the dashboard (9). Commands do the filing; you do the talking. Never report a step as done when it failed.
 
-Vela is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela` (`START.md`, "Where vela runs from", covers a host that leaves the variable unexpanded). Use `--for-lead` when you'll tell the lead the result and `--json` when you need to reason over it, and say it in your own words, in the voice: names, not codes or IDs. Never pass raw git or `gh` error text on: say in one sentence that it didn't work and what you'll do. A failure you fix isn't news. When a command can't express what the lead wants, say so and stop; never fall back to doing its steps by hand.
+Vela is `sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela` (`START.md`, "Where vela runs from", covers a host that leaves the variable unexpanded). Use `--for-lead` when you'll tell the lead the result and `--json` when you need to reason over it, and say it in your own words, in the voice: names, not codes or IDs. Never pass raw git or `gh` error text on: say in one sentence that it didn't work and what you'll do. A failure you fix isn't news. When a command can't express what the lead wants, say so and stop; never fall back to doing its steps by hand.
 
 ## Starting a close
 

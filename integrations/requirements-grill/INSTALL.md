@@ -38,7 +38,7 @@ If a hunk fails, your skill changed after the copy was made. Make the four edits
 
 ## Check it
 
-1. In a vault with the vela plugin at `.claude/skills/vela`, run requirements-grill scoped to one capability. It writes `### CAP-NNN.FRn` items at `assumption`, each with a `**Source:**` capture link, and no file under `docs/requirements/`. "Decide FR1" is refused and a Grill is offered. Then `python3 .claude/skills/vela/scripts/vela check` exits 0.
+1. In a vault with the vela plugin at `.claude/skills/vela`, run requirements-grill scoped to one capability. It writes `### CAP-NNN.FRn` items at `assumption`, each with a `**Source:**` capture link, and no file under `docs/requirements/`. "Decide FR1" is refused and a Grill is offered. Then `sh .claude/skills/vela/scripts/run-vela check` exits 0.
 2. In a repository with no `.vela.yaml`, run it as before. It writes `docs/requirements/<slug>.md` with the same sections as before the patch.
 
 ## Undo

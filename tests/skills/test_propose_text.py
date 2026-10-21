@@ -50,8 +50,8 @@ def test_propose_names_only_commands_that_exist():
     parser = cli.build_parser()
     text = skill("propose")
     calls = re.findall(r"`vela ((?:propose|role)\b[^`]*)`", text)
-    calls += [line.split("scripts/vela ", 1)[1].split(" <<", 1)[0].replace("[--zip]", "--zip")
-              for line in text.splitlines() if "scripts/vela propose" in line]
+    calls += [line.split("scripts/run-vela ", 1)[1].split(" <<", 1)[0].replace("[--zip]", "--zip")
+              for line in text.splitlines() if "scripts/run-vela propose" in line]
     assert len(calls) >= 3, calls
     for call in calls:
         _, extras = parser.parse_known_args(shlex.split(re.sub(r"<[^>]*>", "X", call)))

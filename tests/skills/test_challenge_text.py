@@ -69,9 +69,9 @@ def test_challenge_never_changes_the_item_and_never_decides():
 
 def test_challenge_resolves_the_id_and_shows_what_changed_since_handoff():
     text = skill_text_challenge()
-    assert "python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela query get <ID> --json" in text
+    assert "sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela query get <ID> --json" in text
     assert "If it says `not_found`, stop" in text and "Do not guess another ID." in text
-    assert "python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela handoff verify <APP-id> --for-lead" in text
+    assert "sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela handoff verify <APP-id> --for-lead" in text
     assert "Never cite an ID that `vela query get` reports `not_found`." in text
 
 

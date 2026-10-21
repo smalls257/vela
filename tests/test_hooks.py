@@ -200,7 +200,7 @@ def test_hooks_json_validates():
     assert "Stop" not in hooks  # plan 9.3 Q10: no blocking Stop hook
     commands = {h["command"] for entries in hooks.values() for entry in entries for h in entry["hooks"]}
     for which in ("hook bash", "hook edit", "hook post-edit", "hook session-start"):
-        assert any(which in c and "${CLAUDE_PLUGIN_ROOT}/scripts/vela" in c for c in commands), which
+        assert any(which in c and "sh \"${CLAUDE_PLUGIN_ROOT}/scripts/run-vela\"" in c for c in commands), which
     pre = {entry["matcher"]: entry for entry in hooks["PreToolUse"] if "hook " in entry["hooks"][0]["command"]}
     assert "Bash" in pre and all(tool in pre["Edit|Write|MultiEdit"]["matcher"] for tool in ("Edit", "Write"))
     assert hooks["PostToolUse"][0]["matcher"] == "Edit|Write|MultiEdit"

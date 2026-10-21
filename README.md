@@ -32,15 +32,15 @@ The repo is private, so your colleague needs access to it on GitHub first, and g
    - `/vela:find` finds where something is, in seconds, mid-conversation: "how does coach talk to brightwater" gives the best place to look and the flows that cross it.
    - `/vela:onboard` gets someone who has just joined up to speed: it asks their role, what they need and whether they like diagrams or explanations, then sets up a path through the plan in the dashboard. Everything on it comes from the plan, and what the plan doesn't hold says "Not recorded yet" and who to ask.
    - `/vela:explore` builds the dashboard, one offline page of the whole initiative (map, flows played, who holds each answer), and opens it in your browser.
-   - Discover, Shape and Grill each run a review checkpoint too. Between sessions, `python3 .claude/skills/vela/scripts/vela questions --digest` shows what is still owed. See "What v3 adds" below.
-5. **Before each PR,** run `python3 .claude/skills/vela/scripts/vela check`. CI runs it too. If you make it a required check, a broken vault can't merge.
-6. **For the CIO,** run `python3 .claude/skills/vela/scripts/vela view --out ~/Desktop/<name>.html` and email the file. It works offline and can't run page script or make network calls. The viewer is the reading copy: every page rendered, stamped with the commit and the check counts. For a live conversation use the dashboard instead, `/vela:explore`: the map, the flows played step by step, and what needs the lead. The two are kept apart on purpose, one a document you send and the other a surface you present from.
+   - Discover, Shape and Grill each run a review checkpoint too. Between sessions, `sh .claude/skills/vela/scripts/run-vela questions --digest` shows what is still owed. See "What v3 adds" below.
+5. **Before each PR,** run `sh .claude/skills/vela/scripts/run-vela check`. CI runs it too. If you make it a required check, a broken vault can't merge.
+6. **For the CIO,** run `sh .claude/skills/vela/scripts/run-vela view --out ~/Desktop/<name>.html` and email the file. It works offline and can't run page script or make network calls. The viewer is the reading copy: every page rendered, stamped with the commit and the check counts. For a live conversation use the dashboard instead, `/vela:explore`: the map, the flows played step by step, and what needs the lead. The two are kept apart on purpose, one a document you send and the other a surface you present from.
 
 The kill rule you set: if it isn't faster than plain Markdown after five sessions, cut back to the conventions, `check` and the viewer.
 
 ## The vela CLI
 
-Run each one as `python3 .claude/skills/vela/scripts/vela <command>` from the vault root. Only `render`, `view`, `explore`, `handoff` and `export` write files.
+Run each one as `sh .claude/skills/vela/scripts/run-vela <command>` from the vault root. Only `render`, `view`, `explore`, `handoff` and `export` write files.
 
 | Command | What it tells you |
 |---|---|

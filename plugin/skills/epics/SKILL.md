@@ -11,7 +11,7 @@ Contents: 1 start; 2 read the frontier; 3 shape the cuts; 4 draft each epic; 5 b
 
 Turn the app's handoff list into epics a team can build from. Only the grill part of this session (a grill as `vela terms` defines it) sets an epic to `decided`.
 
-Vela is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela` (`START.md`, "Where vela runs from", covers a host that leaves the variable unexpanded). The epic page is in `vela conventions "Epics and traceability"`.
+Vela is `sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela` (`START.md`, "Where vela runs from", covers a host that leaves the variable unexpanded). The epic page is in `vela conventions "Epics and traceability"`.
 
 The commands do the mechanics: numbering, Trace lines, the boundary test, the gates, the decision writes. Relay their `--for-lead` lines and reason over `--json`. The cuts, the criteria's wording, the read-backs and the questions are yours. When a command can't express what the lead wants, say so and stop; never fall back to doing its steps by hand.
 

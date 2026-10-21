@@ -21,7 +21,7 @@ EXPLORER_LINE = "The dashboard is up to date: dashboard.html — open it, or run
 
 def test_the_open_skill_runs_vela_open_and_never_git_init():
     skill = text("skills/open/SKILL.md")
-    assert "scripts/vela open" in skill and "Never run `git init`" in skill and "never writes to the folder" in skill.lower()
+    assert "scripts/run-vela open" in skill and "Never run `git init`" in skill and "never writes to the folder" in skill.lower()
     assert "--into vela-workspaces/" in skill
 
 
@@ -43,7 +43,7 @@ def test_open_names_only_commands_that_exist():
     import shlex
     from vela import cli
     parser = cli.build_parser()
-    calls = re.findall(r"scripts/vela (open [^`]*)`", text("skills/open/SKILL.md"))
+    calls = re.findall(r"scripts/run-vela (open [^`]*)`", text("skills/open/SKILL.md"))
     assert calls, calls
     for call in calls:
         _, extras = parser.parse_known_args(shlex.split(re.sub(r"<[^>]*>", "X", call)))

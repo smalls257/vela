@@ -57,7 +57,7 @@ def test_the_resolution_order_is_stated_once_in_start():
 def test_start_calls_vela_through_a_function_zsh_can_run():
     """Diagnosis 6C: `P="python3 ..."; $P check` exits 127 in zsh, which doesn't word-split; 44 retries in two runs."""
     order = section("Where vela runs from")
-    assert 'vela() { python3 <the path> "$@"; }' in order
+    assert 'vela() { sh <that folder>/run-vela "$@"; }' in order
     assert "zsh doesn't split `$P` into words" in order
 
 

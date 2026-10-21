@@ -21,7 +21,7 @@ Pick the program once, by the first of these that works:
 5. The `vela_path` in `.vela/workspace.json`, in a reader copy.
 6. None: stop and say "I cannot find the vela program. Run `/vela:where` and send me what it prints." Don't guess a path.
 
-Call it through a shell function, `vela() { python3 <the path> "$@"; }`, defined at the top of each shell command that uses it, since shell state may not carry over. Never `P="python3 <path>"; $P ...`: zsh doesn't split `$P` into words. Don't say which one you picked. Other `${CLAUDE_PLUGIN_ROOT}/...` files sit in the same plugin root as `scripts/`.
+Run it through `run-vela`, which sits in the same folder and picks whichever Python the machine has (`python3`, `python` or `py`): a shell function, `vela() { sh <that folder>/run-vela "$@"; }`, defined at the top of each shell command that uses it, since shell state may not carry over. Never `P="sh <folder>/run-vela"; $P ...`: zsh doesn't split `$P` into words. Don't say which one you picked. Other `${CLAUDE_PLUGIN_ROOT}/...` files sit in the same plugin root as `scripts/`.
 
 ## Owner or reader
 
@@ -41,7 +41,7 @@ Call it through a shell function, `vela() { python3 <the path> "$@"; }`, defined
 
 ## Shell that runs on a Mac and on Linux
 
-Edit with the Edit tool or a `vela` command, never in place from the shell: no `sed -i`, and no `\n`, `\+` or `\|` in a `sed` replacement. Read a range with `sed -n '<first>,<last>p' <file>`; anything longer is `python3 -c`, and after a failed edit, check the file before you retry.
+Edit with the Edit tool or a `vela` command, never in place from the shell: no `sed -i`, and no `\n`, `\+` or `\|` in a `sed` replacement. Read a range with `sed -n '<first>,<last>p' <file>`; anything longer is `python3 -c` (`python -c` where `python3` doesn't run), and after a failed edit, check the file before you retry.
 
 ## The user may override any rule
 

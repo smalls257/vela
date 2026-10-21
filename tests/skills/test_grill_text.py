@@ -175,7 +175,7 @@ def test_grill_reads_the_blocking_questions_and_runs_the_checkpoint_on_the_agend
 
 def test_grill_records_a_decision_over_an_open_blocking_question():
     grill = text("skills/grill/SKILL.md")
-    assert "python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela" in grill
+    assert "sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela" in grill
     assert "repeating `--item`" in grill and "exits 2" in grill
     assert "at most three questions" in grill and "decided with <copy IDs> open (W807)" in grill
     assert "can be stale" not in grill  # the gate skips owed questions the record answers

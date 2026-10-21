@@ -3,7 +3,7 @@ name: find
 description: Find where something is in the plan, fast, mid-conversation ("how does the app talk to spokewell", "who owns repairs"). Answers in a few lines with the best places to look and the journeys that use them. For a careful cited answer, use /vela:ask.
 argument-hint: "<what you are looking for, in your own words>"
 model: haiku
-allowed-tools: Read Bash(python3 *scripts/vela *)
+allowed-tools: Read Bash(sh *scripts/run-vela *)
 disallowed-tools: Write Edit NotebookEdit
 ---
 
@@ -19,9 +19,9 @@ $ARGUMENTS
 
 ## Steps
 
-Vela is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela` (`START.md`, "Where vela runs from", covers a host that leaves the variable unexpanded).
+Vela is `sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela` (`START.md`, "Where vela runs from", covers a host that leaves the variable unexpanded).
 
-1. Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela query search <the user's words> --limit 6`.
+1. Run `sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela query search <the user's words> --limit 6`.
 2. If it finds nothing, or the top places don't match what was asked, the user's words are probably not the plan's. Think of the words the plan would use: the app, partner and flow names in the hits, and plain synonyms ("book" → "hold", "pay", "confirm"; "talk to" → the partner's name and "contract"). Search once or twice more with those. Read `12-glossary.md` only if that still fails. Stop after three searches in all.
 3. Answer in this shape, and nothing longer:
 

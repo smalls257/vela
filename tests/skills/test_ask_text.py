@@ -16,7 +16,7 @@ PLUGIN = REPO / "plugin"
 ASK = PLUGIN / "skills" / "ask" / "SKILL.md"
 
 
-VELA_TOOL = "Bash(python3 *scripts/vela *)"  # the one loose pattern, ruled in design session 15
+VELA_TOOL = "Bash(sh *scripts/run-vela *)"  # the one loose pattern, ruled in design session 15
 
 
 # The voice load line: the owner's VOICE.md, then the plugin's conversation voice, in that order on one line.
@@ -41,14 +41,14 @@ def text(rel):
 
 def test_ask_runs_vela_by_the_one_loose_pattern_and_stays_read_only_by_disallowed_tools():
     allowed = ask_meta()["allowed-tools"]
-    assert VELA_TOOL in allowed and allowed.count("scripts/vela") == 1
+    assert VELA_TOOL in allowed and allowed.count("scripts/run-vela") == 1
     assert "Write" not in allowed.split() and "Edit" not in allowed.split()
     assert ask_meta()["disallowed-tools"] == "Write Edit NotebookEdit"
 
 
 def test_ask_resolves_every_id_before_citing_it():
     ask = ASK.read_text(encoding="utf-8")
-    assert "Before you cite any ID, run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela query get <ID> --json`." in ask
+    assert "Before you cite any ID, run `sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela query get <ID> --json`." in ask
     assert "The ID stays behind the scenes." in ask
     assert "If the answer is `not_found`, never cite that ID" in ask
     assert "`Not recorded: <ID> is not in this vault.`" in ask

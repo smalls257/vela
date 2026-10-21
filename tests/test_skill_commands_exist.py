@@ -26,7 +26,7 @@ SPAN = re.compile(r"(?<!`)`([^`\n]+)`(?!`)")
 # The program in any form a skill writes it, then the rest of the call. A path to the program is a call wherever it
 # stands; a bare `vela` only where a command starts (the line's start, after env settings, or after `&&`, `|`, `;`, `$(`),
 # so quoted output such as "(vela check reports it as E105)" is not read as one.
-PROGRAM = re.compile(r"(?:(?:^|(?<=[\s(\"'=]))(?:python3\s+)?[^\s`\"'()]*/(?:scripts|bin)/vela"
+PROGRAM = re.compile(r"(?:(?:^|(?<=[\s(\"'=]))(?:(?:python3|sh)\s+)?[^\s`\"'()]*/(?:scripts/(?:run-)?vela|bin/vela)"
                      r"|(?:^\s*(?:\$\s+)?(?:[A-Z_]+=\S*\s+)*|(?<=&&\s)|(?<=\|\s)|(?<=;\s)|(?<=\$\()|(?<=!\s)|(?<=python3\s))vela)"
                      r"\s+(?P<rest>.*)$")
 # Where the shell's part of a line starts: a pipe, a redirect, a chain, a comment.
@@ -148,4 +148,4 @@ def test_a_misspelled_command_or_flag_fails_and_a_placeholder_does_not():
     assert not is_a_mention(parser, ["chekc"]) and parse_error(parser, ["chekc"]) is not None
     assert is_a_mention(parser, ["close", "gate"])
     assert [argv for _, argv in _calls_in("python3 ${CLAUDE_SKILL_DIR}/../../scripts/vela check --vault . | tail -3")] == [["check", "--vault", "."]]
-    assert [argv for _, argv in _calls_in("python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela next-id UNK && git add x")] == [["next-id", "UNK"]]
+    assert [argv for _, argv in _calls_in("sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela next-id UNK && git add x")] == [["next-id", "UNK"]]

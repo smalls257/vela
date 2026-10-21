@@ -1072,7 +1072,7 @@ def cmd_where(args, out):
     if chosen is None:
         print(pluginroot.NOT_FOUND, file=out)
         return 1
-    print(f"vela where: run python3 {chosen.path}", file=out)
+    print(f"vela where: run sh {pathlib.Path(chosen.path).parent / 'run-vela'}", file=out)
     return 0
 
 
@@ -2317,7 +2317,7 @@ def require_dependencies():
     missing = missing_dependencies()
     if missing:
         raise VoiceScoreUnavailable(f"{' and '.join(missing)} not installed. voicescore is optional. "
-                                    f"To use it: {voicescore.INSTALL_HINT}, then run vela voicescore setup once.")
+                                    f"To use it: {voicescore.install_hint(pathlib.Path(sys.executable or "python3").name)}, then run vela voicescore setup once.")
 
 
 def require_model():

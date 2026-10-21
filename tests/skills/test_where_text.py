@@ -73,7 +73,7 @@ def test_where_offers_the_full_table_rather_than_leading_with_it():
 def test_where_allowed_tools_stay_narrow():
     front = text("skills/where/SKILL.md").split("---")[1]
     tools = re.search(r"^allowed-tools: (.*)$", front, re.M).group(1)
-    assert "Bash(python3 *scripts/vela *)" in tools
+    assert "Bash(sh *scripts/run-vela *)" in tools
     for gone in ("curl", "find", "git", "gh", "test"):
         assert f"Bash({gone}" not in tools
 

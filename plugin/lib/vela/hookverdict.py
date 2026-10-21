@@ -16,7 +16,7 @@ its spelling: `add`, `stage`, `update-index`, `apply --index|--cached`, and a `c
 (`-a`/`--all`, `-i`, `-o`, `-p`, `--pathspec-from-file`, or a path after the options). A plain `git commit -m` stays
 allowed: it commits what is already staged, and only the CLI stages. Words are never commands, so a capture that
 says "git add" in quotes, or a here-document fed to python, is left alone. The CLI's own git runs inside
-`python3 .../scripts/vela ...` and never reaches this text.
+`sh .../scripts/run-vela ...` and never reaches this text.
 
 **Leaky Narrative, ruled out at the reason.** A deny names the way that works ("`vela close stage` stages ...",
 "use `vela decide`") in plain words; the model reads it and retries the right way instead of guessing a spelling the

@@ -9,7 +9,7 @@ disable-model-invocation: true
 
 Say in what order the plan gets built, and when people see it. A release is a milestone: a date somebody outside the team will see, the slices that should be on by then, and the requirements, or only some of their checks, that must hold that day. Nothing waits for a release. What this session writes is `assumption` (to the lead, "not decided yet") until a grill decides it, and a slice has no status until a grill plans it.
 
-Vela is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela` (`START.md`, "Where vela runs from", covers a host that leaves the variable unexpanded). The release format is `vela conventions "Releases"`. Say a command's `--for-lead` lines to the lead in your words, and reason over its `--json`. When a command can't express what the lead wants, say so and stop.
+Vela is `sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela` (`START.md`, "Where vela runs from", covers a host that leaves the variable unexpanded). The release format is `vela conventions "Releases"`. Say a command's `--for-lead` lines to the lead in your words, and reason over its `--json`. When a command can't express what the lead wants, say so and stop.
 
 ## 1. Start
 

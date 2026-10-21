@@ -3,14 +3,14 @@ name: proposals
 description: Review a reader's proposal as the owner, walking each change to accept, reject or edit it, and write the answer. Use when a reader sends a proposal folder or zip.
 argument-hint: "review <proposal folder, .zip or changes.patch>"
 disable-model-invocation: true
-allowed-tools: Read Edit Bash(python3 *scripts/vela *)
+allowed-tools: Read Edit Bash(sh *scripts/run-vela *)
 ---
 
 # Review a reader's proposal
 
 A reader worked in a published copy and sent changes. You are the owner, so you decide each one. The changes go on their own branch in a git worktree beside your checkout, so nothing you are working on moves.
 
-Vela is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela` (`START.md`, "Where vela runs from", covers a host that leaves the variable unexpanded). When a command can't express what the owner wants, say so and stop.
+Vela is `sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela` (`START.md`, "Where vela runs from", covers a host that leaves the variable unexpanded). When a command can't express what the owner wants, say so and stop.
 
 Before your first question, read how to talk, as `START.md` step 0 says: `voice/VOICE.md` first when the plan has one (the owner's own rules win), then `${CLAUDE_PLUGIN_ROOT}/references/CONVERSATION-VOICE.md` and the examples it names. Don't tell the owner you read them.
 
@@ -22,7 +22,7 @@ $ARGUMENTS
 
 Run `vela role`. Only an owner reviews: in a reader copy, say "Reviewing a proposal is the owner's job, and it needs the plan's git repo" and stop. Ask for the proposal if none was given. Do not search the disk for one.
 
-Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela proposals review "<proposal>"` from the plan's folder (`--slug <name>` or `--worktree <folder>` only if the owner asks). It applies and commits the changes on a new branch and worktree. Relay what it printed in plain words:
+Run `sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela proposals review "<proposal>"` from the plan's folder (`--slug <name>` or `--worktree <folder>` only if the owner asks). It applies and commits the changes on a new branch and worktree. Relay what it printed in plain words:
 - A stop (a base commit this clone lacks, uncommitted files, a branch that exists, a damaged patch): why, in one sentence, and what to do. Fix the cause or ask; never work around it by hand.
 - The plan moved since the reader's copy: by how many commits. A warning, not a stop.
 - **Conflicts:** before anything else, walk each conflicted file: show both sides, ask which text wins or what the merged text says, edit the worktree file, and once every conflicted file is settled run `vela proposals commit --vault <worktree> --step conflicts`. While a file still holds a conflict marker line it saves nothing and names the file.
@@ -49,7 +49,7 @@ Run `vela render` then `vela check` in the worktree, commit what render changed 
 Write the answer from the notes, on standard input so the owner's words need no escaping. Every group needs an entry; `rejected` and `edited` need a reason:
 
 ```
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela proposals answer "<proposal>" --vault <worktree> --decisions - <<'JSON'
+sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela proposals answer "<proposal>" --vault <worktree> --decisions - <<'JSON'
 [{"group": "CON-001", "outcome": "accepted"},
  {"group": "CON-002", "outcome": "rejected", "reason": "<the owner's words>"}]
 JSON

@@ -3,14 +3,14 @@ name: propose
 description: Turn what you drafted in a read copy into a proposal folder for the owner, with your reasons. Use when you have changes to send and no git.
 argument-hint: "[a few words naming the proposal]"
 disable-model-invocation: true
-allowed-tools: Read Bash(python3 *scripts/vela *)
+allowed-tools: Read Bash(sh *scripts/run-vela *)
 ---
 
 # Propose your changes to the owner
 
 A reader has no git, so a change reaches the plan as a proposal the owner reviews. This skill turns what you drafted since opening the copy into a folder: `proposal.md` (the note the owner reads) and `changes.patch`. It doesn't send anything; you send the folder however you normally send files.
 
-Vela is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela` (`START.md`, "Where vela runs from", covers a host that leaves the variable unexpanded). Run it from the workspace folder. When a command can't express what the user wants, say so and stop.
+Vela is `sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela` (`START.md`, "Where vela runs from", covers a host that leaves the variable unexpanded). Run it from the workspace folder. When a command can't express what the user wants, say so and stop.
 
 Before your first question, read how to talk, as `START.md` step 0 says: `voice/VOICE.md` first when the copy has one (the owner's own rules win), then `${CLAUDE_PLUGIN_ROOT}/references/CONVERSATION-VOICE.md` and the examples it names. Don't tell the user you read them.
 
@@ -30,7 +30,7 @@ $ARGUMENTS
 6. Run it with the reasons on standard input (no escaping needed), keyed by the group keys from step 2 exactly, a group with no reason left out:
 
 ```
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela propose --title "<title>" --whys - [--zip] <<'JSON'
+sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela propose --title "<title>" --whys - [--zip] <<'JSON'
 {"CON-001": "<their reason>", "CON-002": "<their reason>"}
 JSON
 ```

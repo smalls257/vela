@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/vela\" hook session-start",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/scripts/run-vela\" hook session-start",
             "timeout": 10
           }
         ]
@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/vela\" hook said",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/scripts/run-vela\" hook said",
             "timeout": 10
           }
         ]
@@ -39,7 +39,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/vela\" hook bash",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/scripts/run-vela\" hook bash",
             "timeout": 10
           }
         ]
@@ -49,7 +49,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/vela\" hook edit",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/scripts/run-vela\" hook edit",
             "timeout": 10
           }
         ]
@@ -61,7 +61,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/vela\" hook post-edit",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/scripts/run-vela\" hook post-edit",
             "timeout": 10
           }
         ]
