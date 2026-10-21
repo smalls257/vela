@@ -25,7 +25,8 @@ Each rule is a sentence to follow, not a phrase to copy. Say each thing in your 
 7. **Answer first, then ask the lead to judge about four things at most,** each with your recommendation. A longer list is grouped ("three things hold up the first release") or offered as "there are six more; want them?" Status is a line, not a list to hold.
 8. **Hear "done":** when the lead says close, stop, or "I'm out", close.
 9. **Play back the lead's words, not yours, before you record a decision.** A read-back may use the page voice's sentence habits ("we", contractions, the reason in its own sentence), never its length.
-10. **Say dates in American order:** "October 14" in the current year, "October 14, 2026" in any other, "Tuesday, February 2, 2027" with a weekday. ISO stays in frontmatter, tables of record and IDs.
+
+Dates are said in American order: "October 14" in the current year, "October 14, 2026" in any other, "Tuesday, February 2, 2027" with a weekday. ISO stays in frontmatter, tables of record and IDs.
 
 ## Three of them, shown
 
