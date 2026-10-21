@@ -287,6 +287,41 @@ def test_a_bash_hook_in_a_folder_with_no_plan_above_or_below_is_silent(docs, tmp
     assert verdict(hook("bash", {"cwd": str(elsewhere), "tool_input": {"command": "git add x"}})) is None
 
 
+def stage_verdict(folder, command):
+    out = hook("bash", {"cwd": str(folder), "tool_input": {"command": command}})
+    return verdict(out), out.get("hookSpecificOutput", {}).get("permissionDecisionReason", "")
+
+
+@pytest.mark.parametrize("command", [
+    "git add notes/todo.md", "git add README.md notes/a.md", "git add -- notes", "git add notes/*.md",
+    "git commit -m wip", "git commit -m wip README.md"])
+def test_at_a_repo_root_with_plans_staging_named_files_outside_every_plan_is_allowed(docs, command):
+    repo, _, _ = docs
+    (repo / "notes").mkdir()
+    assert stage_verdict(repo, command)[0] is None
+
+
+@pytest.mark.parametrize("command", [
+    "git add projects/heron/01-goals.md", "git add README.md projects/payments/x.md", "git add projects",
+    "git add -A", "git add --all", "git add .", "git add -u", "git add projects/*", "git add */01-goals.md",
+    "git commit -a -m wip", "git commit --all -m wip", "git add notes && git add -A"])
+def test_at_a_repo_root_with_plans_staging_that_reaches_a_plan_is_denied_with_the_way_out(docs, command):
+    repo, _, _ = docs
+    (repo / "notes").mkdir()
+    decision, reason = stage_verdict(repo, command)
+    assert decision == "deny"
+    assert "vela close stage" in reason and "name each path" in reason
+
+
+def test_the_same_rules_hold_from_a_folder_beside_the_plans_and_not_from_inside_one(docs):
+    repo, heron, _ = docs
+    (repo / "notes").mkdir()
+    assert stage_verdict(repo / "notes", "git add todo.md")[0] is None
+    assert stage_verdict(repo / "notes", "git add ../projects/heron/x.md")[0] == "deny"
+    assert stage_verdict(repo / "notes", "git add -A")[0] == "deny"
+    assert stage_verdict(heron, "git add notes.md")[0] == "deny"  # inside a plan, every hand staging is denied
+
+
 def test_an_edit_in_a_plan_is_guarded_by_that_plans_rules_from_the_repo_root_and_one_outside_is_not(docs):
     repo, heron, _ = docs
     (repo / "notes").mkdir()

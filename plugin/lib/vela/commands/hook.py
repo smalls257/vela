@@ -151,16 +151,23 @@ def answer(out, verdict):
 def cmd_bash(args, out):
     from vela import hookverdict
     payload = read_payload(sys.stdin, "bash")
-    if not payload or not bash_in_vault(marker_folder(payload)):
+    command = (payload.get("tool_input") or {}).get("command") if payload else None
+    if not isinstance(command, str):
         return 0
-    command = (payload.get("tool_input") or {}).get("command")
-    return answer(out, hookverdict.bash_verdict(command) if isinstance(command, str) else None)
+    folder = marker_folder(payload)
+    if vault_for(folder) is not None:
+        return answer(out, hookverdict.bash_verdict(command))
+    roots = plan_roots_around(folder) if "git" in command else []
+    if not roots:
+        return 0
+    return answer(out, hookverdict.bash_verdict(command, str(folder.resolve()), roots))
 
 
-def bash_in_vault(folder):
-    """True when a Bash call's working folder is in a plan, or is the root of a repo that holds plans: `git add` there
-    reaches a plan's files whichever plan the lead is working in."""
-    return bool(vaults_started_from(folder))
+def plan_roots_around(folder):
+    """Absolute folders of the plans in the repo `folder` sits in, when no plan is above it: a `git add` here can reach
+    them, but the owner's files outside every plan are the owner's own business. [] outside a repo or with no plans."""
+    top = plans.repo_root(folder)
+    return [str(p) for p in plans.plans_in(top)] if top is not None else []
 
 
 def edited_file(payload):
