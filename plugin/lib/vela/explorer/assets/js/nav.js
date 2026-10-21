@@ -297,12 +297,16 @@ const Nav = (() => {
     const title = E[k].title, lead = s.id === "flows" ? sharedLead(s.children.map((x) => E[x].title)) : "";
     return lead && title.startsWith(lead) && title.length > lead.length ? title.slice(lead.length) : title;
   }
+  /* The triangle and the row's name both fold a list: the name is the bigger target, and readers kept looking for the click there. */
+  function foldList(id) { st.expanded.has(id) ? st.expanded.delete(id) : st.expanded.add(id); write(OPEN_KEY, [...st.expanded]); }
   function item(s) {
     const here = App.section === s.id, has = s.children.length > 0, openList = st.expanded.has(s.id);
     const lv = sectionLamp(s), missing = !s.page && !(s.id === "slices" && D.slicePlan.list.length);  // slices have no index page: each slice is one
     const row = h("div", { class: "side-row" + (here && !st.child ? " on" : here ? " in" : "") + (missing ? " missing" : "") },
-      has ? h("button", { class: "side-caret", "aria-expanded": String(openList), "aria-label": `${openList ? "Hide" : "Show"} the ${s.label.toLowerCase()}`, onclick: () => { openList ? st.expanded.delete(s.id) : st.expanded.add(s.id); write(OPEN_KEY, [...st.expanded]); refresh(); } }, openList ? "▾" : "▸") : h("span", { class: "side-caret blank" }),
-      h("button", { class: "side-link", "data-section": s.id, "aria-current": here && !st.child ? "page" : null, title: missing ? `The ${s.label.toLowerCase()} page isn't written yet` : s.id === "slices" ? `${s.title}. ${termTip("slice")}` : s.title, onclick: () => open(s.id) },
+      has ? h("button", { class: "side-caret", "aria-expanded": String(openList), "aria-label": `${openList ? "Hide" : "Show"} the ${s.label.toLowerCase()}`, onclick: () => { foldList(s.id); refresh(); } }, openList ? "▾" : "▸") : h("span", { class: "side-caret blank" }),
+      h("button", { class: "side-link", "data-section": s.id, "aria-current": here && !st.child ? "page" : null, ...(has ? { "aria-expanded": String(openList) } : {}),
+        title: missing ? `The ${s.label.toLowerCase()} page isn't written yet` : s.id === "slices" ? `${s.title}. ${termTip("slice")}` : s.title,
+        onclick: () => { if (has) foldList(s.id); open(s.id); refresh(); } },
         h("span", { class: "side-label" }, s.label), lv !== "dark" ? lampEl(lv) : null, lv !== "dark" && count(s) ? sideCount(s) : null));
     const out = [row];
     if (has && openList) out.push(h("div", { class: "side-kids" }, s.children.map((k) => {

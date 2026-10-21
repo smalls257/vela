@@ -197,6 +197,16 @@
     caret.click(); await tick();
     ok(Nav.st.expanded.has("apps") !== was && App.section === at, "menu: the triangle alone folds and unfolds the list, and does not open the page", `menu: the triangle did not toggle the list by itself (expanded ${was} -> ${Nav.st.expanded.has("apps")}, section ${at} -> ${App.section})`);
     Nav.st.expanded.delete("apps"); Nav.home(); Nav.refresh(); await tick();
+    /* The row's name folds too, and still opens the page; the label and the triangle say the same thing to a screen reader. */
+    const label = () => $("#side .side-link[data-section=apps]"), state = () => label().getAttribute("aria-expanded");
+    ok(state() === "false" && caret.getAttribute("aria-expanded") === "false", "menu: a closed list says aria-expanded=false on its name and its triangle", `menu: closed list says ${state()}`);
+    label().click(); await tick();
+    ok(Nav.st.expanded.has("apps") && App.section === "apps" && state() === "true", "menu: clicking the name of a row with children opens its list and its page", `menu: name click left expanded ${Nav.st.expanded.has("apps")}, section ${App.section}, aria-expanded ${state()}`);
+    label().click(); await tick();
+    ok(!Nav.st.expanded.has("apps") && App.section === "apps" && state() === "false", "menu: clicking the name again folds the list and stays on the page", `menu: second name click left expanded ${Nav.st.expanded.has("apps")}, aria-expanded ${state()}`);
+    label().focus(); label().click(); await tick();
+    ok(label().tagName === "BUTTON" && Nav.st.expanded.has("apps"), "menu: the name is a button, so Enter and Space fold it the way a click does", "menu: the name is not a button");
+    Nav.st.expanded.delete("apps"); Nav.home(); Nav.refresh(); await tick();
   }
 
   /* A window that is not tall enough never hides what sits under a diagram: the column scrolls (or the diagram shrinks to a
