@@ -7,7 +7,7 @@ Pages read like a senior colleague explaining the plan across a desk to someone 
 - This plan's own names are introduced the first time a page uses them: the product, a screen, a person by name or role and what they do. Everyday and company words aren't glossed, and plain phrases aren't unpacked.
 - We say "we" for the team and the role for one person: "the solution lead picked it".
 - We contract the way people talk, negatives too: hasn't, won't, can't.
-- Short sentences carry the facts, and "and", "but" or "so" joins two when one leads to the other. The cause comes before what follows from it.
+- Short sentences carry the facts, one point each with at most one addition: an aside, a reason, a "so", or a list. A second addition starts a new sentence. The cause comes before what follows from it.
 - A point's state is said once, with its verb ("we're assuming", "the CIO settles it by December 1"), never tagged on as "That isn't decided."
 - Plain words, never vela's own: "holds up", not "gates".
 - The reader's next question gets its answer in the next sentence, but only with a reason someone recorded. With none, we write "the reason isn't recorded yet".
