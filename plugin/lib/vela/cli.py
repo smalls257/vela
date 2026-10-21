@@ -2317,7 +2317,7 @@ def require_dependencies():
     missing = missing_dependencies()
     if missing:
         raise VoiceScoreUnavailable(f"{' and '.join(missing)} not installed. voicescore is optional. "
-                                    f"To use it: {voicescore.install_hint(pathlib.Path(sys.executable or "python3").name)}, then run vela voicescore setup once.")
+                                    f"To use it: {voicescore.install_hint(pathlib.Path(sys.executable or 'python3').name)}, then run vela voicescore setup once.")
 
 
 def require_model():

@@ -23,7 +23,7 @@ def test_bin_vela_is_only_a_shim_onto_scripts():
     shim = REPO / "plugin" / "bin" / "vela"
     assert os.access(shim, os.X_OK)
     code = [ln for ln in shim.read_text(encoding="utf-8").splitlines() if ln.strip() and not ln.startswith("#")]
-    assert code == ['exec python3 "$(dirname "$0")/../scripts/vela" "$@"']
+    assert code == ['exec sh "$(dirname "$0")/../scripts/run-vela" "$@"']
 
 
 def test_stub_plugin_holds_only_the_conventions():

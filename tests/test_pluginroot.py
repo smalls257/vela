@@ -78,7 +78,7 @@ def test_where_prints_each_rule_and_the_program_to_run(tmp_path):
     program.write_text("#!/usr/bin/env python3\n", encoding="utf-8")
     code, text = run("where", "--vault", str(tmp_path), "--plugin-root", LITERAL, "--skill-dir", str(program.parent.parent / "skills" / "x"))
     assert code == 0, text
-    assert "did not expand it" in text and f"run python3 {program.parent.parent / 'skills' / 'x'}/../../scripts/vela" in text
+    assert "did not expand it" in text and f"run sh {program.parent.parent / 'skills' / 'x'}/../../scripts/run-vela" in text
 
 
 def test_where_reads_the_path_a_workspace_recorded(tmp_path):
@@ -88,7 +88,7 @@ def test_where_reads_the_path_a_workspace_recorded(tmp_path):
     (tmp_path / "ws" / ".vela").mkdir(parents=True)
     (tmp_path / "ws" / ".vela" / "workspace.json").write_text(json.dumps({"vela_path": str(program)}), encoding="utf-8")
     code, text = run("where", "--vault", str(tmp_path / "ws"), "--plugin-root", LITERAL)
-    assert code == 0 and f"run python3 {program}" in text
+    assert code == 0 and f"run sh {program.parent / 'run-vela'}" in text
 
 
 def test_where_with_nothing_exits_1_and_names_the_help(tmp_path):
@@ -123,4 +123,4 @@ def test_where_finds_a_synced_copy_under_the_plugins_root(tmp_path, monkeypatch)
     import io
     out = io.StringIO()
     code = cli.cmd_where(type("A", (), {"vault": str(tmp_path), "plugin_root": "", "skill_dir": ""})(), out)
-    assert code == 0 and f"run python3 {launcher}" in out.getvalue()
+    assert code == 0 and f"run sh {launcher.parent / 'run-vela'}" in out.getvalue()
