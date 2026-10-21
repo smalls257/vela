@@ -23,7 +23,7 @@ sources: ["2026-01-10-shop-api"]
 
 ## Where it stands
 
-<!-- generated:where-it-stands sha=f34fd7d3: do not edit, run vela render -->
+<!-- generated:where-it-stands sha=2f7a01bb: do not edit, run vela render -->
 _Kept up to date by vela from the pages it reads._
 
 **Where each app has got to**

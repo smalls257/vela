@@ -18,7 +18,7 @@ verified_by: "@hl-solution-lead"
 
 ## Where it stands
 
-<!-- generated:where-it-stands sha=14035b45: do not edit, run vela render -->
+<!-- generated:where-it-stands sha=d8f14b40: do not edit, run vela render -->
 _Kept up to date by vela from the pages it reads._
 
 **Where each app has got to**
@@ -50,7 +50,7 @@ _Kept up to date by vela from the pages it reads._
 
 ## Progress by app
 
-<!-- generated:progress-map sha=82973c4f: do not edit, run vela render -->
+<!-- generated:progress-map sha=19cfa394: do not edit, run vela render -->
 _Kept up to date by vela from the pages it reads._
 
 **How sure each app's items are,** as of the last session on November 19, 2026

@@ -66,7 +66,7 @@ _Kept up to date by vela from the pages it reads._
 
 ## Progress by app
 
-<!-- generated:progress-map sha=b2e14ad0: do not edit, run vela render -->
+<!-- generated:progress-map sha=e4f35df8: do not edit, run vela render -->
 _Kept up to date by vela from the pages it reads._
 
 **How sure each app's items are:** no session yet, so no question counts as overdue

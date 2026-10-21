@@ -143,3 +143,29 @@ def test_main_says_what_each_exit_code_means():
     doc = cli.main.__doc__
     for line in ("0  done.", "1  refused", "2  the tool failed", "3  needs the lead: nothing changed"):
         assert line in doc
+
+
+def test_date_words_put_the_month_first_and_the_year_only_when_it_is_not_this_one():
+    import datetime
+    today = datetime.date(2026, 10, 14)
+    assert say.date_words("2026-10-14", today) == "October 14"
+    assert say.date_words("2027-02-02", today) == "February 2, 2027"
+    assert say.date_words("2026-10-14") == "October 14, 2026"
+    assert say.date_words("not a date", today) == "not a date"
+
+
+def test_date_words_with_a_weekday_keeps_the_same_order():
+    import datetime
+    today = datetime.date(2026, 10, 14)
+    assert say.date_words_with_weekday("2027-02-02", today) == "Tuesday, February 2, 2027"
+    assert say.date_words_with_weekday("2026-10-14", today) == "Wednesday, October 14"
+    assert say.date_words_with_weekday("soon", today) == "soon"
+
+
+def test_the_session_date_helper_and_the_override_question_use_the_same_order():
+    import datetime
+    from vela import sessions
+    from vela.decisions import override
+    assert sessions.date_in_words("2026-10-14", datetime.date(2026, 1, 1)) == "October 14"
+    assert sessions.date_in_words("2027-02-02", datetime.date(2026, 1, 1)) == "February 2, 2027"
+    assert override._said("2026-12-01") == "December 1"

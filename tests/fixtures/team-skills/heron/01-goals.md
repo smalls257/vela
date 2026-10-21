@@ -14,7 +14,7 @@ Heron has one goal so far, the chief information officer's first ask: a desk hel
 
 ## Where it stands
 
-<!-- generated:where-it-stands sha=65a9eeb0: do not edit, run vela render -->
+<!-- generated:where-it-stands sha=3524ee6d: do not edit, run vela render -->
 _Kept up to date by vela from the pages it reads._
 
 **Where each app has got to**
@@ -66,7 +66,7 @@ _Kept up to date by vela from the pages it reads._
 
 ## Progress by app
 
-<!-- generated:progress-map sha=9d7b9996: do not edit, run vela render -->
+<!-- generated:progress-map sha=0dc0c50f: do not edit, run vela render -->
 _Kept up to date by vela from the pages it reads._
 
 **How sure each app's items are,** as of the last session on October 12, 2026
