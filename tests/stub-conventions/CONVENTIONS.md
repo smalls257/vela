@@ -579,7 +579,7 @@ Run `python3 .claude/skills/vela/scripts/vela check` from the vault root. It rea
 
 The table is generated from the codes `vela check` uses, so it cannot drift from them, and each finding's fix line says how to put it right. `vela upgrade` brings a vault's copy up to date.
 
-<!-- generated:check-codes sha=546376ac: do not edit, run vela render -->
+<!-- generated:check-codes sha=a98a9347: do not edit, run vela render -->
 | Code | Finding |
 |---|---|
 | E101 | page has no frontmatter |
