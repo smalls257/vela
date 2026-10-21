@@ -147,6 +147,15 @@ def copy_of(shared, destination):
     return destination
 
 
+def assert_offered_then_asked(name):
+    """The skill carries no platform block, so Claude may offer it; the description says when to offer it and that it
+    starts only on a yes (START.md, "Offering a session")."""
+    import yaml
+    meta = yaml.safe_load((REPO / "plugin" / "skills" / name / "SKILL.md").read_text(encoding="utf-8").split("---\n", 2)[1])
+    assert "disable-model-invocation" not in meta, f"{name} must not carry the hard block"
+    assert "Offer it when" in meta["description"] and "only on a yes" in meta["description"], name
+
+
 def skill_text(name):
     """A skill's SKILL.md and the files beside it that it sends the model to, read together. A rule that moved to a file
     read only at the step that needs it is still the skill's rule."""

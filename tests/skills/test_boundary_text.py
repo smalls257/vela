@@ -5,7 +5,7 @@ Each section is headed by the file it came from and that file's reason.
 """
 import re
 
-from conftest import REPO, skill_text
+from conftest import REPO, skill_text, assert_offered_then_asked
 
 PLUGIN = REPO / "plugin"
 
@@ -33,7 +33,7 @@ def test_boundary_writes_the_case_table_and_asks_one_question_per_open_case():
 
 
 def test_boundary_stays_the_leads_to_start():
-    assert "disable-model-invocation: true" in text("skills/boundary/SKILL.md"), "boundary must stay the lead's to start"
+    assert_offered_then_asked("boundary")
 
 
 def test_boundary_hands_the_lead_to_start_not_to_a_slash_command_they_must_type():

@@ -5,7 +5,7 @@ Each section is headed by the file it came from and that file's reason.
 """
 import re
 
-from conftest import REPO
+from conftest import REPO, assert_offered_then_asked
 
 
 def words(count, start=0):
@@ -46,7 +46,7 @@ def test_allocate_never_names_a_listed_word():
 
 
 def test_allocate_stays_the_leads_to_start():
-    assert "disable-model-invocation: true" in text("skills/allocate/SKILL.md"), "allocate must stay the lead's to start"
+    assert_offered_then_asked("allocate")
 
 
 def test_allocate_hands_the_lead_to_start_not_to_a_slash_command_they_must_type():

@@ -6,7 +6,7 @@ Each section is headed by the file it came from and that file's reason.
 import re
 import shlex
 
-from conftest import REPO, skill_text
+from conftest import REPO, skill_text, assert_offered_then_asked
 from vela import cli
 
 PLUGIN = REPO / "plugin"
@@ -47,7 +47,7 @@ def test_shape_shows_the_top_conditions_and_sends_the_rest_through_the_digest():
 
 
 def test_shape_stays_the_leads_to_start():
-    assert "disable-model-invocation: true" in text("skills/shape/SKILL.md"), "shape must stay the lead's to start"
+    assert_offered_then_asked("shape")
 
 
 def test_shape_hands_the_lead_to_start_not_to_a_slash_command_they_must_type():

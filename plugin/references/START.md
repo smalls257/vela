@@ -6,6 +6,10 @@ Every mode skill runs these steps before its own. The vault root is the current 
 
 Before you say anything to the lead, read `voice/VOICE.md` if the vault has one (the owner's own rules, above the defaults), then `${CLAUDE_PLUGIN_ROOT}/references/CONVERSATION-VOICE.md`. Each mode skill says this again in one line near its top. Don't tell the lead you read it. What a command prints reaches the lead in that voice and in your words: use `--for-lead` where the command has it, and never pass on a path, a branch, a hash, or git's or gh's own error text. "Relaying a command" below says what to do when its line says something went wrong.
 
+## Offering a session
+
+When a question would be better answered by a session, say which one in plain words and why ("this is a job for a grill: it settles the question and files the answer"), ask once, and start it only on a yes. A no, or silence, means answer the question as asked. Never start a session that writes or commits without that yes. The person may also type the command themselves; that is the yes.
+
 ## Relaying a command
 
 Run a command with `--for-lead` whenever the lead will hear what it says, and say its lines in your words. Its lines stop at about four and end with a count, such as "Three more; want them?"; when the lead says yes, run the same command again with `--more` added. A `--for-lead` line that says "Something went wrong on my side" means the command stopped for a reason that is yours to fix (an ID, a field or a flag you gave it), so never say that line or the command's own text. Run the same command again with `--json` in place of `--for-lead`, read why in its `plain` and `fix` fields, fix it if you can and run it once more. If you can't, tell the lead in one plain sentence what you couldn't do, and go on.

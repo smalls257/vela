@@ -1,8 +1,7 @@
 ---
 name: allocate
-description: Divide each functional requirement among the apps and contracts that deliver it, and save each app's share as not decided yet. Use after boundary and before epics.
+description: "Divide each requirement among the apps and contracts that deliver it, saved as not decided yet. Offer it when someone asks who builds what or how requirements split across apps; start it only on a yes."
 argument-hint: "[CAP-nnn, APP-<slug>, or none for the whole initiative]"
-disable-model-invocation: true
 ---
 
 # Allocate

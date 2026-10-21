@@ -1,8 +1,7 @@
 ---
 name: voice-seed
-description: Store the owner's own writing as the voice samples that drafts and sessions are written from. Use when the owner wants drafts and conversations to sound like them.
+description: "Store the owner's own writing as the voice samples that drafts and sessions are written from. Offer it when the owner wants drafts to sound like them; start it only on a yes."
 argument-hint: "[diagnosis | decision | how-it-works | conversation]"
-disable-model-invocation: true
 ---
 
 # Voice seed

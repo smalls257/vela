@@ -1,8 +1,7 @@
 ---
 name: challenge
-description: Record that a team lead disagrees with what their app was given, as an open question the solution lead must answer, and send it for review. Use when a team lead disputes what they accepted at handoff.
+description: "Record that a team lead disagrees with what their app was given, as an open question for the solution lead. Offer it when a team lead says a boundary or contract is wrong; start it only on a yes."
 argument-hint: "<item ID> <what is wrong>"
-disable-model-invocation: true
 ---
 
 # Challenge

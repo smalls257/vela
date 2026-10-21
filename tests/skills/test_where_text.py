@@ -115,7 +115,7 @@ def test_where_names_the_stances():
         assert said in line, f"the stance for {row!r} must sit on its own row's line"
 
 
-def test_where_asks_for_the_check_the_probe_cant_make():
-    """Plan 7.1: whether the host honors frontmatter flags shows only when a model starts a skill by itself."""
+def test_where_no_longer_probes_a_flag_nothing_sets():
+    """No skill carries disable-model-invocation, so there is no host behavior left to try by hand."""
     skill = text("skills/where/SKILL.md")
-    assert "without typing `/vela:dump`" in skill and "ignores skill frontmatter flags" in skill
+    assert "disable-model-invocation" not in skill and "frontmatter flags" not in skill and "/vela:dump" not in skill

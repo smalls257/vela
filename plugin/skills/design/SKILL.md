@@ -1,8 +1,7 @@
 ---
 name: design
-description: Tech design for one app handed off from an initiative vault. Interviews the team lead one question at a time, from the app's walking skeleton, and writes a summary-first design, its ADRs and CONTEXT.md on a design branch, ending in a pull request.
+description: "Tech design for one handed-off app: interviews the team lead, writes the design and decisions on a design branch, ends in a pull request. Offer it when a team lead asks how to build their app; start it only on a yes."
 argument-hint: "--app <APP-id> [slug]"
-disable-model-invocation: true
 ---
 
 # Design

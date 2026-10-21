@@ -1,8 +1,7 @@
 ---
 name: import
-description: Turn material that already exists (documents, decks, spreadsheets, code, wiki spaces, tickets, emails) into cited plan pages, with an import map shown first. Use when an initiative is under way and the plan is empty or thin.
+description: "Turn existing material (documents, decks, code, wiki pages, tickets, emails) into cited plan pages, import map first. Offer it when the plan is empty or thin and material exists; start it only on a yes."
 argument-hint: "[where the material lives, or none to resume]"
-disable-model-invocation: true
 ---
 
 # Import

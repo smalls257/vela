@@ -1,8 +1,7 @@
 ---
 name: boundary
-description: "Cut a decided direction into apps: read back one boundary sheet per app, with a case table for each contract, and write it at assumption."
+description: "Cut a decided direction into apps: one boundary sheet per app, a case table per contract, written as not decided yet. Offer it when someone asks what the apps are or where one ends; start it only on a yes."
 argument-hint: "[the decided item, or an app]"
-disable-model-invocation: true
 ---
 
 # Boundary

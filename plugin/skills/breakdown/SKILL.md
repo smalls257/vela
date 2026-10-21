@@ -1,8 +1,7 @@
 ---
 name: breakdown
-description: Break a finished app design into stories and tasks, tracer first, each quoting its criteria from the vault. Writes the build plan to docs/plan/, named after the app.
+description: "Break a finished app design into stories and tasks, tracer first, written to docs/plan/. Offer it when someone asks how to build an app or what to build first; start it only on a yes."
 argument-hint: "<app slug or APP-id>"
-disable-model-invocation: true
 ---
 
 # Breakdown

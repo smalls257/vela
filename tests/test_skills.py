@@ -12,9 +12,9 @@ from conftest import REPO, run
 PLUGIN = REPO / "plugin"
 SKILLS = sorted(p.parent for p in (PLUGIN / "skills").glob("*/SKILL.md"))
 READ_ONLY = {"ask", "find"}  # every other skill writes to the vault
-# Close is the one writing skill the model may start, on the lead's word (S24). Without the platform flag its safety is
-# written into the skill: see test_close_starts_only_on_the_leads_word_and_confirms_before_it_pushes.
-MODEL_MAY_START = {"close"}
+# Only ask and find are read-only. Every skill is open to the model: none carries disable-model-invocation. A writing skill
+# is offered in the person's words and started on a yes (START.md, "Offering a session").
+NO_OFFER_LINE = {"ask", "find", "close"}  # read-only, or started on the lead's word and confirmed in the skill
 # Files a reference may name that live outside references/: vault files, and files of the user's grill skills.
 OTHER_FILES = {"CONVENTIONS.md", "CLAUDE.md", "SKILL.md", "CONTEXT.md", "NEG-AUDIT.md", "PREREQ-CHECK.md", "GRILL-LOOP.md",
                "REQUIREMENTS-FORMAT.md", "TECH-DESIGN-FORMAT.md", "REVIEW-CHECKPOINT.md"}
@@ -41,13 +41,25 @@ def test_frontmatter(skill):
     meta = frontmatter(skill / "SKILL.md")
     assert meta["name"] == skill.name
     assert isinstance(meta.get("description"), str) and len(meta["description"]) >= 40
+    assert "disable-model-invocation" not in meta
     if skill.name in READ_ONLY:
-        assert "disable-model-invocation" not in meta
         assert meta["disallowed-tools"] == "Write Edit NotebookEdit"
-    elif skill.name in MODEL_MAY_START:
-        assert "disable-model-invocation" not in meta
-    else:
-        assert meta.get("disable-model-invocation") is True, f"{skill.name} writes, so only the user may invoke it"
+    if skill.name not in NO_OFFER_LINE:
+        assert "Offer it when" in meta["description"] and "only on a yes" in meta["description"], skill.name
+
+
+def test_start_carries_the_shared_offer_rule():
+    start = text("references/START.md")
+    assert "## Offering a session" in start
+    rule = start.split("## Offering a session", 1)[1].split("\n## ", 1)[0]
+    for phrase in ("say which one in plain words and why", "ask once", "start it only on a yes",
+                   "A no, or silence, means answer the question as asked",
+                   "Never start a session that writes or commits without that yes"):
+        assert phrase in rule, phrase
+
+
+def test_conversation_voice_carries_the_offer_line():
+    assert "Offer a session, never start one unasked" in text("references/CONVERSATION-VOICE.md")
 
 
 @pytest.mark.parametrize("skill", SKILLS, ids=ids(SKILLS))

@@ -1,8 +1,7 @@
 ---
 name: dump
-description: Capture a hunch, a one-liner or a pile of ideas, build on them, and run a pre-mortem and a review checkpoint; nothing reaches the plan pages until close. Use when the user has an idea and no documents yet.
+description: "Capture a hunch or a pile of ideas, build on them, run a pre-mortem; nothing reaches the plan until close. Offer it when someone has an idea and no documents yet; start it only on a yes."
 argument-hint: "[what is on your mind]"
-disable-model-invocation: true
 ---
 
 # Dump & Diverge

@@ -1,8 +1,7 @@
 ---
 name: house-voice
-description: Draft or redraft the prose paragraphs of an initiative vault in the house voice, from the vault's own example passages. Close follows it for every paragraph a session needs. Use to draft a paragraph by hand outside a session.
+description: "Draft or redraft plan prose in the house voice, from the vault's own examples. Offer it when someone wants a paragraph written or reworded to sound like the plan; start it only on a yes."
 argument-hint: "[page or paragraph to draft]"
-disable-model-invocation: true
 ---
 
 # House voice

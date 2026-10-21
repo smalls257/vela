@@ -54,9 +54,9 @@ def test_challenge_accepts_reopened_to_decided_for_an_epic():
 # own, which blocks the item, and a Dissent line on it.
 
 
-def test_challenge_is_the_leads_to_start():
+def test_challenge_is_offered_then_started_on_a_yes():
     meta = yaml.safe_load(skill_text_challenge().split("---\n", 2)[1])
-    assert meta["name"] == "challenge" and meta["disable-model-invocation"] is True
+    assert meta["name"] == "challenge" and "disable-model-invocation" not in meta
 
 
 def test_challenge_never_changes_the_item_and_never_decides():

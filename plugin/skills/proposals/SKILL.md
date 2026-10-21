@@ -1,8 +1,7 @@
 ---
 name: proposals
-description: Review a reader's proposal as the owner, walking each change to accept, reject or edit it, and write the answer. Use when a reader sends a proposal folder or zip.
+description: "Review a reader's proposal as the owner, walking each change to accept, reject or edit it, and write the answer. Offer it when a reader sends a proposal folder or zip; start it only on a yes."
 argument-hint: "review <proposal folder, .zip or changes.patch>"
-disable-model-invocation: true
 allowed-tools: Read Edit Bash(sh *scripts/run-vela *)
 ---
 

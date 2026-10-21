@@ -6,7 +6,7 @@ Each section is headed by the file it came from and that file's reason.
 import re
 import shlex
 
-from conftest import REPO
+from conftest import REPO, assert_offered_then_asked
 from vela import cli
 
 PLUGIN = REPO / "plugin"
@@ -49,7 +49,7 @@ def test_round_two_fixes_in_dump():
 
 
 def test_dump_stays_the_leads_to_start():
-    assert "disable-model-invocation: true" in text("skills/dump/SKILL.md"), "dump must stay the lead's to start"
+    assert_offered_then_asked("dump")
 
 
 def test_dump_hands_the_lead_to_start_not_to_a_slash_command_they_must_type():

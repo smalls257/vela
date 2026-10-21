@@ -1,8 +1,7 @@
 ---
 name: explore
-description: Build the dashboard and open it in the browser, so one page shows the map of apps, the journeys, who holds each open answer and where each app stands. Use to look at the whole initiative or present a journey; for one fact use /vela:find or /vela:ask.
+description: "Build the dashboard and open it in the browser: the map of apps, the journeys, who holds each open answer. Offer it when someone wants the whole picture or a journey shown; for one fact use /vela:find. Start it only on a yes."
 argument-hint: "[console|graphite|daylight|vaporwave] [--today YYYY-MM-DD] [--design APP-x=<path to its tech design>]"
-disable-model-invocation: true
 allowed-tools: Read Bash(sh *scripts/run-vela *) Bash(uname *) Bash(open *) Bash(xdg-open *)
 ---
 

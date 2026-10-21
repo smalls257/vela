@@ -1,8 +1,7 @@
 ---
 name: releases
-description: Cut the plan into slices, the tracer first, each one journey proven end to end. Date the releases that point at them, say which requirements must be there and which can wait, and save it all as not decided yet. Use after allocate, before epics.
+description: "Cut the plan into slices, tracer first, and date the releases, saved as not decided yet. Offer it when someone asks what ships when or in what order; start it only on a yes."
 argument-hint: "[a release name or date, or none for the whole plan]"
-disable-model-invocation: true
 ---
 
 # Releases

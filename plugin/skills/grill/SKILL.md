@@ -1,8 +1,7 @@
 ---
 name: grill
-description: Decide ready items one question at a time, each with a recommended answer you hold under pushback. The only session that sets decided.
+description: "Decide ready items one question at a time, each with a recommended answer held under pushback; the only session that sets decided. Offer it when someone wants an open question settled; start it only on a yes."
 argument-hint: "<item IDs or page names to decide>"
-disable-model-invocation: true
 ---
 
 # The grill

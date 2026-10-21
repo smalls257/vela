@@ -24,9 +24,9 @@ def test_the_skill_loads_the_voice_before_it_says_anything():
     assert body.index(VOICE_LINE.search(body).group(0)) < body.index("## Steps")
 
 
-def test_only_the_person_starts_it_and_it_can_only_run_vela_and_open_a_page():
+def test_claude_offers_it_and_it_can_only_run_vela_and_open_a_page():
     meta, _ = parts()
-    assert meta["name"] == "onboard" and meta["disable-model-invocation"] is True
+    assert meta["name"] == "onboard" and "disable-model-invocation" not in meta
     assert meta["allowed-tools"] == "Read Bash(sh *scripts/run-vela *) Bash(uname *) Bash(open *) Bash(xdg-open *)"
     assert "Write" not in meta["allowed-tools"] and "Edit" not in meta["allowed-tools"]
     assert len(meta["description"]) <= 250 and "<" not in meta["description"] and ">" not in meta["description"]

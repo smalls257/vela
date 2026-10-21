@@ -1,8 +1,7 @@
 ---
 name: requirements
-description: Write each capability's functional requirements, with acceptance criteria and no app named, kept as not decided yet until a grill decides them. Use after the strategy grill and before boundary.
+description: "Write each capability's functional requirements with acceptance criteria, no app named, kept as not decided yet. Offer it when someone asks what the business needs; start it only on a yes."
 argument-hint: "[CAP-nnn, several, or none for every capability the strategy needs]"
-disable-model-invocation: true
 ---
 
 # Requirements

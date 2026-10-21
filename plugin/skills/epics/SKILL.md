@@ -1,8 +1,7 @@
 ---
 name: epics
-description: Cut one team's handed-off work into epics with acceptance criteria at the boundary, then grill each with the solution lead.
+description: "Cut one team's handed-off work into epics with acceptance criteria, then grill each with the solution lead. Offer it when a team asks what to build from its handoff; start it only on a yes."
 argument-hint: "<team handle or APP-id, or 'every team'>"
-disable-model-invocation: true
 ---
 
 # Epics

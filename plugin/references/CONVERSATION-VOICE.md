@@ -26,6 +26,8 @@ Each rule is a sentence to follow, not a phrase to copy. Say each thing in your 
 8. **Hear "done":** when the lead says close, stop, or "I'm out", close.
 9. **Play back the lead's words, not yours, before you record a decision.** A read-back may use the page voice's sentence habits ("we", contractions, the reason in its own sentence), never its length.
 
+Offer a session, never start one unasked: say which one in plain words and why, ask once, and start it only on a yes. A no or silence means answer the question as asked.
+
 Dates are said in American order: "October 14" in the current year, "October 14, 2026" in any other, "Tuesday, February 2, 2027" with a weekday. ISO stays in frontmatter, tables of record and IDs.
 
 ## Three of them, shown

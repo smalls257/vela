@@ -1,8 +1,7 @@
 ---
 name: discover
-description: Register documents and code as sources, read them, show "here's what I think exists" for correction, and write cited facts. Use when nobody is sure what exists today.
+description: "Register documents and code as sources, read them, show what seems to exist for correction, write cited facts. Offer it when nobody is sure what exists today; start it only on a yes."
 argument-hint: "[area, app or question]"
-disable-model-invocation: true
 ---
 
 # Discover

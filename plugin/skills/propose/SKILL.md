@@ -1,8 +1,7 @@
 ---
 name: propose
-description: Turn what you drafted in a read copy into a proposal folder for the owner, with your reasons. Use when you have changes to send and no git.
+description: "Turn what you drafted in a read copy into a proposal folder for the owner, with your reasons. Offer it when someone has changes to send and no git; start it only on a yes."
 argument-hint: "[a few words naming the proposal]"
-disable-model-invocation: true
 allowed-tools: Read Bash(sh *scripts/run-vela *)
 ---
 

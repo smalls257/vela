@@ -1,7 +1,6 @@
 ---
 name: where
-description: Check what this host gives a vela session and where the vela program is. Use when a skill can't find vela, or on a new host.
-disable-model-invocation: true
+description: "Check what this host gives a vela session and where the vela program is. Offer it when a skill can't find vela, or on a new host; start it only on a yes."
 allowed-tools: Bash(echo *) Bash(pwd) Bash(ls *) Bash(sh *scripts/run-vela *)
 disallowed-tools: Write Edit NotebookEdit
 ---
@@ -31,6 +30,4 @@ Exit 1 only means a check wasn't a yes. Answer first, in your words, from the `s
 
 When all is well, that's the whole answer. Otherwise name what can't be done, about four things at most, each with what to do. Leave out the folder, YAML and `!` line rows, and never repeat a row's `detail` (raw git or gh words).
 
-Then ask the user to try what the probe can't: in a fresh chat, ask Claude to capture an idea without typing `/vela:dump`. If dump starts by itself, this host ignores skill frontmatter flags.
-
-Last, ask: "Want the full table to send to the plugin's maintainer?" If yes, show the echo values, the program you used, the dump answer, and one table row per `rows` entry: the label, `yes`, `no` or `couldn't tell`, and the meaning. Ask the user to send this whole output to the maintainer.
+Last, ask: "Want the full table to send to the plugin's maintainer?" If yes, show the echo values, the program you used, and one table row per `rows` entry: the label, `yes`, `no` or `couldn't tell`, and the meaning. Ask the user to send this whole output to the maintainer.

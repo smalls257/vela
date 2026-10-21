@@ -6,7 +6,7 @@ Each section is headed by the file it came from and that file's reason.
 import re
 import shlex
 
-from conftest import REPO, skill_text
+from conftest import REPO, skill_text, assert_offered_then_asked
 from vela import cli
 
 
@@ -132,7 +132,7 @@ def test_epics_offers_the_e805_override_with_its_exact_bullet():
 
 
 def test_epics_stays_the_leads_to_start():
-    assert "disable-model-invocation: true" in text("skills/epics/SKILL.md"), "epics must stay the lead's to start"
+    assert_offered_then_asked("epics")
 
 
 def test_epics_hands_the_lead_to_start_not_to_a_slash_command_they_must_type():
@@ -282,8 +282,7 @@ def test_epics_reads_back_by_name_with_a_worked_example():
 
 def test_epics_description_is_the_plans():
     head = EPICS.read_text(encoding="utf-8").split("---", 2)[1]
-    line = "description: Cut one team's handed-off work into epics with acceptance criteria at the boundary, then grill each with the solution lead."
-    assert line in head
+    assert "Cut one team's handed-off work into epics with acceptance criteria, then grill each with the solution lead." in head
 
 
 def test_epics_says_the_lead_facing_words():

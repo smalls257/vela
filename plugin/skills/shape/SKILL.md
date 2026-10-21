@@ -1,8 +1,7 @@
 ---
 name: shape
-description: Offer 2 or 3 options with trade-offs and what must be true for each, record the rejected ones, and keep the chosen one as not decided yet until a grill decides it. Use when the user roughly knows what they want.
+description: "Lay out 2 or 3 options with trade-offs, record the rejected ones, keep the chosen one as not decided yet until a grill decides it. Offer it when someone roughly knows what they want; start it only on a yes."
 argument-hint: "<area, app or item>"
-disable-model-invocation: true
 ---
 
 # Shape

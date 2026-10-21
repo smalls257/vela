@@ -1,8 +1,7 @@
 ---
 name: onboard
-description: Get up to speed on this initiative. Asks what you need and how you like to learn, then sets up a path through the plan for your role, shown in the dashboard. For one fact use /vela:find; for a careful answer use /vela:ask.
+description: "Set up a path through the plan for your role, shown in the dashboard. Offer it when someone says they are new or need to get up to speed; start it only on a yes. For one fact use /vela:find."
 argument-hint: "[your role, if you know it]"
-disable-model-invocation: true
 allowed-tools: Read Bash(sh *scripts/run-vela *) Bash(uname *) Bash(open *) Bash(xdg-open *)
 ---
 

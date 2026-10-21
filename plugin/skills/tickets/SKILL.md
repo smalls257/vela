@@ -1,8 +1,7 @@
 ---
 name: tickets
-description: Turn a finished build plan into tickets. Checks the plan against the vault first, then writes a Markdown ticket list, a CSV for Jira import, or uses Jira tools the person already has. Creates nothing in an outside system without a yes.
+description: "Turn a finished build plan into tickets: a Markdown list, a CSV for Jira import, or Jira tools you already have. Offer it when someone asks for tickets; start it only on a yes. Nothing is created outside without a yes."
 argument-hint: "[app slug or APP-id]"
-disable-model-invocation: true
 ---
 
 # Tickets

@@ -5,7 +5,7 @@ Each section is headed by the file it came from and that file's reason.
 """
 import re
 
-from conftest import REPO
+from conftest import REPO, assert_offered_then_asked
 
 
 def text_of(*parts):
@@ -65,7 +65,7 @@ def test_the_habit_is_short_and_sits_before_anything_is_written():
 
 
 def test_requirements_stays_the_leads_to_start():
-    assert "disable-model-invocation: true" in text("skills/requirements/SKILL.md"), "requirements must stay the lead's to start"
+    assert_offered_then_asked("requirements")
 
 
 def test_requirements_hands_the_lead_to_start_not_to_a_slash_command_they_must_type():
