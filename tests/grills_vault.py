@@ -83,3 +83,60 @@ def make(tmp_path):
     (root / "13-epics").mkdir()
     (root / "13-epics" / "EPC-001-loyalty.md").write_text(EPIC, encoding="utf-8")
     return root
+
+
+# ------------------------------------------------------------------ the booking example, with grills waiting
+# The example is fully decided, so three of its contracts are taken back to `assumption` with the options Shape weighed:
+# CON-001 is ready, CON-002 waits on one open question (UNK-006, due 2027-03-01), and the lead said yes to CON-003 in a
+# shape session. Two people run grills (the solution lead and the booking senior), each asked to join the other's.
+def booking_grills(tmp_path):
+    from conftest import REPO, run
+    root = tmp_path / "booking"
+    shutil.copytree(REPO / "examples" / "unified-booking", root)
+    for page, ident, picked in (("booking", "CON-001", "Keep it as drawn"), ("booking", "CON-002", "Keep it as drawn"), ("pricing", "CON-003", "Quote from the pricing service")):
+        path = root / "05-building-blocks" / f"{page}-building-blocks.md"
+        text = path.read_text(encoding="utf-8")
+        start = text.index(f"### {ident} ")
+        at = text.index("- **State:** decided", start)
+        options = f"- **State:** assumption\n- **Options considered:** {picked} (picked); split it in two: rejected, two calls double the failure points"
+        options += "\n- **Source:** SRC-01" if ident == "CON-001" else ""
+        path.write_text(text[:at] + options + text[at + len("- **State:** decided"):], encoding="utf-8")
+    edit(root / "11-unknowns-and-risks.md", "- **Ask by:** 2027-03-01\n- **Notes:** Deferred to INI-005.",
+         "- **Ask by:** 2027-03-01\n- **Blocks:** [[booking-building-blocks#CON-002 Booking state changed|CON-002]]\n- **Notes:** Deferred to INI-005.")
+    edit(root / "13-epics" / "EPC-039-run-booking.md", "state: decided", "state: draft")  # an epic nothing waits on: the batch has a grill that unblocks none
+    (root / "sessions" / "2026-10-20-shape-pricing.md").write_text(BOOKING_SESSION, encoding="utf-8")
+    with open(root / ".vela.yaml", "a", encoding="utf-8") as config:
+        config.write("roles:\n  hl-solution-lead: lead\n  hl-booking-senior: eng\n")
+    for argv in (("CON-001", "--owner", "@hl-solution-lead", "--join", "@hl-booking-senior"), ("CON-002", "--owner", "@hl-solution-lead"),
+                 ("CON-003", "--owner", "@hl-booking-senior", "--join", "@hl-solution-lead")):
+        code, out = run("grill", "owner", *argv, "--vault", str(root))
+        assert code == 0, out
+    return root
+
+
+BOOKING_SESSION = """---
+id: 2026-10-20-shape-pricing
+type: session
+date: 2026-10-20
+title: "Shape: how pricing answers"
+modes: [shape]
+status: closed
+summary: Shaped how Booking asks Pricing for a fare.
+---
+
+# 2026-10-20 Shape: how pricing answers
+
+## Ready to decide
+
+- CON-003: the lead said yes in 2026-10-20-shape-pricing (^c01)
+
+## Captures
+
+- [decision] (@hl-solution-lead) Yes, Booking quotes from the pricing service and never works out a fare itself. → keep: [[pricing-building-blocks#CON-003 Quote a fare|CON-003]] (assumption) ^c01
+
+## Changes
+
+| ID | From | To | Source |
+|---|---|---|---|
+| CON-003 | inkling | assumption | [[2026-10-20-shape-pricing#^c01]] |
+"""
