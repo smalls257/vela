@@ -74,7 +74,7 @@ def test_exit_3_means_nothing_changed():
 
 
 def test_the_leak_check_catches_the_plumbing_the_voice_audit_found():
-    """Each line passed the old check (codes and IDs only) and reached a lead in the 14 October runs."""
+    """Each line passed the old check (codes and IDs only) and reached a lead in the October 14 runs."""
     leaks = {
         "session slug": "Calling this one 2026-10-14-calendar-entries.",
         "git error": "GitHub's command line failed (none of the git remotes configured for this repository point to "
@@ -85,11 +85,11 @@ def test_the_leak_check_catches_the_plumbing_the_voice_audit_found():
         "flag": "Build it with --for-lead first.",
         "ISO date": "I've set it to be asked by 2027-02-02.",
         "handle": "@agent-lead owns no app pages.",
-        "commit hash": "Your copy is the latest published (a1b2c3d, 14 October).",
+        "commit hash": "Your copy is the latest published (a1b2c3d, October 14).",
     }
     for kind, line in leaks.items():
         assert say.leak_in(line) is not None and say.leak_in(line)[0] in (kind, "session slug", "git error"), (kind, line)
-    for fine in ("vela needs 3.9 or later.", "Open dashboard.html in this folder.", "Ask by 14 October, read/write.",
+    for fine in ("vela needs 3.9 or later.", "Open dashboard.html in this folder.", "Ask by October 14, read/write.",
                  "/vela:explore opens it.", "Vela's own words are grill, slice and tracer."):
         assert say.leak_in(fine) is None, fine
 
@@ -105,8 +105,8 @@ def test_the_command_pattern_knows_every_subcommand():
 def test_the_resolver_says_dates_handles_and_page_files_in_words():
     import datetime
     resolver = say.Resolver(today=datetime.date(2026, 10, 14))
-    assert resolver.plain("due 2026-11-03, with @solution-lead") == "due 3 November, with solution lead"
-    assert resolver.plain("due 2027-02-02") == "due 2 February 2027"
+    assert resolver.plain("due 2026-11-03, with @solution-lead") == "due November 3, with solution lead"
+    assert resolver.plain("due 2027-02-02") == "due February 2, 2027"
     assert resolver.plain("start it with /vela:design --app APP-x.") == "start it with /vela:design."
     assert resolver.plain("in the lead's own words") == "in your own words"
 
@@ -143,3 +143,29 @@ def test_main_says_what_each_exit_code_means():
     doc = cli.main.__doc__
     for line in ("0  done.", "1  refused", "2  the tool failed", "3  needs the lead: nothing changed"):
         assert line in doc
+
+
+def test_date_words_put_the_month_first_and_the_year_only_when_it_is_not_this_one():
+    import datetime
+    today = datetime.date(2026, 10, 14)
+    assert say.date_words("2026-10-14", today) == "October 14"
+    assert say.date_words("2027-02-02", today) == "February 2, 2027"
+    assert say.date_words("2026-10-14") == "October 14, 2026"
+    assert say.date_words("not a date", today) == "not a date"
+
+
+def test_date_words_with_a_weekday_keeps_the_same_order():
+    import datetime
+    today = datetime.date(2026, 10, 14)
+    assert say.date_words_with_weekday("2027-02-02", today) == "Tuesday, February 2, 2027"
+    assert say.date_words_with_weekday("2026-10-14", today) == "Wednesday, October 14"
+    assert say.date_words_with_weekday("soon", today) == "soon"
+
+
+def test_the_session_date_helper_and_the_override_question_use_the_same_order():
+    import datetime
+    from vela import sessions
+    from vela.decisions import override
+    assert sessions.date_in_words("2026-10-14", datetime.date(2026, 1, 1)) == "October 14"
+    assert sessions.date_in_words("2027-02-02", datetime.date(2026, 1, 1)) == "February 2, 2027"
+    assert override._said("2026-12-01") == "December 1"

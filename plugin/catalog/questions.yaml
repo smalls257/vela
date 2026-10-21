@@ -18,7 +18,7 @@ areas:
 
 # The kinds of thing every plan needs, whatever its domain: the one list of "areas a plan must cover". A session's
 # running topic map (`vela map`) tags what the lead says to a kind and points the next question at the emptiest kind
-# near the last topic: the concern map of the 16 October elicitation research (OntoAgent, 2026, found 0.69 of
+# near the last topic: the concern map of the October 16 elicitation research (OntoAgent, 2026, found 0.69 of
 # hidden requirements with a map re-ranked each turn, against 0.13 free-form). `areas` names the focus areas above
 # whose questions fall under the kind, so every area has a home here; `near` names the kinds a conversation on this
 # one most often leads to (read both ways).

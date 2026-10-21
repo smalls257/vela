@@ -44,9 +44,9 @@ Nothing in this team.
 
 ## Rollout notes
 
-- The date still waits on the lawful basis for each source, asked of the DPO by 10 November.
+- The date still waits on the lawful basis for each source, asked of the DPO by November 10.
   - Trace: UNK-071
-- Part of the February pilot for Client Delivery London, 2 February 2027.
+- Part of the February pilot for Client Delivery London, February 2, 2027.
 
 ## Out of scope
 

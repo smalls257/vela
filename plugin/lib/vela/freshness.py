@@ -13,7 +13,7 @@ a skill can't read past it.
 
 `message` is the default mode's sentence (branch names, commit counts, git's words), for the model and the
 dashboard's helper; `lead` is what `vela freshness --for-lead` says, built from the same facts: no branch, no remote,
-no counts tail and no git words, and one remedy, the offer to bring the changes in (the 14 October voice audit, rows
+no counts tail and no git words, and one remedy, the offer to bring the changes in (the October 14 voice audit, rows
 46 to 55). Two sentences from one set of facts, so they can't disagree about the state.
 
 edge/vaultgit.py and edge/copies.py gather the facts; cli.py prints the report.

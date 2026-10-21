@@ -165,7 +165,7 @@ const Releases = (() => {
     const row = (label, keys, chip) => keys.length ? h("div", { class: "rc-row" }, h("span", { class: "rc-l" }, label), h("span", {}, keys.map(chip))) : null;
     return h("section", { class: "rel-card" + (cur ? " on" : ""), "data-state": j },
       h("button", { class: "rc-head", onclick: () => onPick(j) }, h("span", { class: "rc-n", title: S.fromChange ? "The end state" : `Release ${j}` }, S.fromChange ? "End" : String(j)), h("span", { class: "rc-t" }, S.fromChange ? "End state, from each app's change" : S.heading || S.name),
-        h("span", { class: "rc-m" }, S.target ? day(S.target) + (S.target.slice(0, 4) !== D.today.slice(0, 4) ? " " + S.target.slice(0, 4) : "") : "", S.state ? h("span", { class: "pill" }, stateWord(S.state).toLowerCase()) : null)),
+        h("span", { class: "rc-m" }, S.target ? (S.target.slice(0, 4) !== D.today.slice(0, 4) ? dayYear(S.target) : day(S.target)) : "", S.state ? h("span", { class: "pill" }, stateWord(S.state).toLowerCase()) : null)),
       j === 1 ? tracerLine() : null,
       row("New apps", c.arrive, (k) => refChip(k)), row("Changed apps", c.change, (k) => refChip(k)), row("Retired apps", c.gone, (k) => refChip(k)), row("New contracts", c.appear, (k) => refChip(k)),
       S.rows ? h("div", { class: "rc-row" }, h("span", { class: "rc-l" }, "Delivers"), h("ul", { class: "rc-reqs" }, S.rows.map((r) => h("li", {}, r.requirement ? nameChip(r.requirement) : h("span", { class: "gap" }, "a line that names no requirement"),

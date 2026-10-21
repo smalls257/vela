@@ -308,7 +308,7 @@ const PlanDetails = (() => {
     const criteria = (r) => (!r.criteria.length ? "all criteria" : `${r.criteria.length === 1 ? "criterion" : "criteria"} ${r.criteria.join(", ")} of ${r.of}`);
     const touched = [...c.arrive, ...c.change, ...(S.through || [])], held = [...new Set(touched.flatMap((k) => [...(D.blockedBy[k] || []), ...(D.apps[k] ? D.apps[k].questions.map((q) => q.id) : [])]))].filter((id) => UNKNOWN[id] && isOpen(UNKNOWN[id]));
     const group = (heading, keys) => (keys.length ? sec(heading, keys.length, bullets(keys.map((k) => openRow(k, view)))) : null);
-    return [head("Release", title, S.target ? h("span", { class: "pill" }, `${day(S.target)} ${S.target.slice(0, 4)}`) : h("span", { class: "pill" }, "No date yet"), S.state ? statePill(S.state) : null),
+    return [head("Release", title, S.target ? h("span", { class: "pill" }, dayYear(S.target)) : h("span", { class: "pill" }, "No date yet"), S.state ? statePill(S.state) : null),
       h("div", { class: "p-body" },
         sec("What it ships", shipped.length || null, shipped.length ? bullets(shipped.map((r) => [link(r.requirement), h("span", { class: "muted" }, " " + criteria(r) + (r.note ? `: ${r.note}` : ""))])) : quiet("Not recorded: no requirement is written against this release yet.")),
         group("New apps", c.arrive), group("Changed apps", c.change), group("Retired apps", c.gone), group("New contracts", c.appear),

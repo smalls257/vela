@@ -29,7 +29,7 @@ bullet check would call malformed (E321) is never written.
 """
 import re
 
-from vela import override as overrides, schema as vault_schema
+from vela import override as overrides, say, schema as vault_schema
 from vela.decisions import consent, schema, textedit
 
 HANDLE = re.compile(rf"^{vault_schema.HANDLE}$")
@@ -101,9 +101,9 @@ def validate(item, vault, record):
 
 
 def _said(date):
+    """The end date as the lead hears it, without a year: 'December 1'."""
     import datetime
-    day = datetime.date.fromisoformat(date)
-    return f"{day.day} {day.strftime('%B')}"
+    return say.date_words(date, today=datetime.date.fromisoformat(date))
 
 
 def bullet_value(item, vault, record):

@@ -214,7 +214,7 @@ def item_facts(item, keys):
 
 
 def people_said(value):
-    """"@sam, 2026-10-12" as a reader says it: "sam, 12 October 2026". Decided by, Confirmed by and Pending approval are who and when."""
+    """"@sam, 2026-10-12" as a reader says it: "sam, October 12, 2026". Decided by, Confirmed by and Pending approval are who and when."""
     value = say.LEAD_PATTERNS["handle"].sub(lambda m: say.person_words(m.group(0)), value)
     return say.LEAD_PATTERNS["ISO date"].sub(lambda m: say.date_words(m.group(0)), value)
 

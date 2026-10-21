@@ -242,7 +242,7 @@ def test_the_heron_unknowns_opening_that_lists_every_question_trips_the_opening_
 
 def test_an_opening_that_counts_and_points_passes(mini):
     summary = ("Twenty-eight questions are open. Three hold up the first release, and the most urgent is who owns Heron, "
-               "due 23 October. The table below lists the rest, each with who is asked and when.\n")
+               "due October 23. The table below lists the rest, each with who is asked and when.\n")
     write_page(mini, 1, "## Notes\n\nThe till reads one thing.\n", summary=summary)
     assert codes(mini) == []
 

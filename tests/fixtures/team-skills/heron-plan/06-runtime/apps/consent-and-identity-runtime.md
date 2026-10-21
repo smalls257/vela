@@ -10,12 +10,12 @@ sources: [SRC-013, 2026-10-12-first-release-boundary]
 
 # Consent and identity runtime
 
-Consent and identity runs as a shared service that Marlowe's people operate. The Desktop agent calls it before every read and whenever a person switches Heron on or off. It consumes only Microsoft sign-in. If the security review does not pass by mid-December, the registration request cannot go in and the 18 January slot slips.
+Consent and identity runs as a shared service that Marlowe's people operate. The Desktop agent calls it before every read and whenever a person switches Heron on or off. It consumes only Microsoft sign-in. If the security review does not pass by mid-December, the registration request cannot go in and the January 18 slot slips.
 
 ## On failure
 
 - If it is down, or the sign-in fails, it answers no, and the Desktop agent reads nothing.
-- If the security review has not passed by mid-December, the registration request cannot go in and the 18 January slot slips.
+- If the security review has not passed by mid-December, the registration request cannot go in and the January 18 slot slips.
 
 ## Flows
 

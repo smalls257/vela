@@ -129,7 +129,7 @@ def test_breakdown_closes_the_plan_with_tickets_check_and_the_self_check_as_a_su
     close = text(BREAKDOWN / "SKILL.md").split("## 6. Close the plan", 1)[1]
     assert "vela tickets check --vault ." in close and "Start a subagent" in close
     assert '"Every requirement has a story: passes, except transcripts (deferred)."' in close
-    assert '"Checked against the design self-check on 12 October; see the audit file beside this plan."' in close
+    assert '"Checked against the design self-check on October 12; see the audit file beside this plan."' in close
     assert "Audited on" not in text(BREAKDOWN / "SKILL.md") + text(BREAKDOWN / "PLAN-FORMAT.md")
 
 

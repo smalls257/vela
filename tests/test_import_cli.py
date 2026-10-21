@@ -40,7 +40,7 @@ Partners get one booking file a night, as the decision log records.
 ## History
 """
 CAPTURES = [
-    '- [thought] (claude) Read back: the nightly partner file, decided by the CTO on 3 March per the decision log ^c01',
+    '- [thought] (claude) Read back: the nightly partner file, decided by the CTO on March 3 per the decision log ^c01',
     '- [answer] (@priya) "Yes, that one stands." ^c02',
     '- [answer] (@priya) "ok" ^c03',
     '- [answer] (claude) "Yes" ^c04',

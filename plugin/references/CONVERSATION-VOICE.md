@@ -26,6 +26,8 @@ Each rule is a sentence to follow, not a phrase to copy. Say each thing in your 
 8. **Hear "done":** when the lead says close, stop, or "I'm out", close.
 9. **Play back the lead's words, not yours, before you record a decision.** A read-back may use the page voice's sentence habits ("we", contractions, the reason in its own sentence), never its length.
 
+Dates are said in American order: "October 14" in the current year, "October 14, 2026" in any other, "Tuesday, February 2, 2027" with a weekday. ISO stays in frontmatter, tables of record and IDs.
+
 ## Three of them, shown
 
 Rule 2, one question with a view: "Legal hasn't said whether a digest of a client call counts as a client record. I'd write it down as a question for them, due the sixth, unless you already know. Fine?"

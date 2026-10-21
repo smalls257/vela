@@ -46,7 +46,7 @@ This epic shows a person their morning digest. Once the person has agreed to cal
 - Calendar entries only; transcripts join in the transcripts epic.
 - Dropped if legal counsel says a digest is a client record, and the prep note kept.
   - Trace: UNK-064
-- Part of the February pilot for Client Delivery London, 2 February 2027.
+- Part of the February pilot for Client Delivery London, February 2, 2027.
 
 ## Out of scope
 

@@ -84,7 +84,7 @@ summary: Shared eight requirements across the Desktop agent, Consent and identit
 | F1.34 | OPS | normal | Q-OPS-05@INI-001 | Is anything retired or replaced by Heron (for example the desk agent team's work), and who still depends on it? | "Every capability this initiative changes." in [[04a-capability-delta]] |
 | F1.35 | OPS | normal | R-OPS-06 | Who decides the contents of the single January package, and how is a bad Summarizer change rolled back? | "A change is agreed by the product owner and the agent's team before the January package." in [[summarizer-building-blocks]] |
 | F1.36 | OPS | normal | R-OPS-11 | Should failed prep notes be announced like failed digests, and who sees and follows up failures during the pilot? | "says there is no digest when the Summarizer returns nothing" in [[desktop-agent-building-blocks]] |
-| F1.37 | OPS | high | new | Does the Desktop agent send items to the Summarizer or Consent and identity off the laptop, and does CST-003 (no meeting text off a laptop before 4 December) cover that? | "It sends nothing off the laptop itself." in [[desktop-agent-building-blocks]] |
+| F1.37 | OPS | high | new | Does the Desktop agent send items to the Summarizer or Consent and identity off the laptop, and does CST-003 (no meeting text off a laptop before December 4) cover that? | "It sends nothing off the laptop itself." in [[desktop-agent-building-blocks]] |
 
 ## Changes
 

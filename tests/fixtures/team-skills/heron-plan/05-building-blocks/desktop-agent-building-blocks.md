@@ -21,7 +21,7 @@ It does not write the digest or the prep note: the Summarizer does. It does not 
 
 The strategy page still says the first release reads mail and documents, and the Shape session said no transcripts. This page follows the solution lead's later answer: calendar entries and existing Teams transcripts only. [[04-solution-strategy|The strategy page]] owns what the first release reads and needs correcting at a Grill.
 
-The agent lead took this app for design on 12 October 2026. The Source reader, the Note view and the Schedule are still assumptions, and so are the contracts the agent uses to reach the Summarizer and Consent and identity. Three questions that block the design are open, among them [[11-unknowns-and-risks#UNK-066 Consent sees what agent read|whether Consent and identity must be told what the agent read]], which decides whether the agent provides a contract at all. The agent lead confirms the handoff or challenges it once they have read it back.
+The agent lead took this app for design on October 12, 2026. The Source reader, the Note view and the Schedule are still assumptions, and so are the contracts the agent uses to reach the Summarizer and Consent and identity. Three questions that block the design are open, among them [[11-unknowns-and-risks#UNK-066 Consent sees what agent read|whether Consent and identity must be told what the agent read]], which decides whether the agent provides a contract at all. The agent lead confirms the handoff or challenges it once they have read it back.
 
 - Trace: UNK-066, UNK-069, UNK-071
 
@@ -110,7 +110,7 @@ _Kept up to date by vela from the pages it reads._
 
 ## History
 
-- **Override:** "handoff checks", GATE-5 by @sim-lead on 2026-10-12: CISO pack's 10 November, team can't design while handoff waits. Not met at handoff: app page, containers and consumed contracts not decided; UNK-066, UNK-069, UNK-071 open; epics gate failing
+- **Override:** "handoff checks", GATE-5 by @sim-lead on 2026-10-12: CISO pack's November 10, team can't design while handoff waits. Not met at handoff: app page, containers and consumed contracts not decided; UNK-066, UNK-069, UNK-071 open; epics gate failing
 - **Decided by:** @sim-lead, on behalf of @agent-lead
 - **Options considered:** Three apps (picked); Two apps: rejected, it keeps the summarizing inside the agent, so a cloud answer to the text call would pull it out after the agent's contracts are fixed in early January
 

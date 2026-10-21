@@ -74,11 +74,11 @@ def test_preview_includes_flow_check_standing(example):
     run("check-slice", "SLC-003", "--vault", str(example), "--today", TODAY)  # writes the record the preview reads
     code, out = preview(example, "APP-kiosks")
     assert "Flow checks, as recorded:" in out
-    assert "- SLC-003 Kiosks book through Booking in the March image: not fully checked, checked on 14 Oct" in out
+    assert "- SLC-003 Kiosks book through Booking in the March image: not fully checked, checked on Oct 14" in out
     data = json.loads(preview(example, "APP-kiosks", "--json")[1])
     assert data["flow_checks"] == [{"slice": "SLC-003", "name": "Kiosks book through Booking in the March image",
                                     "state": "not fully checked", "words": "not fully checked", "checked": TODAY,
-                                    "open": [], "line": "not fully checked, checked on 14 Oct"}]
+                                    "open": [], "line": "not fully checked, checked on Oct 14"}]
 
 
 def test_preview_says_when_the_app_is_on_no_slice(draft_shop):
@@ -136,7 +136,7 @@ def test_for_lead_passes_the_leak_check(example, draft_shop):
     assert "Nobody has said yes to Shop yet." in out and "The team should hear" in out
     assert "You can still hand it over" in out  # the lead may override, said once
     out = preview(example, "APP-kiosks", "--for-lead")[1]
-    assert "Flow checks: Kiosks book through Booking in the March image, not fully checked, checked on 14 Oct" in out
+    assert "Flow checks: Kiosks book through Booking in the March image, not fully checked, checked on Oct 14" in out
 
 
 def test_for_lead_says_each_contract_once_and_names_a_concern_once(tmp_path):

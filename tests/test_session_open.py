@@ -139,7 +139,7 @@ def test_for_lead_says_the_topic_not_the_id(tmp_path):
     commit_record(vault, f"session/{record_id}", record_id, ["grill"], title="Consent and identity grill")
     code, output = run("session", "open", "--vault", str(vault), "--for-lead", "--switch")
     assert code == 0, output
-    assert output.splitlines() == ["One session is open: Consent and identity grill, started 14 October.",
+    assert output.splitlines() == ["One session is open: Consent and identity grill, started October 14.",
                                    "Switched to its branch."]
     assert record_id not in output and "session/" not in output
 

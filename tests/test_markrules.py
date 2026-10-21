@@ -99,7 +99,7 @@ def test_never_fact():
     """No default proposes `fact`: a capture is a fact only when the lead names its source and it has a row."""
     lines = ['- [thought] (claude, from CISO) The CISO says it is a fact that no text leaves the laptop. ^c01',
              '- [thought] (@sam) "It is a fact: SRC-02 says so." ^c02',
-             '- [idea] (@sam) "The 18 January slot is fixed." ^c03',
+             '- [idea] (@sam) "The January 18 slot is fixed." ^c03',
              "- [thought] (claude) Fact: the tenant has 4,200 users. ^c04"]
     plan = planned(lines)
     assert plan.items and all(i.get("state") != "fact" for i in plan.items)

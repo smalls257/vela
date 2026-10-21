@@ -174,5 +174,5 @@ def test_a_slice_whose_journey_is_past_due_with_nothing_recorded_is_a_warning_in
     light = found["SLC-004"]
     assert light.level == "warning" and light.urgency == 1.0
     name = next(p for p in cli.load_vault(vault).pages if p.id == "SLC-004")
-    assert light.reasons == [{"kind": "journey-due", "text": "someone was due to try its journey by 19 November 2026, and nothing says how it went"}] and name.meta["title"]
+    assert light.reasons == [{"kind": "journey-due", "text": "someone was due to try its journey by November 19, 2026, and nothing says how it went"}] and name.meta["title"]
     assert [s for s, _ in attention.ranked(found)][0] == "SLC-004"

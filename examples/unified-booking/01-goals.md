@@ -18,7 +18,7 @@ verified_by: "@hl-solution-lead"
 
 ## Where it stands
 
-<!-- generated:where-it-stands sha=14035b45: do not edit, run vela render -->
+<!-- generated:where-it-stands sha=d8f14b40: do not edit, run vela render -->
 _Kept up to date by vela from the pages it reads._
 
 **Where each app has got to**
@@ -41,7 +41,7 @@ _Kept up to date by vela from the pages it reads._
 | [[11-unknowns-and-risks#UNK-006 Finance on Booking events\|Finance on Booking events (UNK-006)]] | @hl-platform-lead (Platform lead) | 2027-03-01 | nothing yet |
 | [[11-unknowns-and-risks#UNK-008 Review of the customer data Booking holds\|Review of the customer data Booking holds (UNK-008)]] | @hl-solution-lead (solution lead) | 2026-12-15 | nothing yet |
 
-**Last session:** 19 November 2026
+**Last session:** November 19, 2026
 
 **Gaps in the planned work:** none; see [[13-epics|Epics]]
 
@@ -50,10 +50,10 @@ _Kept up to date by vela from the pages it reads._
 
 ## Progress by app
 
-<!-- generated:progress-map sha=82973c4f: do not edit, run vela render -->
+<!-- generated:progress-map sha=19cfa394: do not edit, run vela render -->
 _Kept up to date by vela from the pages it reads._
 
-**How sure each app's items are,** as of the last session on 19 November 2026
+**How sure each app's items are,** as of the last session on November 19, 2026
 
 | App | Step reached | Early ideas | Assumed | Confirmed | Decided | Oldest open question | Next session |
 |---|---|---|---|---|---|---|---|

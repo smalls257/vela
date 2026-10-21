@@ -411,9 +411,9 @@ def test_close_files_by_default_and_asks_at_most_three_unsettled_items():
 
 
 def test_worked_examples_kept():
-    for example in ("I'd write the 18 January slot down as a constraint, from your account. Right?",
+    for example in ("I'd write the January 18 slot down as a constraint, from your account. Right?",
                     "Nobody has said who could settle whether a call digest is a client record. I'd ask legal and "
-                    "chase it on 6 November. Is that the right person?",
+                    "chase it on November 6. Is that the right person?",
                     "I kept the 8 fixed limits as constraints, set aside 12 what-ifs and dropped 5 that repeat other "
                     "lines.",
                     "I'll send this for review to Ines and the payments team. OK?"):

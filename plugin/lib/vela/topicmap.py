@@ -4,7 +4,7 @@ suggestion out. `vela map` (commands/map.py) keeps the state in `.vela/map/<sess
 
 Two Violations shape it.
 
-**Silent Fallback (the list kept in the model's memory).** The elicitation research of 16 October found that models
+**Silent Fallback (the list kept in the model's memory).** The elicitation research of October 16 found that models
 commit early and drop what was said in the middle turns (Laban et al., 2025: a 39% drop over several turns), and that a
 parked item which quietly drops looks exactly like a finished interview. So nothing here lives in a prompt: every
 note, group and waiting item is written to the session's working file, and the read-back says what is still waiting,

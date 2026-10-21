@@ -86,7 +86,9 @@ const dayNum = (iso) => Math.round(Date.parse(iso + "T00:00:00Z") / DAY);
 const TODAY = dayNum(D.today);
 const isDate = (t) => /^\d{4}-\d{2}-\d{2}$/.test(t || "");
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-const day = (iso) => isDate(iso) ? `${+iso.slice(8, 10)} ${MONTHS[+iso.slice(5, 7) - 1]}` : (iso || "no date");
+// American order, as everywhere vela writes a date: "Oct 12", and "Oct 12, 2026" when the year is wanted.
+const day = (iso) => isDate(iso) ? `${MONTHS[+iso.slice(5, 7) - 1]} ${+iso.slice(8, 10)}` : (iso || "no date");
+const dayYear = (iso) => isDate(iso) ? `${day(iso)}, ${iso.slice(0, 4)}` : (iso || "no date");
 /* Motion is off for screenshots and checks (STILL), in the Plain view (FX, fx.js), and when the system asks for less. */
 const reducedMotion = () => STILL || (typeof FX !== "undefined" && !FX.on) || matchMedia("(prefers-reduced-motion: reduce)").matches;
 /* Glow (halos, lit shadows) is part of the effects; Plain keeps every color and drops the glow. */
@@ -306,7 +308,7 @@ function personName(handle) {
   return w.charAt(0).toUpperCase() + w.slice(1);
 }
 /* Free text a page wrote with handles and ISO dates in it ("@agent-lead, 2026-10-12, PR pending"), said as a reader
-   says it ("Agent lead, 12 Oct, PR pending"). The one rewrite: the decision log, Progress and the doors all call it. */
+   says it ("Agent lead, Oct 12, PR pending"). The one rewrite: the decision log, Progress and the doors all call it. */
 const peopleWords = (text) => String(text || "").replace(/@[\w/-]+/g, personName).replace(/\b\d{4}-\d{2}-\d{2}\b/g, (d) => (isDate(d) ? day(d) : d));
 function refChip(key, extra) {
   const e = ent(key);

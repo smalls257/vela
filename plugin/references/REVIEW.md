@@ -56,7 +56,7 @@ What the lead is shown is small, so they can answer it.
 
 For example, instead of "Q-PTN-02@PTY-01 and @PTY-03: does the agreement permit transfer of data to a new owner or user? One answer for all?", say:
 
-> Legal hasn't been asked whether a digest of a client call counts as a client record. My suggestion is to write it down as a question for legal, due 6 November, unless you already know. Fine?
+> Legal hasn't been asked whether a digest of a client call counts as a client record. My suggestion is to write it down as a question for legal, due November 6, unless you already know. Fine?
 >
 > Eleven more are written down, six of them about cost. Want the next three?
 

@@ -39,7 +39,7 @@ def test_a_record_that_holds_says_passed_with_its_date():
     catalog = readers.read_vault(files_of())
     found = standing.standing(catalog, recorded(catalog, "SLC-001"), "SLC-001", TODAY, "v1")
     assert (found.state, found.words, found.checked) == (standing.PASSED, "passed", TODAY)
-    assert found.line() == "passed on 14 Oct"
+    assert found.line() == "passed on Oct 14"
 
 
 def test_a_record_of_a_slice_that_changed_since_is_not_checked_since_its_date():
@@ -89,7 +89,7 @@ def test_the_handoff_record_lists_each_slice_s_check_and_still_reads():
         def __init__(self, key, label):
             self.key, self.label = key, label
     lines = handoff.check_lines([Slice("SLC-001", "SLC-001 Hold an item"), Slice("SLC-002", "SLC-002 Pay for it")], found)
-    assert lines == ["- SLC-001 Hold an item: passed on 14 Oct",
+    assert lines == ["- SLC-001 Hold an item: passed on Oct 14",
                      "- SLC-002 Pay for it: Nobody has run the flow check on it yet."]
     entry = handoff.Entry("APP-x", "app", "05-building-blocks/x.md", "decided", "0123456789ab")
     text = handoff.write("APP-x", [entry], "abc1234", TODAY, (), "X", lines)

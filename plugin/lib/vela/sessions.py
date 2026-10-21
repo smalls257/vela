@@ -41,11 +41,9 @@ import datetime
 import re
 from dataclasses import dataclass
 
-from vela import parse, schema
+from vela import parse, say, schema
 
 LOCAL, REMOTE, FOLDER = "refs/heads/", "refs/remotes/origin/", ""
-MONTHS = ("January", "February", "March", "April", "May", "June", "July", "August", "September", "October",
-          "November", "December")
 _DATED_HEADING = re.compile(r"^#\s+(?:\d{4}-\d{2}-\d{2}\s+)?(?P<title>.+?)\s*$", re.M)
 _DATED_ID = re.compile(r"^\d{4}-\d{2}-\d{2}-")
 
@@ -148,13 +146,10 @@ def pick(records, record_id):
 
 
 def date_in_words(value, today=None):
-    """'2026-10-14' -> '14 October', with the year when it is not `today`'s year; any other text unchanged."""
-    try:
-        day = datetime.date.fromisoformat(value)
-    except (TypeError, ValueError):
+    """'2026-10-14' -> 'October 14', with the year when it is not `today`'s year; any other text unchanged."""
+    if not (isinstance(value, str) and re.fullmatch(r"\d{4}-\d{2}-\d{2}", value)):
         return value or "on a date the record doesn't give"
-    words = f"{day.day} {MONTHS[day.month - 1]}"
-    return words if today is not None and today.year == day.year else f"{words} {day.year}"
+    return say.date_words(value, today)
 
 
 # The display names MODES.md gives each mode, used in a record's title ("Grill: consent").

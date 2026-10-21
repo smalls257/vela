@@ -66,16 +66,16 @@ _Kept up to date by vela from the pages it reads._
 
 ## Progress by app
 
-<!-- generated:progress-map sha=b2e14ad0: do not edit, run vela render -->
+<!-- generated:progress-map sha=e4f35df8: do not edit, run vela render -->
 _Kept up to date by vela from the pages it reads._
 
 **How sure each app's items are:** no session yet, so no question counts as overdue
 
 | App | Step reached | Early ideas | Assumed | Confirmed | Decided | Oldest open question | Next session |
 |---|---|---|---|---|---|---|---|
-| [[consent-and-identity-building-blocks\|Consent and identity]] | researched | 0 | 5 | 0 | 0 | [[11-unknowns-and-risks#UNK-068 Who builds Consent and identity\|Who builds Consent and identity]], open since 12 October 2026 | Grill Consent and identity runtime |
-| [[summarizer-building-blocks\|Summarizer]] | researched | 0 | 3 | 0 | 0 | [[11-unknowns-and-risks#UNK-067 How slow is too slow\|How slow is too slow]], open since 12 October 2026 | Grill Summarizer runtime |
-| [[desktop-agent-building-blocks\|Desktop agent]] | ready to hand over | 0 | 3 | 0 | 0 | [[11-unknowns-and-risks#UNK-066 Consent sees what agent read\|Consent sees what agent read]], open since 12 October 2026 | Grill Desktop agent runtime |
+| [[consent-and-identity-building-blocks\|Consent and identity]] | researched | 0 | 5 | 0 | 0 | [[11-unknowns-and-risks#UNK-068 Who builds Consent and identity\|Who builds Consent and identity]], open since October 12, 2026 | Grill Consent and identity runtime |
+| [[summarizer-building-blocks\|Summarizer]] | researched | 0 | 3 | 0 | 0 | [[11-unknowns-and-risks#UNK-067 How slow is too slow\|How slow is too slow]], open since October 12, 2026 | Grill Summarizer runtime |
+| [[desktop-agent-building-blocks\|Desktop agent]] | ready to hand over | 0 | 3 | 0 | 0 | [[11-unknowns-and-risks#UNK-066 Consent sees what agent read\|Consent sees what agent read]], open since October 12, 2026 | Grill Desktop agent runtime |
 <!-- /generated:progress-map -->
 
 ## Why now

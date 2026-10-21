@@ -43,7 +43,7 @@ def test_a_link_with_filters_opens_the_same_filtered_slices(tmp_path, chrome_pat
     assert sorted(pressed) == ["building", "planned"], pressed
     out = dom(chrome_path, page, "s=slices&sl-needs&sl-layout=path&still")
     assert re.findall(r'class="sl-node[^"]*"[^>]*data-slice="([^"]+)"', out) == ["SLC-002"]
-    assert "journey due 19 Nov" in html.unescape(out)
+    assert "journey due Nov 19" in html.unescape(out)
     out = dom(chrome_path, page, "s=slices&sl-find=no%20such%20words&still")
     assert 'class="sl-empty"' in out and 'No slice matches the words "no such words"' in html.unescape(out) and ">Clear filters<" in out
     out = dom(chrome_path, page, "s=slices&sl-app=APP-gone&still")  # a stale link keeps its value and says why it is empty

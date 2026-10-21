@@ -45,7 +45,7 @@ This epic shows a person a short prep note ten minutes before a meeting on their
 
 - How early the agent must ask is open with the product owner, as how slow is too slow.
   - Trace: UNK-067
-- Part of the February pilot for Client Delivery London, 2 February 2027.
+- Part of the February pilot for Client Delivery London, February 2, 2027.
 
 ## Out of scope
 

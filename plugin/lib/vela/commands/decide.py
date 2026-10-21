@@ -225,7 +225,7 @@ def file_item(item, root, staged, record, reader):
 
 
 def set_aside_words(item):
-    """' I've noted that you set aside the open-question check until 1 December.': the true state when a decision
+    """' I've noted that you set aside the open-question check until December 1.': the true state when a decision
     went through on an exception (conversation voice rules 4 and 6), or ""."""
     said = []
     for group in item.get("overrides") or ():

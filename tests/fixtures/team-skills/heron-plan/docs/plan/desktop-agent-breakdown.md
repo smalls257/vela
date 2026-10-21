@@ -200,12 +200,12 @@ Done when: the remote transport sends only through the gate, with an audience-sc
 Status: deferred (2026-10-12). The pilot runs on-device only, and the remote path cannot be used until OQ-007, UNK-051 and OQ-009 are answered. Restart it when the blockers clear; the token design assumes a separate token with the Summarizer as its own audience, to be confirmed by OQ-007.
 Acceptance criteria:
 - Remote transport: audience-scoped token, TLS, no meeting text in logs.
-- CI covers both paths, with a test-tenant run before 4 December.
+- CI covers both paths, with a test-tenant run before December 4.
 
 | Task | Size | Component |
 |---|---|---|
 | Remote transport: audience-scoped token, TLS, no meeting text in logs | M | NoteClient |
-| CI for both paths, plus a test-tenant run before 4 December | M | NoteClient |
+| CI for both paths, plus a test-tenant run before December 4 | M | NoteClient |
 
 Blocked by: OQ-007, UNK-051, OQ-009.
 Release fit: not planned, so nothing to fit.
@@ -224,8 +224,8 @@ Acceptance criteria:
 | Full pipeline with the real binary and the managed profile keys | M | LocalStore |
 | Startup task and relaunch backoff | S | Scheduler |
 
-Blocked by: S-01 for the real binary only; certificate holders and ring support (OQ-009). Start the CI runner now and hold the signing-key and certificate ceremony until OQ-009 is answered; use a throwaway certificate on a placeholder build meanwhile (if the certificate subject changes later, earlier feedback from the pipeline is lost, which the team accepted). The only slot is 18 January 2027 (CST-010); UNK-069 says the registration review may end after it.
-Release fit: cannot tell. The fixed slot is 18 January 2027 (CST-010); sizes add to at most 12 days for one engineer, and the design names a team Intune expert but not their days.
+Blocked by: S-01 for the real binary only; certificate holders and ring support (OQ-009). Start the CI runner now and hold the signing-key and certificate ceremony until OQ-009 is answered; use a throwaway certificate on a placeholder build meanwhile (if the certificate subject changes later, earlier feedback from the pipeline is lost, which the team accepted). The only slot is January 18, 2027 (CST-010); UNK-069 says the registration review may end after it.
+Release fit: cannot tell. The fixed slot is January 18, 2027 (CST-010); sizes add to at most 12 days for one engineer, and the design names a team Intune expert but not their days.
 
 ### S-09 Mac pkg through Jamf
 Traces to: CST-007, CST-010
@@ -242,7 +242,7 @@ Acceptance criteria:
 | Keychain access control check on a test device | S | LocalStore |
 
 Blocked by: OQ-001 (UNK-054, Mac in the first release), OQ-009. The shared code is not blocked; only this story. Runs beside S-08 if OQ-001 is yes; drops from the plan if no.
-Release fit: cannot tell. It shares the 18 January 2027 slot (CST-010) with S-08, and the design does not say who builds the Mac package or in how many days.
+Release fit: cannot tell. It shares the January 18, 2027 slot (CST-010) with S-08, and the design does not say who builds the Mac package or in how many days.
 
 ### S-10 Operations hardening
 Traces to: design only: Operations (Monitor, Restart, Tunables); K-1, K-8
@@ -293,7 +293,7 @@ Not in the order, because they are not built: S-04 (merged into S-05), S-07b and
 ## Critical path
 Two things can be critical, and they are different stories.
 - Longest chain of work: S-01, S-02, S-05, S-06, all through the two Rust engineers the design names. S-05 is its largest piece. S-03 and S-07a hang off it; S-10 follows packaging.
-- Fixed date: S-08. The 18 January 2027 slot (CST-010) does not move. S-08's own work is short; its risk is OQ-009 (signing-key holders, rings and recall) and the certificate ceremony held until it is answered.
+- Fixed date: S-08. The January 18, 2027 slot (CST-010) does not move. S-08's own work is short; its risk is OQ-009 (signing-key holders, rings and recall) and the certificate ceremony held until it is answered.
 - Not decided: whether the Rust chain fits before the slot. Sizes are not dates, so the team measures S-01 and S-02 first. If the chain does not fit, the NoteView task in S-05 ("Show the digest") is the first task to move to someone outside the Rust chain. The design and the vault name no such person, so the team lead names one if it comes to that. Owner: team lead.
 - Not decided: if OQ-001 answers yes, S-09 needs someone for the Mac package, and the design names no one for it. Owner: team lead, decided when the answer lands. If OQ-001 answers no, S-09 drops. OQ-009 answered releases the S-08 certificate ceremony at once; that work does not touch the Rust chain.
 

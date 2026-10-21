@@ -57,7 +57,7 @@ def test_a_row_carries_its_joins_both_sides_the_apps_in_it_and_a_journey_past_du
     row = next(x for x in data["slicePlan"]["list"] if x["id"] == "SLC-003")
     assert row["joins"] == [{"id": "CON-001", "key": "CON-001", "from": "Kiosks", "to": "Booking"}]
     assert [data["entities"][a]["id"] for a in row["apps"]] == ["APP-booking", "APP-kiosks"]
-    assert row["journeyDue"] == "2026-11-19" and row["overdue"].endswith("journey by 19 November 2026, and nothing says how it went")
+    assert row["journeyDue"] == "2026-11-19" and row["overdue"].endswith("journey by November 19, 2026, and nothing says how it went")
     assert row["check"]["status"] == "not fully checked"  # building with nothing drawn: what check's W395 says
     key = row["key"]
     assert data["lights"][key]["level"] == "warning" and data["ranked"][0] == key  # it is in What needs you

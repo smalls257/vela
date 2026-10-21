@@ -53,7 +53,7 @@ def test_resolved_unknown_needs_outcome(mini):
 
 
 def test_bad_ask_by_date(mini):
-    edit(mini / UNK, "- **Ask by:** 2026-02-01", "- **Ask by:** 1 Feb 2026")
+    edit(mini / UNK, "- **Ask by:** 2026-02-01", "- **Ask by:** Feb 1, 2026")
     _, out = check(mini)
     assert ("E106", UNK) in codes(out)
 

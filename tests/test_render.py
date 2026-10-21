@@ -113,7 +113,7 @@ def test_render_writes_nothing_while_a_page_cannot_parse(mini):
 def test_where_it_stands_lists_open_unknowns_with_owner_and_ask_by(mini):
     text = (mini / GOALS).read_text(encoding="utf-8")
     assert "| [[11-unknowns-and-risks#UNK-001 Till test rig\\|Till test rig (UNK-001)]] | @mini-qa | 2026-02-01 | nothing yet |" in text
-    assert "**Last session:** 10 January 2026" in text
+    assert "**Last session:** January 10, 2026" in text
 
 
 def test_where_it_stands_counts_blocking_unknowns(mini):

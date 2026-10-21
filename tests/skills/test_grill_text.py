@@ -376,7 +376,7 @@ def test_new_unknown_goes_through_add_unknown():
     assert "re-run GATE-4 for every other agenda item" not in five
 
 
-# --- grill SKILL.md section 1, house-voice "Sound sure": full3 T118 opened a part with "It's 3 November. Procurement
+# --- grill SKILL.md section 1, house-voice "Sound sure": full3 T118 opened a part with "It's November 3. Procurement
 # reports that ... still hasn't come", an invented present-tense fact the lead then built on.
 def test_a_grill_scenario_is_a_hypothetical_built_from_the_record():
     from conftest import REPO

@@ -737,7 +737,7 @@ def test_a_conflict_is_surfaced_in_full_only_when_named_with_its_holder_and_reco
 
 def test_unsure_owner_asked_wants_a_proposal_and_counts_unconfirmed_writes(tmp_path):
     turns = [("assistant", "Who should own the supplier question?"), ("lead", "Honestly not sure."),
-             ("assistant", "I'd put the procurement lead down as owner, due 30 November. Does that work?"),
+             ("assistant", "I'd put the procurement lead down as owner, due November 30. Does that work?"),
              ("lead", "Yes."), ("assistant", "Done.")]
     run = spoken_run(tmp_path, turns)
     passed, summary, *_ = probe.CHECKS["unsure-owner-asked"][0](run, {"at_most": 0})
@@ -784,7 +784,7 @@ def test_a_conflict_said_in_other_words_counts_by_its_holder_and_a_disagreement_
 
 def test_a_proposed_role_and_date_the_lead_said_yes_to_earlier_count_as_confirmed(tmp_path):
     turns = [("assistant", "Who would know?"), ("lead", "Honestly not sure."),
-             ("assistant", "I'd ask the CIO, by 6 November. Does that work?"), ("lead", "CIO works, yes."),
+             ("assistant", "I'd ask the CIO, by November 6. Does that work?"), ("lead", "CIO works, yes."),
              ("assistant", "Filed."), ("lead", "Close it."), ("assistant", "Closing.")]
     run = spoken_run(tmp_path, turns, {"handle": "@lead"})
     run.transcript.spoken()[6]["tool_calls"] = [{"name": "Bash", "input": 'vela add unknown --owner @lead --ask "the CIO" '
@@ -807,9 +807,9 @@ def test_t39_a_written_value_is_confirmed_by_any_part_the_lead_agreed_to(tmp_pat
     """T39: the 2026-10-15 scale-unsure oracle ceilings read 9 and 5 unconfirmed writes, each one the lead had
     agreed to: "Ruth Okoye, Finance Operations" after "Ruth Okoye's the person", the CISO spelled out, "those four
     work for me", "the 30th", a source's document owner, a shell $3."""
-    agreed = [("assistant", "I'd ask Corrigan's account contact and the CISO, by 30 October. Does that work?"),
+    agreed = [("assistant", "I'd ask Corrigan's account contact and the CISO, by October 30. Does that work?"),
               ("lead", "Yes, Ruth Okoye's the person, and those work."),
-              ("assistant", "Then the IT endpoint lead, by 6 November. Do those work?"),
+              ("assistant", "Then the IT endpoint lead, by November 6. Do those work?"),
               ("lead", "Those four work for me. Ruth on the 30th is fine."), ("assistant", "Filed.")]
     command = ('vela add unknown --ask "Ruth Okoye, Finance Operations" --ask-by 2026-10-30\n'
                'vela add unknown --ask "Brandt & Kessler, through Ruth Okoye" --ask-by 2026-11-06\n'
@@ -823,7 +823,7 @@ def test_t39_a_written_value_is_confirmed_by_any_part_the_lead_agreed_to(tmp_pat
 def test_t39_a_value_the_lead_never_agreed_to_still_counts(tmp_path):
     """The planted violations: the widened reading must still catch what the lead never said or agreed to."""
     turns = [("assistant", "Who would know?"), ("lead", "Honestly not sure. Put a data protection question down."),
-             ("assistant", "I'd ask the CFO, by 6 November. Does that work?"), ("lead", "That doesn't work for me."),
+             ("assistant", "I'd ask the CFO, by November 6. Does that work?"), ("lead", "That doesn't work for me."),
              ("assistant", "Filed.")]
     assert unconfirmed_writes(tmp_path / "a", turns, 'vela add unknown --ask "the data protection officer"') == 1
     assert unconfirmed_writes(tmp_path / "b", turns, 'vela add unknown --ask "the CFO" --ask-by 2026-11-06') == 2

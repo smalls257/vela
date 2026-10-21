@@ -394,7 +394,7 @@ Acceptance criteria. Design behavior:
 | Intune push test: install N+1 then N, read the key, restore the backup | M | NoteStore |
 | Web view runtime check at launch, wake and show; report an old version in the tray | S | NoteWindow |
 
-Blocked by: S-03 to S-13 (the release tests need the real behavior); G-001 (DPAPI and worker-sandbox results); G-012 (OQ-012, key survival through IT's rollback, needs a managed laptop from the endpoint lead); G-005 (OQ-005, IT's 18 January slot and no recorded emergency route); G-013 (OQ-013, sharing behavior); G-010 (OQ-010, signing certificates and their renewal); G-004 (OQ-004, uninstall); UNK-027 (minimum OS and WebView2 versions). Ships independently of S-15.
+Blocked by: S-03 to S-13 (the release tests need the real behavior); G-001 (DPAPI and worker-sandbox results); G-012 (OQ-012, key survival through IT's rollback, needs a managed laptop from the endpoint lead); G-005 (OQ-005, IT's January 18 slot and no recorded emergency route); G-013 (OQ-013, sharing behavior); G-010 (OQ-010, signing certificates and their renewal); G-004 (OQ-004, uninstall); UNK-027 (minimum OS and WebView2 versions). Ships independently of S-15.
 
 ### S-15 Mac release
 
@@ -528,7 +528,7 @@ Gaps of the design. A gap that is a ruling or an answer from an outside party ha
 | G-005 (OQ-005) | The endpoint lead's commitments on settings delivery, times and an emergency route; carried on S-02, S-05, S-14 and S-15. |
 | G-006, G-007 (OQ-006, OQ-007) | DPO rulings and an owner for the term list; S-09 builds the provisional lists and the filter. |
 | G-008 (OQ-008) | CISO and DPO ruling; S-11 builds the design's interim; the conflict with EPC-001.AC5 is G-101. |
-| G-009 (OQ-009) | No story: there is no code fallback if the registration review closes late. The design's tripwires (16 October, 11 December, 8 January) are the CISO's office's and the team's to watch. |
+| G-009 (OQ-009) | No story: there is no code fallback if the registration review closes late. The design's tripwires (October 16, December 11, January 8) are the CISO's office's and the team's to watch. |
 | G-010 (OQ-010) | No owner for Heron; carried as a blocker on S-12, S-13, S-14 and S-15. |
 | G-011 (OQ-011) | The check is a task in S-06; the identity team's confirmation and the call partner's sign-off on 90 days are outside. |
 | G-012 (OQ-012) | Verified by the push tests in S-14 and S-15; needs managed laptops from the endpoint lead. |
@@ -547,11 +547,11 @@ Questions this session raised, for `tech-design-grill` or `/vela:challenge`:
 | Whether "a change to how names are detected is a rebuild" means a new app build or rebuilding unshown notes. | S-09 |
 | Who owns the public-mail list, and whether it should be a managed setting and not a build constant. | S-08 |
 | EPC-001.AC5 against the exclusion of Frankfurt staff from the people list. Raise with `/vela:challenge EPC-001.AC5` (G-101). | S-11 |
-| What happens if one operating system passes its gate for the 18 January slot and the other does not. Ask the endpoint lead (OQ-005); the plan keeps S-14 and S-15 independent. | S-14, S-15 |
+| What happens if one operating system passes its gate for the January 18 slot and the other does not. Ask the endpoint lead (OQ-005); the plan keeps S-14 and S-15 independent. | S-14, S-15 |
 | An answer to UNK-021 or UNK-022 outside the shipped rule kinds is a matcher change and a new build, which the design records no emergency route for. | S-02, S-08 |
 | Call tool adapters, one per tool, until UNK-008 (ask by 2026-10-18) and UNK-017 (2026-11-01) name the tools (G-103). | S-10 |
 | The license check of the model and runtime is Legal's. | S-12 |
-| The bill of materials in S-13 is provisional for the CISO pack due 10 November; the model and runtime entries wait on G-015. | S-13 |
+| The bill of materials in S-13 is provisional for the CISO pack due November 10; the model and runtime entries wait on G-015. | S-13 |
 | How uninstall is delivered under Jamf. | S-15 |
 
 ## Negentropy audit

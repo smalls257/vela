@@ -15,7 +15,7 @@ Vela is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela` (`START.md`, "Where vela ru
 
 > Not this: "APP-dock-service provides CON-003 to APP-fleet-console, at assumption; UNK-051 blocks it."
 >
-> This: "The dock service gives the fleet console its list of broken docks. That's not decided yet, and it waits on one open question: who signs off the repair contract. Ines is chasing it by 21 October."
+> This: "The dock service gives the fleet console its list of broken docks. That's not decided yet, and it waits on one open question: who signs off the repair contract. Ines is chasing it by October 21."
 
 ## 1. Start
 

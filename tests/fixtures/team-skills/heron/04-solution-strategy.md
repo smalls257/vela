@@ -10,7 +10,7 @@ authored: authored
 
 # Solution strategy
 
-The first release is assumed to be a laptop-only morning note. The agent on each laptop reads the person's own calendar entries, and an on-device model writes the 7:30 digest and the prep note, so no text leaves the device. The solution lead picked it because it keeps the 2 February 2027 pilot and the morning digest, which a cloud-written digest cannot do while the security officer refuses a pack that sends text off the device. Nothing here is checked yet: whether the on-device model writes a digest worth reading, who writes the list of data Heron reads, and whether the laptop agent needs a tenant app registration are all still open, and a Grill has to decide the choice.
+The first release is assumed to be a laptop-only morning note. The agent on each laptop reads the person's own calendar entries, and an on-device model writes the 7:30 digest and the prep note, so no text leaves the device. The solution lead picked it because it keeps the February 2, 2027 pilot and the morning digest, which a cloud-written digest cannot do while the security officer refuses a pack that sends text off the device. Nothing here is checked yet: whether the on-device model writes a digest worth reading, who writes the list of data Heron reads, and whether the laptop agent needs a tenant app registration are all still open, and a Grill has to decide the choice.
 
 > Replaces the paragraph above after 2026-10-12-privacy-m365-on-device; delete one.
 
@@ -27,8 +27,8 @@ The hunches below are the earlier material from the two ends of the argument and
 ## History
 
 - **Decision:** [[2026-10-12-privacy-m365-on-device]]
-- **Why:** The cloud-written digest was rejected because it rules out a 2 February 2027 pilot unless the CISO changes their line, and the calendar-first prep note because it drops the 7:30 morning digest.
+- **Why:** The cloud-written digest was rejected because it rules out a February 2, 2027 pilot unless the CISO changes their line, and the calendar-first prep note because it drops the 7:30 morning digest.
 - **Dissent:** @product-owner, 2026-10-05: "a cloud service writes the summaries with a hosted language model, because the on-device model is poor and the digest should follow the person across devices" ([[sources#SRC-012|the one-pager]]); not present at the decision, recorded by @sim-lead on 2026-10-12
 - **Override:** "Boundary only on a decided direction" by @sim-lead on 2026-10-12: "text call in parallel works"
 - **Override:** "Reopen a decided item at any time" by @sim-lead on 2026-10-12: the product owner can reopen this if the answer on whether Consent and identity sees what the agent read flips, but not before the lock
-- **Options considered:** Laptop-only morning note (picked); Cloud-written digest: rejected, it rules out a 2 February 2027 pilot unless the CISO changes their line; Calendar-first prep note: rejected, it drops the 7:30 morning digest.
+- **Options considered:** Laptop-only morning note (picked); Cloud-written digest: rejected, it rules out a February 2, 2027 pilot unless the CISO changes their line; Calendar-first prep note: rejected, it drops the 7:30 morning digest.

@@ -86,7 +86,7 @@ class SliceResult:
 
     def lead_line(self, name):
         """What the lead hears about this slice, by its name: whether it runs end to end, and if not, the first thing
-        that breaks it. No counters, timings, codes or paths (`check-slice --for-lead`; the 14 October voice audit)."""
+        that breaks it. No counters, timings, codes or paths (`check-slice --for-lead`; the October 14 voice audit)."""
         status = self.status
         if status == "passes":
             covered = any(f.severity == "covered" for f in self.findings)

@@ -137,7 +137,7 @@ def test_unsure_proposed_needs_the_question_named_with_a_proposal_and_asked(tmp_
         {"id": "K51", "fact": "b", "keywords": ["cost centre"], "open_question": True},
         {"id": "K52", "fact": "c", "keywords": ["not open"]}]}
     turns = [("assistant", "Who should own which currency a claim is paid in?"), ("lead", "Honestly not sure."),
-             ("assistant", "On which currency: I'd suggest the Financial Controller as owner, by 30 October. Does that work?"),
+             ("assistant", "On which currency: I'd suggest the Financial Controller as owner, by October 30. Does that work?"),
              ("lead", "Yes, the Financial Controller."), ("assistant", "And the cost centre match is open.")]
     run = spoken_run(tmp_path, turns, data)
     passed, summary, _, m = probe.CHECKS["unsure-proposed"][0](run, {"at_least": 0.5})
@@ -155,10 +155,10 @@ def test_unsure_proposed_counts_a_batch_proposal_confirmed_by_one_closing_questi
         {"id": "K51", "fact": "b", "keywords": ["cost centre"], "open_question": True}]}
     reason = "The build takes fourteen weeks and the contract has to be signed well before that, " * 3
     batch = (f"1. Which currency: open.\n2. The cost centre match: open.\n\nI'd ask the Financial Controller about "
-             f"both, by 30 November. {reason}\n\nDo that person and that date work?")
+             f"both, by November 30. {reason}\n\nDo that person and that date work?")
     run = spoken_run(tmp_path, [("assistant", batch)], data)
     assert probe.CHECKS["unsure-proposed"][0](run, {"at_least": 0.5})[3]["value"] == 2
-    for n, text in enumerate(("Which currency and the cost centre match are open. I'd ask the Financial Controller, by 30 November.",
+    for n, text in enumerate(("Which currency and the cost centre match are open. I'd ask the Financial Controller, by November 30.",
                  "Shall I go on? Which currency and the cost centre match: I'd ask the Financial Controller.",
                  "Which currency and the cost centre match are late due to the freeze. Is that right?")):
         run = spoken_run(tmp_path / f"miss-{n}", [("assistant", text)], data)

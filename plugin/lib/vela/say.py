@@ -1,6 +1,6 @@
 """What a command says, in the three modes every new command offers, and the one place the lead-facing rule is held.
 
-The Violation this module exists to prevent is the Leaky Narrative: the 13 October review of a sim vault counted 709 `UNK-`
+The Violation this module exists to prevent is the Leaky Narrative: the October 13 review of a sim vault counted 709 `UNK-`
 mentions and 72 check codes in what the lead read, most of them CLI output a model pasted. Adding more "never say a
 code" sentences to the skills did not stop it. So the interface itself carries the fix:
 
@@ -25,7 +25,7 @@ DONE, REFUSED, FAILED, NEEDS_LEAD = 0, 1, 2, 3
 
 # The one copy of the patterns a lead-facing line may never match. `tests/test_conversation_voice.py` and the sim's
 # scorecard read the same ideas; this dict is what the `--for-lead` formatter enforces. The first eight are codes and
-# IDs. The rest are the builder's plumbing the 14 October voice audit found passing the check: a session's slug, git's
+# IDs. The rest are the builder's plumbing the October 14 voice audit found passing the check: a session's slug, git's
 # or gh's own error words, a command line, a file path, a branch, a flag, a date in ISO form, an @handle and a commit
 # hash. Order matters only for the name a leak is reported by: the narrower pattern comes first.
 LEAD_PATTERNS = {
@@ -59,7 +59,7 @@ LEAD_PATTERNS = {
 }
 
 # The codes and IDs, as the sim's "codes and IDs" count has always meant them; the rest of LEAD_PATTERNS is plumbing,
-# counted apart so a run scored before 14 October still compares like with like.
+# counted apart so a run scored before October 14 still compares like with like.
 ID_KINDS = ("check code", "gate", "capture", "copy", "finding", "reviewer row", "item", "goal")
 
 # Who a refusal or a line is for. A model-only one (a missing handle, a field the model put in the wrong place, an ID
@@ -80,6 +80,7 @@ LEAD_LIMIT = 4
 NUMBER_WORDS = ("no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve")
 MONTHS = ("January", "February", "March", "April", "May", "June", "July", "August", "September", "October",
           "November", "December")
+WEEKDAYS = ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
 
 # What the lead hears once, after their refusals, when any of them can be set aside: the "user can override" rule in
 # the lead's terms. A refusal whose rule takes no end date (an event rule) sets its own `waiver`; "" says nothing.
@@ -99,7 +100,7 @@ KIND_WORDS = {"UNK": "an open question", "R": "a risk", "CON": "a contract", "CA
 GATE_WORDS = {"GATE-1": "the stage check", "GATE-2": "the preferred-option check",
               "GATE-3": "the check that you agreed the agenda", "GATE-4": "the open-question check",
               "GATE-5": "the check that the owner said yes"}
-# The overridable check codes, said by what each protects (the 14 October voice audit, row 72), so one rule never has
+# The overridable check codes, said by what each protects (the October 14 voice audit, row 72), so one rule never has
 # two names: E316 and GATE-4 are both "the open-question check". A code not here is said by its schema meaning.
 RULE_WORDS = {"E316": "the open-question check", "E303": "the grill-decides check",
               "E317": "the check that requirements alone can't decide", "E318": "the who-tests-it check",
@@ -290,14 +291,25 @@ def person_words(handle):
 
 
 def date_words(value, today=None):
-    """'2026-10-14' -> '14 October', with the year when it isn't `today`'s; anything else unchanged."""
+    """'2026-10-14' -> 'October 14', with the year ('October 14, 2026') when it isn't `today`'s; anything else unchanged.
+    American order is the house rule for every date written in words (the owner's call); ISO stays in records and IDs."""
     import datetime
     try:
         day = datetime.date.fromisoformat(str(value))
     except ValueError:
         return value
-    words = f"{day.day} {MONTHS[day.month - 1]}"
-    return words if today is not None and today.year == day.year else f"{words} {day.year}"
+    words = f"{MONTHS[day.month - 1]} {day.day}"
+    return words if today is not None and today.year == day.year else f"{words}, {day.year}"
+
+
+def date_words_with_weekday(value, today=None):
+    """'2027-02-02' -> 'Tuesday, February 2, 2027'; the year is left off only when it is `today`'s. Not a date: unchanged."""
+    import datetime
+    try:
+        day = datetime.date.fromisoformat(str(value))
+    except ValueError:
+        return value
+    return f"{WEEKDAYS[day.weekday()]}, {date_words(value, today)}"
 
 
 @dataclass(frozen=True)

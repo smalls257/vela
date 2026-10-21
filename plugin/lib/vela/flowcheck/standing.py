@@ -33,8 +33,8 @@ class Standing:
         return self.state == PASSED
 
     def line(self):
-        """The standing in one line a reader hears: "passed on 14 Oct", "2 findings (an answer nobody handles), checked
-        on 14 Oct", "Last checked 12 Oct; the flow or the checker has changed since, so run the flow check again.",
+        """The standing in one line a reader hears: "passed on Oct 14", "2 findings (an answer nobody handles), checked
+        on Oct 14", "Last checked Oct 12; the flow or the checker has changed since, so run the flow check again.",
         "Nobody has run the flow check on it yet." No ISO date: this line reaches the handoff and the dashboard."""
         said = self.words + (f" ({', '.join(self.open)})" if self.open else "")
         if self.state in (PASSED, FINDINGS, NOT_FULLY):
@@ -47,10 +47,10 @@ class Standing:
 
 
 def short_day(iso):
-    """'2026-10-14' -> '14 Oct'; anything that isn't a date as written."""
+    """'2026-10-14' -> 'Oct 14'; anything that isn't a date as written."""
     words = say.date_words(iso)
     parts = words.split()
-    return f"{parts[0]} {parts[1][:3]}" if len(parts) >= 2 and parts[0].isdigit() else words
+    return f"{parts[0][:3]} {parts[1].rstrip(',')}" if len(parts) >= 2 and parts[1].rstrip(",").isdigit() else words
 
 
 def standing(catalog, store, key, today, version):
