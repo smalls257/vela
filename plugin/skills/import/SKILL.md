@@ -19,6 +19,13 @@ Use the access the user already has: local files, a clone, an export, a tool in 
 
 Propose each source's Kind (`exists`, `intends` or `repo`, as `vela conventions "Certainty and sources"` defines), let the user confirm it, and register it: `vela add source --title "<title>" --owner <handle> --date <YYYY-MM-DD> --kind <kind> --location "<where>" --for-lead`. Location must find it again: a path, a URL, `<url>@<sha>` for a repo (the command takes out any credential and says so), or `export of <space> on <date>`. A skipped source is listed, with why.
 
+Every source read is a Library row with a type. A link, a spec or a kept file goes in through the library commands below, not also with `vela add source`: one row, not two. `vela add source` stays for a file that stays in `.inbox/`.
+
+- **A Figma file, Confluence page, Jira item or web page** is a link: `vela library add "<url>" --title "<title>" --owner <handle> --date <YYYY-MM-DD> --kind <kind> --for-lead`. A link needs no yes.
+- **A spec in the material** (OpenAPI, AsyncAPI, Swagger) goes in with its version: `vela library add "<path>" --type spec --version <v> --title "<title>" --for-lead`.
+- **A local file** stays in `.inbox/` unless the lead agrees to keep it in the Library. Ask once per file, or once for a group read back by name, and say it is company material that will be committed. Capture the answer, then `vela library add "<path>" --title "<title>" --keep-file --yes <capture> --for-lead`. With no yes it stays in `.inbox/`, never committed.
+- **A clash with a file the Library holds** is refused with the clash named. Relay it; never overwrite.
+
 As you read, queue what only the lead can settle, with the answer you'd give: `vela import add --type decision "<what a source says was decided, by whom, when>" --source <SRC> --propose "<answer>" --why "<why>"`. Use `--type clash` with both `--source`s for two sources that disagree, proposing which wins and why, and `--type stale` for a fact that may be out of date.
 
 ## 2. Show the import map
@@ -26,6 +33,10 @@ As you read, queue what only the lead can settle, with the answer you'd give: `v
 One block per plan section with something in it (goals, constraints, context and scope, strategy, capabilities, apps, contracts, flows, concerns, decisions, requirements, releases, epics, unknowns and risks, glossary): what was found, from which source, what clashes, in about five lines.
 
 > **Contracts.** The partner guide describes the nightly booking file; the ops runbook says hourly, so I'll ask you which wins. The roadmap deck's live feed by Q4 stays a plan.
+
+Then a **Library** block: how many sources by type, which local files would be kept in the Library (each waiting on the lead's yes), and which stay as links.
+
+> **Library.** Eleven sources: two specs, three Figma links, four documents, two wiki pages. I'd keep the two specs and the partner guide in the Library if you say yes; the other three documents stay in your inbox folder, and the five links stay links.
 
 End the map with the voice question, once: "I'd keep the documents' exact words, quoted and cited, for requirements, contract and legal terms, numbers and direct quotes, and write each page's explaining sentences in the plan's voice. That way, keep everything as written, or voice it all?" Capture the answer, then `vela import wording --as split --yes <capture>` (or `keep`, or `voice`; add `--source <SRC>` when they answer per source). Until they answer, keep every word as written.
 
@@ -50,7 +61,7 @@ Keep an `## Import ledger` in the session record, one line per source, `processe
 
 ## Done only when
 
-- [ ] Every source used is in `sources.md` with a confirmed Kind and a findable Location; skipped ones are listed.
+- [ ] Every source used is in `sources.md` with a confirmed Kind, a type and a findable Location; no file was kept in the Library without the lead's yes; skipped ones are listed.
 - [ ] The user corrected the map and answered the voice question (or the words stayed as written) before any page was written.
 - [ ] `vela import show --for-lead` shows nothing asked and unsettled.
 - [ ] Every written line cites a source, and every written page is stamped.

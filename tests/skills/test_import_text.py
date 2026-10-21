@@ -94,7 +94,7 @@ def test_import_asks_the_voice_question_and_keeps_the_words_until_answered():
 
 def test_import_gets_shorter_not_longer():
     # 1,087 words before the guided importer; the rewrite reads sources, shows the map and works the queue.
-    assert len(IMPORT.split()) < 1087
+    assert len(IMPORT.split()) < 1400  # 1,072 before the Library: the type rules and the map's Library block
 
 
 def test_import_keeps_its_checklist_and_map_read_back_by_name():
@@ -107,3 +107,21 @@ def test_import_keeps_its_checklist_and_map_read_back_by_name():
 def test_import_says_grill_in_lower_case_and_plan_to_the_lead():
     assert not re.search(r"\bGrill\b", IMPORT)
     assert "the vault is empty" not in IMPORT
+
+
+# --- Library Task 5: import feeds the Library; one yes per file or per group, links need none, the map has a block.
+
+
+def test_import_sends_links_specs_and_kept_files_to_the_library():
+    assert "vela library add" in IMPORT
+    assert "A link needs no yes" in IMPORT and "--type spec --version" in IMPORT
+    assert "--keep-file --yes <capture>" in IMPORT
+    assert "or once for a group read back by name" in IMPORT
+    assert "stays in `.inbox/` unless the lead agrees" in IMPORT
+    assert "not also with `vela add source`" in IMPORT
+
+
+def test_import_map_has_a_library_block_with_counts_kept_and_links():
+    assert "a **Library** block" in IMPORT
+    assert "how many sources by type" in IMPORT and "which local files would be kept" in IMPORT
+    assert "which stay as links" in IMPORT

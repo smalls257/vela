@@ -227,3 +227,12 @@ def test_boundary_says_what_to_do_with_the_ready_to_decide_hand_off():
     from conftest import REPO
     text = (REPO / "plugin/skills/boundary/SKILL.md").read_text(encoding="utf-8")
     assert "run `vela decide` on it" in text and "ready to decide, offer the lead a short grill" in text
+
+
+# --- Library Task 5: a spec, wiki or repo link is offered for the Library; the page's `links:` stay as they are.
+
+
+def test_boundary_offers_links_to_the_library_and_keeps_links_front_matter():
+    body = (PLUGIN / "skills/boundary/SKILL.md").read_text(encoding="utf-8")
+    assert "vela library add" in body and "for the Library" in body
+    assert "The page's `links:` stay as they are" in body

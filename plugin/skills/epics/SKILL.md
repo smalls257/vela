@@ -36,7 +36,7 @@ Offer 2 or 3 ways to cut the gaps into epics, each epic with exactly one owning 
 Write the skeleton with `vela add epic --title "<title>" --team <@team> --apps <APP-id> --delivers <ID> --consumes <CON-id> --flows <FLO-id> --capture ^cNN --for-lead`, repeating a list flag per ID, with the chosen cut's capture. It numbers the epic and writes the frontmatter, the owning team, the template's headings and the `## Changes` row. `delivers` is never empty. Then add what it leaves to you:
 
 - `depends_on`, as `vela conventions "Frontmatter"` says, and `## Depends on` with one reason per dependency.
-- A tracker link: ask for the item's key or link, or a skip. With a `link_templates` entry for `Tracker` in `.vela.yaml`, write the key, `links: {Tracker: BOOK-12}`; otherwise the URL given. Never make up a key or an address; a skip writes no `links:` line.
+- A tracker link: ask for the item's key or link, or a skip. With a `link_templates` entry for `Tracker` in `.vela.yaml`, write the key, `links: {Tracker: BOOK-12}`; otherwise the URL given. Never make up a key or an address; a skip writes no `links:` line. Offer a tracker link for the Library too (`vela library add "<url>" --title "<title>" --relates <the epic's app IDs> --for-lead`, after a yes); `links:` stays as written.
 - One-line stubs for the summary and `Still open:`. Close drafts them, and `## Who this is for and what changes`, through `house-voice`.
 - `## Traces to` holding an empty `traces-to` block, `## Rollout notes` and `## Out of scope`.
 

@@ -303,3 +303,11 @@ def test_epics_names_only_commands_that_exist():
         argv = shlex.split(re.sub(r"\^c\w+", "^c01", re.sub(r"<[^>]*>", "X", call)))
         _, extras = parser.parse_known_args(argv)
         assert not extras, (call, extras)
+
+
+# --- Library Task 5: a tracker link is offered for the Library; `links:` stays as written.
+
+
+def test_epics_offers_the_tracker_link_to_the_library():
+    body = (PLUGIN / "skills/epics/SKILL.md").read_text(encoding="utf-8")
+    assert "vela library add" in body and "for the Library" in body and "`links:` stays as written" in body
