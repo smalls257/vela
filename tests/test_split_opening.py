@@ -102,12 +102,12 @@ def test_the_heron_strategy_page_has_the_warning():
 
 
 def test_the_template_and_the_example_stay_free_of_errors_and_the_template_stays_without_the_warning():
-    code, out = check(REPO / "template")
+    code, out = check(REPO / "plugin" / "template")
     assert code == 0 and " W371 " not in out
 
 
 def test_every_conventions_copy_explains_the_code():
-    for folder in ("template", "plugin/vault", "examples/unified-booking", "tests/stub-conventions"):
+    for folder in ("plugin/template", "examples/unified-booking", "tests/stub-conventions"):
         text = (REPO / folder / "CONVENTIONS.md").read_text(encoding="utf-8")
         assert "| W371 | two or more openings above the first heading, over 150 words together |" in text, folder
         assert "W371 fires on a page that keeps two or more separate openings" in text, folder

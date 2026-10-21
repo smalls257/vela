@@ -331,7 +331,7 @@ def test_vela_questions_writes_nothing(ub):
 
 def test_a_template_vault_owes_its_initiative_questions(tmp_path):
     vault = tmp_path / "vault"
-    shutil.copytree(REPO / "template", vault)
+    shutil.copytree(REPO / "plugin" / "template", vault)
     code, answer = ask(vault)
     assert code == 0
     assert answer["owed"] == answer["undisposed"] == 12

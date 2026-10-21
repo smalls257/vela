@@ -7,7 +7,7 @@ import yaml
 from conftest import REPO
 from vela import schema
 
-EXAMPLES = REPO / "template" / "voice" / "examples"
+EXAMPLES = REPO / "plugin" / "template" / "voice" / "examples"
 FILES = sorted(EXAMPLES.glob("*/*.md"))
 VOICE_TYPES = ("diagnosis", "decision", "how-it-works")
 
@@ -44,7 +44,7 @@ def test_every_example_carries_license_and_attribution(path):
 
 def test_only_public_seed_text_is_committed():
     """Evans, Luu and Fowler stay in the gitignored voice/corpus/. Nothing committed names them as a source."""
-    for root in (REPO / "template", REPO / "examples" / "unified-booking", REPO / "plugin"):
+    for root in (REPO / "plugin" / "template", REPO / "examples" / "unified-booking", REPO / "plugin"):
         for path in root.rglob("*.md"):
             text = path.read_text(encoding="utf-8")
             assert not re.search(r"\b(Evans|Luu|Fowler)\b", text), f"{path} names a corpus author"
@@ -78,7 +78,7 @@ def test_template_examples_use_the_schema_values():
 # fix round 2: local examples never change committed files; the verbatim check is a tool comparison.
 
 def test_conventions_never_let_a_local_example_retire_a_committed_seed():
-    conventions = (REPO / "template" / "CONVENTIONS.md").read_text(encoding="utf-8")
+    conventions = (REPO / "plugin" / "template" / "CONVENTIONS.md").read_text(encoding="utf-8")
     assert "A local example never retires a committed seed, so every clone keeps its seed." in conventions
     assert "reads local `owner` and `owner-edit` examples ahead of the committed ones" in conventions
 

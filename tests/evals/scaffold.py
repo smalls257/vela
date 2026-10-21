@@ -118,12 +118,12 @@ def main():
         fail("usage: scaffold.py <template|discover-docs|close-dump|fixture|grill-refused|epics-empty> <plugin|stub>")
     vault, arm = sys.argv[1:]
     if vault in ("template", "discover-docs", "close-dump"):
-        copy_tree(REPO / "template", HERE)
+        copy_tree(REPO / "plugin" / "template", HERE)
     elif vault in ("fixture", "grill-refused", "epics-empty"):
         copy_tree(REPO / "examples" / "unified-booking", HERE)
-        shutil.copy(REPO / "template" / "CLAUDE.md", HERE / "CLAUDE.md")
+        shutil.copy(REPO / "plugin" / "template" / "CLAUDE.md", HERE / "CLAUDE.md")
         if not (HERE / "voice").exists():
-            copy_tree(REPO / "template" / "voice", HERE / "voice")
+            copy_tree(REPO / "plugin" / "template" / "voice", HERE / "voice")
     else:
         fail(f"unknown vault '{vault}'")
     if vault == "discover-docs":

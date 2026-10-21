@@ -123,6 +123,6 @@ def test_a_future_closed_session_warns_instead_of_hiding_the_gap(mini):
 
 
 def test_conventions_say_a_future_date_is_a_typo_warning():
-    conventions = (REPO / "template" / "CONVENTIONS.md").read_text(encoding="utf-8")
+    conventions = (REPO / "plugin" / "template" / "CONVENTIONS.md").read_text(encoding="utf-8")
     assert ("A `last_verified`, a source `Date` or the last closed session dated after today is not fresh: "
             "W704, W716 or W711 says it is \"dated in the future (<date>); check for a typo.\"") in conventions

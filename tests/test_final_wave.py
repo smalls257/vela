@@ -43,7 +43,7 @@ def test_readme_is_honest_about_the_weekly_workflow_and_names_generated_diagrams
 
 
 def test_readme_checklist_count_matches_the_template_checklist():
-    checklist = read("template", "README.md").split("## Setup checklist", 1)[1].split("\n## ", 1)[0]
+    checklist = read("plugin", "template", "README.md").split("## Setup checklist", 1)[1].split("\n## ", 1)[0]
     steps = re.findall(r"(?m)^(\d+)\. ", checklist)
     assert f"steps 1 to {steps[-1]}" in read("README.md")
     assert "steps 1 to 8" not in read("README.md")
@@ -95,7 +95,7 @@ def test_conventions_negation_words_match_the_code():
     words = re.search(r"\(\?:(.*?)\)", voicecheck.NEGATION.pattern).group(1).split("|")
     plain = [w for w in words if w.isalpha()]
     assert "\\w+n't" in words
-    sentence = read("template", "CONVENTIONS.md").split("`negation` (", 1)[1].split(")", 1)[0]
+    sentence = read("plugin", "template", "CONVENTIONS.md").split("`negation` (", 1)[1].split(")", 1)[0]
     for word in plain:
         assert re.search(rf"\b{word}\b", sentence), word
     assert "any word ending in n't" in sentence

@@ -142,7 +142,7 @@ def loose_units(body):
     return [x for x in out if len(re.findall(r"\w+", x)) >= MIN_WORDS]
 
 
-TEMPLATE = HERE.parent.parent / "template"
+TEMPLATE = HERE.parent.parent / "plugin" / "template"
 CATALOG = HERE.parent.parent / "plugin" / "catalog"
 GENERATED_KINDS = ("handoff page", "epic trace line", "epic decision link", "template line", "generated block")
 BOOKKEEPING = {  # name: (page types it applies to, or None for every page, the line)

@@ -13,7 +13,7 @@ import pytest
 from conftest import REPO, run
 from vela import cli
 
-TEMPLATE = REPO / "template"
+TEMPLATE = REPO / "plugin" / "template"
 SESSION = "2026-10-14-voice-settle"
 RECORD = f"""---
 id: {SESSION}

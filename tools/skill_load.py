@@ -20,7 +20,7 @@ sys.path.insert(0, str(REPO / "plugin" / "lib"))
 
 SHARED = ("plugin/references/START.md", "plugin/references/MODES.md", "plugin/references/CONVERSATION-VOICE.md",
           "plugin/references/REVIEW.md")
-CONVENTIONS = "plugin/vault/CONVENTIONS.md"
+CONVENTIONS = "plugin/template/CONVENTIONS.md"
 OLD_CITE = re.compile(r'`CONVENTIONS\.md`(?: (?:says|defines it|gives|shows))? under "|`CONVENTIONS\.md`, "|'
                       r'" in `CONVENTIONS\.md`|The (?:page )?formats? (?:is|are) `CONVENTIONS\.md`')
 NEW_CITE = re.compile(r'`vela conventions "([^"<]+)"`')

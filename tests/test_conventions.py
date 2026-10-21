@@ -4,7 +4,7 @@ import pytest
 from conftest import REPO
 from vela import catalog, ledger, schema
 
-CONVENTIONS = (REPO / "template" / "CONVENTIONS.md").read_text(encoding="utf-8")
+CONVENTIONS = (REPO / "plugin" / "template" / "CONVENTIONS.md").read_text(encoding="utf-8")
 
 
 def names():

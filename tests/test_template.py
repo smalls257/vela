@@ -9,7 +9,7 @@ import yaml
 
 from conftest import REPO, check, findings, run
 
-TEMPLATE = REPO / "template"
+TEMPLATE = REPO / "plugin" / "template"
 
 
 def test_template_is_clean(tmp_path):

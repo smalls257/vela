@@ -42,7 +42,7 @@ def test_no_snapshot_page_carries_a_retired_template_line():
 def test_the_shipped_template_writes_no_retired_line():
     """What `vela init` copies is the generation path itself; a retired line there would seed every new vault."""
     retired = {l for l in RETIRED.read_text(encoding="utf-8").split("\n") if l.strip()}
-    found = [f"{p.relative_to(REPO)}: {l}" for p in sorted((REPO / "template").rglob("*.md"))
+    found = [f"{p.relative_to(REPO)}: {l}" for p in sorted((REPO / "plugin" / "template").rglob("*.md"))
              for l in p.read_text(encoding="utf-8").split("\n") if l in retired]
     assert found == []
 

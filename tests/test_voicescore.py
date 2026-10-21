@@ -448,7 +448,7 @@ def test_the_reviewer_may_read_a_voicescore_as_a_hint_only():
 # --- the docs -------------------------------------------------------------------------------
 
 def test_conventions_say_voicescore_is_optional_in_every_copy():
-    copies = [REPO / "template" / "CONVENTIONS.md", REPO / "tests" / "stub-conventions" / "CONVENTIONS.md",
+    copies = [REPO / "plugin" / "template" / "CONVENTIONS.md", REPO / "tests" / "stub-conventions" / "CONVENTIONS.md",
               REPO / "examples" / "unified-booking" / "CONVENTIONS.md"]
     texts = {p.read_bytes() for p in copies}
     assert len(texts) == 1

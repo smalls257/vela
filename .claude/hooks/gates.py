@@ -26,7 +26,7 @@ import subprocess
 import sys
 
 SCANNED = (".py", ".js", ".html")
-CONVENTIONS = ("plugin/vault/CONVENTIONS.md", "examples/unified-booking/CONVENTIONS.md",
+CONVENTIONS = ("examples/unified-booking/CONVENTIONS.md",
                "tests/stub-conventions/CONVENTIONS.md")
 ENV = {**os.environ, "SEMGREP_SEND_METRICS": "off", "SEMGREP_ENABLE_VERSION_CHECK": "0"}
 
@@ -223,8 +223,8 @@ def before_stop(event):
     code_files = scannable(root, changed)
     if code_files:
         problems += lint(root, code_files)
-    template = (root / "template/CONVENTIONS.md").read_bytes()
-    problems += [f"{c} differs from template/CONVENTIONS.md" for c in CONVENTIONS if (root / c).read_bytes() != template]
+    template = (root / "plugin/template/CONVENTIONS.md").read_bytes()
+    problems += [f"{c} differs from plugin/template/CONVENTIONS.md" for c in CONVENTIONS if (root / c).read_bytes() != template]
     tests = [t for t in tests_for(changed) if (root / t).is_file()]
     if tests:
         code, out = run([sys.executable, "-m", "pytest", "-q", "-x", "-p", "no:cacheprovider", *tests], root, 120)

@@ -717,7 +717,7 @@ def test_a_tracer_with_nothing_drawn_is_not_fully_checked_and_check_leaves_it_to
 def test_the_conventions_worked_example_is_in_the_grammar_the_checker_reads():
     """CONVENTIONS shows the flow-step grammar with a worked example; every line of it must read, so the two never drift."""
     from vela.flowcheck import mermaid
-    text = (REPO / "template" / "CONVENTIONS.md").read_text(encoding="utf-8")
+    text = (REPO / "plugin" / "template" / "CONVENTIONS.md").read_text(encoding="utf-8")
     section = text.split("\n## Flow check\n", 1)[1].split("\n## ", 1)[0]
     block = section.split("```mermaid\n", 1)[1].split("```", 1)[0].split("\n")
     problems = []

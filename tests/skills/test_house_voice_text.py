@@ -150,7 +150,7 @@ def test_every_page_type_has_a_voice_type():
 
 def test_every_template_page_resolves_to_a_voice_type():
     mapping = voice_map()
-    template = REPO / "template"
+    template = REPO / "plugin" / "template"
     for path in template.rglob("*.md"):
         rel = path.relative_to(template)
         if rel.parts[0] in ("voice", ".github") or rel.name in schema.SKIP_FILES:

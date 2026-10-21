@@ -14,7 +14,7 @@ def read(*parts):
 
 def test_answer_is_a_session_mode_the_check_knows(mini):
     assert "answer" in schema.SESSION_MODES
-    assert "`challenge`, `answer`." in read("template", "CONVENTIONS.md")
+    assert "`challenge`, `answer`." in read("plugin", "template", "CONVENTIONS.md")
     edit(mini / SESSION, "modes: [grill]", "modes: [answer, grill]")
     assert findings(check(mini)[1]) == []
 
@@ -25,5 +25,5 @@ def test_an_answer_session_without_a_grill_cannot_decide(mini):
 
 
 def test_conventions_accept_reopened_to_decided_for_an_epic():
-    assert "| EPC-nnn | reopened | decided |" in read("template", "CONVENTIONS.md")
-    assert "A Grill decides a `reopened` epic as it decides a `draft` one" in read("template", "CONVENTIONS.md")
+    assert "| EPC-nnn | reopened | decided |" in read("plugin", "template", "CONVENTIONS.md")
+    assert "A Grill decides a `reopened` epic as it decides a `draft` one" in read("plugin", "template", "CONVENTIONS.md")

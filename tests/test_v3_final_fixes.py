@@ -154,7 +154,7 @@ def test_the_digest_and_the_block_show_asked_copies_labeled_asked(tmp_path):
 
 
 def test_the_coverage_line_says_nothing_of_asked_when_none_are():
-    vault = REPO / "template"
+    vault = REPO / "plugin" / "template"
     assert "asked" not in json.loads(run("questions", "--json", "--vault", str(vault))[1])["coverage"]
 
 
@@ -163,7 +163,7 @@ def test_cli_help_for_open_matches_conventions():
     parser = cli.build_parser()
     ques = next(a for a in parser._subparsers._group_actions[0].choices["questions"]._actions if "--open" in a.option_strings)
     assert ques.help == "list only copies with no row, an open row, an invalid row or an asked row"
-    conventions = (REPO / "template" / "CONVENTIONS.md").read_text(encoding="utf-8")
+    conventions = (REPO / "plugin" / "template" / "CONVENTIONS.md").read_text(encoding="utf-8")
     assert "`--open` lists only the copies with no row, an `open` row, an invalid row or an `asked` row" in conventions
 
 
@@ -208,7 +208,7 @@ def test_a_passing_epics_gate_names_the_load_bearing_assumptions_it_rests_on():
 
 def template_copy(tmp_path):
     vault = tmp_path / "t"
-    shutil.copytree(REPO / "template", vault)
+    shutil.copytree(REPO / "plugin" / "template", vault)
     return vault
 
 
@@ -225,7 +225,7 @@ def test_a_ledger_page_without_its_heading_warns_in_a_plain_check(tmp_path):
                     "as CONVENTIONS.md shows under \"Questions and the ledger\"."], out
     gate = run("check", "--gate", "epics", "--vault", str(vault), "--today", "2026-11-20")[1]
     assert any(" E805 " in l and "The page has no ## Question ledger heading." in l for l in gate.splitlines()), gate
-    assert " W813 " not in check(REPO / "template", "2026-11-20")[1]
+    assert " W813 " not in check(REPO / "plugin" / "template", "2026-11-20")[1]
 
 
 def test_sources_titles_never_raise_w809(tmp_path):
@@ -281,7 +281,7 @@ def test_start_here_tomorrow_agrees_with_v3():
 
 
 def test_the_template_checklist_renders_after_the_initiative_and_points_at_the_digest():
-    checklist = (REPO / "template" / "README.md").read_text(encoding="utf-8").split("## Setup checklist", 1)[1]
+    checklist = (REPO / "plugin" / "template" / "README.md").read_text(encoding="utf-8").split("## Setup checklist", 1)[1]
     steps = [l for l in checklist.splitlines() if l[:1].isdigit()]
     initiative = next(i for i, l in enumerate(steps) if "set `initiative`" in l)
     assert "vela render" in steps[initiative + 1]

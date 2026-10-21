@@ -232,7 +232,7 @@ def a_repo_of_its_own(destination):
     """The parts of this repo a stub run reads, as a fresh git repo that nothing else is editing. The test checks that
     repo, not the shared working tree: another session's edit to the real tree is not a write by the run."""
     ignore = shutil.ignore_patterns("snapshots", "scale", "results", "__pycache__", "*.pyc")
-    for part in ("tests/sim", "tests/evals", "tools", "plugin", "template"):
+    for part in ("tests/sim", "tests/evals", "tools", "plugin"):
         shutil.copytree(REPO / part, destination / part, ignore=ignore)
     for step in (["init", "-q", "-b", "main"], ["add", "-A"], ["-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "base"]):
         subprocess.run(["git", *step], cwd=destination, check=True, capture_output=True, timeout=120)

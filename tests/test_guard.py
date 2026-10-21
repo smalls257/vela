@@ -8,7 +8,7 @@ import subprocess
 from conftest import REPO, run
 from vela import guard
 
-HOOK = REPO / "template" / ".githooks" / "pre-commit"
+HOOK = REPO / "plugin" / "template" / ".githooks" / "pre-commit"
 LAUNCHER = REPO / "plugin" / "scripts" / "vela"
 
 

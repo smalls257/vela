@@ -14,7 +14,7 @@ from vela import doctor
 from vela.edge import machine
 
 LAUNCHER = REPO / "plugin" / "scripts" / "vela"
-HOOK = REPO / "template" / ".githooks" / "pre-commit"
+HOOK = REPO / "plugin" / "template" / ".githooks" / "pre-commit"
 INSTALLED = "/home/lead/.claude/plugins/cache/vela/vela/0.3.0/scripts/vela"
 
 

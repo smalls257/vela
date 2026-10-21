@@ -201,7 +201,7 @@ def build_probe_vault(run_dir, snapshot, persona):
     shutil.copytree(sim.PLUGIN, skills / "vela", ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
     notes.append("current plugin/ installed at .claude/skills/vela")
     # As vela upgrade would: a snapshot saved before the format changed starts with the plugin's own copy.
-    shutil.copyfile(sim.PLUGIN / "vault" / "CONVENTIONS.md", vault / "CONVENTIONS.md")
+    shutil.copyfile(sim.PLUGIN / "template" / "CONVENTIONS.md", vault / "CONVENTIONS.md")
     stale = inbox_problems(vault, persona)
     if stale:
         raise ToolFailure(f"the snapshot's .inbox does not match the persona's docs: {', '.join(stale)}")

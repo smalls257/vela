@@ -143,7 +143,7 @@ def parse_today(value):
 
 # The format the installed skills follow. A vault keeps its own copy, from the day it was made, so a plugin update
 # that changes the format would leave the vault's copy saying rules the skills no longer follow.
-PLUGIN_CONVENTIONS = pathlib.Path(__file__).resolve().parents[2] / "vault" / "CONVENTIONS.md"
+PLUGIN_CONVENTIONS = pathlib.Path(__file__).resolve().parents[2] / "template" / "CONVENTIONS.md"
 
 
 def same_text(one, other):

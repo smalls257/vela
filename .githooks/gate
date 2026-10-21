@@ -34,8 +34,8 @@ need ruff "brew install ruff (or pip install ruff)"
 
 conventions_in_sync() {
   local copy status=0
-  for copy in plugin/vault/CONVENTIONS.md examples/unified-booking/CONVENTIONS.md tests/stub-conventions/CONVENTIONS.md; do
-    cmp -s template/CONVENTIONS.md "$copy" || { echo "$copy differs from template/CONVENTIONS.md; copy the template over it"; status=1; }
+  for copy in examples/unified-booking/CONVENTIONS.md tests/stub-conventions/CONVENTIONS.md; do
+    cmp -s plugin/template/CONVENTIONS.md "$copy" || { echo "$copy differs from plugin/template/CONVENTIONS.md; copy the template over it"; status=1; }
   done
   return $status
 }
@@ -50,7 +50,7 @@ stage "semgrep rule tests" bash -c 'cd .semgrep && semgrep --test --metrics=off 
 stage "semgrep scan"       semgrep scan --config .semgrep --metrics=off --disable-version-check --error --quiet .
 stage "ruff correctness"   ruff check --no-cache --select E9,F63,F7,F82,E722,S506 --extend-exclude .semgrep .
 stage "conventions sync"   conventions_in_sync
-stage "check template"     vela_check template
+stage "check template"     vela_check plugin/template
 stage "check example"      vela_check examples/unified-booking
 # The suite runs in parallel when pytest-xdist is installed (about 2.5 min instead of about 11 on 14 cores). Without it the
 # gate still runs, serially, and says so, so a slow gate is never a silent one.

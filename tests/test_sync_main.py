@@ -306,7 +306,7 @@ def test_check_warns_while_git_tracks_vela_s_cache_and_stops_once_untracked(repo
 def test_the_template_ignores_every_vela_working_file_but_the_shared_layout(tmp_path):
     from conftest import REPO
     git(tmp_path, "init", "-q")
-    (tmp_path / ".gitignore").write_bytes((REPO / "template" / ".gitignore").read_bytes())
+    (tmp_path / ".gitignore").write_bytes((REPO / "plugin" / "template" / ".gitignore").read_bytes())
     for name in ("flowcheck-cache.json", "close/session__x.json", "findings/a.txt", "pr-body.md", "explorer-pins.json"):
         (tmp_path / ".vela" / name).parent.mkdir(parents=True, exist_ok=True)
         (tmp_path / ".vela" / name).write_text("{}\n", encoding="utf-8")

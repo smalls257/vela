@@ -85,6 +85,6 @@ def test_a_manifest_must_pin_a_commit_that_exists(heron):
 
 def test_the_guide_and_conventions_agree_that_epics_follow_handoff():
     guide = (REPO / "docs" / "GUIDE.md").read_text(encoding="utf-8")
-    conventions = (REPO / "template" / "CONVENTIONS.md").read_text(encoding="utf-8")
+    conventions = (REPO / "plugin" / "template" / "CONVENTIONS.md").read_text(encoding="utf-8")
     assert 'H --> J["handoff' in guide and 'J --> I["/vela:epics' in guide
     assert "Epics come after handoff" in guide and "Epics come after handoff" in conventions

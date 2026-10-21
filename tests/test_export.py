@@ -66,7 +66,7 @@ def test_struck_criteria_and_commas_and_quotes_survive(tmp_path):
 
 def test_an_empty_vault_writes_the_header_only(tmp_path):
     vault = tmp_path / "vault"
-    shutil.copytree(REPO / "template", vault)
+    shutil.copytree(REPO / "plugin" / "template", vault)
     code, text, rows = exported(tmp_path, vault=vault)
     assert code == 0 and rows == [list(export.COLUMNS)]
 

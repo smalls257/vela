@@ -22,7 +22,7 @@ FORCED_NEGATIVE = re.compile(r"\b(?:sends|shows|holds|lists|says|has|makes|gives
 
 
 def conventions_section():
-    text = (PLUGIN / "vault" / "CONVENTIONS.md").read_text(encoding="utf-8")
+    text = (PLUGIN / "template" / "CONVENTIONS.md").read_text(encoding="utf-8")
     return text.split("\n## Onboarding\n", 1)[1].split("\n## ", 1)[0]
 
 

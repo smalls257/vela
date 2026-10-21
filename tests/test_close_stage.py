@@ -9,7 +9,7 @@ from conftest import REPO, run
 from vela import say
 from vela.edge import vaultgit
 
-TEMPLATE = REPO / "template"
+TEMPLATE = REPO / "plugin" / "template"
 SESSION = "2026-10-14-close-test"
 RECORD = f"""---
 id: {SESSION}

@@ -8,6 +8,7 @@
 # Two limits of GitHub to know: an edit pings only the owners added since the
 # last run, because GitHub notifies on new mentions; and scheduled runs stop
 # after 60 days with no activity in the repository.
+# vela comes from its public repository (the "get vela" step), so a plan keeps no copy of the plugin.
 name: vela weekly
 
 on:
@@ -28,11 +29,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: get vela
+        uses: actions/checkout@v4
+        with:
+          repository: smalls257/vela
+          path: .vela/tool
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
       - name: Build the report
-        run: python .claude/skills/vela/scripts/vela health > vault-health.md
+        run: python .vela/tool/plugin/scripts/vela health > vault-health.md
       - name: Open or update the Vault health issue
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -350,7 +350,7 @@ def text_of(*parts):
 
 
 def test_conventions_state_the_trace_line_and_the_reading_load():
-    conventions = text_of("template", "CONVENTIONS.md")
+    conventions = text_of("plugin", "template", "CONVENTIONS.md")
     for phrase in ("`- Trace: CAP-001.FR1, CON-001, FLO-001`", "Cowan 2001; Miller 1956", "`## Also open (n)`", "W364 warns past nine"):
         assert phrase in conventions, phrase
     for copy in ("plugin/vault/CONVENTIONS.md", "examples/unified-booking/CONVENTIONS.md", "tests/stub-conventions/CONVENTIONS.md"):

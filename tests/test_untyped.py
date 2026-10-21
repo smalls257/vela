@@ -108,7 +108,7 @@ def test_it_warns_once_per_page_and_question(ub):
 
 
 def test_the_template_and_the_fixture_are_quiet():
-    for vault, today in ((FIXTURE, TODAY), (REPO / "template", "2026-10-03")):
+    for vault, today in ((FIXTURE, TODAY), (REPO / "plugin" / "template", "2026-10-03")):
         code, out = run("check", "--vault", str(vault), "--today", today)
         assert code == 0 and "W809" not in out
 

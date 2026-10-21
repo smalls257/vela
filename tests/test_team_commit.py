@@ -8,7 +8,7 @@ import pytest
 from conftest import REPO, run
 from test_close_stage import change, committed, git
 
-TEMPLATE = REPO / "template"
+TEMPLATE = REPO / "plugin" / "template"
 
 
 @pytest.fixture

@@ -64,7 +64,7 @@ def test_render_changes_no_bytes(ub):
 
 
 def test_no_jira_anywhere():
-    roots = [REPO / "examples" / "unified-booking", REPO / "template", REPO / "plugin" / "skills"]
+    roots = [REPO / "examples" / "unified-booking", REPO / "plugin" / "template", REPO / "plugin" / "skills"]
     # The tickets skill names Jira on purpose: it offers a Jira CSV and asks whether the person's own Jira tools may be used.
     hits = [f"{p}" for root in roots for p in root.rglob("*") if p.is_file() and p.parent.name != "tickets"
             and re.search(r"jira|\bHB-\d", p.read_text(encoding="utf-8", errors="ignore"), re.I)]
@@ -72,7 +72,7 @@ def test_no_jira_anywhere():
 
 
 def test_conventions_copy_matches_the_template():
-    assert (FIXTURE / "CONVENTIONS.md").read_bytes() == (REPO / "template" / "CONVENTIONS.md").read_bytes()
+    assert (FIXTURE / "CONVENTIONS.md").read_bytes() == (REPO / "plugin" / "template" / "CONVENTIONS.md").read_bytes()
 
 
 def test_where_it_stands_lists_unk_006_and_holds_no_prose():

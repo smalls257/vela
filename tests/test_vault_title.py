@@ -5,7 +5,7 @@ import shutil
 from conftest import REPO, edit, findings, run
 
 SESSION = "---\nid: 2026-01-10-first\ntype: session\ntitle: First\ndate: 2026-01-10\nmodes: [dump]\nstatus: open\nsummary: In progress.\n---\n\n# First\n"
-CONVENTIONS = ("template", "plugin/vault", "examples/unified-booking", "tests/stub-conventions")
+CONVENTIONS = ("plugin/template", "examples/unified-booking", "tests/stub-conventions")
 
 
 def named(tmp_path, title, session=True):
@@ -39,9 +39,9 @@ def test_check_is_quiet_once_the_initiative_has_a_name(tmp_path):
 
 def test_the_placeholder_is_the_title_the_template_ships_and_the_template_warns_after_its_first_session(tmp_path):
     from vela import schema
-    assert f"title: {schema.PLACEHOLDER_TITLE}\n" in (REPO / "template" / ".vela.yaml").read_text(encoding="utf-8")
+    assert f"title: {schema.PLACEHOLDER_TITLE}\n" in (REPO / "plugin" / "template" / ".vela.yaml").read_text(encoding="utf-8")
     vault = tmp_path / "vault"
-    shutil.copytree(REPO / "template", vault)
+    shutil.copytree(REPO / "plugin" / "template", vault)
     code, out = run("check", "--vault", str(vault), "--today", "2026-01-15")
     assert code == 0 and "W718" not in out  # a fresh copy is clean
     (vault / "sessions" / "2026-01-10-first.md").write_text(SESSION, encoding="utf-8")

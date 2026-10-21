@@ -71,7 +71,7 @@ def test_the_fixture_block_says_nothing_is_undisposed():
 
 
 def test_the_template_block_lists_the_twelve_initiative_questions():
-    lines = block(REPO / "template").splitlines()
+    lines = block(REPO / "plugin" / "template").splitlines()
     assert lines[3] == "**Questions:** 12 owed, 12 undisposed, against catalog v1."
     assert lines[5] == "| Ref | Status | Area | How serious | About | Question |"
     assert len([l for l in lines if l.startswith("| Q-")]) == 12
@@ -103,7 +103,7 @@ def test_the_block_is_allowed_only_on_the_unknowns_page(ub):
 
 
 def test_render_is_a_no_op_on_the_fixture_and_the_template(tmp_path):
-    for source in (FIXTURE, REPO / "template"):
+    for source in (FIXTURE, REPO / "plugin" / "template"):
         vault = tmp_path / source.name
         shutil.copytree(source, vault)
         before = {p: p.read_bytes() for p in vault.rglob("*.md")}
@@ -190,12 +190,12 @@ def test_the_line_describes_the_table_under_it(ub):
 
 
 def test_the_line_is_unchanged_when_no_reviewer_question_is_open():
-    assert "reviewer" not in block(REPO / "template").splitlines()[3]
+    assert "reviewer" not in block(REPO / "plugin" / "template").splitlines()[3]
 
 
 def test_the_digest_never_drops_a_question(tmp_path):
     vault = tmp_path / "vault"
-    shutil.copytree(REPO / "template", vault)
+    shutil.copytree(REPO / "plugin" / "template", vault)
     answer = digest(vault)
     assert sum(len(g["copies"]) for g in answer["groups"]) == answer["undisposed"] == 12
 

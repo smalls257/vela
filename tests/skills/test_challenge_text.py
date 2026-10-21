@@ -100,7 +100,7 @@ def test_the_pr_says_the_red_check_is_deliberate_and_blocks_the_merge():
     assert "E316 is deliberate." in text
     assert "blocks the merge wherever vela-check is a required check" in text
     assert "either by resolving `UNK-nnn` with a grill or by setting the item back" in text
-    conv = (REPO / "template" / "CONVENTIONS.md").read_text(encoding="utf-8")
+    conv = (REPO / "plugin" / "template" / "CONVENTIONS.md").read_text(encoding="utf-8")
     assert "deliberate" in conv and "blocks the merge" in conv
 
 

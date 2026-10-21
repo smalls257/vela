@@ -14,7 +14,7 @@ sys.path.insert(0, str(REPO / "plugin" / "lib"))
 
 from vela import conventions  # noqa: E402
 
-COPIES = ("template", "plugin/vault", "examples/unified-booking", "tests/stub-conventions")
+COPIES = ("plugin/template", "examples/unified-booking", "tests/stub-conventions")
 
 
 def main(argv):

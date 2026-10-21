@@ -265,7 +265,7 @@ def test_a_malformed_override_does_not_count_in_the_grid(ub):
 
 
 def test_conventions_know_the_override_bullets():
-    conventions = (REPO / "template" / "CONVENTIONS.md").read_text(encoding="utf-8")
+    conventions = (REPO / "plugin" / "template" / "CONVENTIONS.md").read_text(encoding="utf-8")
     assert "## Overrides" in conventions and "raises `/vela:challenge` on the item" in conventions
 
 

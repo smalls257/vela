@@ -278,7 +278,7 @@ def test_the_installed_plugin_finds_its_catalog(tmp_path):
     import subprocess
     import sys
     vault = tmp_path / "vault"
-    shutil.copytree(REPO / "template", vault)
+    shutil.copytree(REPO / "plugin" / "template", vault)
     shutil.copytree(REPO / "plugin", vault / ".claude" / "skills" / "vela")
     assert (vault / ".claude" / "skills" / "vela" / "catalog" / "questions.yaml").is_file()
     result = subprocess.run([sys.executable, ".claude/skills/vela/scripts/vela", "check"], cwd=vault,

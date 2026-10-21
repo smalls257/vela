@@ -819,7 +819,7 @@ def build_vault_from(arm_dir, start, persona):
     shutil.copytree(PLUGIN, skills / "vela", ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
     inbox = vault / ".inbox"
     # As vela upgrade would: a snapshot saved before the format changed starts with the plugin's own copy.
-    shutil.copyfile(PLUGIN / "vault" / "CONVENTIONS.md", vault / "CONVENTIONS.md")
+    shutil.copyfile(PLUGIN / "template" / "CONVENTIONS.md", vault / "CONVENTIONS.md")
     for doc in persona.get("docs") or []:
         inbox.mkdir(exist_ok=True)
         (inbox / doc["name"]).write_text(doc["text"].strip() + "\n", encoding="utf-8")
@@ -1600,7 +1600,7 @@ class Arm:
 SCORE_LISTS = {"unaware": "surfaced", "wrong": "challenged", "knows": "captured", "decisions": "decided",
                "conflicts": "surfaced"}
 LEAD_FIRST_KINDS = ("wrong", "unaware")  # a gap or a correction the lead raised first is not one the assistant found
-TEMPLATE = REPO / "template"
+TEMPLATE = REPO / "plugin" / "template"
 
 
 def vault_pages(vault):

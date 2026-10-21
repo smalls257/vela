@@ -84,7 +84,7 @@ def test_check_warns_when_the_vaults_conventions_are_not_the_plugins_and_upgrade
     assert "CONVENTIONS.md:1: W717" in out
     code, out = run("upgrade", "--vault", str(tmp_path))
     assert code == 0 and out.startswith("vela upgrade: CONVENTIONS.md replaced with the plugin's copy")
-    assert (tmp_path / "CONVENTIONS.md").read_bytes() == (REPO / "template" / "CONVENTIONS.md").read_bytes()
+    assert (tmp_path / "CONVENTIONS.md").read_bytes() == (REPO / "plugin" / "template" / "CONVENTIONS.md").read_bytes()
     assert "W717" not in run("check", "--vault", str(tmp_path), "--today", "2026-01-15")[1]
     assert run("upgrade", "--vault", str(tmp_path))[1].startswith("vela upgrade: CONVENTIONS.md is already")
 

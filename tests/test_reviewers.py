@@ -101,7 +101,7 @@ def test_round_two_fixes_in_the_reviewer():
 
 
 def test_conventions_lists_the_states_a_keep_mark_may_carry():
-    conventions = (REPO / "template" / "CONVENTIONS.md").read_text(encoding="utf-8")
+    conventions = (REPO / "plugin" / "template" / "CONVENTIONS.md").read_text(encoding="utf-8")
     line = next(l for l in conventions.splitlines() if l.startswith("- The `(<state>)` of a keep"))
     for state in ("inkling", "assumption", "fact", "decided", "open", "asked", "answered", "assumed",
                   "unknown", "not-applicable", "subject"):

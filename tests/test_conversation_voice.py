@@ -8,7 +8,7 @@ VOICE = (PLUGIN / "references" / "CONVERSATION-VOICE.md").read_text(encoding="ut
 START = (PLUGIN / "references" / "START.md").read_text(encoding="utf-8")
 MODE_SKILLS = ("grill", "shape", "boundary", "discover", "dump", "requirements", "allocate", "releases", "epics",
                "challenge", "close", "import")
-COPIES = ("template", "plugin/vault", "examples/unified-booking", "tests/stub-conventions")
+COPIES = ("plugin/template", "examples/unified-booking", "tests/stub-conventions")
 
 
 def skill(name):

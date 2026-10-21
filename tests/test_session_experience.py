@@ -35,7 +35,7 @@ def test_no_line_a_skill_tells_the_model_to_say_carries_a_code():
 # --- S29 and S30: handoff and epics no longer wait on each other
 
 def test_conventions_put_the_epics_gate_after_handoff():
-    conventions = (REPO / "template" / "CONVENTIONS.md").read_text(encoding="utf-8")
+    conventions = (REPO / "plugin" / "template" / "CONVENTIONS.md").read_text(encoding="utf-8")
     handoff = conventions.split("\n## Handoff\n", 1)[1].split("\n## ", 1)[0]
     assert "check --gate epics" not in handoff.split("Epics come after handoff")[0]
     assert "Epics come after handoff" in handoff and "--gate epics --app <APP-id>" in handoff
@@ -46,7 +46,7 @@ def test_conventions_put_the_epics_gate_after_handoff():
 
 def test_session_modes_are_listed_the_same_everywhere():
     from vela import schema
-    conventions = (REPO / "template" / "CONVENTIONS.md").read_text(encoding="utf-8")
+    conventions = (REPO / "plugin" / "template" / "CONVENTIONS.md").read_text(encoding="utf-8")
     listed = re.search(r"- `modes` on a session: a list of ([^.]+)\.", conventions).group(1)
     assert set(re.findall(r"`(\w+)`", listed)) == set(schema.SESSION_MODES)
     modes = text("references/MODES.md")

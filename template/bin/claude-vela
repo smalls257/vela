@@ -1,3 +1,0 @@
-#!/bin/sh
-root=$(git rev-parse --show-toplevel 2>/dev/null) || { echo "Run this inside the vault repo." >&2; exit 2; }
-cd "$root" && exec claude --plugin-dir "$root/.claude/skills/vela" "$@"

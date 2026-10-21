@@ -9,7 +9,7 @@ import re
 from conftest import REPO
 
 SKILL = REPO / "plugin" / "skills" / "house-voice" / "SKILL.md"
-DEFAULT = REPO / "template" / "voice" / "DEFAULT.md"
+DEFAULT = REPO / "plugin" / "template" / "voice" / "DEFAULT.md"
 EXAMPLE_DEFAULT = REPO / "examples" / "unified-booking" / "voice" / "DEFAULT.md"
 REVIEWER = REPO / "plugin" / "agents" / "voice-reviewer.md"
 CONVERSATION = REPO / "plugin" / "references" / "CONVERSATION-VOICE.md"
@@ -63,7 +63,7 @@ def test_the_owners_voice_md_outranks_the_default():
     owner = read(DEFAULT)
     assert "Don't edit this file to change it: put your rules in `voice/VOICE.md`" in owner
     assert "they win over every line here" in owner
-    conventions = read(REPO / "template" / "CONVENTIONS.md")
+    conventions = read(REPO / "plugin" / "template" / "CONVENTIONS.md")
     assert "| `voice/DEFAULT.md` |" in conventions and "edit `voice/VOICE.md` instead, which wins over it" in conventions
 
 

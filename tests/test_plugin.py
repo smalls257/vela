@@ -32,9 +32,5 @@ def test_stub_plugin_holds_only_the_conventions():
     assert json.loads((STUB / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))["name"] == "vela-conventions"
 
 
-def test_plugin_conventions_equal_the_template_copy():
-    assert (REPO / "plugin" / "vault" / "CONVENTIONS.md").read_bytes() == (REPO / "template" / "CONVENTIONS.md").read_bytes()
-
-
 def test_stub_conventions_equal_the_template_copy():
-    assert (STUB / "CONVENTIONS.md").read_bytes() == (REPO / "template" / "CONVENTIONS.md").read_bytes()
+    assert (STUB / "CONVENTIONS.md").read_bytes() == (REPO / "plugin" / "template" / "CONVENTIONS.md").read_bytes()

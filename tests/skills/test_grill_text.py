@@ -70,7 +70,7 @@ def test_grill_offers_to_write_a_missing_case_table():
 
 
 def test_conventions_document_the_fr_format_and_grill_decides_it_with_decide():
-    conventions = (REPO / "template" / "CONVENTIONS.md").read_text(encoding="utf-8")
+    conventions = (REPO / "plugin" / "template" / "CONVENTIONS.md").read_text(encoding="utf-8")
     assert "### CAP-nnn.FRn" in conventions and "CAP-001.FR1" in conventions
     grill = (REPO / "plugin" / "skills" / "grill" / "SKILL.md").read_text(encoding="utf-8")
     assert "takes a functional requirement" in grill

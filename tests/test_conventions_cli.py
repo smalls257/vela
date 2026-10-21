@@ -8,8 +8,8 @@ import pytest
 from conftest import REPO, run
 from vela import cli, conventions, schema
 
-COPIES = ("template", "plugin/vault", "examples/unified-booking", "tests/stub-conventions")
-TEMPLATE = REPO / "template"
+COPIES = ("plugin/template", "examples/unified-booking", "tests/stub-conventions")
+TEMPLATE = REPO / "plugin" / "template"
 TEXT = (TEMPLATE / "CONVENTIONS.md").read_text(encoding="utf-8")
 
 # The sections the skills and references name. Each must be one exact heading, or the citation sends the model to
@@ -121,7 +121,7 @@ def test_every_vela_conventions_call_in_the_skills_resolves_exactly():
     names = {n for t in texts for n in re.findall(r'`vela conventions "([^"<]+)"`', t)}
     assert len(names) >= 15, names
     for name in sorted(names):
-        code, out = run("conventions", name, "--vault", str(REPO / "template"))
+        code, out = run("conventions", name, "--vault", str(REPO / "plugin" / "template"))
         assert code == 0, (name, out[:200])
     for t in texts:
         assert not re.search(r"\bread\b[^.\n]{0,40}`?CONVENTIONS\.md`?", t, re.I), "a skill still says to read CONVENTIONS.md"

@@ -180,7 +180,7 @@ def test_an_opening_that_is_a_template_line_warns_and_a_written_one_does_not(min
 
 
 def template_corpus():
-    root = REPO / "template"
+    root = REPO / "plugin" / "template"
     return readload.template_corpus((path.relative_to(root).parts, path.read_text(encoding="utf-8"))
                                     for path in sorted(root.rglob("*.md")))
 

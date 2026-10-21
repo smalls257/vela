@@ -206,7 +206,7 @@ def neutral_words_list():
     for path in sorted(root.rglob("*.py")):
         if "site-packages" not in path.parts:
             out += tokens(path.read_text(encoding="utf-8", errors="replace")) + ["\n"]
-    for base in (REPO / "template", *EXAMPLE_VAULTS):
+    for base in (REPO / "plugin" / "template", *EXAMPLE_VAULTS):
         for path in sorted(base.rglob("*.md")):
             if path.name not in EXAMPLE_SKIP:
                 out += tokens(path.read_text(encoding="utf-8", errors="replace")) + ["\n"]

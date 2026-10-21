@@ -7,7 +7,7 @@ import yaml
 
 from conftest import REPO, check, edit, findings, run
 
-WORKFLOW = REPO / "template" / ".github" / "workflows" / "vela-weekly.yml"
+WORKFLOW = REPO / "plugin" / "template" / ".github" / "workflows" / "vela-weekly.yml"
 
 
 def stale(mini):

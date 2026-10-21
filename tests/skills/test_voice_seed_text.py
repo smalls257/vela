@@ -64,7 +64,7 @@ def test_voice_seed_offers_a_local_only_place_and_says_what_is_committed():
     assert "A local-only run changes no committed file and makes no branch, commit or PR." in seed
     assert "A local example never retires a committed seed" in seed
     assert "Name local examples only as a count" in seed
-    ignored = (REPO / "template" / ".gitignore").read_text(encoding="utf-8").splitlines()
+    ignored = (REPO / "plugin" / "template" / ".gitignore").read_text(encoding="utf-8").splitlines()
     assert "voice/local/" in ignored and "voice/corpus/" in ignored
 
 

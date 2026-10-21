@@ -69,7 +69,7 @@ def test_a_gitignore_that_hides_the_dashboard_is_called_out(tmp_path):
 
 def test_the_template_does_not_ignore_the_dashboard_and_git_can_add_it(tmp_path):
     vault = make_vault(tmp_path, "tracked")
-    shutil.copy(REPO / "template" / ".gitignore", vault / ".gitignore")
+    shutil.copy(REPO / "plugin" / "template" / ".gitignore", vault / ".gitignore")
     explore(vault)
     git(vault, "add", "dashboard.html")  # an ignored file would be refused here
     assert "dashboard.html" in git(vault, "ls-files")

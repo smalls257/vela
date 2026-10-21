@@ -8,7 +8,7 @@ import re
 from conftest import REPO
 from vela import onboardtune, say
 
-CONVENTIONS = (REPO / "plugin" / "vault" / "CONVENTIONS.md").read_text(encoding="utf-8")
+CONVENTIONS = (REPO / "plugin" / "template" / "CONVENTIONS.md").read_text(encoding="utf-8")
 
 
 EXAMPLE = """# Onboarding

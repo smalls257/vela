@@ -154,7 +154,7 @@ def test_start_says_a_reader_runs_no_git_in_a_few_lines():
 def test_the_handle_comes_from_whoami():
     assert "`vela whoami`" in START
     assert "gh api user -q .login" not in START and ".vela/handle" not in START  # rule deletion: whoami does it
-    assert ".vela/*" in (REPO / "template" / ".gitignore").read_text(encoding="utf-8")
+    assert ".vela/*" in (REPO / "plugin" / "template" / ".gitignore").read_text(encoding="utf-8")
 
 
 # --- plain names, one definition

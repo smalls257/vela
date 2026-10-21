@@ -293,7 +293,7 @@ def test_the_run_hotel_rows_are_e802(tmp_path):
 
 
 def test_conventions_says_not_applicable_is_never_not_yet():
-    for copy in (REPO / "template", REPO / "tests" / "stub-conventions", FIXTURE):
+    for copy in (REPO / "plugin" / "template", REPO / "tests" / "stub-conventions", FIXTURE):
         assert "not-applicable means it does not apply, never not yet" in (copy / "CONVENTIONS.md").read_text(encoding="utf-8")
 
 
