@@ -92,12 +92,12 @@ const Grills = (() => {
   function promptBody(r) {
     const parts = [];
     if (r.settles.length) parts.push(`It settles: ${listWords(r.settles.map((s) => settleLine(s).replace(/\.$/, "")), 3)}.`);
-    if (r.group === "said-yes") parts.push(`I said yes to this on ${dayYear(r.yes.date)}${r.yes.quote ? `: "${r.yes.quote}"` : ""} Read my words back and confirm them before you decide.`);
-    else if (r.group === "ready") parts.push(`It's ${stateWord(r.state).toLowerCase()} now and nothing is in the way.`);
+    if (r.group === "said-yes") parts.push(`I said yes to this on ${dayYear(r.yes.date)}${r.yes.quote ? `: "${r.yes.quote}".` : "."} Read my words back and confirm them before you decide.`);
+    else if (r.group === "ready") parts.push("Nothing is in the way, so it's ready to decide.");
     else parts.push(`One thing is in the way: ${waitingSentence(r)} Start with a recap of that, then grill what is settled.`);
     if (r.holdsUp.length) parts.push(`It holds up ${listWords(holdsNames(r))}.`);
     const joiners = r.join.map(personName);
-    if (joiners.length) parts.push(`${listWords(joiners)} ${joiners.length > 1 ? "have" : "has"} been asked to join, so check what ${joiners.length > 1 ? "they need" : "they need"} to confirm.`);
+    if (joiners.length) parts.push(`${listWords(joiners)} ${joiners.length > 1 ? "have" : "has"} been asked to join, so check what they need to confirm.`);
     return parts.join(" ");
   }
   const prompt = (r) => `/vela:grill ${r.name}\n\n${promptBody(r)}`;
