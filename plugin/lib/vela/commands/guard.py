@@ -1,6 +1,6 @@
 """`vela guard staged` and `vela guard path P`: the never-staged rules of `guard.py`, for hooks.
 
-`guard staged` is what the vault's pre-commit hook (`template/.githooks/pre-commit`) runs, so a commit typed by hand or
+`guard staged` is what the vault's pre-commit hook (`plugin/template/.githooks/pre-commit`) runs, so a commit typed by hand or
 by a model cannot carry `.inbox/`, `voice/local/`, `voice/corpus/` or `.vela/` (except the pins file). `guard path`
 judges one path for the Claude Code hooks a later task adds. Neither is the real gate: `vela close stage` already
 refuses those paths, so a hook that never fires costs earlier feedback, never correctness (plan section 1, Silent

@@ -49,9 +49,9 @@ A run that stopped part-way goes on with `--resume-run`; see "Resume a run" belo
 
 | Arm | Vault | Plugin | Voice |
 |---|---|---|---|
-| `vela` | `template/`, plugin copied to `.claude/skills/vela` | `--plugin-dir plugin` | the AOSA public seed |
+| `vela` | `plugin/template/`, plugin copied to `.claude/skills/vela` | `--plugin-dir plugin` | the AOSA public seed |
 | `vela-seuss` | the same | `--plugin-dir plugin` | `voices/seuss-style/` in `voice/local/`, public seed retired |
-| `baseline` | `template/` with no `.claude/skills` | none | none: the vault's `CONVENTIONS.md` and `CLAUDE.md` only |
+| `baseline` | `plugin/template/` with no `.claude/skills` | none | none: the vault's `CONVENTIONS.md` and `CLAUDE.md` only |
 
 ### Exit codes
 
@@ -592,7 +592,7 @@ How each criterion is measured:
 
 | Snapshot | What it is |
 |---|---|
-| `coastal-merger/empty` | `template/` as `tests/evals/scaffold.py` builds it for a run, without `.claude/skills` |
+| `coastal-merger/empty` | `plugin/template/` as `tests/evals/scaffold.py` builds it for a run, without `.claude/skills` |
 | `coastal-merger/after-s2` | the vela arm of `results/2026-10-05-124823-coastal-merger` (recorded under its old arm name, see `LEGACY_NAMES`) after its dump and close: `git archive 4185442` |
 | `coastal-merger/after-s4` | the same run after its first discover and close: `git archive 0ed88c7` |
 | `holdout-hospitals/empty`, `after-dump`, `after-discover` | written by hand as a dump and close, then a discover and close, would leave them; each passes `vela check` with 0 errors |

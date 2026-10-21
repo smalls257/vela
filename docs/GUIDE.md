@@ -52,8 +52,6 @@ This snippet follows Claude Code's settings format, and the repo doesn't store i
 
 In the CLI, the plugin's `bin/` puts a `vela` command on the PATH that Claude uses. In your own terminal, run it as `python3 <plugin folder>/scripts/vela ...`. `/vela:where` prints the folder.
 
-The older route still works: copy `plugin/` into the vault as `.claude/skills/vela` and start Claude with `bin/claude-vela` (`template/README.md`, steps 2 and 9). With that route, a plain `claude` won't find the skills.
-
 ### Claude Cowork
 
 Cowork takes a zip, and it rejects any plugin with a top-level `bin/`, so don't zip the folder by hand. Build the zip from this repo:
@@ -101,12 +99,14 @@ In Cowork, keep the private workspace inside the working folder, because Cowork 
 
 ### Start a vault
 
-Copy `template/` into a new git repo and follow its `README.md` checklist. In short: set `initiative` and `title` in `.vela.yaml`, put your handle where it says `@solution-lead`, then:
+In an empty folder, run `/vela:import` or `/vela:dump`. With no plan there, it offers to start one and asks the initiative's name. By hand, the same thing is:
 
 ```
-python3 <plugin>/scripts/vela render     # fill generated blocks
+python3 <plugin>/scripts/vela new --title "<initiative name>" --handle <your GitHub login>
 python3 <plugin>/scripts/vela check      # expect: 0 errors
 ```
+
+`vela new` copies the plugin's template, fills in the name and your handle, renders, makes the folder a git repo if it isn't one, and makes the first commit. It refuses a folder that already has a plan, or that sits inside another git repository, and it never overwrites a file: a clash is listed and nothing changes. Documents already in the folder move into `.inbox/`, which the plan never commits. The plan's `README.md` lists what's left for you.
 
 A fresh template prints `vela check: 0 errors, 0 warnings in 23 pages.`
 

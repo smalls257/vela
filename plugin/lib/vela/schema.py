@@ -317,7 +317,7 @@ DIAGRAM_KINDS = ("flowchart", "graph", "sequenceDiagram")
 
 # ------------------------------------------------------------ freshness
 
-PLACEHOLDER_TITLE = "New initiative"  # what template/.vela.yaml ships; W718 while a vault keeps it
+PLACEHOLDER_TITLE = "New initiative"  # what plugin/template/.vela.yaml ships; W718 while a vault keeps it
 STALE_AFTER_DAYS = 60  # default for .vela.yaml's stale_after_days
 SESSION_GAP_DAYS = 30  # W711 when no session has closed for longer than this
 

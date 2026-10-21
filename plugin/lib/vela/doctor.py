@@ -45,7 +45,7 @@ class Line:
 
 @dataclass(frozen=True)
 class Hook:
-    """What edge/machine.py found about the vault's pre-commit hook (template/.githooks/pre-commit)."""
+    """What edge/machine.py found about the vault's pre-commit hook (plugin/template/.githooks/pre-commit)."""
     hook_file: bool  # .githooks/pre-commit is in the vault
     hooks_on: bool  # core.hooksPath points git at .githooks
     env_vela: str  # VELA in doctor's environment ("" when unset); the hook reads it first
@@ -54,7 +54,7 @@ class Hook:
     launcher: str  # the installed vela launcher doctor found ("" when none)
 
 
-# The hook's own order (template/.githooks/pre-commit), kept here so doctor says what the hook will do; a test runs the
+# The hook's own order (plugin/template/.githooks/pre-commit), kept here so doctor says what the hook will do; a test runs the
 # hook against each case and holds the two together.
 HOOK_ORDER = ("VELA", "git config vela.path", "the vendored copy in the vault")
 

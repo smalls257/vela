@@ -25,7 +25,7 @@ Run it through `run-vela`, which sits in the same folder and picks whichever Pyt
 
 ## Owner or reader
 
-`vela role` says which: an owner works in the vault's git clone, a reader in a published copy with no `.git`. Every command knows its role. In a reader copy, run no `git` or `gh` yourself, and say once "This is a read copy, so I will not use git: your work stays in this folder and nothing is committed or sent." Handoff, publish, `vela upgrade` and `/vela:challenge` are the owner's: "That is <name>'s call. Send a proposal (`/vela:propose`) and they decide." If `vela role` says `none`, stop and say in one plain sentence that this folder isn't a plan Vela can open.
+`vela role` says which: an owner works in the vault's git clone, a reader in a published copy with no `.git`. Every command knows its role. In a reader copy, run no `git` or `gh` yourself, and say once "This is a read copy, so I will not use git: your work stays in this folder and nothing is committed or sent." Handoff, publish, `vela upgrade` and `/vela:challenge` are the owner's: "That is <name>'s call. Send a proposal (`/vela:propose`) and they decide." If `vela role` says `none` and the folder has no `.vela.yaml`, there is no plan here yet: go to step 1's "No plan here yet". If it says `none` and the folder has a `.vela.yaml`, stop and say in one plain sentence that this folder isn't a plan Vela can open.
 
 ## Plain names and a page a person can hold
 
@@ -59,6 +59,8 @@ Hard stops are not process rules, and no override reaches them. Say which one ap
 ## 1. Show the state of the clone
 
 Run `vela session start --mode grill --topic "<two to four words from the lead's first message>" --for-lead`, with the skill's own mode in place of `grill`; repeat `--mode` for a session that runs two. It does steps 1, 2 and 5: it checks the clone, brings `main` up to the shared copy (or merges it into a resumed branch), opens the session's branch and record, and commits them. Say what it means, in your words; say nothing when the plan is up to date. If the shared copy was out of reach, say so, and never call the plan up to date. Later, `vela freshness` says how far behind the shared copy this branch is.
+
+**No plan here yet.** In a folder with no `.vela.yaml`, `session start` exits 3 and changes nothing. Never set a plan up by hand: no copying files, no `git init`, no `git add`. Ask the lead: "There's no plan in this folder yet. Want me to start one? What short name should the initiative go by, a few words as you'd say it to a colleague?" On a yes and a name, run `vela new --title "<their words>" --for-lead`. If it asks for their GitHub handle, ask once and run it again with `--handle <handle>`. If it refuses, say what it said and stop. Whatever documents were in the folder are in the plan's inbox afterward, which is where this skill reads them from. Then run `session start` again, and carry on.
 
 **Reader copy:** `session start` writes the record in the folder and runs no git. Also run `vela freshness --for-lead` and say whether a newer copy was published. If it fails, say in one plain sentence that you couldn't check, and go on.
 

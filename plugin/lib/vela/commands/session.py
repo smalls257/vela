@@ -223,6 +223,8 @@ def failed(text, plain, lines=()):
 def cmd_start(args, out):
     from vela import cli  # cli builds the parser, so it is loaded by the time this runs
     root = pathlib.Path(args.vault).resolve()
+    if not (root / ".vela.yaml").is_file():
+        return commands.emit(no_plan_yet(), args, out)
     today = cli.parse_today(args.today)[0]
     resolver = lead_resolver(root) if say.mode_of(args) == "for-lead" else None
     plain = words(resolver)
@@ -238,6 +240,15 @@ def cmd_start(args, out):
             say.Line(f"vela: couldn't write: {exc}", plain="I couldn't write the session's files to disk, so I "
                                                            "haven't started.")])
     return commands.emit(result, args, out, resolver)
+
+
+def no_plan_yet():
+    """A folder with no `.vela.yaml` isn't a plan yet. Git would fail there and say so in its own words (Black Box for
+    the lead), so the start stops first and names the way forward: `vela new` starts one."""
+    question = "There's no plan in this folder yet. Want me to start one? I'll need the initiative's name."
+    return say.Result(START, exit=say.NEEDS_LEAD, needs_lead=[{
+        "ask": "start a plan", "question": question, "answer_with": 'vela new --title "<initiative name>"'}], lines=[
+        say.Line("vela: no plan here yet; `vela new` starts one.", plain=question)])
 
 
 def start(root, args, today, plain):

@@ -15,7 +15,7 @@ Vela is a structured way to do that planning so those failures don't happen sile
 
 ## What you get
 
-- **A vault:** a git repository of Markdown pages, one per part of the plan, in a fixed layout. It is created from `template/`. Changes reach `main` only through pull requests, so every decision is reviewed and kept in history.
+- **A vault:** a git repository of Markdown pages, one per part of the plan, in a fixed layout. It is started by `vela new` from the plugin's `template/`. Changes reach `main` only through pull requests, so every decision is reviewed and kept in history.
 - **The vela plugin for Claude Code:** session commands such as `/vela:discover` and `/vela:grill`, plus focused reviewer agents.
 - **The `vela` command-line tool,** which ships inside the plugin. It checks the vault against its rules, fills in the generated sections, and reports progress. It runs in CI on every pull request.
 

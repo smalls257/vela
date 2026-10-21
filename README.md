@@ -10,12 +10,12 @@ Three steps, in Claude Code:
 2. Install the plugin: `/plugin install vela@vela`
 3. Ask Claude to run `vela doctor`. It prints one line per item and ends with `vela doctor: ready.` when the machine has what vela needs. Anything optional that's missing says what it adds and the one command that gets it.
 
-The repo is private, so your colleague needs access to it on GitHub first, and git on their machine signed in to that account (`gh auth login` does it). There is nothing to pip install. Vela runs on Python 3.9 or later, which comes with a Mac's developer tools, and it brings its own copy of PyYAML.
+The repo is public (github.com/smalls257/vela), so installing needs no access grant. Git on the machine should be signed in to GitHub, which `gh auth login` does. There is nothing to pip install. Vela runs on Python 3.9 or later, which comes with a Mac's developer tools, and it brings its own copy of PyYAML.
 
 ## Start here tomorrow
 
-1. **Make a vault.** Copy `template/` into a new GitHub repo, then follow its `README.md` setup checklist, steps 1 to 12. Step 2 copies this repo's `plugin/` folder into the vault. Run `vela doctor` from the vault to check the machine and the vault together.
-2. **Start every session with `bin/claude-vela`**, from inside the vault. The skills only load through that launcher.
+1. **Make a vault.** Make an empty folder, open Claude Code in it and run `/vela:import` (or `/vela:dump` if you have no documents). It offers to start the plan and asks the initiative's name; `vela new --title "<name>"` does the same by hand. Documents already in the folder go into the plan's inbox. Then the plan's `README.md` lists what's left: a GitHub repo, the required check and Obsidian. Run `vela doctor` from the vault to check the machine and the vault together.
+2. **Start Claude Code the usual way** (`claude`) in the vault. The installed plugin loads by itself.
 3. **Run your first session:**
    - `/vela:dump` gets everything out of your head. Ideas, worries, unknowns and wild ones all count. Claude doesn't push back. After the pre-mortem it runs a review checkpoint and shows you the questions nobody has asked yet. Take the ones you want; the rest wait.
    - `/vela:close` promotes what you keep and writes a question ledger row for each question you took. It drafts the prose in the house voice and has a fresh reader review it. Then it renders and checks the vault, and opens the PR.
@@ -116,7 +116,7 @@ v2 checks what you wrote. v3 also keeps track of what nobody has asked yet.
 
 | Path | What it is |
 |---|---|
-| `template/` | The vault you copy, including `CONVENTIONS.md`, the one written format |
+| `plugin/template/` | The files `vela new` copies to start a plan, including `CONVENTIONS.md`, the one written format |
 | `plugin/` | The `vela` CLI (`check`, `check-slice`, `check-diagrams`, `terms`, `render`, `view`, `explore`, `status`, `next`, `tickets`, `capture`, `health`, `query`, `questions`, `findings`, `handoff`, `next-id`, `export`, `voicecheck`, `voicescore`, `ladder`, `style`, `upgrade`, `conventions`, `session`, `record`, `whoami`, `close`, `guard`, `apply`, `add`, `decide`, `marks`, `epics`, `releases`, `boundary`, `prose`, `hook`, `team`, `map`, `import`, `onboard`, `reviewers`, `voice`, `role`, `publish`, `freshness`, `open`, `propose`, `proposals`, `where`, `doctor`), the question catalog in `catalog/questions.yaml`, the format the skills follow in `vault/CONVENTIONS.md`, the session skills (dump, discover, import, shape, requirements, boundary, allocate, releases, grill, epics, explore, close, ask, challenge, open, propose, proposals, where, voice-seed, house-voice), the `voice-reviewer` and `area-reviewer` agents, and START, MODES and REVIEW under `references/` |
 | `examples/unified-booking/` | A complete made-up vault: a ferry operator's Unified Booking initiative |
 | `integrations/` | Vault mode for `requirements-grill` and `tech-design-grill`, as patches |

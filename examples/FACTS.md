@@ -167,7 +167,7 @@ capabilities/CAP-011..023 (8)
 
 ## Page conventions
 
-The vault format lives in `template/CONVENTIONS.md`, and the fixture carries a byte-identical copy. This file keeps the facts and the house voice.
+The vault format lives in `plugin/template/CONVENTIONS.md`, and the fixture carries a byte-identical copy. This file keeps the facts and the house voice.
 
 ## Voice (house voice)
 
