@@ -1,6 +1,9 @@
 # Runs vela check on every pull request. Make the "vela-check" job a
 # required status check on main, so a red check blocks the merge.
 # vela comes from its public repository (the "get vela" step), so a plan keeps no copy of the plugin.
+# One repository may hold several plans, each in its own folder (`vela plans` lists them). GitHub runs a workflow only
+# from the repository's own .github/workflows/, so a plan in a subfolder copies this file there once. It checks each
+# plan whose folder changed, and no other: a pull request that touches one plan never waits on, or fails for, another.
 name: vela check
 
 on:
@@ -16,6 +19,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: get vela
         uses: actions/checkout@v4
         with:
@@ -24,7 +29,27 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+      - name: which plans changed
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          python .vela/tool/plugin/scripts/vela plans --changed-since "$BASE" --paths > changed.txt
+          echo "Plans to check: $(wc -l < changed.txt | tr -d ' ')"
+          cat changed.txt
       - name: vela check
-        run: python .vela/tool/plugin/scripts/vela check
+        run: |
+          status=0
+          while IFS= read -r plan; do
+            echo "::group::vela check $plan"
+            python .vela/tool/plugin/scripts/vela check --vault "$plan" || status=1
+            echo "::endgroup::"
+          done < changed.txt
+          exit $status
       - name: generated blocks are current
-        run: python .vela/tool/plugin/scripts/vela render && git diff --exit-code
+        run: |
+          status=0
+          while IFS= read -r plan; do
+            python .vela/tool/plugin/scripts/vela render --vault "$plan" || status=1
+          done < changed.txt
+          git diff --exit-code || status=1
+          exit $status

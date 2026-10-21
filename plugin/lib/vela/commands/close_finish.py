@@ -28,7 +28,7 @@ import io
 import json
 import pathlib
 
-from vela import closefinish, closegate, explorereport, handoffpreview, handoffwarn, say, schema, sessions
+from vela import closefinish, closegate, explorereport, handoffpreview, handoffwarn, planscope, say, schema, sessions
 from vela.edge import atomic, mergegit, sessiongit, stagegit, vaultgit
 
 # The explore report lines the lead hears after the dashboard line (close section 9): what the build went on without.
@@ -411,7 +411,7 @@ def lead_choice(root, today, reader, found, branch, result):
         line(say.Line("vela close dashboard: dashboard.html was already up to date; nothing to commit.",
                       closefinish.DASHBOARD_DONE))
         return
-    name = f"dashboard/{today}"
+    name = planscope.dashboard_branch(vaultgit.plan_scope(root), today)
     if not branch:
         result.exit = say.NEEDS_LEAD
         result.needs_lead = [{"choice": "branch", "branch": name, "run": "vela close dashboard --branch"}]

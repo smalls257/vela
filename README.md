@@ -103,6 +103,27 @@ v2 checks what you wrote. v3 also keeps track of what nobody has asked yet.
 - **A team lead who disputes a boundary or contract** runs `/vela:challenge`. It writes an open question the lead owns and a `**Dissent:**` line, and opens a PR whose check stays red (E316) on purpose.
 - **To answer it,** run `/vela:grill` and name the challenge PR or the challenged ID. START opens an answer session on the challenge's branch. Resolve the unknown or set the item back, then `/vela:close` pushes to that branch and comments on the challenge PR. It doesn't open a second PR. A reopened epic is decided again as `reopened → decided`.
 
+## Several plans in one repo
+
+One docs repo can hold a plan for each project. Any folder with a `.vela.yaml` is a plan, at the repo's root or in a subfolder (`projects/heron/`, `projects/payments/`), and that folder is the vault root for every command.
+
+```
+docs/                       one git repo
+  README.md
+  projects/
+    heron/    .vela.yaml    a plan
+    payments/ .vela.yaml    another plan
+```
+
+- **Start one.** `vela new --vault projects/heron --title "Heron rollout"` works inside an existing repo: no new repo, and the first commit holds only the new plan's files. It refuses a folder that already holds a plan, a folder inside another plan, and a folder with plans below it.
+- **Find them.** `vela plans` lists the plans in the repo with their folders and titles. `vela plans --here` names the one that holds the folder you are in, and asks which when you are at a root that holds several.
+- **Each plan stays in its own folder.** Staging, commits, the uncommitted-work check, the publish stamp and the copied files look only at the plan's folder, so one plan's unsaved edits are never staged, committed, published or counted by another's. A session branch carries the plan's name (`session/heron/2026-10-21-pilot-scope`) and its pull request is titled `[heron] ...`, so two plans' sessions never collide. Bringing in `main` is the one shared step, and it is a normal merge.
+- **Hooks.** Open Claude at the repo's root and the hooks still find the plan: they walk up from the edited file or the command's folder to the nearest `.vela.yaml`, never past the repo's root. A folder with no plan above it is left alone.
+- **CI.** GitHub reads workflows only from the repo's own `.github/workflows/`, so copy a plan's `vela-check.yml` and `vela-weekly.yml` there once. The check job runs `vela check` for each plan whose folder changed, and the weekly job posts one "Vault health: projects/heron" issue per plan.
+- **The pre-commit hook.** Point git at one plan's `.githooks` folder (`vela doctor` prints the exact line, with the plan's path in it). It judges every staged file by the rules of the plan that holds it.
+
+A plan that is its own repo works exactly as before.
+
 ## Later
 
 - **Weekly "Vault health" issue.** `.github/workflows/vela-weekly.yml` posts `vela health` every Monday to one issue titled "Vault health". It needs Issues enabled on the repo. It has not been tested live yet, so watch the first Monday's run.
@@ -117,7 +138,7 @@ v2 checks what you wrote. v3 also keeps track of what nobody has asked yet.
 | Path | What it is |
 |---|---|
 | `plugin/template/` | The files `vela new` copies to start a plan, including `CONVENTIONS.md`, the one written format |
-| `plugin/` | The `vela` CLI (`check`, `check-slice`, `check-diagrams`, `terms`, `new`, `render`, `view`, `explore`, `status`, `next`, `tickets`, `capture`, `health`, `query`, `questions`, `findings`, `handoff`, `next-id`, `export`, `voicecheck`, `voicescore`, `ladder`, `style`, `upgrade`, `conventions`, `session`, `record`, `whoami`, `close`, `guard`, `apply`, `add`, `decide`, `marks`, `epics`, `releases`, `boundary`, `prose`, `hook`, `team`, `map`, `import`, `library`, `grill`, `onboard`, `reviewers`, `voice`, `role`, `publish`, `freshness`, `open`, `propose`, `proposals`, `where`, `doctor`), the question catalog in `catalog/questions.yaml`, the format the skills follow in `vault/CONVENTIONS.md`, the session skills (dump, discover, import, shape, requirements, boundary, allocate, releases, grill, epics, explore, close, ask, challenge, open, propose, proposals, where, voice-seed, house-voice), the `voice-reviewer` and `area-reviewer` agents, and START, MODES and REVIEW under `references/` |
+| `plugin/` | The `vela` CLI (`check`, `check-slice`, `check-diagrams`, `terms`, `new`, `plans`, `render`, `view`, `explore`, `status`, `next`, `tickets`, `capture`, `health`, `query`, `questions`, `findings`, `handoff`, `next-id`, `export`, `voicecheck`, `voicescore`, `ladder`, `style`, `upgrade`, `conventions`, `session`, `record`, `whoami`, `close`, `guard`, `apply`, `add`, `decide`, `marks`, `epics`, `releases`, `boundary`, `prose`, `hook`, `team`, `map`, `import`, `library`, `grill`, `onboard`, `reviewers`, `voice`, `role`, `publish`, `freshness`, `open`, `propose`, `proposals`, `where`, `doctor`), the question catalog in `catalog/questions.yaml`, the format the skills follow in `vault/CONVENTIONS.md`, the session skills (dump, discover, import, shape, requirements, boundary, allocate, releases, grill, epics, explore, close, ask, challenge, open, propose, proposals, where, voice-seed, house-voice), the `voice-reviewer` and `area-reviewer` agents, and START, MODES and REVIEW under `references/` |
 | `examples/unified-booking/` | A complete made-up vault: a ferry operator's Unified Booking initiative |
 | `integrations/` | Vault mode for `requirements-grill` and `tech-design-grill`, as patches |
 | `docs/` | Spec, design-session logs, research, plans |

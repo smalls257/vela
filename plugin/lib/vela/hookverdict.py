@@ -338,22 +338,65 @@ SEND_REASON = ("This sends work off this machine (a push or a pull request). In 
                "`vela close pr` do it once the lead has said yes; ask the lead before it goes.")
 
 
-def bash_verdict(command):
-    """The hook's verdict on one Bash command line, or None for no opinion."""
+SHORT_BROAD = set("Au")  # `git add -A`, `git add -u`
+LONG_BROAD = {"--all", "--update"}
+GLOB = re.compile(r"[*?\[]")
+OUTSIDE_PLANS_REASON = (" This folder holds plans. The plan's files go through vela (`vela close stage`); to stage the "
+                        "other files by hand, name each path, for example `git add notes/todo.md`, and do not use -A, "
+                        "-u, `.` or a folder or pattern that reaches a plan.")
+
+
+def stages_broadly(sub, args):
+    """True when this index-writing run names no path to limit it (`add -A`, `add -u`, `commit -a`, `apply --index`)
+    or `add`'s flags say everything."""
+    flags = [w for w in args if w.startswith("-") and w != "--"]
+    letters = {c for w in flags if not w.startswith("--") for c in w[1:]}
+    if sub in ("add", "stage"):
+        return bool(letters & SHORT_BROAD or set(flags) & LONG_BROAD) and not named_paths(args)
+    if sub == "commit":  # a commit that names a path is judged by that path; a plain one by what the index holds
+        return bool(letters & set("aip")) or bool(set(flags) & {"--all", "--include", "--patch", "--interactive"})
+    return sub in ("apply", "update-index") and not named_paths(args)
+
+
+def reaches_a_plan(path, cwd, plan_roots):
+    """True when a path named in a git run lands inside a plan folder or covers one (a parent folder, `.`, or a pattern
+    whose fixed part does). Judged on strings from `cwd`; an absolute path is taken as it is."""
+    literal = GLOB.split(path, 1)[0]
+    if literal != path:
+        literal = literal.rsplit("/", 1)[0] if "/" in literal else ""
+    full = posixpath.normpath(posixpath.join(cwd, literal or "."))
+    return any(full == root or full.startswith(root + "/") or root.startswith(full.rstrip("/") + "/")
+               for root in plan_roots)
+
+
+def bash_verdict(command, cwd="", plan_roots=None, staged=()):
+    """The hook's verdict on one Bash command line, or None for no opinion.
+
+    In a plan every index-writing git run is denied. Opened at a repo's root (or a folder with no plan above it) that
+    holds plans, `plan_roots` lists their absolute folders and only a run that reaches a plan is denied: one that
+    names a path inside a plan or over one, or stages broadly. Named paths outside every plan are the owner's own
+    work and pass. A plain `git commit` commits only the index, so it is denied only when `staged` (absolute paths the
+    index holds; None when they could not be read, which counts as holding a plan's) reaches a plan."""
     denied, forbidden, asked = False, [], False
     for words in simple_commands(command):
         name = posixpath.basename(words[0])
         if name == "git":
             sub, args = git_subcommand(words)
-            if writes_index(sub, args):
-                denied = True
-                forbidden += [p for p in named_paths(args) if guard.never_rule(p) is not None]
+            if sub == "commit" and plan_roots is not None and not writes_index(sub, args):
+                denied = denied or staged is None or any(reaches_a_plan(p, cwd, plan_roots) for p in staged)
+            elif writes_index(sub, args):
+                if plan_roots is None:
+                    denied = True
+                    forbidden += [p for p in named_paths(args) if guard.never_rule(p) is not None]
+                elif stages_broadly(sub, args) or any(reaches_a_plan(p, cwd, plan_roots) for p in named_paths(args)):
+                    denied = True
         if sends(words):
             asked = True
     if denied:
         rules = [guard.never_rule(p) for p in forbidden]
         said = " ".join(dict.fromkeys(rule.plain for rule in rules))
-        return Verdict(DENY, STAGE_REASON + (f" {said}" if said else ""), forbidden)
+        return Verdict(DENY, STAGE_REASON + (OUTSIDE_PLANS_REASON if plan_roots is not None else "")
+                       + (f" {said}" if said else ""), forbidden)
     if asked:
         return Verdict(ASK, SEND_REASON)
     return None

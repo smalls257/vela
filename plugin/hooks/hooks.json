@@ -29,7 +29,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "d=\"${CLAUDE_PROJECT_DIR:-.}\"; j=$(cat); case \"$j\" in *'where --probe'*) if [ -e \"$d/.vela.yaml\" ] || [ -d \"$d/.vela\" ]; then mkdir -p \"$d/.vela\" && printf '%s\\n' \"$j\" > \"$d/.vela/hook-canary\"; fi;; esac; exit 0",
+            "command": "d=\"${CLAUDE_PROJECT_DIR:-.}\"; j=$(cat); case \"$j\" in *'where --probe'*) for p in \"$d\" \"$d\"/*/ \"$d\"/*/*/; do p=\"${p%/}\"; if [ -e \"$p/.vela.yaml\" ] || [ -d \"$p/.vela\" ]; then mkdir -p \"$p/.vela\" && printf '%s\\n' \"$j\" > \"$p/.vela/hook-canary\"; fi; done;; esac; exit 0",
             "timeout": 5
           }
         ]

@@ -75,6 +75,7 @@ The reviewer is the solution lead: the `owner:` of `01-goals.md`. Strip the lead
 
 1. Ask before anything leaves the machine: "I'll send this challenge for review to <the solution lead's name>. OK?" Capture the answer with `vela record add --origin <handle> --tag thought --mark "drop: the yes to send this for review" "<their words>"`. No yes: stop, with the record open.
 2. Set `summary:` to one line the team lead accepts and `status: closed`, then run `vela close stage --session <id> --close --paths-from-render`. It commits the record and the changed pages by exact path; tell the team lead about any file it names as left out.
+   When the plan shares its repository with other plans (`vela plans` lists more than one), the session's branch is `session/<plan>/<id>`, not `session/<id>`: wherever `session/<id>` appears below, use the `branch` in `.vela/session.json`, and put `[<plan>] ` in front of the PR title (the plan is the last folder of the path `vela plans --here` prints).
 3. Run `git push -u origin session/<id>`. If it fails, say in one plain sentence that the challenge didn't go up and why, without pasting the push's own message, give the commands for the user to run, and stop.
 4. Write the PR body to a temporary file, each item by name with its ID beside it:
    - **Challenge.** The item, the question, the case and the proposal, quoted from the captures.

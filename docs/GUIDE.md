@@ -105,9 +105,33 @@ python3 <plugin>/scripts/vela new --title "<initiative name>" --handle <your Git
 python3 <plugin>/scripts/vela check      # expect: 0 errors
 ```
 
-`vela new` copies the plugin's template, fills in the name and your handle, renders, makes the folder a git repo if it isn't one, and makes the first commit. It refuses a folder that already has a plan, or that sits inside another git repository, and it never overwrites a file: a clash is listed and nothing changes. Documents already in the folder move into `.inbox/`, which the plan never commits. The plan's `README.md` lists what's left for you.
+`vela new` copies the plugin's template, fills in the name and your handle, renders, makes the folder a git repo if it isn't inside one, and makes the first commit. It refuses a folder that already has a plan, that sits inside another plan, or that has plans below it, and it never overwrites a file: a clash is listed and nothing changes. Documents already in the folder move into `.inbox/`, which the plan never commits. The plan's `README.md` lists what's left for you.
 
 A fresh template prints `vela check: 0 errors, 0 warnings in 23 pages.`
+
+### Several plans in one repo
+
+One docs repo can hold a plan for each project, each in its own folder. Any folder with a `.vela.yaml` is a plan, at the repo's root or in a subfolder, and the plan's folder is the vault root for every command.
+
+```
+python3 <plugin>/scripts/vela new --vault projects/heron --title "Heron rollout" --handle <your GitHub login>
+python3 <plugin>/scripts/vela new --vault projects/payments --title "Payments move" --handle <your GitHub login>
+python3 <plugin>/scripts/vela plans
+vela plans: 2 plans.
+  projects/heron: Heron rollout
+  projects/payments: Payments move
+```
+
+Open Claude at the docs repo's root and the skills ask which plan when you haven't said (`vela plans --here` is how they find out), then run every command in that plan's folder. Open it inside a plan's folder and that plan is the one.
+
+What stays apart, and why it matters when two plans have work in flight:
+
+- **Git looks only at the plan's folder.** A checkpoint stages and commits the plan's own files by exact path. Another plan's unsaved edits are not staged, not committed, not published, and not counted as uncommitted: `vela publish` stamps `dirty` from the plan's folder alone, and copies only the plan's folder.
+- **Branches carry the plan's name.** A session branch is `session/heron/2026-10-21-pilot-scope`, a dashboard branch `dashboard/heron/2026-10-21`, and the pull request is titled `[heron] 2026-10-21 Grill: pilot scope`. Two plans can run a session on the same topic on the same day. A plan that is its own repo keeps `session/<id>` and its old titles.
+- **A session start moves the whole repo's branch,** so it asks first when files outside the plan have unsaved changes, or when the repo is on another plan's session or on a branch of yours. Switch back to `main` and it goes ahead. `close stage` and `close push` likewise refuse once the repo has left the session's branch.
+- **`main` is shared.** A session starts from `main` brought up to the shared copy and `close sync-main` merges it in, both as a normal pull. Neither rewrites another plan's files beyond what the merge brings in; the other plan's uncommitted files do not stop either one.
+- **Hooks follow the plan.** The hooks walk up from the edited file or the command's folder to the nearest `.vela.yaml`, stopping at the repo's root, so editing `projects/heron/02-constraints.md` from the repo's root is guarded by heron's rules. A folder with no plan above it, such as `notes/`, is not guarded.
+- **CI and the pre-commit hook are repo-wide.** GitHub runs only the repo's own `.github/workflows/`, so copy one plan's `vela-check.yml` and `vela-weekly.yml` there once. The check job runs `vela check` and the generated-block test for each plan whose folder changed (`vela plans --changed-since <ref> --paths` is the list), and the weekly job posts one "Vault health: projects/heron" issue per plan. Point git at one plan's `.githooks` folder (`vela doctor` prints the line); it judges every staged file by the plan that holds it.
 
 ### The session order
 

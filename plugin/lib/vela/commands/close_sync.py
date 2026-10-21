@@ -67,7 +67,7 @@ class _Run:
     def __init__(self, root, today, keep_record=True):
         self.root, self.today, self.branch, self.main, self.head = root, today, "", "", ""
         self.keep_record = keep_record
-        self.prefix, self.kept, self.set_aside = "", {}, []
+        self.kept, self.set_aside = {}, []
 
     def put_back(self):
         """The set-aside files back as they were, before anything else is written: the state file may be one of them."""
@@ -93,14 +93,12 @@ class _Run:
         return say.Result(COMMAND, exit_code, list(lines), list(refusals), list(needs_lead), list(wrote), data)
 
 
-def never_committed(path, prefix):
-    """True for a repository-relative path inside the vault whose change is not the lead's unsaved work
+def never_committed(path):
+    """True for a plan-relative path whose change is not the lead's unsaved work
     (`guard.set_aside_unasked`: vela's own `.vela/` files, the inbox, private voice, and the dashboard vela rebuilds).
     A dirty one neither blocks a sync nor appears in advice to commit it: that advice contradicted close stage
     (Distributed Monolith), and following it could never succeed."""
-    if not path.startswith(prefix):
-        return False
-    return guard.set_aside_unasked(path[len(prefix):])
+    return guard.set_aside_unasked(path)
 
 
 def sync_main(root, today, accept=False, timeout=mergegit.FETCH_TIMEOUT):
@@ -144,12 +142,11 @@ def _sync_owner(run, accept, timeout):
         return run.finish(closestate.UP_TO_DATE, say.DONE, [say.Line(
             f"sync-main: up to date: origin/main {run.main[:7]} is already in {run.branch}.",
             "This branch already has everything on main.")])
-    run.prefix = mergegit.vault_prefix(root)
     dirty = mergegit.tracked_changes(root)
-    mine = [path for path in dirty if not never_committed(path, run.prefix)]
+    mine = [path for path in dirty if not never_committed(path)]
     if mine:
         return _uncommitted(run, mine)
-    run.set_aside = [path for path in dirty if never_committed(path, run.prefix)]
+    run.set_aside = [path for path in dirty if never_committed(path)]
     run.kept = mergegit.set_aside(root, run.set_aside)
     return _merge(run)
 
@@ -162,12 +159,16 @@ def _merge(run):
             f"sync-main: merged origin/main {run.main[:7]} into {run.branch}.",
             "I brought in what changed on main; nothing clashed."))
     paths = mergegit.conflicted_files(root)
+    outside = mergegit.conflicts_outside(root)
+    if outside:
+        mergegit.abort(root)
+        return _conflict_outside(run, outside)
     if not paths:  # the merge failed for a reason that is not a conflict: git's words are the only explanation
         _abort_if_stopped(root)
         raise mergegit.MergeGitFailed(f"git merge --no-edit {mergegit.MAIN} failed: {said}")
     # A file close stage never commits is nobody's writing: -X ours settles it like a generated block
     plans = [mergeplan.plan_file(path, mergegit.conflicted_text(root, path)) for path in paths
-             if not never_committed(path, run.prefix)]
+             if not never_committed(path)]
     mergegit.abort(root)
     if plans and not mergeplan.generated_only(plans):
         return _conflict(run, _with_vault_titles(root, plans))
@@ -256,6 +257,20 @@ def _conflict(run, plans):
         fix="Show the lead both sides of each listed line range; the lead resolves; rerun vela close sync-main.",
         override=f"{ACCEPT} (go on without main; close gate lists it)")
     return run.finish(closestate.CONFLICT, say.REFUSED, lines, files=files, refusals=[refusal])
+
+
+def _conflict_outside(run, outside):
+    """Main and this branch changed the same lines of files that are not in this plan's folder: not this plan's to settle."""
+    shown = ", ".join(outside[:5]) + (f" and {len(outside) - 5} more" if len(outside) > 5 else "")
+    refusal = say.Refusal(
+        rule="sync-main conflict outside the plan",
+        plain="Main changed some files outside this plan that clash with this branch, so I stopped before mixing them. "
+              "Nothing changed. They belong to the rest of the repository, so they need settling there first.",
+        fix=f"Settle these files outside the plan, then rerun vela close sync-main: {shown}",
+        override=f"{ACCEPT} (go on without main; close gate lists it)")
+    lines = [say.Line(f"sync-main: conflict outside this plan: {shown}", plain="")]
+    return run.finish(closestate.CONFLICT, say.REFUSED, lines, files=[{"path": p, "lines": ["outside this plan"]} for p in outside],
+                      refusals=[refusal])
 
 
 def _fetch_failed(run, why):

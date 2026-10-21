@@ -26,14 +26,28 @@ def _fields(out):
 
 
 def changed_paths(root):
-    """Every path git status reports, tracked or untracked (each untracked file named, not its folder). Ignored files
-    are not listed: git's own .gitignore already keeps them out of `git add` by path."""
+    """Every path git status reports under the plan's folder, tracked or untracked (each untracked file named, not its
+    folder), relative to that folder. Ignored files are not listed: git's own .gitignore already keeps them out of
+    `git add` by path. Another plan's files in the same repo are never listed."""
     return vaultgit.status_paths(root, "--untracked-files=all")
 
 
+def changed_paths_in_repo(root):
+    """The same for the whole repository, repository-relative: for a proposal's worktree, which is made for one plan
+    and judged as a whole before anything is committed."""
+    return vaultgit.status_paths(root, "--untracked-files=all", pathspec=(":/",))
+
+
 def staged_paths(root):
-    """Paths the index would add or change in the next commit. Deletions are left out: removing an inbox file from the
-    repository is the cure, not the problem. Honors GIT_INDEX_FILE, which git sets for a partial commit's hook."""
+    """Paths under the plan's folder the index would add or change in the next commit, relative to that folder.
+    Deletions are left out: removing an inbox file from the repository is the cure, not the problem. Honors
+    GIT_INDEX_FILE, which git sets for a partial commit's hook."""
+    return _fields(_ok(root, "diff", "--cached", "--name-only", "-z", "--no-renames", "--diff-filter=d", "--relative"))
+
+
+def staged_paths_in_repo(root):
+    """Every path the index would add or change anywhere in the repository, repository-relative. The pre-commit hook
+    asks this, because a commit carries the whole index, whichever plan the files belong to."""
     return _fields(_ok(root, "diff", "--cached", "--name-only", "-z", "--no-renames", "--diff-filter=d"))
 
 
@@ -53,6 +67,10 @@ def commit(root, message, paths):
 def staged_deletions(root):
     """Paths whose deletion is already in the index (gone from disk and index alike), which `stage` can't name again:
     a pathspec that matches nothing makes the whole add fail."""
+    return _fields(_ok(root, "diff", "--cached", "--name-only", "-z", "--no-renames", "--diff-filter=D", "--relative"))
+
+
+def staged_deletions_in_repo(root):
     return _fields(_ok(root, "diff", "--cached", "--name-only", "-z", "--no-renames", "--diff-filter=D"))
 
 

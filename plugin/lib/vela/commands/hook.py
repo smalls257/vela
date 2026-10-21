@@ -19,12 +19,19 @@ Hook protocol: each reads the hook's JSON on stdin and always exits 0 (a hook fa
 would relay it; the others print their decision JSON, or nothing for no opinion. Problems go to stderr, which
 `claude --debug` shows. They speak only in a vault or a published copy (a folder with `.vela.yaml` or `.vela/`), so a
 plugin enabled for a whole account never litters, or denies `git add` in, the user's other projects.
+
+The vault is found by walking up from the edited file or the command's working folder to the nearest `.vela.yaml`,
+stopping at the repo's root (`edge/plans.py`). One docs repo may hold several plans, each in its own folder: Claude
+opened at the repo's root and editing a page in `projects/heron/` is guarded by heron's rules, and a folder with no
+plan above it stays unguarded.
 """
 import json
 import os
 import pathlib
 import sys
 from datetime import datetime, timezone
+
+from vela.edge import plans
 
 MARKER = ".vela/hooks-active"
 
@@ -65,24 +72,36 @@ def marker_folder(payload):
     return pathlib.Path(payload.get("cwd") or os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd())
 
 
-def is_vault(folder):
-    return (folder / ".vela.yaml").is_file() or (folder / ".vela").is_dir()
+def vault_for(folder):
+    """The vault or published copy that holds `folder` (the nearest above it, never past the repo's root), or None."""
+    return plans.plan_above(folder)
+
+
+def vaults_started_from(folder):
+    """Where session-start leaves its marker: the vault above `folder`; or, when Claude was opened at the root of a repo
+    that holds several plans, each of them, so the host probe finds the marker whichever plan the lead then names."""
+    above = vault_for(folder)
+    if above is not None:
+        return [above]
+    return plans.plans_in(folder) if plans.repo_root(folder) == folder.resolve() else []
 
 
 def cmd_session_start(args, out):
     from vela.edge import atomic
     payload = read_payload(sys.stdin)
-    root = marker_folder(payload)
-    if not is_vault(root):
-        warn(f"{root} is not a vault or a published copy, so no marker was left")
+    folder = marker_folder(payload)
+    found = vaults_started_from(folder)
+    if not found:
+        warn(f"{folder} is not in a vault or a published copy, so no marker was left")
         return 0
     marker = {"session_id": str(payload.get("session_id") or ""), "source": str(payload.get("source") or ""),
               "at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}
-    try:
-        (root / ".vela").mkdir(exist_ok=True)
-        atomic.write_atomic(root / MARKER, json.dumps(marker) + "\n")
-    except OSError as exc:
-        warn(f"couldn't write {root / MARKER}: {exc}; the host probe will report hooks as not running")
+    for root in found:
+        try:
+            (root / ".vela").mkdir(exist_ok=True)
+            atomic.write_atomic(root / MARKER, json.dumps(marker) + "\n")
+        except OSError as exc:
+            warn(f"couldn't write {root / MARKER}: {exc}; the host probe will report hooks as not running")
     return 0
 
 
@@ -92,15 +111,16 @@ def cmd_said(args, out):
     from vela import said
     from vela.edge import saidlog, vaultgit
     payload = read_payload(sys.stdin, "said")
-    root = marker_folder(payload)
     prompt = payload.get("prompt")
-    if not isinstance(prompt, str) or not prompt.strip() or said.harness_injected(prompt) or not is_vault(root):
+    if not isinstance(prompt, str) or not prompt.strip() or said.harness_injected(prompt):
         return 0
-    name = str(payload.get("session_id") or "") or vaultgit.current_branch(root) or "session"
-    try:
-        saidlog.append(root, name, datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), prompt)
-    except OSError as exc:
-        warn(f"couldn't log the message under {root / saidlog.FOLDER}: {exc}; `vela record add` will mark yeses unverified", "said")
+    when = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    for root in vaults_started_from(marker_folder(payload)):  # opened at a repo's root, every plan below hears it
+        name = str(payload.get("session_id") or "") or vaultgit.current_branch(root) or "session"
+        try:
+            saidlog.append(root, name, when, prompt)
+        except OSError as exc:
+            warn(f"couldn't log the message under {root / saidlog.FOLDER}: {exc}; `vela record add` will mark yeses unverified", "said")
     return 0
 
 
@@ -108,10 +128,14 @@ def cmd_said(args, out):
 
 
 def vault_of(path):
-    """The vault folder holding `path` (the nearest parent with `.vela.yaml`), or None."""
-    for folder in [path.parent, *path.parent.parents]:
+    """The plan folder holding `path` (the nearest parent with `.vela.yaml`, never past the repo's root), or None."""
+    start = path.parent
+    top = plans.repo_root(start)
+    for folder in [start, *start.parents]:
         if (folder / ".vela.yaml").is_file():
             return folder
+        if top is not None and folder == top:
+            return None
     return None
 
 
@@ -127,10 +151,37 @@ def answer(out, verdict):
 def cmd_bash(args, out):
     from vela import hookverdict
     payload = read_payload(sys.stdin, "bash")
-    if not payload or not is_vault(marker_folder(payload)):
+    command = (payload.get("tool_input") or {}).get("command") if payload else None
+    if not isinstance(command, str):
         return 0
-    command = (payload.get("tool_input") or {}).get("command")
-    return answer(out, hookverdict.bash_verdict(command) if isinstance(command, str) else None)
+    folder = marker_folder(payload)
+    if vault_for(folder) is not None:
+        return answer(out, hookverdict.bash_verdict(command))
+    roots = plan_roots_around(folder) if "git" in command else []
+    if not roots:
+        return 0
+    return answer(out, hookverdict.bash_verdict(command, str(folder.resolve()), roots, staged_in(folder, command)))
+
+
+def staged_in(folder, command):
+    """Absolute paths the index holds, read only for a command that might commit; None when git cannot say (the verdict
+    then treats the index as holding a plan's files: a hook that cannot look does not wave a commit through)."""
+    from vela.edge import stagegit, vaultgit
+    if "commit" not in command:
+        return ()
+    top = plans.repo_root(folder)
+    try:
+        return [str(top / path) for path in stagegit.staged_paths_in_repo(top) + stagegit.staged_deletions_in_repo(top)]
+    except vaultgit.GitUnavailable as exc:
+        warn(f"couldn't read the index ({exc}); a commit here is treated as holding a plan's files", "bash")
+        return None
+
+
+def plan_roots_around(folder):
+    """Absolute folders of the plans in the repo `folder` sits in, when no plan is above it: a `git add` here can reach
+    them, but the owner's files outside every plan are the owner's own business. [] outside a repo or with no plans."""
+    top = plans.repo_root(folder)
+    return [str(p) for p in plans.plans_in(top)] if top is not None else []
 
 
 def edited_file(payload):

@@ -112,7 +112,9 @@ def test_workflow_runs_weekly_with_issue_permission_only():
     assert triggers["schedule"] == [{"cron": "0 7 * * 1"}] and "workflow_dispatch" in triggers
     assert data["permissions"] == {"contents": "read", "issues": "write"}
     steps = data["jobs"]["vault-health"]["steps"]
-    assert "python .vela/tool/plugin/scripts/vela health > vault-health.md" in [s.get("run") for s in steps]
+    runs = [s.get("run") for s in steps]
+    assert "python .vela/tool/plugin/scripts/vela plans --paths > plans.txt" in runs  # one report per plan the repo holds
+    assert any('vela health --vault "$plan" > "vault-health-$n.md"' in (run or "") for run in runs)
     assert steps[-1]["env"] == {"GH_TOKEN": "${{ secrets.GITHUB_TOKEN }}"}
 
 
@@ -124,12 +126,14 @@ if [ "$1 $2" = "issue list" ]; then printf '%s' "$FAKE_ISSUE"; fi
 """
 
 
-def run_issue_step(tmp_path, existing, fail_on="none"):
+def run_issue_step(tmp_path, existing, fail_on="none", plans=(".",)):
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
     (bin_dir / "gh").write_text(FAKE_GH, encoding="utf-8")
     os.chmod(bin_dir / "gh", 0o755)
-    (tmp_path / "vault-health.md").write_text("# Vault health\n", encoding="utf-8")
+    (tmp_path / "plans.txt").write_text("".join(f"{plan}\n" for plan in plans), encoding="utf-8")
+    for number in range(1, len(plans) + 1):
+        (tmp_path / f"vault-health-{number}.md").write_text("# Vault health\n", encoding="utf-8")
     log = tmp_path / "gh.log"
     env = {**os.environ, "PATH": f"{bin_dir}:{os.environ['PATH']}", "GH_LOG": str(log), "FAKE_ISSUE": existing,
            "FAKE_FAIL_ON": fail_on}
@@ -142,14 +146,22 @@ def run_issue_step(tmp_path, existing, fail_on="none"):
 def test_first_run_creates_the_issue(tmp_path):
     result, calls = run_issue_step(tmp_path, "")
     assert result.returncode == 0, result.stderr
-    assert calls[-1] == "issue create --title Vault health --body-file vault-health.md"
+    assert calls[-1] == "issue create --title Vault health --body-file vault-health-1.md"
 
 
 def test_later_runs_edit_the_open_issue(tmp_path):
     result, calls = run_issue_step(tmp_path, "17\n")
     assert result.returncode == 0, result.stderr
-    assert calls[-1] == "issue edit 17 --body-file vault-health.md"
+    assert calls[-1] == "issue edit 17 --body-file vault-health-1.md"
     assert not [c for c in calls if c.startswith("issue create")]
+
+
+def test_a_repo_with_several_plans_gets_one_issue_per_plan_named_for_its_folder(tmp_path):
+    result, calls = run_issue_step(tmp_path, "", plans=("projects/heron", "projects/payments"))
+    assert result.returncode == 0, result.stderr
+    assert [c for c in calls if c.startswith("issue create")] == [
+        "issue create --title Vault health: projects/heron --body-file vault-health-1.md",
+        "issue create --title Vault health: projects/payments --body-file vault-health-2.md"]
 
 
 def test_a_failed_lookup_fails_the_job_instead_of_opening_a_duplicate(tmp_path):

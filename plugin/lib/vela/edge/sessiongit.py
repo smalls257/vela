@@ -29,9 +29,9 @@ a subfolder of its repo compares the same paths git reports.
 import json
 import pathlib
 
-from vela import roles
+from vela import planscope, roles
 from vela.edge import atomic, hostprobe, stagegit
-from vela.edge.vaultgit import FETCH_TIMEOUT, NO_PROMPT, GitUnavailable, git_out, run_git
+from vela.edge.vaultgit import FETCH_TIMEOUT, NO_PROMPT, GitUnavailable, git_out, plan_scope, run_git
 
 SWITCH_TIMEOUT = 60  # a checkout of a large vault, with hooks, can take a while
 PATTERNS = ("refs/heads/session/", "refs/remotes/origin/session/")
@@ -55,10 +55,13 @@ def folder_records(root):
 
 
 def session_refs(root):
-    """Every local and origin `session/*` ref, plus the current branch, as full ref names."""
+    """Every local and origin `session/*` ref that is this plan's, plus the current branch, as full ref names. A plan
+    that shares its repo with others owns `session/<plan>/*` (and the old unscoped `session/<id>`), never another
+    plan's sessions."""
+    scope = plan_scope(root)
     listed = git_out(root, "for-each-ref", "--format=%(refname)", *PATTERNS).splitlines()
     code, current, _ = run_git(root, "symbolic-ref", "-q", "HEAD")
-    refs = [ref for ref in listed if ref]
+    refs = [ref for ref in listed if ref and planscope.owns_session_branch(scope, ref[ref.index("session/"):])]
     if code == 0 and current and current not in refs:
         refs.append(current)  # detached HEAD (code 1) has no branch to report
     return refs
@@ -150,9 +153,8 @@ def branch_taken(root, branch):
 
 
 def dirty_paths(root):
-    """Every changed or untracked path, vault-relative. git status names them from the repo's top."""
-    prefix = git_out(root, "rev-parse", "--show-prefix")
-    return [path[len(prefix):] for path in stagegit.changed_paths(root) if path.startswith(prefix)]
+    """Every changed or untracked path under the plan's folder, vault-relative."""
+    return stagegit.changed_paths(root)
 
 
 def incoming_paths(root, target):

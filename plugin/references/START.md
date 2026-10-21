@@ -1,6 +1,6 @@
 # Starting a session
 
-Every mode skill runs these steps before its own. The vault root is the current directory. Read the vault's format one section at a time with `vela conventions "<section>"`, never the whole file. When a command can't express what the lead wants, say so and stop; never fall back to doing its work by hand.
+Every mode skill runs these steps before its own. The vault root is the plan's folder, found as "Which plan" below says (the current directory when it holds `.vela.yaml`). Read the vault's format one section at a time with `vela conventions "<section>"`, never the whole file. When a command can't express what the lead wants, say so and stop; never fall back to doing its work by hand.
 
 ## 0. Read how to talk
 
@@ -26,6 +26,16 @@ Pick the program once, by the first of these that works:
 6. None: stop and say "I cannot find the vela program. Run `/vela:where` and send me what it prints." Don't guess a path.
 
 Run it through `run-vela`, which sits in the same folder and picks whichever Python the machine has (`python3`, `python` or `py`): a shell function, `vela() { sh <that folder>/run-vela "$@"; }`, defined at the top of each shell command that uses it, since shell state may not carry over. Never `P="sh <folder>/run-vela"; $P ...`: zsh doesn't split `$P` into words. Don't say which one you picked. Other `${CLAUDE_PLUGIN_ROOT}/...` files sit in the same plugin root as `scripts/`.
+
+## Which plan
+
+A plan is a folder with a `.vela.yaml`, and that folder is the vault root: run every command there, or pass it as `--vault <folder>`. One repository can hold several plans, each in its own folder (`projects/booking/`, `projects/payments/`). Run `vela plans --here --json` first.
+
+- **It names one plan** (exit 0, `plans[0].path`): that is the vault root, whether Claude was opened in the plan's folder, in a folder inside it, or at a repository root that holds only that plan.
+- **Exit 3, "which plan":** Claude was opened at a repository root that holds several, and the lead hasn't named one. Ask once, listing them by title as `needs_lead` gives them ("There's more than one plan here: Booking rebuild and Payments move. Which one are we working on?"), then use the folder of the one they pick. Never guess, and never pick the first.
+- **Exit 1, no plan:** go to "No plan here yet" in step 1.
+
+Keep to that plan for the session. If the lead names the other plan later, that is a second session: close this one first, as "Closing a session" says. The plan's branches carry its name (`session/booking/...`), so two plans' sessions never share one, and vela looks only at the plan's folder, so the other plan's unsaved work is not yours to stage, save or mention.
 
 ## Owner or reader
 
@@ -64,7 +74,7 @@ Hard stops are not process rules, and no override reaches them. Say which one ap
 
 Run `vela session start --mode grill --topic "<two to four words from the lead's first message>" --for-lead`, with the skill's own mode in place of `grill`; repeat `--mode` for a session that runs two. It does steps 1, 2 and 5: it checks the clone, brings `main` up to the shared copy (or merges it into a resumed branch), opens the session's branch and record, and commits them. Say what it means, in your words; say nothing when the plan is up to date. If the shared copy was out of reach, say so, and never call the plan up to date. Later, `vela freshness` says how far behind the shared copy this branch is.
 
-**No plan here yet.** In a folder with no `.vela.yaml`, `session start` exits 3 and changes nothing. Never set a plan up by hand: no copying files, no `git init`, no `git add`. Ask the lead: "There's no plan in this folder yet. Want me to start one? What short name should the initiative go by, a few words as you'd say it to a colleague?" On a yes and a name, run `vela new --title "<their words>" --for-lead`. If it asks for their GitHub handle, ask once and run it again with `--handle <handle>`. If it stops, say what it said and don't go on. Whatever documents were in the folder are in the plan's inbox afterward, which is where this skill reads them from. Then run `session start` again, and carry on.
+**No plan here yet.** In a folder with no `.vela.yaml` and no plan around it, `session start` exits 3 and changes nothing (inside a plan's folder it says to run from the plan's own folder; at a repository root that holds plans it asks which one). A new plan can go in a subfolder of a repository that already holds others: `vela new --vault <folder>` makes no new repository there. Never set a plan up by hand: no copying files, no `git init`, no `git add`. Ask the lead: "There's no plan in this folder yet. Want me to start one? What short name should the initiative go by, a few words as you'd say it to a colleague?" On a yes and a name, run `vela new --title "<their words>" --for-lead`. If it asks for their GitHub handle, ask once and run it again with `--handle <handle>`. If it stops, say what it said and don't go on. Whatever documents were in the folder are in the plan's inbox afterward, which is where this skill reads them from. Then run `session start` again, and carry on.
 
 **Reader copy:** `session start` writes the record in the folder and runs no git. Also run `vela freshness --for-lead` and say whether a newer copy was published. If it fails, say in one plain sentence that you couldn't check, and go on.
 

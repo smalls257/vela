@@ -48,7 +48,7 @@ import re
 import tempfile
 from dataclasses import replace
 
-from vela import closegate, commands, parse, prbody, say, sessions
+from vela import closegate, commands, parse, planscope, prbody, say, sessions
 from vela.commands import close_gate, whoami
 from vela.decisions import consent as consents
 from vela.decisions import record as records
@@ -356,7 +356,8 @@ def pushed_marker(root, session):
 
 
 def commit_times(root):
-    out = vaultgit.git_out(root, "log", "--format=%ct", f"{close_gate.branch_point(root)}..HEAD")
+    out = vaultgit.git_out(root, "log", "--format=%ct", f"{close_gate.branch_point(root)}..HEAD",
+                           *vaultgit.plan_pathspec(root))
     return [int(t) for t in out.split()]
 
 
@@ -417,7 +418,8 @@ def open_pr(root, vault, session, args):
             sent = comment_on_challenge(root, session, body_file)
             title = ""
         else:
-            title = prbody.title(session.record.date, list(session.record.modes), session.record.title)
+            title = planscope.titled(vaultgit.plan_scope(root), prbody.title(
+                session.record.date, list(session.record.modes), session.record.title))
             sent = ghcli.pr_create(root, session.branch, title, body_file, found)
     data = {"url": sent.url, "number": sent.number, "reviewers": found, "title": title, "command": sent.command}
     if not sent.ok:

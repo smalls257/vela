@@ -64,8 +64,9 @@ def has_ref(root, ref):
 
 
 def changed_paths(root, before, after):
-    """Paths that differ between two commits (what a merge changed in the lead's copy)."""
-    return [line for line in _out(root, "diff", "--name-only", before, after).splitlines() if line]
+    """Plan-relative paths that differ between two commits (what a merge changed in the lead's copy). Another plan's
+    files in the same repo came in with the merge too, but they are not this plan's copy."""
+    return [line for line in _out(root, "diff", "--name-only", "--relative", before, after, "--", ".").splitlines() if line]
 
 
 def current_branch(root):
@@ -82,43 +83,37 @@ def is_ancestor(root, older, newer):
 
 
 def tracked_changes(root):
-    """Tracked files with uncommitted changes, staged or not, repository-relative. Untracked files are left out: a merge
-    only refuses over one when main adds the same path, and then git's own error is printed."""
+    """Plan-relative paths of tracked files under the plan's folder with uncommitted changes, staged or not. Untracked
+    files are left out: a merge only refuses over one when main adds the same path, and then git's own error is
+    printed. Another plan's uncommitted files are not this plan's business and are not listed."""
     try:
         return vaultgit.status_paths(root, "--untracked-files=no")
     except vaultgit.GitUnavailable as exc:
         raise MergeGitFailed(str(exc)) from exc
 
 
-def vault_prefix(root):
-    """The vault's folder inside its repository ("" at the root): git status names paths from the repository root."""
-    return _out(root, "rev-parse", "--show-prefix")
-
-
 def set_aside(root, paths):
-    """Keep each repository-relative path's bytes (None when it is not on disk), then put HEAD's copy back, so the merge
+    """Keep each plan-relative path's bytes (None when it is not on disk), then put HEAD's copy back, so the merge
     starts from a clean tree. `put_back` restores them. For files close stage never commits: a merge must not refuse
     over them, and their content must survive it exactly."""
     if not paths:
         return {}
-    top = pathlib.Path(_out(root, "rev-parse", "--show-toplevel"))
-    kept = {path: (top / path).read_bytes() if (top / path).is_file() else None for path in paths}
+    folder = pathlib.Path(root)
+    kept = {path: (folder / path).read_bytes() if (folder / path).is_file() else None for path in paths}
     # restore, not checkout: a path staged but not in HEAD is taken out of the index too, so the tree is really clean
-    code, out, err = _git(top, "restore", "--source=HEAD", "--staged", "--worktree", "--", *paths,
+    code, out, err = _git(folder, "restore", "--source=HEAD", "--staged", "--worktree", "--", *paths,
                           env={"GIT_LITERAL_PATHSPECS": "1"})
     if code != 0:
-        put_back(root, kept, top)
+        put_back(root, kept)
         raise MergeGitFailed(f"git restore --source=HEAD -- {' '.join(paths)} failed: {err or out}")
     return kept
 
 
-def put_back(root, kept, top=None):
+def put_back(root, kept):
     """Write each set-aside file's bytes back (and remove one that was not on disk): the working copy as it was."""
-    if not kept:
-        return
-    top = top or pathlib.Path(_out(root, "rev-parse", "--show-toplevel"))
+    folder = pathlib.Path(root)
     for path, data in kept.items():
-        target = top / path
+        target = folder / path
         if data is None:
             target.unlink(missing_ok=True)
         else:
@@ -134,8 +129,18 @@ def merge(root, ref=MAIN, ours_on_conflict=False):
 
 
 def conflicted_files(root):
-    out = _out(root, "diff", "--name-only", "--diff-filter=U")
+    out = _out(root, "diff", "--name-only", "--relative", "--diff-filter=U")
     return [line for line in out.splitlines() if line]
+
+
+def conflicts_outside(root):
+    """Repository-relative paths in conflict that are not under the plan's folder. The plan's own `conflicted_files`
+    cannot see them (`--relative` hides what is outside), and a re-merge with `-X ours` would settle them in this
+    branch's favor and drop main's changes to files that are not this plan's to decide."""
+    prefix = vaultgit.plan_prefix(root)
+    if not prefix:
+        return []
+    return [p for p in _out(root, "diff", "--name-only", "--diff-filter=U").splitlines() if p and not p.startswith(prefix)]
 
 
 def merging(root):
@@ -147,14 +152,13 @@ def abort(root):
     _out(root, "merge", "--abort")
 
 
-def conflicted_text(root, path, top=None):
+def conflicted_text(root, path):
     """The file's text with git's markers, or None when it is not there or not UTF-8 text (a modify/delete or binary
-    conflict). None is not "no conflict": mergeplan counts such a file as outside. `path` is repository-relative, as
-    `conflicted_files` gives it, so it is read from the repository's top: read from a vault in a subfolder, every
-    file was "not there" and a conflict only in generated blocks stopped the merge as the lead's writing (C83)."""
-    top = pathlib.Path(top) if top else pathlib.Path(_out(root, "rev-parse", "--show-toplevel"))
+    conflict). None is not "no conflict": mergeplan counts such a file as outside. `path` is plan-relative, as
+    `conflicted_files` gives it, so it is read from the plan's folder (a plan in a subfolder of its repo once read
+    every file as "not there", and a conflict only in generated blocks stopped the merge as the lead's writing, C83)."""
     try:
-        return (top / path).read_text(encoding="utf-8")
+        return (pathlib.Path(root) / path).read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError):
         return None
 
