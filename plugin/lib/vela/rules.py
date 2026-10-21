@@ -793,7 +793,10 @@ def release_rules(vault, today):
     page = releases.page(vault)
     reqs = {r.id: r for r in allocation.requirements(vault)}
     for release in found:
-        if not is_date(release.target):
+        if release.state == "inkling" and not release.target.strip():
+            yield _f(page, release.line, "W349", f"Release '{release.name}' is an early idea with no Target, so it has no place on the timeline yet.",
+                     "Add '- **Target:** 2027-01-15' once somebody gives a date; an assumption or a decided release needs one.")
+        elif not is_date(release.target):
             yield _f(page, release.line, "E344", f"Release '{release.name}' has Target '{release.target or 'none'}', not a YYYY-MM-DD date.",
                      "Add '- **Target:** 2027-01-15' under its heading; a bad date drops it from the timeline.")
         if release.state not in releases.STATES:

@@ -631,11 +631,12 @@ The table is generated from the codes `vela check` uses, so it cannot drift from
 | E341 | release row names a criterion the requirement does not have |
 | E342 | release has no valid state |
 | W343 | no release delivers a functional requirement |
-| E344 | release target is not a YYYY-MM-DD date |
+| E344 | release target is not a YYYY-MM-DD date, or an assumption or decided release has none |
 | W345 | release one has no Tracer bullet |
 | E346 | slice status is not one of the five |
 | W347 | the tracer passes through an app or contract release one delivers no share of |
 | W348 | a release's Slices names no slice page, or a slice's Milestone names a release that does not list it |
+| W349 | an early-idea release has no Target yet |
 | E350 | flow step names a sender or receiver its contract does not join |
 | W351 | flow step links a contract but names no sender and receiver |
 | W352 | app has no domain though other apps in a large initiative do |
@@ -790,7 +791,7 @@ Nothing else records a release. What the system looks like after each one is wor
 
 `/vela:releases` writes this page, after allocate and before epics, in a session with mode `releases`. A requirement the user places on no release ("later, no date") stays out of the file; W343 lists it.
 
-`vela check` reports E340 for a row that names no functional requirement of this vault, E341 for a criterion the requirement does not list, E342 for a release with no valid State, and E344 for a Target that is not a real YYYY-MM-DD date. Once any release exists, W343 warns for a requirement at `assumption`, `fact` or `decided` that no release delivers. If Not in the tracer, or a slice's Not in this slice, lists that requirement, W343 quotes the reason. Without slice pages, W345 warns when release one has no Tracer bullet; any Tracer bullet quiets it, including `none, <reason>` and plain words with no link. W347 warns when a tracer flow passes through an app or contract of this vault that release one delivers no share of; listing that app or contract by ID under Not in the tracer quiets it, an app or contract whose change is `unchanged` already runs and never counts, and neither do outside parties. With slice pages, the same two ask the same of the slices (see Slices). W348 warns when a release's Slices names a slice with no page. A Grill decides a release, as it decides any other item: the release's `**State:**` becomes `decided` and the Grill's `- **Decision:** [[<session id>]]` goes directly under the releases page's `## History`. A release set to `decided` with no such Decision is E303, reported on the release's heading, and an Override on the page clears it like any other.
+`vela check` reports E340 for a row that names no functional requirement of this vault, E341 for a criterion the requirement does not list, E342 for a release with no valid State, and E344 for a Target that is not a real YYYY-MM-DD date. A release at `inkling` may have no Target ("a later release, no date yet"): W349 notes it, and it stays off the timeline until someone gives a date. A release at `assumption` or `decided` with no Target is E344. Once any release exists, W343 warns for a requirement at `assumption`, `fact` or `decided` that no release delivers. If Not in the tracer, or a slice's Not in this slice, lists that requirement, W343 quotes the reason. Without slice pages, W345 warns when release one has no Tracer bullet; any Tracer bullet quiets it, including `none, <reason>` and plain words with no link. W347 warns when a tracer flow passes through an app or contract of this vault that release one delivers no share of; listing that app or contract by ID under Not in the tracer quiets it, an app or contract whose change is `unchanged` already runs and never counts, and neither do outside parties. With slice pages, the same two ask the same of the slices (see Slices). W348 warns when a release's Slices names a slice with no page. A Grill decides a release, as it decides any other item: the release's `**State:**` becomes `decided` and the Grill's `- **Decision:** [[<session id>]]` goes directly under the releases page's `## History`. A release set to `decided` with no such Decision is E303, reported on the release's heading, and an Override on the page clears it like any other.
 
 ## Slices
 

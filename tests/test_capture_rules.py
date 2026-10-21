@@ -109,6 +109,34 @@ def test_a_release_target_must_be_a_date(tmp_path):
     assert "E344" in check(vault)
 
 
+def releases_page(vault, state, target_line):
+    (vault / "04b-releases.md").write_text(
+        "---\nid: releases\ntype: initiative-section\ntitle: Releases\narc42: \"§4\"\nstate: assumption\n"
+        "owner: \"@hl-solution-lead\"\nauthored: mixed\n---\n\n# Releases\n\n## Release one\n\n" + target_line +
+        f"- **State:** {state}\n\n| Delivers | Criteria | Note |\n|---|---|---|\n\n", encoding="utf-8")
+
+
+def test_an_early_idea_release_with_no_target_is_a_warning_not_an_error(tmp_path):
+    """"A later release, no date yet" is how the plan speaks. Only a release somebody has committed to needs a date."""
+    vault = copy(tmp_path)
+    releases_page(vault, "inkling", "")
+    out = check(vault)
+    assert "W349" in out and "E344" not in out, out
+
+
+def test_an_assumption_or_decided_release_with_no_target_still_needs_a_date(tmp_path):
+    for state in ("assumption", "decided"):
+        vault = copy(tmp_path / state)
+        releases_page(vault, state, "")
+        assert "E344" in check(vault), state
+
+
+def test_an_early_idea_release_with_a_bad_target_is_still_an_error(tmp_path):
+    vault = copy(tmp_path)
+    releases_page(vault, "inkling", "- **Target:** January\n")
+    assert "E344" in check(vault)
+
+
 def test_an_ask_that_names_the_owner_warns(tmp_path):
     vault = copy(tmp_path)
     owner = "- **Owner:** @hl-booking-senior (Booking senior)\n"
