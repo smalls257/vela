@@ -431,9 +431,9 @@ function mapAnchors(key) {
 /* ------------------------------------------------------------------ views, the trail, and the router */
 const VIEWS = [];
 function View(id, def) { VIEWS.push(Object.assign({ id }, def)); }
-/* view: what fills the main area. section: the sidebar entry it belongs to ("home", "apps", "role:qa", ...).
+/* view: what fills the main area. section: the sidebar entry it belongs to ("apps", "role:qa", ...).
    root: what the panel returns to: "lights", or "read:<page key>" when a section's page sits beside its visual. */
-const App = { view: "map", trail: [], focus: null, section: "home", root: "lights" };
+const App = { view: "map", trail: [], focus: null, section: "apps", root: "lights" };
 const viewDef = (id) => VIEWS.find((v) => v.id === id);
 
 function showView(name, opts) {

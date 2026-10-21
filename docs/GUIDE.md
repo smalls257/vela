@@ -181,8 +181,8 @@ or `vela explore` for a static `dashboard.html` at the vault root. Nobody else h
 The flags worth knowing, all checked against `vela explore --help`: `--theme console|graphite|daylight|vaporwave`, `--today YYYY-MM-DD` (treat this date as today, for example when the sessions are dated in the future), `--port`, `--no-open`, `--model haiku|sonnet`.
 
 What you get:
-- **What's waiting** is the home screen: every overdue question, unreviewed decision and item not decided yet, with who each is waiting on and by when. The number on the top bar is the count of those. Once the dashboard knows who is reading (a handle from `vela whoami`, or a role door picked on it), a Waiting on you filter appears there.
-- **Five views** for other readers: Exec, Product, QA, Engineering, Managers.
+- **Needs you** opens every role overview: up to five lines, most urgent first, of what the person viewing has to act on. That is the questions they were asked (with the ask-by date, red when late), the grills they run that are ready, the proposals waiting on their yes and the apps just handed to them. A line opens its item in the right-hand panel, and anything past five is behind "N more". The top bar's "N for you" jumps to it. With nothing for them it says so in one line and names the next date on their side. It follows who is viewing: a handle from `vela whoami`, a person picked in Grills waiting, or the role picked under Viewing as. With nobody viewing, it asks you to pick one.
+- **Six overviews**, one per role: Lead, Exec, Product, QA, Engineering, Managers.
 - **Map, flows, releases, who to ask, why** (the decision log). A flow plays step by step; press `P` to present it full screen.
 - **Ask Claude**: type a question and press Enter. Claude reads the vault only (it can't edit), cites the pages it used as links, and flags an ID the vault doesn't hold. Each answer shows its model and cost. "Think harder" uses Sonnet.
 - **Inside this app** (double-click an app) zooms in step by step: what the app talks to, its main parts, their pieces, then the **Build plan**: the team's stories in build order, what blocks what, and which requirements have a story.

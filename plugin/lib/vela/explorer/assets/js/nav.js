@@ -5,7 +5,7 @@
    Capabilities, grouped by capability), the played flows are Flows, Who to ask is Unknowns and risks, the decision log is
    Decisions, the stage ladder is Apps' second visual and the trace is Capabilities' and Epics'.
 
-   Hash: #home, #role=qa, #s=apps&open=APP-booking, #s=strategy&read, plus the map's &lens= &group= &focus= and the
+   Hash: #overview, #role=qa, #s=apps&open=APP-booking, #s=strategy&read, plus the map's &lens= &group= &focus= and the
    releases' &state=, and #onboard=eng&m=contracts for the path through the plan (onboard.js). The old deep links (#map, #flows&open=FLO-002, #asks&open=UNK-065, #garden&open=ADR-0002, now the decision log)
    still land where they did. */
 const Nav = (() => {
@@ -28,7 +28,6 @@ const Nav = (() => {
 
   /* ------------------------------------------------------------ what the views ask of the section */
   function title(fallback) {
-    if (App.section === "home") return "What's waiting";
     const s = sec();
     if (!s) return fallback;
     if (st.child && E[st.child]) return s.id === "apps" || s.id === "flows" ? E[st.child].title : `${s.label}: ${E[st.child].title}`;
@@ -51,7 +50,7 @@ const Nav = (() => {
      menu as its other visuals, so Progress sits beside System map and Contracts only, whichever of them is showing. */
   function viewItems() {
     const s = sec(), vis = s ? VISUALS[s.id] || [] : [];
-    if (App.section !== "home" && !vis.some(([v]) => v === "map")) return vis.map(visualItem);
+    if (!vis.some(([v]) => v === "map")) return vis.map(visualItem);
     const items = MapView.viewItems(), at = items.findIndex((x) => x.separator), others = vis.filter(([v]) => v !== "map").map(visualItem);
     items.splice(at < 0 ? items.length : at, 0, ...others);  // the other visuals sit with the views; the Moving markers switch stays last
     return items;
@@ -120,12 +119,13 @@ const Nav = (() => {
     if (st.child && viewDef(App.view).highlight) viewDef(App.view).highlight(st.child);
   }
   function home() {
-    App.section = "home"; st.child = ""; App.root = "lights"; App.trail = []; App.focus = null;
+    App.section = "apps"; st.child = ""; App.root = "lights"; App.trail = []; App.focus = null;
     MapView.st.focus = null; if (MapView.st.group === "capability") MapView.st.group = null;
     App.view = "map"; syncHash(); rerender(); Panel.render();
   }
+  /* The front page of whoever is viewing: their role's overview, which opens with Needs you. */
+  function overview() { return role(viewingNow().id); }
   function role(r) {
-    if (r === "lead") return home();
     Roles.st.role = r; Roles.st.chosen = true; App.section = "role:" + r; st.child = ""; App.root = "lights"; App.trail = [];
     App.view = "role"; syncHash(); rerender(); Panel.render();
   }
@@ -143,7 +143,6 @@ const Nav = (() => {
   /* A view shown from anywhere (a search result, a link) brings its section with it. */
   function adopt(view) {
     if (view === "inside" || view === "ask" || view === "drafts" || view === "grills") return;  // Inside.open and Ask.open set the section themselves
-    if (App.section === "home" && view === "map") return;
     if (App.section.startsWith("role:") && view === "role") return;
     if (App.section.startsWith("onboard:") && view === "onboard") return;
     const s = sec();
@@ -162,7 +161,7 @@ const Nav = (() => {
     return { section: App.section, child: st.child, view: App.view, trail: App.trail.slice(), focus: App.focus, root: App.root, doc: Sections.doc.page, module: App.section.startsWith("onboard:") ? Onboard.current() : undefined };
   }
   const whereLabel = (w) => {
-    if (!w || w.section === "home") return "What's waiting";
+    if (!w) return "the front door";
     if (w.section === "grills") return "Grills waiting";
     if (w.section.startsWith("role:")) return (Roles.ROLES.find(([id]) => id === w.section.slice(5)) || [0, "the front door"])[1];
     if (w.section.startsWith("onboard:")) return "Get up to speed";
@@ -171,8 +170,7 @@ const Nav = (() => {
   };
   function back(w) {
     if (!w || w.section === "ask" || w.section === "drafts") return home();
-    if (w.section === "home") home();
-    else if (w.section === "grills") Grills.open();
+    if (w.section === "grills") Grills.open();
     else if (w.section.startsWith("role:")) role(w.section.slice(5));
     else if (w.section.startsWith("onboard:")) onboard(w.section.slice(8), w.module, false);
     else if (w.view === "doc") { open(w.section, w.child); readWide(w.doc || sectionPage()); }
@@ -181,7 +179,7 @@ const Nav = (() => {
     Panel.render();
   }
   function focusApp(key) { open("apps", key); }
-  function trace(key) { if (!(App.view === "map" && ["home", "apps"].includes(App.section) && MapView.lens() === "cockpit")) { App.section = "home"; MapView.st.lens = "cockpit"; App.view = "map"; App.root = "lights"; rerender(); }
+  function trace(key) { if (!(App.view === "map" && App.section === "apps" && MapView.lens() === "cockpit")) { App.section = "apps"; MapView.st.lens = "cockpit"; App.view = "map"; App.root = "lights"; rerender(); }
     go(key, { reset: true }); Motion.trace(key); }
   function openRelease(i) { open("releases", "", { state: i }); }
 
@@ -232,12 +230,11 @@ const Nav = (() => {
       setHash("#" + [Inside.hash(), ...p].join("&"));
       return;
     }
-    if (App.section === "home") p.push("home");
-    else if (App.section.startsWith("onboard:")) p.push(...Onboard.hashParts());
+    if (App.section.startsWith("onboard:")) p.push(...Onboard.hashParts());
     else if (App.section.startsWith("role:")) { p.push("role=" + App.section.slice(5)); if (App.section === "role:eng" && Roles.st.app) p.push("app=" + encodeURIComponent(Roles.st.app)); }
     else { p.push("s=" + App.section); if (st.child) p.push("open=" + encodeURIComponent(st.child)); }
     if (App.view === "doc") p.push("read" + (Sections.doc.page && Sections.doc.page !== sectionPage() ? "=" + encodeURIComponent(Sections.doc.page) : ""));
-    else if (App.view !== (VISUALS[App.section] && VISUALS[App.section][0] ? VISUALS[App.section][0][0] : App.view) && !App.section.startsWith("role:") && App.section !== "home") p.push("v=" + App.view);
+    else if (App.view !== (VISUALS[App.section] && VISUALS[App.section][0] ? VISUALS[App.section][0][0] : App.view) && !App.section.startsWith("role:")) p.push("v=" + App.view);
     if (App.view === "map") { if (MapView.st.lens) p.push("lens=" + MapView.st.lens); if (MapView.st.group) p.push("group=" + MapView.st.group); }
     if (App.view === "releases" || (App.view === "map" && MapView.lens() === "releases")) p.push("state=" + Releases.st.at);
     for (const keep of ["still", "fx", "selftest", "trace"]) if (HASH.has(keep)) p.push(keep + (HASH.get(keep) ? "=" + HASH.get(keep) : ""));
@@ -253,6 +250,7 @@ const Nav = (() => {
     if (HASH.get("group")) MapView.st.group = HASH.get("group");
     if (HASH.has("onboard")) { onboard(HASH.get("onboard"), HASH.get("m")); return true; }
     if (HASH.has("role")) { role(HASH.get("role")); return true; }
+    if (HASH.has("overview")) { overview(); return true; }  // #overview: the front page of whoever is viewing, without naming a role
     if (HASH.has("inside") && typeof Inside !== "undefined" && Inside.boot()) return true;
     if (HASH.has("drafts")) return Drafts.boot();
     if (hs === "grills" && Grills.exists()) return Grills.boot();
@@ -265,7 +263,7 @@ const Nav = (() => {
     }
     if (HASH.has("ask") && typeof Ask !== "undefined") { Ask.boot(HASH.get("c")); return true; }
     if (legacy) { App.view = legacy.id; adopt(legacy.id); return false; }  // main.js carries on as before
-    App.section = "home"; App.view = "map";
+    App.section = "apps"; App.view = "map";
     if (HASH.get("focus") && NODE[HASH.get("focus")]) MapView.st.focus = HASH.get("focus");
     return false;
   }
@@ -344,13 +342,13 @@ const Nav = (() => {
     else if (App.section.startsWith("onboard:")) onboard(r);
     else { rerender(); Panel.render(); }
     refresh();
-    renderMasters();  // the grills badge counts the grills for the role now viewing
+    renderMasters();  // the "for you" and grills badges count for the role now viewing
   }
   function viewingAs() {
     const now = viewingNow(), label = roleName(now.id), rec = Onboard.recorded();
     const menu = Menus.menu({ id: "viewing-as", label: "Viewing as", current: label, extraClass: "side-as-btn",
       items: () => Roles.ROLES.map(([id, name, say]) => ({ id, label: name, say, checked: id === viewingNow().id, run: () => viewAs(id) })) });
-    const id = now.id, onRole = App.section === "role:" + id || (id === "lead" && App.section === "home");
+    const id = now.id, onRole = App.section === "role:" + id;
     const note = rec && rec !== id ? h("p", { class: "side-note small muted" }, `Your recorded role is ${roleName(rec)}. `, h("button", { class: "linkish", type: "button", onclick: () => viewAs(rec) }, "Switch back")) : null;
     return h("div", { class: "side-group side-as" }, menu, note,
       h("button", { class: "side-sub side-overview" + (onRole ? " on" : ""), "aria-current": onRole ? "page" : null, onclick: () => role(id) }, `Overview for ${label} ›`),
@@ -361,11 +359,7 @@ const Nav = (() => {
     const side = $("#side");
     if (!side) return;
     side.innerHTML = "";
-    const late = Queue.needsYou().late;
     side.append(viewingAs(), h("div", { class: "side-group" }, h("div", { class: "side-h" }, "Start here"),
-      // the top bar carries the needs-you number; the side door shows only the overdue part, and only when there is one
-      h("button", { class: "side-home" + (App.section === "home" ? " on" : ""), "aria-current": App.section === "home" ? "page" : null, title: Queue.needsYouSays(), onclick: home },
-        h("span", { class: "side-label" }, "What's waiting"), late ? h("span", { class: "side-n lit warning", title: `${late} overdue`, "data-quantity": "overdue", "data-n": late }, late) : null),
       Grills.exists() ? h("button", { class: "side-grills-door" + (App.section === "grills" ? " on" : ""), "aria-current": App.section === "grills" ? "page" : null, title: Grills.badgeTip(), onclick: () => Grills.open() },
         h("span", { class: "side-label" }, "Grills waiting"), Grills.count() ? h("span", { class: "side-n lit caution", "data-grills-count": Grills.count() }, Grills.count()) : null) : null,
       typeof Ask !== "undefined" && Ask.served() ? h("button", { class: "side-home side-ask" + (App.section === "ask" ? " on" : ""), "aria-current": App.section === "ask" ? "page" : null, title: "Ask Claude about the plan", onclick: () => Ask.open() },
@@ -377,5 +371,5 @@ const Nav = (() => {
     side.append(vault);
     side.append(h("div", { class: "side-foot" }, h("span", { class: "muted", title: D.initiative ? `Initiative ${D.initiative}` : null }, `Search all ${plural(Object.keys(D.reader).length, "page")} with /`)));
   }
-  return { where, whereLabel, back, title, sectionPage, pageBeside, missingPage, pageActions, viewMenu, moreMenu, moreItems, ledeLink, viewItems, open, home, role, onboard, viewAs, readWide, adopt, focusApp, trace, openRelease, syncHash, followHash, boot, refresh, st, VISUALS, SECTIONS };
+  return { where, whereLabel, back, title, sectionPage, pageBeside, missingPage, pageActions, viewMenu, moreMenu, moreItems, ledeLink, viewItems, open, home, overview, role, onboard, viewAs, readWide, adopt, focusApp, trace, openRelease, syncHash, followHash, boot, refresh, st, VISUALS, SECTIONS };
 })();

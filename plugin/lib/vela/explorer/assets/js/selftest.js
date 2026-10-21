@@ -1281,51 +1281,37 @@ const SelfTest = (() => {
     Ask.restore(real);
     Nav.home(); go("lights", { reset: true });
   }
-  /* The work queue beside the map, and the panel that complements it. The queue is a short ranked list of the open
-     questions that hold something up, in plain words; the panel lists the lit things on the map, not the same
-     questions again, and carries the queue itself only where the queue is not on the page. */
+  /* The work queue in the panel. The queue is a short ranked list of the open questions that hold something up, in plain
+     words. The panel lists the lit things on the map, then the queue under them; the What's waiting page that once carried
+     the queue beside the map is gone (Needs you replaced it), so the panel is the one place it is drawn. */
   async function queueChecks() {
-    const q = Queue.items(), top = Math.min(Queue.TOP, q.length), rows = () => $$(".home-stage .q-row");
+    const q = Queue.items(), top = Math.min(Queue.TOP, q.length), rows = () => $$("#panel .q-row");
     const ranked = q.every((x, i) => !i || rank(q[i - 1].level) > rank(x.level) || (q[i - 1].level === x.level && q[i - 1].urgency >= x.urgency));
     ok(ranked && q.every((x) => x.level === ASK[x.id].light.level), `queue: ${q.length} open questions that hold something, in attention's order (level, then urgency), each lamp the question's own light`, "queue: the order or a lamp is not attention's");
     const held = new Set([...D.above.map((a) => a.unknown), ...Object.values(D.blockedBy).flat()].filter((u) => isOpen(ASK[u])));
     ok(held.size === q.length && [...held].every((u) => q.some((x) => x.id === u)), `queue: every open question that holds something is listed once (${held.size}), not once per thing it holds (${D.above.length} held above the map)`, `queue: ${q.length} listed for ${held.size} holding questions`);
+    Nav.open("goals"); go("lights", { reset: true }); await frames();
     ok(rows().length === top && rows().every((r) => !/^[A-Z]+-\d+/.test($(".q-title", r).textContent) && !/\b(UNK|CAP|EPC|CON|APP)-\d/.test(r.textContent) && r.title === ASK[r.dataset.ref].question && r.dataset.ref),
-      `queue: the top ${top} show in plain words, with what each holds up and who to ask; the tooltip is the question, the ID rides in data-ref only`, "queue: a row shows an ID or its tooltip isn't the question");
+      `queue: the top ${top} show in the panel in plain words, with what each holds up and who to ask; the tooltip is the question, the ID rides in data-ref only`, "queue: a row shows an ID or its tooltip isn't the question");
     ok(rows().every((r) => /^Blocks /.test($(".q-sub", r).textContent) && /^Ask: /.test($(".q-ask", r).textContent) && $(".q-when b", r).textContent.trim()), "queue: each row says what it holds up, who to ask and by when", "queue: a row lacks what it holds, who to ask or when");
-    ok(rows().every((r, i) => $(".lamp", r).classList.contains(q[i].level)) && $$(".home-stage .q-row .lamp").length === rows().length, "queue: a small lamp, not a painted row, carries the level", "queue: a row's lamp is not its level");
-    const card = $(".q-card"), map = $(".home-map"), a = card.getBoundingClientRect(), b = map.getBoundingClientRect();
-    const apart = a.right <= b.left + 1 || a.bottom <= b.top + 1;  // beside the map, or folded above it
-    const bar = $(".home-map .dia-bar"), tb = bar && bar.getBoundingClientRect(), board = $(".home-map #board");
-    ok(!!bar && !!board && tb.bottom <= board.getBoundingClientRect().top + 1 && !$(".home-tools") && !!$("[data-dmenu=view]", bar), "queue: the map's menus sit on the top of the map itself, with no row of toggles above the waiting card", "queue: the map's menus are not on the map");
-    ok(apart && b.height > 150, `queue: the card and the map do not overlap, and the map keeps ${Math.round(b.height)} px of height (${innerWidth}x${innerHeight})`, `queue: card ${Math.round(a.left)}..${Math.round(a.right)} x ${Math.round(a.top)}..${Math.round(a.bottom)} meets the map ${Math.round(b.left)}..${Math.round(b.right)} x ${Math.round(b.top)}..${Math.round(b.bottom)}`);
+    ok(rows().every((r, i) => $(".lamp", r).classList.contains(q[i].level)) && $$("#panel .q-row .lamp").length === rows().length, "queue: a small lamp, not a painted row, carries the level", "queue: a row's lamp is not its level");
     if (q.length > Queue.TOP) {
-      $(".q-more").click(); await frames();
-      const groups = $$(".home-stage .q-group"), sum = groups.reduce((n, g) => n + (+$(".ct", g).textContent), 0);
+      $("#panel .q-more").click(); await frames();
+      const groups = $$("#panel .q-group"), sum = groups.reduce((n, g) => n + (+$(".ct", g).textContent), 0);
       ok(rows().length === q.length && sum === q.length && groups.every((g) => $$(".q-row", g).length === +$(".ct", g).textContent), `queue: Show all ${q.length} groups them by what they hold (${groups.map((g) => $("h4", g).firstChild.textContent).join(", ")}), counts adding up`, `queue: ${rows().length} rows in ${groups.length} groups, counts ${sum}, wanted ${q.length}`);
-      $(".q-more").click(); await frames();
+      $("#panel .q-more").click(); await frames();
       ok(rows().length === top, `queue: Show the top ${Queue.TOP} folds it back to ${top}`, "queue: the list did not fold back");
     }
     if (q.length) {
       rows()[0].click(); await frames();
-      ok(App.focus === q[0].id && $("#panel h2").textContent === q[0].title && rows()[0].classList.contains("on"), `queue: picking "${q[0].title}" opens it in the panel and marks the row`, `queue: focus ${App.focus}, panel "${$("#panel h2").textContent}"`);
+      ok(App.focus === q[0].id && $("#panel h2").textContent === q[0].title, `queue: picking "${q[0].title}" opens it in the panel`, `queue: focus ${App.focus}, panel "${$("#panel h2").textContent}"`);
     }
     go("lights", { reset: true }); await frames();
     const lit = litSubjects();
-    ok($$("#panel .q-row").length === 0 && $$("#panel .light-row").length === lit.length, `panel home: ${lit.length} lit things on the map, and none of the ${q.length} queued questions repeated beside the queue`, `panel home: ${$$("#panel .q-row").length} queue rows and ${$$("#panel .light-row").length} lit rows beside the queue`);
-    Nav.open("goals"); go("lights", { reset: true }); await frames();
-    ok($$("#panel .q-row").length === top, `panel home, away from the home page: carries the queue (${top} of ${q.length}) because the page does not`, `panel home on Goals: ${$$("#panel .q-row").length} queue rows`);
+    ok($$("#panel .light-row").length === lit.length, `panel home: ${lit.length} lit things on the map, then the ${q.length} queued questions under them`, `panel home: ${$$("#panel .light-row").length} lit rows`);
     const need = Queue.needsYou(), counts = Queue.counts(), masters = Object.fromEntries($$("#masters .master").map((m) => [m.className.split(" ").find((c) => LEVELS.includes(c)), +$("b", m).textContent]));
-    ok(masters.caution === need.n && (masters.warning || 0) === need.late && Object.entries(masters).every(([lv, n]) => lv === "caution" || n === counts[lv]),
-      `top bar: ${need.n} waiting, ${need.late} of them overdue; ${Object.entries(masters).filter(([lv]) => lv !== "caution" && lv !== "warning").map(([lv, n]) => `${n} ${lv}`).join(", ") || "nothing else lit"}`, `top bar ${JSON.stringify(masters)} against needs-you ${JSON.stringify(need)}`);
-    // "waiting" is shown as a number once on Home, in the top bar (label sweep: the same 21 showed four times). The
-    // side door shows only the overdue part, the waiting card says what to start with, and the panel doesn't repeat either.
-    Nav.home(); go("lights", { reset: true }); await frames();
-    const door = $(".side-home .side-n"), qcount = $(".q-card .q-count"), lede = $("#panel .p-lede"), says = Queue.needsYouSays();
-    const homeText = [$("#main"), $("#side"), $("#panel")].map((x) => (x ? x.textContent : "")).join(" ");
-    ok((need.late ? door && +door.textContent === need.late : !door) && (!need.n || (qcount && qcount.textContent === Queue.startWith())) && (!need.n || !homeText.includes(says)) && !(lede && /\d+ waiting/.test(lede.textContent)),
-      `waiting: ${need.n} in the top bar only; the side door shows ${need.late ? need.late + " overdue" : "no number"}, the waiting card says "${Queue.startWith()}", and the panel doesn't repeat the count`,
-      `waiting: side door ${door && door.textContent} (want ${need.late || "none"}), card "${qcount && qcount.textContent}", panel "${lede && lede.textContent.slice(0, 80)}", "${says}" ${homeText.includes(says) ? "repeated on the page" : "not repeated"}`);
+    ok(!("caution" in masters) && (masters.warning || 0) === (counts.warning || 0) && (masters.unexamined || 0) === (counts.unexamined || 0) && (counts.warning || 0) >= need.late,
+      `top bar: the plan-wide waiting number is gone; ${counts.warning || 0} overdue and ${counts.unexamined || 0} not reviewed show only when above zero`, `top bar ${JSON.stringify(masters)} against counts ${JSON.stringify(counts)}`);
     Nav.home(); go("lights", { reset: true }); await frames();
   }
 

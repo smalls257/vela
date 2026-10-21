@@ -196,14 +196,14 @@ def test_counts_of_one_agree_with_their_verb():
 
 def test_every_control_a_try_prompt_names_is_a_label_the_dashboard_has():
     assets = "\n".join(p.read_text(encoding="utf-8").lower() for p in (REPO / "plugin" / "lib" / "vela" / "explorer" / "assets").rglob("*") if p.suffix in (".js", ".html", ".css"))
-    named = {"approach": ["slices", "path"], "standing": ["decision log"], "open-questions": ["who to ask"], "needs-you": ["what's waiting"],
+    named = {"approach": ["slices", "path"], "standing": ["decision log"], "open-questions": ["who to ask"], "needs-you": ["needs you"],
              "journeys": ["present"], "contracts": ["map"], "slices": ["slices"], "apps": ["map"], "progress": ["progress"]}
     assert set(named) == set(onboardmodules.TRY)
     for mid, controls in named.items():
         prompt = onboardmodules.TRY[mid][1].lower()
         for control in controls:
             assert control in prompt and control in assets, (mid, control)
-    assert "needs you" not in " ".join(p[1] for p in onboardmodules.TRY.values()).lower()
+    assert "what's waiting" not in " ".join(p[1] for p in onboardmodules.TRY.values()).lower()  # the page it named is gone; Needs you replaced it
 
 
 def test_the_exec_fit_finds_decisions_the_way_decisions_waiting_does_so_it_never_says_not_recorded_over_a_plan_with_decisions():

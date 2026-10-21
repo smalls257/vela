@@ -1,5 +1,5 @@
 /* Front doors, by audience: one screen each, built from the same data as every other view, everything else one
-   click away. The lead's door is "What's waiting", the cockpit. Where a door chooses what to show by a rule of its
+   click away. Every door opens with Needs you (needs.js), the viewer's own list. Where a door chooses what to show by a rule of its
    own (which questions are a "business question", which would "change a test"), the rule is written on the card.
    - Exec: goals and where they stand, what is decided, the top risks, what needs their decision, the timeline.
    - Product: capabilities and requirements, what each release delivers, the business questions, the user flows.
@@ -7,9 +7,10 @@
      questions that would change a test.
    - Engineering: pick an app for its handoff list: boundary, contracts in and out, flows, open questions, handoff state, and
      how far every app is from a build plan (no design, design only, plan with gaps, plan complete).
+   - Lead: the managers' view; the lead's own list is Needs you, above it.
    - Managers: progress, completeness, the timeline, what is blocked on whom, and the build plans' stories and points. */
 const Roles = (() => {
-  const ROLES = [["lead", "Lead", "What's waiting"], ["exec", "Exec", "Goals, decisions, risks and the timeline"], ["product", "Product", "Capabilities, requirements, releases and flows"],
+  const ROLES = [["lead", "Lead", "Where the plan stands and who is blocking what"], ["exec", "Exec", "Goals, decisions, risks and the timeline"], ["product", "Product", "Capabilities, requirements, releases and flows"],
     ["qa", "QA", "What to test, and what might still change it"], ["eng", "Engineering", "One app's handoff list"], ["mgr", "Managers", "Progress, timeline and who is blocking what"]];
   const st = { role: HASH.get("role") || "exec", app: HASH.get("app") || "", chosen: HASH.has("role") };  // chosen: the reader picked a door, so the page may say "you" for it
   const lamp = (lv) => (lv && lv !== "dark" ? lampEl(lv) : null);  // a settled thing needs no lamp in a short list
@@ -200,9 +201,9 @@ const Roles = (() => {
     const toTimeline = ["exec", "mgr"].includes(def[0]) ? h("button", { class: "linkish", "data-to": "releases", onclick: () => Nav.open("releases") }, "Release timeline →") : null;
     root.append(h("div", { class: "door-head" }, h("div", {}, h("div", { class: "kicker" }, "View"), h("h1", {}, def[0] === "eng" ? "Engineering: one app's handoff list" : `${def[1]}: ${def[2].toLowerCase()}`)), toTimeline));
     const grid = h("div", { class: "door-grid door-" + def[0] });
-    root.append(grid);
+    root.append(Needs.block(), grid);
     main.append(root);
-    ({ exec, product, qa, eng, mgr })[def[0]](grid, root);
+    ({ lead: mgr, exec, product, qa, eng, mgr })[def[0]](grid, root);
   }
   return { render, st, ROLES };
 })();

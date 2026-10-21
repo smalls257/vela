@@ -99,7 +99,7 @@ def test_search_is_one_row_per_thing_with_app_pills(chrome, heron):
 
 @pytest.mark.browser
 def test_one_waiting_number_and_notes_in_an_i(chrome, heron):
-    """Findings 7 and 13: one "N waiting" on the bar, the card and the panel (parts on hover); Home's notes are an i."""
+    """Findings 7 and 13: one "N waiting", in the panel only (parts on hover), and none on the top bar; the map's notes are an i."""
     lines = selftest(chrome, heron, 1440)
     need(lines, "waiting: one number", "waiting: the sidebar's count", "Home: no banner or note lines above the map", "Home: the i opens the notes in place")
 
