@@ -547,7 +547,7 @@ def test_close_lists_w809_and_w804_to_the_lead():
 def test_a_decline_is_a_bare_line_under_captures_and_conventions_say_so():
     assert "vela voice harvest decline" in text("skills/close/HARVEST.md")  # the command writes the bare line
     sentence = "A harvest decline is one bare line, `Harvest declined: PR <n> <page> <hash>`, directly under `## Captures`, never a bullet."
-    for path in ("template", "tests/stub-conventions", "examples/unified-booking"):
+    for path in ("plugin/template", "tests/stub-conventions", "examples/unified-booking"):
         assert sentence in (REPO / path / "CONVENTIONS.md").read_text(encoding="utf-8")
 
 

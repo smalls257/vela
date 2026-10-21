@@ -7,7 +7,7 @@
 # with a stand-in for gh; it has not yet run against a live repository.
 # Two limits of GitHub to know: an edit pings only the owners added since the
 # last run, because GitHub notifies on new mentions; and scheduled runs stop
-# after 60 days with no activity in the repository.
+# after two months with no activity in the repository.
 # vela comes from its public repository (the "get vela" step), so a plan keeps no copy of the plugin.
 name: vela weekly
 

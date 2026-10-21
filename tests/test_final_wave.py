@@ -45,8 +45,8 @@ def test_readme_is_honest_about_the_weekly_workflow_and_names_generated_diagrams
 def test_readme_checklist_count_matches_the_template_checklist():
     checklist = read("plugin", "template", "README.md").split("## Setup checklist", 1)[1].split("\n## ", 1)[0]
     steps = re.findall(r"(?m)^(\d+)\. ", checklist)
-    assert f"steps 1 to {steps[-1]}" in read("README.md")
-    assert "steps 1 to 8" not in read("README.md")
+    assert len(steps) == 4  # what vela new leaves a person; the README names no step count of its own
+    assert "steps 1 to 12" not in read("README.md")
 
 
 def test_readme_plugin_row_lists_every_cli_command():

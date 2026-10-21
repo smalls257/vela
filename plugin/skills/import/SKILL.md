@@ -11,7 +11,7 @@ Turn a pile of existing material into a plan without inventing anything: read th
 
 Every `vela` below is `sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela`. Relay its `--for-lead` lines. When a command can't express what the lead wants, say so and stop. Name sources by title when you talk and things by name.
 
-Run the steps in `${CLAUDE_PLUGIN_ROOT}/references/START.md` with mode `discover`, and if the folder has no plan yet, offer to start one with `vela new` as its "No plan here yet" says; never set a plan up by hand. Only the owner writes plan pages; on a reader copy everything written is a draft for the owner. If an earlier record has an `## Import ledger`, resume from what it lists as pending.
+Run the steps in `${CLAUDE_PLUGIN_ROOT}/references/START.md` with mode `discover`; with no plan yet, offer `vela new` as its "No plan here yet" says. Only the owner writes plan pages; on a reader copy everything written is a draft for the owner. If an earlier record has an `## Import ledger`, resume from what it lists as pending.
 
 ## 1. Read the sources
 

@@ -212,13 +212,13 @@ def test_pr_workflow_fails_a_stale_generated_block():
     import yaml
     workflow = yaml.safe_load(read("plugin/template/.github/workflows/vela-check.yml"))
     commands = [s.get("run", "") for s in workflow["jobs"]["vela-check"]["steps"]]
-    assert "python .claude/skills/vela/scripts/vela render && git diff --exit-code" in commands
-    assert commands.index("python .claude/skills/vela/scripts/vela check") < commands.index(commands[-1])
+    assert "python .vela/tool/plugin/scripts/vela render && git diff --exit-code" in commands
+    assert commands.index("python .vela/tool/plugin/scripts/vela check") < commands.index(commands[-1])
 
 
 def test_template_wrapper_readme_and_claude_md():
-    assert 'cd "$root" && exec claude' in read("plugin/template/bin/claude-vela")
+    assert not (REPO / "plugin" / "template" / "bin").exists()  # a marketplace install needs no launcher
     assert "`/ask`" not in read("plugin/template/CLAUDE.md") and "`/vela:ask`" in read("plugin/template/CLAUDE.md")
     readme = read("plugin/template/README.md")
     assert "Python 3.9" in readme and "Nothing to pip install" in readme and "pip install pyyaml" not in readme
-    assert "sh .claude/skills/vela/scripts/run-vela view --out ~/Desktop/<name>.html" in readme
+    assert "vela view --out ~/Desktop/<name>.html" in readme and "claude-vela" not in readme

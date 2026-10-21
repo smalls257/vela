@@ -62,7 +62,7 @@ def test_pr_check_workflow_runs_vela_check():
     assert "pull_request" in triggers
     steps = workflow["jobs"]["vela-check"]["steps"]
     commands = [s.get("run", "") for s in steps]
-    assert "python .claude/skills/vela/scripts/vela check" in commands
+    assert "python .vela/tool/plugin/scripts/vela check" in commands  # vela comes from its public repository, not a copy in the plan
     assert not any("pyyaml" in c for c in commands)  # the plugin brings its own
 
 
@@ -85,27 +85,11 @@ def test_installed_plugin_checks_the_vault(tmp_path):
     assert result.stdout.startswith("vela check: 0 errors, 0 warnings in 23 pages, judged as of ")
 
 
-def test_readme_install_step_works_on_a_fresh_copy(tmp_path):
-    """Run the README's own step 2 in a real shell: cp does not create missing parent folders."""
-    vault = tmp_path / "vault"
-    shutil.copytree(TEMPLATE, vault)
+def test_a_marketplace_install_needs_no_launcher_and_no_copied_plugin():
+    """vela new makes a plan that works with the installed plugin: no bin/claude-vela, no step that copies the plugin."""
     readme = (TEMPLATE / "README.md").read_text(encoding="utf-8")
-    command = re.search(r"^2\. .*?`(.+?)`", readme, re.MULTILINE).group(1)
-    assert "mkdir -p .claude/skills" in command
-    install = subprocess.run(command.replace("<toolkit>", str(REPO)), shell=True, cwd=vault,
-                             capture_output=True, text=True)
-    assert install.returncode == 0, install.stderr
-    result = subprocess.run([sys.executable, ".claude/skills/vela/scripts/vela", "check"],
-                            cwd=vault, capture_output=True, text=True)
-    assert result.returncode == 0, result.stdout + result.stderr
-
-
-def test_wrapper_loads_the_copied_plugin():
-    """Claude Code does not discover skills under .claude/skills/vela; only --plugin-dir loads them."""
-    wrapper = TEMPLATE / "bin" / "claude-vela"
-    assert wrapper.exists() and os.access(wrapper, os.X_OK)
-    assert "--plugin-dir" in wrapper.read_text(encoding="utf-8")
-    assert "bin/claude-vela" in (TEMPLATE / "README.md").read_text(encoding="utf-8")
+    assert not (TEMPLATE / "bin").exists() and "claude-vela" not in readme
+    assert ".claude/skills/vela" not in readme and "cp -r" not in readme
 
 
 def test_a_fresh_vault_tracks_the_map_pins_and_ignores_the_rest_of_the_tool_folder(tmp_path):
