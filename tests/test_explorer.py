@@ -22,7 +22,7 @@ import pytest
 
 from conftest import REPO
 from vela import allocation, attention, cli, handoff, releases
-from vela.explorer import build, design_data, icons_data, inside_data
+from vela.explorer import build, design_data, flows_data, icons_data, inside_data
 
 PROTOTYPE = REPO / "tests" / "fixtures" / "explorer"
 sys.path.insert(0, str(PROTOTYPE))
@@ -78,7 +78,9 @@ def test_the_two_live_call_paths_have_their_data(trading):
     assert ("APP-tickertalk", "APP-coach", "CON-002", "stated") in sends
     # "how does Coach talk to Brightwater": CON-003, sent at step 2 and stated in the step's own words.
     step2 = paper["steps"][1]
-    assert step2["messages"] == [{"from": "APP-coach", "to": "PTY-01", "contract": "CON-003", "direction": "stated", "kind": "send"}]
+    (message,) = step2["messages"]
+    assert {k: v for k, v in message.items() if k not in ("says", "answer")} == {"from": "APP-coach", "to": "PTY-01", "contract": "CON-003", "direction": "stated", "kind": "send"}
+    assert message["says"].startswith("Coach opens a sandbox paper account") and message["answer"] == ""  # the arrow's words, whole
     contract = next(c for c in data["map"]["contracts"] if c["id"] == "CON-003")
     assert contract["provider"] == "PTY-01" and contract["consumers"] == ["APP-coach"]
     # Questions sit at the step they hold, with the record's state: UNK-050 is resolved, whatever the prose says.
@@ -124,6 +126,33 @@ def test_inferred_directions_are_labeled(booking):
     assert messages and all(m["direction"] in ("stated", "inferred") for m in messages)
     assert any(s["fromTable"] for f in data["flows"] for s in f["steps"])  # contracts from the Contracts used table
     assert data["lights"]["CON-003"]["level"] == "override"
+
+
+def test_every_arrow_carries_what_it_does_in_the_steps_words(booking):
+    """The diagram's arrows say what the step does, whole (no sender-to-receiver prefix, no "over <contract>", no cut with an ellipsis),
+    and a call whose sentence says "and gets ..." hands that clause to its answer arrow."""
+    _, data = booking
+    messages = [(s, m) for f in data["flows"] for s in f["steps"] for m in s["messages"]]
+    assert messages and all(m["says"] and "→" not in m["says"] and not m["says"].endswith("…") for _, m in messages)
+    assert all(s["says"] for f in data["flows"] for s in f["steps"] if s["messages"])
+
+
+def test_an_answer_clause_is_the_reply_arrows_own_words():
+    tokens = [{"key": "CON-024", "label": "Read permission"}]
+    says, answer = flows_data.arrow_words(
+        "Heron service → Consent and identity service: asks whether every participant opted in before a read, and gets a reading token when they did, over «0».",
+        tokens, {"CON-024": {}})
+    assert says == "asks whether every participant opted in before a read"
+    assert answer == "gets a reading token when they did"
+    plain, none = flows_data.arrow_words("A → B: sends a short-lived token when the agent asks at sign-in, over «0».", tokens, {"CON-024": {}})
+    assert plain == "sends a short-lived token when the agent asks at sign-in" and none == ""
+
+
+def test_an_arrows_words_are_never_cut_to_a_length():
+    tokens = []
+    long = "Desk → Back: " + " ".join(["sends the long note"] * 12) + "."
+    says, _ = flows_data.arrow_words(long, tokens, {})
+    assert len(says) > 130 and "…" not in says
 
 
 def test_page_is_one_file_with_no_network(trading):

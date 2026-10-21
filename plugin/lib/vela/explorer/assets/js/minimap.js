@@ -20,6 +20,27 @@ const Minimap = (() => {
      inside an app. On Goals, Decisions, Slices or Concerns it showed a map with no link to the page and took 170 px from the text. */
   const MAP_SECTIONS = ["home", "apps", "capabilities", "flows"];
   const wanted = () => MAP_SECTIONS.includes(App.section) || App.view === "inside";
+  const measure = document.createElement("canvas").getContext("2d");
+  const nameWidth = (lines, size) => { measure.font = `600 ${size}px ${getComputedStyle(document.documentElement).getPropertyValue("--ui") || "system-ui, sans-serif"}`; return Math.max(...lines.map((t) => measure.measureText(t).width)); };
+  function nameLines(name, size, inner) {
+    nameWidth([""], size);
+    const out = []; let line = "";
+    for (const word of name.split(/\s+/).filter(Boolean)) {
+      const next = line ? line + " " + word : word;
+      if (line && measure.measureText(next).width > inner) { out.push(line); line = word; } else line = next;
+    }
+    if (line) out.push(line);
+    return out;
+  }
+  /* The box keeps the size the overlap rule measures (pins.BOX); the name inside it is never cut. It takes the largest type, down to a floor,
+     at which the whole name wraps to as many lines as the box holds. */
+  function boxOf(st) {
+    const w = st.outside ? 150 : 190, ht = 70;
+    for (let size = 30; size >= 14; size -= 2) {
+      const lines = nameLines(st.node.title, size, w - 22);
+      if (size === 14 || (lines.length * size * 1.15 <= ht - 14 && nameWidth(lines, size) <= w - 22)) return { size, lines, w, lh: size * 1.15, ht };
+    }
+  }
   function refresh() {
     const box = $("#panel-mini");
     if (!box) return;
@@ -49,7 +70,8 @@ const Minimap = (() => {
     }
     for (const st of Object.values(L.stations)) {
       const light = lightOf(st.key), lv = light ? light.level : "dark", c = LIGHT[lv].color;
-      const w = st.outside ? 150 : 190, ht = 70;
+      // The box is sized to the whole name: it wraps to as many lines as it needs (never cut with "…") and the box grows to hold them.
+      const { size, lines, w, lh, ht } = boxOf(st);
       const g = s("g", { class: "mini-node", "data-level": lv, "data-kind": st.outside ? "party" : "app", }, root);
       lg.saw("lamp." + lv); if (st.outside) lg.saw("mini.party");
       if (lv !== "dark" && glowOn()) {
@@ -59,8 +81,8 @@ const Minimap = (() => {
       s("rect", { x: st.x - w / 2, y: st.y - ht / 2, width: w, height: ht, rx: st.outside ? 4 : 16, fill: lv === "dark" ? LIGHT.dark.color : c, stroke: Theme.c("face-edge"), "stroke-width": 4 }, g);
       if (at.has(st.key)) lg.saw("mini.here");
       if (at.has(st.key)) s("rect", { x: st.x - w / 2 - 16, y: st.y - ht / 2 - 16, width: w + 32, height: ht + 32, rx: 26, fill: "none", stroke: Theme.c("focus"), "stroke-width": 8, class: "mini-ring" }, g);
-      const t = s("text", { x: st.x, y: st.y + 11, "text-anchor": "middle", fill: lv === "dark" ? (at.has(st.key) ? Theme.c("focus") : Theme.c("node-name")) : LIGHT[lv].ink, "font-size": st.outside ? 26 : 30, "font-weight": 600 }, g);
-      t.textContent = shorten(st.node.title, st.outside ? 10 : 11);
+      const t = s("text", { x: st.x, "text-anchor": "middle", fill: lv === "dark" ? (at.has(st.key) ? Theme.c("focus") : Theme.c("node-name")) : LIGHT[lv].ink, "font-size": size, "font-weight": 600 }, g);
+      lines.forEach((line, j) => { s("tspan", { x: st.x, y: st.y + size * 0.36 + (j - (lines.length - 1) / 2) * lh }, t).textContent = line; });
       Nodes.wire(g, { label: `${st.node.title}: ${LIGHT[lv].word}`, role: "link", open: () => go(st.key, { reveal: App.view === "map" }) });
     }
     lg.paint();

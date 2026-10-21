@@ -26,7 +26,10 @@ const Flows = (() => {
       if (!canvas.isConnected) return;
       if (p.w && p.h) {
         const f = flow(), k = clamp(p.w / (p.present ? 960 : 1040), 0.8, p.present ? 1.6 : 1.2);
-        const G = FlowKit.layout(f, { x: 0, y: 6, w: p.w - 8, h: p.h - 6, s: k });
+        // The host (the stage, or present mode's scroller) is the room the diagram has; a flow whose words need more makes the canvas taller and the host scrolls.
+        const room = opts.host ? opts.host.clientHeight : p.h, G = FlowKit.layout(f, { x: 0, y: 6, w: p.w - 8, h: room - 6, s: k, fit: p.present });
+        const want = Math.ceil(G.h + 6) > room ? Math.ceil(G.h + 6) + "px" : "";
+        if (canvas.dataset.grown !== want) { canvas.dataset.grown = want; canvas.style.height = want; }
         ctx.clearRect(0, 0, p.w, p.h);
         const tau = ((now - p.entered) / 1000) * st.speed, cur = p.cur === -1 ? f.steps.length : p.cur;
         const pick = App.trail[App.trail.length - 1] || null;  // what the panel shows: back and Escape move it, so the glow follows it
@@ -106,7 +109,7 @@ const Flows = (() => {
     const transport = h("footer", { class: "transport", id: "transport" });
     main.append(...[Branches.findings(st.key)].filter(Boolean), nodeList, caption, transport);
     key.paint();
-    player = makePlayer(canvas, { key: st.key, cur: st.cur, onStep: (p) => { st.cur = p.cur; paintCaption(); paintTransport(); followStep(p); Minimap.refresh(); }, onPlay: paintTransport,
+    player = makePlayer(canvas, { host: stage, key: st.key, cur: st.cur, onStep: (p) => { st.cur = p.cur; paintCaption(); paintTransport(); followStep(p); Minimap.refresh(); }, onPlay: paintTransport,
       onFlow: (p) => select(p.key, -1) });
     paintCaption(); buildTransport(); paintTransport();
   }
@@ -258,18 +261,19 @@ const Flows = (() => {
       h("div", { class: "pr-dots", id: "pr-dots" }),
       h("span", { class: "hints" }, h("kbd", {}, "←"), " ", h("kbd", {}, "→"), " or ", h("kbd", {}, "Space"), " · ", h("kbd", {}, "Esc"), " to leave"),
       h("button", { class: "btn", onclick: closePresent }, "Exit (Esc)"));
-    root.append(h("div", { class: "present-top" }, h("div", {}, h("div", { class: "pt-kicker" }, `${e.id} · ${D.title}`), h("h1", {}, e.title))), canvas, cap, bar);
+    const scroller = h("div", { class: "present-scroll" }, canvas);
+    root.append(h("div", { class: "present-top" }, h("div", {}, h("div", { class: "pt-kicker" }, `${e.id} · ${D.title}`), h("h1", {}, e.title))), scroller, cap, bar);
     const paint = (p) => {
       const f = FlowKit.flowOf(p.key), stp = f.steps[p.cur];
       $("#pc-n").textContent = stp ? `Step ${stp.n} of ${f.steps.length}` : `${plural(f.steps.length, "step")}. Press space to play.`;
-      $("#pc-c").textContent = stp ? stp.short : f.title;
+      $("#pc-c").textContent = stp ? FlowKit.captionOf(stp) : f.title;
       $("#pr-dots").innerHTML = "";
       f.steps.forEach((x, i) => $("#pr-dots").append(h("button", { class: i === p.cur ? "on" : i < p.cur ? "done" : "", title: `Step ${x.n}`, onclick: () => { p.pause(); p.go(i); } })));
       const btn = $("#pr-play");
       btn.innerHTML = p.playing ? '<svg viewBox="0 0 24 24"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z" fill="currentColor"/></svg>' : '<svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></svg>';
       root.dataset.step = stp ? stp.n : "";
     };
-    presenter = makePlayer(canvas, { key, cur: -1, present: true, onStep: paint, onPlay: paint, onFlow: paint, onPick: (t) => toast(`Press Esc to leave, then open ${titleOf(keyForId(t.id) || t.id)}`) });
+    presenter = makePlayer(canvas, { host: scroller, key, cur: -1, present: true, onStep: paint, onPlay: paint, onFlow: paint, onPick: (t) => toast(`Press Esc to leave, then open ${titleOf(keyForId(t.id) || t.id)}`) });
     presenter.go(step ?? 0);
     paint(presenter);
     let idle = 0;

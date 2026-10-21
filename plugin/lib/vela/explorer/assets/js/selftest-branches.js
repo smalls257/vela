@@ -33,7 +33,7 @@
     // one exchange, one pill: the answer to a call, on the next step over the same contract, is not labeled again
     list.forEach((a, i) => { const b = list[i + 1]; if (b && b.id === a.id && b.si === a.si + 1) out.push(`the ${a.id} pill drawn twice, at ${at(a)} and ${at(b)}`); });
     for (const a of list) for (const r of rows) {
-      const line = r.y + r.h / 2;
+      const line = r.line ?? r.y + r.h / 2;  // a message row's hit area holds the arrow and its words; `line` is the arrow
       if (r.si !== a.si && line > a.y + 1 && line < a.y + a.h - 1 && a.x < r.x + r.w && r.x < a.x + a.w) out.push(`the ${a.id} pill at ${at(a)} across the arrow of ${at(r)}`);
     }
     return out;
@@ -63,6 +63,25 @@
     const crowded = [];
     for (const f of D.flows) for (const o of overlaps(FlowKit.flowOf(f.key))) crowded.push(`${f.key}: ${o}`);
     ok(!crowded.length, `flows: no two contract pills overlap on any flow (${D.flows.length} flows)`, `flows: pills overlap: ${crowded.slice(0, 6).join("; ")}`);
+    // Nothing the flow canvas draws is cut: no "…" anywhere, and every arrow's words are drawn whole, at the stage's width, a narrow window, and in the clip.
+    const cut = [], lost = [];
+    const norm = (t) => t.replace(/\s+/g, "");  // a word longer than the line is broken by letters, so spaces are not compared
+    for (const f of D.flows) {
+      const flow = FlowKit.flowOf(f.key), wanted = flow.steps.flatMap((stp) => FlowKit.unitsOf(stp).filter((u) => u.msg).map((u) => norm(FlowKit.sayOf(stp, u))));
+      for (const W of [1040, 760, 520]) {
+        const { drawn } = FlowKit.drawnText(flow, W), all = norm(drawn.join(" "));
+        for (const t of drawn) if (/…|\.\.\./.test(t)) cut.push(`${f.key} at ${W}px: "${t}"`);
+        for (const w of wanted) if (!all.includes(w)) lost.push(`${f.key} at ${W}px: "${w}" is not drawn whole`);
+      }
+      const clip = FlowKit.drawnClip(flow);
+      for (const t of clip) if (/…|\.\.\./.test(t)) cut.push(`${f.key} clip: "${t}"`);
+      const clipAll = norm(clip.join(" "));
+      for (const w of wanted) if (!clipAll.includes(w)) lost.push(`${f.key} clip: "${w}" is not drawn whole`);
+    }
+    ok(!cut.length && !lost.length, `flows: no label on any of ${D.flows.length} flows is cut with an ellipsis, and every arrow's words are drawn whole (1040, 760 and 520 px, and the clip)`,
+      `flows: labels cut or missing: ${cut.concat(lost).slice(0, 6).join("; ")}`);
+    const roomy = D.flows.length ? FlowKit.drawnText(FlowKit.flowOf(D.flows[0].key), 520, 300).G : null;
+    ok(!roomy || roomy.h >= roomy.needH, "flows: a flow taller than its stage grows its canvas to fit the wrapped words, and the stage scrolls", "flows: the layout is shorter than the words it holds");
     if (!keys.length) return;
     for (const key of keys) {
       const d = D.branches[key];
