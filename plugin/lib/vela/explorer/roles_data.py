@@ -66,12 +66,34 @@ def grouping(vault, keys):
 
 
 
+def apps_by_capability(vault, keys):
+    """{capability id: [app keys]} from the epics that deliver it and list the app. The fallback for a requirement no
+    app's Requirements allocated table carries yet: the release page would otherwise show no app touched by any release."""
+    ids = {a.id: keys.page(a) for a in vault.apps}
+    out = {}
+    for epic in trace.epics(vault):
+        for cap in trace.listed(epic, "delivers"):
+            for app_id in trace.listed(epic, "apps"):
+                if app_id in ids and ids[app_id] not in out.setdefault(cap, []):
+                    out[cap].append(ids[app_id])
+    return out
+
+
+def raise_app(states, first, key):
+    """From state `first` on, an app a release touches is no longer absent: new if it was not there today, else changing."""
+    today = states[0]["apps"].get(key)
+    for state in states[first:]:
+        if state["apps"].get(key) in ("absent", "exists"):
+            state["apps"][key] = "changes" if today == "exists" else "new"
+
+
 def release_data(vault, keys):
     found = releases.releases(vault)
     snaps = releases.snapshots(vault)
     carried = allocation.carried(vault)
     app_key = {a.id: keys.page(a) for a in vault.apps}
     reqs = {r.id: r for r in allocation.requirements(vault)}
+    epic_apps = apps_by_capability(vault, keys)
     states = []
     for s in snaps:
         states.append({"name": s["name"], "target": s["target"], "state": s["state"],
@@ -80,13 +102,18 @@ def release_data(vault, keys):
     for i, rel in enumerate(found):
         touched, through = [], []
         for row in rel.rows:
-            for share in carried.get(row.requirement, []):
+            shares = carried.get(row.requirement, [])
+            for share in shares:
                 k = keys.page(share.app)
                 if k not in touched:
                     touched.append(k)
                 for cid in share.through:
                     if cid not in through:
                         through.append(cid)
+            for k in ([] if shares else epic_apps.get(row.requirement.split(".")[0], [])):
+                if k not in touched:
+                    touched.append(k)
+                    raise_app(states, i + 1, k)
         rows = [{"requirement": r.requirement, "criteria": list(r.criteria), "raw": r.raw_criteria, "note": r.note,
                  "of": releases.criteria_count(reqs[r.requirement]) if r.requirement in reqs else 0} for r in rel.rows]
         states[i + 1].update(rows=rows, touched=touched, through=through, heading=rel.name)

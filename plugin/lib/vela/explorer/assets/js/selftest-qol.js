@@ -185,8 +185,23 @@
     ok(!$("#side-read").hidden && $("#side .side-link[data-section=glossary]").getAttribute("aria-current") === "page", "menu: Read stays open on one of its pages, with that page marked", "menu: Read closed on its own page");
     Nav.st.expanded.delete("read"); Nav.home(); await tick();
     await caretTarget(ok);
+    await concernsSummary(ok);
   }
-  /* The triangle is the only thing that folds a list, so it is a target a hand can hit: 28 px square, as tall as its row, and a click on it (not on the row's name) folds. */
+  /* The line above the concerns grid counts what the grid shows: blank cells and empty rows are "not reviewed yet", and the numbers add up to every place a concern meets an app. */
+  async function concernsSummary(ok) {
+    Nav.open("concerns"); await tick();
+    const { conc, apps } = Sections.concernApps();
+    if (!conc.length || !apps.length) { ok(true, "concerns: no grid here, so no summary to check"); return; }
+    const cells = $$(".cmx td"), count = (re) => $$(".cmx-cell").filter((c) => re.test(c.textContent)).length;
+    const unrev = count(/not reviewed yet/) + $$(".cmx td.none").length, waiting = count(/waiting on an open question/);
+    const head = ($("#main .view-head p") || {}).textContent || "", line = ($("[data-concern-tally]") || {}).textContent || "";
+    const said = (text, n, word) => (n === 0 ? !text.includes(word) : text.includes(`${n} ${word}`));
+    ok(cells.length === conc.length * apps.length && head.includes(`${cells.length} places`) && said(head, unrev, "not reviewed yet") && said(head, waiting, "waiting on an open question") && said(line, unrev, "not reviewed yet") && said(line, waiting, "waiting on an open question"),
+      `concerns: the header and the line under the grid agree with its ${cells.length} cells (${waiting} waiting, ${unrev} not reviewed)`, `concerns: header "${head}" and line "${line}" disagree with the grid (${waiting} waiting, ${unrev} not reviewed of ${cells.length})`);
+    ok(!/reviewed for every app/.test(head), "concerns: the header never claims every app is reviewed", "concerns: the header claims every app is reviewed");
+    Nav.home(); await tick();
+  }
+  /* The triangle and the row name both fold a list; the triangle is a target a hand can hit: 28 px square, as tall as its row, and a click on it (not on the row's name) folds. */
   async function caretTarget(ok) {
     Nav.st.expanded.delete("apps"); Nav.home(); Nav.refresh(); await tick();
     const caret = $("#side .side-row:has(.side-link[data-section=apps]) button.side-caret");
@@ -196,6 +211,16 @@
       `menu: the expand triangle is ${Math.round(r.width)}x${Math.round(r.height)} px (at least 28x28) in a ${Math.round(rr.height)} px row, with a larger glyph`, `menu: the expand triangle is ${Math.round(r.width)}x${Math.round(r.height)} px in a ${Math.round(rr.height)} px row`);
     caret.click(); await tick();
     ok(Nav.st.expanded.has("apps") !== was && App.section === at, "menu: the triangle alone folds and unfolds the list, and does not open the page", `menu: the triangle did not toggle the list by itself (expanded ${was} -> ${Nav.st.expanded.has("apps")}, section ${at} -> ${App.section})`);
+    Nav.st.expanded.delete("apps"); Nav.home(); Nav.refresh(); await tick();
+    /* The row's name folds too, and still opens the page; the label and the triangle say the same thing to a screen reader. */
+    const label = () => $("#side .side-link[data-section=apps]"), state = () => label().getAttribute("aria-expanded");
+    ok(state() === "false" && caret.getAttribute("aria-expanded") === "false", "menu: a closed list says aria-expanded=false on its name and its triangle", `menu: closed list says ${state()}`);
+    label().click(); await tick();
+    ok(Nav.st.expanded.has("apps") && App.section === "apps" && state() === "true", "menu: clicking the name of a row with children opens its list and its page", `menu: name click left expanded ${Nav.st.expanded.has("apps")}, section ${App.section}, aria-expanded ${state()}`);
+    label().click(); await tick();
+    ok(!Nav.st.expanded.has("apps") && App.section === "apps" && state() === "false", "menu: clicking the name again folds the list and stays on the page", `menu: second name click left expanded ${Nav.st.expanded.has("apps")}, aria-expanded ${state()}`);
+    label().focus(); label().click(); await tick();
+    ok(label().tagName === "BUTTON" && Nav.st.expanded.has("apps"), "menu: the name is a button, so Enter and Space fold it the way a click does", "menu: the name is not a button");
     Nav.st.expanded.delete("apps"); Nav.home(); Nav.refresh(); await tick();
   }
 

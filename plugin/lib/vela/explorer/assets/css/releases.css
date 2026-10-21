@@ -45,6 +45,8 @@ ul.rc-reqs { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
 .rl-map .rl-node.party .rl-face { fill: var(--rl-party); stroke-dasharray: 2 4; }
 .rl-map .rl-tag rect { fill: var(--ink); } .rl-map .rl-tag text { font: 700 11px var(--ui); fill: var(--room); }
 .rl-map .rl-node:not(.touched) .rl-tag { display: none; }
+.rl-map .rl-node.touched .rl-face { stroke: var(--focus); stroke-width: 3.5; }
+.rl-map .rl-node.rested { opacity: .55; }
 .rl-map .rl-node.s-new.touched .rl-tag rect { fill: var(--room); stroke: var(--ink); } .rl-map .rl-node.s-new.touched .rl-tag text { fill: var(--ink); }
 .rl-map .rl-cor { fill: none; stroke: var(--track); stroke-width: 4; stroke-linecap: round; transition: stroke .6s, opacity .6s; }
 .rl-map .rl-cor.s-new { stroke: var(--rl-name); }

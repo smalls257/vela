@@ -103,6 +103,7 @@ def inline_html(text, keys, page, where=LISTED):
     out = re.sub(r"`([^`]+)`", lambda m: (code.append(m.group(1)), f"\x02{len(code) - 1}\x02")[1], out)
     out = re.sub(r"\*\*([^*]+)\*\*", r"<strong>\1</strong>", out)
     out = re.sub(r"(?<!\*)\*([^*\s][^*]*)\*(?!\*)", r"<em>\1</em>", out)
+    out = re.sub(r"(?<![\w_])_([^_\s][^_]*)_(?![\w_])", r"<em>\1</em>", out)  # the generated-block caption is _italic_; snake_case words have no such edge
     for i, span in enumerate(code):
         out = out.replace(f"\x02{i}\x02", f"<code>{span}</code>")
     for i, (label, target) in enumerate(web_links):

@@ -89,7 +89,8 @@ const Releases = (() => {
         const status = n.kind === "app" ? S.apps[n.key] || "exists" : "exists", word = n.kind === "app" ? appWord(j, n.key) : "outside service";
         const was = prev && n.kind === "app" ? prev.apps[n.key] || "exists" : status;
         const touched = (S.touched || []).includes(n.key);
-        g.setAttribute("class", `rl-node s-${status}${touched ? " touched" : ""}${n.kind !== "app" ? " party" : ""}`);
+        const rested = !touched && n.kind === "app" && status !== "absent" && j > 0 && (S.touched || []).length > 0;  // in the plan, but this release leaves it as it is
+        g.setAttribute("class", `rl-node s-${status}${touched ? " touched" : ""}${rested ? " rested" : ""}${n.kind !== "app" ? " party" : ""}`);
         g.dataset.status = status;
         looks.add(n.kind !== "app" ? "rel.party" : "rel." + status);
         if (touched) looks.add("rel.touched");

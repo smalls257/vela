@@ -64,3 +64,17 @@ def test_after_a_release_its_apps_change_and_its_contracts_exist(tmp_path):
     assert shots[1]["apps"]["APP-booking"] == ("new" if booking_today == "absent" else "changes")
     assert shots[1]["delivers"] == ["CAP-014.FR1"]
     assert shots[1]["contracts"]["CON-001"] in ("exists", "new")
+
+
+def test_every_release_marks_the_apps_it_touches_even_before_any_allocation_row_exists(tmp_path):
+    """Without a Requirements allocated row, the epics that deliver a capability say which apps it touches. A release
+    page that marks nothing for any release reads as if no release changed anything (a Silent Fallback)."""
+    from vela.explorer import roles_data
+    vault = vault_with(tmp_path, release("Release one", [f"{LINK} | AC1 | AC2 later"]) + release("Release two", [f"{LINK} | AC2 | "]))
+    app = vault / APP
+    app.write_text(app.read_text(encoding="utf-8").replace(ROW, ""), encoding="utf-8")
+    keys = type("K", (), {"page": staticmethod(lambda p: p.id)})()
+    data = roles_data.release_data(cli.load_vault(vault), keys)
+    one, two = data["states"][1], data["states"][2]
+    assert "APP-booking" in one["touched"] and "APP-booking" in two["touched"]
+    assert one["apps"]["APP-booking"] in ("new", "changes") and two["apps"]["APP-booking"] in ("new", "changes")

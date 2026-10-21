@@ -62,7 +62,7 @@ On `04b-releases.md`, one section per release, in the order they ship:
 | [[CAP-002-unlock-a-bike#CAP-002.FR2 Unlock with the app\|CAP-002.FR2]] | AC1, AC2 | AC3 in release two |
 ```
 
-- **Target** is a real `YYYY-MM-DD` date. A date the lead has not given is not written; the release waits as a question. A bad date fails E344.
+- **Target** is a real `YYYY-MM-DD` date. A date the lead has not given is not written; the release waits as a question. A bad date fails E344, and so does no date on a release at `assumption` or `decided`. A release at `inkling` may have none: W349 notes it.
 - **Slices** names, by ID, the slices that should be on by the date; leave it out until one does.
 - A vault that already names its tracer on release one (`**Tracer:**`, `**Not in the tracer:**`) or a later release's `**Flows:**` keeps working; offer to move each to a slice page, and replace the bullets with `**Slices:**` once the lead agrees.
 - **Delivers** links the requirement's heading. **Criteria** is `all`, or the numbers of the criteria that hold, in the order of the requirement's bullets. **Note** says where the rest goes, such as "AC3 in release two", or is empty. A requirement may stand on several releases, each with different criteria; one placed on no release is not written.
