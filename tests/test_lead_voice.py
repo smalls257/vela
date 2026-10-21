@@ -1,4 +1,4 @@
-"""The voice test for what a lead hears (the 14 October voice audit, structural gap 6): every `--for-lead` output the
+"""The voice test for what a lead hears (the October 14 voice audit, structural gap 6): every `--for-lead` output the
 skills relay, run over the test vaults, passes the leak check and the conversation voice's shape: the answer first,
 then about four things (`say.LEAD_LIMIT`), the rest behind "N more; want them?", the lead spoken to and never about,
 and no git words or model bookkeeping.
@@ -161,7 +161,7 @@ def test_freshness_behind_offers_to_bring_the_changes_in(tmp_path, heard):
 
 def test_freshness_says_each_state_without_git():
     """Every report freshness can give, in the words `--for-lead` prints: one state, one offer, no branch, remote,
-    counts tail or git's own words (the 14 October voice audit, rows 46 to 55)."""
+    counts tail or git's own words (the October 14 voice audit, rows 46 to 55)."""
     from vela import freshness
     have = {"commit": "a1b2c3d4", "date": "2026-10-14"}
     copy = {"base_commit": "a1b2c3d4", "base_date": "2026-10-14"}
@@ -178,7 +178,7 @@ def test_freshness_says_each_state_without_git():
     for report in reports:
         assert report.lead and say.leak_in(report.lead) is None, report.lead
         assert not any(word in report.lead for word in ("origin", "branch", "commit", "fetch", "pull")), report.lead
-    assert reports[3].lead == ("A newer copy came out on 16 October 2026. Your drafts are safe; I can carry them over "
+    assert reports[3].lead == ("A newer copy came out on October 16, 2026. Your drafts are safe; I can carry them over "
                                "to it. Want that?")
     assert reports[6].lead == "You're up to date with the shared plan."
 

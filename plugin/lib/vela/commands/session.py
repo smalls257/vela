@@ -53,7 +53,7 @@ NAME = "session open"
 START, BRIEF = "session start", "session brief"
 READ_COPY = ("This is your copy, so your work stays in this folder and nothing goes to the shared plan until "
              "you send a proposal.")
-# Git's own words stay in the default line; the lead hears what it means (the 14 October voice audit).
+# Git's own words stay in the default line; the lead hears what it means (the October 14 voice audit).
 GIT_DETAIL = "The details are in my notes."
 
 
@@ -142,7 +142,7 @@ def describe(record):
 
 
 def spoken(record, plain, today):
-    """'Grill: calendar entries, started 14 October'. A record whose title is only its slug is said by its modes."""
+    """'Grill: calendar entries, started October 14'. A record whose title is only its slug is said by its modes."""
     title = plain(record.title)
     if say.leak_in(title):
         modes = [sessions.MODE_NAMES.get(m, m) for m in record.modes]

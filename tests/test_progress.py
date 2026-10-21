@@ -167,7 +167,7 @@ def test_progress_map_is_dated_by_the_last_session_and_holds_no_age(mini):
     assert code == 0 and "01-goals.md: progress-map" in out, out
     text = (mini / "01-goals.md").read_text(encoding="utf-8")
     block = text[text.index("<!-- generated:progress-map"):text.index("<!-- /generated:progress-map -->")]
-    assert "**How sure each app's items are,** as of the last session on 10 January 2026" in block
+    assert "**How sure each app's items are,** as of the last session on January 10, 2026" in block
     assert "| [[till-building-blocks\\|Till]] | named in scope | 0 | 1 | 0 | 0 | none | Discover Till |" in block
     assert " days" not in block
     assert findings(check(mini)[1]) == []

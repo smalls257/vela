@@ -18,7 +18,7 @@ $ARGUMENTS
 
 Vela is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela` (`START.md`, "Where vela runs from", covers a host that leaves the variable unexpanded).
 
-1. Run `vela freshness --json`. When `state` is `current`, say nothing about freshness. When it is `newer` (exit 3), open the answer with one line in your words, from `behind` and the dates: "This answer comes from a copy that is 4 changes behind the latest plan (last updated 10 October)." When it is `unreachable` or `unknown`, or the command fails, say in one plain sentence that you couldn't check for a newer plan. Never say a branch, a commit or the command's message.
+1. Run `vela freshness --json`. When `state` is `current`, say nothing about freshness. When it is `newer` (exit 3), open the answer with one line in your words, from `behind` and the dates: "This answer comes from a copy that is 4 changes behind the latest plan (last updated October 10)." When it is `unreachable` or `unknown`, or the command fails, say in one plain sentence that you couldn't check for a newer plan. Never say a branch, a commit or the command's message.
 2. Find the pages: `vela query search <the asker's words> --json`, then `vela query find <words> --json` for exact titles and headings, then Grep and Glob. Never search or Read a file under `voice/` or `.inbox/`, other than `voice/VOICE.md` for how to talk. Search and Read `sessions/` only if the question asks about a session or what was said. Try two sets of words before you decide no page covers it: the asker's, and the plan's own from `12-glossary.md`.
 3. Open every section you will cite with Read. Cite nothing you did not open in this answer. Assert nothing you did not open and read. A Grep snippet alone does not count.
 4. Before you cite any ID, run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela query get <ID> --json`. It says the item exists, where it lives, and its state, `dissent`, `blocked_by`, `override` and `decided_by` for the flags. The ID stays behind the scenes. If the answer is `not_found`, never cite that ID or write it as if it existed: say `Not recorded: <ID> is not in this vault.` `vela query refs <ID> --json` finds every page that mentions an item. If `vela query` exits 2, it could not read the vault: say in one plain sentence that you couldn't check the items in this answer, and never treat that as `not_found` or "Not recorded".
@@ -29,8 +29,8 @@ Vela is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela` (`START.md`, "Where vela ru
 
 An ID goes in only when the asker named the item by its ID or asks for IDs, and then as a tag at the end of its Sources line, never in a sentence.
 
-Don't write: "The handoff date is still open (UNK-051, due 21 October)."
-Write: "Nobody has settled the handoff date and form yet. Sam is to answer it by 21 October."
+Don't write: "The handoff date is still open (UNK-051, due October 21)."
+Write: "Nobody has settled the handoff date and form yet. Sam is to answer it by October 21."
 
 ## Bash is read-only here
 
@@ -54,7 +54,7 @@ When two pages disagree, cite both and say which owns the value.
 
 Each gets its own line, naming who to ask. `Not recorded:` when no page covers it (name the nearest page's owner), an open unknown covers it (its name, owner and ask-by date when it has one), a page puts it out of scope (say where), or it sits below the plan's level, such as stories (name the team whose tech design owns it). `Not decided:` when it asks "should we" and no `decided` item answers it (name the area; suggest a shape or a grill session).
 
-If the only match is a capture in `sessions/`: "Not recorded in the plan. It came up in the 12 October desks session but nobody has filed it."
+If the only match is a capture in `sessions/`: "Not recorded in the plan. It came up in the October 12 desks session but nobody has filed it."
 
 Never fill a gap from general knowledge. If the asker insists, add it after `Sources:` under the heading `Not from the vault:`.
 

@@ -20,7 +20,7 @@ Every `vela` below is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela`. Relay its `-
    > 2. Guests can rebook on their phones by Q4 (the 2026 roadmap deck, a plan, so not decided yet).
    > 3. Partners get changes every hour (the ops runbook, what runs today).
    >
-   > Lines 1 and 3 disagree; I'd make that one open question. I'd ask the partnerships team, by 1 March, since the pilot's partners sign up then; does that person and date work? Yes to these three?
+   > Lines 1 and 3 disagree; I'd make that one open question. I'd ask the partnerships team, by March 1, since the pilot's partners sign up then; does that person and date work? Yes to these three?
 
 5. After each correction round, write each confirmed line as a sentence in its page's section (`vela conventions "Pages"`, prose as `house-voice` says): the source linked on the words that rely on it, the wording saying how sure it is ("the agreement summary says…" for a fact, "Partnerships expects…" for an assumption). Contracts, unknowns, parties and stored value keep their fact bullets, each opened by a sentence. Never copy document text into the vault.
 

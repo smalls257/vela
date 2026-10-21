@@ -112,7 +112,7 @@ The Desktop agent runs on each person's laptop in the Client Delivery London pil
 
 ## Walking skeleton
 The first release's tracer is the 7:30 digest. The design run named no skeleton and the vault records no tracer, so this one was assembled from the design's own Trace rows when the doc was re-shaped, for the senior to confirm.
-- **Flow:** A person gets the 7:30 digest (FLO-002), on release one, the 2 February 2027 pilot.
+- **Flow:** A person gets the 7:30 digest (FLO-002), on release one, the February 2, 2027 pilot.
 - **Path:** Scheduler → ConsentGate → SourceReader → NoteClient → LocalStore → NoteView
 - **Stubbed:** Consent and identity at the consent check (CON-003), and the Summarizer at the note request (CON-002), until those teams' pieces land.
 - **Carries:** CAP-001.FR2@APP-desktop-agent, CAP-002.FR1@APP-desktop-agent, CAP-003.FR1@APP-desktop-agent, EPC-033.AC1, EPC-033.AC2
@@ -174,7 +174,7 @@ Seven components, all in the one process. ConsentGate is the only door to Source
 - Owns: the request shape; names no one itself.
 - Depends on: ConsentGate, Summarizer (CON-002).
 - Exposes: `requestDigest(grant, entries)`, `requestPrep(grant, entry)`.
-- Gate: sends to a remote Summarizer endpoint only when a machine-level managed setting (an Intune or Jamf configuration profile, default off, not user-writable) says the text call is settled. One build holds both the on-device and the remote path, and CI tests both from the start; the remote path is also tested in a test tenant before the 4 December outcome (CST-003, UNK-051). A profile push after the freeze needs the endpoint lead's agreement that it takes no new packaging slot (OQ-007); if refused, the pilot runs on-device only.
+- Gate: sends to a remote Summarizer endpoint only when a machine-level managed setting (an Intune or Jamf configuration profile, default off, not user-writable) says the text call is settled. One build holds both the on-device and the remote path, and CI tests both from the start; the remote path is also tested in a test tenant before the December 4 outcome (CST-003, UNK-051). A profile push after the freeze needs the endpoint lead's agreement that it takes no new packaging slot (OQ-007); if refused, the pilot runs on-device only.
 - Container: Source reader
 
 ### ConsentRecorder
@@ -319,19 +319,19 @@ None. One process, so the component diagram under Architecture overview and the 
 | Show latency | the agent's own work after a Summarizer reply (validate, store, ready to show) within 1 minute; Note view opens in under 2 seconds (team targets, 2026-10-12; not in the vault). Summarizer time is outside this target and sits under UNK-067 | measured in test and the pilot (D-002). A miss in the agent's step is a build fix; a slow Summarizer shows the note marked late, never dropped (rule 3) |
 | Safety on failure | every failed or slow call reads nothing and shows nothing; no cached consent (see API contracts) | ConsentGate is the only door; fail-closed tests per call in CI |
 | Data on the laptop | only HeldNote, OutboxEvent, DeltaToken and seven-day logs; no calendar or transcript text on disk | Data model; a test that scans the profile after a run |
-| Testing | both Summarizer paths, withdrawal at each step, and a lost store key | CI from the start; remote path also in a test tenant before 4 December (CST-003) |
+| Testing | both Summarizer paths, withdrawal at each step, and a lost store key | CI from the start; remote path also in a test tenant before December 4 (CST-003) |
 | Observability | a stopped or disabled agent is visible on the tray icon; errors in local logs | Operations: Monitor, Restart; fleet detection is OQ-004 |
 
 ## Constraints register
 | ID | Constraint | Source | Impact |
 |----|-----------|--------|--------|
 | CST-002 | New app registration needs CISO review, about six weeks | vault 02-constraints | `Calendars.Read` only in the pilot registration |
-| CST-003 | No meeting text leaves a laptop until the 4 December outcome | vault 02-constraints | NoteClient's reach depends on UNK-051 |
+| CST-003 | No meeting text leaves a laptop until the December 4 outcome | vault 02-constraints | NoteClient's reach depends on UNK-051 |
 | CST-004 | A digest names only people who were in the meeting | vault 02-constraints | the Summarizer enforces it; the agent names no one and sends attendees only (CAP-003.FR2) |
 | CST-006 | Frankfurt stays out of the pilot | vault 02-constraints | enforced by who receives the package (the endpoint team's pilot group); the agent cannot know a person's office |
 | CST-007 | Staff cannot install; Intune and Jamf push | vault 02-constraints | two signed packages |
 | CST-008 | Transcripts need organizer setting and admin approval | vault 02-constraints | calendar-only is the usual case |
-| CST-010 | 18 January 2027 packaging slot | vault 02-constraints | contracts fixed by early January |
+| CST-010 | January 18, 2027 packaging slot | vault 02-constraints | contracts fixed by early January |
 
 ## Risks & mitigations
 | ID | Risk | Severity | Mitigation |
@@ -339,7 +339,7 @@ None. One process, so the component diagram under Architecture overview and the 
 | K-1 | Core bug takes down the whole agent (ADR-0001) | high | fail closed; OS relaunch; outbox replay |
 | K-2 | SQLCipher does not build or sign for Intune or Jamf | medium | D-001 spike; AES-GCM fallback |
 | K-3 | Consent and identity slow or down, so people cannot re-enable after a withdrawal | medium | visible state; revisit with measured times |
-| K-4 | Registration review misses the 18 January slot (UNK-069) | high | none in the design; vault gate |
+| K-4 | Registration review misses the January 18 slot (UNK-069) | high | none in the design; vault gate |
 | K-6 | Same-user malware reads the store key (finding 1) | medium | accepted and stated; Grant type and command allow-list limit the webview; a process split is the later answer |
 | K-7 | The Summarizer budget (UNK-067, ask by 2026-10-29) is unanswered by the January freeze (CST-010), so rule 3 ships with a placeholder | medium | the number is config; the Summarizer lead and product owner answer before the freeze |
 | K-8 | Two Rust engineers plus the signing and notarization turnaround are a key-person risk for the pilot (finding 8) | medium | none in the design; cover is a staffing decision for the agent lead |
@@ -350,7 +350,7 @@ None. One process, so the component diagram under Architecture overview and the 
 - [ADR-0001](../adr/0001-desktop-agent-tauri-single-process.md) — Build the Desktop agent as one Tauri process for Mac and Windows
 
 ## Operations
-- **Deploy:** one Tauri build pipeline gives a signed MSIX (Intune) and a signed, notarized pkg (Jamf), pushed by the endpoint team's existing pipeline in the 18 January 2027 slot (CST-007, CST-010). The person can only switch it on.
+- **Deploy:** one Tauri build pipeline gives a signed MSIX (Intune) and a signed, notarized pkg (Jamf), pushed by the endpoint team's existing pipeline in the January 18, 2027 slot (CST-007, CST-010). The person can only switch it on.
 - **Monitor:** local logs only, in the user's profile, readable by that user only. They hold errors and component codes with timestamps. Usage events ("shown", "dismissed") are daily counters with no meeting ID, note kind or time of day, so an event cannot point to a meeting (review finding 7). Never meeting titles, attendees or note text. Retention is a rolling seven days, cleared by the same sweep as old markers. Nothing collects them; they leave the laptop only when the person exports a diagnostic, and the export screen shows what it holds. `purgeAll` deletes the logs on withdrawal. All events go through one `EventSink` interface that writes to disk in the pilot. No remote telemetry (see OQ-004). The logs are data Heron keeps on the laptop and belong on the data list (UNK-057).
 - **Kill switch (review finding 8):** a second machine-level managed setting, "enabled", pushed by Intune or Jamf like the Summarizer gate. When off, the agent reads and shows nothing and keeps retrying any outbox withdrawal. A bad build can be silenced without a new package.
 - **Schema (review finding 8):** the store carries a schema version. Migrations only add. The outbox format never changes in a way an older reader cannot parse, and a migration never drops outbox rows. If a binary finds a newer schema than it knows (after a rollback), it reads nothing, shows nothing and does not reset the store; only a lost key or a corrupt database triggers the fresh store and safety withdrawal.
@@ -439,7 +439,7 @@ EPC-035 is on no release; its components are built for calendar entries first an
 **Challenges:** CAP-002.FR1
 
 ### OQ-007: What does the Summarizer keep, log and train on, and does withdrawal reach it?
-**What we know:** The agent sends calendar entries, and later transcript text, over CON-002. The vault records the shape of the request and no authentication, retention, logging, no-training rule or transport. CON-002 has no deletion call. Scenario: a person withdraws and the agent purges the laptop, but the Summarizer still holds their meeting text. CST-003 forbids meeting text leaving a laptop until the 4 December outcome, and the text call is open as UNK-051. The design adds three controls on its own side: an audience-scoped token, TLS with no text in logs, and a gate that refuses a remote Summarizer endpoint until a managed setting says the text call is settled.
+**What we know:** The agent sends calendar entries, and later transcript text, over CON-002. The vault records the shape of the request and no authentication, retention, logging, no-training rule or transport. CON-002 has no deletion call. Scenario: a person withdraws and the agent purges the laptop, but the Summarizer still holds their meeting text. CST-003 forbids meeting text leaving a laptop until the December 4 outcome, and the text call is open as UNK-051. The design adds three controls on its own side: an audience-scoped token, TLS with no text in logs, and a gate that refuses a remote Summarizer endpoint until a managed setting says the text call is settled.
 **What would unblock:** The Summarizer's owner and the product owner record in CON-002 who authenticates callers, what is kept, logged and trained on and for how long, and whether withdrawal reaches it, before the January freeze (CST-010). The endpoint lead and CISO also say whether a configuration profile may change the gate after the freeze.
 **Affects:** NoteClient, Integration points, CON-002, EPC-033, EPC-034.
 **Challenges:** CON-002
@@ -451,7 +451,7 @@ EPC-035 is on no release; its components are built for calendar entries first an
 **Challenges:** UNK-071
 
 ### OQ-009: Can the endpoint team stage the package in rings and recall a bad build, and who holds the signing keys?
-**What we know:** The agent ships through Intune and Jamf in the endpoint lead's one slot on 18 January 2027, and he will not raise an earlier one (CST-010). The vault does not say whether Intune and Jamf stage the pilot group in rings, how a build is pulled or superseded, who holds the signing certificates and Apple notarization credentials, who renews them, or how WebView2 and macOS updates are tracked after the slot. The pilot is Client Delivery London, so a bad build reaches that group, not the whole firm. Without rings the only rollback is the kill switch, and the agent lead cannot absorb a second build with the team available.
+**What we know:** The agent ships through Intune and Jamf in the endpoint lead's one slot on January 18, 2027, and he will not raise an earlier one (CST-010). The vault does not say whether Intune and Jamf stage the pilot group in rings, how a build is pulled or superseded, who holds the signing certificates and Apple notarization credentials, who renews them, or how WebView2 and macOS updates are tracked after the slot. The pilot is Client Delivery London, so a bad build reaches that group, not the whole firm. Without rings the only rollback is the kill switch, and the agent lead cannot absorb a second build with the team available.
 **What would unblock:** The endpoint lead answers on rings and recall, and names the key holders. The agent lead needs a yes on ring support before the freeze.
 **Affects:** Operations (Deploy), Tech stack, ADR-0001.
 **Challenges:** CST-010

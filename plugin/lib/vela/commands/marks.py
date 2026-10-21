@@ -18,7 +18,7 @@ fresh one for the model to pick by mistake; an applied draft is never touched.
 Exit codes (plan 3.1):
 0  the draft is written and listed in `wrote` (and `drafts`): every capture has a default, or the leftovers the lead
    must settle are in `needs_lead`, most blocking first. The draft is written for those leftovers, so the command
-   changed something, and exit 3 ("nothing changed") would be a false promise: the 14 October voice audit found it
+   changed something, and exit 3 ("nothing changed") would be a false promise: the October 14 voice audit found it
    exiting 3 with the draft hidden from `wrote`, which `say.check_contract` could then never see (Silent Fallback);
 1  refused: no session is open;
 2  the tool failed: the vault or the record can't be read, or the disk refused the draft;

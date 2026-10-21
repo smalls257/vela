@@ -191,7 +191,7 @@ def test_two_files(tmp_path):
     before.write_text(DRAFT, encoding="utf-8")
     after.write_text(DRAFT.replace("It calls", "Booking calls"), encoding="utf-8")
     assert run("voicecheck", str(before), str(after)) == (0, "vela voicecheck: 1 files compared, 0 with protected tokens changed.\n")
-    after.write_text(DRAFT.replace("2026-11-20", "20 November"), encoding="utf-8")
+    after.write_text(DRAFT.replace("2026-11-20", "November 20"), encoding="utf-8")
     code, out = run("voicecheck", str(before), str(after))
     assert code == 1
     assert out.splitlines() == ["vela voicecheck: 1 files compared, 1 with protected tokens changed.",

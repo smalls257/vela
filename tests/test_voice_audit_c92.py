@@ -1,4 +1,4 @@
-"""The 14 October voice audit rows C92 covers (audit row C92): what the lead hears from epics, reviewers, voice,
+"""The October 14 voice audit rows C92 covers (audit row C92): what the lead hears from epics, reviewers, voice,
 where --probe, check --fix, terms and prose replace. Each test holds a line's shape, not just its words: the answer
 before the list, a count in words, the model's own slips kept from the lead, one name for a reader's copy.
 """
@@ -51,7 +51,7 @@ def test_reviewers_skip_line_says_what_was_skipped_without_ledger_words():
 def test_voice_retire_line_says_why_in_words_with_the_date_in_words():
     example = types.SimpleNamespace(path="voice/examples/x.md", source="owner-edit", added="2026-10-01")
     plain = voice.retire_line(example, "cap").plain
-    assert plain == "Saving this pushes out your oldest example, from 1 October 2026, because I keep five at most."
+    assert plain == "Saving this pushes out your oldest example, from October 1, 2026, because I keep five at most."
     assert "retire" not in voice.retire_line(example, "seed").plain
 
 

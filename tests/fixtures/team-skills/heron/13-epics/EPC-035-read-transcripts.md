@@ -14,7 +14,7 @@ depends_on: [EPC-032, EPC-033, EPC-034]
 
 # Read existing Teams transcripts
 
-This epic lets the agent read Teams transcripts that already exist. It asks Microsoft for a transcript only where the person agreed to transcripts, the organizer turned transcripts on and the tenant administrators approved reading them, and it reads one only for a meeting the person was in. It is on no release yet, because the security review of 4 December gates it and the endpoint lead and legal counsel must first answer on transcripts, administrator approval and the lawful basis for each source.
+This epic lets the agent read Teams transcripts that already exist. It asks Microsoft for a transcript only where the person agreed to transcripts, the organizer turned transcripts on and the tenant administrators approved reading them, and it reads one only for a meeting the person was in. It is on no release yet, because the security review of December 4 gates it and the endpoint lead and legal counsel must first answer on transcripts, administrator approval and the lawful basis for each source.
 
 **Owning team:** @sim-lead (Desk Agent team)
 
@@ -45,7 +45,7 @@ This epic lets the agent read Teams transcripts that already exist. It asks Micr
 
 ## Rollout notes
 
-- On no release and no date. The CISO review of 4 December is its gate, and the endpoint lead and legal counsel must answer first, on transcripts and admin approval and on the lawful basis for each source.
+- On no release and no date. The CISO review of December 4 is its gate, and the endpoint lead and legal counsel must answer first, on transcripts and admin approval and on the lawful basis for each source.
   - Trace: UNK-059, UNK-071
 - Moves to a later release, not the February pilot.
 

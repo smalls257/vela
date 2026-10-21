@@ -116,7 +116,7 @@ def test_ask_has_no_bang_injection_and_runs_freshness_as_a_normal_step():
     assert "How fresh this clone is" not in ask
     steps = ask.split("## Steps", 1)[1]
     assert steps.index("vela freshness --json") < steps.index("vela query search")
-    assert "This answer comes from a copy that is 4 changes behind the latest plan (last updated 10 October)." in ask
+    assert "This answer comes from a copy that is 4 changes behind the latest plan (last updated October 10)." in ask
     assert "Never say a branch, a commit or the command's message." in ask
     for gone in ("Bash(git log *)", "Bash(git rev-list *)", "Bash(date *)"):
         assert gone not in ask_meta()["allowed-tools"], gone
@@ -140,15 +140,15 @@ def test_ask_names_sources_by_page_heading_with_the_id_only_on_request():
 
 def test_ask_shows_the_inline_parenthetical_it_must_not_write_and_its_right_form():
     names = text("skills/ask/SKILL.md").split("## Names, not IDs", 1)[1].split("\n## ", 1)[0]
-    assert 'Don\'t write: "The handoff date is still open (UNK-051, due 21 October)."' in names
-    assert 'Write: "Nobody has settled the handoff date and form yet. Sam is to answer it by 21 October."' in names
+    assert 'Don\'t write: "The handoff date is still open (UNK-051, due October 21)."' in names
+    assert 'Write: "Nobody has settled the handoff date and form yet. Sam is to answer it by October 21."' in names
 
 
 def test_ask_flags_read_in_words():
     ask = text("skills/ask/SKILL.md")
     for flag in ('"(just an idea)"', '"(not decided yet)"', "(nobody has looked at data protection for the dock app yet)",
                  "(the dock app's team lead hasn't confirmed it)",
-                 "It came up in the 12 October desks session but nobody has filed it."):
+                 "It came up in the October 12 desks session but nobody has filed it."):
         assert flag in ask, flag
     for old in ("unexamined: nobody", "assumed: not confirmed", "the <app> senior", "An unpromoted capture"):
         assert old not in ask, old

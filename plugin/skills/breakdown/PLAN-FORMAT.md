@@ -29,7 +29,7 @@ prereqs:
 
 ## Body, in this order
 
-1. A title, then an opening of two or three sentences: what the plan covers, what it rests on, what the sizes mean, and the audit line: "Checked against the design self-check on 12 October; see the audit file beside this plan."
+1. A title, then an opening of two or three sentences: what the plan covers, what it rests on, what the sizes mean, and the audit line: "Checked against the design self-check on October 12; see the audit file beside this plan."
 2. `## Summary`: a table `| Story | Traces to | Size total | Blocked by |`, one row per story, deferred and merged ones too. Size total is a count: `3 M, 2 S`. A deferred or merged story says `not planned`. The row may shorten a run (`EPC-032.AC1-4`) but names no target the story section lacks.
 3. `## Stories`: one `### S-NN <name>` section per story, in the shape below.
 4. `## Build order`: a numbered list, `1. S-01 (tracer): why it sits here`, tracer stories first. Stories not built are named in a closing line.

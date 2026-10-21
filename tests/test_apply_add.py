@@ -311,7 +311,7 @@ def test_every_type_has_an_example_its_own_validate_accepts_in_shape(kind):
     assert module.__doc__ and "Violation" in (add.__doc__ or ""), kind
 
 
-# --- add unknown: no second copy of an open question (full3 P14: UNK-070 and UNK-073 asked "will the 18 January slot
+# --- add unknown: no second copy of an open question (full3 P14: UNK-070 and UNK-073 asked "will the January 18 slot
 # hold" twice, filed by two sessions with no check).
 def test_a_near_identical_open_question_is_refused_naming_the_existing_one(tmp_path):
     root = make_vault(tmp_path)
@@ -343,7 +343,7 @@ def test_the_override_files_it_and_writes_why(tmp_path):
 
 def test_same_question_threshold():
     same = add_unknown.same_question
-    assert same("Will the 18 January slot hold?", "Will the 18 January slot still hold for the pilot?")
+    assert same("Will the January 18 slot hold?", "Will the January 18 slot still hold for the pilot?")
     assert not same("Who owns the till test rig?", "Who pays for the till licence?")
     assert not same("Hold?", "Hold?")  # too short to call a copy
 

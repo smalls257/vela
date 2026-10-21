@@ -420,7 +420,7 @@ def test_the_built_line_shows_at_the_top_with_the_commit(tmp_path, chrome_path):
     text = page.read_text(encoding="utf-8")
     page.write_text(re.sub(r'("built":\{"date":")\d{4}-\d{2}-\d{2}', r"\g<1>2026-01-05", text, count=1), encoding="utf-8")
     line, opening = built_tag()
-    assert line.startswith("Built 5 Jan.") and "commit" not in line and short not in line
+    assert line.startswith("Built Jan 5.") and "commit" not in line and short not in line
     assert f'data-commit="{short}' in opening and "title=" not in opening and "hidden" not in opening
 
 

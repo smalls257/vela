@@ -57,6 +57,6 @@ def test_the_v2_script_runs_the_three_sessions_between_the_journeys_and_the_epic
     assert modes[at + 6] == "epics"
     assert script["capture"] == {"release_date": "2027-01-15", "ask": "outside counsel"}
     facts = " ".join(k["fact"] for k in script["news"]["knows"])
-    assert "15 January 2027" in facts and "Learning" in facts and "only outside counsel" in facts
+    assert "January 15, 2027" in facts and "Learning" in facts and "only outside counsel" in facts
     old = yaml.safe_load((SIM / "scripts" / "trading-complete.yaml").read_text(encoding="utf-8"))
     assert modes[:at] + modes[at + 6:] == [s["mode"] for s in old["sessions"]]  # nothing else changed

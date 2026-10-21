@@ -50,7 +50,7 @@ def test_a_resolved_question_carries_nothing(mini):
 
 
 def test_ordinary_prose_about_a_grill_is_left_alone(mini):
-    say(mini, "A Grill decided the till's float on 10 January.")
+    say(mini, "A Grill decided the till's float on January 10.")
     _, out = check(mini)
     assert codes(out) == []
 

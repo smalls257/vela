@@ -90,7 +90,7 @@ const ProgressView = (() => {
     if (!open.length) { sec.append(h("div", { class: "note" }, "No question is open.")); return sec; }
     const monday = TODAY - ((new Date(D.today + "T00:00:00Z").getUTCDay() + 6) % 7);
     const buckets = [{ label: "Overdue", ids: [] }];
-    for (let w = 0; w < 10; w++) buckets.push({ label: new Date((monday + 7 * w) * DAY).toISOString().slice(5, 10).replace(/^(\d\d)-(\d\d)$/, (m, mo, d) => `${+d} ${MONTHS[+mo - 1]}`), sub: w === 0 ? "this week" : "", ids: [] });
+    for (let w = 0; w < 10; w++) buckets.push({ label: new Date((monday + 7 * w) * DAY).toISOString().slice(5, 10).replace(/^(\d\d)-(\d\d)$/, (m, mo, d) => `${MONTHS[+mo - 1]} ${+d}`), sub: w === 0 ? "this week" : "", ids: [] });
     buckets.push({ label: "Later", ids: [] }, { label: "No date", ids: [] });
     for (const u of open) {
       if (!isDate(u.askBy)) { buckets[buckets.length - 1].ids.push(u.id); continue; }

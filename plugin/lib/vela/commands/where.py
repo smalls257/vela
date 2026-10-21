@@ -59,7 +59,7 @@ def cmd_probe(args, out):
         raise cli.ToolError(f"where --probe: {exc}. Nothing was recorded about this host.") from exc
     gaps = hostprobe.missing(rows, host["reader"])
     row_name, said = hostprobe.stance(host)
-    # The stance is the answer; the lead hears only the rows that don't work (the 14 October voice audit, row 213),
+    # The stance is the answer; the lead hears only the rows that don't work (the October 14 voice audit, row 213),
     # and only where the stance leaves the reason open: with no git, or in a reader's copy, the stance already says
     # why, and the git, network and gh rows under it would only repeat it (row 216). The skill's folder, the
     # plugin's folder and the ! line are the skill's plumbing, never needed, so never heard (row 217).

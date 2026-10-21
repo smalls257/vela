@@ -74,7 +74,7 @@ def test_exit_3_means_nothing_changed():
 
 
 def test_the_leak_check_catches_the_plumbing_the_voice_audit_found():
-    """Each line passed the old check (codes and IDs only) and reached a lead in the 14 October runs."""
+    """Each line passed the old check (codes and IDs only) and reached a lead in the October 14 runs."""
     leaks = {
         "session slug": "Calling this one 2026-10-14-calendar-entries.",
         "git error": "GitHub's command line failed (none of the git remotes configured for this repository point to "
@@ -85,11 +85,11 @@ def test_the_leak_check_catches_the_plumbing_the_voice_audit_found():
         "flag": "Build it with --for-lead first.",
         "ISO date": "I've set it to be asked by 2027-02-02.",
         "handle": "@agent-lead owns no app pages.",
-        "commit hash": "Your copy is the latest published (a1b2c3d, 14 October).",
+        "commit hash": "Your copy is the latest published (a1b2c3d, October 14).",
     }
     for kind, line in leaks.items():
         assert say.leak_in(line) is not None and say.leak_in(line)[0] in (kind, "session slug", "git error"), (kind, line)
-    for fine in ("vela needs 3.9 or later.", "Open dashboard.html in this folder.", "Ask by 14 October, read/write.",
+    for fine in ("vela needs 3.9 or later.", "Open dashboard.html in this folder.", "Ask by October 14, read/write.",
                  "/vela:explore opens it.", "Vela's own words are grill, slice and tracer."):
         assert say.leak_in(fine) is None, fine
 
@@ -105,8 +105,8 @@ def test_the_command_pattern_knows_every_subcommand():
 def test_the_resolver_says_dates_handles_and_page_files_in_words():
     import datetime
     resolver = say.Resolver(today=datetime.date(2026, 10, 14))
-    assert resolver.plain("due 2026-11-03, with @solution-lead") == "due 3 November, with solution lead"
-    assert resolver.plain("due 2027-02-02") == "due 2 February 2027"
+    assert resolver.plain("due 2026-11-03, with @solution-lead") == "due November 3, with solution lead"
+    assert resolver.plain("due 2027-02-02") == "due February 2, 2027"
     assert resolver.plain("start it with /vela:design --app APP-x.") == "start it with /vela:design."
     assert resolver.plain("in the lead's own words") == "in your own words"
 

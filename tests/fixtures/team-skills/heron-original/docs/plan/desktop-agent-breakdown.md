@@ -136,7 +136,7 @@ Blocked by: S-01 (setting reader pattern) and the S-05 transport interface. Not 
 
 ### S-07b Remote Summarizer transport and both-paths tests (deferred)
 Traces to: CON-002, CST-003. Components: NoteClient.
-Deferred (2026-10-12): the pilot runs on-device only, and the remote path cannot be used until OQ-007, UNK-051 and OQ-009 are answered. Two tasks were sized: the remote transport (M: audience-scoped token, TLS, no meeting text in logs) and CI for both paths plus a test-tenant run before 4 December (M). Restart it when the blockers clear; the token design assumes a separate token with the Summarizer as its own audience, to be confirmed by OQ-007. Not planned; see Not planned.
+Deferred (2026-10-12): the pilot runs on-device only, and the remote path cannot be used until OQ-007, UNK-051 and OQ-009 are answered. Two tasks were sized: the remote transport (M: audience-scoped token, TLS, no meeting text in logs) and CI for both paths plus a test-tenant run before December 4 (M). Restart it when the blockers clear; the token design assumes a separate token with the Summarizer as its own audience, to be confirmed by OQ-007. Not planned; see Not planned.
 
 ### S-08 Windows MSIX through Intune
 Traces to: CST-007, CST-010; design Operations (Deploy). Components: LocalStore (key binding), Scheduler (startup task).
@@ -150,7 +150,7 @@ Traces to: CST-007, CST-010; design Operations (Deploy). Components: LocalStore 
 
 Note: start the CI runner now; hold the signing-key and certificate ceremony until OQ-009 is answered. Use a throwaway certificate on a placeholder build meanwhile; if the certificate subject changes later, earlier feedback from the pipeline is lost, which the team accepted.
 
-Blocked by: S-01 for the real binary only; certificate holders and ring support (OQ-009). The only slot is 18 January 2027 (CST-010); UNK-069 says the registration review may end after it.
+Blocked by: S-01 for the real binary only; certificate holders and ring support (OQ-009). The only slot is January 18, 2027 (CST-010); UNK-069 says the registration review may end after it.
 
 ### S-09 Mac pkg through Jamf
 Traces to: CST-007, CST-010. Components: LocalStore (Keychain binding), Scheduler (launch agent).
@@ -192,7 +192,7 @@ Deferred by the team lead (2026-10-12): it would take half the Rust capacity for
 ## Critical path
 Two things can be critical, and they are different stories.
 - Longest chain of work: S-01, S-02, S-05, S-06, all through the two Rust engineers. S-05 is its largest piece. S-03 and S-07a hang off it; S-10 follows packaging.
-- Fixed date: S-08. The 18 January 2027 slot (CST-010) does not move. S-08's own work is short; its risk is OQ-009 (signing-key holders, rings and recall) and the certificate ceremony held until it is answered.
+- Fixed date: S-08. The January 18, 2027 slot (CST-010) does not move. S-08's own work is short; its risk is OQ-009 (signing-key holders, rings and recall) and the certificate ceremony held until it is answered.
 - Not decided: whether the Rust chain fits before the slot. Sizes are not dates, so the team measures S-01 and S-02 first. If the chain does not fit, the NoteView task in S-05 ("Show the digest") is the first task to move to the Swift person. The Intune person stays on packaging. Owner: team lead.
 - Not decided: if OQ-001 answers yes, the Swift person is wanted on S-09 and is also the first choice for the NoteView task in S-05. The plan does not settle this. Owner: team lead, decided when the answer lands. If OQ-001 answers no, S-09 drops and the Swift person is free. OQ-009 answered releases the S-08 certificate ceremony at once; that work does not touch the Rust chain.
 

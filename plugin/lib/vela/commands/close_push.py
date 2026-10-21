@@ -208,7 +208,7 @@ def cmd_push(args, out):
         vault = cli.load_vault(root)
         if not args.consent:
             # Readiness first: asking "OK?" for a session that can't go yet asks the lead for a yes that is then
-            # refused (the 14 October voice audit, row 133).
+            # refused (the October 14 voice audit, row 133).
             result = unready(root, vault, session, args) or notice(root, vault, session)
         else:
             result = send(root, vault, session, args)

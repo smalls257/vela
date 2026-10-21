@@ -15,7 +15,7 @@ Pages read like a senior colleague explaining the plan across a desk. They're sh
 - Warmth comes from being direct, not from jokes.
 - "You" is the person reading the page; a person who uses the system is named by their role.
 
-Some rules hold whatever the voice. A negative stays a negative where a person would say it that way. Spelling is American. Things are called by their names, never their codes. A paragraph asks you to hold only a few new things at once; more than that becomes a list or a table.
+Some rules hold whatever the voice. A negative stays a negative where a person would say it that way. Spelling is American. Dates are written in American order: "October 14" in the current year, "October 14, 2026" in any other, and "Tuesday, February 2, 2027" with a weekday. Dates in frontmatter, tables of record and IDs stay ISO (2026-10-14). Things are called by their names, never their codes. A paragraph asks you to hold only a few new things at once; more than that becomes a list or a table.
 
 These are the numbers a page lands inside, read over the whole page:
 

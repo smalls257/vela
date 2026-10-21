@@ -41,7 +41,7 @@ _Kept up to date by vela from the pages it reads._
 | [[11-unknowns-and-risks#UNK-006 Finance on Booking events\|Finance on Booking events (UNK-006)]] | @hl-platform-lead (Platform lead) | 2027-03-01 | nothing yet |
 | [[11-unknowns-and-risks#UNK-008 Review of the customer data Booking holds\|Review of the customer data Booking holds (UNK-008)]] | @hl-solution-lead (solution lead) | 2026-12-15 | nothing yet |
 
-**Last session:** 19 November 2026
+**Last session:** November 19, 2026
 
 **Gaps in the planned work:** none; see [[13-epics|Epics]]
 
@@ -53,7 +53,7 @@ _Kept up to date by vela from the pages it reads._
 <!-- generated:progress-map sha=82973c4f: do not edit, run vela render -->
 _Kept up to date by vela from the pages it reads._
 
-**How sure each app's items are,** as of the last session on 19 November 2026
+**How sure each app's items are,** as of the last session on November 19, 2026
 
 | App | Step reached | Early ideas | Assumed | Confirmed | Decided | Oldest open question | Next session |
 |---|---|---|---|---|---|---|---|

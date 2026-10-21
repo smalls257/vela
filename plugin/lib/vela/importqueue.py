@@ -20,7 +20,7 @@ title.
 
 What each type is, and what can end it:
 
-- `decision`: a decision a source states ("approved by the CTO on 3 March"). The lead says yes, and it is decided
+- `decision`: a decision a source states ("approved by the CTO on March 3"). The lead says yes, and it is decided
   citing the document (`vela decide --stated-in`); unsure, it stays an assumption with the document noted.
 - `clash`: two sources that disagree. The lead picks which wins, the session proposing one with why; not knowing,
   both sides go down as one open question.

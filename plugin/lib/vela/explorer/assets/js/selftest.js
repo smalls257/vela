@@ -1780,14 +1780,14 @@ const SelfTest = (() => {
     // freshness: the banner follows the stamped report, shown only when something changed
     const newer = { role: "reader", state: "newer", latest: { date: "2026-10-20", commit: "4d1e8a0" }, have: {}, checked_at: "2026-10-18T09:12:00" };
     const owner = { role: "owner", state: "newer", behind: 2, ahead: 0, uncommitted: 1, checked_at: "2026-10-18T09:12:00" };
-    ok(/^There's a newer copy from 20 Oct 2026\. Reload the page to get it/.test(Freshness.words(newer)) && /your drafts carry over/.test(Freshness.words(newer))
+    ok(/^There's a newer copy from Oct 20, 2026\. Reload the page to get it/.test(Freshness.words(newer)) && /your drafts carry over/.test(Freshness.words(newer))
       && Freshness.words({ ...newer, state: "current" }) === "" && Freshness.words({ ...newer, state: "unreachable" }) === "" && Freshness.words(null) === ""
       && Freshness.words(owner) === "2 updates on the shared copy aren't in yours yet; 1 changed file isn't shared yet." && Freshness.words({ ...owner, behind: 0, uncommitted: 0, state: "current" }) === "",
       "freshness: the banner words say a newer copy was published, or updates not pulled and changes not shared, and nothing otherwise", "freshness: Freshness.words gave " + JSON.stringify([Freshness.words(newer), Freshness.words(owner)]));
     const kept = { report: Freshness.st.report, live: Freshness.st.live };
     ok($("#fresh").hidden === !Freshness.words(Freshness.st.report), `freshness: this page's banner is ${$("#fresh").hidden ? "hidden" : "shown"} to match its stamp`, "freshness: the banner does not match the stamped report");
     Freshness.st.report = newer; Freshness.st.live = false; Freshness.render();
-    const shown = !$("#fresh").hidden && /from 18 Oct, 9:12, when the page was built/.test($("#fresh").textContent);
+    const shown = !$("#fresh").hidden && /from Oct 18, 9:12, when the page was built/.test($("#fresh").textContent);
     Freshness.st.report = { ...newer, state: "current" }; Freshness.render();
     const hidden = $("#fresh").hidden;
     Freshness.st.report = kept.report; Freshness.st.live = kept.live; Freshness.render();
@@ -1816,7 +1816,7 @@ const SelfTest = (() => {
     console.warn = warn;
     const said = $("#fresh").textContent;
     Object.assign(Freshness.st, saved); broken(); Freshness.render();
-    ok(/couldn't check just now; this is from 18 Oct, 9:12/.test(said) && !/checked just now/.test(said), "freshness: after a failed live check the banner says it could not check, and when it was built", `freshness: after a failed check the banner says "${said}"`);
+    ok(/couldn't check just now; this is from Oct 18, 9:12/.test(said) && !/checked just now/.test(said), "freshness: after a failed live check the banner says it could not check, and when it was built", `freshness: after a failed check the banner says "${said}"`);
   }
   SelfTest.run = async () => {
     const report = await base(), lines = [], errors = window.__errors.length;
@@ -2197,7 +2197,7 @@ const VoiceGate = (() => {
      plan's own page text (.r-text), plain words, a date and "and/or" are not. */
   function sensorSeesBuilderWords(ok) {
     const host = h("div", { class: "view-head", style: "position:absolute;left:0;top:0" },
-      h("span", {}, "Page 06-runtime/06-flows.md"), h("span", { title: "Built from commit 6495b67" }, "Built 12 Oct."),
+      h("span", {}, "Page 06-runtime/06-flows.md"), h("span", { title: "Built from commit 6495b67" }, "Built Oct 12."),
       h("span", {}, "Flow pages live in flows/ and runtime pages in apps/."),
       h("article", { class: "r-text" }, h("p", {}, "The page lives in 06-runtime/flows/FLO-001.md.")),
       h("span", { title: "Open the page, as it is written" }, "Read it on 2026-10-12, calendar and/or transcripts."));
@@ -2219,7 +2219,7 @@ const VoiceGate = (() => {
     panel.append(host);
     const mine = (b) => host.textContent.includes(b.text.slice(0, 16));
     const leaks = VoiceGate.leaks(panel).filter(mine).map((b) => b.kind);
-    host.replaceChildren(h("p", {}, "18 questions block work. The first is due 29 Oct."), h("p", {}, "18 questions block work."), h("p", {}, "Due 29 Oct 2026 for the product owner."), h("p", {}, "Due 29 Oct 2026 for the product owner."));
+    host.replaceChildren(h("p", {}, "18 questions block work. The first is due Oct 29."), h("p", {}, "18 questions block work."), h("p", {}, "Due Oct 29, 2026 for the product owner."), h("p", {}, "Due Oct 29, 2026 for the product owner."));
     const twice = VoiceGate.repeats(panel).filter(mine).map((b) => b.text);
     const want = VoiceGate.sources();
     host.replaceChildren(h("b", { "data-quantity": "openQuestions", "data-n": want.openQuestions + 1 }, String(want.openQuestions + 1)), h("b", { "data-quantity": "openQuestion", "data-n": 1 }, "1"),

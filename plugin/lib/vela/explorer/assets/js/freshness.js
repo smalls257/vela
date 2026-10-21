@@ -8,14 +8,14 @@ const Freshness = (() => {
   const st = { report: D.freshness, live: false, fetches: 0, busy: false, last: 0, error: "" };
   let fetchFn = (...a) => window.fetch(...a), servedFn = () => location.protocol === "http:" || location.protocol === "https:";
   const served = () => servedFn();
-  // "12 Oct, 9:40": the reader's words for when the page was built, not the stamp's ISO form
+  // "Oct 12, 9:40": the reader's words for when the page was built, not the stamp's ISO form
   const stamp = (r) => (r && r.checked_at ? `${day(r.checked_at.slice(0, 10))}, ${String(+r.checked_at.slice(11, 13))}:${r.checked_at.slice(14, 16)}` : "");
 
   /* The banner's words for a report, or "" when nothing has changed. */
   function words(r) {
     if (!r) return "";
     if (r.role === "reader") {
-      return r.state === "newer" ? `There's a newer copy from ${r.latest && r.latest.date ? day(r.latest.date) + " " + r.latest.date.slice(0, 4) : "a later date"}. Reload the page to get it; your drafts carry over.` : "";
+      return r.state === "newer" ? `There's a newer copy from ${r.latest && r.latest.date ? dayYear(r.latest.date) : "a later date"}. Reload the page to get it; your drafts carry over.` : "";
     }
     if (r.role !== "owner") return "";
     const parts = [];

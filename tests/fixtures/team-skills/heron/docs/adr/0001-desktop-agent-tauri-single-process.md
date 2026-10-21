@@ -5,7 +5,7 @@
 **Slug:** desktop-agent
 
 ## Context
-The Desktop agent runs on each person's laptop and is pushed by Intune (Windows) and Jamf (Mac); a person can only switch it on (CST-007). It must ship in the endpoint lead's 18 January 2027 packaging slot (CST-010) for the 2 February pilot (CST-009). Whether the Mac is in the first release is open in the vault as UNK-054; the team has chosen to build for both (design OQ-001). The agent needs a local encrypted store, a Microsoft Graph client and a small webview for the Note view, and an idle budget of 5 percent of one core.
+The Desktop agent runs on each person's laptop and is pushed by Intune (Windows) and Jamf (Mac); a person can only switch it on (CST-007). It must ship in the endpoint lead's January 18, 2027 packaging slot (CST-010) for the February 2 pilot (CST-009). Whether the Mac is in the first release is open in the vault as UNK-054; the team has chosen to build for both (design OQ-001). The agent needs a local encrypted store, a Microsoft Graph client and a small webview for the Note view, and an idle budget of 5 percent of one core.
 
 ## Decision
 One signed per-user process built with Tauri. A Rust core owns the local store, the Graph pull and the calls to Consent and identity and the Summarizer. The Tauri webview shows the Note view. One codebase ships as a signed Mac pkg (Jamf) and a Windows MSIX (Intune). The vault's three containers are modules inside the process.

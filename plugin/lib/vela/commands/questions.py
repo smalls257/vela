@@ -13,7 +13,7 @@ Without `--session` the digest is exactly what it was: a session's memory never 
 
 `--digest --session ID --for-lead` is the same three lines as the lead hears them, through say: the answer first, each
 question by its area's name with every ID inside it said by name, and no copy codes, catalog version, record path or
-command tail (the 14 October voice audit, rows 174 and 175).
+command tail (the October 14 voice audit, rows 174 and 175).
 """
 import json
 import pathlib

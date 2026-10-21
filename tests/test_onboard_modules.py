@@ -121,7 +121,7 @@ def test_the_goal_is_the_plans_first_goal_and_why_now_is_its_first_release_date(
     assert [i["label"] for i in goal["items"]] == [g["goalText"] for g in facts["goals"]]
     assert not any("aimed at" in b for b in goal["body"]), "no release has a date here, so no 'why now' is made up"
     heron = onboardmodules.build_all(data("heron-after-full-1"))["goal"]
-    assert any(b == "The first release is aimed at 2 February 2027." for b in heron["body"])
+    assert any(b == "The first release is aimed at February 2, 2027." for b in heron["body"])
 
 
 def test_kept_terms_are_named_where_they_are_used_and_each_has_a_definition():
@@ -166,7 +166,7 @@ def test_a_date_is_only_given_to_the_release_it_belongs_to():
     states[1]["target"] = ""
     states.append(later)
     body = onboardmodules.build_all(facts)["goal"]["body"]
-    assert "The next dated release, Release two, is due 2 February 2027." in body
+    assert "The next dated release, Release two, is due February 2, 2027." in body
     assert not any(b.startswith("The first release") for b in body)
     states.pop()
     assert not any("release" in b for b in onboardmodules.build_all(facts)["goal"]["body"])

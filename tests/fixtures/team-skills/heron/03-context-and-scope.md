@@ -19,7 +19,7 @@ Marlowe has [[sources#SRC-013|one Microsoft 365 tenant with about 4,200 users]].
 
 Microsoft 365 already lets the work read calendar and mail with each user's own consent. Teams transcripts exist only where the organizer turned them on, and they sit in the organizer's OneDrive, and reading them needs tenant admin approval. A Graph app registration is raised through the identity team, per [[sources#SRC-013|the tenant note]].
 
-Any new app registration on the tenant needs the CISO's security review first, which takes [[sources#SRC-009|about six weeks]]. The review is [[sources#SRC-010|booked for the week of 16 November 2026]], with the pack due on 10 November and the outcome due on 4 December. Frankfurt has about 600 staff and a works council, per [[sources#SRC-013|the tenant note]].
+Any new app registration on the tenant needs the CISO's security review first, which takes [[sources#SRC-009|about six weeks]]. The review is [[sources#SRC-010|booked for the week of November 16, 2026]], with the pack due on November 10 and the outcome due on December 4. Frankfurt has about 600 staff and a works council, per [[sources#SRC-013|the tenant note]].
 
 ## After
 

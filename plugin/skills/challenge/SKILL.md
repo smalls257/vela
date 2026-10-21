@@ -66,7 +66,7 @@ Never touch the item's `state:`, `**State:**`, wording, criteria or any other li
 
 Run `vela render`, then `vela check`. For a `decided` item, check now reports E316, "decided, but open unknown UNK-nnn blocks it": deliberate, and it stays in the PR as the answer owed. Fix any other error with the team lead, or stop and show it.
 
-Read back by name before anything is sent: "I've added the open question 'Hold expiry under load', owned by you, answer wanted by 5 December. It blocks the Booking API contract, which stays decided and unchanged, with your dissent beside it. The check stays red until the solution lead answers. Anything to change?"
+Read back by name before anything is sent: "I've added the open question 'Hold expiry under load', owned by you, answer wanted by December 5. It blocks the Booking API contract, which stays decided and unchanged, with your dissent beside it. The check stays red until the solution lead answers. Anything to change?"
 
 ## 6. Close and send
 

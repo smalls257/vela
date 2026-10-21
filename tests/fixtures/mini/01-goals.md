@@ -39,5 +39,5 @@ _Kept up to date by vela from the pages it reads._
 |---|---|---|---|
 | [[11-unknowns-and-risks#UNK-001 Till test rig\|Till test rig (UNK-001)]] | @mini-qa | 2026-02-01 | nothing yet |
 
-**Last session:** 10 January 2026
+**Last session:** January 10, 2026
 <!-- /generated:where-it-stands -->

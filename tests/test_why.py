@@ -53,4 +53,4 @@ def test_the_example_shows_the_warning_where_it_has_no_reason_to_give():
 
 def test_a_fixture_decision_takes_its_why_from_its_own_options_considered():
     text = (REPO / "tests" / "fixtures" / "team-skills" / "heron" / "04-solution-strategy.md").read_text(encoding="utf-8")
-    assert "- **Why:** The cloud-written digest was rejected because it rules out a 2 February 2027 pilot" in text
+    assert "- **Why:** The cloud-written digest was rejected because it rules out a February 2, 2027 pilot" in text

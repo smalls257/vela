@@ -57,7 +57,7 @@ _Kept up to date by vela from the pages it reads._
 | [[11-unknowns-and-risks#UNK-075 Acceptance in the calendar read\|Acceptance in the calendar read (UNK-075)]] | @product-owner (Product owner) | 2026-10-29 | [[CAP-003-write-morning-digest#CAP-003.FR2 Name only people who were there\|Name only people who were there]] |
 | [[11-unknowns-and-risks#UNK-076 Council vote on the pilot\|Council vote on the pilot (UNK-076)]] | @product-owner (Product owner) | 2026-11-06 | [[04b-releases#Release one: February pilot, Client Delivery London\|February pilot]] |
 
-**Last session:** 12 October 2026
+**Last session:** October 12, 2026
 
 **Gaps in the planned work:** five; see [[13-epics|Epics]]
 
@@ -69,13 +69,13 @@ _Kept up to date by vela from the pages it reads._
 <!-- generated:progress-map sha=9d7b9996: do not edit, run vela render -->
 _Kept up to date by vela from the pages it reads._
 
-**How sure each app's items are,** as of the last session on 12 October 2026
+**How sure each app's items are,** as of the last session on October 12, 2026
 
 | App | Step reached | Early ideas | Assumed | Confirmed | Decided | Oldest open question | Next session |
 |---|---|---|---|---|---|---|---|
-| [[consent-and-identity-building-blocks\|Consent and identity]] | researched | 0 | 5 | 0 | 0 | [[11-unknowns-and-risks#UNK-068 Who builds Consent and identity\|Who builds Consent and identity]], open since 12 October 2026 | Grill Consent and identity runtime |
-| [[summarizer-building-blocks\|Summarizer]] | researched | 0 | 3 | 0 | 0 | [[11-unknowns-and-risks#UNK-067 How slow is too slow\|How slow is too slow]], open since 12 October 2026 | Grill Summarizer runtime |
-| [[desktop-agent-building-blocks\|Desktop agent]] | ready to hand over | 0 | 3 | 0 | 0 | [[11-unknowns-and-risks#UNK-066 Consent sees what agent read\|Consent sees what agent read]], open since 12 October 2026 | Grill Desktop agent runtime |
+| [[consent-and-identity-building-blocks\|Consent and identity]] | researched | 0 | 5 | 0 | 0 | [[11-unknowns-and-risks#UNK-068 Who builds Consent and identity\|Who builds Consent and identity]], open since October 12, 2026 | Grill Consent and identity runtime |
+| [[summarizer-building-blocks\|Summarizer]] | researched | 0 | 3 | 0 | 0 | [[11-unknowns-and-risks#UNK-067 How slow is too slow\|How slow is too slow]], open since October 12, 2026 | Grill Summarizer runtime |
+| [[desktop-agent-building-blocks\|Desktop agent]] | ready to hand over | 0 | 3 | 0 | 0 | [[11-unknowns-and-risks#UNK-066 Consent sees what agent read\|Consent sees what agent read]], open since October 12, 2026 | Grill Desktop agent runtime |
 <!-- /generated:progress-map -->
 
 ## Why now

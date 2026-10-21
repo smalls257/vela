@@ -17,7 +17,7 @@ const Decisions = (() => {
   const sessionDate = (id) => (D.sessions[id] && D.sessions[id].date) || (ISO.exec(id) || [""])[0];
   /* A handle as a person reads it, and a date in words: core.js's one rewrite. */
   const person = (text) => peopleWords(text);
-  const longDate = (iso) => (isDate(iso) ? `${day(iso)} ${iso.slice(0, 4)}` : "");
+  const longDate = (iso) => (isDate(iso) ? dayYear(iso) : "");
   const sentence = (text) => { const t = String(text || "").trim(), m = t.match(/^.*?[.!?](?=\s|$)/); return m ? m[0] : t; };
 
   /* The page whose words say the decision: not an index page that only lists it. */
