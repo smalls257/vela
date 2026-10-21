@@ -8,7 +8,8 @@
     {
       "name": "vela",
       "source": "./plugin",
-      "description": "Initiative planning vault: session skills from dump to epics, a read-only check, and an offline explorer for live conversations with Ask Claude."
+      "description": "Initiative planning vault: session skills from dump to epics, a read-only check, and an offline explorer for live conversations with Ask Claude.",
+      "license": "MIT"
     }
   ]
 }

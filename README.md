@@ -122,3 +122,9 @@ v2 checks what you wrote. v3 also keeps track of what nobody has asked yet.
 | `integrations/` | Vault mode for `requirements-grill` and `tech-design-grill`, as patches |
 | `docs/` | Spec, design-session logs, research, plans |
 | `tests/` | `python3 -m pytest -q` |
+
+## License
+
+Vela is open source under the [MIT License](LICENSE): use it, change it, ship it, commercially or not. A mention of
+where it came from (github.com/smalls257/vela) is appreciated but not required beyond keeping the license notice.
+The libraries it bundles keep their own licenses; `plugin/lib/vela/assets/NOTICE.md` and `plugin/lib/yaml/` list them.
