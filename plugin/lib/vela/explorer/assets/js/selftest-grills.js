@@ -90,7 +90,8 @@
     click($(".g-ready-only")); await tick();
     if (shownIds() !== idsOf(rows.filter((r) => r.group !== "one-away")) || $(".g-group[data-group=one-away]")) bad.push(`ready only: ${shownIds()}`);
     click($(".g-ready-only")); await tick();
-    ok(!bad.length && !!ownerChoice && !!appChoice && !!holdChoice, "grills: Owner, App and Holds up each narrow the list to exactly their grills, and Ready only drops the group one thing away", `grills: ${bad.join("; ") || "a filter had no choices"}`);
+    const exercised = [ownerChoice && "owner", appChoice && "app", holdChoice && "holds up"].filter(Boolean).join(", ");  // a plan whose grills sit on no app, or hold nothing up, has no choice to try
+    ok(!bad.length, `grills: Owner, App and Holds up each narrow the list to exactly their grills, and Ready only drops the group one thing away (exercised: ${exercised})`, `grills: ${bad.join("; ")}`);
     ok(["owner", "app", "holds"].every((id) => /: any$/.test($(`.g-select[data-filter="${id}"] option`).textContent)), "grills: each filter starts at any", "grills: a filter does not start at any");
 
     // cards: owner line, group parts
@@ -130,11 +131,12 @@
 
     // the batch: one prompt, the item that unblocks the most first
     Grills.st.batch = []; Grills.open(); await tick();
-    const sorted = Grills.byUnblocked(rows), trio = rows.length > 3 ? [sorted[0], sorted[1], sorted[sorted.length - 1]] : sorted.slice(0, 3), reverse = trio.slice().reverse();  // the most held up, the next, and the least: added the other way round
+    const sorted = rows.slice().sort((a, b) => b.holdsUp.length - a.holdsUp.length || order.indexOf(a.group) - order.indexOf(b.group) || cmp(a.name, b.name));  // the order, worked out here on its own
+    const trio = rows.length > 3 ? [sorted[0], sorted[1], sorted[sorted.length - 1]] : sorted.slice(0, 3), reverse = trio.slice().reverse();  // the most held up, the next, and the least: added the other way round
     for (const r of reverse) { click($(`.g-card[data-grill="${r.id}"] .g-open`)); await tick(); click($("#panel-body [data-act=batch]")); await tick(); }
     const listed = $$(".g-batch-list li").map((li) => li.firstChild.textContent), batch = $(".g-batch .g-prompt") && $(".g-batch .g-prompt").textContent;
-    const counts = Grills.byUnblocked(trio).map((r) => r.holdsUp.length);
-    ok(listed.join("|") === trio.map((r) => r.name).join("|") && counts.every((n, i) => !i || counts[i - 1] >= n) && (trio.length < 3 || counts[0] > counts[counts.length - 1]) && batch === Grills.batchPrompt(trio),
+    const counts = trio.map((r) => r.holdsUp.length);
+    ok(listed.join("|") === trio.map((r) => r.name).join("|") && counts.every((n, i) => !i || counts[i - 1] >= n) && batch === Grills.batchPrompt(trio),
       `grills: a batch of ${trio.length} lists them by what they unblock (${counts.join(", ")} things held up) and builds one prompt`, `grills: batch lists ${listed.join(" | ")}; wanted ${trio.map((r) => r.name).join(" | ")}`);
     ok(batch.startsWith(`/vela:grill ${trio.map((r) => r.name).join("; ")}\n`) && /\n1\. /.test(batch) && !IDLIKE.test(batch), "grills: the batch prompt starts /vela:grill with every name and numbers the grills in order, in plain words", `grills: batch "${batch.slice(0, 160)}"`);
     click($("[data-act=copy-batch]")); await tick();

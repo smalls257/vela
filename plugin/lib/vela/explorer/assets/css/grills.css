@@ -69,8 +69,9 @@ html.plain .grills-badge { box-shadow: inset 0 0 0 1px rgba(0,0,0,.25); }
 .g-panelchips { display: flex; flex-wrap: wrap; gap: 4px; }
 .g-ready-line { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-size: 13px; color: var(--ink-2); }
 .g-ready-line .btn.tiny { margin-left: 0; }
-.g-home { flex: none; display: flex; justify-content: space-between; align-items: center; gap: 10px; margin: 2px 12px 10px; padding: 9px 12px; border: 1px solid color-mix(in srgb, var(--caution) 45%, transparent); border-radius: 8px; background: color-mix(in srgb, var(--caution) 9%, transparent); font-size: 13px; color: var(--ink); }
-.g-home-sub { margin-top: 2px; font-size: 12.5px; color: var(--ink-3); }
+.g-home { flex: none; display: flex; justify-content: space-between; align-items: center; gap: 10px; margin: 0 12px 8px; padding: 5px 10px; border: 1px solid color-mix(in srgb, var(--caution) 45%, transparent); border-radius: 8px; background: color-mix(in srgb, var(--caution) 9%, transparent); font-size: 12.5px; line-height: 1.35; color: var(--ink); }
+.g-home-t { min-width: 0; }
+.g-home-sub { color: var(--ink-3); }
 .g-see { flex: none; margin-left: 0; }
 .g-as { margin-right: 4px; }
 @media (max-width: 760px) { .g-wrap { padding: 0 12px 12px; } }

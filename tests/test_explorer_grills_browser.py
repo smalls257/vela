@@ -29,7 +29,7 @@ WANTED = [
     "grills: Show everyone's brings the other owners' grills in",
     "grills: with no role picked and no page built for one person, nobody is viewing and everyone's grills show",
     "grills: choosing Engineering in Viewing as makes Mine follow the people the plan records for it (Booking senior)",
-    "grills: Owner, App and Holds up each narrow the list to exactly their grills, and Ready only drops the group one thing away",
+    "grills: Owner, App and Holds up each narrow the list to exactly their grills, and Ready only drops the group one thing away (exercised: owner, app, holds up)",
     "grills: each filter starts at any",
     "grills: each card has an owner line; a said-yes card quotes the lead, a one-away card says what it waits on and by when",
     "grills: clicking",

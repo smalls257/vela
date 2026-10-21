@@ -372,8 +372,8 @@ const Grills = (() => {
     const mine = forYou(), ready = mine.filter(readyNow), next = byUnblocked(ready)[0];
     if (!mine.length) return null;
     const lead = hasViewer() ? `${plural(mine.length, "grill")} for you` : `${plural(mine.length, "grill")} waiting`;
-    return h("div", { class: "g-home", "data-grills-home": String(mine.length) }, h("div", {}, h("b", {}, `${lead} · ${ready.length} ${ready.length === 1 ? "is" : "are"} ready now`),
-      next ? h("div", { class: "g-home-sub" }, `${next.name}${next.holdsUp.length ? ` is the most urgent: it holds up ${plural(next.holdsUp.length, "thing")}` : " is the first to run"}.`) : null),
+    const sub = next ? ` ${next.name}${next.holdsUp.length ? ` is the most urgent: it holds up ${plural(next.holdsUp.length, "thing")}.` : " is the first to run."}` : "";
+    return h("div", { class: "g-home", "data-grills-home": String(mine.length) }, h("span", { class: "g-home-t" }, h("b", {}, `${lead} · ${ready.length} ${ready.length === 1 ? "is" : "are"} ready now.`), h("span", { class: "g-home-sub" }, sub)),
       h("button", { class: "btn tiny g-see", type: "button", onclick: () => open() }, "See them all"));
   }
   function open() {

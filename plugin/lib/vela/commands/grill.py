@@ -98,4 +98,7 @@ def describe(entry, plain):
         return "back to the item's own owner, and nobody is asked to join." if plain else "owner: the item's own; join: none"
     owner = f"{said(entry.owner)} runs the grill" if entry.owner else "the item's own owner runs the grill"
     join = f", with {say.names_said([said(j) for j in entry.join])} asked to join" if entry.join else ""
-    return f"{owner}{join}." if plain else f"owner: {entry.owner or 'the item\'s own'}; join: {', '.join(entry.join) or 'none'}"
+    if plain:
+        return f"{owner}{join}."
+    own, asked = entry.owner or "the item's own", ", ".join(entry.join) or "none"
+    return f"owner: {own}; join: {asked}"
