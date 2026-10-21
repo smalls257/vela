@@ -356,7 +356,6 @@ const Plan = (() => {
     lay.looks = { solid: "pw.arrow", soft: "pw.soft" };
     const svg = s("svg", { class: "inside-svg cockpit plan-dag-svg", role: "img", "aria-label": `${titleOf(app)}'s stories, each after the stories that block it` }, holder);
     K.defsFor(svg);
-    Pan.attach(holder, { key: "plan-dag", svg: () => svg, scrollOnly: true });  // the path grows taller, not wider: a pan scrolls the page
     lg.within(() => K.drawLayout(svg, lay, {
       story: (g, b) => {
         const story = b.node.story, lit = unclosedLevel(story);
@@ -388,6 +387,7 @@ const Plan = (() => {
     const pad = 24, w = b.x1 - b.x0 + pad * 2, ht = b.y1 - b.y0 + pad * 2;
     svg.setAttribute("viewBox", `${(b.x0 - pad).toFixed(1)} ${(b.y0 - pad).toFixed(1)} ${w.toFixed(1)} ${ht.toFixed(1)}`);
     svg.style.width = "100%"; svg.style.maxWidth = Math.round(w * 1.15) + "px"; svg.style.height = "auto";  // the width the room gives sets the height
+    Pan.attach(holder, { key: "plan-dag", svg: () => svg, scrollOnly: true, frame });  // the path grows taller, not wider: a pan scrolls the page; zoomed in, it moves the view
     return wrap;
   }
 

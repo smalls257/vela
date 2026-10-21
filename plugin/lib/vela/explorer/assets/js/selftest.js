@@ -639,7 +639,7 @@ const SelfTest = (() => {
     // where the drawing scrolls, a pan scrolls it
     const room = h("div", { style: "position:fixed;left:0;top:0;width:200px;height:120px;overflow:auto;z-index:99" }), big = s("svg", { width: 900, height: 700, viewBox: "0 0 900 700" }, room);
     document.body.append(room);
-    Pan.attach(room, { key: "selftest-scroll", svg: () => big, scrollOnly: true });
+    Pan.attach(room, { key: "selftest-scroll", svg: () => big, scrollOnly: true, frame: room });
     press(big, 100, 60); glide(96, 58); glide(40, 20); lift(40, 20);
     const scrolled = [room.scrollLeft, room.scrollTop], unchanged = big.getAttribute("viewBox");
     room.remove();
@@ -1487,7 +1487,7 @@ const SelfTest = (() => {
         ok(scale >= 0.85 && shown.length > 0 && (!spills || (mini && !mini.hidden && view && +view.getAttribute("width") > 0)),
           `inside ${name}, components: opens at reading size (${scale.toFixed(2)}), ${shown.length} of ${comps} components in view${spills ? ", the whole in the minimap" : ", all of it in view"}`,
           `inside ${name}, components: opens at ${scale.toFixed(2)} with ${shown.length} components in view; the drawing ${spills ? "spills" : "fits"} and the minimap is ${mini ? (mini.hidden ? "hidden" : "shown") : "missing"}`);
-        const zoom = $$("#inside-stage .inside-frame .in-zoom button");
+        const zoom = $$("#inside-stage .inside-frame .zoom-bar button");
         zoom[1].click();
         const whole = $("svg", holder).getBoundingClientRect(), now = holder.getBoundingClientRect();
         ok(whole.right <= now.right + 1 && whole.bottom <= now.bottom + 1 && holder.scrollWidth <= holder.clientWidth + 1 && holder.scrollHeight <= holder.clientHeight + 1 && (!mini || mini.hidden),
@@ -1513,7 +1513,7 @@ const SelfTest = (() => {
       go(`inside:${k}|sec|data`, { reset: true });
       if (d.data_model.parsed_from === "erDiagram") ok($$("#panel .in-entity-box").length === d.data_model.entities.length, `inside ${name}: the data model drawn from its erDiagram, ${d.data_model.entities.length} entities and ${d.data_model.relationships.length} relationships`, "the data model's entities are not all drawn");
       if (d.data_model.parsed_from === "erDiagram") {  // opens at reading size on the main entity; "Whole" puts every entity in view
-        const er = $("#panel .in-er"), buttons = $$("#panel .in-er-wrap .in-zoom button"), within = (g, box) => { const r = g.getBoundingClientRect(); return r.left >= box.left - 1 && r.right <= box.right + 1 && r.top >= box.top - 1 && r.bottom <= box.bottom + 1; };
+        const er = $("#panel .in-er"), buttons = $$("#panel .in-er-wrap .zoom-bar button"), within = (g, box) => { const r = g.getBoundingClientRect(); return r.left >= box.left - 1 && r.right <= box.right + 1 && r.top >= box.top - 1 && r.bottom <= box.bottom + 1; };
         const here = $$("#panel .in-entity-box").filter((g) => within(g, er.getBoundingClientRect())), mini = $("#panel .in-er-wrap .in-mini");
         const drawn = $("svg", er).getBoundingClientRect(), room = er.getBoundingClientRect(), spills = drawn.width > room.width + 1 || drawn.height > room.height + 1;
         ok(+er.dataset.scale >= 0.85 && here.length > 0 && (!spills || (mini && !mini.hidden)), `inside ${name}: the data model opens at reading size (${er.dataset.scale}), ${here.length} of ${d.data_model.entities.length} entities in view${spills ? ", the whole in the minimap" : ""}`,

@@ -55,7 +55,7 @@ const Releases = (() => {
     const svg = s("svg", { viewBox: `${left} ${top} ${right - left} ${bottom - top}`, class: "rl-map", role: "img", "aria-label": "The system in this state" }, box);
     const looks = new Set();
     MapView.fitSvg(svg, box, right - left, bottom - top, opts.max || 1.0);
-    Pan.attach(box, { key: "releases", svg: () => box.querySelector("svg.rl-map") });
+    Pan.attach(box, { key: opts.key || "releases", svg: () => box.querySelector("svg.rl-map") });
     if (L.zoneY !== null) s("line", { x1: left, x2: right, y1: L.zoneY, y2: L.zoneY, class: "zone" }, svg);
     const gCor = s("g", {}, svg), gNodes = s("g", {}, svg);
     const cors = Object.values(L.corridors).map((cor) => {
@@ -247,7 +247,7 @@ const Releases = (() => {
       cons.length ? h("div", { class: "rc-row" }, h("span", { class: "rc-l" }, "Contracts"), h("span", {}, cons.map((c) => refChip(c, h("span", { class: "rid" }, `${STATUS_WORD[SA.contracts[c]] || SA.contracts[c]} → ${STATUS_WORD[SB.contracts[c]] || SB.contracts[c]}`))))) : null,
       delivered.length ? h("div", { class: "rc-row" }, h("span", { class: "rc-l" }, "Delivered between"), h("span", {}, delivered.map((r) => refChip(r)))) : null);
     wrap.append(KEY.el(), diff);
-    wrap.drawMaps = () => { drawMap(A.box, st.a, { max: 0.8 }); drawMap(B.box, st.b, { max: 0.8 }); };
+    wrap.drawMaps = () => { drawMap(A.box, st.a, { max: 0.8, key: "releases-a" }); drawMap(B.box, st.b, { max: 0.8, key: "releases-b" }); };
     return wrap;
   }
 

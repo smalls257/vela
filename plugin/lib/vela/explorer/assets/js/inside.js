@@ -421,8 +421,6 @@ const Inside = (() => {
     const centerOn = (x, y) => { const p = at(x, y); holder.scrollLeft = p.x - holder.clientWidth / 2; holder.scrollTop = p.y - holder.clientHeight / 2; };
     const centerNow = () => { const k = +holder.dataset.scale; return { x: x0 + (holder.scrollLeft + holder.clientWidth / 2 - at(x0, y0).x) / k, y: y0 + (holder.scrollTop + holder.clientHeight / 2 - at(x0, y0).y) / k }; };
     const mini = opts.open === "read" ? minimap(svg, holder, { x0, y0, w, ht, lg: opts.lg }) : null;
-    // drag the background to pan: it scrolls the holder, so the zoom and the minimap keep telling the truth
-    Pan.attach(holder, { key: "inside-" + zkey, svg: () => svg, scrollOnly: true });
     const apply = () => {
       const k = scaleOf();
       svg.setAttribute("width", Math.round(w * k)); svg.setAttribute("height", Math.round(ht * k));
@@ -449,12 +447,12 @@ const Inside = (() => {
       if (z === null && opts.focus) showFocus(); else if (z !== "whole") centerOn(keep.x, keep.y);
     };
     const now = () => +holder.dataset.scale;
-    // the controls sit on the frame around the holder, not in it: inside a scrolling holder they took a column of room
-    frame.append(h("div", { class: "in-zoom", role: "group", "aria-label": "Zoom" },
-      h("button", { title: "Zoom out", onclick: () => set(Math.max(0.3, now() / 1.25)) }, "−"),
-      h("button", { title: "Fit the whole drawing in view", onclick: () => set("whole") }, "Fit"),
-      h("button", { title: opts.open === "read" ? "Back to a size you can read, centered on the main box" : "Back to a size you can read, scrolling if it must", onclick: () => set(null) }, "Reading size"),
-      h("button", { title: "Zoom in", onclick: () => set(Math.min(2, now() * 1.25)) }, "+")));
+    // the shared zoom bar (pan.js) sits on the frame around the holder, not in it: inside a scrolling holder it took a column of room.
+    // This drawing sizes itself, so it hands pan.js its own zoom; dragging the background scrolls the holder, which the zoom and the minimap follow.
+    const engine = { zoomBy: (f) => set(Math.min(2, Math.max(Math.min(0.3, whole()), now() * f))), fit: () => set("whole"), reading: () => set(null),
+      panBy: (x, y) => { holder.scrollLeft += x; holder.scrollTop += y; } };
+    Pan.attach(holder, { key: "inside-" + zkey, svg: () => svg, scrollOnly: true, engine, frame,
+      readingTitle: opts.open === "read" ? "Back to a size you can read, centered on the main box" : "Back to a size you can read, scrolling if it must" });
     if (mini) frame.append(mini.el);
   }
   /* The whole drawing, small, with the part in view lit; click or drag to move there. It shows only while the
@@ -648,7 +646,7 @@ const Inside = (() => {
     let down = null;
     holder.addEventListener("pointerdown", (ev) => { down = { x: ev.clientX, y: ev.clientY }; });
     holder.addEventListener("click", (ev) => {
-      if (ev.target.closest(".in-node, .in-label, .in-zoom, .in-mini, .dmenu")) return;
+      if (ev.target.closest(".in-node, .in-label, .zoom-bar, .in-mini, .dmenu")) return;
       if (down && Math.hypot(ev.clientX - down.x, ev.clientY - down.y) > 4) return;  // a drag that panned the drawing
       DetailsPanel.clear();
     });
@@ -1004,7 +1002,6 @@ const Inside = (() => {
     function draw() {
       box.innerHTML = "";
       lg.seen.clear();
-      Pan.attach(box, { key: "seq-" + id, svg: () => box.querySelector("svg.seq"), scrollOnly: true });
       const cur = st.step[id], LW = 128, RH = 30, top = 42, W = seq.parts.length * LW, H = top + n * RH + 16;
       const x = (pid) => seq.parts.findIndex((p) => p.id === pid) * LW + LW / 2;
       const svg = s("svg", { viewBox: `0 0 ${W} ${H}`, class: "inside-svg seq", role: "img", "aria-label": f.title || "sequence" });
@@ -1058,7 +1055,9 @@ const Inside = (() => {
         FX.on && n > 1 ? h("button", { class: "btn tiny", onclick: () => play(id, n, draw) }, st.playing === id ? "Pause" : "▶ Play") : null);
       svg.style.width = W + "px";
       lg.paint();
-      box.append(h("div", { class: "in-scroll" }, svg), lg.el(), ctl, n ? h("div", { class: "seq-now" }, `${cur + 1}. `, prose(describe(seq.steps[cur], seq))) : null);
+      const view = h("div", { class: "seq-frame" }, h("div", { class: "in-scroll" }, svg));
+      box.append(view, lg.el(), ctl, n ? h("div", { class: "seq-now" }, `${cur + 1}. `, prose(describe(seq.steps[cur], seq))) : null);
+      Pan.attach(box, { key: "seq-" + id, svg: () => box.querySelector("svg.seq"), scrollOnly: true, frame: view });
     }
     draw();
     return box;

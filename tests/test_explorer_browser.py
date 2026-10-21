@@ -117,6 +117,27 @@ def test_maps_move_free_form_and_pan_by_dragging_the_background(tmp_path, chrome
     assert not missing, "missing or failing selftest lines: " + "; ".join(missing) + "\n" + "\n".join(x for x in lines if x.startswith("FAIL"))
 
 
+ZOOMED_DRAWINGS = ("the system map", "the map grouped by business area", "the map grouped by capability", "one app and its neighbors (focus)", "contracts only",
+                   "before and after (releases)", "an app in context", "an app's containers", "an app's components", "an app's data model",
+                   "a key flow's sequence diagram", "the build plan's path")
+ZOOM_WAYS = ("the drawing has the zoom bar (-, Fit, +)", "the bar sits inside the drawing's frame", "+ zooms in, - zooms out, Fit puts it back",
+             "Ctrl and the wheel (a touchpad pinch) zooms in", "the keys + - 0 zoom and fit the focused drawing")
+
+
+@pytest.mark.browser
+def test_every_drawing_has_the_same_zoom_bar_wheel_keys_and_pan(chrome_path):
+    """The owner: "capabilities, contracts only, is missing zoom tools. lets make sure all diagrams have the zoom & panning
+    tools." One selftest line per drawing and per way of zooming, on the demo with three designs (which draws every kind
+    of drawing there is). A selftest that quietly skipped a drawing would pass, so each line is named here."""
+    dom = chrome_dom(chrome_path, built_booking_demo_page())
+    lines = html.unescape(re.search(r'data-selftest="([^"]*)"', dom).group(1)).split(" || ")
+    missing = [f"zoom, {name}: {way}" for name in ZOOMED_DRAWINGS for way in ZOOM_WAYS if not any(f"zoom, {name}: {way}" in line and line.startswith("ok") for line in lines)]
+    assert not missing, "missing or failing zoom lines: " + "; ".join(missing) + "\n" + "\n".join(x for x in lines if x.startswith("FAIL"))
+    # the drawings a pan can move (everything fitted to its board or drawn as a viewBox) also pan after a zoom, and the release picks nothing
+    panned = [name for name in ZOOMED_DRAWINGS if any(f"zoom, {name}: dragging the zoomed drawing pans it" in line and line.startswith("ok") for line in lines)]
+    assert len(panned) >= 9, panned
+
+
 @pytest.mark.browser
 def test_fourteen_flows_are_grouped_in_the_picker_and_pass_the_selftest(tmp_path, chrome_path):
     """The synthetic stress vault has 14 flows, past the ten the picker lists flat: grouped, filtered and driven by key."""
