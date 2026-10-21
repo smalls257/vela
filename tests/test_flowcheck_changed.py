@@ -111,7 +111,7 @@ def test_a_change_no_slice_reaches_is_listed_not_dropped():
 
 
 def test_the_walk_checks_every_slice_and_says_why_when_it_cannot_tell():
-    walk = walk_after(lambda f: f.__setitem__("specs/broken.openapi.yaml", "paths: [unclosed"))
+    walk = walk_after(lambda f: f.__setitem__("library/specs/broken.openapi.yaml", "paths: [unclosed"))
     assert sorted(walk.affected) == ["SLC-001", "SLC-002", "SLC-003"]
     assert walk.everything.startswith("library/specs/broken.openapi.yaml does not read the same as before")
     new = readers.read_vault(files_of())

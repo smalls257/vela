@@ -306,7 +306,7 @@ def _evidence(vault, copy, said, session):
             last = [l for l in sources.read_text(encoding="utf-8").splitlines() if l.startswith("| SRC-")][-1]
             from conftest import edit
             edit(sources, last + "\n", last + f"\n| {source} | Solution lead's first-hand account of {said['about']} "
-                                              f"| {LEAD} | {TODAY} | exists | said in session {session} |\n")
+                                              f"| {LEAD} | {TODAY} | exists | | | | | said in session {session} |\n")
         return f"item: {said['item']}; source: {source}; answer: {said['answer']}"
     if state == "assumed":
         return f"belief: {said['belief']}; load-bearing: {said['load_bearing']}; signpost: {said['signpost']}"
