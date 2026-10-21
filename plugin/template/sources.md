@@ -1,14 +1,14 @@
 ---
 id: sources
 type: sources
-title: Sources
+title: Library
 owner: "@solution-lead"
 authored: authored
 ---
 
-# Sources
+# Library
 
-Every document a fact rests on. Facts cite the ID. Raw files go in `.inbox/`, which git ignores.
+Every document, spec, design and link the plan rests on or builders need. Facts cite the ID. Files the owner agreed to keep live in `library/`; raw material stays in `.inbox/`, which git ignores.
 
-| ID | Title | Owner | Date | Kind | Location |
-|---|---|---|---|---|---|
+| ID | Title | Owner | Date | Kind | Type | Relates to | Version | Stored | Location |
+|---|---|---|---|---|---|---|---|---|---|

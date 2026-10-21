@@ -23,7 +23,7 @@ import traceback
 
 import yaml
 
-from vela import allocation, capture, catalog, completeness, diagramcheck, doctor, drafts, search, export, freshness, handoff, handoffwarn, health, ids, ladder, model, onboardpath, opening, pending, pluginroot, proposal, reading, parse, progress, publish, query, questions, releases, render, replay, review, reviews, roles, rules, schema, secretscan, slices, terms, tickets, untrusted, viewer, voicecheck, voicescore
+from vela import allocation, capture, catalog, completeness, diagramcheck, doctor, drafts, search, export, freshness, handoff, handoffwarn, health, ids, ladder, model, onboardpath, opening, pending, pluginroot, proposal, reading, parse, progress, publish, query, questions, releases, render, replay, review, reviews, roles, rules, schema, secretscan, slices, sourcerows, terms, tickets, untrusted, viewer, voicecheck, voicescore
 from vela.edge import atomic, copies, machine, mermaidjs, replays, reviewgit, teamdocs, vaultgit
 from vela.edge import proposals as proposal_files
 from vela import commands, guard, say
@@ -245,7 +245,39 @@ def vault_file_findings(root):
     """The findings about the vault's own files, which are not pages: its conventions copy, its config, its manifests
     and the working files git should not track."""
     return (conventions_findings(root) + config_findings(root) + manifest_findings(root) + tracked_tool_file_findings(root)
-            + gap_acknowledgement_findings(root))
+            + gap_acknowledgement_findings(root) + library_file_findings(root))
+
+
+OLD_SPEC_PATTERNS = ("specs/*.openapi.yaml", "specs/*.openapi.yml", "specs/*.asyncapi.yaml", "specs/*.asyncapi.yml")
+
+
+def library_file_findings(root):
+    """The Library's files, which only the disk can answer for: E312 for a spec left in the old top-level `specs/`
+    (the checker reads `library/specs/` now, and silently ignoring the old folder would drop a contract's checks, a
+    Silent Fallback), and E313 for a Stored path whose file is not in the vault."""
+    found = []
+    for pattern in OLD_SPEC_PATTERNS:
+        for path in sorted(root.glob(pattern)):
+            rel = path.relative_to(root).as_posix()
+            found.append(model.Finding(rel, 1, "E312", f"{rel} is a spec, and the flow check reads specs from library/specs/.",
+                                       f"Move it: git mv {rel} library/{rel}"))
+    register = root / "sources.md"
+    if register.is_file():
+        found += stored_file_findings(root, parse.parse_page("sources.md", register.read_text(encoding="utf-8")))
+    return found
+
+
+def stored_file_findings(root, page):
+    found = []
+    for table in page.tables:
+        if table.generated or not sourcerows.is_register(table.header):
+            continue
+        for cells, line in zip(table.rows, table.row_lines):
+            row = sourcerows.read(table.header, cells)
+            if row.stored and sourcerows.stored_problem(row) is None and not (root / row.stored).is_file():
+                found.append(model.Finding("sources.md", line, "E313", f"{row.id} says its file is {row.stored}, and it is not there.",
+                                           "Put the file back, or fix Stored; a row with only a link leaves Stored empty."))
+    return found
 
 
 def gap_acknowledgement_findings(root):
@@ -1160,7 +1192,7 @@ def term_notes(texts):
     return [f'What "{word}" means: {terms.define(word)}' for word in seen]
 
 
-SPEC_PATTERNS = ("specs/*.yaml", "specs/*.yml")
+SPEC_PATTERNS = ("library/specs/*.yaml", "library/specs/*.yml")
 # check runs each drawn slice on a small budget so it stays quick; past it, W391 says "not fully checked" and points
 # at check-slice, which has the full budget. Never a pass by budget (R0).
 CHECK_SLICE_STATES = 20_000
@@ -1357,7 +1389,7 @@ def check_changed_slices(root, vault, specs, catalog, store, today, args, versio
 
 def flowcheck_reads(path):
     """True for a file the flow check reads: a vault page or a spec."""
-    if path.startswith("specs/") and path.endswith((".yaml", ".yml")):
+    if path.startswith("library/specs/") and path.endswith((".yaml", ".yml")):
         return True
     return path.endswith(".md") and page_kind(path) == "page"
 
@@ -1372,7 +1404,7 @@ def changes_walk(root, vault, specs, catalog, before):
     pages = [page for page in vault.pages if page.path not in read]
     pages += [parse.parse_page(path, text) for path, text in sorted(read.items()) if text is not None and path.endswith(".md")]
     old_specs = {path: text for path, text in specs.items() if path not in read}
-    old_specs.update({path: text for path, text in read.items() if text is not None and path.startswith("specs/")})
+    old_specs.update({path: text for path, text in read.items() if text is not None and path.startswith("library/specs/")})
     old = readers.read_catalog(model.build(pages, vault.config, sorted(vault.other_names), vault.catalog,
                                            vault.template_lines), old_specs)
     return impact.walk(old, catalog, impact.changes(old, catalog))

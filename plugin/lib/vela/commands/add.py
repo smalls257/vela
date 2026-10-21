@@ -63,7 +63,7 @@ def register(sub):
         one.add_argument("--vault", default=".", help="vault root or reader workspace (default: current directory)")
         one.add_argument("--today", help="the date written (Opened, and the day on a record line), YYYY-MM-DD (default: today)")
         for field, hint in module.FIELDS.items():
-            flag = "--" + field.replace("_", "-")
+            flag = "--" + getattr(module, "FLAGS", {}).get(field, field.replace("_", "-"))
             if field in LISTS:
                 one.add_argument(flag, dest=f"f_{field}", action="append", metavar=field.upper(),
                                  help=f"{hint} (repeat for each)".replace("%", "%%"))

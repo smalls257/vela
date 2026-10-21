@@ -61,7 +61,7 @@ def test_a_shared_entity_says_its_paired_journeys():
 
 
 def test_a_changed_event_reaches_the_flows_publishing_it_and_calling_what_emits_it():
-    walk = walk_after(lambda f: replace(f, "specs/registration.asyncapi.yaml", "exactly-once", "at-least-once"), case="04-chain-correct")
+    walk = walk_after(lambda f: replace(f, "library/specs/registration.asyncapi.yaml", "exactly-once", "at-least-once"), case="04-chain-correct")
     assert list(walk.affected.values()) == [["registration created changed → A customer registers and is billed → Release one: pilot"]]
 
 
@@ -113,7 +113,7 @@ def test_a_change_no_slice_reaches_is_listed_not_dropped():
 def test_the_walk_checks_every_slice_and_says_why_when_it_cannot_tell():
     walk = walk_after(lambda f: f.__setitem__("specs/broken.openapi.yaml", "paths: [unclosed"))
     assert sorted(walk.affected) == ["SLC-001", "SLC-002", "SLC-003"]
-    assert walk.everything.startswith("specs/broken.openapi.yaml does not read the same as before")
+    assert walk.everything.startswith("library/specs/broken.openapi.yaml does not read the same as before")
     new = readers.read_vault(files_of())
     assert impact.walk(None, new, impact.Changes()).everything == "there is no earlier version to compare with"
 

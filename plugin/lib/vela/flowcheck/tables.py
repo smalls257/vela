@@ -51,7 +51,7 @@ class CaseTable:
     idempotent: bool
     delivery: object  # for a call an outside app makes (a webhook): like an event's; None otherwise
     order: object
-    source: str  # "specs/inventory.openapi.yaml" or "05-building-blocks/inventory-building-blocks.md:31"
+    source: str  # "library/specs/inventory.openapi.yaml" or "05-building-blocks/inventory-building-blocks.md:31"
 
 
 @dataclass(frozen=True)

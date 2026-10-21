@@ -24,7 +24,7 @@ To read the plan without Obsidian, ask Claude to run `vela view --out ~/Desktop/
 
 ## How the vault is laid out
 
-- Root pages: [[01-goals|Goals]], [[02-constraints|Constraints]], [[03-context-and-scope|Context and scope]], [[04-solution-strategy|Solution strategy]], [[04a-capability-delta|Capability delta]], [[11-unknowns-and-risks|Unknowns and risks]], [[12-glossary|Glossary]] and [[sources|Sources]].
+- Root pages: [[01-goals|Goals]], [[02-constraints|Constraints]], [[03-context-and-scope|Context and scope]], [[04-solution-strategy|Solution strategy]], [[04a-capability-delta|Capability delta]], [[11-unknowns-and-risks|Unknowns and risks]], [[12-glossary|Glossary]] and [[sources|Library]].
 - [[05-building-blocks|Building blocks]]: one page per app, with its contracts.
 - [[06-flows|Flows]]: flows across apps, and one runtime page per app.
 - [[08-concerns|Concerns]], [[09-decisions|Decisions]] and [[13-epics|Epics]]: an index page and one page per item.

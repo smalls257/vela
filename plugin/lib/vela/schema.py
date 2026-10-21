@@ -270,7 +270,7 @@ GATE_ONLY_CODES = {"E805": "epics"}
 
 GOALS_HEADER = ("ID", "Goal", "Measure", "State")
 CONSTRAINTS_HEADER = ("ID", "Constraint")
-SOURCES_HEADER = ("ID", "Title", "Owner", "Date", "Kind", "Location")
+SOURCES_HEADER = ("ID", "Title", "Owner", "Date", "Kind", "Type", "Relates to", "Version", "Stored", "Location")
 SOURCE_KINDS = ("exists", "intends", "repo")
 CONTAINERS_HEADER = ("Container", "Job")
 # An app page's share of each functional requirement, under ## Requirements allocated.
@@ -349,7 +349,13 @@ CODES = {
     "E303": "decided without a Grill decision",
     "E304": "fact without a source",
     "E306": "fact table row is not valid",
+    "E307": "library row has a type or stored path that is not valid",
+    "W307": "library row has a version but is not a spec",
+    "E308": "library row relates to an ID the vault does not have",
+    "E309": "library row has neither a stored file nor a location",
     "E311": "consumers name no app",
+    "E312": "an OpenAPI or AsyncAPI spec sits in specs/, not library/specs/",
+    "E313": "library row names a stored file that is not in the vault",
     "E316": "decided while an open unknown blocks it",
     "E317": "a requirements session cannot decide",
     "E318": "decided contract has no Tested by",

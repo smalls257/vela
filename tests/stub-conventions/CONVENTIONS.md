@@ -26,7 +26,7 @@ One vault holds one initiative. Pages are numbered by arc42 section.
 | `13-epics/` | Index, then `EPC-nnn-<slug>.md` |
 | `capabilities/` | `CAP-nnn-<slug>.md` per capability touched |
 | `ONBOARDING.md` | Optional. The lead's tuning of the onboarding path, one section per role (see Onboarding). Not a vault page: `vela check` does not read it. |
-| `sources.md` | The source register, `SRC-nn` |
+| `sources.md` | The Library: the source register, `SRC-nn` |
 | `sessions/` | One record per session, `YYYY-MM-DD-<topic>.md` |
 | `voice/VOICE.md` | Optional. The owner's own rules for either voice (pages, conversation), in their own words. Committed. Never a source. |
 | `voice/DEFAULT.md` | The default page voice, written out for the owner to read. Ships with the template; edit `voice/VOICE.md` instead, which wins over it. Never a source. |
@@ -125,7 +125,7 @@ Every item has a state. `inkling` is a hunch. `assumption` is believed but not c
 - **A requirements session cannot decide.** It writes at most `assumption`.
 - **A fact needs a source.** A `fact` page lists `sources`. A `fact` contract or functional requirement carries `- **Source:** SRC-nn`. A goal row at `fact` needs its page to list `sources`.
 - **What counts as a source.** A document describing what exists gives a fact. A document stating intent gives an assumption. A person's first-hand knowledge gives a fact. Claude's general knowledge is never a source.
-- **Sources live in the register.** `sources.md` has one row per document: `ID | Title | Owner | Date | Kind | Location`. `Kind` is `exists`, `intends` or `repo`. A `repo` source is a code repository read at a commit, with Location `<url>@<sha>`. Raw files stay in `.inbox/`; document text is never copied into the vault, except as an import keeps it below.
+- **Sources live in the register, the Library.** `sources.md` has one row per document, spec, design or link: `ID | Title | Owner | Date | Kind | Type | Relates to | Version | Stored | Location`. `Kind` is `exists`, `intends` or `repo`. A `repo` source is a code repository read at a commit, with Location `<url>@<sha>`. `Type` is `spec`, `design`, `document`, `wiki`, `tracker` or `link`; empty reads as `document`, so a register written with six columns (no Type, Relates to, Version or Stored) still reads. `Relates to` is item IDs of any kind (an app, capability, contract, party, unknown, release), space-separated, each of which must exist (E308), or empty. `Version` is for specs; write `v1.0 (latest v1.1)` when the owner has been told a newer one is out, and the Library shows "newer version out" (vela never opens links, so the newer version is told, not fetched). A version on any other type warns W307. `Stored` is a file kept in the vault, `library/specs/`, `library/designs/` or `library/documents/` (E307 if the path is anything else, E313 if the file is missing). `Location` keeps its meaning: a URL, `<url>@<sha>`, `first-hand: <handle>`, or `local only`. A row needs at least one of Stored or Location (E309). A file is kept in `library/<type>/` only with the owner's yes in the session (`vela library add`); raw material stays in `.inbox/`, which is never committed, and nothing else in a document is copied into the vault except as an import keeps it below.
 - **An import keeps a document's own words where they carry weight.** Requirements, contract and legal terms, numbers and direct quotes go in word for word, as a quote (`> "..."`) with its source linked. Whether the page's own sentences are written in the house voice is the lead's answer to one question the import asks. Each page records it in `source-wording`: `keep` (every word as the documents have it, the default until the lead answers), `split` (quotes kept, the explaining sentences voiced) or `voice`. A `split` or `voice` page links the capture of the lead's answer in `source-wording-yes: "[[<session>#^cNN]]"`; E361 is a page voiced without it. Close never redrafts a `keep` page, and `vela voicecheck` holds its kept lines exactly.
 - **Nothing is left for a Grill in prose.** A matter a session leaves for a Grill, or says is decided later, is an open unknown with an owner, and the page links it. Close writes the unknown when a capture or a sentence defers; `vela check` warns W389 on page prose that says it is left for a Grill, or decided later, and links no open unknown in the same paragraph. Session records, History and generated blocks are not read, and nor is the unknowns page, where the question lives.
 - **Disputes are unknowns.** When two sources or two people disagree, write an unknown naming both. Do not pick one.
@@ -337,7 +337,7 @@ A fact table is recognized by its first header cells.
 |---|---|---|
 | Goals | `ID \| Goal \| Measure \| State` | ID `G1`; State `inkling`, `assumption`, `fact`, `decided` |
 | Constraints | `ID \| Constraint \| ...` | ID `CST-1` |
-| Sources | `ID \| Title \| Owner \| Date \| Kind \| Location` | ID `SRC-01`; Kind `exists`, `intends`, `repo` |
+| Sources | `ID \| Title \| Owner \| Date \| Kind \| Type \| Relates to \| Version \| Stored \| Location` | ID `SRC-01`; Kind `exists`, `intends`, `repo`; Type `spec`, `design`, `document`, `wiki`, `tracker`, `link` |
 | Containers | `Container \| Job \| ... \| State` | State `assumption`, `confirmed`, `unchanged`, `retired` |
 | Concern cells | `App \| State \| ...` | See below |
 | Session changes | `ID \| From \| To \| Source` | One row per item a session changed |
@@ -579,7 +579,7 @@ Run `vela check` from the vault root. It reads, never writes, and never stops at
 
 The table is generated from the codes `vela check` uses, so it cannot drift from them, and each finding's fix line says how to put it right. `vela upgrade` brings a vault's copy up to date.
 
-<!-- generated:check-codes sha=a98a9347: do not edit, run vela render -->
+<!-- generated:check-codes sha=d5e4d5b2: do not edit, run vela render -->
 | Code | Finding |
 |---|---|
 | E101 | page has no frontmatter |
@@ -604,7 +604,13 @@ The table is generated from the codes `vela check` uses, so it cannot drift from
 | E304 | fact without a source |
 | W304 | fact without a source, by override |
 | E306 | fact table row is not valid |
+| E307 | library row has a type or stored path that is not valid |
+| W307 | library row has a version but is not a spec |
+| E308 | library row relates to an ID the vault does not have |
+| E309 | library row has neither a stored file nor a location |
 | E311 | consumers name no app |
+| E312 | an OpenAPI or AsyncAPI spec sits in specs/, not library/specs/ |
+| E313 | library row names a stored file that is not in the vault |
 | E316 | decided while an open unknown blocks it |
 | W316 | decided while an open unknown blocks it, by override |
 | E317 | a requirements session cannot decide |
@@ -896,8 +902,8 @@ A flow page lists its journey under `## Steps`, one numbered line per step. A st
 
 It reads four things, and never prose:
 
-- each contract's case table and its `**Can time out:**`, `**Retries:**` and `**Idempotent:**` bullets (see Fact bullets), or an OpenAPI spec in `specs/<app>.openapi.yaml` whose operations carry `x-vela-id: CON-nnn`, `x-vela-timeout`, `x-vela-retries: {max: 3, retried: [timeout]}` (`max` counts every attempt, the first included) and named examples as cases;
-- each event, as a `### EVT-nnn <name>` section on its producer's page, with `- **Delivery:**` (`exactly-once`, `at-least-once` or `may-be-lost`), `- **Order:**` (`any`, `per-producer` or `per:<field>`) and a `| Subscriber | Retries |` table; or an AsyncAPI spec in `specs/<app>.asyncapi.yaml` with `x-vela-delivery` and `x-vela-order`;
+- each contract's case table and its `**Can time out:**`, `**Retries:**` and `**Idempotent:**` bullets (see Fact bullets), or an OpenAPI spec in `library/specs/<app>.openapi.yaml` whose operations carry `x-vela-id: CON-nnn`, `x-vela-timeout`, `x-vela-retries: {max: 3, retried: [timeout]}` (`max` counts every attempt, the first included) and named examples as cases;
+- each event, as a `### EVT-nnn <name>` section on its producer's page, with `- **Delivery:**` (`exactly-once`, `at-least-once` or `may-be-lost`), `- **Order:**` (`any`, `per-producer` or `per:<field>`) and a `| Subscriber | Retries |` table; or an AsyncAPI spec in `library/specs/<app>.asyncapi.yaml` with `x-vela-delivery` and `x-vela-order`;
 - each entity, as a page of type `entity` in `entities/`, with its states and the moves between them;
 - each flow page's sequence diagram, in the strict form below.
 

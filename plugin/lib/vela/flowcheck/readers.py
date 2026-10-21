@@ -23,6 +23,7 @@ from vela.flowcheck import mermaid
 from vela.flowcheck.tables import (App, Case, CaseTable, Catalog, Entity, EventTable, Flow, Override, Problem,
                                       Retries)
 
+SPEC_DIR = "library/specs/"  # where the checker reads OpenAPI and AsyncAPI files; a spec in specs/ is E312 (cli.old_spec_findings)
 DELIVERIES = ("exactly-once", "at-least-once", "may-be-lost")
 HTTP_METHODS = ("get", "put", "post", "delete", "patch", "head", "options", "trace")
 EVENT_HEADING = re.compile(r"^(EVT-\d{3})\s+(.*?)\s*$")
@@ -36,7 +37,7 @@ def read_vault(files):
     """A Catalog from the vault's files: {posix path relative to the vault root: text}. Markdown is parsed the way
     every vela command parses it; specs are read here."""
     pages = [parse.parse_page(path, files[path]) for path in sorted(files) if path.endswith(".md")]
-    specs = {path: files[path] for path in sorted(files) if path.startswith("specs/") and path.endswith((".yaml", ".yml"))}
+    specs = {path: files[path] for path in sorted(files) if path.startswith(SPEC_DIR) and path.endswith((".yaml", ".yml"))}
     return read_catalog(model.build(pages, {}), specs)
 
 
@@ -275,7 +276,7 @@ def _load_yaml(path, text, problems):
 
 
 def _spec_app(cat, path, doc, suffix):
-    key = path[len("specs/"):].split(".", 1)[0]
+    key = path[len(SPEC_DIR):].split(".", 1)[0]
     info = doc.get("info") or {}
     title = str(info.get("title") or key)
     _add_app(cat, key, title, bool(info.get("x-vela-outside")), path)

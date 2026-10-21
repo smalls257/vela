@@ -1,7 +1,7 @@
 """Pages to a vault model, built once. Pure: no disk, clock or network."""
 from dataclasses import dataclass, field
 
-from vela import schema
+from vela import schema, sourcerows
 # Imported under its own name: the Vault field and the build() argument are both called `catalog`, and a bare
 # `catalog.EMPTY` inside build() would read the argument, not the module.
 from vela.catalog import EMPTY as EMPTY_CATALOG
@@ -185,7 +185,7 @@ def _row_id_pattern(page, header):
         return schema.GOAL_ID_RE
     if head[:len(schema.CONSTRAINTS_HEADER)] == schema.CONSTRAINTS_HEADER:
         return schema.CONSTRAINT_ID_RE
-    if page.type == "sources" and head[:len(schema.SOURCES_HEADER)] == schema.SOURCES_HEADER:
+    if page.type == "sources" and sourcerows.is_register(head):
         return schema.SOURCE_ID_RE
     return None
 

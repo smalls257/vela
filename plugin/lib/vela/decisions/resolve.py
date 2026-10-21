@@ -23,6 +23,7 @@ What it blocked is not changed here: a grill decides, and Discover writes the fa
 """
 import re
 
+from vela import parse, sourcerows
 from vela.decisions import consent, schema, textedit
 
 PAGE = "11-unknowns-and-risks"
@@ -38,16 +39,22 @@ SCHEMA = schema.KindSchema(
 
 
 def source_row(vault, source_id):
-    """{"title", "kind", "location"} of a sources.md row, or None."""
+    """{"title", "kind", "location"} of a sources.md row, or None. Read by the register's own header names, so a
+    six-column register and a Library register both answer."""
     path = textedit.page_path(vault, "sources")
     if path is None:
         return None
+    header = None
     for line in vault.text(path).split("\n"):
-        if line.lstrip().startswith("|"):
-            from vela import parse
-            cells = parse.split_row(line)
-            if cells and cells[0] == source_id and len(cells) >= 6:
-                return {"title": cells[1], "kind": cells[4], "location": cells[5]}
+        if not line.lstrip().startswith("|"):
+            header = None
+            continue
+        cells = parse.split_row(line)
+        if sourcerows.is_register(cells):
+            header = cells
+        elif header is not None and cells and cells[0] == source_id:
+            row = sourcerows.read(header, cells)
+            return {"title": row.title, "kind": row.kind, "location": row.location}
     return None
 
 

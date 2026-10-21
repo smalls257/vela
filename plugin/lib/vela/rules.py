@@ -5,7 +5,7 @@ Every rule runs on every page it can read. No rule stops the others.
 import datetime
 import re
 
-from vela import allocation, cases, deferrals, flows, handoffwarn, links, override, parse, pending, progress, questions, readability, readload, releases, render, schema, slices, trace, wording
+from vela import allocation, cases, deferrals, flows, handoffwarn, links, override, parse, pending, progress, questions, readability, readload, releases, render, schema, slices, sourcerows, trace, wording
 from vela.model import Finding, blocked_units, decided_goal_rows, goal_rows_at, meta_line
 
 
@@ -329,8 +329,9 @@ def table_rules(vault, today):
                 yield from _rows(page, table, schema.GOAL_ID_RE, 3, schema.STATE_ITEM, "goal", "G1")
             elif header[:2] == schema.CONSTRAINTS_HEADER:
                 yield from _rows(page, table, schema.CONSTRAINT_ID_RE, None, (), "constraint", "CST-1")
-            elif header[:6] == schema.SOURCES_HEADER:
+            elif sourcerows.is_register(header):
                 yield from _rows(page, table, schema.SOURCE_ID_RE, 4, schema.SOURCE_KINDS, "source", "SRC-01")
+                yield from _library_rows(vault, page, table)
             elif header[:2] == schema.CONTAINERS_HEADER and "State" in header:
                 col = header.index("State")
                 for row, line in zip(table.rows, table.row_lines):
@@ -338,6 +339,28 @@ def table_rules(vault, today):
                     if state not in schema.CONTAINER_STATES:
                         yield _f(page, line, "E306", f"Container '{row[0]}' has state '{state}'.",
                                  "Use one of: " + ", ".join(schema.CONTAINER_STATES) + ".")
+
+
+def _library_rows(vault, page, table):
+    """The Library's own columns (CONVENTIONS "Certainty and sources"): Type, Relates to, Version, Stored, Location.
+    A six-column register has none of them and says nothing here."""
+    known = vault.known_ids()
+    for cells, line in zip(table.rows, table.row_lines):
+        row = sourcerows.read(table.header, cells)
+        if row.type not in sourcerows.TYPES:
+            yield _f(page, line, "E307", f"{row.id} has Type '{row.type}'.", f"Use one of: {', '.join(sourcerows.TYPES)}.")
+        if row.stored and (problem := sourcerows.stored_problem(row)):
+            yield _f(page, line, "E307", f"{row.id}: {problem}", "Keep the file under library/specs/, designs/ or documents/.")
+        for ident in row.relates:
+            if ident not in known:
+                yield _f(page, line, "E308", f"{row.id} relates to {ident}, which is not an ID in this vault.",
+                         "Fix the ID, or take it out of Relates to.")
+        if "Stored" in table.header and not row.stored and not row.location:  # an older register has no Stored to judge by
+            yield _f(page, line, "E309", f"{row.id} says neither where its file is kept nor where the original is.",
+                     "Fill Stored (a file under library/) or Location (a link, or `local only`).")
+        if row.version and row.type != "spec":
+            yield _f(page, line, "W307", f"{row.id} has a Version but is a {row.type}; versions are for specs.",
+                     "Leave Version empty, or set Type to spec.")
 
 
 def _rows(page, table, id_re, col, allowed, what, example):
@@ -1339,7 +1362,7 @@ def freshness_rules(vault, today):
                      "Reread the page against its sources, then set last_verified to today and verified_by to your handle.")
     for page in vault.of_type("sources"):
         for table in page.tables:
-            if table.generated or tuple(table.header)[:len(schema.SOURCES_HEADER)] != schema.SOURCES_HEADER:
+            if table.generated or not sourcerows.is_register(table.header):
                 continue
             for row, line in zip(table.rows, table.row_lines):
                 source, date = (row[0] if row else ""), (row[3] if len(row) > 3 else "")
