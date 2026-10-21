@@ -70,6 +70,10 @@ def isolate_git_config(tmp_path, monkeypatch):
         monkeypatch.delenv(var, raising=False)
 
 
+def pytest_sessionstart(session):
+    _BASETEMP.append(session.config._tmp_path_factory.getbasetemp())
+
+
 def pytest_configure(config):
     """Register custom markers, and under xdist schedule by group (see SHARED_BUILDS)."""
     config.addinivalue_line("markers", "browser: browser smoke tests (require Chrome; slow)")
@@ -159,6 +163,16 @@ def _no_installed_plugins(tmp_path_factory, monkeypatch):
 
 
 _CHROME_PROFILES = []
+_BASETEMP = []  # pytest's base temp for this process, set at session start (scratch_root)
+
+
+def scratch_root():
+    """Where the suite's own temp folders go: under pytest's base temp for this run, so the retention setting in
+    pytest.ini sweeps them even when a run is killed before its cleanup. Folders made with a bare tempfile.mkdtemp
+    lived in $TMPDIR forever whenever a run was cut short: 168 Chrome profiles (50-80 MB each) and dozens of published
+    caches filled the disk on 2026-10-21 and failed whole gate runs."""
+    import tempfile
+    return str(_BASETEMP[0]) if _BASETEMP else tempfile.gettempdir()
 
 
 def chrome_profile():
@@ -166,7 +180,7 @@ def chrome_profile():
     launches share the default profile, and while the user's own Chrome holds that profile's lock a headless one can
     hang with no output until the test's timeout (the browser-test flakes under `-n auto`, E86)."""
     import tempfile
-    folder = tempfile.mkdtemp(prefix="vela-chrome-")
+    folder = tempfile.mkdtemp(prefix="vela-chrome-", dir=scratch_root())
     _CHROME_PROFILES.append(folder)
     return f"--user-data-dir={folder}"
 

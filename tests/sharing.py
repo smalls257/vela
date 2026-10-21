@@ -92,7 +92,8 @@ def published_snapshot(tmp_path, out="published"):
     import tempfile
     from conftest import run
     if "root" not in _PUBLISHED:
-        cache = pathlib.Path(tempfile.mkdtemp(prefix="vela-published-"))
+        from conftest import scratch_root
+        cache = pathlib.Path(tempfile.mkdtemp(prefix="vela-published-", dir=scratch_root()))
         src = commit_snapshot(cache)
         assert run("publish", "--vault", str(src), "--out", str(cache / "published"), "--today", "2026-10-11")[0] == 0
         _PUBLISHED["root"] = cache
