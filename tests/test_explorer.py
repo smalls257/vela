@@ -682,3 +682,14 @@ def test_a_link_whose_only_shared_folder_is_near_the_root_is_left_out():
     assert build.relative_href("/private/tmp/vault", "/private/var/folders/x") is None
     assert build.relative_href("/srv/work/vault/docs/plan.md", "/srv/work/vault") == "docs/plan.md"
     assert build.relative_href("/srv/work/booking/design.md", "/srv/work/vault") == "../booking/design.md"
+
+
+def test_the_generated_block_caption_shows_as_italic_not_with_its_underscores():
+    """schema.GENERATED_CAPTION is written _like this_; the side panel and the reader showed the literal underscores."""
+    from vela import cli, schema
+    from vela.explorer.record import Keys, inline_html
+    vault = cli.load_vault(TRADING)
+    keys, page = Keys(vault), vault.pages[0]
+    out = inline_html(schema.GENERATED_CAPTION, keys, page)
+    assert out == "<em>Kept up to date by vela from the pages it reads.</em>", out
+    assert inline_html("the concern_cost page and a_b_c stay as written", keys, page) == "the concern_cost page and a_b_c stay as written"
