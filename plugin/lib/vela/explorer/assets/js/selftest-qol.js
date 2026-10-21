@@ -185,8 +185,23 @@
     ok(!$("#side-read").hidden && $("#side .side-link[data-section=glossary]").getAttribute("aria-current") === "page", "menu: Read stays open on one of its pages, with that page marked", "menu: Read closed on its own page");
     Nav.st.expanded.delete("read"); Nav.home(); await tick();
     await caretTarget(ok);
+    await concernsSummary(ok);
   }
-  /* The triangle is the only thing that folds a list, so it is a target a hand can hit: 28 px square, as tall as its row, and a click on it (not on the row's name) folds. */
+  /* The line above the concerns grid counts what the grid shows: blank cells and empty rows are "not reviewed yet", and the numbers add up to every place a concern meets an app. */
+  async function concernsSummary(ok) {
+    Nav.open("concerns"); await tick();
+    const { conc, apps } = Sections.concernApps();
+    if (!conc.length || !apps.length) { ok(true, "concerns: no grid here, so no summary to check"); return; }
+    const cells = $$(".cmx td"), count = (re) => $$(".cmx-cell").filter((c) => re.test(c.textContent)).length;
+    const unrev = count(/not reviewed yet/) + $$(".cmx td.none").length, waiting = count(/waiting on an open question/);
+    const head = ($("#main .view-head p") || {}).textContent || "", line = ($("[data-concern-tally]") || {}).textContent || "";
+    const said = (text, n, word) => (n === 0 ? !text.includes(word) : text.includes(`${n} ${word}`));
+    ok(cells.length === conc.length * apps.length && head.includes(`${cells.length} places`) && said(head, unrev, "not reviewed yet") && said(head, waiting, "waiting on an open question") && said(line, unrev, "not reviewed yet") && said(line, waiting, "waiting on an open question"),
+      `concerns: the header and the line under the grid agree with its ${cells.length} cells (${waiting} waiting, ${unrev} not reviewed)`, `concerns: header "${head}" and line "${line}" disagree with the grid (${waiting} waiting, ${unrev} not reviewed of ${cells.length})`);
+    ok(!/reviewed for every app/.test(head), "concerns: the header never claims every app is reviewed", "concerns: the header claims every app is reviewed");
+    Nav.home(); await tick();
+  }
+  /* The triangle and the row name both fold a list; the triangle is a target a hand can hit: 28 px square, as tall as its row, and a click on it (not on the row's name) folds. */
   async function caretTarget(ok) {
     Nav.st.expanded.delete("apps"); Nav.home(); Nav.refresh(); await tick();
     const caret = $("#side .side-row:has(.side-link[data-section=apps]) button.side-caret");

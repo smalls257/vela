@@ -35,13 +35,29 @@ const Sections = (() => {
   /* A concern cell's state in words: "unexamined" means nobody has looked; "unknown" means someone looked and could not say. */
   const CELL_WORD = (s) => (!s ? "not recorded" : CELL_WORD_OF[s] ? cellWord(s) : stateWord(s));  // plainwords' cell words, else a state word
   const CELL_WORD_OF = D.words.cell;
-  function concerns(main) {
-    const unreviewed = D.cells.filter((c) => String(c.state || "").startsWith("unexamined")).length;
-    main.append(head("Concerns", unreviewed ? `Nobody has reviewed ${unreviewed} of these yet; they're blue. Pick one to see who should.` : "Every concern has been reviewed for every app."));
-    const sc = h("div", { class: "scroll pages" });
-    main.append(sc);
+  /* The grid's own numbers, counted from the places the grid draws: a concern and an app with no row between them are
+     "not reviewed yet", as the blank cell reads. The header and the line under the grid both say these, so neither can say more than the grid shows. */
+  function concernApps() {
     const conc = (D.sections.find((x) => x.id === "concerns") || { children: [] }).children;
     const apps = [...new Set(D.cells.map((c) => c.app))].filter((k) => APPS[k]).sort((a, b) => (NODE[a] && NODE[b] ? (NODE[a].col - NODE[b].col) || (NODE[a].row - NODE[b].row) : 0) || cmp(a, b));
+    return { conc, apps };
+  }
+  function concernTally(conc, apps) {
+    const t = { covered: 0, unchanged: 0, na: 0, waiting: 0, notReviewed: 0, total: conc.length * apps.length };
+    for (const ck of conc) for (const a of apps) {
+      const state = (D.cells.find((c) => c.concern === ck && c.app === a) || {}).state;
+      if (state === "addressed") t.covered++; else if (state === "unchanged") t.unchanged++; else if (state === "n/a") t.na++; else if (state === "unknown") t.waiting++; else t.notReviewed++;
+    }
+    return t;
+  }
+  function tallyWords(t) {
+    return [[t.covered, "covered"], [t.unchanged, "unchanged"], [t.na, "don't apply"], [t.waiting, "waiting on an open question"], [t.notReviewed, "not reviewed yet"]].filter(([n]) => n).map(([n, w]) => `${n} ${w}`).join(" · ");
+  }
+  function concerns(main) {
+    const { conc, apps } = concernApps(), t = concernTally(conc, apps);
+    main.append(head("Concerns", conc.length && apps.length ? `${plural(t.total, "place")} where a concern meets an app: ${tallyWords(t)}.` : ""));
+    const sc = h("div", { class: "scroll pages" });
+    main.append(sc);
     if (!conc.length || !apps.length) { sc.append(emptyState("No concerns recorded yet.", "No concerns have been recorded for any app yet.", "/vela:boundary")); return; }
     const table = h("table", { class: "cmx" }, h("tr", {}, h("th", { class: "corner" }, "concerns down, apps across"), apps.map((k) => h("th", { class: "col" }, h("a", { "data-ref": k }, h("span", {}, titleOf(k)))))));
     for (const ck of conc) {
@@ -55,10 +71,7 @@ const Sections = (() => {
       }
       table.append(row);
     }
-    const counts = {};
-    D.cells.forEach((c) => { const w = CELL_WORD(c.state); counts[w] = (counts[w] || 0) + 1; });
-    sc.append(h("section", { class: "card" }, h("div", { class: "grid-wrap" }, table),
-      h("p", { class: "p-note" }, Object.entries(counts).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${n} ${k}`).join(" · "))));
+    sc.append(h("section", { class: "card" }, h("div", { class: "grid-wrap" }, table), h("p", { class: "p-note", "data-concern-tally": "" }, tallyWords(t))));
   }
 
   /* ------------------------------------------------------------ epics */
@@ -120,7 +133,7 @@ const Sections = (() => {
     return h("aside", { class: "doc-aside" }, h("h3", {}, "What the strategy changes"),
       Object.entries(by).map(([ch, keys]) => h("div", { class: "rc-row" }, h("span", { class: "rc-l" }, ch), h("span", {}, keys.map((k) => refChip(k))))));
   }
-  return { goals, concerns, epics, context, readWide, doc };
+  return { goals, concerns, concernTally, concernApps, epics, context, readWide, doc };
 })();
 View("goals", { label: "Goals", render: Sections.goals });
 View("concerns", { label: "Concerns", render: Sections.concerns });
