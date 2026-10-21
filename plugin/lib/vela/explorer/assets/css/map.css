@@ -194,16 +194,16 @@ svg.tracing .duct.picked { stroke: var(--duct); stroke-width: 6; }
 .cockpit g.hit.lit.override .node-glyph { color: var(--override-ink); }
 .grouped .mini-glyph { color: var(--node-sub); }
 /* the matrix's frozen edges: the head row stays while the board scrolls down, the row names while it scrolls across,
-   and the corner stays with both. Names in the head lean at 45 degrees and are cut with the full name on hover. */
+   and the corner stays with both. Names in the head lean at 45 degrees, whole. */
 table.dsm.angled thead th { position: sticky; top: 0; background: var(--room); box-shadow: 3px 0 0 var(--room), 0 3px 0 var(--room); }
 table.dsm.angled th.col { height: var(--head); width: var(--cell); min-width: var(--cell); max-width: var(--cell); padding: 0; }
 table.dsm.angled th.col a { position: absolute; left: calc(var(--cell) / 2 - 5px); bottom: 9px; transform-origin: 0 100%; transform: rotate(-45deg); white-space: nowrap; }
-table.dsm.angled th.col span { display: block; max-width: var(--name-w); overflow: hidden; text-overflow: ellipsis; font-size: 13px; line-height: 1.2; }
+table.dsm.angled th.col span { display: block; max-width: var(--name-w); font-size: 13px; line-height: 1.2; }
 table.dsm.angled th.col:hover span { color: var(--focus); }
 table.dsm.angled th.corner { left: 0; z-index: 200 !important; }
 table.dsm.angled tbody th.row, table.dsm.angled tbody th.group { position: sticky; left: 0; z-index: 2; background: var(--room);
   box-shadow: 6px 0 0 var(--room), 0 -3px 0 var(--room), 0 3px 0 var(--room), 6px -3px 0 var(--room), 6px 3px 0 var(--room); }
-table.dsm.angled th.row a { display: inline-block; max-width: 190px; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom; }
+table.dsm.angled th.row a { display: inline-block; max-width: 190px; white-space: normal; vertical-align: bottom; }
 /* the board itself has no padding, so nothing scrolls past the frozen edges: the space sits inside them instead */
 .board-matrix { padding: 0 0 30px 0; }
 .board-matrix .matrix-wrap { padding-right: 24px; display: block; }
@@ -231,7 +231,7 @@ g.hit[data-movable] { cursor: grab; touch-action: none; }
 .layout-say { color: var(--ink-2, inherit); font-weight: 500; }
 .cockpit .drag-ghost.landing { stroke-width: 3; opacity: 1; }  /* where a held cluster will land, when not under the pointer */
 .cockpit .cluster[data-movable] .cluster-frame, g.cluster-lamp[data-movable] { cursor: grab; }
-button.cell > span { max-width: calc(100% - 6px); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+button.cell > span { max-width: calc(100% - 6px); min-width: 0; text-align: center; white-space: normal; overflow-wrap: anywhere; line-height: 1.12; font-size: 11px; }  /* a name wraps to the next line, it is never cut */
 
 /* capability focus (capfocus.js): the bar over the map and at the top of the sidebar */
 .capfocus-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; padding: 6px 24px; background: var(--deck-2); border-top: 1px solid var(--rule); font-size: 13px; color: var(--ink-2); }

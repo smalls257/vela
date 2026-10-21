@@ -78,6 +78,59 @@ function termEl(word, shown) {
 const termTip = (word) => { const text = (D.terms || {})[word]; if (!text) throw new Error(`termTip: no definition for "${word}"`); return text; };
 const plural = (n, one, many) => `${n} ${n === 1 ? one : (many || one + "s")}`;
 const shorten = (t, n) => { t = t || ""; return t.length > n ? t.slice(0, n - 1).trimEnd() + "…" : t; };
+/* Words in a drawing are never cut. A label wraps to a second line, shrinks only down to FLOOR pixels, and past that wraps to as
+   many lines as it needs; the caller sizes the box to `lines.length`. Cutting a name to "Consent and identit…" hides that it was
+   cut (a Silent Fallback), and the reader cannot tell one name from another that starts the same. */
+const LabelFit = (() => {
+  const ctx = document.createElement("canvas").getContext("2d"), FLOOR = 11, LEAD = 1.2;
+  let faces = null, themeOf = null;
+  const family = (mono) => {  // a theme can change the faces, so they are read again when the theme does
+    const now = document.documentElement.dataset.theme;
+    if (!faces || themeOf !== now) { themeOf = now; faces = { ui: getComputedStyle(document.body).fontFamily, mono: getComputedStyle(document.documentElement).getPropertyValue("--mono") }; }
+    return mono ? faces.mono : faces.ui;
+  };
+  const width = (text, size, weight, mono) => { ctx.font = `${weight || 400} ${size}px ${family(mono)}`; return ctx.measureText(text).width; };
+  /* Greedy wrap; a word wider than the line is broken by letters, so no text is ever left out. */
+  function wrap(text, room, size, weight, mono) {
+    const out = [], w = (x) => width(x, size, weight, mono);
+    let line = "";
+    for (const word of String(text == null ? "" : text).split(/\s+/).filter(Boolean)) {
+      let rest = word;
+      if (w(line ? line + " " + rest : rest) <= room) { line = line ? line + " " + rest : rest; continue; }
+      if (line) { out.push(line); line = ""; }
+      while (rest.length > 1 && w(rest) > room) {
+        let n = rest.length - 1;
+        while (n > 1 && w(rest.slice(0, n)) > room) n--;
+        out.push(rest.slice(0, n)); rest = rest.slice(n);
+      }
+      line = rest;
+    }
+    if (line) out.push(line);
+    return out.length ? out : [""];
+  }
+  /* The largest size from o.size down to the floor at which the text fits o.max lines (default two); at the floor, every line it needs. */
+  function fit(text, room, o) {
+    const floor = Math.min(o.size, o.floor || FLOOR), max = o.max || 2;
+    for (let z = o.size; ; z -= 0.5) {
+      const size = Math.max(z, floor), lines = wrap(text, room, size, o.weight, o.mono);
+      if (lines.length <= max || size <= floor) return { lines, size, lh: Math.round(size * LEAD * 10) / 10 };
+    }
+  }
+  /* A <text> whose lines are tspans; attrs.y is the first line's baseline. Whole words only, so the text reads the same joined. */
+  function put(parent, attrs, text, room, o) {
+    const f = fit(text, room, o), t = s("text", attrs, parent);
+    t.style.fontSize = f.size + "px";  // the size it was fitted at, whatever the stylesheet says
+    f.lines.forEach((line, i) => { const sp = s("tspan", { x: attrs.x, dy: i ? f.lh : null }, t); sp.textContent = i < f.lines.length - 1 ? line + " " : line; });
+    t.__lines = f;
+    return t;
+  }
+  /* Move a text made by put (x, y of its first line, anchor): every line follows. */
+  function place(t, x, y, anchor) {
+    t.setAttribute("x", x); t.setAttribute("y", y); if (anchor) t.setAttribute("text-anchor", anchor);
+    for (const sp of t.children) sp.setAttribute("x", x);
+  }
+  return { fit, put, place, wrap, width, FLOOR };
+})();
 const cmp = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const hash = (t) => { let x = 7; for (const ch of t) x = (x * 31 + ch.charCodeAt(0)) >>> 0; return x; };

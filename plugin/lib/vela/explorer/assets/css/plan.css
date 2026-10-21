@@ -31,7 +31,7 @@
 
 /* the dependency view */
 .plan-dag-frame { flex: none; }
-.plan-dag { display: flex; justify-content: center; align-items: flex-start; overflow: visible; padding: 6px 12px; border: 1px solid var(--rule); border-radius: 10px;
+.plan-dag { display: flex; justify-content: center; align-items: flex-start; overflow: visible; padding: 0; border: 1px solid var(--rule); border-radius: 10px;
   background: radial-gradient(ellipse at 50% 40%, var(--board-light), transparent 70%), var(--board); }
 .plan-node .plan-id { font: 600 13px var(--mono); }
 .in-box-face.lit.caution { stroke: var(--caution); stroke-width: 2.4; } .in-box-face.lit.warning { stroke: var(--warning); stroke-width: 2.4; }

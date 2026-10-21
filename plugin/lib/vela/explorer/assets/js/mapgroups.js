@@ -85,17 +85,32 @@ const MapGroups = (() => {
     const b = el.getBBox ? el.getBBox() : null;
     return b && b.width ? { x: b.x, y: b.y, w: b.width, h: b.height } : estimate;
   }
+  const CHIP_TEXT = { size: 12, weight: 500 };
+  /* The chips, wrapped into rows no wider than the region. A name too long for one line takes two, so the chip grows; each row is as
+     tall as its tallest chip (row.h), and `rows.h` is the whole stack. */
   function chipLines(keys, width) {
     const lines = [];
     let line = [], x = measure("Also in", 11.5, 500) + 10;
+    const close = () => { line.h = Math.max(CHIP_H, ...line.map((c) => c.h)); lines.push(line); line = []; };
     for (const k of keys) {
-      const w = Math.min(width, measure(shorten(titleOf(k), 26), 12, 500) + 34);
-      if (line.length && x + w > width) { lines.push(line); line = []; x = 0; }
-      line.push({ k, x, w }); x += w + CHIP_GAP;
+      const f = LabelFit.fit(titleOf(k), width - 34, CHIP_TEXT), widest = Math.max(...f.lines.map((l) => LabelFit.width(l, f.size, 500)));
+      const w = Math.min(width, widest + 34), h = f.lines.length > 1 ? Math.ceil(f.lines.length * f.lh + 8) : CHIP_H;
+      if (line.length && x + w > width) { close(); x = 0; }
+      line.push({ k, x, w, h }); x += w + CHIP_GAP;
     }
-    if (line.length) lines.push(line);
+    if (line.length) close();
+    lines.h = lines.reduce((n, l) => n + l.h + CHIP_GAP, 0);
     return lines;
   }
+  /* What a cluster says about itself: its worst light and the counts. */
+  function clusterSays(g) {
+    const levels = g.members.map(levelOf), lv = worst(levels.slice()), lit = levels.filter((l) => l !== "dark").length;
+    const counts = LEVELS.filter((l) => l !== "dark").map((l) => [l, levels.filter((x) => x === l).length]).filter(([, n]) => n);
+    const what = g.outside ? plural(g.members.length, "outside service") : plural(g.members.length, "app");
+    const say = `${what}${lit ? ", " + counts.map(([l, n]) => `${n} ${LIGHT[l].word.toLowerCase()}`).join(", ") : ", all decided"}${g.ghosts.length ? `; ${plural(g.ghosts.length, "app")} drawn elsewhere also ${g.ghosts.length === 1 ? "delivers" : "deliver"} it` : ""}`;
+    return { lv, lit, counts, say };
+  }
+  const NAME_TEXT = { size: 15, weight: 600 }, TITLE_TEXT = { size: 17, weight: 600 }, SAY_TEXT = { size: 11.5 };
   /* True when two clusters ({x, y, w, h}, top left) come closer than `gap`. */
   const near = (a, b, gap) => a.x < b.x + b.w + gap && b.x < a.x + a.w + gap && a.y < b.y + b.h + gap && b.y < a.y + a.h + gap;
   function layout(list, aspect, mode) {
@@ -104,14 +119,24 @@ const MapGroups = (() => {
     for (const g of list) {
       g.isOpen = isOpen(g);
       const n = g.members.length;
-      if (!g.isOpen) { g.w = CW; g.h = CH; continue; }
+      if (!g.isOpen) {
+        // closed, the title and the line under it wrap, and the lamp grows by the lines they take beyond one each
+        g.w = CW;
+        const says = clusterSays(g);
+        g.titleFit = LabelFit.fit(g.label, g.w - 16 - (says.lv !== "dark" ? 38 : 20), TITLE_TEXT);
+        g.sayFit = LabelFit.fit(says.say, g.w - 36, SAY_TEXT);
+        g.h = CH + Math.ceil((g.titleFit.lines.length - 1) * g.titleFit.lh + (g.sayFit.lines.length - 1) * g.sayFit.lh);
+        continue;
+      }
       g.cols = n === 0 ? 0 : g.outside ? Math.min(n, 4) : n <= 2 ? n : Math.min(3, Math.ceil(Math.sqrt(n)));
       g.rows = n ? Math.ceil(n / g.cols) : 0;
       g.w = Math.max(CW, PAD * 2 + g.cols * gx - (gx - W));
       g.alsoLines = g.ghosts.length ? chipLines(g.ghosts, g.w - PAD * 2) : [];
+      g.nameFit = LabelFit.fit(g.label, g.w - PAD * 2, NAME_TEXT);  // the name takes a second line before it is ever cut
+      g.headExtra = Math.ceil((g.nameFit.lines.length - 1) * g.nameFit.lh);
       // room above the first row for the "+2 capabilities" tabs, which stand just above their boxes
       const tabs = mode === "capability" && g.members.some((k) => ((D.appCaps[k] || { caps: [] }).caps.length > 1));
-      g.top = HEAD + (g.alsoLines.length ? g.alsoLines.length * (CHIP_H + CHIP_GAP) + 12 : 0) + (tabs ? 16 : 0);
+      g.top = HEAD + g.headExtra + (g.alsoLines.length ? g.alsoLines.h + 12 : 0) + (tabs ? 16 : 0);
       g.h = g.top + (g.rows ? g.rows * gy - (gy - H) : 0) + PAD;
     }
     for (const g of list) g.gap = gap;  // a dropped cluster keeps this far from the others (place, below)
@@ -249,7 +274,8 @@ const MapGroups = (() => {
       const one = e.contracts.length === 1, lw = one ? 120 : 98;
       const ids = e.contracts.slice().sort();
       const bundle = `bundle:${ids.join(",")}|${label(e.a)}|${label(e.b)}`;
-      const spot = place(pts, lw, 22, obs);
+      const said = one ? CONTRACT[ids[0]].title : `${ids.length} contracts`, lh = MapView.contractSize(said, lw).h;
+      const spot = place(pts, lw, lh, obs);
       if (!spot) {
         // no room for a lamp: a round count on the duct; failing that, the nearest free spot beside it, tied by a leader
         const round = place(pts, 30, 30, obs) || beside(pts, 30, 30, obs);
@@ -261,8 +287,8 @@ const MapGroups = (() => {
       }
       obs.push(spot.r);
       const at = spot.at;
-      MapView.lamp(gLamps, { key: one ? ids[0] : ids[0], x: at.x - lw / 2, y: at.y - 11, w: lw, h: 22, rx: 3, kind: "contract",
-        label: one ? CONTRACT[ids[0]].title : `${ids.length} contracts`, title: ids.map((id) => `${CONTRACT[id].title} (${id})`).join("; "),
+      MapView.lamp(gLamps, { key: one ? ids[0] : ids[0], x: at.x - lw / 2, y: at.y - lh / 2, w: lw, h: lh, rx: 3, kind: "contract",
+        label: said, title: ids.map((id) => `${CONTRACT[id].title} (${id})`).join("; "),
         level: lv, onpick: () => go(one ? ids[0] : bundle, { reset: true }) });
     }
   }
@@ -403,26 +429,21 @@ const MapGroups = (() => {
   }
   /* A cluster: open, a frame with its apps inside; closed, one lamp with its counts and a small lamp per app. */
   function frame(g, gFrames, gNodes, mode, gNames, obs, list, root) {
-    const levels = g.members.map(levelOf), lv = worst(levels.slice()), lit = levels.filter((l) => l !== "dark").length;
-    const counts = LEVELS.filter((l) => l !== "dark").map((l) => [l, levels.filter((x) => x === l).length]).filter(([, n]) => n);
-    const what = g.outside ? plural(g.members.length, "outside service") : plural(g.members.length, "app");
-    const say = `${what}${lit ? ", " + counts.map(([l, n]) => `${n} ${LIGHT[l].word.toLowerCase()}`).join(", ") : ", all decided"}${g.ghosts.length ? `; ${plural(g.ghosts.length, "app")} drawn elsewhere also ${g.ghosts.length === 1 ? "delivers" : "deliver"} it` : ""}`;
+    const { lv, counts, say } = clusterSays(g);
     if (g.isOpen) {
       const grp = s("g", { class: "cluster open", "data-group": g.key }, gFrames);
       s("rect", { x: g.x, y: g.y, width: g.w, height: g.h, rx: 14, class: "cluster-frame" + (g.outside ? " outside" : ""), "data-cap": g.cap || null }, grp);
       Legend.saw(g.outside ? "cluster.outside" : "cluster.open");
-      // the name takes the room the counts leave it, and is cut there with the full name on hover
+      // the name wraps to a second line before it is cut; the counts stand at the right of its last line when they fit there
       const subText = g.w >= 300 && counts.length ? counts.map(([l, n]) => `${n} ${LIGHT[l].word.toLowerCase()}`).join(" · ") : "";
-      const subW = subText ? measure(subText, 12) + 14 : 0;
-      let name = g.label;
-      while (name.length > 4 && measure(name, 15, 600) > g.w - PAD * 2 - subW) name = name.slice(0, -2).trimEnd() + "…";
-      const t = s("text", { x: g.x + PAD, y: g.y + 30, class: "cluster-name" }, gNames); t.textContent = name.length < g.label.length ? name.replace(/…?$/, "…") : name;
+      const subW = subText ? measure(subText, 12) + 14 : 0, nf = g.nameFit;
+      const t = LabelFit.put(gNames, { x: g.x + PAD, y: g.y + 30, class: "cluster-name" }, g.label, g.w - PAD * 2, NAME_TEXT);
       s("title", {}, t).textContent = g.label;
-      obs.push(drawnBox(t, { x: g.x + PAD, y: g.y + 14, w: measure(t.textContent, 15, 600), h: 22 }));
-      if (subText) {
-        const sub = s("text", { x: g.x + g.w - PAD, y: g.y + 30, "text-anchor": "end", class: "cluster-sub" }, gNames);
+      obs.push(drawnBox(t, { x: g.x + PAD, y: g.y + 14, w: Math.max(...nf.lines.map((l) => LabelFit.width(l, nf.size, 600))), h: 22 + g.headExtra }));
+      if (subText && LabelFit.width(nf.lines[nf.lines.length - 1], nf.size, 600) + subW <= g.w - PAD * 2) {
+        const sub = s("text", { x: g.x + g.w - PAD, y: g.y + 30 + g.headExtra, "text-anchor": "end", class: "cluster-sub" }, gNames);
         sub.textContent = subText;
-        obs.push(drawnBox(sub, { x: g.x + g.w - PAD - subW + 14, y: g.y + 16, w: subW - 14, h: 20 }));
+        obs.push(drawnBox(sub, { x: g.x + g.w - PAD - subW + 14, y: g.y + 16 + g.headExtra, w: subW - 14, h: 20 }));
       }
       if (g.alsoLines.length) alsoRow(g, gNames, obs);
       if (lv !== "dark") s("rect", { x: g.x, y: g.y + 12, width: 3, height: 26, rx: 1.5, fill: LIGHT[lv].color }, grp);
@@ -447,14 +468,10 @@ const MapGroups = (() => {
       s("rect", { x: g.x + 1, y: g.y + 14, width: 5, height: g.h - 28, rx: 2.5, fill: LIGHT[lv].color, class: "band" }, el);
       s("circle", { cx: g.x + 24, cy: g.y + 30, r: 6, fill: LIGHT[lv].color, class: "dot" }, el);
     }
-    // cut to the card by measure, so a title never runs past its card onto a neighbor
-    const tx = g.x + (lv !== "dark" ? 38 : 20);
-    let title = g.label;
-    while (title.length > 4 && measure(title, 17, 600) > g.x + g.w - 16 - tx) title = title.slice(0, -2).trimEnd() + "…";
-    s("text", { x: tx, y: g.y + 36, class: "cluster-title" }, el).textContent = title.length < g.label.length ? title.replace(/…?$/, "…") : title;
-    let line = say;
-    while (line.length > 4 && measure(line, 11.5) > g.w - 36) line = line.slice(0, -2).trimEnd() + "…";
-    s("text", { x: g.x + 20, y: g.y + 60, class: "node-sub" }, el).textContent = line.length < say.length ? line.replace(/…?$/, "…") : line;
+    // wrapped to the card by measure, so a title never runs past its card onto a neighbor, and never ends in "…"
+    const tx = g.x + (lv !== "dark" ? 38 : 20), tf = g.titleFit;
+    LabelFit.put(el, { x: tx, y: g.y + 36, class: "cluster-title" }, g.label, g.w - 16 - (tx - g.x), TITLE_TEXT);
+    LabelFit.put(el, { x: g.x + 20, y: g.y + 60 + Math.ceil((tf.lines.length - 1) * tf.lh), class: "node-sub" }, say, g.w - 36, SAY_TEXT);
     s("title", {}, el).textContent = `${g.label}: ${say}`;
     // opening it in place also puts what it stands for in the panel, so the panel never lags a cluster the reader just picked
     Nodes.wire(el, { label: g.label, aria: `${g.label}: ${say}. Open it in place.`, open: () => { go(groupNote(g, say), { reset: true }); toggle(g); }, guard: () => !MapView.justDropped() });
@@ -479,21 +496,23 @@ const MapGroups = (() => {
   /* A region's apps drawn elsewhere: one row of small chips under its name, part of the region's own size. */
   function alsoRow(g, gNames, obs) {
     const y0 = g.y + HEAD - 6;
-    s("text", { x: g.x + PAD, y: y0 + 14, class: "also-label" }, gNames).textContent = "Also in";
-    g.alsoLines.forEach((line, row) => line.forEach(({ k, x, w }) => {
-      const cx = g.x + PAD + x, cy = y0 + row * (CHIP_H + CHIP_GAP);
+    s("text", { x: g.x + PAD, y: y0 + g.headExtra + 14, class: "also-label" }, gNames).textContent = "Also in";
+    let top = y0 + g.headExtra;
+    g.alsoLines.forEach((line) => { line.forEach(({ k, x, w, h }) => {
+      const cx = g.x + PAD + x, cy = top;
       Legend.saw("cluster.also-chip");
       const chip = s("g", { class: "also-chip", "data-key": k }, gNames);
-      s("rect", { x: cx, y: cy, width: w, height: CHIP_H, rx: CHIP_H / 2 }, chip);
-      Icons.put(chip, Icons.name(k), cx + 12, cy + CHIP_H / 2, 12, "also-glyph");
-      s("text", { x: cx + 22, y: cy + 14 }, chip).textContent = shorten(titleOf(k), 26);
+      s("rect", { x: cx, y: cy, width: w, height: h, rx: Math.min(h, CHIP_H) / 2 }, chip);
+      Icons.put(chip, Icons.name(k), cx + 12, cy + h / 2, 12, "also-glyph");
+      const f = LabelFit.fit(titleOf(k), g.w - PAD * 2 - 34, CHIP_TEXT);
+      LabelFit.put(chip, { x: cx + 22, y: cy + h / 2 - (f.lines.length - 1) * f.lh / 2 + 0.35 * f.size }, titleOf(k), g.w - PAD * 2 - 34, CHIP_TEXT);
       const home = (D.appCaps[k] || { caps: [""] }).caps[0];
       s("title", {}, chip).textContent = `${titleOf(k)} carries this capability too; it is drawn in ${home}`;
-      obs.push({ x: cx, y: cy, w, h: CHIP_H });
+      obs.push({ x: cx, y: cy, w, h });
       const pick = () => { go(k, { reset: true }); const real = $(`#board g.hit[data-key="${CSS.escape(k)}"]`); if (real && !reducedMotion()) real.animate([{ opacity: 0.4 }, { opacity: 1 }], { duration: 500, iterations: 2 }); };
       Nodes.wire(chip, { label: titleOf(k), aria: `${titleOf(k)}, drawn in another region`, role: "link", open: pick });
-    }));
-    obs.push({ x: g.x + PAD, y: y0, w: measure("Also in", 11.5, 500), h: CHIP_H });
+    }); top += line.h + CHIP_GAP; });
+    obs.push({ x: g.x + PAD, y: y0 + g.headExtra, w: measure("Also in", 11.5, 500), h: CHIP_H });
   }
   /* "+2 capabilities" on an app that carries more than its region's: hover it to light the other regions. */
   function alsoTab(gNames, k, b, obs) {
@@ -574,7 +593,9 @@ const MapGroups = (() => {
       if (lv !== "dark") { s("path", { d, class: "duct-lit", stroke: LIGHT[lv].color }, gDucts); Legend.saw("link.lit"); }
       Scene.edge(key, k, { pts, el: duct, contracts: ids });
       const at = Geo.pointAt(pts, Geo.length(pts) * 0.55);
-      ids.forEach((id, i) => MapView.lamp(gLamps, { key: id, x: at.x - 60, y: at.y - 11 + (i - (ids.length - 1) / 2) * 27, w: 120, h: 22, rx: 3, label: CONTRACT[id].title, kind: "contract", title: `${id} ${CONTRACT[id].title}` }));
+      const tall = ids.map((id) => MapView.contractSize(CONTRACT[id].title, 120).h);
+      let stack = at.y - (tall.reduce((n, x) => n + x, 0) + (ids.length - 1) * 5) / 2;
+      ids.forEach((id, i) => { const y = stack; stack += tall[i] + 5; MapView.lamp(gLamps, { key: id, x: at.x - 60, y, w: 120, h: tall[i], rx: 3, label: CONTRACT[id].title, kind: "contract", title: `${id} ${CONTRACT[id].title}` }); });
     }
     const hidden = D.nodes.length - Object.keys(boxes).length;
     // the view's intro already says what this board is; the note only speaks when something is left off it

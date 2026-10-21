@@ -341,10 +341,16 @@ const Plan = (() => {
     const K = kit(), holder = h("div", { class: "plan-dag", id: "plan-dag" }), frame = h("div", { class: "inside-frame plan-dag-frame" }, holder);
     const wrap = h("div", { class: "plan-dag-wrap" }, frame), lg = Legend.open("plan-waits", { root: () => wrap, probes: WAITS_LOOKS() });
     wrap.append(lg.el());  // under the frame, not in it: the drawing's minimap sits over the frame's corner
-    const nodes = p.stories.map((story) => ({ id: "s:" + story.id, kind: "story", w: 204, h: 66, story })), edges = [], stubs = {};
+    // Words wrap inside a box and the box grows by the lines it needs (Inside.kit.textRows); nothing is cut.
+    const storyWords = (story, w) => K.textRows([{ cls: "in-box-name small", text: cleanName(story.name) || story.id, x: 14, room: w - 28, size: 12.5, weight: 600, base: 24 },
+      { cls: "in-box-sub", text: `${story.id} · ${story.tasks.length ? plural(story.tasks.length, "task") : "no tasks"}`, x: 14, room: w - 28, size: 11.5, after: 22 }], 66);
+    const outerWords = (x, level, vault, w) => K.textRows([{ cls: "in-box-name small", text: x.kind === "question" ? (vault ? titleOf(vault) : "Open question") : BLOCKER_WORD[x.kind], x: level && level !== "dark" ? 30 : 14, room: w - (level && level !== "dark" ? 44 : 28), size: 12.5, weight: 600, base: 22 },
+      { cls: "in-box-sub", text: x.kind === "question" && vault ? "Open question" : plainText(x.text), x: 14, room: w - 24, size: 11.5, after: 19 }], 54);
+    const questionLevel = (x) => (x.kind === "question" && isOpen(UNKNOWN[x.ref]) ? levelForKey(keyForId(x.ref)) : ""), vaultOf = (x) => (x.kind === "question" && ent(keyForId(x.ref)) ? keyForId(x.ref) : "");
+    const nodes = p.stories.map((story) => ({ id: "s:" + story.id, kind: "story", w: 204, h: storyWords(story, 204).h, story })), edges = [], stubs = {};
     const stubFor = (b) => {
       const id = `x:${b.kind}:${b.ref || b.text}`;
-      if (!stubs[id]) { stubs[id] = true; nodes.push({ id, kind: "outer", side: "in", w: 204, h: 54, b }); }
+      if (!stubs[id]) { stubs[id] = true; nodes.push({ id, kind: "outer", side: "in", w: 204, h: outerWords(b, questionLevel(b), vaultOf(b), 204).h, b }); }
       return id;
     };
     for (const story of p.stories) for (const b of story.blockers) {
@@ -364,12 +370,11 @@ const Plan = (() => {
           open: () => openStory(app, story.id),
           draw: (grp) => {
             s("rect", { x: b.x, y: b.y, width: b.w, height: b.h, rx: 10, class: "in-box-face" + (lit ? " lit " + lit : "") }, grp);
-            s("text", { x: b.x + 14, y: b.y + 24, class: "in-box-name small" }, grp).textContent = K.fit(cleanName(story.name) || story.id, b.w - 28, 12.5, 600);
-            s("text", { x: b.x + 14, y: b.y + 46, class: "in-box-sub" }, grp).textContent = `${story.id} · ${story.tasks.length ? plural(story.tasks.length, "task") : "no tasks"}`;
+            K.putRows(grp, b, storyWords(story, b.w).rows);
           } });
       },
       outer: (g, b) => {
-        const x = b.node.b, level = x.kind === "question" && isOpen(UNKNOWN[x.ref]) ? levelForKey(keyForId(x.ref)) : "", vault = x.kind === "question" && ent(keyForId(x.ref)) ? keyForId(x.ref) : "";
+        const x = b.node.b, level = questionLevel(x), vault = vaultOf(x);
         const word = x.kind === "question" ? (vault ? titleOf(vault) : "Open question") : BLOCKER_WORD[x.kind];
         Legend.saw(x.kind === "outside" ? "pw.outside" : "pw.stub"); if (level && level !== "dark") Legend.saw("lamp." + level);
         planNode(g, b, { cls: "in-stub plan-outer " + x.kind, attrs: { "data-blocker": x.kind }, label: `${BLOCKER_WORD[x.kind]}: ${plainText(x.text)}`, title: x.text,
@@ -377,16 +382,25 @@ const Plan = (() => {
           draw: (grp) => {
             s("path", { d: `M${b.x + 8},${b.y}H${b.x + b.w - 8}L${b.x + b.w},${b.y + 8}V${b.y + b.h - 8}L${b.x + b.w - 8},${b.y + b.h}H${b.x + 8}L${b.x},${b.y + b.h - 8}V${b.y + 8}Z`, class: "in-stub-face" }, grp);
             if (level && level !== "dark") s("circle", { cx: b.x + 17, cy: b.y + 18, r: 5.5, class: "plan-dot " + level }, grp);
-            s("text", { x: b.x + (level && level !== "dark" ? 30 : 14), y: b.y + 22, class: "in-box-name small" }, grp).textContent = K.fit(x.kind === "question" ? (vault ? titleOf(vault) : "Open question") : word, b.w - 44, 12.5, 600);
-            s("text", { x: b.x + 14, y: b.y + 41, class: "in-box-sub" }, grp).textContent = K.fit(x.kind === "question" && vault ? "Open question" : plainText(x.text), b.w - 24, 11);
+            K.putRows(grp, b, outerWords(x, level, vault, b.w).rows);
           } });
       },
     }));
     lg.paint();
     const b = K.boundsOf(Object.values(lay.box));
     const pad = 24, w = b.x1 - b.x0 + pad * 2, ht = b.y1 - b.y0 + pad * 2;
-    svg.setAttribute("viewBox", `${(b.x0 - pad).toFixed(1)} ${(b.y0 - pad).toFixed(1)} ${w.toFixed(1)} ${ht.toFixed(1)}`);
-    svg.style.width = "100%"; svg.style.maxWidth = Math.round(w * 1.15) + "px"; svg.style.height = "auto";  // the width the room gives sets the height
+    // The drawing is as wide as its box, so zooming in shows content wherever the box has room. A box wider than the drawing needs
+    // gets a wider viewBox around the middle (not a bigger drawing), so the scale never passes 1.15 and the height follows the width.
+    const content = [b.x0 - pad, b.y0 - pad, w, ht];
+    svg.setAttribute("viewBox", content.map((n) => n.toFixed(1)).join(" "));
+    svg.style.width = "100%"; svg.style.height = "auto";
+    const widen = () => {
+      const room = svg.clientWidth || holder.clientWidth, vw = Math.max(w, room / 1.15);
+      Pan.rebase(svg, `${(content[0] + w / 2 - vw / 2).toFixed(1)} ${content[1].toFixed(1)} ${vw.toFixed(1)} ${ht.toFixed(1)}`);
+    };
+    let wide = -1;
+    if (typeof ResizeObserver === "function") new ResizeObserver(() => { if (holder.clientWidth !== wide) { wide = holder.clientWidth; requestAnimationFrame(widen); } }).observe(holder);  // only a new width matters; a taller drawing must not wake it again
+    widen();
     Pan.attach(holder, { key: "plan-dag", svg: () => svg, scrollOnly: true, frame });  // the path grows taller, not wider: a pan scrolls the page; zoomed in, it moves the view
     return wrap;
   }

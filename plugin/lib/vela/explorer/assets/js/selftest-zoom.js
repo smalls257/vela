@@ -17,7 +17,8 @@
   function backdrop(svg, holder) {
     holder.scrollIntoView({ block: "nearest" });
     const a = svg.getBoundingClientRect(), b = holder.getBoundingClientRect();
-    const left = Math.max(a.left, b.left, 0), right = Math.min(a.right, b.right, innerWidth), top = Math.max(a.top, b.top, 0), bottom = Math.min(a.bottom, b.bottom, innerHeight);
+    // inset on the left and top: the drag below ends 40 and 30 pixels up and left of where it starts, and must end inside the drawing
+    const left = Math.max(a.left, b.left + 50, 0), right = Math.min(a.right, b.right, innerWidth), top = Math.max(a.top, b.top + 40, 0), bottom = Math.min(a.bottom, b.bottom, innerHeight);
     for (let fy = 0.02; fy < 1; fy += 0.04) for (let fx = 0.02; fx < 1; fx += 0.04) {
       const x = left + (right - left) * fx, y = top + (bottom - top) * fy, el = document.elementFromPoint(x, y);
       if (el && svg.contains(el) && !el.closest("g[tabindex], g.hit, g[role], a, button, [data-movable]")) return { x, y };
@@ -25,9 +26,54 @@
     return null;
   }
 
+  /* The words a <text> draws itself (its tspans, not the <title> hover text inside it). */
+  const drawnWords = (el) => [...el.childNodes].filter((n) => n.nodeType === 3 || n.localName === "tspan").map((n) => n.textContent).join("");
+  /* No label on a drawing is cut short with an ellipsis: a long name wraps, shrinks to a floor, or grows its box. */
+  function noCutLabels(ok, name, svg) {
+    const cut = $$("text", svg).map(drawnWords).filter((w) => /…\s*$/.test(w));
+    ok(!cut.length, `zoom, ${name}: no drawn label ends in an ellipsis`, `zoom, ${name}: cut labels: ${cut.slice(0, 4).join(" | ")}`);
+  }
+  const NODES = ".hit, g.station, .rl-node, .plan-node, .in-node";
+  const centerOf = (r) => ({ x: r.left + r.width / 2, y: r.top + r.height / 2 });
+  /* The drawing's viewport is its whole container, and zoom and pan move the content inside it: zoomed in and panned to each edge, the
+     node that stood nearest that edge is drawn inside the container and is what a pointer finds there (nothing is cut at the
+     drawing's original bounds). */
+  async function reachesEveryEdge(ok, name, holder, frame) {
+    const p = holder.__pan, svg = p.svg();
+    if (p.own || !(p.fitted || holder.id === "plan-dag") || !svg) return;
+    frame.scrollIntoView({ block: "center" });
+    const inner = () => { const r = frame.getBoundingClientRect(), cs = getComputedStyle(frame), px = (v) => parseFloat(v) || 0;
+      return { left: r.left + px(cs.borderLeftWidth) + px(cs.paddingLeft), right: r.right - px(cs.borderRightWidth) - px(cs.paddingRight), top: r.top + px(cs.borderTopWidth) + px(cs.paddingTop), bottom: r.bottom - px(cs.borderBottomWidth) - px(cs.paddingBottom) }; };
+    const c = inner(), sv = svg.getBoundingClientRect();
+    ok(sv.left <= c.left + 3 && sv.right >= c.right - 3 && (holder.id === "plan-dag" || (sv.top <= c.top + 3 && sv.bottom >= c.bottom - 3)),
+      `zoom, ${name}: the drawing is as big as its container, so nothing is cut at the drawing's own bounds`,
+      `zoom, ${name}: drawing ${Math.round(sv.left)},${Math.round(sv.top)} to ${Math.round(sv.right)},${Math.round(sv.bottom)} inside a container ${Math.round(c.left)},${Math.round(c.top)} to ${Math.round(c.right)},${Math.round(c.bottom)}`);
+    const face = (g) => g.querySelector("rect, path, circle") || g;  // a station's group also holds its name, which stands to one side
+    const nodes = $$(NODES, svg).filter((g) => g.getBoundingClientRect().width > 0);
+    if (nodes.length < 2) return;
+    const pick = { left: (r) => r.left, right: (r) => -r.right, top: (r) => r.top, bottom: (r) => -r.bottom };
+    for (const edge of Object.keys(pick)) {
+      p.engine.fit(); await tick();
+      const node = nodes.slice().sort((a, b) => pick[edge](face(a).getBoundingClientRect()) - pick[edge](face(b).getBoundingClientRect()))[0];
+      p.engine.zoomBy(2, null);
+      const box = inner(), at = centerOf(face(node).getBoundingClientRect());
+      const seen = { left: Math.max(box.left, 0), right: Math.min(box.right, innerWidth), top: Math.max(box.top, 0), bottom: Math.min(box.bottom, innerHeight) };  // the part of the container the window shows
+      const want = { x: edge === "left" ? seen.left + 70 : edge === "right" ? seen.right - 70 : clamp(at.x, seen.left + 70, seen.right - 70),
+        y: edge === "top" ? seen.top + 50 : edge === "bottom" ? seen.bottom - 90 : clamp(at.y, seen.top + 50, seen.bottom - 90) };
+      p.engine.panBy(at.x - want.x, at.y - want.y);
+      const now = centerOf(face(node).getBoundingClientRect()), found = document.elementFromPoint(now.x, now.y);
+      // something laid over the drawing (the top bar, the details panel in a narrow window) can cover the spot; that says nothing about the drawing
+      const covered = !!found && !frame.contains(found);
+      ok(now.x >= box.left && now.x <= box.right && now.y >= box.top && now.y <= box.bottom + 1 && (covered || (!!found && svg.contains(found))),  // a moving train or a lamp may stand over the node; the drawing is what must be there, not the board behind it
+        `zoom, ${name}: zoomed in and panned to the ${edge} edge, the node nearest it is drawn there, inside the container`,
+        `zoom, ${name}: ${edge}: the node's middle is at ${Math.round(now.x)},${Math.round(now.y)} in a container ${Math.round(box.left)},${Math.round(box.top)} to ${Math.round(box.right)},${Math.round(box.bottom)}; the drawing is not there: a pointer finds ${found ? found.tagName + "." + (found.getAttribute("class") || "") : "nothing"}`);
+    }
+    p.engine.fit(); await tick();
+  }
+
   /* One drawing: the bar is there, in view and not over the page; each way of zooming changes the view; each way of getting back works. */
   async function oneDrawing(ok, name, holder) {
-    if (!holder || !holder.__pan) { ok(false, `zoom, ${name}: the drawing has no zoom and pan (pan.js was never attached)`); return; }
+    if (!holder || !holder.__pan) { ok(false, `zoom, ${name}: the drawing has no zoom and pan (pan.js was never attached); the board holds "${($("#board") ? $("#board").className + ": " + $("#board").textContent : "nothing, the view is " + App.view + " in " + App.section + ": " + $("#main").textContent).slice(0, 160)}"`); return; }
     const p = holder.__pan, svg = p.svg(), bar = barOf(holder);
     ok(!!bar && bar.querySelectorAll("button").length >= 3 && !!button(bar, "Zoom out") && !!button(bar, "Fit") && !!button(bar, "Zoom in"),
       `zoom, ${name}: the drawing has the zoom bar (-, Fit, +)`, `zoom, ${name}: no zoom bar, or it lacks a button (${bar ? [...$$("button", bar)].map((b) => b.textContent).join(" ") : "none"})`);
@@ -35,6 +81,8 @@
     const frame = bar.closest(".zoom-frame").getBoundingClientRect(), at = bar.getBoundingClientRect();
     ok(at.width > 0 && at.right <= frame.right + 1 && at.bottom <= frame.bottom + 1 && at.left >= frame.left - 1 && at.top >= frame.top - 1, `zoom, ${name}: the bar sits inside the drawing's frame`,
       `zoom, ${name}: the bar is at ${Math.round(at.left)},${Math.round(at.top)} ${Math.round(at.width)}x${Math.round(at.height)}, outside its frame ${Math.round(frame.left)},${Math.round(frame.top)} ${Math.round(frame.width)}x${Math.round(frame.height)}`);
+    noCutLabels(ok, name, svg);
+    await reachesEveryEdge(ok, name, holder, bar.closest(".zoom-frame"));
     const m0 = magnification(holder);
     button(bar, "Zoom in").click(); const afterIn = magnification(holder);
     button(bar, "Zoom out").click(); button(bar, "Zoom out").click(); const afterOut = magnification(holder);

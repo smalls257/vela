@@ -310,22 +310,13 @@ def provider_key(vault, keys, contract, parties_by_name):
 
 
 PROSE_BREAK = re.compile(r"\s*(?:[,;:\u2014]|\s-\s|\()")
-NAME_CAP = 32
-
-
-def external_title(said):
-    """The name to draw for a provider a contract names in running text: the words before the first comma, colon or
-    bracket, cut at a word under NAME_CAP characters. "the pilot user, on their own laptop" is drawn "the pilot user".
-    A short plain name ("Stripe") is returned unchanged. The full text stays on the node as `said`."""
-    head = external_name(said)
-    if len(head) <= NAME_CAP:
-        return head
-    return head[:NAME_CAP].rsplit(" ", 1)[0].rstrip(" ,;:") + "\u2026"
 
 
 def external_name(said):
-    """The words before the first comma, colon or bracket, whole. The map's boxes are small and take external_title; a flow's column header
-    wraps, so it takes this and never shows the cut."""
+    """The name to draw for a provider a contract names in running text: the words before the first comma, colon or bracket, whole.
+    "the pilot user, on their own laptop" is drawn "the pilot user". A short plain name ("Stripe") is returned unchanged. The map's
+    boxes and a flow's column header both wrap it; neither cuts it, so no name on the page ends in an ellipsis. The full text stays
+    on the node as `said`."""
     return PROSE_BREAK.split(said, 1)[0].strip() or said
 
 
@@ -348,7 +339,7 @@ def system_map(vault, keys):
     with_contract = {c["provider"] for c in contracts}
     parties = [{"key": p.id, "title": p.name, "hasContract": p.id in with_contract} for p in vault.parties]
     return {"apps": apps, "contracts": contracts, "parties": parties,
-            "externals": [{"key": k, "title": external_title(v), "said": v,
+            "externals": [{"key": k, "title": external_name(v), "said": v,
                            "contracts": [c["id"] for c in contracts if c["provider"] == k]} for k, v in sorted(externals.items())]}
 
 

@@ -632,7 +632,8 @@ const SelfTest = (() => {
     press(box, br.x + br.width / 2, br.y + br.height / 2); glide(br.x + br.width / 2 + 3, br.y + br.height / 2 + 3); glide(br.x + br.width / 2 + 40, br.y + br.height / 2 + 30); lift(br.x + br.width / 2 + 40, br.y + br.height / 2 + 30);
     await flush();
     const cell1 = Layout.cell(key);
-    ok(Pan.pans === p0 && JSON.stringify(cell1) !== JSON.stringify(cell0) && Math.abs(vb()[0] - before[0]) < 0.5,
+    const view = Pan.view("cockpit");  // moving a box re-fits the drawing to its new bounds; it must not leave a pan behind
+    ok(Pan.pans === p0 && JSON.stringify(cell1) !== JSON.stringify(cell0) && view.dx === 0 && view.dy === 0 && view.z === 1,
       "drag to pan: a click on the background, a touch drag and a drag on a box do not pan; the box moves instead",
       `drag to pan: ${Pan.pans - p0} pans; box ${titleOf(key)} at ${cell0} then ${cell1}`);
     Layout.restore(layoutWas); rerender(); await frames();
@@ -1867,6 +1868,7 @@ const TextFit = (() => {
     // a label that wraps across lines has one rectangle per line: its bounding box is the union, wider than any line
     const cs = getComputedStyle(el), lines = [...el.getClientRects()].filter((q) => q.width > 0), r = { left: Math.min(...lines.map((q) => q.left)), right: Math.max(...lines.map((q) => q.right)) };
     if (!lines.length || (!words(el) && !el.querySelector("svg, img"))) return "";
+    if (el.matches("table.dsm.angled th.col")) return "";  // a name leans across the head at 45 degrees, whole; the head is sized to it
     const ellipsis = (cs.textOverflow === "ellipsis" && clips(cs)) || !!ellipsized(el);
     if (el.clientWidth > 0 && !ellipsis && !scrolls(cs) && el.scrollWidth > el.clientWidth + 1) return `its text runs ${el.scrollWidth - el.clientWidth}px past its own edge`;
     if (cs.position === "absolute") return "";

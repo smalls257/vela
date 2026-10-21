@@ -237,7 +237,7 @@ body:has(#main.inside-full[data-view="inside"]) #panel-grip, body:has(#main.insi
 @media (max-width: 1000px) { .comp-sec { padding: 4px 11px 10px; } }
 
 /* a diagram drawn by Mermaid (diagrams.js): fitted to its card, zoomed and panned like every other drawing */
-.mm-frame { position: relative; display: grid; place-items: center; overflow: hidden; max-height: 70vh; min-height: 120px; background: var(--board); border: 1px solid var(--rule); border-radius: 8px; padding: 8px; }
-.mm-frame .mm-svg { display: block; width: 100%; height: auto; max-height: calc(70vh - 16px); }
+.mm-frame { position: relative; display: grid; place-items: center; overflow: hidden; max-height: 70vh; min-height: 120px; background: var(--board); border: 1px solid var(--rule); border-radius: 8px; padding: 0; }
+.mm-frame .mm-svg { display: block; width: 100%; height: auto; min-height: 118px; max-height: calc(70vh - 2px); }  /* the drawing is the whole frame, so zoomed in it reaches every edge */
 .mm-error .in-src { margin-top: 6px; }
 .mm-stage { position: fixed; left: -10000px; top: 0; width: 1200px; visibility: hidden; pointer-events: none; }

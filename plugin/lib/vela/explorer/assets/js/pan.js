@@ -8,7 +8,9 @@
      left alone: a box still moves by its own drag (layout.js), and a click still selects.
    - A press on the background pans only once the pointer has moved a few pixels, so a click there stays a click.
      After a pan the click the browser sends on release is swallowed, so letting go never opens anything.
-   - A drawing fitted to its board has nothing to scroll, so zoom and pan change its viewBox, and keep that view (by
+   - A drawing fitted to its board is as big as the board (MapView.fitSvg sizes the svg to its container and grows the viewBox
+     around the content to match), so zoom and pan show content anywhere the board has room; nothing is cut at the
+     drawing's own bounds. It has nothing to scroll, so zoom and pan change its viewBox, and keep that view (by
      `key`) when the view is drawn again. A double click on the background, or Fit, or 0, puts it back. The wheel
      zooms it; on a drawing that scrolls (a scrollOnly one, or one with its own engine) Ctrl or Cmd with the wheel
      zooms, so the plain wheel still scrolls the page. A pinch of two fingers zooms a fitted drawing on a touch screen.
@@ -52,6 +54,12 @@ const Pan = (() => {
     svg.setAttribute("viewBox", `${b[0] + v.dx} ${b[1] + v.dy} ${b[2] / v.z} ${b[3] / v.z}`);
     svg.classList.toggle("pan-zoomed", v.z !== 1);  // zoomed in, a drawing must not paint outside its own box
     return true;
+  }
+  /* The drawing's box changed shape (its container resized): its unzoomed viewBox is now `box`, and the view the reader had is kept on top of it. */
+  function rebase(svg, box) {
+    svg.dataset.panBase = box;
+    const holder = svg.closest(".pannable"), v = holder && holder.__pan && views[holder.__pan.key];
+    if (v) showView(svg, holder.__pan.key, v); else svg.setAttribute("viewBox", box);
   }
   const viewOf = (key) => Object.assign({ dx: 0, dy: 0, z: 1 }, views[key]);
   /* The point of the drawing under a screen point, or the middle of what is in view. */
@@ -210,6 +218,6 @@ const Pan = (() => {
   }
   /* Forget the saved view of drawings whose content has just changed, so they open fitted to what they now show. */
   const forget = (...keys) => { for (const k of keys) delete views[k]; };
-  return { attach, reset, forget, view: (key) => viewOf(key), engineOf: (holder) => holder.__pan && holder.__pan.engine,
+  return { attach, reset, forget, rebase, view: (key) => viewOf(key), engineOf: (holder) => holder.__pan && holder.__pan.engine,
     get pans() { return pans; }, get zooms() { return zooms; }, MOVE, STEP };
 })();

@@ -188,8 +188,8 @@ const Panel = (() => {
     const row = (title, chips, none) => section(title, null, chips.length ? h("div", { class: "p-chips" }, chips) : empty(none));
     return h("div", { class: "p-links" }, row("In these flows", flowChips, "No flow uses this app yet."), row("Talks to", talks, "This app doesn't talk to any other app or service yet."));
   }
-  function flowsSection(key) {
-    const rows = flowsFor(key);
+  function flowsSection(key, tied) {
+    const rows = tied || flowsFor(key);
     return section("Flows that cross this", rows.length, rows.length ? rows.map((r) => {
       const f = ent(r.flow), fl = FLOW[r.flow], at = firstStepTouching(fl, key);
       return h("div", { class: "flow-chip" },
@@ -303,7 +303,7 @@ const Panel = (() => {
       out.push(flowsSection(k), heldBy(k));
     } else if (e.kind === "capability") {
       const epics = D.trace.epics.filter((x) => x.delivers.includes(e.id));
-      out.push(prose(e), flowsSection(k));
+      out.push(prose(e), flowsSection(k, CapFocus.flowRows(k)));  // the flows the map's capability focus draws, not a second count
       out.push(section("Delivered by", epics.length, epics.length ? epics.map((x) => refChip(x.key)) : h("div", { class: "gap" }, "No epic delivers it.")));
       const reqs = D.trace.requirements.filter((r) => r.capability === e.id);
       out.push(section("Functional requirements", reqs.length, reqs.length ? reqs.map((r) => refChip(r.id)) : empty("None written yet.")));

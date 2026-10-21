@@ -28,6 +28,12 @@
         const vb = $("#board svg.cockpit").getAttribute("viewBox");
         ok(Pan.view("cockpit").z === 1 && !!vb, `capability focus, ${title}: the drawing is fitted to what is left (zoom back at 1)`, `capability focus, ${title}: zoom ${Pan.view("cockpit").z}`);
       }
+      // the bar's "N flows", the map's flows and the panel's "Flows that cross this" are one list
+      const sec = $$("#panel .p-sec").find((x) => $("h3", x) && /^Flows that cross this/.test($("h3", x).textContent.trim())), listed = sec ? $$(".flow-chip [data-ref]", sec).map((a) => a.dataset.ref) : [];
+      const said = (bar && /(\d+) flows?/.exec(bar.textContent) || [])[1], counted = sec && /(\d+)\s*$/.exec($("h3", sec).textContent.trim());
+      ok(!!sec && same(listed, [...s.flows]) && +said === s.flows.size && (!counted || +counted[1] === s.flows.size),
+        `capability focus, ${title}: the bar, the map and the panel's "Flows that cross this" all count the same ${s.flows.size} flows`,
+        `capability focus, ${title}: bar says ${said}, panel lists ${listed.join(",") || "none"}${counted ? " (heading " + counted[1] + ")" : ""}, focus uses ${[...s.flows].join(",") || "none"}`);
       const apps = $$('#side .side-kid[data-section="apps"]');
       const row = $('#side .side-link[data-section="apps"] .capfocus-count');
       ok(!!row && row.textContent === `${s.apps.size} of ${D.sections.find((x) => x.id === "apps").children.length}` && (!apps.length || apps.length === s.apps.size),
