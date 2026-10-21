@@ -188,6 +188,7 @@ const Queue = (() => {
           el.classList.toggle("open", open);  // a narrow window only shows or hides the list; the map keeps its place
           ev.currentTarget.setAttribute("aria-expanded", String(open)); ev.currentTarget.textContent = open ? "Hide" : "Show";
         } }, fold ? "Show" : "Hide")),
+      typeof Grills !== "undefined" ? Grills.homeLine() : null,  // outside the body: the card folds the list away, and the grills are for the reader first
       h("div", { class: "q-body" }, list.length ? h("p", { class: "q-hint" }, "Most urgent first. Pick one to read it, with who to ask, in the panel.") : null, block()));
     return el;
   }

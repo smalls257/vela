@@ -44,7 +44,7 @@ LEAD_PATTERNS = {
                             r"|\bgit (?:push|pull|fetch|merge|switch|checkout|config|add|commit|rebase|stash|status)\b"),
     # `vela <subcommand>`: "vela needs 3.9" is prose, "vela check" is a command (test_say holds the list to the parser).
     "command": re.compile(r"\bvela (?:add|apply|boundary|capture|check(?:-diagrams|-slice)?|close|conventions|decide"
-                          r"|doctor|epics|explore|export|findings|freshness|guard|handoff|health|hook|import|ladder|library|map|marks"
+                          r"|doctor|epics|explore|export|findings|freshness|grill|guard|handoff|health|hook|import|ladder|library|map|marks"
                           r"|new|next(?:-id)?|onboard|open|proposals|propose|prose|publish|query|questions|record|releases|render"
                           r"|reviewers|role|session|status|style|team|terms|tickets|upgrade|view|voice(?:check|score)?"
                           r"|where|whoami)\b"),

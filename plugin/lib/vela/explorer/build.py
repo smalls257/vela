@@ -28,13 +28,13 @@ import pathlib
 import re
 import uuid
 
-from vela import (allocation, attention, cli, completeness, handoff, ladder, links, model, override, pending, plainwords,
+from vela import (allocation, attention, cli, completeness, gates, grills, handoff, ladder, links, model, override, pending, plainwords,
                      progress, reading, roles, say, schema, slices, terms, trace)
 from vela import search as vela_search
 from vela.edge import atomic
 from vela.parse import FENCE, closes_fence
 
-from . import (asks_data, assets_inline, branches_data, breakdown_find, design_data, design_find, draft_data, flows_data, icons_data, inside_data, library_data, onboard_data,
+from . import (asks_data, assets_inline, branches_data, breakdown_find, design_data, design_find, draft_data, flows_data, grills_data, icons_data, inside_data, library_data, onboard_data,
                pages_data, panel_data, plan_data, roles_data, serve, slices_data)
 from . import pins as pinning
 from .record import (HANDLE, LABELED_LINE, PROSE_LIMIT, Keys, inline_html,
@@ -52,11 +52,11 @@ class ExplorerError(Exception):
 
 # The page's script and style, in load order: shared code first, one module per view, the boot last.
 JS_MODULES = ("core", "theme", "fx", "menus", "assets", "icons", "layout", "pan", "geometry", "search", "minimap", "reader", "queue", "panel", "panelsize", "detailspanel", "motion", "view-map",
-              "wires", "mapgroups", "releases", "slices", "flowkit", "flowpicker", "branches", "view-flows", "rehearse", "view-asks", "view-decisions", "view-library", "view-progress",
+              "wires", "mapgroups", "releases", "slices", "flowkit", "flowpicker", "branches", "view-flows", "rehearse", "view-asks", "view-decisions", "view-library", "view-grills", "view-progress",
               "view-trace", "sections", "roles", "onboard", "nav", "markdown", "ask", "inside", "plan", "drafts", "freshness", "main")
-SELFTEST_MODULES = ("selftest", "selftest-branches", "selftest-qol", "selftest-inside", "selftest-onboard", "selftest-details", "selftest-library")  # 120 KB of checks: bundled only when asked (`vela explore --selftest`), not shipped to every reader
+SELFTEST_MODULES = ("selftest", "selftest-branches", "selftest-qol", "selftest-inside", "selftest-onboard", "selftest-details", "selftest-library", "selftest-grills")  # 120 KB of checks: bundled only when asked (`vela explore --selftest`), not shipped to every reader
 CSS_MODULES = ("base", "menus", "nav", "panel", "compact", "map", "queue", "flows", "rehearse", "asks", "decisions", "pages", "reader", "roles", "onboard",
-               "releases", "slices", "branches", "ask", "inside", "plan", "pending", "drafts", "library", "themes", "plain")
+               "releases", "slices", "branches", "ask", "inside", "plan", "pending", "drafts", "library", "grills", "themes", "plain")
 
 # The themes the page offers, first the default. Each is a palette in assets/css/themes.css (Console is base.css's
 # :root); the picker in the top bar lists them in this order and remembers the choice in the browser.
@@ -644,6 +644,7 @@ def extract(vault, root, today, pins_path=None, designs=None, seed=None, plans=N
     data["outgoing"] = pages_data.outgoing(vault, keys)
     data.update(roles_data.extract(vault, keys))
     recorded, _ = cli.recorded_standings(pathlib.Path(root), vault, [s.key for s in slices.read_slices(vault)], today)
+    data["grills"] = grill_rows(vault, root, keys, today, [r["id"] for r in data["library"]["rows"]])
     data["slicePlan"] = slices_data.extract(vault, keys, today, cli.spec_texts(pathlib.Path(root)), recorded)
     data["branches"] = branches_data.extract(vault, keys, today, cli.spec_texts(pathlib.Path(root)))
     data["containers"] = inside_data.containers(vault, keys)
@@ -655,6 +656,15 @@ def extract(vault, root, today, pins_path=None, designs=None, seed=None, plans=N
     data["theme"] = THEME_IDS[0]
     data["onboard"] = onboard_data.extract(data, root, onboard_mine, onboard_me)
     return data
+
+
+def grill_rows(vault, root, keys, today, library_ids):
+    """D.grills. The flow checker's record is read here, once, for the flows and slices the judged items name."""
+    ids = grills.judged_ids(vault)
+    needed = sorted({key for ident in ids for key in gates.flow_keys(vault, ident)})
+    standings, _ = cli.recorded_standings(pathlib.Path(root), vault, needed, today) if needed else ({}, "")
+    verdicts = {ident: gates.verdict(vault, None, ident, today, flows=standings) for ident in ids}
+    return grills_data.extract(vault, keys, verdicts, today, library_ids)
 
 
 def pending_list(vault, keys):

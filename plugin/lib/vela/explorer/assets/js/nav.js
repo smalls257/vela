@@ -142,7 +142,7 @@ const Nav = (() => {
   }
   /* A view shown from anywhere (a search result, a link) brings its section with it. */
   function adopt(view) {
-    if (view === "inside" || view === "ask" || view === "drafts") return;  // Inside.open and Ask.open set the section themselves
+    if (view === "inside" || view === "ask" || view === "drafts" || view === "grills") return;  // Inside.open and Ask.open set the section themselves
     if (App.section === "home" && view === "map") return;
     if (App.section.startsWith("role:") && view === "role") return;
     if (App.section.startsWith("onboard:") && view === "onboard") return;
@@ -163,6 +163,7 @@ const Nav = (() => {
   }
   const whereLabel = (w) => {
     if (!w || w.section === "home") return "What's waiting";
+    if (w.section === "grills") return "Grills waiting";
     if (w.section.startsWith("role:")) return (Roles.ROLES.find(([id]) => id === w.section.slice(5)) || [0, "the front door"])[1];
     if (w.section.startsWith("onboard:")) return "Get up to speed";
     const s = SECTIONS[w.section];
@@ -171,6 +172,7 @@ const Nav = (() => {
   function back(w) {
     if (!w || w.section === "ask" || w.section === "drafts") return home();
     if (w.section === "home") home();
+    else if (w.section === "grills") Grills.open();
     else if (w.section.startsWith("role:")) role(w.section.slice(5));
     else if (w.section.startsWith("onboard:")) onboard(w.section.slice(8), w.module, false);
     else if (w.view === "doc") { open(w.section, w.child); readWide(w.doc || sectionPage()); }
@@ -240,6 +242,7 @@ const Nav = (() => {
     if (App.view === "releases" || (App.view === "map" && MapView.lens() === "releases")) p.push("state=" + Releases.st.at);
     for (const keep of ["still", "fx", "selftest", "trace"]) if (HASH.has(keep)) p.push(keep + (HASH.get(keep) ? "=" + HASH.get(keep) : ""));
     if (App.view === "slices" && typeof Slices !== "undefined") p.push(...Slices.hashParts());
+    if (App.view === "grills") p.push(...Grills.hashParts());
     if (App.view === "flows" && typeof Branches !== "undefined" && Flows.st.key) { const b = Branches.hashPart(Flows.st.key); if (b) p.push(b.slice(1)); }
     setHash("#" + p.join("&"), !!(opts && opts.replace));
   }
@@ -252,6 +255,7 @@ const Nav = (() => {
     if (HASH.has("role")) { role(HASH.get("role")); return true; }
     if (HASH.has("inside") && typeof Inside !== "undefined" && Inside.boot()) return true;
     if (HASH.has("drafts")) return Drafts.boot();
+    if (hs === "grills" && Grills.exists()) return Grills.boot();
     if (hs && SECTIONS[hs]) {
       open(hs, HASH.get("open") || "");
       if (HASH.has("v") && viewDef(HASH.get("v"))) showView(HASH.get("v"), { keepHash: true });
@@ -340,6 +344,7 @@ const Nav = (() => {
     else if (App.section.startsWith("onboard:")) onboard(r);
     else { rerender(); Panel.render(); }
     refresh();
+    renderMasters();  // the grills badge counts the grills for the role now viewing
   }
   function viewingAs() {
     const now = viewingNow(), label = roleName(now.id), rec = Onboard.recorded();
@@ -361,6 +366,8 @@ const Nav = (() => {
       // the top bar carries the needs-you number; the side door shows only the overdue part, and only when there is one
       h("button", { class: "side-home" + (App.section === "home" ? " on" : ""), "aria-current": App.section === "home" ? "page" : null, title: Queue.needsYouSays(), onclick: home },
         h("span", { class: "side-label" }, "What's waiting"), late ? h("span", { class: "side-n lit warning", title: `${late} overdue`, "data-quantity": "overdue", "data-n": late }, late) : null),
+      Grills.exists() ? h("button", { class: "side-grills-door" + (App.section === "grills" ? " on" : ""), "aria-current": App.section === "grills" ? "page" : null, title: Grills.badgeTip(), onclick: () => Grills.open() },
+        h("span", { class: "side-label" }, "Grills waiting"), Grills.count() ? h("span", { class: "side-n lit caution", "data-grills-count": Grills.count() }, Grills.count()) : null) : null,
       typeof Ask !== "undefined" && Ask.served() ? h("button", { class: "side-home side-ask" + (App.section === "ask" ? " on" : ""), "aria-current": App.section === "ask" ? "page" : null, title: "Ask Claude about the plan", onclick: () => Ask.open() },
         h("span", { class: "side-label" }, "Ask Claude"), Ask.count() ? h("span", { class: "side-n" }, Ask.count()) : null) : null));
     const vault = h("div", { class: "side-group" }, h("div", { class: "side-h" }, "Plan pages"));

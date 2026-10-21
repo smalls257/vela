@@ -43,7 +43,7 @@ class Grill:
     holds_up: tuple  # IDs of the epics, slices and apps that wait on it
     apps: tuple  # IDs of the apps it sits on (for the App filter)
     sources: tuple  # SRC IDs it rests on
-    missing: dict  # {} unless one-away: {"rule", "plain", "fix", "owed_by", "ask", "due"}
+    missing: dict  # {} unless one-away: {"rule", "plain", "fix", "owed_by", "ask", "due", "question"}
     owner: tuple  # handles who run it: the grill owner, else the item's own owners
     owner_set: bool  # True when a grill owner was set with `vela grill owner`
     join: tuple  # handles asked to join
@@ -210,11 +210,12 @@ def missing_thing(vault, verdict, owners, resolver):
     owner of the item owes it and no date is known."""
     reason = verdict.reasons[0]
     out = {"rule": reason.rule, "plain": resolver.plain(reason.plain), "fix": resolver.plain(reason.fix),
-           "owed_by": list(owners), "ask": "", "due": ""}
+           "owed_by": list(owners), "ask": "", "due": "", "question": ""}
     blocking = vault.item(reason.blocked_by[0]) if reason.blocked_by else None
     if blocking is not None:
         out["owed_by"] = list(_handles(blocking.fact("Owner")) or owners)
         out["ask"] = resolver.plain(blocking.fact("Ask"))
+        out["question"] = resolver.plain(blocking.fact("Question"))
         due = blocking.fact("Ask by")
         out["due"] = due if progress.is_date(due) else ""
     return out

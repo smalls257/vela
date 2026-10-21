@@ -36,6 +36,10 @@ function renderMasters() {
     box.append(h("button", { class: `master ${lv}${n ? " on" : ""}`, title: tip(lv, n), onclick: () => { if (App.section !== "home") Nav.home(); go("lights", { reset: true }); } },
       h("b", { "data-quantity": QUANTITY[lv], "data-n": n }, n), h("span", {}, word)));
   }
+  if (Grills.exists() && Grills.count()) {  // not a lamp: the grills for this reader, whatever their level
+    box.append(h("button", { class: "grills-badge on", id: "grills-badge", title: Grills.badgeTip(), onclick: () => Grills.open() },
+      h("b", { "data-grills-count": Grills.count() }, Grills.count()), h("span", {}, Grills.badgeWords())));
+  }
 }
 /* The things set once and left: the theme, in one gear at the far right (the sound button and the Animation switch are gone). */
 $("#settings").append(Menus.menu({ id: "settings", kind: "icon", glyph: "gear", label: "Settings: theme", align: "right",

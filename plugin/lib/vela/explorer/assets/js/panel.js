@@ -42,6 +42,7 @@ const Panel = (() => {
     if (key.startsWith("node:")) return Nodes.panel(key);
     if (key.startsWith("bundle:")) return bundle(key);
     if (key.startsWith("lib:") && typeof Library !== "undefined") return Library.nodes(key);
+    if (key.startsWith("grill:") && typeof Grills !== "undefined") return Grills.nodes(key);
     if (key.startsWith("inside:") && typeof Inside !== "undefined") return Inside.panel(key);
     const e = ent(key);
     if (!e) return [h("div", { class: "p-empty" }, `Nothing in the plan is called ${key}. Try the search box.`)];
@@ -340,6 +341,7 @@ const Panel = (() => {
       out.push(section("Facts", null, factsGrid(e.facts, [])));
     }
     if (typeof Library !== "undefined") out.push(Library.backlinks(k));  // the Library items that name this thing
+    if (typeof Grills !== "undefined") out.push(Grills.readyLine(k));  // a small line when a grill could decide it now
     out.push(backlinks(k));
     return out.filter(Boolean);
   }
