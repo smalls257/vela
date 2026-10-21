@@ -10,7 +10,7 @@ One vault holds one initiative. Pages are numbered by arc42 section.
 |---|---|
 | `README.md` | Home page: layout, reading paths, setup checklist |
 | `CLAUDE.md` | How Claude answers questions from this vault. A person writes it. |
-| `.vela.yaml` | `initiative` (`INI-nnn`), `title`, `stale_after_days` (default 60), and optionally `link_templates` (see Links out of the vault), `designs` (see Team design docs), `owner_contact` (who a published copy's readers write to), `roles` (who holds which role, see Onboarding) and `role: reader` (see Roles and published copies) |
+| `.vela.yaml` | `initiative` (`INI-nnn`), `title`, `stale_after_days` (default 60), and optionally `link_templates` (see Links out of the vault), `designs` (see Team design docs), `owner_contact` (who a published copy's readers write to), `roles` (who holds which role, see Onboarding), `grills` (who runs a grill and who is asked to join, see Grills waiting) and `role: reader` (see Roles and published copies) |
 | `01-goals.md` | Goals table, and the `where-it-stands` and `progress-map` blocks |
 | `02-constraints.md` | Constraints table, `CST-n` |
 | `03-context-and-scope.md` | Systems today and after; apps in and out of scope |
@@ -278,6 +278,23 @@ Authority comes from access, not title and not config. An **owner** works inside
 `vela publish --out <folder|.zip>` writes a read copy of the committed files at HEAD, never the working tree. It leaves out `.git`, generated `.vela/` output (the committed `explorer-pins.json` stays in, so a reader's map matches the owner's), `voice/local/` and the vendored plugin copy, and adds `.vela/published.json`: the initiative, title, full and short commit, date, whether the vault had uncommitted changes (`dirty`), the owner's contact (`owner_contact` in `.vela.yaml`, else `git config`), the `vela check` counts, and a `tree_hash` of the contents. A dirty vault is never refused; the stamp says so. A zip has one top folder, forward-slash names and fixed timestamps, so the same input gives the same zip. A reader cannot publish.
 
 `vela freshness [--json]` says whether anything has changed, and never updates anything. An owner's clone runs `git fetch` (8 seconds, `--timeout` to change) and reports commits behind and ahead of upstream and uncommitted files; offline is said plainly and local state is shown. A reader's workspace compares its baseline stamp with the stamp at the folder or zip it was opened from; an unreachable source is said plainly, and is not a failure.
+
+## Grills waiting
+
+The dashboard's **Grills waiting** view lists what a Grill could decide now, in three groups: **You already said yes** (a session that could not decide kept your yes under `## Ready to decide`), **Ready to decide** (`vela check --gate grill` passes) and **One thing away** (the gate names exactly one missing thing, with who owes it and by when). An item more than one thing away is not listed. It is computed in `vela/grills.py` from those same three sources, so the view and the gate cannot disagree.
+
+**Who runs a grill.** The item's own owner, unless someone sets the grill's owner. People **asked to join** see the grill under their own filter. Both are kept in `.vela.yaml`, keyed by the item's ID, and set only with the command, never by hand:
+
+```yaml
+grills:
+  "CON-022":
+    owner: "@agent-lead"
+    join: ["@sam-hadley"]
+```
+
+`vela grill owner <ID> [--owner <handle>] [--join <handle> ...]` writes it. `--join` lists everyone asked and replaces the earlier list; `--owner` alone keeps the list and `--join` alone keeps the owner. `vela grill owner <ID> --clear` puts the grill back with the item's owner. The ID may be an item (`CON-022`), a requirement (`CAP-022.FR1`) or a page (`EPC-036`, `goals`). Handles are GitHub handles. The command checks the ID and every handle, writes the file whole, and runs no git; commit it with the plan. A reader copy refuses. An entry the dashboard cannot read (a bad handle, a stray key) is left out and named, never guessed.
+
+**Who "Mine" means.** The view follows the person in "Viewing as": the handle a page was built for, else the people the lead recorded under the role chosen in `roles:`. The view's own "Viewing as" menu can name another person. With nobody, it shows everyone's grills.
 
 ## Onboarding
 
