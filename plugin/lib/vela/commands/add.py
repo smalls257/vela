@@ -81,7 +81,13 @@ def item_from(args, root):
         if value is None:
             continue
         item[field] = [v.split(",") for v in value] if field == "traces" else value
-    if "owner" in module.FIELDS and not item.get("owner") and args.add_type != "subject":
+    return with_owner(item, root)
+
+
+def with_owner(item, root):
+    """A missing owner is the lead's handle (`.vela/handle`), never asked for."""
+    module = add.TYPES[item["type"]]
+    if "owner" in module.FIELDS and not item.get("owner") and item["type"] != "subject":
         handle = sessiongit.read_handle(root)
         if handle:
             item["owner"] = "@" + handle.lstrip("@")
@@ -108,27 +114,30 @@ def failed(text, plain):
 
 
 def run(args, out):
-    from vela import cli  # the shell loads the vault and parses the date; this module wires it
+    from vela import cli
     root = pathlib.Path(args.vault).resolve()
     try:
         today = cli.parse_today(args.today)[0]
         vault = cli.load_vault(root)
     except cli.ToolError as exc:
         return commands.emit(failed(str(exc), "I couldn't read the vault, so I added nothing."), args, out)
-    resolver = say.Resolver(vault)
+    result = file_new(root, today, vault, item_from(args, root))
+    return commands.emit(result, args, out, say.Resolver(vault))
+
+
+def file_new(root, today, vault, item):
+    """Number `item` past every open branch and write it into the open session: the whole of `vela add` after its flags
+    are read. `vela library add` calls it too, so a Library row is written by one path (no second copy of the rules)."""
     record, early = apply_command.find_record(root)
     if early is not None:
-        return commands.emit(early, args, out, resolver)
+        return early
     reader = sessiongit.is_read_copy(root)
     try:
         staged = textedit.attach(decisions.Staged(vault, disk.reader(root)), today, idgit.branch_texts(root))
     except GitUnavailable as exc:
-        return commands.emit(failed(f"couldn't read the other branches' numbers: {exc}",
-                                    "I couldn't check which numbers other sessions hold, so I added nothing."),
-                             args, out, resolver)
-    item = item_from(args, root)
-    result = file_item(item, root, staged, record, reader)
-    return commands.emit(result, args, out, resolver)
+        return failed(f"couldn't read the other branches' numbers: {exc}",
+                      "I couldn't check which numbers other sessions hold, so I added nothing.")
+    return file_item(item, root, staged, record, reader)
 
 
 def file_item(item, root, staged, record, reader):
