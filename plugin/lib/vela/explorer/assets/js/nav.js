@@ -17,6 +17,7 @@ const Nav = (() => {
     capabilities: [["map", "Capability map"], ["trace", "Requirements to epics"]], releases: [["releases", "Timeline"]], slices: [["slices", "Slices"]],
     apps: [["map", "Map"], ["progress", "Progress"]], flows: [["flows", "Step through"]], concerns: [["concerns", "By app"]],
     decisions: [["decisions", "Decision log"]], unknowns: [["asks", "Who to ask"]], glossary: [], epics: [["epics", "Epics"], ["trace", "Requirements to epics"]],
+    library: [["library", "Library"]],
   };
   const read = (k, d) => { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { console.warn("[nav] this browser keeps no settings:", e.message); return d; } };
   const write = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { console.warn("[nav] this browser keeps no settings:", e.message); } };
@@ -112,6 +113,7 @@ const Nav = (() => {
     App.trail = []; App.focus = st.child || null;
     App.view = viewDef(view) ? view : "doc";
     setRoot();
+    if (id === "library" && child) Library.showFor(child);  // #s=library&open=SRC-05 lands on the row, with its details beside it
     syncHash(); rerender(); Panel.render();
     /* A link lands on the exact item: a page with a Details panel shows the opened item there, not its summary. */
     if (st.child && ent(st.child) && DetailsPanel.active()) DetailsPanel.show(st.child, { reset: true, quiet: true });
@@ -301,11 +303,11 @@ const Nav = (() => {
   function foldList(id) { st.expanded.has(id) ? st.expanded.delete(id) : st.expanded.add(id); write(OPEN_KEY, [...st.expanded]); }
   function item(s) {
     const here = App.section === s.id, has = s.children.length > 0, openList = st.expanded.has(s.id);
-    const lv = sectionLamp(s), missing = !s.page && !(s.id === "slices" && D.slicePlan.list.length);  // slices have no index page: each slice is one
+    const lv = sectionLamp(s), missing = !s.page && !(s.id === "slices" && D.slicePlan.list.length) && s.id !== "library";  // slices have no index page: each slice is one; the library is a view of the register
     const row = h("div", { class: "side-row" + (here && !st.child ? " on" : here ? " in" : "") + (missing ? " missing" : "") },
       has ? h("button", { class: "side-caret", "aria-expanded": String(openList), "aria-label": `${openList ? "Hide" : "Show"} the ${s.label.toLowerCase()}`, onclick: () => { foldList(s.id); refresh(); } }, openList ? "▾" : "▸") : h("span", { class: "side-caret blank" }),
       h("button", { class: "side-link", "data-section": s.id, "aria-current": here && !st.child ? "page" : null, ...(has ? { "aria-expanded": String(openList) } : {}),
-        title: missing ? `The ${s.label.toLowerCase()} page isn't written yet` : s.id === "slices" ? `${s.title}. ${termTip("slice")}` : s.title,
+        title: missing ? `The ${s.label.toLowerCase()} page isn't written yet` : s.id === "slices" ? `${s.title}. ${termTip("slice")}` : s.id === "library" ? "Every spec, design, document and link the plan rests on, grouped by what it is" : s.title,
         onclick: () => { if (has) foldList(s.id); open(s.id); refresh(); } },
         h("span", { class: "side-label" }, s.label), lv !== "dark" ? lampEl(lv) : null, lv !== "dark" && count(s) ? sideCount(s) : null));
     const out = [row];

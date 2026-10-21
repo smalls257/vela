@@ -214,10 +214,10 @@ def test_sidebar_follows_the_vault_order(demo):
     _, (_, data) = demo
     assert [s["label"] for s in data["sections"]] == ["Goals", "Constraints", "Context and scope", "Strategy", "Capabilities",
                                                       "Releases", "Slices", "Apps", "Flows", "Concerns", "Decisions",
-                                                      "Unknowns and risks", "Glossary", "Epics"]
+                                                      "Unknowns and risks", "Glossary", "Epics", "Library"]  # the demo vault's register has rows, so the Library is last
     apps = next(s for s in data["sections"] if s["id"] == "apps")
     assert sorted(apps["children"]) == sorted(a["key"] for a in data["map"]["apps"])
-    assert all(s["page"] for s in data["sections"] if s["id"] != "slices")  # the demo vault has every section's page; slices have none, each slice is one
+    assert all(s["page"] for s in data["sections"] if s["id"] not in ("slices", "library"))  # the demo vault has every section's page; slices have none, each slice is one, and the library is the register drawn as a view
 
 
 def test_releases_are_vela_snapshots(demo):

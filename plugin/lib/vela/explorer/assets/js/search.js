@@ -46,7 +46,7 @@ const Search = (() => {
   // Results come in groups, flows first: on a call, the flow and the contract are what the lead wants.
   const GROUPS = [["exact", "Exact match"], ["link", "How they connect"], ["flow", "Flows"], ["node", "Apps and outside services"], ["contract", "Contracts"],
     ["need", "Capabilities and requirements"], ["flow-part", "Flows that match some of the words"], ["epic", "Epics"], ["question", "Open questions"],
-    ["decision", "Decisions"], ["other", "Other pages and items"], ["closed", "Resolved questions"]];
+    ["decision", "Decisions"], ["library", "Library"], ["other", "Other pages and items"], ["closed", "Resolved questions"]];
   function groupOf(key) {
     const e = ent(key), k = e ? e.kind : "";
     if (k === "flow") return "flow";
@@ -55,6 +55,7 @@ const Search = (() => {
     if (k === "capability" || k === "requirement") return "need";
     if (k === "epic") return "epic";
     if (k === "decision") return "decision";
+    if (k === "library") return "library";
     if (k === "unknown") return isOpen(UNKNOWN[key]) ? "question" : "closed";
     return "other";
   }
@@ -84,6 +85,8 @@ const Search = (() => {
     const page = Object.values(E).find((e) => e.path && e.id && e.id.toUpperCase() === up && !out.includes(e.key));
     if (page) out.push(page.key);
     if (t.startsWith("@") && D.owners[t]) out.push("owner:" + t);
+    const item = Library.byId(up);
+    if (item) out.push(item.key);
     return out;
   }
   function marked(text, wanted) {
@@ -103,6 +106,7 @@ const Search = (() => {
     if (e.kind === "contract") { const f = flowsFor(key); return f.length ? `Enter shows it on the map, with ${plural(f.length, "flow")} to present from` : "Enter shows it on the map"; }
     if (e.kind === "unknown") return "Enter opens it in Who to ask";
     if (e.kind === "decision") return "Enter opens it in the decision log";
+    if (e.kind === "library") return "Enter opens it in the Library";
     return "";
   }
 
@@ -143,10 +147,12 @@ const Search = (() => {
       if (g === "flow" && x.matched.length < wanted.length && x.score < hits[0].score) g = "flow-part";
       (byGroup[g] = byGroup[g] || []).push({ key: x.r.key, snip: x.r.snip, heading: x.r.heading, flows: x.r.flows });
     }
+    const shelf = Library.find(q);  // the library is not in vela.search's index (a register row is not a page), so its titles are matched here
+    if (shelf.length) (byGroup.library = byGroup.library || []).push(...shelf.map((r) => ({ key: r.key, snip: Library.metaLine(r), flows: [] })));
     for (const g of Object.keys(byGroup)) byGroup[g] = once(byGroup[g]);
     const noFlows = /\bhow\b/.test(q.toLowerCase()) && !D.flows.length;  // "how does X" is a flow's question; say so rather than return nothing
     if (noFlows) box.append(emptyState("No flows yet, so a \"how does…\" question has nothing to answer it.", "", "/vela:boundary", "small"));
-    if (!hits.length && !links.length && !exact.length) {
+    if (!hits.length && !links.length && !exact.length && !shelf.length) {
       if (noFlows) { box.hidden = false; return; }
       box.append(h("div", { class: "r-more" }, wanted.length ? `Nothing matches ${wanted.join(", ")}. Try a name, like an app or a person.`
         : "Type a word that carries meaning; words such as how, the and does are skipped."));

@@ -243,13 +243,16 @@ SECTIONS = (  # (id, label, the section's own page path, a test for the pages li
     ("unknowns", "Unknowns and risks", "11-unknowns-and-risks.md", None),
     ("glossary", "Glossary", "12-glossary.md", None),
     ("epics", "Epics", "13-epics/13-epics.md", lambda p: p.type == "epic"),
+    ("library", "Library", "library/", None),  # no page of its own (the register is a table the view draws); listed only when it has rows
 )
 
 
-def sections(vault, keys):
+def sections(vault, keys, has_library=False):
     by_path = {p.path: p for p in vault.pages}
     out = []
     for sid, label, path, member in SECTIONS:
+        if sid == "library" and not has_library:
+            continue  # an empty register is not a place to go
         page = by_path.get(path)
         children = sorted((p for p in vault.pages if member and member(p)), key=lambda p: (p.id or p.name))
         out.append({"id": sid, "label": label, "page": keys.page(page) if page else "", "path": path,

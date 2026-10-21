@@ -246,6 +246,7 @@ const PlanDetails = (() => {
       sec("What it carries", null, c.crosses ? h("div", { class: "crosses", html: c.crosses }) : quiet("Not recorded: nothing says yet what data this contract carries.")),
       sec("What's waiting on it", blocked.length || null, blocked.length ? bullets(blocked.map((id) => [lampEl(unknownLevel(id)), " ", link(id)])) : quiet("Nothing is waiting on it.")),
       sec("Flows that use it", flows.length || null, flows.length ? flows.map((r) => flowRow(r.flow, key, view)) : quiet("No flow uses it yet.")),
+      Library.backlinks(key),
       readLink(key))];
   }
 
@@ -258,6 +259,7 @@ const PlanDetails = (() => {
         said ? sec("As the contract words it", null, prose(said)) : null,
         sec("Contracts it provides", provided.length || null, provided.length ? bullets(provided.map((c) => openRow(c.id, view, c.title))) : quiet("It doesn't provide any contract.")),
         sec("Flows it appears in", flows.length || null, flows.length ? flows.map((r) => flowRow(r.flow, key, view)) : quiet("No flow names it yet.")),
+        Library.backlinks(key),
         h("div", { class: "p-note" }, "An outside service has no status of its own. Check the contracts that connect to it."),
         readLink(key))];
   }
@@ -275,6 +277,7 @@ const PlanDetails = (() => {
         sec("It holds up", u.blocks.length || null, u.blocks.length ? [bullets(u.blocks.map((k) => openRow(k, view))), knock > 0 ? h("div", { class: "ml-sub" }, `Through these it holds up ${plural(knock, "more thing")}.`) : null]
           : quiet(`Not recorded: it doesn't say what it holds up${u.blocksText ? `; the question itself says it blocks "${u.blocksText}"` : ""}.`)),
         flows.length ? sec("Flows it touches", flows.length, flows.map((r) => flowRow(r.flow, key, view))) : null,
+        Library.backlinks(key),
         a.outcome ? sec("Answer", null, prose(a.outcome)) : null,
         readLink(key))];
   }

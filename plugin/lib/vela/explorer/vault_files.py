@@ -16,6 +16,8 @@ PREFIX = "/vault-file/"
 MAX_BYTES = 20 * 1024 * 1024
 # Everything else goes out as plain text: an html or svg file sent as itself would run script with the page's own origin.
 IMAGES = {".png", ".jpg", ".jpeg", ".gif", ".webp"}
+# A PDF in the library opens in the browser's own viewer: it is a document, not a page that could run script as the helper's origin.
+DOCUMENTS = {".pdf": "application/pdf"}
 
 
 class Refused(Exception):
@@ -48,8 +50,10 @@ def resolve(vault, url_path):
 
 
 def content_type(path):
-    """The image type for a picture, plain text for everything else (html, svg and script included)."""
+    """The image type for a picture, pdf for a PDF, plain text for everything else (html, svg and script included)."""
     suffix = pathlib.Path(path).suffix.lower()
     if suffix in IMAGES:
         return mimetypes.types_map.get(suffix, "application/octet-stream")
+    if suffix in DOCUMENTS:
+        return DOCUMENTS[suffix]
     return "text/plain; charset=utf-8"

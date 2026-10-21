@@ -34,7 +34,7 @@ from vela import search as vela_search
 from vela.edge import atomic
 from vela.parse import FENCE, closes_fence
 
-from . import (asks_data, assets_inline, branches_data, breakdown_find, design_data, design_find, draft_data, flows_data, icons_data, inside_data, onboard_data,
+from . import (asks_data, assets_inline, branches_data, breakdown_find, design_data, design_find, draft_data, flows_data, icons_data, inside_data, library_data, onboard_data,
                pages_data, panel_data, plan_data, roles_data, serve, slices_data)
 from . import pins as pinning
 from .record import (HANDLE, LABELED_LINE, PROSE_LIMIT, Keys, inline_html,
@@ -52,11 +52,11 @@ class ExplorerError(Exception):
 
 # The page's script and style, in load order: shared code first, one module per view, the boot last.
 JS_MODULES = ("core", "theme", "fx", "menus", "assets", "icons", "layout", "pan", "geometry", "search", "minimap", "reader", "queue", "panel", "panelsize", "detailspanel", "motion", "view-map",
-              "wires", "mapgroups", "releases", "slices", "flowkit", "flowpicker", "branches", "view-flows", "rehearse", "view-asks", "view-decisions", "view-progress",
+              "wires", "mapgroups", "releases", "slices", "flowkit", "flowpicker", "branches", "view-flows", "rehearse", "view-asks", "view-decisions", "view-library", "view-progress",
               "view-trace", "sections", "roles", "onboard", "nav", "markdown", "ask", "inside", "plan", "drafts", "freshness", "main")
-SELFTEST_MODULES = ("selftest", "selftest-branches", "selftest-qol", "selftest-inside", "selftest-onboard", "selftest-details")  # 120 KB of checks: bundled only when asked (`vela explore --selftest`), not shipped to every reader
+SELFTEST_MODULES = ("selftest", "selftest-branches", "selftest-qol", "selftest-inside", "selftest-onboard", "selftest-details", "selftest-library")  # 120 KB of checks: bundled only when asked (`vela explore --selftest`), not shipped to every reader
 CSS_MODULES = ("base", "menus", "nav", "panel", "compact", "map", "queue", "flows", "rehearse", "asks", "decisions", "pages", "reader", "roles", "onboard",
-               "releases", "slices", "branches", "ask", "inside", "plan", "pending", "drafts", "themes", "plain")
+               "releases", "slices", "branches", "ask", "inside", "plan", "pending", "drafts", "library", "themes", "plain")
 
 # The themes the page offers, first the default. Each is a palette in assets/css/themes.css (Console is base.css's
 # :root); the picker in the top bar lists them in this order and remembers the choice in the browser.
@@ -630,7 +630,8 @@ def extract(vault, root, today, pins_path=None, designs=None, seed=None, plans=N
     data["sessions"] = {s.name: {"title": str(s.meta.get("title", s.name)), "date": str(s.meta.get("date", ""))}
                         for s in vault.sessions}
     data["reader"] = pages_data.readers(vault, keys)
-    data["sections"] = pages_data.sections(vault, keys)
+    data["library"] = library_data.extract(vault, keys)
+    data["sections"] = pages_data.sections(vault, keys, bool(data["library"]["rows"]))
     data["outgoing"] = pages_data.outgoing(vault, keys)
     data.update(roles_data.extract(vault, keys))
     recorded, _ = cli.recorded_standings(pathlib.Path(root), vault, [s.key for s in slices.read_slices(vault)], today)

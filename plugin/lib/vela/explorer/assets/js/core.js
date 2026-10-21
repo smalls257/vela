@@ -175,7 +175,7 @@ function reasonText(r) {
 const KIND_WORD = { app: "App", runtime: "How it runs", contract: "Contract", party: "Outside service", external: "Outside service",
   unknown: "Open question", risk: "Risk", epic: "Epic", capability: "Capability", flow: "Flow", requirement: "Requirement",
   decision: "Decision", concern: "Concern", session: "Session", section: "Plan section", page: "Page", slice: "Slice",
-  "stored-value": "Stored data", owner: "Person", bundle: "Contracts", lights: "Waiting", inside: "Inside this app" };
+  "stored-value": "Stored data", owner: "Person", bundle: "Contracts", lights: "Waiting", inside: "Inside this app", library: "Library item" };
 const CONTRACT = Object.fromEntries(D.map.contracts.map((c) => [c.id, c]));
 const UNKNOWN = Object.fromEntries(D.unknowns.map((u) => [u.id, u]));
 const APPS = Object.fromEntries(D.map.apps.map((a) => [a.key, a]));
@@ -262,6 +262,7 @@ function ent(key) {
     const at = +key.slice(8), s = D.releases.count && at > 0 ? D.releases.states[at] : null;  // 0 is Today, not a release
     return s ? { key, kind: "release", title: s.heading || s.name, id: "" } : null;
   }
+  if (key && key.startsWith("lib:")) return typeof Library !== "undefined" ? Library.entry(key) : null;  // a Library row, whatever page cites it
   if (EXTERNAL[key]) return { key, kind: "external", title: EXTERNAL[key].title, id: "" };
   if (key === "lights") return { key, kind: "lights", title: "What's waiting", id: "" };
   if (key && key.startsWith("inside:")) return typeof Inside !== "undefined" ? Inside.ent(key) : null;
@@ -471,6 +472,7 @@ function revealView(e) {
   if (e.kind === "unknown") return "asks";
   if (e.kind === "decision") return "decisions";
   if (e.kind === "slice") return "slices";
+  if (e.kind === "library") return "library";
   if (mapAnchors(e.key).length) return "map";
   if (e.kind === "capability" || e.kind === "requirement" || e.kind === "epic") return "trace";
   return null;

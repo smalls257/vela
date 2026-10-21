@@ -41,6 +41,7 @@ const Panel = (() => {
     if (key.startsWith("read:")) return reading(key);
     if (key.startsWith("node:")) return Nodes.panel(key);
     if (key.startsWith("bundle:")) return bundle(key);
+    if (key.startsWith("lib:") && typeof Library !== "undefined") return Library.nodes(key);
     if (key.startsWith("inside:") && typeof Inside !== "undefined") return Inside.panel(key);
     const e = ent(key);
     if (!e) return [h("div", { class: "p-empty" }, `Nothing in the plan is called ${key}. Try the search box.`)];
@@ -338,6 +339,7 @@ const Panel = (() => {
       if (["concern", "decision", "section", "risk", "stored-value"].includes(e.kind)) out.push(flowsSection(k));
       out.push(section("Facts", null, factsGrid(e.facts, [])));
     }
+    if (typeof Library !== "undefined") out.push(Library.backlinks(k));  // the Library items that name this thing
     out.push(backlinks(k));
     return out.filter(Boolean);
   }

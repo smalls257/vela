@@ -434,6 +434,17 @@ def test_e17_the_helper_serves_a_vault_file_as_text_and_nothing_outside_the_vaul
         assert b"TOPSECRET-4471" not in body and json.loads(body)["error"], refused
 
 
+def test_a_library_pdf_opens_as_a_pdf_and_a_library_spec_as_text(helper):
+    server, vault, _ = helper
+    (vault / "library" / "documents").mkdir(parents=True)
+    (vault / "library" / "documents" / "guide.pdf").write_bytes(b"%PDF-1.4\x00demo")
+    (vault / "library" / "documents" / "a.openapi.yaml").write_text("openapi: 3.0.3\n", encoding="utf-8")
+    status, headers, _ = get(server, "/vault-file/library/documents/guide.pdf")
+    assert status == 200 and headers["Content-Type"] == "application/pdf" and headers["X-Content-Type-Options"] == "nosniff"
+    status, headers, _ = get(server, "/vault-file/library/documents/a.openapi.yaml")
+    assert status == 200 and headers["Content-Type"].startswith("text/plain")
+
+
 def test_e17_a_vault_file_request_still_has_to_come_from_this_helper(helper):
     server, vault, _ = helper
     (vault / "a.md").write_text("x", encoding="utf-8")
