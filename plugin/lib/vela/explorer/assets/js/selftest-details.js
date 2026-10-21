@@ -13,15 +13,15 @@
   const sections = () => $$("#panel-body .p-sec h3").map((x) => x.textContent.replace(/\s+\d+$/, "").trim());
   const link = (name) => $$("#panel-body .dp-link").find((b) => b.textContent.trim() === name);
   const CODE = /\b(?:CON|CAP|EPC|UNK|CST|PTY|FLO|SV)-\d{2,3}\b|\bOQ-\d{3}\b|\bADR-\d{4}\b/;
-  const tabs = () => $$("#panel-body .dp-tabs [role=tab]").map((b) => b.textContent.replace(/\s+/g, " ").trim());
+  const tabs = () => $$("#panel-body .dp-tabs [role=tab]").map((b) => b.textContent.replace(/\s+/g, " ").trim());  // none: the Details panel is one list now
 
   async function flows(ok) {
     const flow = D.flows.find((f) => f.steps.length > 1 && f.steps.some((s) => s.contracts.length)) || D.flows[0];
     if (!flow) return;
     const title = E[flow.key].title;
     Flows.select(flow.key, -1); await tick();
-    ok(App.view === "flows" && head() === title && tabs().length === 2 && !$("#panel-body ol") && !$("#panel-body .steps-list"),
-      `details panel (flows): nothing picked shows the flow's own summary, not its step list, with the tabs ${tabs().join(" and ")}`, `details panel (flows): summary shows "${head()}", tabs ${tabs().join(" | ")}`);
+    ok(App.view === "flows" && head() === title && !tabs().length && !$("#panel-body ol") && !$("#panel-body .steps-list"),
+      `details panel (flows): nothing picked shows the flow's own summary, not its step list, with no tabs`, `details panel (flows): summary shows "${head()}", tabs ${tabs().join(" | ")}`);
     const si = flow.steps.findIndex((s) => s.contracts.length), stp = flow.steps[si];
     Flows.player().go(si); await tick();
     click($("[data-step-details]")); await tick();
@@ -45,17 +45,13 @@
     ok(App.view === was && !!open, "details panel (flows): the first click only shows; Open is the second click", "details panel (flows): no Open button on the contract");
     esc(); await tick();
     ok(head() === title && !$("#panel-body .dp-trail"), "details panel (flows): Escape returns to the flow's summary", `details panel (flows): Escape left "${head()}"`);
-    // a waiting question lights the steps and lanes it holds up
+    // an open question lights the steps and lanes it holds up
     const held = D.flows.flatMap((f) => f.steps.flatMap((s) => s.unknowns.filter((u) => ASK[u.id] && isOpen(ASK[u.id])).map((u) => ({ flow: f.key, id: u.id }))))[0];
     if (held) {
       Flows.select(held.flow, -1); await tick();
-      DetailsPanel.setTab("waiting"); await tick();
-      const row = $(`#panel-body .wq[data-oq="${held.id}"]`);
-      if (row) {
-        click(row); await tick();
-        const lit = $$("#scrub .tick.held").length;
-        ok(head() === titleOf(held.id) && DetailsPanel.tab === "details" && lit >= 1, `details panel (flows): the waiting item "${shorten(titleOf(held.id), 40)}" shows its question and marks ${lit} step${lit === 1 ? "" : "s"} it holds up`, `details panel (flows): waiting item opened "${head()}", ${lit} ticks marked`);
-      } else ok(false, "", `details panel (flows): the waiting tab does not list ${held.id}`);
+      DetailsPanel.show(held.id, { reset: true }); await tick();
+      const lit = $$("#scrub .tick.held").length;
+      ok(head() === titleOf(held.id) && lit >= 1, `details panel (flows): the open question "${shorten(titleOf(held.id), 40)}" shows its question and marks ${lit} step${lit === 1 ? "" : "s"} it holds up`, `details panel (flows): question opened "${head()}", ${lit} marked`);
     }
     esc(); await tick();
     const said = () => { const c = $("#panel-body").cloneNode(true); c.querySelectorAll(".dp-about").forEach((x) => x.remove()); return c.textContent; };  // the section's page is read as written
@@ -66,7 +62,7 @@
     if (!D.map.apps.length || !Object.keys(CONTRACT).length) return;  // an empty plan has no map to pick from
     Nav.open("apps"); MapView.st.lens = "cockpit"; MapView.st.group = "none"; MapView.st.focus = null; showView("map"); await tick();
     go("lights", { reset: true }); await tick();
-    ok(head() === "What's waiting" && tabs().length === 2, `details panel (map): nothing picked shows the page summary with the tabs ${tabs().join(" and ")}`, `details panel (map): summary shows "${head()}"`);
+    ok(head() === "Needs you" && !tabs().length, `details panel (map): nothing picked shows the page summary (Needs you), with no tabs`, `details panel (map): summary shows "${head()}"`);
     const byName = (name) => $$("#board [data-node]").find((el) => el.dataset.node === name);
     const con = Object.values(CONTRACT).find((c) => byName(c.title)) || Object.values(CONTRACT)[0], conTitle = con.title;
     const pickCon = async () => { if (byName(conTitle)) click(byName(conTitle)); else go(con.id, { reset: true }); await tick(); };  // a line's label, or its key when the map draws it inside a bundle
@@ -88,15 +84,14 @@
     ok(App.view === "inside", "details panel (map): Open goes inside the app", `details panel (map): Open went to ${App.view}`);
     Nav.open("apps"); showView("map"); await tick(); go("lights", { reset: true }); await tick();
     await pickCon(); esc(); await tick();
-    ok(head() === "What's waiting" && !$("#panel-body .dp-trail"), "details panel (map): Escape returns to the summary", `details panel (map): Escape left "${head()}"`);
+    ok(head() === "Needs you" && !$("#panel-body .dp-trail"), "details panel (map): Escape returns to the summary", `details panel (map): Escape left "${head()}"`);
     await pickCon(); click($("#board")); await tick();
-    ok(head() === "What's waiting", "details panel (map): a click on empty space returns to the summary", `details panel (map): empty space left "${head()}"`);
+    ok(head() === "Needs you", "details panel (map): a click on empty space returns to the summary", `details panel (map): empty space left "${head()}"`);
     const q = Object.keys(UNKNOWN).find((id) => isOpen(UNKNOWN[id]) && PlanDetails.held(id).apps.size && Queue.items().some((x) => x.id === id && PlanDetails.NEEDS.includes(x.level)));
     if (q) {
-      DetailsPanel.setTab("waiting"); await tick();
-      click($(`#panel-body .wq[data-oq="${q}"]`)); await tick();
+      DetailsPanel.show(q, { reset: true }); await tick();
       const lit = $$("#board g.picked, #board g.hit.picked, #board g.station.picked").length;
-      ok(head() === titleOf(q) && kind() === "Open question" && lit >= 1 && sections().includes("It holds up"), `details panel (map): the waiting item "${shorten(titleOf(q), 40)}" shows its question and lights ${lit} boxes it holds up`, `details panel (map): waiting item gave "${head()}", ${lit} lit`);
+      ok(head() === titleOf(q) && kind() === "Open question" && lit >= 1 && sections().includes("It holds up"), `details panel (map): the open question "${shorten(titleOf(q), 40)}" shows its question and lights ${lit} boxes it holds up`, `details panel (map): question gave "${head()}", ${lit} lit`);
       esc(); await tick();
     }
   }
@@ -105,7 +100,7 @@
     if (!D.asks.some((u) => isOpen(u))) return;
     showView("asks"); go("lights", { reset: true }); DetailsPanel.clear(); await tick();
     const open = D.asks.filter((u) => isOpen(u)).length;
-    ok(/open question/.test(head()) && !$("#panel-body ol") && tabs().length === 2, `details panel (asks): nothing picked says "${head()}", with the people to ask`, `details panel (asks): summary shows "${head()}"`);
+    ok(/open question/.test(head()) && !$("#panel-body ol") && !tabs().length, `details panel (asks): nothing picked says "${head()}", with the people to ask`, `details panel (asks): summary shows "${head()}"`);
     const bay = $(".bay-name");
     click(bay); await tick();
     const rows = $$("#panel-body .wq").length;
@@ -115,9 +110,7 @@
     ok(kind() === "Open question" && sections().includes("It holds up") && /›.*›/.test(trail()) === false && !$("#panel-body .dp-open"), "details panel (asks): picking a question shows it, with no Open since this is Who to ask", `details panel (asks): question gave "${kind()}", trail "${trail()}"`);
     click($("#panel-body .dp-trail .dp-trail ~ *") || $("#panel-body .dp-back")); await tick();
     ok(DetailsPanel.tab === "details" && head() === bay.textContent.trim() || head() !== "", "details panel (asks): ← back returns toward the person", `details panel (asks): back left "${head()}"`);
-    DetailsPanel.setTab("waiting"); await tick();
-    ok(DetailsPanel.tab === "waiting" && $$("#panel-body .wq").length === open, `details panel (asks): the waiting tab lists all ${open} open questions`, `details panel (asks): the waiting tab lists ${$$("#panel-body .wq").length} of ${open}`);
-    click($("#panel-body .wq")); esc(); await tick();
+    esc(); await tick();
     ok(/open question/.test(head()), "details panel (asks): Escape returns to the summary", `details panel (asks): Escape left "${head()}"`);
     const strip = $(".strip:not(.resolved)");
     if (strip) { click($(".bay .rails")); await tick(); ok(/open question/.test(head()), "details panel (asks): empty space returns to the summary", `details panel (asks): empty space left "${head()}"`); }
@@ -191,7 +184,6 @@
         if (scene === "map-contract") DetailsPanel.show(Object.values(CONTRACT)[0].id, { reset: true });
         else {
           const q = Object.keys(UNKNOWN).find((id) => isOpen(UNKNOWN[id]) && PlanDetails.held(id).apps.size && Queue.items().some((x) => x.id === id));
-          DetailsPanel.setTab("waiting");
           if (q) DetailsPanel.show(q, { reset: true });
         }
       } else if (scene.startsWith("asks")) {

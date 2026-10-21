@@ -181,8 +181,7 @@ const Onboard = (() => {
     owns: (k) => !!decided(k) || PlanDetails.owns(k),
     detail: (k) => (decided(k) ? Decisions.decisionNodes(decided(k)) : PlanDetails.detail(k, "onboard")),
     label: (k) => (decided(k) ? decided(k).name : PlanDetails.label(k)),
-    open: (k) => (decided(k) ? { label: "Open", title: "See it in the decision log", run: () => { showView("decisions"); Decisions.showFor(decided(k).key); } } : PlanDetails.openFor(k, "onboard")),
-    waiting: (k) => PlanDetails.waitingTab(k, "queue"), waitingCount: () => PlanDetails.waitingCount("queue"), focus: () => {},
+    open: (k) => (decided(k) ? { label: "Open", title: "See it in the decision log", run: () => { showView("decisions"); Decisions.showFor(decided(k).key); } } : PlanDetails.openFor(k, "onboard")), focus: () => {},
   });
   return { render, open, rememberDoor, st, keys, mod, hashParts, current, defaultRole, myRole, recorded };
 })();

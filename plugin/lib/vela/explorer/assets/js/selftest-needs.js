@@ -97,6 +97,10 @@
     Viewer.set(""); Nav.home(); await tick();
     ok(!$$("#side .side-label").some((x) => x.textContent === "What's waiting") && !$(".q-card") && !$$("#masters .master").some((m) => m.textContent.includes("waiting")),
       "needs you: no What's waiting in the sidebar, no queue card on the map, no \"waiting\" badge in the top bar", "needs you: What's waiting is still there");
+    Nav.open("goals"); go("lights", { reset: true }); await tick();
+    const wide = $$("#for-you-badge, #grills-badge").length;
+    ok(!/What's waiting|\d+ waiting/.test($("#panel").textContent + $("#side").textContent + $("#masters").textContent) && !$(".dp-tabs") && wide === (Needs.count() ? 1 : 0) && !$("#grills-badge"),
+      "needs you: no What's waiting title, tab or count in the panel, sidebar or top bar, and the one badge is \"for you\" (no separate grills badge)", `needs you: panel "${$("#panel").textContent.slice(0, 80)}", badges ${wide}`);
 
     lines.length = was; Viewer.set(""); Nav.home(); go("lights", { reset: true });
   }

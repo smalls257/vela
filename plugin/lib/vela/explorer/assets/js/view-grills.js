@@ -343,7 +343,6 @@ const Grills = (() => {
     view: "grills", live: () => rows.length > 0, rootLabel: "Grills waiting", summary: summaryNodes,
     owns: (k) => k.startsWith("grill:") || PlanDetails.owns(k), detail: (k) => (k.startsWith("grill:") ? nodes(k) : PlanDetails.detail(k, "grills")),
     label: (k) => (k.startsWith("grill:") ? (BY[k.slice(6)] || { name: k }).name : PlanDetails.label(k)), open: (k) => (k.startsWith("grill:") ? null : PlanDetails.openFor(k, "grills")),
-    waiting: (k) => PlanDetails.waitingTab(k, "queue"), waitingCount: () => PlanDetails.waitingCount("queue"),
     focus: (k) => { const was = st.open; st.open = k && k.startsWith("grill:") ? k : ""; if (was !== st.open && App.view === "grills") paint(); },
   });
 

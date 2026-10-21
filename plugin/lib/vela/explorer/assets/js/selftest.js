@@ -68,7 +68,7 @@ const SelfTest = (() => {
     const crumbs = $$("#panel .crumbs a, #panel .crumbs button, #panel .crumbs .cur").length;
     ok(path.length >= 2 && crumbs === path.length + 1, `thread ${path.join(" › ")}: crumbs ${crumbs} (Lights + ${path.length}), panel "${($("#panel h2") || {}).textContent}"`, `thread broke at ${path.join(" › ")}; crumbs ${crumbs}`);
     $("#panel .crumbs a, #panel .crumbs button").click(); await frames();
-    ok(($("#panel h2") || {}).textContent === "What's waiting", "the Lights crumb returns the panel to its home, the lights", "the Lights crumb did not return home");
+    ok(!App.trail.length, "the first crumb returns the panel to its default summary", "the first crumb did not return to the summary");
   }
   async function views() {
     // Map, cockpit: one lamp per app, party, contract and flow, each lit exactly as attention.lights says.
@@ -171,7 +171,7 @@ const SelfTest = (() => {
     Nav.refresh();
     const shown = [...new Set($$("#side .side-link").map((b) => b.dataset.section))];
     const sideOrder = [...order.filter((id) => !["constraints", "context", "strategy", "glossary"].includes(id)), "constraints", "context", "strategy", "glossary"];  // the text-first pages sit last, under Read
-    ok(JSON.stringify(shown.filter((x) => x)) === JSON.stringify(sideOrder), `sidebar: ${shown.length} sections in the vault's order, the text pages folded under Read, with What's waiting and ${Roles.ROLES.length - 1} front doors above`, `sidebar order ${shown.join(",")}`);
+    ok(JSON.stringify(shown.filter((x) => x)) === JSON.stringify(sideOrder), `sidebar: ${shown.length} sections in the vault's order, the text pages folded under Read, and ${Roles.ROLES.length - 1} front doors above`, `sidebar order ${shown.join(",")}`);
     const kids = $$("#side .side-kid[data-section=apps]").length, flowKids = $$("#side .side-kid[data-section=flows]").length;
     ok((kids === D.map.apps.length || !Nav.st.expanded.has("apps")) && (flowKids === D.flows.length || !Nav.st.expanded.has("flows")), `sidebar lists each app (${kids}) and each flow (${flowKids})`, `sidebar lists ${kids} apps of ${D.map.apps.length}, ${flowKids} flows of ${D.flows.length}`);
     const bad = [], seen = [];
@@ -1281,34 +1281,17 @@ const SelfTest = (() => {
     Ask.restore(real);
     Nav.home(); go("lights", { reset: true });
   }
-  /* The work queue in the panel. The queue is a short ranked list of the open questions that hold something up, in plain
-     words. The panel lists the lit things on the map, then the queue under them; the What's waiting page that once carried
-     the queue beside the map is gone (Needs you replaced it), so the panel is the one place it is drawn. */
+  /* The queue is data now: the open questions that hold something up, ranked as attention ranks them. No page or panel draws it
+     (Needs you lists what is for the person viewing), so these checks are on the data and on what the top bar and the panel no longer say. */
   async function queueChecks() {
-    const q = Queue.items(), top = Math.min(Queue.TOP, q.length), rows = () => $$("#panel .q-row");
+    const q = Queue.items();
     const ranked = q.every((x, i) => !i || rank(q[i - 1].level) > rank(x.level) || (q[i - 1].level === x.level && q[i - 1].urgency >= x.urgency));
     ok(ranked && q.every((x) => x.level === ASK[x.id].light.level), `queue: ${q.length} open questions that hold something, in attention's order (level, then urgency), each lamp the question's own light`, "queue: the order or a lamp is not attention's");
     const held = new Set([...D.above.map((a) => a.unknown), ...Object.values(D.blockedBy).flat()].filter((u) => isOpen(ASK[u])));
     ok(held.size === q.length && [...held].every((u) => q.some((x) => x.id === u)), `queue: every open question that holds something is listed once (${held.size}), not once per thing it holds (${D.above.length} held above the map)`, `queue: ${q.length} listed for ${held.size} holding questions`);
+    ok(q.every((x) => x.says && !/\b(UNK|CAP|EPC|CON|APP)-\d/.test(x.says)), "queue: each says what it holds up in plain words, with no ID", `queue: ${q.filter((x) => !x.says || /\b(UNK|CAP|EPC|CON|APP)-\d/.test(x.says)).length} say it with an ID or not at all`);
     Nav.open("goals"); go("lights", { reset: true }); await frames();
-    ok(rows().length === top && rows().every((r) => !/^[A-Z]+-\d+/.test($(".q-title", r).textContent) && !/\b(UNK|CAP|EPC|CON|APP)-\d/.test(r.textContent) && r.title === ASK[r.dataset.ref].question && r.dataset.ref),
-      `queue: the top ${top} show in the panel in plain words, with what each holds up and who to ask; the tooltip is the question, the ID rides in data-ref only`, "queue: a row shows an ID or its tooltip isn't the question");
-    ok(rows().every((r) => /^Blocks /.test($(".q-sub", r).textContent) && /^Ask: /.test($(".q-ask", r).textContent) && $(".q-when b", r).textContent.trim()), "queue: each row says what it holds up, who to ask and by when", "queue: a row lacks what it holds, who to ask or when");
-    ok(rows().every((r, i) => $(".lamp", r).classList.contains(q[i].level)) && $$("#panel .q-row .lamp").length === rows().length, "queue: a small lamp, not a painted row, carries the level", "queue: a row's lamp is not its level");
-    if (q.length > Queue.TOP) {
-      $("#panel .q-more").click(); await frames();
-      const groups = $$("#panel .q-group"), sum = groups.reduce((n, g) => n + (+$(".ct", g).textContent), 0);
-      ok(rows().length === q.length && sum === q.length && groups.every((g) => $$(".q-row", g).length === +$(".ct", g).textContent), `queue: Show all ${q.length} groups them by what they hold (${groups.map((g) => $("h4", g).firstChild.textContent).join(", ")}), counts adding up`, `queue: ${rows().length} rows in ${groups.length} groups, counts ${sum}, wanted ${q.length}`);
-      $("#panel .q-more").click(); await frames();
-      ok(rows().length === top, `queue: Show the top ${Queue.TOP} folds it back to ${top}`, "queue: the list did not fold back");
-    }
-    if (q.length) {
-      rows()[0].click(); await frames();
-      ok(App.focus === q[0].id && $("#panel h2").textContent === q[0].title, `queue: picking "${q[0].title}" opens it in the panel`, `queue: focus ${App.focus}, panel "${$("#panel h2").textContent}"`);
-    }
-    go("lights", { reset: true }); await frames();
-    const lit = litSubjects();
-    ok($$("#panel .light-row").length === lit.length, `panel home: ${lit.length} lit things on the map, then the ${q.length} queued questions under them`, `panel home: ${$$("#panel .light-row").length} lit rows`);
+    ok(!$$("#panel .q-row, #panel .light-row").length && !/waiting/i.test($("#panel h2").textContent + ($("#panel .p-lede") || { textContent: "" }).textContent), "panel: no What's waiting list, count or title; the default summary is the section's page or Needs you", `panel: "${$("#panel h2").textContent}"`);
     const need = Queue.needsYou(), counts = Queue.counts(), masters = Object.fromEntries($$("#masters .master").map((m) => [m.className.split(" ").find((c) => LEVELS.includes(c)), +$("b", m).textContent]));
     ok(!("caution" in masters) && (masters.warning || 0) === (counts.warning || 0) && (masters.unexamined || 0) === (counts.unexamined || 0) && (counts.warning || 0) >= need.late,
       `top bar: the plan-wide waiting number is gone; ${counts.warning || 0} overdue and ${counts.unexamined || 0} not reviewed show only when above zero`, `top bar ${JSON.stringify(masters)} against counts ${JSON.stringify(counts)}`);
@@ -1760,8 +1743,7 @@ const SelfTest = (() => {
     }
     if (D.pending.length) {
       go("lights", { reset: true }); await frames();
-      ok(!!$("#pending-chip") && ($$("#panel .light-row .lamp.pending").length >= 1 || D.pending.every((m) => lightOf(m.key) && lightOf(m.key).level !== "pending")),
-        `pending approval: the header chip counts ${D.pending.length} and What's waiting includes them`, "pending approval: no chip or no pending row in What's waiting");
+      ok(!!$("#pending-chip"), `pending approval: the header chip counts ${D.pending.length}`, "pending approval: no chip with pending decisions");
     } else ok(!$("#pending-chip"), "pending approval: no chip when nothing is pending", "pending approval: a chip with nothing pending");
     ok(day("2026-10-12") === "Oct 12" && dayYear("2026-10-12") === "Oct 12, 2026" && day("2027-02-02") === "Feb 2" && dayYear("soon") === "soon",
       "dates: the month comes first, and the year follows a comma when it is wanted", "dates: day/dayYear gave " + JSON.stringify([day("2026-10-12"), dayYear("2026-10-12")]));
@@ -2142,7 +2124,7 @@ const VoiceGate = (() => {
       if (D.designs[k]) for (const [tab] of Inside.TABS) { Inside.open(k, "components", { tab }); note(`${titleOf(k)}, design tab ${tab}`); }
       Inside.open(k, "containers");
       const page = Nav.pageBeside();
-      for (const [name, root] of [["The design", Inside.designKey()], ["The page", page ? "read:" + page : ""], ["What's waiting", "lights"]]) {
+      for (const [name, root] of [["The design", Inside.designKey()], ["The page", page ? "read:" + page : ""], ["Needs you", "lights"]]) {
         if (root) { App.root = root; App.trail = []; Panel.render(); note(`${titleOf(k)}, panel tab ${name}`); }
       }
       go(k, { reset: true }); note(`panel, app ${titleOf(k)}`);

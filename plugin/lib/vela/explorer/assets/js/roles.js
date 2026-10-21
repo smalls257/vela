@@ -161,8 +161,7 @@ const Roles = (() => {
     const P = D.progress, stages = P.stages;
     grid.append(card("Progress", ["Progress", () => { Nav.open("apps"); showView("progress"); }],
       h("div", { class: "kpi-row" }, h("div", {}, h("b", {}, P.rows.filter((r) => r.stage).length), h("span", {}, "apps in progress")),
-        h("div", {}, h("b", { "data-quantity": "needsYou", "data-n": Queue.needsYou().n }, Queue.needsYou().n), h("span", {}, "waiting"),
-          h("small", { class: "muted", "data-quantity": "openQuestions", "data-n": D.counts.openQuestions }, `${plural(D.counts.openQuestions, "open question")} in all`))),
+        h("div", {}, h("b", { "data-quantity": "openQuestions", "data-n": D.counts.openQuestions }, D.counts.openQuestions), h("span", {}, D.counts.openQuestions === 1 ? "open question" : "open questions"))),
       h("div", { class: "shares" }, P.shares.map((x) => h("div", { class: "share" }, h("span", {}, x.name), h("div", { class: "bar" }, h("span", { style: `width:${x.total ? ((100 * x.done) / x.total).toFixed(1) : 100}%` })), h("span", { class: "v" }, `${x.done} of ${x.total}`))))));
     grid.append(card("Where each app stands", ["Apps", () => Nav.open("apps")], list(P.rows.filter((r) => r.stage), 7, (r) => h("li", {}, lamp(levelOf(r.app)), h("a", { "data-ref": r.app }, E[r.app].title),
       h("span", { class: "ladder inline" }, stages.map((x, i) => h("span", { class: i < stages.indexOf(r.stage) ? "done" : i === stages.indexOf(r.stage) ? "cur" : "", title: x }))), h("span", { class: "muted small" }, ` ${stepText(r.stage)}`)))));

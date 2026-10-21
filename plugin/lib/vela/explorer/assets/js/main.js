@@ -22,7 +22,7 @@ if (STILL) document.documentElement.classList.add("still");
 
 function renderMasters() {
   const box = $("#masters"), counts = Queue.counts();  // a question counts once however many things it holds
-  // The plan-wide "waiting" number is gone from here: it counted what the whole plan was waiting on, so everyone saw the same
+  // The plan-wide "waiting" number is gone from here (and from the panel): it counted what the whole plan was waiting on, so everyone saw the same
   // 14 and nobody knew which were theirs. The badge below counts what needs the person viewing (Needs.count). Overdue is the
   // part of the plan that is late, and a lamp at zero is noise on every screen, so overdue and not-reviewed hide at zero.
   const QUANTITY = { warning: "overdue", unexamined: "unreviewed" };
@@ -32,17 +32,13 @@ function renderMasters() {
   for (const [lv, word] of [["warning", "overdue"], ["unexamined", LIGHT.unexamined.word.toLowerCase()]]) {
     const n = counts[lv] || 0;
     if (!n) continue;
-    box.append(h("button", { class: `master ${lv} on`, title: tip(lv, n), onclick: () => { go("lights", { reset: true }); } },
+    box.append(h("button", { class: `master ${lv} on`, title: tip(lv, n), onclick: () => Nav.open(lv === "warning" ? "unknowns" : "concerns") },
       h("b", { "data-quantity": QUANTITY[lv], "data-n": n }, n), h("span", {}, word)));
   }
   const mine = Needs.count();
   if (mine) {  // not a lamp: what needs the person viewing, whatever its level
     box.append(h("button", { class: "for-you-badge", id: "for-you-badge", title: `${plural(mine, "thing")} for ${Viewer.hasPerson() ? Viewer.name() : "this role"}, most urgent first. Click to see them.`, onclick: () => Needs.jump() },
       h("b", { "data-quantity": "forYou", "data-n": mine }, mine), h("span", {}, "for you")));
-  }
-  if (Grills.exists() && Grills.count()) {  // not a lamp: the grills for this reader, whatever their level
-    box.append(h("button", { class: "grills-badge on", id: "grills-badge", title: Grills.badgeTip(), onclick: () => Grills.open() },
-      h("b", { "data-grills-count": Grills.count() }, Grills.count()), h("span", {}, Grills.badgeWords())));
   }
 }
 /* The things set once and left: the theme, in one gear at the far right (the sound button and the Animation switch are gone). */

@@ -99,9 +99,9 @@ def test_search_is_one_row_per_thing_with_app_pills(chrome, heron):
 
 @pytest.mark.browser
 def test_one_waiting_number_and_notes_in_an_i(chrome, heron):
-    """Findings 7 and 13: one "N waiting", in the panel only (parts on hover), and none on the top bar; the map's notes are an i."""
+    """Findings 7 and 13: no plan-wide "N waiting" in the top bar, the panel or the Progress card (the person's count is "N for you"); the map's notes are an i."""
     lines = selftest(chrome, heron, 1440)
-    need(lines, "waiting: one number", "waiting: the sidebar's count", "Home: no banner or note lines above the map", "Home: the i opens the notes in place")
+    need(lines, "waiting: no \"N waiting\"", "waiting: the sidebar's count", "Home: no banner or note lines above the map", "Home: the i opens the notes in place")
 
 
 @pytest.mark.browser
@@ -143,11 +143,11 @@ def test_overview_map_only_where_the_map_is_the_subject_and_labels_say_what_they
 
 
 @pytest.mark.browser
-def test_waiting_wording_and_the_filter_that_needs_to_know_the_reader(chrome, heron):
-    """The user: the dashboard does not know who is reading, so it says "waiting", never "need you". Waiting on you is a
-    filter that only exists with a known handle or a picked role door."""
+def test_the_viewing_as_pick_is_the_one_viewer(chrome, heron):
+    """The dashboard does not know who is reading until a handle is built in or a role is picked under Viewing as; that pick is
+    the one viewer Needs you reads (the old Waiting on you filter is gone)."""
     lines = selftest(chrome, heron, 1440)
-    need(lines, "waiting: with no handle and no role door", "waiting: a reader who picked the Product door")
+    need(lines, "viewing as: the sidebar menu sets the one role")
 
 
 def test_only_a_page_built_for_one_person_carries_a_handle(tmp_path):

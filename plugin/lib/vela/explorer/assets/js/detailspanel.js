@@ -5,7 +5,6 @@
    little differently. The panel owns the behavior; a page owns only what it says.
 
    What the panel owns
-   - The two tabs, Details and What's waiting.
    - The trail. The page's summary is the root; every thing shown is a key in App.trail (the same trail go() keeps), so
      a link, a chip with data-ref, a node wired with Nodes.wire and the browser's own history all land in one place.
      The trail reads "Design › NoteClient › Note request", each earlier name returns there, and "← back" pops one.
@@ -25,8 +24,6 @@
      detail(key)  nodes for an owned key; its first .p-head may take the Open button
      label(key)   the key's short name in the trail (owned keys; others use titleOf)
      open(key)    null, or {label, run} when the key has a view of its own
-     waiting(key) nodes for the What's waiting tab, given what is picked (or null)  (required)
-     waitingCount() the number on the tab                                        (required)
      focus(key)   paint the diagram for what is picked, or clear it when null     (required)
      rendered()   called after Details is drawn, for a drawing that must be placed once it is on the page
    and it calls DetailsPanel.show(key) to pick (reset: true starts a new trail), .clear() for empty space, and
@@ -43,7 +40,7 @@ const DetailsPanel = (() => {
   const topKey = () => App.trail[App.trail.length - 1] || "";
 
   function register(name, spec) {
-    for (const need of ["view", "live", "rootLabel", "summary", "owns", "waiting", "waitingCount", "focus"]) {
+    for (const need of ["view", "live", "rootLabel", "summary", "owns", "focus"]) {
       if (spec[need] === undefined) throw new Error(`[details panel] ${name} must supply ${need}`);
     }
     pages[name] = spec;
@@ -79,11 +76,6 @@ const DetailsPanel = (() => {
     return h("button", { class: "linkish dp-link", type: "button", "data-dp": key, title: title || null, onclick: (ev) => { ev.stopPropagation(); show(key); } }, text);
   }
 
-  function tabs(spec) {
-    const n = spec.waitingCount();
-    const tab = (id, text) => h("button", { role: "tab", "aria-selected": String(st.tab === id), "aria-pressed": String(st.tab === id), "data-dp-tab": id, onclick: () => setTab(id) }, text);
-    return h("div", { class: "p-homes dp-tabs", role: "tablist", "aria-label": "Details" }, tab("details", "Details"), tab("waiting", n ? `What's waiting ${n}` : "What's waiting"));
-  }
   function trail(spec) {
     const keys = App.trail, last = keys.length - 1;
     const first = h("button", { class: "linkish", type: "button", onclick: () => clear() }, typeof spec.rootLabel === "function" ? spec.rootLabel() : spec.rootLabel);
@@ -108,8 +100,6 @@ const DetailsPanel = (() => {
     const spec = current();
     const key = topKey();
     if (key !== st.seen) { st.seen = key; st.tab = "details"; }  // a new thing is picked: show it
-    root.append(tabs(spec));
-    if (st.tab === "waiting") { root.append(...[].concat(spec.waiting(key || null)).filter(Boolean)); return; }
     if (key) root.append(...trail(spec));
     const nodes = key ? (spec.owns(key) ? spec.detail(key) : Panel.keyNodes(key)) : spec.summary();
     root.append(...(key ? withOpen(spec, key, nodes.filter(Boolean)) : nodes.filter(Boolean)));
@@ -331,8 +321,7 @@ const PlanDetails = (() => {
         readLink("releases"))];
   }
 
-  /* ---- the What's waiting tab: what holds up the pick first, then the rest. "queue" is the one count every page gives
-     (Queue.needsYou, E60); "asks" is Who to ask's own board, which lists every open question. */
+  /* ---- the open questions that hold up a pick (a flow, a step, an app, a person's questions), for the details that list them. */
   function relatedQuestions(key) {
     if (!key) return [];
     if (isStep(key)) {
@@ -346,20 +335,6 @@ const PlanDetails = (() => {
     if (FLOW[key]) ids.push(...FLOW[key].unknowns, ...FLOW[key].steps.flatMap((s) => s.unknowns.map((x) => x.id)));
     return [...new Set(ids)];
   }
-  const queueIds = () => Queue.items().filter((x) => NEEDS.includes(x.level)).map((x) => x.id);
-  const openIds = () => D.asks.filter(isOpen).sort((a, b) => rank(b.light.level) - rank(a.light.level) || b.light.urgency - a.light.urgency || cmp(a.id, b.id)).map((u) => u.id);
-  const lit = () => Queue.otherLit().filter((x) => NEEDS.includes(x.light.level));
-  const waitingCount = (scope) => (scope === "asks" ? D.counts.openQuestions : Queue.needsYou().n);
-  function waitingTab(key, scope) {
-    const ids = scope === "asks" ? openIds() : queueIds(), things = scope === "asks" ? [] : lit();
-    if (!ids.length && !things.length) return [quiet(scope === "asks" ? "No open question is waiting on an answer." : "Nothing is waiting.")];
-    const mine = relatedQuestions(key).filter((id) => ids.includes(id)), rest = ids.filter((id) => !mine.includes(id));
-    const thingRow = (x) => h("button", { class: "wq", type: "button", "data-thing": x.key, onclick: () => DetailsPanel.show(x.key, { reset: true }) },
-      h("b", {}, lampEl(x.light.level), " ", titleOf(x.key)), h("small", {}, (x.light.reasons.find((r) => r.text) || {}).text || LIGHT[x.light.level].say));
-    return [mine.length ? h("div", { class: "gl" }, `Holding up ${label(key)}`) : null, ...mine.map(questionRow),
-      (mine.length && rest.length) ? h("div", { class: "gl" }, "Others") : (rest.length ? h("div", { class: "gl" }, "Open questions") : null), ...rest.map(questionRow),
-      things.length ? h("div", { class: "gl" }, "Not decided yet") : null, ...things.map(thingRow)].filter(Boolean);
-  }
 
   /* Detail for any key this file owns; a page calls it from its own detail(). */
   function detail(key, view) {
@@ -372,5 +347,5 @@ const PlanDetails = (() => {
     return appNodes(key);
   }
 
-  return { prose, aboutSection, owns, detail, label, held, openFor, openRow, waitingTab, waitingCount, relatedQuestions, questionRow, stepKey, parseStep, isStep, personKey, whoOf, askedOf, head, sec, bullets, quiet, link, joined, readLink, isQuestion, NEEDS, byDue };
+  return { prose, aboutSection, owns, detail, label, held, openFor, openRow, relatedQuestions, questionRow, stepKey, parseStep, isStep, personKey, whoOf, askedOf, head, sec, bullets, quiet, link, joined, readLink, isQuestion, NEEDS, byDue };
 })();

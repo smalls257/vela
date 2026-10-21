@@ -32,6 +32,8 @@ WANTED = [
     "needs you: with a date on their side the empty line names it",
     "needs you: with nobody viewing the block says how to pick someone and does not say \"you\"",
     "needs you: no What's waiting in the sidebar, no queue card on the map, no \"waiting\" badge in the top bar",
+    "needs you: no What's waiting title, tab or count in the panel, sidebar or top bar, and the one badge is \"for you\"",
+    "needs you: the block has no stray null or undefined text",
 ]
 
 

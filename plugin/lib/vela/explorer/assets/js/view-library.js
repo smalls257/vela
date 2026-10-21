@@ -194,7 +194,6 @@ const Library = (() => {
     view: "library", live: () => rows.length > 0, rootLabel: "Library", summary: summaryNodes,
     owns: (k) => !!BY[k] || PlanDetails.owns(k), detail: (k) => (BY[k] ? nodes(k) : PlanDetails.detail(k, "library")),
     label: (k) => (BY[k] ? BY[k].title : PlanDetails.label(k)), open: (k) => (BY[k] ? null : PlanDetails.openFor(k, "library")),
-    waiting: (k) => PlanDetails.waitingTab(k, "queue"), waitingCount: () => PlanDetails.waitingCount("queue"),
     focus: (k) => { if (!k) closeItem(); else if (BY[k] && st.open !== k) { st.open = k; if (App.view === "library") paint(); } },
   });
   /* The search box's own: items whose title, format or related names hold every word typed. */

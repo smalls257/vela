@@ -83,11 +83,26 @@ const Needs = (() => {
     el.append(h("div", { class: "ny-hd" }, h("b", {}, "Needs you"), h("span", {}, `${plural(list.length, "thing")}, most urgent first`)), ...body(list), ...[joinLink()].filter(Boolean));
     return el;
   }
+  /* The right-hand panel's default summary where no section page is beside the visual: the same lines, in the panel's width, with
+     no id (the overview's block owns it). On a role overview the block is already the main page, so the panel says nothing twice. */
+  function lede(opts = {}) {
+    const n = count(), hint = opts.queue === false ? " Pick a box on the map to read it here." : "";
+    if (App.view === "role") return "Pick something on the page to read it here.";
+    if (!Viewer.known()) return "Pick who is viewing, under Viewing as in the sidebar, and this lists what needs them." + hint;
+    return (n ? `${plural(n, "thing")}, most urgent first.` : "Nothing needs you right now.") + hint;
+  }
+  function panel() {
+    const list = lines();
+    if (App.view === "role" || !Viewer.known() || !list.length) return null;
+    const el = h("section", { class: "needs-you needs-panel", "data-n": String(list.length) }, ...list.slice(0, SHOWN).map(lineEl));
+    if (list.length > SHOWN) el.append(h("button", { class: "linkish ny-more", type: "button", onclick: () => Nav.overview() }, `${list.length - SHOWN} more on the overview`));
+    return el;
+  }
   /* The badge's jump: to the viewer's role overview if they are not on one, then to the block. */
   function jump() {
     if (App.view !== "role") Nav.overview();
     const el = box();
     if (el) { el.scrollIntoView({ block: "start" }); el.focus({ preventScroll: true }); }
   }
-  return { block, count, lines, nextDate, jump, SHOWN, st };
+  return { block, lede, panel, count, lines, nextDate, jump, SHOWN, st };
 })();
