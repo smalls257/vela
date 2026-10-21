@@ -44,6 +44,8 @@ HERE = pathlib.Path(__file__).resolve().parent
 # marked, the Markdown parser the offline viewer already vendors (its license and checksum are in that folder's NOTICE.md).
 # The page inlines it whole, with its copyright header, so Ask Claude can show an answer as Markdown with no network.
 MARKED = HERE.parent / "assets" / "marked.min.js"
+MERMAID = HERE.parent / "assets" / "mermaid.min.js"
+MERMAID_SAFE = HERE.parent / "assets" / "mermaid-safe.js"  # also viewer.py's: one set of rules for drawing a diagram offline
 
 
 class ExplorerError(Exception):
@@ -51,10 +53,10 @@ class ExplorerError(Exception):
     says which and why; nothing is written."""
 
 # The page's script and style, in load order: shared code first, one module per view, the boot last.
-JS_MODULES = ("core", "theme", "fx", "menus", "assets", "icons", "layout", "pan", "geometry", "search", "minimap", "reader", "queue", "panel", "panelsize", "detailspanel", "motion", "view-map",
+JS_MODULES = ("core", "theme", "fx", "menus", "assets", "icons", "layout", "pan", "geometry", "capfocus", "diagrams", "search", "minimap", "reader", "queue", "panel", "panelsize", "detailspanel", "motion", "view-map",
               "wires", "mapgroups", "releases", "slices", "flowkit", "flowpicker", "branches", "view-flows", "rehearse", "view-asks", "view-decisions", "view-library", "view-grills", "view-progress",
               "view-trace", "sections", "roles", "onboard", "nav", "markdown", "ask", "inside", "plan", "drafts", "freshness", "main")
-SELFTEST_MODULES = ("selftest", "selftest-branches", "selftest-qol", "selftest-inside", "selftest-onboard", "selftest-details", "selftest-library", "selftest-grills")  # 120 KB of checks: bundled only when asked (`vela explore --selftest`), not shipped to every reader
+SELFTEST_MODULES = ("selftest", "selftest-branches", "selftest-qol", "selftest-inside", "selftest-onboard", "selftest-details", "selftest-library", "selftest-grills", "selftest-zoom", "selftest-capfocus", "selftest-diagrams")  # 120 KB of checks: bundled only when asked (`vela explore --selftest`), not shipped to every reader
 CSS_MODULES = ("base", "menus", "nav", "panel", "compact", "map", "queue", "flows", "rehearse", "asks", "decisions", "pages", "reader", "roles", "onboard",
                "releases", "slices", "branches", "ask", "inside", "plan", "pending", "drafts", "library", "grills", "themes", "plain")
 
@@ -308,22 +310,13 @@ def provider_key(vault, keys, contract, parties_by_name):
 
 
 PROSE_BREAK = re.compile(r"\s*(?:[,;:\u2014]|\s-\s|\()")
-NAME_CAP = 32
-
-
-def external_title(said):
-    """The name to draw for a provider a contract names in running text: the words before the first comma, colon or
-    bracket, cut at a word under NAME_CAP characters. "the pilot user, on their own laptop" is drawn "the pilot user".
-    A short plain name ("Stripe") is returned unchanged. The full text stays on the node as `said`."""
-    head = external_name(said)
-    if len(head) <= NAME_CAP:
-        return head
-    return head[:NAME_CAP].rsplit(" ", 1)[0].rstrip(" ,;:") + "\u2026"
 
 
 def external_name(said):
-    """The words before the first comma, colon or bracket, whole. The map's boxes are small and take external_title; a flow's column header
-    wraps, so it takes this and never shows the cut."""
+    """The name to draw for a provider a contract names in running text: the words before the first comma, colon or bracket, whole.
+    "the pilot user, on their own laptop" is drawn "the pilot user". A short plain name ("Stripe") is returned unchanged. The map's
+    boxes and a flow's column header both wrap it; neither cuts it, so no name on the page ends in an ellipsis. The full text stays
+    on the node as `said`."""
     return PROSE_BREAK.split(said, 1)[0].strip() or said
 
 
@@ -346,7 +339,7 @@ def system_map(vault, keys):
     with_contract = {c["provider"] for c in contracts}
     parties = [{"key": p.id, "title": p.name, "hasContract": p.id in with_contract} for p in vault.parties]
     return {"apps": apps, "contracts": contracts, "parties": parties,
-            "externals": [{"key": k, "title": external_title(v), "said": v,
+            "externals": [{"key": k, "title": external_name(v), "said": v,
                            "contracts": [c["id"] for c in contracts if c["provider"] == k]} for k, v in sorted(externals.items())]}
 
 
@@ -704,6 +697,7 @@ def render(data, assets=None, selftest=False):
     css = "\n".join((HERE / "assets" / "css" / f"{m}.css").read_text(encoding="utf-8") for m in CSS_MODULES)
     js = "\n".join(f"/* ---- {m}.js ---- */\n" + (HERE / "assets" / "js" / f"{m}.js").read_text(encoding="utf-8")
                    for m in (*JS_MODULES[:-1], *(SELFTEST_MODULES if selftest else ()), JS_MODULES[-1]))
+    js = f"/* ---- mermaid-safe.js ---- */\n{MERMAID_SAFE.read_text(encoding='utf-8')}\n{js}"
     if assets:
         resolver = assets["resolver"]
         if "</script" in resolver.lower():
@@ -726,8 +720,20 @@ def render(data, assets=None, selftest=False):
     if theme not in THEME_IDS:
         raise ValueError(f"theme {theme!r} is not one of {', '.join(THEME_IDS)}")
     page = (shell.replace("{{TITLE}}", title).replace("{{THEME}}", theme).replace("/*{{CSS}}*/", css).replace("{{DATA}}", safe_json(data))
-            .replace("<!--{{ASSETS}}-->", inline).replace("<!--{{MARKED}}-->", f"<script>{marked}</script>").replace("/*{{JS}}*/", js))
+            .replace("<!--{{ASSETS}}-->", inline).replace("<!--{{MARKED}}-->", f"<script>{marked}</script>").replace("<!--{{MERMAID}}-->", mermaid_script(data)).replace("/*{{JS}}*/", js))
     return page.replace("<style>", f'<meta http-equiv="Content-Security-Policy" content="{content_security_policy(page)}">\n<style>', 1)
+
+
+def mermaid_script(data):
+    """The Mermaid renderer, inline, only when a design carries a diagram the step-through reader can't take (a flowchart,
+    a state diagram, a sequence with rect or quoted names). Hashed into the page's CSP with the other inline scripts."""
+    if not design_data.needs_drawing_library(data.get("designs") or {}):
+        return ""
+    try:
+        source = MERMAID.read_text(encoding="utf-8").replace("</script", "<\\/script")
+    except OSError as exc:
+        raise ExplorerError(f"cannot read {MERMAID}, which draws the design's flowcharts and state diagrams: {exc}") from exc
+    return f"<script>{source}</script>"
 
 
 INLINE_SCRIPT = re.compile(r"<script(?![^>]*application/json)[^>]*>(.*?)</script>", re.S)

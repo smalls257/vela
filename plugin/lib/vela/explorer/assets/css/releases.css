@@ -64,6 +64,8 @@ ul.rc-reqs { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
 .ctx-parties { padding: 10px 22px 14px; font-size: 13px; }
 .board-releases .rel-grid { min-width: 0; }
 .rel-side { padding-right: 6px; }
+/* the map's box stops growing with the tall column the side cards make, so its zoom bar stays where a reader looks */
+.rel-mapbox { max-height: max(420px, 82vh); }
 .rel-grid.big { grid-template-columns: minmax(0, 1fr) 236px; }
 .rel-grid.big .rc-row { grid-template-columns: 1fr; gap: 1px; }
 .rl-map .rl-glyph { color: var(--rl-sub); }

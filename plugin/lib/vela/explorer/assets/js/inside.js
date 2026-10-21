@@ -231,12 +231,21 @@ const Inside = (() => {
     const face = (f) => (f === MONO ? getComputedStyle(document.documentElement).getPropertyValue("--mono") : getComputedStyle(document.body).fontFamily);
     return (text, size, weight, family) => { ctx.font = `${weight || 400} ${size}px ${face(family)}`; return ctx.measureText(text).width; };
   })();
-  function fit(text, width, size, weight, family) {
-    let t = String(text || "");
-    if (measure(t, size, weight, family) <= width) return t;
-    while (t.length > 2 && measure(t + "…", size, weight, family) > width) t = t.slice(0, -1);
-    return t.trimEnd() + "…";
+  /* Rows of text in a box, top to bottom, each wrapped by LabelFit (never cut, never "…"). A row gives its x in the box, its room,
+     its type, and either `base` (its first baseline) or `after` (how far under the previous row's last baseline it starts); the box
+     is at least `minH` tall and at least as tall as its last line needs. putRows draws what textRows measured. */
+  function textRows(specs, minH) {
+    const rows = [];
+    let last = null;
+    for (const sp of specs) {
+      if (!sp.text) continue;
+      const f = LabelFit.fit(sp.text, sp.room, { size: sp.size, weight: sp.weight, mono: sp.mono, max: sp.max });
+      const base = last === null ? sp.base : last + sp.after;
+      rows.push({ ...sp, base }); last = base + (f.lines.length - 1) * f.lh;
+    }
+    return { rows, h: Math.max(minH, Math.ceil((last === null ? 0 : last) + 9)) };
   }
+  const putRows = (grp, b, rows) => rows.forEach((r) => LabelFit.put(grp, { x: b.x + r.x, y: b.y + r.base, class: r.cls }, r.text, r.room, { size: r.size, weight: r.weight, mono: r.mono, max: r.max }));
 
   /* ------------------------------------------------------------ a layered drawing, left to right
      Sugiyama's method, kept small and deterministic: cycles broken in document order, each node at the end of its
@@ -384,12 +393,13 @@ const Inside = (() => {
       Legend.saw(e.soft ? (lay.looks || {}).soft : (lay.looks || {}).solid);
       if (e.lit) Legend.saw("lamp." + e.lit);
       if (!e.label) continue;
-      const text = fit(e.label, 168, 11.5, 500, MONO), w = measure(text, 11.5, 500, MONO) + 14, r = placeLabel(pts, w, 20, obs, lay.gaps, lay.dir);
+      const lf = LabelFit.fit(e.label, 168, { size: 11.5, weight: 500, mono: true }), w = Math.max(...lf.lines.map((l) => LabelFit.width(l, lf.size, 500, true))) + 14, lh = Math.max(20, Math.ceil(lf.lines.length * lf.lh + 6));
+      const r = placeLabel(pts, w, lh, obs, lay.gaps, lay.dir);
       if (!r) { hidden++; continue; }
       obs.push(r);
       const g = s("g", { class: "in-label" + (e.onpick ? " pick" : "") + (e.lit ? " lit " + e.lit : ""), "data-label": e.label, "data-from": e.from, "data-to": e.to, ...(e.cons ? { "data-cons": e.cons } : {}) }, gLabels);
       s("rect", { x: r.x, y: r.y, width: r.w, height: r.h, rx: 4 }, g);
-      s("text", { x: r.x + r.w / 2, y: r.y + 14, "text-anchor": "middle" }, g).textContent = text;
+      LabelFit.put(g, { x: r.x + r.w / 2, y: r.y + r.h / 2 - (lf.lines.length - 1) * lf.lh / 2 + 4, "text-anchor": "middle" }, e.label, 168, { size: 11.5, weight: 500, mono: true });
       s("title", {}, g).textContent = e.title || e.label;
       if (e.onpick) Nodes.wire(g, { label: `${e.label}: ${e.title || "a contract"}`, open: e.onpick });
     }
@@ -421,8 +431,6 @@ const Inside = (() => {
     const centerOn = (x, y) => { const p = at(x, y); holder.scrollLeft = p.x - holder.clientWidth / 2; holder.scrollTop = p.y - holder.clientHeight / 2; };
     const centerNow = () => { const k = +holder.dataset.scale; return { x: x0 + (holder.scrollLeft + holder.clientWidth / 2 - at(x0, y0).x) / k, y: y0 + (holder.scrollTop + holder.clientHeight / 2 - at(x0, y0).y) / k }; };
     const mini = opts.open === "read" ? minimap(svg, holder, { x0, y0, w, ht, lg: opts.lg }) : null;
-    // drag the background to pan: it scrolls the holder, so the zoom and the minimap keep telling the truth
-    Pan.attach(holder, { key: "inside-" + zkey, svg: () => svg, scrollOnly: true });
     const apply = () => {
       const k = scaleOf();
       svg.setAttribute("width", Math.round(w * k)); svg.setAttribute("height", Math.round(ht * k));
@@ -438,7 +446,7 @@ const Inside = (() => {
       const keep = centerNow();
       apply(); centerOn(keep.x, keep.y);
     };
-    const observer = new ResizeObserver(fitIt);
+    const observer = new ResizeObserver((entries) => requestAnimationFrame(() => fitIt(entries)));  // a frame later: sizing the drawing can add a scrollbar, which resizes the holder again
     observer.observe(holder);
     addEventListener("resize", fitIt);  // the tabs fold away and say so with a resize
     apply();
@@ -449,12 +457,12 @@ const Inside = (() => {
       if (z === null && opts.focus) showFocus(); else if (z !== "whole") centerOn(keep.x, keep.y);
     };
     const now = () => +holder.dataset.scale;
-    // the controls sit on the frame around the holder, not in it: inside a scrolling holder they took a column of room
-    frame.append(h("div", { class: "in-zoom", role: "group", "aria-label": "Zoom" },
-      h("button", { title: "Zoom out", onclick: () => set(Math.max(0.3, now() / 1.25)) }, "−"),
-      h("button", { title: "Fit the whole drawing in view", onclick: () => set("whole") }, "Fit"),
-      h("button", { title: opts.open === "read" ? "Back to a size you can read, centered on the main box" : "Back to a size you can read, scrolling if it must", onclick: () => set(null) }, "Reading size"),
-      h("button", { title: "Zoom in", onclick: () => set(Math.min(2, now() * 1.25)) }, "+")));
+    // the shared zoom bar (pan.js) sits on the frame around the holder, not in it: inside a scrolling holder it took a column of room.
+    // This drawing sizes itself, so it hands pan.js its own zoom; dragging the background scrolls the holder, which the zoom and the minimap follow.
+    const engine = { zoomBy: (f) => set(Math.min(2, Math.max(Math.min(0.3, whole()), now() * f))), fit: () => set("whole"), reading: () => set(null),
+      panBy: (x, y) => { holder.scrollLeft += x; holder.scrollTop += y; } };
+    Pan.attach(holder, { key: "inside-" + zkey, svg: () => svg, scrollOnly: true, engine, frame,
+      readingTitle: opts.open === "read" ? "Back to a size you can read, centered on the main box" : "Back to a size you can read, scrolling if it must" });
     if (mini) frame.append(mini.el);
   }
   /* The whole drawing, small, with the part in view lit; click or drag to move there. It shows only while the
@@ -504,11 +512,12 @@ const Inside = (() => {
     return el;
   }
   function frameAround(g, rects, label, sub) {
-    const b = boundsOf(rects), pad = 26, x = b.x0 - pad, y = b.y0 - pad - 30, w = b.x1 - b.x0 + pad * 2, ht = b.y1 - b.y0 + pad * 2 + 30;
+    const b = boundsOf(rects), pad = 26, w = b.x1 - b.x0 + pad * 2, nf = LabelFit.fit(label, w - 32, { size: 13.5, weight: 600 }), extra = Math.ceil((nf.lines.length - 1) * nf.lh);
+    const x = b.x0 - pad, y = b.y0 - pad - 30 - extra, ht = b.y1 - b.y0 + pad * 2 + 30 + extra;  // a long name takes a second line, and the frame grows to hold it
     s("rect", { x, y, width: w, height: ht, rx: 16, class: "in-frame" }, g);
-    const t = s("text", { x: x + 16, y: y + 22, class: "in-frame-name in-head" }, g); t.textContent = fit(label, w - 32, 13.5, 600);
+    const t = LabelFit.put(g, { x: x + 16, y: y + 22, class: "in-frame-name in-head" }, label, w - 32, { size: 13.5, weight: 600 });
     if (sub) s("title", {}, t).textContent = sub;
-    return { x, y, w, h: ht, name: { x: x + 16, y: y + 8, w: measure(t.textContent, 13.5, 600), h: 18 } };
+    return { x, y, w, h: ht, name: { x: x + 16, y: y + 8, w: Math.max(...nf.lines.map((l) => LabelFit.width(l, 13.5, 600))), h: 18 + extra } };
   }
   function columnHeads(g, lay, side, text) {
     const rects = Object.values(lay.box).filter((b) => b.node.side === side);
@@ -536,7 +545,10 @@ const Inside = (() => {
       "ic.contract": "path.in-edge:not(.soft):not(.loose)", "ic.soft": "path.in-edge.soft", "picked": PICKS }, PICKS);
     stage.append(Menus.frame({ right: [Menus.keyButton(lg), fullButton(), Nav.moreMenu(insideMore)] }, h("div", { class: "inside-frame" }, holder)), h("div", { class: "inside-hint" }, `${plural(c.rows.length, "container")}. Arrows to other apps are its contracts`,
       c.edges.length ? h("span", { class: "heuristic" }, "; dashed ones come from the page's diagram") : "; the page's diagram doesn't draw any between containers", ". Click one for its details."));
-    const nodes = c.rows.map((r) => ({ id: "k:" + r.name, kind: "container", w: 214, h: 72, row: r }));
+    const meta = (r) => [STATE_WORD[r.state] || r.state, r.proposedBy ? "suggested by " + person(r.proposedBy) : ""].filter(Boolean).join(" · ");
+    const words = (r, w) => textRows([{ cls: "in-box-name", text: r.name, x: 36, room: w - 46, size: 14, weight: 600, base: 27 }, { cls: "in-box-sub", text: r.job, x: 14, room: w - 24, size: 11.5, after: 21 },
+      { cls: "in-box-meta", text: meta(r), x: 14, room: w - 24, size: 10.5, after: 15 }], 72);
+    const nodes = c.rows.map((r) => ({ id: "k:" + r.name, kind: "container", w: 214, h: words(r, 214).h, row: r }));
     const edges = [], stub = {};
     const addStub = (k, side) => { const id = `v:${side}:${k}`; if (!stub[id]) { stub[id] = true; nodes.push({ id, kind: "vault", side, w: 176, h: 62, vkey: k }); } return id; };
     for (const r of c.rows) {
@@ -563,9 +575,7 @@ const Inside = (() => {
         const r = b.node.row, grp = s("g", { class: "in-node in-box container", tabindex: 0, role: "button", "data-key": key(app, "ct", r.name), "aria-label": `${r.name}: ${r.job}` }, g);
         s("rect", { x: b.x, y: b.y, width: b.w, height: b.h, rx: 10, class: "in-box-face" }, grp);
         Icons.put(grp, glyphFor(r.name), b.x + 20, b.y + 22, 18, "node-glyph");
-        s("text", { x: b.x + 36, y: b.y + 27, class: "in-box-name" }, grp).textContent = fit(r.name, b.w - 46, 14, 600);
-        s("text", { x: b.x + 14, y: b.y + 48, class: "in-box-sub" }, grp).textContent = fit(r.job, b.w - 24, 11.5);
-        s("text", { x: b.x + 14, y: b.y + 63, class: "in-box-meta" }, grp).textContent = fit([STATE_WORD[r.state] || r.state, r.proposedBy ? "suggested by " + person(r.proposedBy) : ""].filter(Boolean).join(" · "), b.w - 24, 10.5);
+        putRows(grp, b, words(r, b.w).rows);
         s("title", {}, grp).textContent = `${r.name}: ${r.job}`;
         pick(grp, key(app, "ct", r.name));
       },
@@ -648,7 +658,7 @@ const Inside = (() => {
     let down = null;
     holder.addEventListener("pointerdown", (ev) => { down = { x: ev.clientX, y: ev.clientY }; });
     holder.addEventListener("click", (ev) => {
-      if (ev.target.closest(".in-node, .in-label, .in-zoom, .in-mini, .dmenu")) return;
+      if (ev.target.closest(".in-node, .in-label, .zoom-bar, .in-mini, .dmenu")) return;
       if (down && Math.hypot(ev.clientX - down.x, ev.clientY - down.y) > 4) return;  // a drag that panned the drawing
       DetailsPanel.clear();
     });
@@ -662,13 +672,27 @@ const Inside = (() => {
   function drawComponents(holder, app, d, lg) {
     const P = PD(app), comps = d.components;
     const pc = (name) => (P && P.components[name]) || {};
-    const nodes = comps.map((c) => ({ id: "c:" + c.name, kind: "component", w: 206, h: 86, portH: 62, c }));
+    const owned = (name) => (d.trace[name] || []).length;
+    // What a component says, wrapped before it is drawn so its box (and its lip, which names what it offers) can grow to hold it.
+    const speak = (c, w) => {
+      const exposes = (c.exposes && said(c.exposes.trim().replace(/`/g, ""))), lip = exposes ? "exposes " + exposes : "doesn't say what it offers";
+      const lead = pc(c.name).lead || "The design doesn't say what it does.", waits = pc(c.name).waiting || [], n = owned(c.name), badge = n ? `${n}` : "";
+      const face = textRows([{ cls: "in-box-name", text: c.name, x: 36, room: w - 50 - (badge ? 30 : 0) - (waits.length ? 18 : 0), size: 14, weight: 600, base: 27 }, { cls: "in-box-sub", text: lead, x: 14, room: w - 24, size: 11.5, after: 21 }], 62);
+      const lipFit = LabelFit.fit(lip, w - 36, { size: 10.5, weight: 500, mono: !!exposes }), LIP = 24 + Math.ceil((lipFit.lines.length - 1) * lipFit.lh);
+      return { exposes, lip, lead, waits, n, badge, face, lipFit, LIP, h: face.h + LIP };
+    };
+    const speakStub = (x, link, w) => {
+      const nk = x.nodes.find((k) => NODE[k] && APPS[k] && k !== app), names = x.nodes.filter((q) => NODE[q]).map(titleOf);
+      return { nk, names, rows: textRows([{ cls: "in-box-name small", text: link.name, x: 36, room: w - 44, size: 13, weight: 600, base: 25 },
+        { cls: "in-box-sub", text: nk ? "another app in the plan" : names.length ? names.join(", ") : "outside the app", x: 12, room: w - 22, size: 11.5, after: 20 }], 56) };
+    };
+    const nodes = comps.map((c) => { const T = speak(c, 206); return { id: "c:" + c.name, kind: "component", w: 206, h: T.h, portH: T.face.h, c }; });
     const edges = d.depends.map((e) => ({ from: "c:" + e.from, to: "c:" + e.to, label: e.label, fromName: e.from, toName: e.to,
       title: e.label ? `${e.from} depends on ${e.to}, for ${e.label}` : `${e.from} depends on ${e.to} (the design doesn't say what ${e.to} offers it)` }));
     const loose = [];
     if (st.show !== "components") d.stubs.forEach((x, i) => {
       const side = x.direction === "in" ? "in" : "out", id = "s:" + i, link = P ? P.links[i] : { name: x.system, lines: [] };
-      nodes.push({ id, kind: "stub", side, w: 168, h: 56, stub: x, link, index: i });
+      nodes.push({ id, kind: "stub", side, w: 168, h: speakStub(x, link, 168).rows.h, stub: x, link, index: i });
       const lines = link.lines.filter((l) => comps.some((c) => c.name === l.component));
       if (!lines.length) { loose.push({ id, side, title: `${link.name}: no component in the design connects to it` }); return; }
       for (const l of lines) {
@@ -697,20 +721,16 @@ const Inside = (() => {
       s("path", { d: `M${a.x},${a.y}L${z.x},${z.y}`, class: "in-edge loose", "marker-end": "url(#in-arrow-soft)" }, gFrame)
         .appendChild(document.createElementNS(SVGNS, "title")).textContent = l.title;
     }
-    const owned = (name) => (d.trace[name] || []).length;
     const drawn = drawLayout(svg, lay, {
       component: (g, b) => {
         const c = b.node.c, k = key(app, "c", c.name), grp = s("g", { class: "in-node in-box component", tabindex: 0, role: "button", "data-key": k, "data-nid": b.node.id, "aria-label": `${c.name}: ${pc(c.name).lead || c.responsibility}` }, g);
-        const LIP = 24, tb = lay.dir === "TB", y = tb ? b.y + LIP : b.y, faceH = b.h - LIP;
-        const exposes = (c.exposes && said(c.exposes.trim().replace(/`/g, ""))), lip = exposes ? "exposes " + exposes : "doesn't say what it offers";
-        const lead = pc(c.name).lead || "The design doesn't say what it does.", waits = pc(c.name).waiting || [];
+        const T = speak(c, b.w), { LIP, exposes, lip, lead, waits, n, badge } = T, tb = lay.dir === "TB", y = tb ? b.y + LIP : b.y, faceH = b.h - LIP;
         Legend.saw("ic.component"); Legend.saw(exposes ? "ic.lip" : "ic.lip.missing");
         s("rect", { x: b.x + 10, y: tb ? b.y : b.y + faceH - 1, width: b.w - 20, height: LIP + 1, rx: 5, class: "in-lip" + (exposes ? "" : " missing") }, grp);
-        s("text", { x: b.x + 18, y: tb ? b.y + 16 : b.y + b.h - 8, class: "in-lip-text" + (exposes ? "" : " missing") }, grp).textContent = fit(lip, b.w - 36, 10.5, 500, exposes ? MONO : null);
+        LabelFit.put(grp, { x: b.x + 18, y: tb ? b.y + 16 : b.y + b.h - 8 - (T.lipFit.lines.length - 1) * T.lipFit.lh, class: "in-lip-text" + (exposes ? "" : " missing") }, lip, b.w - 36, { size: 10.5, weight: 500, mono: !!exposes });
         s("rect", { x: b.x, y, width: b.w, height: faceH, rx: 10, class: "in-box-face" }, grp);
         Icons.put(grp, glyphFor(c.name), b.x + 20, y + 22, 18, "node-glyph");
-        const n = owned(c.name), badge = n ? `${n}` : "";
-        s("text", { x: b.x + 36, y: y + 27, class: "in-box-name" }, grp).textContent = fit(c.name, b.w - 50 - (badge ? 30 : 0) - (waits.length ? 18 : 0), 14, 600);
+        putRows(grp, { x: b.x, y }, T.face.rows);
         if (badge) {
           Legend.saw("ic.owns");
           const w = measure(badge, 10.5, 600) + 12;
@@ -720,7 +740,6 @@ const Inside = (() => {
         if (waits.length) Legend.saw("ic.oq");
         if (waits.length) s("circle", { cx: b.x + b.w - (badge ? measure(badge, 10.5, 600) + 30 : 16), cy: y + 18, r: 5, class: "in-oq" }, grp)
           .appendChild(document.createElementNS(SVGNS, "title")).textContent = `${plural(waits.length, "open question")} hold${waits.length === 1 ? "s" : ""} it up`;
-        s("text", { x: b.x + 14, y: y + 48, class: "in-box-sub" }, grp).textContent = fit(lead, b.w - 24, 11.5);
         s("title", {}, grp).textContent = `${c.name}: ${lead}${n ? `\nDelivers ${plural(n, "item")} from the plan` : ""}\n${lip}`;
         pick(grp, k);
       },
@@ -732,9 +751,8 @@ const Inside = (() => {
         s("path", { d: `M${b.x + 8},${b.y}H${b.x + b.w - 8}L${b.x + b.w},${b.y + 8}V${b.y + b.h - 8}L${b.x + b.w - 8},${b.y + b.h}H${b.x + 8}L${b.x},${b.y + b.h - 8}V${b.y + 8}Z`, class: "in-stub-face" + (x.component ? "" : " loose") }, grp);
         const nodeKey = x.nodes.find((q) => NODE[q]);
         Icons.put(grp, nodeKey ? Icons.name(nodeKey) : "partner", b.x + 20, b.y + 20, 17, "node-glyph");
-        s("text", { x: b.x + 36, y: b.y + 25, class: "in-box-name small" }, grp).textContent = fit(link.name, b.w - 44, 13, 600);
-        const names = x.nodes.filter((q) => NODE[q]).map(titleOf);
-        s("text", { x: b.x + 12, y: b.y + 45, class: "in-box-sub" }, grp).textContent = fit(nk ? "another app in the plan" : names.length ? names.join(", ") : "outside the app", b.w - 22, 11);
+        const S = speakStub(x, link, b.w), names = S.names;
+        putRows(grp, b, S.rows.rows);
         s("title", {}, grp).textContent = `${link.name}${link.connection && link.connection.protocol ? ": " + link.connection.protocol : ""}${names.length ? "\nOn the map: " + names.join(", ") : ""}`;
         pick(grp, k, link.name);
         grp.addEventListener("dblclick", (ev) => { if (nk) { ev.stopPropagation(); open(nk, "context", { from: grp.getBoundingClientRect() }); } });
@@ -903,7 +921,15 @@ const Inside = (() => {
     const holder = h("div", { class: "in-er" }), wrap = h("div", { class: "in-er-wrap" }, holder);
     const outer = h("div", { class: "in-er-outer" }, wrap), lg = keyFor("inside-data", () => outer, { "er.entity": ".in-entity-box", "er.key": ".in-field-key", "er.rel": "path.in-edge", "inside.mini": ".in-mini:not([hidden])" });
     outer.append(lg.el());  // under the drawing, not in its frame: the drawing's minimap sits over the frame's corner
-    const nodes = m.entities.map((x) => ({ id: "e:" + x.name, kind: "entity", w: 190, h: 30 + Math.max(1, x.fields.length) * 17, x }));
+    // An entity is as wide as its longest field needs (to 280), then a field wraps to a second line and its row grows; a name is never cut.
+    const entityRows = (x, w0) => {
+      const need = Math.max(...x.fields.map((f) => LabelFit.width(`${f.name} ${f.type}`, 11, 400, true)), 0) + 50, w = w0 || clamp(Math.ceil(need), 190, 280);
+      const nf = LabelFit.fit(x.name, w - 20, { size: 12.5, weight: 600 }), headH = 24 + Math.ceil((nf.lines.length - 1) * nf.lh);
+      let y = headH + 16;
+      const fields = x.fields.map((f) => { const text = `${f.name} ${f.type}`, ff = LabelFit.fit(text, w - 50, { size: 11, mono: true }), row = { f, text, y }; y += Math.max(17, Math.ceil(ff.lines.length * ff.lh + 4)); return row; });
+      return { w, headH, fields, h: Math.max(headH + 6 + 17, y - 16 + 6) };
+    };
+    const nodes = m.entities.map((x) => { const E = entityRows(x); return { id: "e:" + x.name, kind: "entity", w: E.w, h: E.h, x }; });
     const edges = m.relationships.map((r) => ({ from: "e:" + r.from, to: "e:" + r.to, label: `${r.label} · ${cardinality(r.cardinality)}`, title: `${r.from} ${r.label} ${r.to}: ${cardinality(r.cardinality)} (${r.cardinality})` }));
     const lay = layered(nodes, edges, { gapX: 150, gapY: 18, minColW: 150, gapTB: 60, gapYTB: 18, dir: "auto", fit: { w: 320, h: 420 } });
     const svg = s("svg", { class: "inside-svg er", role: "img", "aria-label": "Data model" }, holder);
@@ -917,13 +943,14 @@ const Inside = (() => {
         Nodes.wire(grp, { label: `${x.name}, an entity of the data model`, note: Nodes.note({ diagram: `${diagramName} data model`, name: x.name, kind: "Entity in the data model",
           text: x.fields.length ? undefined : `${x.name} is drawn with no fields.`, facts: x.fields.map((f) => [f.name, `${f.type}${f.keys.length ? " · " + f.keys.join(" ") : ""}`]), relates: rels }) });
         s("rect", { x: b.x, y: b.y, width: b.w, height: b.h, rx: 6, class: "in-box-face" }, grp);
-        s("rect", { x: b.x, y: b.y, width: b.w, height: 24, rx: 6, class: "in-entity-head" }, grp);
-        s("text", { x: b.x + 10, y: b.y + 16, class: "in-box-name small" }, grp).textContent = fit(x.name, b.w - 20, 12.5, 600);
-        x.fields.forEach((f, i) => {
-          s("text", { x: b.x + 10, y: b.y + 40 + i * 17, class: "in-field" }, grp).textContent = fit(`${f.name} ${f.type}`, b.w - 50, 11);
+        const E = entityRows(x, b.w);
+        s("rect", { x: b.x, y: b.y, width: b.w, height: E.headH, rx: 6, class: "in-entity-head" }, grp);
+        LabelFit.put(grp, { x: b.x + 10, y: b.y + 16, class: "in-box-name small" }, x.name, b.w - 20, { size: 12.5, weight: 600 });
+        for (const { f, text, y } of E.fields) {
+          LabelFit.put(grp, { x: b.x + 10, y: b.y + y, class: "in-field" }, text, b.w - 50, { size: 11, mono: true });
           if (f.keys.length) Legend.saw("er.key");
-          if (f.keys.length) s("text", { x: b.x + b.w - 8, y: b.y + 40 + i * 17, "text-anchor": "end", class: "in-field-key" }, grp).textContent = f.keys.join(" ");
-        });
+          if (f.keys.length) s("text", { x: b.x + b.w - 8, y: b.y + y, "text-anchor": "end", class: "in-field-key" }, grp).textContent = f.keys.join(" ");
+        }
       },
     }));
     lg.paint();
@@ -963,7 +990,7 @@ const Inside = (() => {
     return [card(null, d.context.glossary.map((g) => h("div", { class: "in-term" }, h("b", {}, g.term), h("div", {}, np(g.definition)), g.not_to_be_confused_with ? h("div", { class: "muted small" }, "Not to be confused with: ", np(g.not_to_be_confused_with)) : null)))];
   }
 
-  /* Key flows: each sequence diagram drawn from its mermaid source, stepped through; other diagrams as source.
+  /* Key flows: each sequence diagram the step-through reader reads fully is drawn from its mermaid source and stepped through; every other diagram is drawn by Mermaid (diagrams.js).
      The explorer's flow player plays vault lanes only, so a design's flow is drawn here; one the design ties to a
      vault flow (FLO-nnn in its title) can be played there too. */
   function flowsTab(app, d) {
@@ -972,7 +999,8 @@ const Inside = (() => {
     return all.map((f, i) => {
       const flo = (f.title || "").match(/\bFLO-\d{3}\b/), fk = flo ? keyForId(flo[0]) : null;
       const head = h("h3", {}, said(f.title) || `${f.from}, line ${f.line}`, fk && FLOW[fk] ? h("button", { class: "btn tiny", onclick: () => go(fk, { reveal: true }) }, `▶ Play “${titleOf(fk)}” on the map`) : null);
-      if (f.kind !== "sequenceDiagram") return card(null, head, h("div", { class: "muted small" }, "A diagram this page can't draw; here is its source."), h("pre", { class: "in-src" }, said(f.mermaid)));
+      // the stepper reads a plain sequence to the end (design_data.stepper_reads); every other diagram, and a sequence it can't read, is drawn by Mermaid
+      if (!f.stepper) return card(null, head, Diagrams.draw(f.mermaid, { key: `mm-${app}:${i}`, label: f.title || `${f.kind} in the design` }));
       return card(null, head, sequence(app, d, f, `${app}:${i}`));
     });
   }
@@ -1004,9 +1032,20 @@ const Inside = (() => {
     function draw() {
       box.innerHTML = "";
       lg.seen.clear();
-      Pan.attach(box, { key: "seq-" + id, svg: () => box.querySelector("svg.seq"), scrollOnly: true });
-      const cur = st.step[id], LW = 128, RH = 30, top = 42, W = seq.parts.length * LW, H = top + n * RH + 16;
+      const cur = st.step[id], LW = 128, RH = 30, W = seq.parts.length * LW;
       const x = (pid) => seq.parts.findIndex((p) => p.id === pid) * LW + LW / 2;
+      // Every word is drawn whole: a lane's name and a step's text wrap, and the head or the row grows to hold the lines.
+      const NAME = { size: 11.5, weight: 600 }, SAY = { size: 11 };
+      const headFit = (p) => LabelFit.fit(p.name, LW - (node(p.name) ? 34 : 20), NAME);
+      const headH = Math.max(28, ...seq.parts.map((p) => Math.ceil(headFit(p).lines.length * headFit(p).lh + 10))), top = headH + 14;
+      const sayRoom = (stp) => {
+        if (stp.kind === "note" || stp.kind === "block") { const xs = (stp.over || seq.parts.map((p) => p.id)).map(x); return Math.max(...xs) - Math.min(...xs) + LW - 20 - 12; }
+        return stp.from === stp.to ? LW + 40 : Math.abs(x(stp.to) - x(stp.from)) - 10;
+      };
+      const boxed = (stp) => stp.kind === "note" || stp.kind === "block";
+      const words = seq.steps.map((stp) => LabelFit.fit(stp.text, sayRoom(stp), SAY));
+      const rowH = seq.steps.map((stp, i) => Math.max(RH, Math.ceil(words[i].lines.length * words[i].lh) + (boxed(stp) ? 22 : 16)));
+      const rowTop = rowH.map((_, i) => top + rowH.slice(0, i).reduce((a, b2) => a + b2, 0)), H = top + rowH.reduce((a, b2) => a + b2, 0) + 16;
       const svg = s("svg", { viewBox: `0 0 ${W} ${H}`, class: "inside-svg seq", role: "img", "aria-label": f.title || "sequence" });
       defsFor(svg);
       seq.parts.forEach((p) => {
@@ -1014,9 +1053,10 @@ const Inside = (() => {
         s("line", { x1: cx, x2: cx, y1: top - 6, y2: H - 6, class: "seq-lane" }, svg);
         lg.saw("sq.lane");
         const g = s("g", { class: "seq-head" + (c || v ? " pick" : "") }, svg);
-        s("rect", { x: cx - LW / 2 + 6, y: 4, width: LW - 12, height: 28, rx: 6 }, g);
-        if (v) Icons.put(g, Icons.name(v.key), cx - LW / 2 + 18, 18, 13, "node-glyph");
-        s("text", { x: cx + (v ? 6 : 0), y: 22, "text-anchor": "middle" }, g).textContent = fit(p.name, LW - (v ? 34 : 20), 11.5, 600);
+        const hf = headFit(p);
+        s("rect", { x: cx - LW / 2 + 6, y: 4, width: LW - 12, height: headH, rx: 6 }, g);
+        if (v) Icons.put(g, Icons.name(v.key), cx - LW / 2 + 18, 4 + headH / 2, 13, "node-glyph");
+        LabelFit.put(g, { x: cx + (v ? 6 : 0), y: 4 + headH / 2 - (hf.lines.length - 1) * hf.lh / 2 + 4, "text-anchor": "middle" }, p.name, LW - (v ? 34 : 20), NAME);
         s("title", {}, g).textContent = p.name + (c ? ": a component of this design" : v ? ": an app on the map" : "");
         if (c) Nodes.wire(g, { label: p.name, key: key(app, "c", c.name) });
         else if (v) Nodes.wire(g, { label: p.name, key: v.key });
@@ -1024,23 +1064,24 @@ const Inside = (() => {
           relates: seq.steps.filter((q) => q.from === p.id || q.to === p.id || (q.over || []).includes(p.id)).slice(0, 6).map((q) => describe(q, seq)) }) });
       });
       seq.steps.forEach((stp, i) => {
-        const y = top + i * RH + RH / 2 + 4, on = i === cur, cls = "seq-step" + (on ? " on" : i > cur ? " later" : "");
+        const y = rowTop[i] + rowH[i] - 11, on = i === cur, sf = words[i], cls = "seq-step" + (on ? " on" : i > cur ? " later" : "");
         const g = s("g", { class: cls, "data-i": i }, svg);
         if (stp.kind === "note" || stp.kind === "block") {
           const xs = (stp.over || seq.parts.map((p) => p.id)).map(x), x0 = Math.min(...xs) - LW / 2 + 10, x1 = Math.max(...xs) + LW / 2 - 10;
-          s("rect", { x: x0, y: y - 11, width: x1 - x0, height: 20, rx: 4, class: stp.kind === "note" ? "seq-note" : "seq-block" }, g);
+          const hh = Math.max(20, Math.ceil(sf.lines.length * sf.lh) + 8);
+          s("rect", { x: x0, y: y - 11 - (hh - 20) / 2, width: x1 - x0, height: hh, rx: 4, class: stp.kind === "note" ? "seq-note" : "seq-block" }, g);
           lg.saw(stp.kind === "note" ? "sq.note" : "sq.block");
-          s("text", { x: (x0 + x1) / 2, y: y + 3, "text-anchor": "middle", class: "seq-text" }, g).textContent = fit(stp.text, x1 - x0 - 12, 11);
+          LabelFit.put(g, { x: (x0 + x1) / 2, y: y + 3 - (sf.lines.length - 1) * sf.lh / 2, "text-anchor": "middle", class: "seq-text" }, stp.text, x1 - x0 - 12, SAY);
         } else if (stp.from === stp.to) {
           const cx = x(stp.from);
           s("path", { d: `M${cx},${y - 8}h26v14h-24`, class: "seq-msg" + (stp.kind === "reply" ? " reply" : ""), "marker-end": "url(#in-arrow)" }, g);
           lg.saw(stp.kind === "reply" ? "sq.reply" : "sq.msg"); lg.saw(on ? "sq.now" : i > cur ? "sq.later" : null);
-          s("text", { x: cx + 32, y: y + 3, class: "seq-text" }, g).textContent = fit(stp.text, LW + 40, 11);
+          LabelFit.put(g, { x: cx + 32, y: y + 3 - (sf.lines.length - 1) * sf.lh / 2, class: "seq-text" }, stp.text, LW + 40, SAY);
         } else {
           const x0 = x(stp.from), x1 = x(stp.to), dir = Math.sign(x1 - x0);
           s("line", { x1: x0, x2: x1 - dir * 3, y1: y + 4, y2: y + 4, class: "seq-msg" + (stp.kind === "reply" ? " reply" : ""), "marker-end": "url(#in-arrow)" }, g);
           lg.saw(stp.kind === "reply" ? "sq.reply" : "sq.msg"); lg.saw(on ? "sq.now" : i > cur ? "sq.later" : null);
-          s("text", { x: (x0 + x1) / 2, y: y - 1, "text-anchor": "middle", class: "seq-text" }, g).textContent = fit(stp.text, Math.abs(x1 - x0) - 10, 11);
+          LabelFit.put(g, { x: (x0 + x1) / 2, y: y - 1 - (sf.lines.length - 1) * sf.lh, "text-anchor": "middle", class: "seq-text" }, stp.text, Math.abs(x1 - x0) - 10, SAY);
         }
         s("title", {}, g).textContent = `${i + 1}. ${describe(stp, seq)}`;
         const ends = [stp.from, stp.to, ...(stp.over || [])].filter(Boolean).map((pid) => (seq.parts.find((q) => q.id === pid) || {}).name).filter(Boolean);
@@ -1058,7 +1099,9 @@ const Inside = (() => {
         FX.on && n > 1 ? h("button", { class: "btn tiny", onclick: () => play(id, n, draw) }, st.playing === id ? "Pause" : "▶ Play") : null);
       svg.style.width = W + "px";
       lg.paint();
-      box.append(h("div", { class: "in-scroll" }, svg), lg.el(), ctl, n ? h("div", { class: "seq-now" }, `${cur + 1}. `, prose(describe(seq.steps[cur], seq))) : null);
+      const view = h("div", { class: "seq-frame" }, h("div", { class: "in-scroll" }, svg));
+      box.append(view, lg.el(), ctl, n ? h("div", { class: "seq-now" }, `${cur + 1}. `, prose(describe(seq.steps[cur], seq))) : null);
+      Pan.attach(box, { key: "seq-" + id, svg: () => box.querySelector("svg.seq"), scrollOnly: true, frame: view });
     }
     draw();
     return box;
@@ -1215,7 +1258,7 @@ const Inside = (() => {
     const comps = f.who.filter((n) => d.components.some((c) => c.name === n));
     return [phead("Key flow", f.title),
       block(comps.length ? bullets([[h("b", {}, "Components in it: "), ...comps.flatMap((n, j) => (j ? [", ", DetailsPanel.link(key(app, "c", n), n)] : [DetailsPanel.link(key(app, "c", n), n)]))]]) : null),
-      h("div", { class: "inside-tab-body" }, raw.kind === "sequenceDiagram" ? card(null, sequence(app, d, raw, `${app}:${i}`)) : card(null, h("pre", { class: "in-src" }, said(raw.mermaid))))];
+      h("div", { class: "inside-tab-body" }, raw.stepper ? card(null, sequence(app, d, raw, `${app}:${i}`)) : card(null, Diagrams.draw(raw.mermaid, { key: `mm-${app}:flow:${i}`, label: f.title })))];
   }
   function oqPanel(app, d, id) {
     const q = PD(app).waiting.find((x) => x.id === id);
@@ -1409,7 +1452,7 @@ const Inside = (() => {
 
   const designKey = () => (st.app && design(st.app) ? key(st.app) : "");
   /* What plan.js draws with: the layout and drawing helpers above, and the chips that link into the vault. */
-  const kit = { layered, drawLayout, defsFor, sized, placeDrawings, boundsOf, fit, idChip, prose, chipCard, open, key };
+  const kit = { layered, drawLayout, defsFor, sized, placeDrawings, boundsOf, textRows, putRows, idChip, prose, chipCard, open, key };
   return { open, boot, hash, render, kit, designKey, highlight, panel, ent: entOf, ownedBy, challenge, challengeHome, challengeSection, homeSection, statusCell, doorEntry, sideEntry, statusPill, problemsChip,
     layered, parseSequence, st, LEVELS, TABS, OWNERS, UNTRACED, CHALLENGED, labelOfKey, PD };
 })();

@@ -55,7 +55,7 @@ const Releases = (() => {
     const svg = s("svg", { viewBox: `${left} ${top} ${right - left} ${bottom - top}`, class: "rl-map", role: "img", "aria-label": "The system in this state" }, box);
     const looks = new Set();
     MapView.fitSvg(svg, box, right - left, bottom - top, opts.max || 1.0);
-    Pan.attach(box, { key: "releases", svg: () => box.querySelector("svg.rl-map") });
+    Pan.attach(box, { key: opts.key || "releases", svg: () => box.querySelector("svg.rl-map") });
     if (L.zoneY !== null) s("line", { x1: left, x2: right, y1: L.zoneY, y2: L.zoneY, class: "zone" }, svg);
     const gCor = s("g", {}, svg), gNodes = s("g", {}, svg);
     const cors = Object.values(L.corridors).map((cor) => {
@@ -69,15 +69,17 @@ const Releases = (() => {
     const nodes = Object.values(L.stations).map((stn) => {
       const n = stn.node, g = s("g", { class: "rl-node", "data-key": n.key }, gNodes);
       g.style.transformOrigin = `${stn.x}px ${stn.y}px`;
-      s("rect", { x: stn.x - W / 2, y: stn.y - H / 2, width: W, height: H, rx: n.kind === "app" ? 10 : 3, class: "rl-face" }, g);
+      // the name wraps to a second line before it is cut, and the box grows by what it needs
+      const nameFit = LabelFit.fit(n.title, W - 46, { size: 15, weight: 600 }), block = nameFit.lines.length * nameFit.lh + 16, boxH = Math.max(H, Math.ceil(block + 14)), top = stn.y + 1.5 - block / 2;
+      s("rect", { x: stn.x - W / 2, y: stn.y - boxH / 2, width: W, height: boxH, rx: n.kind === "app" ? 10 : 3, class: "rl-face" }, g);
       Icons.put(g, Icons.name(n.key), stn.x - W / 2 + 20, stn.y + 1, 18, "rl-glyph");
-      s("text", { x: stn.x + 10, y: stn.y - 2, "text-anchor": "middle", class: "rl-name" }, g).textContent = shorten(n.title, 17);
-      const sub = s("text", { x: stn.x + 10, y: stn.y + 16, "text-anchor": "middle", class: "rl-sub" }, g);
+      LabelFit.put(g, { x: stn.x + 10, y: top + 0.8 * nameFit.size, "text-anchor": "middle", class: "rl-name" }, n.title, W - 46, { size: 15, weight: 600 });
+      const sub = s("text", { x: stn.x + 10, y: top + nameFit.lines.length * nameFit.lh + 12, "text-anchor": "middle", class: "rl-sub" }, g);
       const tag = s("g", { class: "rl-tag" }, g);
-      s("rect", { x: stn.x + W / 2 - 40, y: stn.y - H / 2 - 9, width: 46, height: 18, rx: 9 }, tag);
-      const tagText = s("text", { x: stn.x + W / 2 - 17, y: stn.y - H / 2 + 4, "text-anchor": "middle" }, tag);
+      s("rect", { x: stn.x + W / 2 - 40, y: stn.y - boxH / 2 - 9, width: 46, height: 18, rx: 9 }, tag);
+      const tagText = s("text", { x: stn.x + W / 2 - 17, y: stn.y - boxH / 2 + 4, "text-anchor": "middle" }, tag);
       const lv = levelOf(n.key);
-      if (lv !== "dark" && n.kind === "app") { s("rect", { x: stn.x - W / 2 + 8, y: stn.y - H / 2 + 8, width: 8, height: 8, rx: 2, fill: LIGHT[lv].color, class: "rl-lamp" }, g)
+      if (lv !== "dark" && n.kind === "app") { s("rect", { x: stn.x - W / 2 + 8, y: stn.y - boxH / 2 + 8, width: 8, height: 8, rx: 2, fill: LIGHT[lv].color, class: "rl-lamp" }, g)
         .appendChild(document.createElementNS(SVGNS, "title")).textContent = `${LIGHT[lv].word} today`; looks.add("rel.lamp"); }
       Nodes.wire(g, { label: n.title, key: n.key });
       return { n, g, sub, tagText };
@@ -247,7 +249,7 @@ const Releases = (() => {
       cons.length ? h("div", { class: "rc-row" }, h("span", { class: "rc-l" }, "Contracts"), h("span", {}, cons.map((c) => refChip(c, h("span", { class: "rid" }, `${STATUS_WORD[SA.contracts[c]] || SA.contracts[c]} → ${STATUS_WORD[SB.contracts[c]] || SB.contracts[c]}`))))) : null,
       delivered.length ? h("div", { class: "rc-row" }, h("span", { class: "rc-l" }, "Delivered between"), h("span", {}, delivered.map((r) => refChip(r)))) : null);
     wrap.append(KEY.el(), diff);
-    wrap.drawMaps = () => { drawMap(A.box, st.a, { max: 0.8 }); drawMap(B.box, st.b, { max: 0.8 }); };
+    wrap.drawMaps = () => { drawMap(A.box, st.a, { max: 0.8, key: "releases-a" }); drawMap(B.box, st.b, { max: 0.8, key: "releases-b" }); };
     return wrap;
   }
 

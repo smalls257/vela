@@ -248,6 +248,15 @@ a.idname:hover .idsuf, a.idname:focus-visible .idsuf { display: inline; color: v
 .pannable { cursor: grab; }
 .pannable.panning, .pannable.panning * { cursor: grabbing !important; }
 html.pan-now, html.pan-now * { user-select: none; -webkit-user-select: none; }
+/* zoom and pan (pan.js): the same small bar, bottom right, on every drawing; a drawing can be focused to use + - 0 and the arrows */
+.zoom-frame { position: relative; }
+.zoom-frame > .zoom-bar { position: absolute; bottom: 8px; right: 8px; }
+.zoom-bar { display: inline-flex; gap: 2px; background: var(--glass); border: 1px solid var(--rule-3); border-radius: 8px; padding: 2px; z-index: 2; flex: none; }
+.zoom-bar button { border: 0; background: transparent; color: var(--ink-2); padding: 2px 8px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+.zoom-bar button:hover { background: var(--deck-3); color: var(--ink); }
+.pannable:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+.pannable[data-fitted] { touch-action: none; }
+svg.pan-zoomed { overflow: hidden; }
 
 /* kept working words (termEl in core.js): a dotted underline says "hover or focus for the definition" */
 .term { text-decoration: underline dotted; text-underline-offset: 2px; cursor: help; }

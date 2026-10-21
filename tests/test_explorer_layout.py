@@ -272,10 +272,10 @@ def test_a_body_that_is_not_the_agreed_shape_is_a_400_that_says_what_to_send(hel
     ("the pilot user, on their own laptop", "the pilot user"),
     ("Okta, the identity provider the firm already uses", "Okta"),
     ("Salesforce - the CRM", "Salesforce"),
-    ("the call tools the pilot team and its clients use, not yet known", "the call tools the pilot team and its clients use"[:build.NAME_CAP].rsplit(" ", 1)[0] + "…"),
+    ("the call tools the pilot team and its clients use, not yet known", "the call tools the pilot team and its clients use"),
 ])
-def test_a_provider_written_as_a_sentence_is_drawn_by_its_first_words(said, drawn):
-    assert build.external_title(said) == drawn
+def test_a_provider_written_as_a_sentence_is_drawn_by_its_first_words_whole(said, drawn):
+    assert build.external_name(said) == drawn
 
 
 @pytest.fixture(scope="module")

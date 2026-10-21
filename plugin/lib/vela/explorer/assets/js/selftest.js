@@ -632,14 +632,15 @@ const SelfTest = (() => {
     press(box, br.x + br.width / 2, br.y + br.height / 2); glide(br.x + br.width / 2 + 3, br.y + br.height / 2 + 3); glide(br.x + br.width / 2 + 40, br.y + br.height / 2 + 30); lift(br.x + br.width / 2 + 40, br.y + br.height / 2 + 30);
     await flush();
     const cell1 = Layout.cell(key);
-    ok(Pan.pans === p0 && JSON.stringify(cell1) !== JSON.stringify(cell0) && Math.abs(vb()[0] - before[0]) < 0.5,
+    const view = Pan.view("cockpit");  // moving a box re-fits the drawing to its new bounds; it must not leave a pan behind
+    ok(Pan.pans === p0 && JSON.stringify(cell1) !== JSON.stringify(cell0) && view.dx === 0 && view.dy === 0 && view.z === 1,
       "drag to pan: a click on the background, a touch drag and a drag on a box do not pan; the box moves instead",
       `drag to pan: ${Pan.pans - p0} pans; box ${titleOf(key)} at ${cell0} then ${cell1}`);
     Layout.restore(layoutWas); rerender(); await frames();
     // where the drawing scrolls, a pan scrolls it
     const room = h("div", { style: "position:fixed;left:0;top:0;width:200px;height:120px;overflow:auto;z-index:99" }), big = s("svg", { width: 900, height: 700, viewBox: "0 0 900 700" }, room);
     document.body.append(room);
-    Pan.attach(room, { key: "selftest-scroll", svg: () => big, scrollOnly: true });
+    Pan.attach(room, { key: "selftest-scroll", svg: () => big, scrollOnly: true, frame: room });
     press(big, 100, 60); glide(96, 58); glide(40, 20); lift(40, 20);
     const scrolled = [room.scrollLeft, room.scrollTop], unchanged = big.getAttribute("viewBox");
     room.remove();
@@ -1487,7 +1488,7 @@ const SelfTest = (() => {
         ok(scale >= 0.85 && shown.length > 0 && (!spills || (mini && !mini.hidden && view && +view.getAttribute("width") > 0)),
           `inside ${name}, components: opens at reading size (${scale.toFixed(2)}), ${shown.length} of ${comps} components in view${spills ? ", the whole in the minimap" : ", all of it in view"}`,
           `inside ${name}, components: opens at ${scale.toFixed(2)} with ${shown.length} components in view; the drawing ${spills ? "spills" : "fits"} and the minimap is ${mini ? (mini.hidden ? "hidden" : "shown") : "missing"}`);
-        const zoom = $$("#inside-stage .inside-frame .in-zoom button");
+        const zoom = $$("#inside-stage .inside-frame .zoom-bar button");
         zoom[1].click();
         const whole = $("svg", holder).getBoundingClientRect(), now = holder.getBoundingClientRect();
         ok(whole.right <= now.right + 1 && whole.bottom <= now.bottom + 1 && holder.scrollWidth <= holder.clientWidth + 1 && holder.scrollHeight <= holder.clientHeight + 1 && (!mini || mini.hidden),
@@ -1513,7 +1514,7 @@ const SelfTest = (() => {
       go(`inside:${k}|sec|data`, { reset: true });
       if (d.data_model.parsed_from === "erDiagram") ok($$("#panel .in-entity-box").length === d.data_model.entities.length, `inside ${name}: the data model drawn from its erDiagram, ${d.data_model.entities.length} entities and ${d.data_model.relationships.length} relationships`, "the data model's entities are not all drawn");
       if (d.data_model.parsed_from === "erDiagram") {  // opens at reading size on the main entity; "Whole" puts every entity in view
-        const er = $("#panel .in-er"), buttons = $$("#panel .in-er-wrap .in-zoom button"), within = (g, box) => { const r = g.getBoundingClientRect(); return r.left >= box.left - 1 && r.right <= box.right + 1 && r.top >= box.top - 1 && r.bottom <= box.bottom + 1; };
+        const er = $("#panel .in-er"), buttons = $$("#panel .in-er-wrap .zoom-bar button"), within = (g, box) => { const r = g.getBoundingClientRect(); return r.left >= box.left - 1 && r.right <= box.right + 1 && r.top >= box.top - 1 && r.bottom <= box.bottom + 1; };
         const here = $$("#panel .in-entity-box").filter((g) => within(g, er.getBoundingClientRect())), mini = $("#panel .in-er-wrap .in-mini");
         const drawn = $("svg", er).getBoundingClientRect(), room = er.getBoundingClientRect(), spills = drawn.width > room.width + 1 || drawn.height > room.height + 1;
         ok(+er.dataset.scale >= 0.85 && here.length > 0 && (!spills || (mini && !mini.hidden)), `inside ${name}: the data model opens at reading size (${er.dataset.scale}), ${here.length} of ${d.data_model.entities.length} entities in view${spills ? ", the whole in the minimap" : ""}`,
@@ -1867,6 +1868,7 @@ const TextFit = (() => {
     // a label that wraps across lines has one rectangle per line: its bounding box is the union, wider than any line
     const cs = getComputedStyle(el), lines = [...el.getClientRects()].filter((q) => q.width > 0), r = { left: Math.min(...lines.map((q) => q.left)), right: Math.max(...lines.map((q) => q.right)) };
     if (!lines.length || (!words(el) && !el.querySelector("svg, img"))) return "";
+    if (el.matches("table.dsm.angled th.col")) return "";  // a name leans across the head at 45 degrees, whole; the head is sized to it
     const ellipsis = (cs.textOverflow === "ellipsis" && clips(cs)) || !!ellipsized(el);
     if (el.clientWidth > 0 && !ellipsis && !scrolls(cs) && el.scrollWidth > el.clientWidth + 1) return `its text runs ${el.scrollWidth - el.clientWidth}px past its own edge`;
     if (cs.position === "absolute") return "";

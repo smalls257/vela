@@ -117,6 +117,113 @@ def test_maps_move_free_form_and_pan_by_dragging_the_background(tmp_path, chrome
     assert not missing, "missing or failing selftest lines: " + "; ".join(missing) + "\n" + "\n".join(x for x in lines if x.startswith("FAIL"))
 
 
+ZOOMED_DRAWINGS = ("the system map", "the map grouped by business area", "the map grouped by capability", "one app and its neighbors (focus)", "contracts only",
+                   "before and after (releases)", "an app in context", "an app's containers", "an app's components", "an app's data model",
+                   "a key flow's sequence diagram", "the build plan's path")
+ZOOM_WAYS = ("the drawing has the zoom bar (-, Fit, +)", "the bar sits inside the drawing's frame", "+ zooms in, - zooms out, Fit puts it back",
+             "Ctrl and the wheel (a touchpad pinch) zooms in", "the keys + - 0 zoom and fit the focused drawing")
+
+
+@pytest.mark.browser
+def test_every_drawing_has_the_same_zoom_bar_wheel_keys_and_pan(chrome_path):
+    """The owner: "capabilities, contracts only, is missing zoom tools. lets make sure all diagrams have the zoom & panning
+    tools." One selftest line per drawing and per way of zooming, on the demo with three designs (which draws every kind
+    of drawing there is). A selftest that quietly skipped a drawing would pass, so each line is named here."""
+    dom = chrome_dom(chrome_path, built_booking_demo_page())
+    lines = html.unescape(re.search(r'data-selftest="([^"]*)"', dom).group(1)).split(" || ")
+    missing = [f"zoom, {name}: {way}" for name in ZOOMED_DRAWINGS for way in ZOOM_WAYS if not any(f"zoom, {name}: {way}" in line and line.startswith("ok") for line in lines)]
+    assert not missing, "missing or failing zoom lines: " + "; ".join(missing) + "\n" + "\n".join(x for x in lines if x.startswith("FAIL"))
+    # the drawings a pan can move (everything fitted to its board or drawn as a viewBox) also pan after a zoom, and the release picks nothing
+    panned = [name for name in ZOOMED_DRAWINGS if any(f"zoom, {name}: dragging the zoomed drawing pans it" in line and line.startswith("ok") for line in lines)]
+    assert len(panned) >= 9, panned
+
+
+@pytest.mark.browser
+def test_capability_focus_keeps_only_what_a_capability_touches_and_a_link_reopens_it(chrome_path):
+    """The owner: clicking a capability still showed the same system map. The page's own selftest checks each capability
+    (boxes, flows, contracts, the sidebar's lists, the way back); this opens the address a link would carry, and the map
+    must come up already focused, with the way back in both the map and the sidebar."""
+    page = built_booking_demo_page()
+    dom = chrome_dom(chrome_path, page)
+    lines = html.unescape(re.search(r'data-selftest="([^"]*)"', dom).group(1)).split(" || ")
+    said = [x for x in lines if x.startswith("ok capability focus")]
+    assert any("leave boxes off the map" in x for x in said) and any("Show everything brings back" in x for x in said), said
+    assert not [x for x in lines if x.startswith("FAIL")], [x for x in lines if x.startswith("FAIL")]
+    linked = chrome_dom(chrome_path, page, route="s=capabilities&open=CAP-011")
+    assert 'data-where="map"' in linked and 'data-where="side"' in linked and "Show everything" in linked
+
+
+EXTRA_DIAGRAMS = """
+### Quoted names and numbering
+```mermaid
+sequenceDiagram
+    autonumber
+    participant U as "Web shopper"
+    participant A as "Booking API"
+    U->>A: Reserve a seat
+    rect rgb(240, 240, 255)
+    A-->>U: Held for ten minutes
+    end
+```
+
+### How a request is routed
+```mermaid
+flowchart LR
+    Client --> Gateway{Route}
+    Gateway -->|reads| Cache[(Cache)]
+    Gateway -->|writes| Ledger
+```
+
+### Hold lifecycle
+```mermaid
+stateDiagram-v2
+    [*] --> Held
+    Held --> Paid: payment settles
+    Held --> Released: timeout
+    Paid --> [*]
+```
+
+### Not valid mermaid (rejected)
+```mermaid
+flowchart LR
+    A --> --> B [
+```
+"""
+
+
+def built_diagram_page():
+    """The booking demo with extra diagrams in its Supporting diagrams: a flowchart, a state diagram, a sequence with autonumber, a
+    rect and quoted names (which the step-through reader can't read to the end), and one Mermaid itself rejects."""
+    def build(folder):
+        demo = folder / "demo"
+        made = subprocess.run([sys.executable, str(REPO / "tests/fixtures/explorer/make_demo_vault.py"), str(demo)], timeout=120, capture_output=True, text=True)
+        assert made.returncode == 0, made.stderr
+        design = folder / "booking.md"
+        source = (REPO / "tests/fixtures/explorer/demo_designs/booking/docs/tech-design/booking.md").read_text(encoding="utf-8")
+        marker = "## Tech stack"
+        assert marker in source
+        design.write_text(source.replace(marker, EXTRA_DIAGRAMS.strip("\n") + "\n\n" + marker, 1), encoding="utf-8")
+        built = subprocess.run([sys.executable, str(REPO / "tests/fixtures/explorer/build.py"), str(demo), str(folder / "page.html"), "--today", "2026-11-20", "--selftest",
+                                "--pins", str(REPO / "tests/fixtures/explorer/pins/unified-booking.json"), f"--design=APP-booking={design}"],
+                               timeout=120, capture_output=True, text=True)
+        assert built.returncode == 0, built.stderr
+    return built_once(None, "explorer-diagram-page", build) / "page.html"
+
+
+@pytest.mark.browser
+def test_every_diagram_in_key_flows_and_supporting_diagrams_is_drawn(chrome_path):
+    """The owner: "Clicking on an app's key flows, diagrams are not rendered." A flowchart, a state diagram and a sequence with
+    autonumber, a rect and quoted names must all draw (Mermaid, with the zoom bar); a plain sequence is still stepped through;
+    a diagram Mermaid rejects shows its reason in words and its source. Every diagram is a line of the page's own selftest."""
+    dom = chrome_dom(chrome_path, built_diagram_page())
+    lines = html.unescape(re.search(r'data-selftest="([^"]*)"', dom).group(1)).split(" || ")
+    said = [x for x in lines if "diagrams, Booking, " in x]
+    assert not [x for x in lines if x.startswith("FAIL")], [x for x in lines if x.startswith("FAIL")]
+    for want in ("Quoted names and numbering: sequenceDiagram is drawn by Mermaid", "How a request is routed: flowchart-v2 is drawn by Mermaid",
+                 "Hold lifecycle: stateDiagram-v2 is drawn by Mermaid", "Not valid mermaid (rejected): Mermaid rejected it", "Hold, pay, confirm (FLO-001): a sequence read to the end is stepped through"):
+        assert any(want.replace("flowchart-v2", "flowchart") in x or want in x for x in said), (want, said)
+
+
 @pytest.mark.browser
 def test_fourteen_flows_are_grouped_in_the_picker_and_pass_the_selftest(tmp_path, chrome_path):
     """The synthetic stress vault has 14 flows, past the ten the picker lists flat: grouped, filtered and driven by key."""

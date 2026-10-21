@@ -20,7 +20,7 @@ const MapView = (() => {
   const GROUP_OFF = { domain: "No app has a business area yet, so there is nothing to group by",
     capability: "No app has requirements or epics tied to a capability yet, so there is nothing to group by" };
   const groupOff = (id) => (id === "domain" && !hasDomains()) || (id === "capability" && !hasCapabilities());
-  const group = () => { const g = st.group || (App.section === "capabilities" ? "capability" : manyApps() && hasDomains() ? "domain" : "none"); return groupOff(g) ? "none" : g; };
+  const group = () => { if (CapFocus.key()) return "none"; const g = st.group || (App.section === "capabilities" ? "capability" : manyApps() && hasDomains() ? "domain" : "none"); return groupOff(g) ? "none" : g; };
   let pulses = [], trains = [], gPulses = null, LAY = null, stripEl = null;
   const LEDE = {
     cockpit: "The apps and the contracts between them. Pick one to see what it's waiting on.",
@@ -105,9 +105,13 @@ const MapView = (() => {
     const stage = lens() === "matrix" ? h("div", { class: "matrix-stage" }, board) : null;
     KEY = lens() === "releases" ? null : Legend.open(keyName(mode), { root: () => $("#board"), probes: keyLooks(mode) });
     // The view, grouping, focus and layout controls ride on the diagram's own bar (menus.js), under the title and lede.
-    col.append(Menus.frame(diagramBar(), stage || board));
+    col.append(Menus.frame(diagramBar(), CapFocus.bar("map"), stage || board));
     if (queued) { const width = main.clientWidth; main.append(h("div", { class: "home-wrap" }, h("div", { class: "home-stage" + (Queue.folded(width) ? " stacked" : "") }, Queue.card(width), col))); }
     if (!D.nodes.length) { board.append(emptyState("No apps yet.", "The map fills in once a session names them.", "/vela:boundary")); return; }
+    if (CapFocus.scope() && CapFocus.scope().empty && (lens() === "cockpit" || lens() === "transit")) {
+      board.append(emptyState(`${titleOf(CapFocus.key())} doesn't touch any app or contract yet.`, "Nothing allocates it, no epic that delivers it lists an app, and no flow names it."));
+      return;
+    }
     if (lens() === "releases") { Releases.mapLens(board); return; }  // the releases drawing keeps its own key
     if (lens() === "matrix") drawn(() => { const m = matrix(); board.append(m.table); stage.append(m.key); });
     else if (lens() === "transit") { drawn(() => transit(board)); highlight(App.focus); }
@@ -179,11 +183,18 @@ const MapView = (() => {
   }
 
   /* ------------------------------------------------------------ cockpit */
+  /* The drawing's viewport is the whole container, so zooming in or panning shows content wherever the container has room
+     and nothing is cut at the drawing's own bounds. The scale is still the one that fits the content (never past maxScale);
+     the viewBox is the content's box grown around its middle to the container's shape. */
   function fitSvg(root, board, w, ht, maxScale) {
+    const [cx0, cy0, cw, ch] = root.getAttribute("viewBox").split(/\s+/).map(Number);
     const fit = () => {
       if (!root.isConnected) { removeEventListener("resize", fit); return; }
-      const r = board.getBoundingClientRect(), k = Math.max(0.15, Math.min(maxScale, (r.width - 24) / w, (r.height - 12) / ht));
-      root.setAttribute("width", Math.round(w * k)); root.setAttribute("height", Math.round(ht * k));
+      const cs = getComputedStyle(board), pad = (a, b) => (parseFloat(cs[a]) || 0) + (parseFloat(cs[b]) || 0);
+      const iw = Math.max(40, board.clientWidth - pad("paddingLeft", "paddingRight")), ih = Math.max(40, board.clientHeight - pad("paddingTop", "paddingBottom"));
+      const k = Math.max(0.15, Math.min(maxScale, (iw - 24) / w, (ih - 12) / ht)), vw = iw / k, vh = ih / k;
+      root.setAttribute("width", Math.round(iw)); root.setAttribute("height", Math.round(ih));
+      Pan.rebase(root, `${cx0 + cw / 2 - vw / 2} ${cy0 + ch / 2 - vh / 2} ${vw} ${vh}`);
     };
     fit();
     // one listener per board: a drag redraws the cockpit every frame and must not leave a listener behind each time
@@ -197,14 +208,14 @@ const MapView = (() => {
      duct's lamps stand together as one bank at the first point along the duct, from its quieter end outward, that
      touches no box, caption or earlier bank (MapGroups.place). #selftest checks that no two parts intersect. */
   function cockpit(board) {
-    const L = LAY = Geo.layout(COCKPIT);
+    const L = LAY = Geo.layout({ ...COCKPIT, scope: true }), liveFlows = CapFocus.flows();
     const W = BOX_W, H = BOX_H, b = L.bounds, dragging = !!Layout.live;
     let left = b.x0 - 150, right = b.x1 + W / 2 + 140, top = b.y0 - 56, flowsY = b.y1 + 92;
     if (dragging && seenView) { left = Math.min(left, seenView.left); right = Math.max(right, seenView.right); top = Math.min(top, seenView.top); flowsY = Math.max(flowsY, seenView.flowsY); }
     if (!dragging) seenView = { left, right, top, flowsY };
-    const flowCols = Math.max(1, Math.min(D.flows.length, Math.floor((right - left - 80 + 16) / (FLOW_CARD_MIN + 16))));  // a long list wraps into rows rather than shrinking past reading
-    const flowRows = Math.ceil(D.flows.length / flowCols);
-    const bottom = flowsY + (D.flows.length ? 70 + (flowRows - 1) * 66 : 0);
+    const flowCols = Math.max(1, Math.min(liveFlows.length, Math.floor((right - left - 80 + 16) / (FLOW_CARD_MIN + 16))));  // a long list wraps into rows rather than shrinking past reading
+    const flowRows = Math.ceil(liveFlows.length / flowCols);
+    const bottom = flowsY + (liveFlows.length ? 70 + (flowRows - 1) * 66 : 0);
     const root = s("svg", { viewBox: `${left} ${top} ${right - left} ${bottom - top}`, class: "cockpit", role: "img", "aria-label": "System panel" }, board);
     fitSvg(root, board, right - left, bottom - top, 1.12);
     const defs = s("defs", {}, root);
@@ -240,14 +251,15 @@ const MapView = (() => {
       // The contract lamps sit as one bank on the duct, nearer the quieter end, clear of the boxes and of every other bank.
       const busy = (x) => Object.values(x.ports).reduce((n, l) => n + l.length, 0);
       const path = busy(A) >= busy(B) ? pts : pts.slice().reverse();
-      const lw = 120, lh = 22, gap = 5, bankH = cor.contracts.length * lh + (cor.contracts.length - 1) * gap;
+      const lw = 120, gap = 5, tall = cor.contracts.map((cid) => contractSize(CONTRACT[cid].title, lw).h), bankH = tall.reduce((n, x) => n + x, 0) + (cor.contracts.length - 1) * gap;
       const spot = MapGroups.place(path, lw, bankH, taken, 0.58) || MapGroups.beside(path, lw, bankH, taken);
       if (spot.leader) { s("path", { d: `M${spot.leader.x},${spot.leader.y}L${spot.at.x},${spot.at.y}`, class: "leader" }, gDucts); Legend.saw("link.leader"); }
       if (spot.crowded) console.warn(`[map] no free place for the lamps of ${cor.contracts.join(", ")}; drawn where they overlap`);
       taken.push(spot.r);
+      let stack = spot.at.y - bankH / 2;
       cor.contracts.forEach((cid, i) => {
-        const y = spot.at.y + (i - (cor.contracts.length - 1) / 2) * (lh + gap);
-        lamp(gLamps, { key: cid, x: spot.at.x - lw / 2, y: y - lh / 2, w: lw, h: lh, rx: 3, label: CONTRACT[cid].title, kind: "contract", title: `${CONTRACT[cid].title} (${cid})` });
+        const y = stack + tall[i] / 2; stack += tall[i] + gap;
+        lamp(gLamps, { key: cid, x: spot.at.x - lw / 2, y: y - tall[i] / 2, w: lw, h: tall[i], rx: 3, label: CONTRACT[cid].title, kind: "contract", title: `${CONTRACT[cid].title} (${cid})` });
       });
     }
     for (const stn of Object.values(L.stations)) {
@@ -259,11 +271,11 @@ const MapView = (() => {
       movable(el, n.key, board);
       if (dragging && Layout.live.key === n.key) el.classList.add("dragging");
     }
-    if (D.flows.length) {
+    if (liveFlows.length) {
       const gx = 16, fh = 50, fw = Math.min(260, (right - left - 80 - (flowCols - 1) * gx) / flowCols);
       const x0 = (b.x0 + b.x1) / 2 - (flowCols * fw + (flowCols - 1) * gx) / 2;
       s("text", { x: x0, y: flowsY - 14, class: "engrave" }, gNodes).textContent = "Flows";
-      D.flows.forEach((f, i) => {
+      liveFlows.forEach((f, i) => {
         const light = lightOf(f.key);
         lamp(gNodes, { key: f.key, x: x0 + (i % flowCols) * (fw + gx), y: flowsY + Math.floor(i / flowCols) * (fh + 16), w: fw, h: fh, rx: 6, label: E[f.key].title, kind: "flow", small: true,
           sub: !light || light.level === "dark" ? "decided" : light.reasons.some((r) => r.kind === "stale") ? "needs a fresh read" : shortWhy(light), title: `${E[f.key].title} (${E[f.key].id})` });
@@ -363,9 +375,25 @@ const MapView = (() => {
     if (light.reasons.some((r) => r.kind === "stale")) return "needs a fresh read";
     return state ? state.text : LIGHT[light.level].word;
   }
+  /* What a lamp says, fitted before it is drawn so its box can grow to hold the words (see LabelFit): a contract lamp is one line
+     or two; a box has its name and, under it, what is waiting on it, each wrapped to the room beside its picture. */
+  const CONTRACT_TEXT = { size: 11.5, weight: 700 };
+  const contractSize = (label, w) => { const f = LabelFit.fit(label, w - 14, CONTRACT_TEXT); return { h: Math.max(22, Math.ceil(f.lines.length * f.lh + 8)), f }; };
+  function lampText(o, lit) {
+    if (o.kind === "contract") { const c = contractSize(o.label, o.w); return { f: c.f, need: c.h, tx: o.x + o.w / 2 }; }
+    const left = o.x + (o.emblem ? 44 : o.icon ? 38 : 12), right = o.x + o.w - 12, room = right - left, base = o.small ? 13.5 : 15.5, weight = lit ? 700 : 500;
+    // two lines at the full size if the box has the height; smaller (to the floor) before the box is made taller
+    for (let z = base; ; z -= 0.5) {
+      const f = LabelFit.fit(o.label, room, { size: z, floor: z, weight }), sf = o.sub ? LabelFit.fit(o.sub, room, { size: 11.5 }) : null;
+      const total = f.lines.length * f.lh + (sf ? 4 + sf.lines.length * sf.lh : 0);
+      if ((f.lines.length <= 2 && total + 10 <= o.h) || z <= LabelFit.FLOOR) return { f, sf, room, size: z, tx: (left + right) / 2, total, need: Math.ceil(total + 10) };
+    }
+  }
   function lamp(g, o) {
     // o.level draws a lamp for something attention.py does not light itself, a cluster or a shared duct: its worst light
     const light = o.level ? { level: o.level, urgency: 0.3, reasons: [] } : lightOf(o.key), level = light ? light.level : "dark", isLit = level !== "dark", color = LIGHT[level].color;
+    const words = lampText(o, isLit);
+    if (words.need > o.h) o = { ...o, y: o.y - (words.need - o.h) / 2, h: words.need };  // the box grows to hold its words; nothing is cut
     // Pending approval is a ring, not a lit face: a reader's decision is not an alarm, and it must not read as one.
     const ringed = level === "pending", glows = isLit && glowOn() && !ringed;
     Legend.saw("lamp." + level); Legend.saw(KIND_LOOK[o.kind]);
@@ -378,19 +406,15 @@ const MapView = (() => {
     shape({ fill: Theme.c("face-drop"), transform: "translate(0,2)" });
     const face = shape({ fill: isLit && !ringed ? color : "url(#ck-lens)", stroke: Theme.c("face-edge"), "stroke-width": 2, class: "face" });
     if (glows) pulses[pulses.length - 1].shade = shape({ fill: "url(#ck-lens)", opacity: 0, class: "shade", "pointer-events": "none" });
-    const cx = o.x + o.w / 2;
-    if (o.kind === "contract") s("text", { x: cx, y: o.y + o.h / 2 + 4, "text-anchor": "middle", class: "lamp-text" }, grp).textContent = shorten(o.label, 18);
+    const { f, sf, tx } = words, cy = o.y + o.h / 2;
+    if (o.kind === "contract") LabelFit.put(grp, { x: tx, y: cy - (f.lines.length - 1) * f.lh / 2 + 0.35 * f.size, "text-anchor": "middle", class: "lamp-text" }, o.label, o.w - 14, CONTRACT_TEXT);
     else {
       // A generated emblem wins; otherwise the page's own glyph (icons.js), so every box carries a picture.
-      let tx = cx, room = o.small ? 30 : 22;
-      if (o.emblem) { s("image", { href: o.emblem, x: o.x + 10, y: o.y + o.h / 2 - 15, width: 30, height: 30, class: "emblem" }, grp); tx = cx + 16; room = 18; }
-      else if (o.icon) { Icons.put(grp, o.icon, o.x + 21, o.y + o.h / 2, 21, "node-glyph"); tx = cx + 13; room = 20; }
-      const t = s("text", { x: tx, y: o.y + (o.sub ? o.h / 2 - 3 : o.h / 2 + 5), "text-anchor": "middle", class: "node-name" }, grp);
-      t.textContent = shorten(o.label, room);
-      if (o.small) t.style.fontSize = "13.5px";
-      else if ((o.icon || o.emblem) && o.label.length > 15) t.style.fontSize = o.label.length > 18 ? "13px" : "14px";
-      if (o.kind === "cluster") { t.setAttribute("y", o.y + 40); t.style.fontSize = "17px"; }
-      if (o.sub) s("text", { x: tx, y: o.kind === "cluster" ? o.y + 62 : o.y + o.h / 2 + 15, "text-anchor": "middle", class: "node-sub" }, grp).textContent = shorten(o.sub, o.kind === "cluster" ? 40 : 34);
+      if (o.emblem) s("image", { href: o.emblem, x: o.x + 10, y: cy - 15, width: 30, height: 30, class: "emblem" }, grp);
+      else if (o.icon) Icons.put(grp, o.icon, o.x + 21, cy, 21, "node-glyph");
+      const top = cy - words.total / 2, room = words.room;
+      LabelFit.put(grp, { x: tx, y: top + 0.92 * f.size, "text-anchor": "middle", class: "node-name" }, o.label, room, { size: words.size, floor: words.size, weight: isLit ? 700 : 500 });
+      if (o.sub) LabelFit.put(grp, { x: tx, y: top + f.lines.length * f.lh + 4 + 0.82 * sf.size, "text-anchor": "middle", class: "node-sub" }, o.sub, room, { size: 11.5 });
     }
     s("title", {}, grp).textContent = light ? `${o.title || o.label}: ${LIGHT[level].word}` : `${o.title || o.label} (outside service). Its status shows on the contracts that connect to it.`;
     const pick = o.onpick || (() => { go(o.key, { reset: true }); });
@@ -419,7 +443,7 @@ const MapView = (() => {
 
   /* ------------------------------------------------------------ line map */
   function transit(board) {
-    const L = LAY = Geo.layout({ cw: 300, rh: 150 });
+    const L = LAY = Geo.layout({ cw: 300, rh: 150, scope: true });
     legend(board);
     const area = h("div", { class: "transit-area" });
     board.append(area);
@@ -470,14 +494,13 @@ const MapView = (() => {
   const SWEEP = [0.66, 0.5, 0.8, 0.34, ...Array.from({ length: 19 }, (_, i) => (i + 1) / 20)];
   const bumps = (r, list) => list.some((o) => o.x < r.x + r.w && r.x < o.x + o.w && o.y < r.y + r.h && r.y < o.y + o.h);
   function trackLabel(cor, L, g, taken) {
-    const ids = cor.contracts, short = ids.length > 1 ? `${shorten(CONTRACT[ids[0]].title, 20)} +${ids.length - 1}` : shorten(CONTRACT[ids[0]].title, 26);
+    const ids = cor.contracts, said = ids.length > 1 ? `${CONTRACT[ids[0]].title} +${ids.length - 1}` : CONTRACT[ids[0]].title;
     const A = L.stations[cor.a], B = L.stations[cor.b];
     const busy = (x) => Object.values(x.ports).reduce((n, l) => n + l.length, 0);
     const pts = busy(A) >= busy(B) ? cor.center : cor.center.slice().reverse();
     const lit = ids.some((id) => levelOf(id) !== "dark");
-    const t = s("text", { class: "track-label" + (lit ? " lit" : ""), "data-corridor": cor.key }, g);
+    const t = LabelFit.put(g, { class: "track-label" + (lit ? " lit" : ""), "data-corridor": cor.key }, said, 200, { size: 12.5 });
     if (lit) Legend.saw("lit.words");
-    t.textContent = short;
     Nodes.wire(t, { label: ids.length > 1 ? `${ids.length} contracts: ${ids.map((id) => CONTRACT[id].title).join(", ")}` : CONTRACT[ids[0]].title, key: ids.length > 1 ? `bundle:${ids.join(",")}|${titleOf(cor.b)}` : ids[0] });
     t.addEventListener("mousemove", (e) => showTip(e, ids.map((id) => `<b>${esc(CONTRACT[id].title)}</b>${esc(stateWord(CONTRACT[id].state) || "No status written down yet")}, ${esc(LIGHT[levelOf(id)].word.toLowerCase())}`).join("")));
     t.addEventListener("mouseleave", hideTip);
@@ -493,7 +516,7 @@ const MapView = (() => {
       return { x, y, anchor };
     };
     const tries = SWEEP.flatMap((f) => [spot(f, false), spot(f, true)]);
-    const place = (sp) => { t.setAttribute("x", sp.x); t.setAttribute("y", sp.y); t.setAttribute("text-anchor", sp.anchor); const b = t.getBBox(); return { x: b.x, y: b.y, w: b.width, h: b.height }; };
+    const place = (sp) => { LabelFit.place(t, sp.x, sp.y, sp.anchor); const b = t.getBBox(); return { x: b.x, y: b.y, w: b.width, h: b.height }; };
     let box = null;
     for (const sp of tries) { box = place(sp); if (!bumps(box, taken)) break; box = null; }
     if (!box) { box = place(tries[0]); console.warn(`[map] no free place for the label of ${ids.join(", ")}; drawn where it overlaps`); }
@@ -514,8 +537,7 @@ const MapView = (() => {
     // the leftmost apps name themselves on the left: within half a column of the leftmost, since a box may stand between cells
     const prefer = n.kind !== "app" ? ["D", "R", "L", "U"] : n.col - Math.min(...cols) < 0.5 ? ["L", "U", "D", "R"] : ["R", "D", "U", "L"];
     const sides = prefer.filter((sd) => free.includes(sd));
-    const name = s("text", { class: "station-name" }, grp);
-    name.textContent = shorten(n.title, 26);  // a longer name would run into the next station's; the full one is the hover title
+    const name = LabelFit.put(grp, { class: "station-name" }, n.title, 170, { size: 17, weight: 600 });  // a long name wraps to a second line, so it never runs into the next station's
     s("title", {}, grp).textContent = n.external && EXTERNAL[n.key] ? EXTERNAL[n.key].said : n.title;
     const lv = levelOf(n.key);
     if (["warning", "caution", "unexamined"].includes(lv)) Legend.saw("lit.words");
@@ -525,11 +547,12 @@ const MapView = (() => {
     // dropped between cells can stand closer than a column, and a name on the near side would run into the neighbor.
     const put = (side) => {
       let x = stn.x, y = stn.y, anchor = "middle";
-      if (side === "L") { x = stn.x - w / 2 - 14; anchor = "end"; y = stn.y + 2; }
-      if (side === "R") { x = stn.x + w / 2 + 14; anchor = "start"; y = stn.y + 2; }
-      if (side === "U") y = stn.y - ht / 2 - 30;
+      const extra = (name.__lines.lines.length - 1) * name.__lines.lh;  // a name of two lines pushes what is under it down
+      if (side === "L") { x = stn.x - w / 2 - 14; anchor = "end"; y = stn.y + 2 - extra / 2; }
+      if (side === "R") { x = stn.x + w / 2 + 14; anchor = "start"; y = stn.y + 2 - extra / 2; }
+      if (side === "U") y = stn.y - ht / 2 - 30 - extra;
       if (side === "D") y = stn.y + ht / 2 + 24;
-      for (const [t, dy] of [[name, 0], [sub, 18]]) { t.setAttribute("x", x); t.setAttribute("y", y + dy); t.setAttribute("text-anchor", anchor); }
+      for (const [t, dy] of [[name, 0], [sub, 18 + extra]]) LabelFit.place(t, x, y + dy, anchor);
       const a = name.getBBox(), b = sub.getBBox(), x0 = Math.min(a.x, b.x), y0 = Math.min(a.y, b.y);
       return { x: x0, y: y0, w: Math.max(a.x + a.width, b.x + b.width) - x0, h: Math.max(a.y + a.height, b.y + b.height) - y0 };
     };
@@ -622,7 +645,7 @@ const MapView = (() => {
   }
   function buildTrains(L, g) {
     const SPEED = 150, DWELL = 650;
-    for (const f of D.flows) {
+    for (const f of CapFocus.flows()) {
       if (!f.hops.length) continue;
       const legs = []; let prevEnd = null;
       for (const hop of f.hops) {
@@ -691,10 +714,10 @@ const MapView = (() => {
     }
     const n = apps.length, size = n <= 3 ? 96 : n <= 9 ? 70 : 46, small = size < 60;
     const focus = new Set(App.focus ? mapAnchors(App.focus) : []);
-    // Column names stand at 45 degrees, read bottom-left to top-right, cut at NAME_W with the full name on hover. The
+    // Column names stand at 45 degrees, read bottom-left to top-right, the head as tall as the longest whole name needs. The
     // header row and the row names stay put while the board scrolls (map.css), so a cell far down or far right
     // still says whose it is. The head is as tall as the longest name it shows needs.
-    const NAME_W = 168, longest = Math.min(NAME_W, Math.max(...apps.map((k) => titleOf(k).length * 7.4), 40));
+    const longest = Math.ceil(Math.max(...apps.map((k) => LabelFit.width(titleOf(k), 13)), 40)) + 4, NAME_W = longest;
     const table = h("table", { class: "dsm angled" + (small ? " small" : ""), style: `--cell:${size}px;--head:${Math.round(longest * 0.72 + 26)}px;--name-w:${NAME_W}px` });
     const thead = h("thead", {}, h("tr", {}, h("th", { class: "corner" }, "rows provide", h("br"), "to columns"),
       // each name leans over its right-hand neighbors, so a column sits above the next one and its backdrop never hides it
@@ -717,7 +740,7 @@ const MapView = (() => {
         const btn = h("button", { class: `cell ${lv}${upper ? " backwards" : ""}`, "aria-label": `${titleOf(p)} provides ${ids.map((id) => CONTRACT[id].title).join(", ")} to ${titleOf(k)}: ${LIGHT[lv].word}`,
           onclick: () => go(ids.length > 1 ? `bundle:${ids.join(",")}|${k}` : ids[0], { reset: true }),
           onmouseenter: (e) => showTip(e, list.map((c) => `<b>${esc(c.title)}</b>${esc(stateWord(c.state) || "No status written down yet")}, ${esc(LIGHT[levelOf(c.id)].word.toLowerCase())}`).join("")), onmouseleave: hideTip },
-          ids.length === 1 ? h("span", { title: ids[0] }, shorten(CONTRACT[ids[0]].title, small ? 8 : 13)) : h("span", { title: ids.map((id) => CONTRACT[id].title).join(", ") }, small ? `${ids.length}×` : `${ids.length} contracts`));
+          ids.length === 1 ? h("span", { title: ids[0] }, CONTRACT[ids[0]].title) : h("span", { title: ids.map((id) => CONTRACT[id].title).join(", ") }, small ? `${ids.length}×` : `${ids.length} contracts`));
         return h("td", { class: (upper ? "upper" : "") + (sel ? " sel" : ""), "data-r": p, "data-c": k }, btn, held.length ? h("span", { class: "holds " + held.map(unknownLevel).sort((x, y) => rank(y) - rank(x))[0] }, held.length) : null);
       }));
     apps.forEach((k) => tbody.append(row(k, false)));
@@ -783,7 +806,7 @@ const MapView = (() => {
   });
   const mode = () => (lens() === "cockpit" ? (st.focus ? "focus" : group() === "none" ? "cockpit" : group()) : lens());
   function here() { return App.focus ? mapAnchors(App.focus) : []; }
-  return { LOOKS: { cockpit: COCKPIT_LOOKS, focus: () => ({ ...COCKPIT_LOOKS(), ...MapGroups.LOOKS_FOCUS }) }, render, highlight, here, lens, group, viewItems, st, lamp, fitSvg, shortWhy, startBreathing: () => breathe.start(), big, COCKPIT, markDrop, clearDrop, justDropped, resetPulses: () => { pulses = []; }, CLUSTER_PAST };
+  return { LOOKS: { cockpit: COCKPIT_LOOKS, focus: () => ({ ...COCKPIT_LOOKS(), ...MapGroups.LOOKS_FOCUS }) }, render, highlight, here, lens, group, viewItems, st, lamp, contractSize, fitSvg, shortWhy, startBreathing: () => breathe.start(), big, COCKPIT, markDrop, clearDrop, justDropped, resetPulses: () => { pulses = []; }, CLUSTER_PAST };
 })();
 View("map", { label: "Map", title: "The apps, the contracts between them, and what's waiting", render: MapView.render, highlight: MapView.highlight,
   count: () => `${D.map.apps.length}·${D.map.contracts.length}`, lamp: () => { const top = litSubjects()[0]; return top ? top.light.level : null; } });

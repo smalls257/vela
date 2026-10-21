@@ -148,16 +148,12 @@ ol.in-problems b { color: var(--ink); font-weight: 600; }
 .challenge-row:focus-visible { outline: 2px solid var(--focus); }
 .challenge-row .what { display: block; font-size: 14px; font-weight: 600; color: var(--caution-text); }
 .challenge-row .why { display: block; font-size: 12.5px; color: var(--ink-3); line-height: 1.4; margin-top: 1px; }
-/* the drawing's zoom: fitted, reading size, or the reader's own */
+/* the drawing's zoom buttons are shared by every drawing (pan.js, styled in base.css) */
 .inside-frame { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; }
-.inside-frame > .in-zoom { position: absolute; bottom: 8px; right: 8px; }
-.in-zoom { display: inline-flex; gap: 2px; background: var(--glass); border: 1px solid var(--rule-3); border-radius: 8px; padding: 2px; z-index: 2; flex: none; }
-.in-zoom button { border: 0; background: transparent; color: var(--ink-2); padding: 2px 8px; border-radius: 6px; cursor: pointer; font-size: 12px; }
-.in-zoom button:hover { background: var(--deck-3); color: var(--ink); }
 
 /* the data model: fitted to the tab on open, zoomed by the reader; the controls sit above it, not over it */
 .in-er-wrap { position: relative; display: flex; flex-direction: column; }
-.in-er-wrap .in-zoom { position: static; order: -1; margin: 0 0 6px auto; width: max-content; }
+.in-er-wrap .zoom-bar { position: static; order: -1; margin: 0 0 6px auto; width: max-content; }
 .in-er svg { flex: none; }
 /* the data model scrolls inside a frame of its own height, so its zoom never moves the page */
 .in-er { height: clamp(260px, 50vh, 520px); max-height: none; }
@@ -239,3 +235,9 @@ body:has(#main.inside-full[data-view="inside"]) { --side-w: 0px; --panel-w: 0px;
 body:has(#main.inside-full[data-view="inside"]) #side, body:has(#main.inside-full[data-view="inside"]) #panel, body:has(#main.inside-full[data-view="inside"]) #side-grip,
 body:has(#main.inside-full[data-view="inside"]) #panel-grip, body:has(#main.inside-full[data-view="inside"]) .view-head { display: none; }
 @media (max-width: 1000px) { .comp-sec { padding: 4px 11px 10px; } }
+
+/* a diagram drawn by Mermaid (diagrams.js): fitted to its card, zoomed and panned like every other drawing */
+.mm-frame { position: relative; display: grid; place-items: center; overflow: hidden; max-height: 70vh; min-height: 120px; background: var(--board); border: 1px solid var(--rule); border-radius: 8px; padding: 0; }
+.mm-frame .mm-svg { display: block; width: 100%; height: auto; min-height: 118px; max-height: calc(70vh - 2px); }  /* the drawing is the whole frame, so zoomed in it reaches every edge */
+.mm-error .in-src { margin-top: 6px; }
+.mm-stage { position: fixed; left: -10000px; top: 0; width: 1200px; visibility: hidden; pointer-events: none; }
