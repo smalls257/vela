@@ -82,7 +82,7 @@ Every session follows the same pattern.
 
 ```mermaid
 flowchart TB
-  start["Start: pull main, open a branch, list overdue questions"]
+  start["Start: open the record on this branch, list overdue questions"]
   subgraph work["The work, one item at a time"]
     direction LR
     ask["Ask one question,<br/>with a recommended answer"] --> readback["Read back what<br/>would be written"] --> yes["You say yes<br/>to each line"] --> write["Written to<br/>the pages"]
@@ -94,7 +94,7 @@ flowchart TB
   start --> work --> finish
 ```
 
-1. **Start.** Claude checks the repository is clean, pulls `main`, lists overdue questions, shows `vela next`'s suggestion, and opens a session record on a new branch.
+1. **Start.** Claude checks the repository is clean, lists overdue questions, shows `vela next`'s suggestion, and opens a session record on the branch you are on.
 2. **The work.** It asks one question at a time, each with a recommended answer. When it writes something, it first reads it back as a numbered list. Nothing is written without your explicit yes to that line: "looks fine" doesn't count. What you say is kept as notes in the session record, each with who said it.
 3. **A review checkpoint,** once per session at a set point. Five reviewers each read only the written pages, in a fresh context, one area each: money, data, partners, regulation, and operations. Code merges what they find and drops any finding that misquotes a page. You see one ranked list and choose what to take up. New questions are only raised about what this session changed, and questions about something already decided are only raised if they're serious.
 4. **Close.** You confirm what each note becomes: a fact, an open question, a risk, or discarded. Claude writes those into the pages, rewrites the opening paragraph of each page it changed, runs the checks, fixes what they report, and opens the pull request.

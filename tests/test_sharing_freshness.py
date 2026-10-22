@@ -286,7 +286,7 @@ def test_a_branch_with_no_upstream_is_compared_with_origin_main(tmp_path, owner)
     code, text = run("freshness", "--vault", str(root))
     assert code == freshness.EXIT_BEHIND, text
     assert ("Your branch dashboard/2026-10-14-close is 1 commit behind the shared plan (origin/main); run "
-            "`vela session start` to bring it in.") in text
+            "`vela close sync-main` to bring it in.") in text
     assert "Your local main is 1 commit behind it." in text and "no upstream" not in text
     report = fresh(root, code=freshness.EXIT_BEHIND)
     assert (report["branch"], report["behind"], report["main_behind"]) == ("dashboard/2026-10-14-close", 1, 1)

@@ -128,7 +128,8 @@ A plan that is its own repo works exactly as before.
 ## Later
 
 - **Not yet run against a real GitHub repo:** close's owner-only harvest (it reads merged PRs with `gh`), answering a challenge (it comments on the challenge PR with `gh pr comment`), and close's merge of a moved `main`. Each is tested on local git repos only, so watch the first real run of each.
-- **Long-lived PRs.** If `main` moves while a long-lived PR is open, merge `origin/main` into the session branch, then run `vela render`. A conflict inside a generated block goes away when you re-render. Close does this before it renders.
+- **Sessions run on your branch.** `vela session start` opens the session on the branch you are on, `main` included, and notes the branch and the commit it began at. It doesn't switch or pull. For a review, ask for a branch of its own (`--new-branch`); from `main`, `close push` offers to move the session's commits onto one (`vela session branch`). A branch that already has an open pull request gets the session added to it, not a second one.
+- **Long-lived PRs.** If `main` moves while a long-lived PR is open, merge `origin/main` into the session's branch, then run `vela render`. A conflict inside a generated block goes away when you re-render. Close does this before it renders.
 - **Vault mode for your own grills:** `integrations/requirements-grill/INSTALL.md` and `integrations/tech-design-grill/INSTALL.md`. Each one backs up first and dry-runs before applying. Nothing has been applied to `~/.claude` yet.
 - **Jira export details:** Owner team drops the leading `@` of the handle, so `@org/team` becomes `org/team`. The link points at the repository and commit from `git`, or pass `--repo-url` and `--commit`.
 - **Evals:** these are paid runs, and you run them by hand. See `tests/evals/README.md`. Start with the $1 smoke run it describes.

@@ -1,7 +1,7 @@
 """The pull request `vela close pr` opens: its title, its reviewers and its body (overhaul Task 12). Pure.
 
 The Violation this exists to prevent is a God Method in prose: close section 8 and PR-BODY.md had the model work out
-the reviewers, count the minutes, run greps, paste check lines and copy the consent block by hand, every close, and a
+the reviewers, run greps, paste check lines and copy the consent block by hand, every close, and a
 skipped step left a list out with nothing saying it was skipped. Everything here is computable, so it is computed:
 
 - **Reviewers.** The `owner:` of each app page the session changed and of each consumer app of a contract it changed.
@@ -135,14 +135,6 @@ def section(heading, lines, empty=None):
 def _sentence(text):
     text = str(text).strip()
     return text if text[-1:] in ".?!" else text + "."
-
-
-def minutes(times):
-    """'about <n> minutes (from the commit log)' from the session's commit times, or 'not recorded' with one."""
-    if len(times) < 2:
-        return "not recorded"
-    n = max(1, round((max(times) - min(times)) / 60))
-    return f"about {n} minute{'' if n == 1 else 's'} (from the commit log)"
 
 
 def what_changed(rows, vault):
@@ -329,7 +321,6 @@ class Facts:
     red_check: str = ""
     check: list = field(default_factory=list)
     stage: list = field(default_factory=list)
-    minutes: str = "not recorded"
     prose: str = ""
 
 
@@ -353,6 +344,6 @@ def body(f):
     lines += [""] + section("Check", [f"- {line}" for line in f.check], empty="not run")
     if f.stage:
         lines += ["", "**Stage**", ""] + [f"- {line}" for line in f.stage]
-    lines += ["", f"**Minutes:** {f.minutes}", "", f"**Structural fixes:** {REVIEWER_FILLS}",
+    lines += ["", f"**Structural fixes:** {REVIEWER_FILLS}",
               f"**Prose edits:** {REVIEWER_FILLS}"]
     return "\n".join(lines).strip() + "\n"

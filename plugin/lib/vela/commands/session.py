@@ -19,19 +19,26 @@ A reader copy has no branches: the records are read from its folder and no git r
 START steps 1, 2 and 5 and ANSWER-A-CHALLENGE steps 1, 2 and 4. It reads `.vela/host.json` first, because a host
 that can commit but can't send must be said at the start, not when the push fails at close (review M5, plan 7.3).
 Every check that can stop it runs before anything changes, and all of them are reported at once, so the lead
-answers every question in one turn. A new session branches from main brought up to origin/main; a resumed session's
-branch, or a challenge's, has origin/main merged in by `close sync-main`'s own code (`close_sync.bring_in_at_start`),
-so no session reads a plan older than the shared one without hearing so. Exit codes:
+answers every question in one turn. A new session opens on the branch the lead is on, whatever it is, main included:
+it does not switch, pull or branch, and its record notes the branch and the commit it began at (`start_commit`, which
+`close drafts` counts from). `--new-branch` makes a `session/...` branch from the current one, and is only for a lead
+who asked for a fresh branch. A resumed session's branch, or a challenge's, has origin/main merged in by
+`close sync-main`'s own code (`close_sync.bring_in_at_start`), so no session reads a plan older than the shared one
+without hearing so. Exit codes:
 
 0  started (or, with `--resume`, back on the open session's branch);
 1  refused: a reader copy asked for an owner's mode, a host with no working git (the reader path is said), an unknown
    mode, `--answer` found none or several open challenge PRs (what `gh` returned is printed; never a guessed
    branch), or main changed lines the branch being resumed changed too (sync-main's lines; the merge is aborted);
 2  git or `gh` failed (their words are printed), or main couldn't be brought up to date;
-3  needs the lead, nothing changed: open sessions exist (resume, close or `--new`), uncommitted changes the pull
-   would overwrite, uncommitted edits on a resumed branch that main must be merged into (checkpoint them first), or
+3  needs the lead, nothing changed: open sessions exist (resume, close or `--new`), uncommitted changes outside this
+   plan (a plan that shares its repo), uncommitted changes a challenge's branch would overwrite, uncommitted edits on a resumed branch that main must be merged into (checkpoint them first), or
    the initiative has no name yet (the one naming question; `--title` answers it, `--unnamed` records that the lead
    declined).
+
+`session branch` moves an open session that sits on the default branch onto its own `session/...` branch, for a lead
+who said yes when `close push` explained that main can't be the head of a pull request. The session's commits go with
+it and the local default branch goes back to where the session began.
 
 `session brief` is START steps 3 and 4, read-only: review comments on PRs merged since the last closed session (as
 candidate captures, in `--json`), the overdue open questions, `vela next`, and how much is still open. A `gh` failure
@@ -59,7 +66,7 @@ GIT_DETAIL = "The details are in my notes."
 
 def register(sub):
     session = sub.add_parser("session", help="the session record: start one, find the open one, brief the lead")
-    verbs = session.add_subparsers(dest="session_command", metavar="{open,start,brief}")
+    verbs = session.add_subparsers(dest="session_command", metavar="{open,start,branch,brief}")
     verbs.required = True
     opener = verbs.add_parser("open", help="the open session record(s), each with its branch, modes and date")
     opener.add_argument("--vault", default=".", help="vault root or reader workspace (default: current directory)")
@@ -69,11 +76,12 @@ def register(sub):
     say.add_output_flags(opener)
     opener.set_defaults(func=cmd_open)
     register_start(verbs)
+    register_branch(verbs)
     register_brief(verbs)
 
 
 def register_start(verbs):
-    starter = verbs.add_parser("start", help="pull main, open the session's branch and record, and commit it; stops "
+    starter = verbs.add_parser("start", help="open the session's record on the current branch and commit it; stops "
                                              "with the choices when open sessions, unsaved work or an unnamed "
                                              "initiative need the lead")
     starter.add_argument("--vault", default=".", help="vault root or reader workspace (default: current directory)")
@@ -82,6 +90,8 @@ def register_start(verbs):
     starter.add_argument("--topic", default="", help="two to four words from the lead's first message: the id's slug")
     starter.add_argument("--answer", default="", metavar="PR|ID",
                          help="answer a challenge: its PR number, or the challenged ID (matched by exact title suffix)")
+    starter.add_argument("--new-branch", action="store_true",
+                         help="make a session branch from the current one, only when the lead asked for a fresh branch")
     which = starter.add_mutually_exclusive_group()
     which.add_argument("--resume", default="", metavar="ID", help="resume this open session (after an exit 3)")
     which.add_argument("--new", action="store_true", help="leave the open sessions open and start another")
@@ -93,6 +103,14 @@ def register_start(verbs):
     starter.add_argument("--today", help="the session's date, YYYY-MM-DD (default: today)")
     say.add_output_flags(starter)
     starter.set_defaults(func=cmd_start)
+
+
+def register_branch(verbs):
+    mover = verbs.add_parser("branch", help="move the open session's commits from the default branch onto a new "
+                                            "session branch, after the lead's yes")
+    mover.add_argument("--vault", default=".", help="vault root (default: current directory)")
+    say.add_output_flags(mover)
+    mover.set_defaults(func=cmd_branch)
 
 
 def register_brief(verbs):
@@ -297,6 +315,10 @@ def requested_modes(args):
 
 
 def refuse_request(args, modes, reader):
+    if args.new_branch and (args.resume or args.answer or reader):
+        raise refused("new branch", "A new branch is for a fresh session in the plan's own clone; a resumed session "
+                      "and an answer keep the branch they are on, and a copy has no branches.",
+                      "leave --new-branch off")
     if args.resume:
         return
     if not modes:
@@ -568,38 +590,32 @@ def set_aside_vela_files(root):
     return aside, mergegit.set_aside(root, aside)
 
 
-def check_shared_repo(root, open_records, args):
-    """A plan that shares its repo starts a session by switching the whole repo's branch, so it starts only from a repo
-    that can take the switch: nothing unsaved outside this plan, and HEAD on the main branch or on this plan's own open
-    session. Otherwise exit 3, nothing changed (a plan that is its own repo has nothing else to disturb)."""
+def check_shared_repo(root):
+    """A plan that shares its repo starts a session only when nothing outside this plan has unsaved changes: those are
+    the owner's own work on something else, and a session's commits and branch moves must not sweep it up. HEAD may be
+    on any branch (the session runs on it). Otherwise exit 3, nothing changed. A plan that is its own repo has nothing
+    else to disturb."""
     if not vaultgit.plan_scope(root):
         return
     outside = vaultgit.changed_outside_plan(root)
     if outside:
         count = say.count_words(len(outside))
         question = (f"{count.capitalize()} file{'s' if len(outside) != 1 else ''} outside this plan {'have' if len(outside) != 1 else 'has'} "
-                    "unsaved changes, and starting a session moves the whole repository to another branch. Save them or "
+                    "unsaved changes, and a session saves its work in the same repository. Save them or "
                     "set them aside first, then I'll start.")
         raise Stop(say.Result(START, exit=say.NEEDS_LEAD, lines=[say.Line(
-            f"vela: uncommitted changes outside this plan ({', '.join(outside[:5])}); a session start switches the whole "
-            "repository's branch. Commit or stash them, then run again.", plain=question)],
+            f"vela: uncommitted changes outside this plan ({', '.join(outside[:5])}); a session commits in the same "
+            "repository. Commit or stash them, then run again.", plain=question)],
             needs_lead=[{"ask": "unsaved work outside the plan", "question": question, "paths": outside}]))
-    current = sessiongit.current_branch(root)
-    own = {record.branch for record in open_records}
-    if current not in ("main", "master") and current not in own and not args.answer:
-        question = ("The repository isn't on its main branch or on this plan's own session: it's on another plan's session "
-                    "or on a branch of yours. Switch it back to main, or to this plan's session, and I'll start.")
-        raise Stop(say.Result(START, exit=say.NEEDS_LEAD, lines=[say.Line(
-            f"vela: HEAD is on {current or 'no branch'}, not main or this plan's own open session; switch to main, then "
-            "run again.", plain=question)], needs_lead=[{"ask": "which branch", "question": question, "head": current}]))
 
 
 def start_owner(root, args, today, modes, plain, said, host):
-    """The owner's start: every check, then the pull, the branch, the record and its commit."""
+    """The owner's start: every check, then the record and its commit, on the branch the lead is on. A challenge's
+    answer is the exception: it goes onto the challenge's branch, brought up to date first."""
     config = config_of(root)
     pr, challenged = find_challenge(root, args.answer, plain) if args.answer else (None, "")
     open_records, problems = sessions.find_open(sessiongit.branch_records(root), vaultgit.plan_scope(root))
-    check_shared_repo(root, open_records, args)
+    check_shared_repo(root)
     lines = said + problem_lines(problems)
     if args.resume:
         return resume(root, open_records, args.resume, False, lines, today, plain, host)
@@ -610,8 +626,29 @@ def start_owner(root, args, today, modes, plain, said, host):
         ask, line = naming_choice()
         asks.append(ask)
         asked.append(line)
-    base = pr["headRefName"] if pr else "main"
-    base_words = "the challenge's branch" if pr else "main"
+    if pr:
+        return start_on_challenge(root, args, today, modes, plain, host, pr, challenged, lines, asks, asked)
+    current = sessiongit.current_branch(root)
+    if not current:
+        raise refused("no branch", "The plan's repository isn't on a branch (HEAD is detached), and a session's "
+                      "work needs a branch to sit on.", "switch to a branch, then start the session")
+    if asks:
+        raise Stop(say.Result(START, exit=say.NEEDS_LEAD, needs_lead=asks, lines=lines + one_ask_at_a_time(asked)))
+    lines += [review_needs_branch(current)] if current == sessiongit.default_branch(root) and not args.new_branch else []
+    carried = sessions.carried(sessiongit.dirty_paths(root), [])
+    return open_record(root, args, today, modes, "", "" if args.new_branch else current, lines, carried, plain)
+
+
+def review_needs_branch(current):
+    """Said once, when a session starts on the default branch: close can't open a pull request from it."""
+    return say.Line(f"on {current}: a review needs a branch; `session start --new-branch` makes one",
+                    plain=f"We're on {current}, and a review needs its own branch. If you want one for this session, "
+                          "say so and I'll make it; otherwise the work stays here.")
+
+
+def start_on_challenge(root, args, today, modes, plain, host, pr, challenged, lines, asks, asked):
+    """An answer: the challenge's branch, brought up to date, then the record on it."""
+    base = pr["headRefName"]
     how, fetch_words = bring_in(root, host)
     upstream = f"origin/{base}" if how == "fetched" and sessiongit.ref_exists(root, f"refs/remotes/origin/{base}") \
         else ""
@@ -619,20 +656,20 @@ def start_owner(root, args, today, modes, plain, said, host):
     target = upstream or (known[0] if known else "")  # origin's copy from an earlier fetch still serves offline
     if not target:
         raise failed(f"no branch {base} here or on origin; nothing changed",
-                     f"I can't find {base_words} here or in the shared copy, so I haven't started.", lines)
+                     "I can't find the challenge's branch here or in the shared copy, so I haven't started.", lines)
     lost = sessions.clobbered(sessiongit.dirty_paths(root), sessiongit.incoming_paths(root, target))
     if lost:
-        ask, line = clobber_choice(lost, base_words)
+        ask, line = clobber_choice(lost, "the challenge's branch")
         asks.append(ask)
         asked.append(with_pages(line, lost, plain))
     if asks:
         raise Stop(say.Result(START, exit=say.NEEDS_LEAD, needs_lead=asks, lines=lines + one_ask_at_a_time(asked)))
-    fresh = freshness_line(how, fetch_words, base_words)
+    fresh = freshness_line(how, fetch_words, "the challenge's branch")
     lines += [fresh] if fresh else []
-    move_to(root, base, upstream, base_words)
-    wrote = bring_main_in(root, today, host, lines, "copy of the challenge's branch") if pr and how == "fetched" else []
+    move_to(root, base, upstream, "the challenge's branch")
+    wrote = bring_main_in(root, today, host, lines, "copy of the challenge's branch") if how == "fetched" else []
     carried = sessions.carried(sessiongit.dirty_paths(root), [])
-    result = open_record(root, args, today, modes, challenged, base if pr else "", lines, carried, plain)
+    result = open_record(root, args, today, modes, challenged, base, lines, carried, plain)
     result.wrote[:0] = wrote
     return result
 
@@ -678,9 +715,10 @@ def open_record(root, args, today, modes, challenged, on_branch, lines, carried,
                          f"I couldn't set the session up, so I haven't started. {GIT_DETAIL}", lines)
     rel = f"sessions/{record_id}.md"
     title = sessions.title_for(modes, args.topic, challenged)
-    wrote = [sessiongit.write_text(root, rel, sessions.record_text(record_id, title, today, modes))]
+    began = sessiongit.head_commit(root)
+    wrote = [sessiongit.write_text(root, rel, sessions.record_text(record_id, title, today, modes, branch, began))]
     sessiongit.commit(root, f"Open session {record_id}", [rel])
-    where = ", and your answer goes onto the challenge itself" if on_branch else ""
+    where = ", and your answer goes onto the challenge itself" if challenged else ""
     lines.append(say.Line(f"started: {record_id} on {branch}, modes: {', '.join(modes)}",
                           plain=f"I've opened the session: {plain(title)}{where}."))
     if carried:
@@ -697,6 +735,88 @@ def open_record(root, args, today, modes, challenged, on_branch, lines, carried,
     wrote.append(write_state(root, record_id, rel, branch, modes, today))
     return say.Result(START, lines=lines, wrote=wrote, data={"id": record_id, "path": rel, "branch": branch,
                                                              "modes": modes, "reader": False})
+
+
+# ------------------------------------------------------------------------------------------------- session branch
+
+BRANCH = "session branch"
+
+
+def cmd_branch(args, out):
+    root = pathlib.Path(args.vault).resolve()
+    resolver = lead_resolver(root) if say.mode_of(args) == "for-lead" else None
+    try:
+        result = move_to_own_branch(root)
+    except Stop as stop:
+        result = stop.result
+    except GitUnavailable as exc:
+        result = say.Result(BRANCH, exit=say.FAILED, lines=[
+            say.Line(f"vela: {exc}", plain=f"Git failed while moving the session. {GIT_DETAIL}")])
+    return commands.emit(result, args, out, resolver)
+
+
+def refuse_branch(text, plain):
+    return Stop(say.Result(BRANCH, exit=say.REFUSED, lines=[say.Line(text, plain=plain)]))
+
+
+def move_to_own_branch(root):
+    """Give the open session on the default branch its own `session/...` branch, carrying its commits. The local default
+    branch goes back to the session's start commit so main holds nothing of the session (never committed to main, never
+    pushed from it); when some of those commits are already on origin's copy, main is left alone and that is said."""
+    if sessiongit.is_read_copy(root):
+        raise refuse_branch("vela session branch: a reader copy has no branches.", READ_COPY)
+    scope = vaultgit.plan_scope(root)
+    current, default = sessiongit.current_branch(root), sessiongit.default_branch(root)
+    found, _ = sessions.find_open(sessiongit.branch_records(root), scope)
+    here = [r for r in found if r.branch == current]
+    if len(here) != 1:
+        raise refuse_branch(f"vela session branch: {len(here)} open sessions on {current or 'no branch'}; need exactly one.",
+                            "I can't tell which session to move, so I haven't moved anything.")
+    record = here[0]
+    if current != default:
+        raise refuse_branch(f"vela session branch: {record.id} is on {current}, not {default}; nothing to move.",
+                            "This session already has a branch of its own, so there's nothing to move.")
+    branch = planscope.session_branch(scope, record.id)
+    if sessiongit.branch_taken(root, branch):
+        raise refuse_branch(f"vela session branch: {branch} already exists; nothing changed.",
+                            "A branch for this session already exists, so I haven't moved anything.")
+    text = (root / record.path).read_text(encoding="utf-8")
+    began = sessions.start_commit_of(text)
+    ok, said = sessiongit.create_branch(root, branch)
+    if not ok:
+        raise failed_branch(f"git switch -c {branch} failed: {said}", f"I couldn't make the branch. {GIT_DETAIL}")
+    rel = record.path
+    sessiongit.write_text(root, rel, sessions.with_branch(text, branch))
+    sessiongit.commit(root, f"Move session {record.id} to {branch}", [rel])
+    write_state(root, record.id, rel, branch, list(record.modes), record.date,
+                max(records.numbers_in((root / rel).read_text(encoding="utf-8")), default=0))
+    lines = [say.Line(f"moved {record.id} from {default} to {branch}",
+                      plain="The session has its own branch now, with everything we did on it.")]
+    lines += main_back(root, default, began, branch)
+    return say.Result(BRANCH, lines=lines, wrote=[rel], data={"id": record.id, "branch": branch, "from": default})
+
+
+def failed_branch(text, plain):
+    return Stop(say.Result(BRANCH, exit=say.FAILED, lines=[say.Line(text, plain=plain)]))
+
+
+def main_back(root, default, began, branch):
+    """The lines for what happened to the local default branch: put back where the session began, or left, and why."""
+    if not began or not sessiongit.ref_exists(root, began):
+        return [say.Line(f"{default} left as it is: the record has no start commit to put it back to",
+                         plain=f"The session's first commits are still on {default} here too; I didn't move it back.")]
+    own = sessiongit.commits_between(root, began, branch)
+    upstream = f"refs/remotes/origin/{default}"
+    unshared = sessiongit.commits_between(root, upstream, branch) if sessiongit.ref_exists(root, upstream) else own
+    if own != unshared:
+        return [say.Line(f"{default} left as it is: some of the session's commits are already on origin/{default}",
+                         plain=f"Some of today's work is already on the shared {default}, so I left {default} alone.")]
+    ok, said = sessiongit.move_branch(root, default, began)
+    if not ok:
+        return [say.Line(f"git branch -f {default} failed: {said}; {default} still holds the session's commits",
+                         plain=f"The session is on its own branch, but I couldn't take it off {default}. {GIT_DETAIL}")]
+    return [say.Line(f"{default} put back at {began[:7]}, where the session began",
+                     plain=f"{default.capitalize()} is back to how it was before today's work.")]
 
 
 # ------------------------------------------------------------------------------------------------- session brief
