@@ -28,6 +28,14 @@ while read -r local_ref local_sha remote_ref remote_sha; do
     git worktree remove --force "$tree"
     continue
   fi
+  if [ "$remote_ref" = "refs/heads/release" ]; then
+    # The generated install branch (tools/build_release_branch.py): only the plugin, the manifest, LICENSE and a README.
+    # It holds no code to gate, so it gets its own check: allowed paths, a parsing manifest, a version above the
+    # previous release, and no oversized file.
+    echo "pre-push: $local_ref -> $remote_ref at ${local_sha:0:9} (release check)"
+    python3 "$(cd "$(dirname "$0")/.." && pwd)/tools/build_release_branch.py" --check "$local_sha" || status=1
+    continue
+  fi
   tree_id="$(git rev-parse "$local_sha^{tree}")"
   if grep -qx "$tree_id $mode" "$passed_file"; then
     echo "pre-push: $local_ref -> $remote_ref at ${local_sha:0:9}: this exact code (tree ${tree_id:0:9}) already passed the $mode gate; not run again"
