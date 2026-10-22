@@ -52,8 +52,13 @@
 .cv-mx { border-collapse: separate; border-spacing: 3px; }
 .cv-mx th { font-weight: 500; font-size: 12px; text-align: left; background: var(--room); }
 .cv-mx th.row { position: sticky; left: 0; z-index: 1; min-width: 180px; max-width: 240px; padding-right: 8px; }
-.cv-mx th.col { height: 190px; vertical-align: bottom; }
-.cv-mx th.col button { writing-mode: vertical-rl; transform: rotate(180deg); text-align: left; max-height: 186px; }
+.cv-mx-wrap { padding-right: 160px; }  /* room for the last column's slanted label */
+.cv-mx th.col { height: 200px; width: 44px; min-width: 44px; vertical-align: bottom; position: relative; padding: 0; }
+/* labels slant up and to the right at 45 degrees from the bottom of their column, the usual matrix header */
+.cv-mx th.col { overflow: visible; background: transparent; }  /* a column's background would paint over the label slanting across it */
+.cv-mx th.col button { z-index: 1; }
+.cv-mx th.col button { position: absolute; left: 22px; bottom: 6px; transform-origin: 0 100%; transform: rotate(-45deg);
+  white-space: nowrap !important; width: max-content; max-width: none; text-align: left; padding: 0; }
 .cv-mx th.on button { color: var(--focus); font-weight: 700; }
 .cv-mx th button { font: inherit; }
 .cv-cell { box-sizing: border-box; width: 44px; height: 38px; border-radius: 6px; border: 1px solid var(--rule); background: var(--room-2); display: grid; place-items: center; font: inherit; color: var(--ink); position: relative; }
