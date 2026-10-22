@@ -1,8 +1,8 @@
 /* Navigation: a collapsible sidebar in the vault's own section order, the front doors by audience at its top, and
    the router. Every section opens a section page: its visual in the main area, and its page, in the vault's own
    words, beside it in the panel. Constraints, Strategy and Glossary are mostly words, so their page fills the main
-   area instead. The views the explorer already had are the visuals of their sections: the map is Apps (and
-   Capabilities, grouped by capability), the played flows are Flows, Who to ask is Unknowns and risks, the decision log is
+   area instead. The views the explorer already had are the visuals of their sections: the map is Apps, the capability
+   cards, focus and matrix are Capabilities (capview.js), the played flows are Flows, Who to ask is Unknowns and risks, the decision log is
    Decisions, the stage ladder is Apps' second visual and the trace is Capabilities' and Epics'.
 
    Hash: #overview, #role=qa, #s=apps&open=APP-booking, #s=strategy&read, plus the map's &lens= &group= &focus= and the
@@ -14,7 +14,7 @@ const Nav = (() => {
   // section -> its visuals, the first being the default; [] means its page is read full width
   const VISUALS = {
     goals: [["goals", "Goals"]], constraints: [], context: [["context", "Today and after"]], strategy: [],
-    capabilities: [["map", "Capability map"], ["trace", "Requirements to epics"]], releases: [["releases", "Timeline"]], slices: [["slices", "Slices"]],
+    capabilities: [["capmap", "Capabilities"], ["capmatrix", "Dependency matrix"], ["trace", "Requirements to epics"]], releases: [["releases", "Timeline"]], slices: [["slices", "Slices"]],
     apps: [["map", "Map"], ["progress", "Progress"]], flows: [["flows", "Step through"]], concerns: [["concerns", "By app"]],
     decisions: [["decisions", "Decision log"]], unknowns: [["asks", "Who to ask"]], glossary: [], epics: [["epics", "Epics"], ["trace", "Requirements to epics"]],
     library: [["library", "Library"]],
@@ -43,7 +43,7 @@ const Nav = (() => {
   function pageBeside() { return textLed(App.section) || App.view === "doc" ? "" : sectionPage(); }
   function missingPage() { const s = sec(); return s ? `The ${s.label.toLowerCase()} page isn't written yet. The plan's lead writes it in a planning session.` : "No page."; }
   /* What each visual shows, one line, as the View menu says it. */
-  const VISUAL_SAY = { map: "the apps and the contracts between them", progress: "how far each app is, and what is waiting on someone", trace: "which requirements have an app and an epic behind them",
+  const VISUAL_SAY = { capmap: "every capability as a card, and one in focus with what needs it and what it needs", capmatrix: "which capability needs which, across all of them", map: "the apps and the contracts between them", progress: "how far each app is, and what is waiting on someone", trace: "which requirements have an app and an epic behind them",
     epics: "every epic, and what it delivers", releases: "the system before and after each release" };
   const visualItem = ([v, label]) => ({ id: v, label, say: VISUAL_SAY[v] || null, checked: App.view === v, run: () => { Sections.doc.page = ""; showView(v); } });
   /* The View menu's items for the section the reader is in. A section with a map keeps the map's four views in the same
@@ -104,9 +104,10 @@ const Nav = (() => {
     if (typeof Motion !== "undefined") Motion.clear();
     let view = (VISUALS[id] || [])[0] ? VISUALS[id][0][0] : "doc";
     MapView.st.focus = null;
+    const was = App.section === "capabilities" ? App.view : "";
     CapFocus.set(id === "capabilities" ? st.child : ""); Pan.forget("cockpit", "transit");
     if (id === "apps") { MapView.st.lens = MapView.st.lens === "releases" ? null : MapView.st.lens; if (st.child) { MapView.st.focus = st.child; MapView.st.lens = "cockpit"; } if (MapView.st.group === "capability") MapView.st.group = null; }
-    if (id === "capabilities") { MapView.st.group = "capability"; MapView.st.lens = "cockpit"; }
+    if (id === "capabilities") view = CapView.enter(CapFocus.key(), opts, was);  // the cards, or the focus view when one is picked
     if (id === "flows" && st.child) { Flows.st.key = st.child; Flows.st.cur = -1; }
     if (id === "decisions" && st.child) Decisions.showFor(st.child);
     if (id === "releases" && opts.state !== undefined) Releases.open(opts.state);

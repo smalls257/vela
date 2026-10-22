@@ -20,7 +20,7 @@ const MapView = (() => {
   const GROUP_OFF = { domain: "No app has a business area yet, so there is nothing to group by",
     capability: "No app has requirements or epics tied to a capability yet, so there is nothing to group by" };
   const groupOff = (id) => (id === "domain" && !hasDomains()) || (id === "capability" && !hasCapabilities());
-  const group = () => { if (CapFocus.key()) return "none"; const g = st.group || (App.section === "capabilities" ? "capability" : manyApps() && hasDomains() ? "domain" : "none"); return groupOff(g) ? "none" : g; };
+  const group = () => { const g = st.group || (manyApps() && hasDomains() ? "domain" : "none"); return groupOff(g) ? "none" : g; };
   let pulses = [], trains = [], gPulses = null, LAY = null, stripEl = null;
   const LEDE = {
     cockpit: "The apps and the contracts between them. Pick one to see what it's waiting on.",
@@ -97,7 +97,6 @@ const MapView = (() => {
       h("div", { class: "spacer" }));
     main.append(head);
     const col = queued ? h("div", { class: "home-map" }) : main;
-    if (App.section === "capabilities" && !hasCapabilities()) col.append(emptyState("No requirements tied to a capability yet,", "so there's nothing to group by.", "/vela:requirements", "inline"));
     const board = h("div", { class: "board board-" + (lens() === "cockpit" && mode !== "cockpit" ? "cockpit board-" + mode : lens()), id: "board" });
     wireEmptySpace(board);
     // The matrix's key sits beside (or, in a narrow window, under) the scrolling board and not inside it, so nothing
@@ -105,13 +104,9 @@ const MapView = (() => {
     const stage = lens() === "matrix" ? h("div", { class: "matrix-stage" }, board) : null;
     KEY = lens() === "releases" ? null : Legend.open(keyName(mode), { root: () => $("#board"), probes: keyLooks(mode) });
     // The view, grouping, focus and layout controls ride on the diagram's own bar (menus.js), under the title and lede.
-    col.append(Menus.frame(diagramBar(), CapFocus.bar("map"), stage || board));
+    col.append(Menus.frame(diagramBar(), stage || board));
     if (queued) { const width = main.clientWidth; main.append(h("div", { class: "home-wrap" }, h("div", { class: "home-stage" + (Queue.folded(width) ? " stacked" : "") }, Queue.card(width), col))); }
     if (!D.nodes.length) { board.append(emptyState("No apps yet.", "The map fills in once a session names them.", "/vela:boundary")); return; }
-    if (CapFocus.scope() && CapFocus.scope().empty && (lens() === "cockpit" || lens() === "transit")) {
-      board.append(emptyState(`${titleOf(CapFocus.key())} doesn't touch any app or contract yet.`, "Nothing allocates it, no epic that delivers it lists an app, and no flow names it."));
-      return;
-    }
     if (lens() === "releases") { Releases.mapLens(board); return; }  // the releases drawing keeps its own key
     if (lens() === "matrix") drawn(() => { const m = matrix(); board.append(m.table); stage.append(m.key); });
     else if (lens() === "transit") { drawn(() => transit(board)); highlight(App.focus); }
@@ -208,7 +203,7 @@ const MapView = (() => {
      duct's lamps stand together as one bank at the first point along the duct, from its quieter end outward, that
      touches no box, caption or earlier bank (MapGroups.place). #selftest checks that no two parts intersect. */
   function cockpit(board) {
-    const L = LAY = Geo.layout({ ...COCKPIT, scope: true }), liveFlows = CapFocus.flows();
+    const L = LAY = Geo.layout(COCKPIT), liveFlows = D.flows;
     const W = BOX_W, H = BOX_H, b = L.bounds, dragging = !!Layout.live;
     let left = b.x0 - 150, right = b.x1 + W / 2 + 140, top = b.y0 - 56, flowsY = b.y1 + 92;
     if (dragging && seenView) { left = Math.min(left, seenView.left); right = Math.max(right, seenView.right); top = Math.min(top, seenView.top); flowsY = Math.max(flowsY, seenView.flowsY); }
@@ -443,7 +438,7 @@ const MapView = (() => {
 
   /* ------------------------------------------------------------ line map */
   function transit(board) {
-    const L = LAY = Geo.layout({ cw: 300, rh: 150, scope: true });
+    const L = LAY = Geo.layout({ cw: 300, rh: 150 });
     legend(board);
     const area = h("div", { class: "transit-area" });
     board.append(area);
@@ -645,7 +640,7 @@ const MapView = (() => {
   }
   function buildTrains(L, g) {
     const SPEED = 150, DWELL = 650;
-    for (const f of CapFocus.flows()) {
+    for (const f of D.flows) {
       if (!f.hops.length) continue;
       const legs = []; let prevEnd = null;
       for (const hop of f.hops) {

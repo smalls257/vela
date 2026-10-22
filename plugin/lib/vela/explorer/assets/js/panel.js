@@ -285,7 +285,7 @@ const Panel = (() => {
       out.push(flowsSection(k), heldBy(k));
     } else if (e.kind === "capability") {
       const epics = D.trace.epics.filter((x) => x.delivers.includes(e.id));
-      out.push(prose(e), flowsSection(k, CapFocus.flowRows(k)));  // the flows the map's capability focus draws, not a second count
+      out.push(prose(e), flowsSection(k, CapFocus.flowRows(k)));  // the same flows the sidebar's capability focus counts, not a second list
       out.push(section("Delivered by", epics.length, epics.length ? epics.map((x) => refChip(x.key)) : h("div", { class: "gap" }, "No epic delivers it.")));
       const reqs = D.trace.requirements.filter((r) => r.capability === e.id);
       out.push(section("Functional requirements", reqs.length, reqs.length ? reqs.map((r) => refChip(r.id)) : empty("None written yet.")));

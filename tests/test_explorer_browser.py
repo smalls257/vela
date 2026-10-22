@@ -139,18 +139,18 @@ def test_every_drawing_has_the_same_zoom_bar_wheel_keys_and_pan(chrome_path):
 
 
 @pytest.mark.browser
-def test_capability_focus_keeps_only_what_a_capability_touches_and_a_link_reopens_it(chrome_path):
+def test_capability_focus_opens_its_focus_view_and_a_link_reopens_it(chrome_path):
     """The owner: clicking a capability still showed the same system map. The page's own selftest checks each capability
-    (boxes, flows, contracts, the sidebar's lists, the way back); this opens the address a link would carry, and the map
-    must come up already focused, with the way back in both the map and the sidebar."""
+    (the focus view, the panel's flows, the sidebar's lists, the way back); this opens the address a link would carry, and
+    the focus view must come up already drawn, with the way back in the sidebar."""
     page = built_booking_demo_page()
     dom = chrome_dom(chrome_path, page)
     lines = html.unescape(re.search(r'data-selftest="([^"]*)"', dom).group(1)).split(" || ")
     said = [x for x in lines if x.startswith("ok capability focus")]
-    assert any("leave boxes off the map" in x for x in said) and any("Show everything brings back" in x for x in said), said
+    assert any("leave apps out of the sidebar's list" in x for x in said) and any("Show everything brings back" in x for x in said), said
     assert not [x for x in lines if x.startswith("FAIL")], [x for x in lines if x.startswith("FAIL")]
     linked = chrome_dom(chrome_path, page, route="s=capabilities&open=CAP-011")
-    assert 'data-where="map"' in linked and 'data-where="side"' in linked and "Show everything" in linked
+    assert 'id="cv-board"' in linked and 'data-where="side"' in linked and "Show everything" in linked
 
 
 EXTRA_DIAGRAMS = """

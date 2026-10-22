@@ -93,7 +93,7 @@ Field values:
 - `stub`: `boundary` on an app page `vela add app-stub` wrote and nobody has read back yet. `vela next` sends such a page (with no containers table) to Boundary. Boundary removes the field when the lead has said yes to the page. State lives in this field, never in a sentence on the page, so rewriting the prose cannot lose it.
 - `change` on a capability page: `new`, `extend`, `replace`, `narrow`, `retire` or `unchanged`. `origin`: `proposed` or `imported`. Proposed capabilities keep their IDs and are mapped to an official map later, never renamed.
 - `domain` on a capability page: a short name for the business area it belongs to, such as `Booking`. The `capability-map` block groups capabilities by it. A capability with no `domain` is drawn under "No domain".
-- `capabilities` on a flow page: a list of `CAP-` IDs, the capability or capabilities the journey serves, the first one primary. The explorer's flow picker groups a long list of flows by the primary one; without the field it guesses from the capabilities the steps link and says so. Leave it out while the initiative has no capability pages. W358 warns when a flow has none and capability pages exist; E359 fails an ID that is not a capability page.
+- `capabilities` on a flow page: a list of `CAP-` IDs, the capability or capabilities the journey serves, the first one primary. The explorer's flow picker groups a long list of flows by the primary one; without the field it guesses from the capabilities the steps link and says so. The capability views read the same field: the first capability depends on the others the flow lists (see How capabilities depend on each other). Leave it out while the initiative has no capability pages. W358 warns when a flow has none and capability pages exist; E359 fails an ID that is not a capability page.
 - Epic lists, all of IDs: `apps` (the `APP-` pages it touches), `delivers` (what it builds or changes: capabilities, contracts on the provider side, goals), `consumes` (contracts it builds a client for), `flows`, `depends_on` (other epics). A contract relied on unchanged goes in neither `delivers` nor `consumes`.
 - `modes` on a session: a list of `dump`, `discover`, `shape`, `boundary`, `allocate`, `releases`, `grill`, `requirements`, `epics`, `challenge`, `answer`. A `challenge` session is a senior's challenge after handoff, written by `/vela:challenge`. An `answer` session is the solution lead's answer to one, opened by START on the challenge's own branch. Like every mode but `grill`, neither can decide: an answer that decides adds `grill` to its `modes`.
 
@@ -915,6 +915,16 @@ A flow page lists its journey under `## Steps`, one numbered line per step. A st
 `->` reads the same as `→`. An outside party is named by its name or by a link to its party page. The pair is the recorded direction: the explorer draws it as stated, and guesses a direction only for a step without one. A step with no hand-over, such as a rider opting in, needs no pair. `vela check` reports E350 when the sender or receiver is not a party the linked contract joins (its provider, an outside **Provider:**, or a consumer), or when both ends are the same, and W351 when a step links a contract and names no pair.
 
 Both ends of a pair are an app in the plan or an outside party the plan knows. `vela check` reports E351 when an end is neither (link the app's page, or add the party with `vela add subject --subject-type PTY`), and W354 when an app is written as plain text where a link belongs (the message gives the link to write). W374 warns when a step names two or more apps or parties but has no pair and links no contract, because who hands what to whom is not recorded. The dashboard draws a recorded pair as an arrow even when the step names no contract, gives an end the plan doesn't know its own dashed lane marked "not in the plan", and draws a step as one app's own action only when it names exactly one lane and no pair.
+
+## How capabilities depend on each other
+
+The dashboard's capability views draw which capability needs which. They read flows and nothing else, because a flow is a journey someone wrote down.
+
+- A flow's primary capability (the first in its `capabilities:` list) depends on every other capability that flow lists. The journey for the first needs the others in place. The contracts that make the dependency are the ones the flow's steps cross, and the flow is named as the reason.
+- A step that links another flow (the step repeats that journey) makes the primary capability depend on the other flow's primary capability, through the flow that repeats it.
+- Nothing else makes a dependency: not the apps that deliver a capability, not requirements, not allocation. A flow with no `capabilities:` field (or one the explorer only guessed from its steps) makes none, and the view says how many flows are left out so you can add the field.
+
+Two capabilities that each depend on the other are shown as a both-ways pair. The rule is one function, `plugin/lib/vela/explorer/capdeps.py`.
 
 ## Flow check
 
