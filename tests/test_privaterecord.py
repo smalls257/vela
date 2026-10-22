@@ -40,12 +40,20 @@ def test_split_keeps_the_header_and_moves_every_word():
     assert "summary" not in meta and split.stub.rstrip().endswith("---")
     assert "Yes, one booking API." in split.private and pr.part_of(split.private) == 1
     assert pr.summary_of(split.private) == "Decided the booking API."
+    for body_text in ("# 2026-10-22 Grill", "Yes, one booking API.", "## Changes", "| CON-003 |", "## Captures"):
+        assert body_text not in split.stub
+    assert 'title: "Grill: Booking API"' in split.stub and 'start_commit: "3ede2873"' in split.stub
 
 
 def test_reference_grammar_round_trips_and_refuses_anchors():
     assert pr.citation("2026-10-22-booking-api", 2, 7) == "[[2026-10-22-booking-api]] 2.c07"
     assert pr.parse_citation('"[[2026-10-22-booking-api]] c12"') == ("2026-10-22-booking-api", pr.Ref(1, 12))
     assert pr.parse_ref("^2.c07") is None and pr.parse_ref("2.c07") == pr.Ref(2, 7)
+    assert pr.parse_citation("[[x#^c07]]") is None
+
+
+def test_parts_start_at_one():
+    assert pr.parse_ref("0.c01") is None and pr.parse_ref("1.c01") == pr.Ref(1, 1)
 
 
 def test_anchor_links_rewrite_with_or_without_an_alias():

@@ -11,13 +11,15 @@ in the committed references, `[[<id>]] c07` or `[[<id>]] 2.c07`. The private fil
 reference lives in the plan, where `c07` alone would be ambiguous across parts, and the file it points into is not
 there to ask.
 
-Standard library only, so the ready-entry grammar and the decline line are defined here; the modules that read
-them import them from this one.
+The ready-entry grammar and the decline line are defined here; the modules that read them import them from this
+one. Only `vela.parse` is imported besides the standard library, so there is no cycle.
 """
 import hashlib
 import json
 import re
 from dataclasses import dataclass
+
+from vela import parse
 
 PRIVATE_DIR = "sessions/private"
 PENDING = "pending"
@@ -32,8 +34,6 @@ CHALLENGE_TITLE = re.compile(r"^Challenge:\s*(?P<id>\S+)")
 CITATION = re.compile(r"\[\[(?P<record>[^\]#|]+)\]\] (?P<ref>(?:\d+\.)?c\d+)\b")
 ANCHOR_LINK = re.compile(r"\[\[(?P<record>\d{4}-\d{2}-\d{2}-[^\]#|\\]+)#\^c(?P<n>\d+)(?:\\?\|[^\]]*)?\]\]")
 _REF = re.compile(r"(?:(\d+)\.)?c(\d+)")
-_FIELD = re.compile(r"^(?P<key>[A-Za-z_][A-Za-z0-9_]*):(?:\s+(?P<value>.*?))?\s*$")
-_PAIR = re.compile(r'(\d+)\s*:\s*("(?:[^"\\]|\\.)*"|[^,}\s]+)')
 _NEW_RECORD_TABLE = "## Captures\n\n## Changes\n\n| ID | From | To | Source |\n|---|---|---|---|\n"
 
 
@@ -58,85 +58,50 @@ def fingerprint(text):
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
-# ---- frontmatter, kept as ordered raw lines so keys this module doesn't know survive a rewrite -------------------
+# ---- frontmatter: read by parse.split_frontmatter, written in one fixed shape ------------------------------------
 
 def _read(text):
-    """(pairs, body): the frontmatter as [(key, raw value)] and everything after the closing `---`."""
-    lines = text.split("\n")
-    if not lines or lines[0].strip() != "---":
-        raise ValueError("no frontmatter block")
-    for end in range(1, len(lines)):
-        if lines[end].strip() == "---":
-            return _pairs(lines[1:end]), "\n".join(lines[end + 1:])
-    raise ValueError("the frontmatter block is never closed")
-
-
-def _pairs(lines):
-    pairs = []
-    for line in lines:
-        if not line.strip():
-            continue
-        found = _FIELD.match(line)
-        if not found:
-            raise ValueError(f"unreadable frontmatter line: {line!r}")
-        pairs.append((found["key"], found["value"] or ""))
-    return pairs
-
-
-def _decode(raw):
-    raw = raw.strip()
-    if raw.startswith('"'):
-        return json.loads(raw)
-    if raw.startswith("["):
-        try:
-            return json.loads(raw)
-        except ValueError:
-            return [item.strip() for item in raw[1:-1].split(",") if item.strip()]
-    if raw.startswith("{"):
-        return {int(k): json.loads(v) if v.startswith('"') else v for k, v in _PAIR.findall(raw)}
-    return raw
+    """(meta, body): the frontmatter as a dict and everything after the closing `---`. The one place a reader
+    meets a bad header, so every caller gets the same ValueError."""
+    meta, body_line, error = parse.split_frontmatter(text)
+    if error is not None:
+        raise ValueError(f"unreadable session frontmatter: {error.message}")
+    return meta, "\n".join(parse.lines_of(text)[body_line - 1:])
 
 
 def _encode(key, value):
     if key == "modes":
-        return "[" + ", ".join(value) + "]"
+        return "[" + ", ".join(str(m) for m in value) + "]"
     if key == "captures_sha256":
         return "{" + ", ".join(f"{part}: {json.dumps(v)}" for part, v in sorted(value.items())) + "}"
-    if key in LISTS:
-        return json.dumps(list(value), ensure_ascii=False)
     if key in ("id", "type", "date", "status", "part"):
         return str(value)
+    if isinstance(value, (list, tuple, dict)):
+        return json.dumps(list(value) if isinstance(value, tuple) else value, ensure_ascii=False)
     return json.dumps(str(value), ensure_ascii=False)
 
 
-def _assemble(pairs, body=""):
+def _assemble(meta, body=""):
+    """The frontmatter in the stub's key order (keys this module doesn't know follow, in the order given), then body."""
     rank = {key: i for i, key in enumerate(STUB_KEYS)}
-    ordered = sorted(enumerate(pairs), key=lambda ip: (rank.get(ip[1][0], len(rank)), ip[0]))
-    head = "".join(f"{key}: {raw}\n" for _, (key, raw) in ordered)
+    ordered = sorted(enumerate(meta), key=lambda ik: (rank.get(ik[1], len(rank)), ik[0]))
+    head = "".join(f"{key}: {_encode(key, meta[key])}\n" for _, key in ordered)
     return f"---\n{head}---\n{body}"
 
 
-def _set(pairs, key, raw):
-    """`pairs` with `key` set to `raw`, or dropped when `raw` is None."""
-    kept = [(k, v) for k, v in pairs if k != key]
-    if raw is None:
-        return kept
-    if any(k == key for k, _ in pairs):
-        return [(k, raw if k == key else v) for k, v in pairs]
-    return kept + [(key, raw)]
-
-
-def _meta(text):
-    pairs, _ = _read(text)
-    return {key: _decode(raw) for key, raw in pairs}
+def _set(meta, key, value):
+    """`meta` with `key` set, or dropped when `value` is empty."""
+    out = {k: v for k, v in meta.items() if k != key}
+    if value in (None, "", [], (), {}):
+        return out
+    return {**meta, key: value}
 
 
 # ---- the stub ----------------------------------------------------------------------------------------------------
 
 def render_stub(meta):
     """A stub from its meta, keys in the fixed order; empty values are left out, the body is empty."""
-    pairs = [(key, _encode(key, meta[key])) for key in STUB_KEYS if meta.get(key) not in (None, "", [], ())]
-    return _assemble(pairs)
+    return _assemble({key: meta[key] for key in STUB_KEYS if meta.get(key) not in (None, "", [], ())})
 
 
 def new_stub(record_id, title, today, modes, branch="", start_commit="", challenges=()):
@@ -146,10 +111,7 @@ def new_stub(record_id, title, today, modes, branch="", start_commit="", challen
 
 
 def stub_meta(text):
-    try:
-        return _meta(text)
-    except (ValueError, TypeError) as exc:
-        raise ValueError(f"unreadable session frontmatter: {exc}") from exc
+    return _read(text)[0]
 
 
 def parts(meta):
@@ -164,10 +126,10 @@ def next_part(meta):
 
 
 def with_part(stub_text, part, value):
-    pairs, body = _read(stub_text)
-    held = parts({key: _decode(raw) for key, raw in pairs})
+    meta, body = _read(stub_text)
+    held = parts(meta)
     held[part] = value
-    return _assemble(_set(pairs, "captures_sha256", _encode("captures_sha256", held)), body)
+    return _assemble(_set(meta, "captures_sha256", held), body)
 
 
 def listed(meta, key):
@@ -194,10 +156,10 @@ def decline_entry(match):
 
 
 def with_lists(text, lists):
-    pairs, body = _read(text)
+    meta, body = _read(text)
     for key, items in lists.items():
-        pairs = _set(pairs, key, _encode(key, items) if items else None)
-    return _assemble(pairs, body)
+        meta = _set(meta, key, list(items))
+    return _assemble(meta, body)
 
 
 def synced_stub(stub_text, private_text):
@@ -213,18 +175,18 @@ def new_private(record_id, title, today, part):
 
 def part_of(private_text):
     try:
-        return int(_meta(private_text)["part"])
+        return int(_read(private_text)[0]["part"])
     except (KeyError, ValueError, TypeError) as exc:
         raise ValueError("this private file does not say which part it is") from exc
 
 
 def summary_of(private_text):
-    return str(_meta(private_text).get("summary", ""))
+    return str(_read(private_text)[0].get("summary", ""))
 
 
 def with_summary(private_text, summary):
-    pairs, body = _read(private_text)
-    return _assemble(_set(pairs, "summary", json.dumps(summary, ensure_ascii=False)), body)
+    meta, body = _read(private_text)
+    return _assemble(_set(meta, "summary", summary), body)
 
 
 # ---- the reference grammar ---------------------------------------------------------------------------------------
@@ -245,7 +207,9 @@ def ref_text(part, n):
 
 def parse_ref(text):
     found = _REF.fullmatch(text)
-    return Ref(int(found[1] or 1), int(found[2])) if found else None
+    if not found or int(found[1] or 1) < 1:
+        return None
+    return Ref(int(found[1] or 1), int(found[2]))
 
 
 def citation(record_id, part, n):
@@ -272,19 +236,15 @@ class Split:
 
 def split_record(full_text, part=1):
     """A whole record as its stub and its private file: every word goes to the private file, the header stays."""
-    pairs, body = _read(full_text)
-    meta = {key: _decode(raw) for key, raw in pairs}
-    private = (f"---\nid: {meta['id']}\npart: {part}\nsummary: {json.dumps(str(meta.get('summary', '')), ensure_ascii=False)}"
-               f"\n---\n{body}")
+    meta, body = _read(full_text)
+    private = _assemble({"id": meta["id"], "part": part, "summary": str(meta.get("summary", ""))}, body)
     lists = lists_of(private)
     lists["challenges"] = _challenges(meta)
-    header = {key: raw for key, raw in pairs if key in STUB_KEYS}
-    stub_pairs = [(key, header[key]) for key in header if key not in LISTS and key != "captures_sha256"]
-    stub_pairs.append(("captures_sha256", _encode("captures_sha256", {part: fingerprint(private)})))
+    kept = {key: meta[key] for key in STUB_KEYS if key in meta and key not in LISTS and key != "captures_sha256"}
+    kept["captures_sha256"] = {part: fingerprint(private)}
     for key in LISTS:
-        if lists[key]:
-            stub_pairs.append((key, _encode(key, lists[key])))
-    return Split(stub=_assemble(stub_pairs), private=private)
+        kept = _set(kept, key, lists[key])
+    return Split(stub=_assemble(kept), private=private)
 
 
 def _challenges(meta):
