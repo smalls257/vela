@@ -62,25 +62,56 @@ def head(vault):
     return git(vault, "rev-parse", "HEAD"), git(vault, "rev-parse", "--abbrev-ref", "HEAD")
 
 
-def test_start_opens_the_branch_and_the_record(tmp_path, monkeypatch):
+def test_start_on_main_stays_on_main_notes_it_and_says_a_review_needs_a_branch(tmp_path, monkeypatch):
     vault = owner(tmp_path, monkeypatch)
     with_remote(tmp_path, vault)
-    code, output = start(vault, "--mode", "grill", "--topic", "desk agent calendar")
+    began = git(vault, "rev-parse", "HEAD")
+    code, output = start(vault, "--mode", "grill", "--topic", "desk agent calendar", "--for-lead")
     assert code == 0, output
+    assert output.count("needs its own branch") == 1 and "make it" in output
     record_id = f"{TODAY}-desk-agent-calendar"
-    assert head(vault)[1] == f"session/{record_id}"
+    assert head(vault)[1] == "main"
     assert git(vault, "log", "-1", "--format=%s") == f"Open session {record_id}"
+    assert git(vault, "rev-parse", "HEAD~1") == began
     record = (vault / "sessions" / f"{record_id}.md").read_text(encoding="utf-8")
     assert 'title: "Grill: desk agent calendar"' in record and "modes: [grill]" in record
+    assert "branch: main\n" in record and f"start_commit: {began}\n" in record
     state = json.loads((vault / ".vela" / "session.json").read_text(encoding="utf-8"))
-    assert (state["id"], state["branch"]) == (record_id, f"session/{record_id}")
+    assert (state["id"], state["branch"]) == (record_id, "main")
     code, output = start(vault, "--mode", "grill", "--topic", "desk agent calendar", "--for-lead")
     assert code == 3  # the first one is open now
 
 
+def test_start_on_a_feature_branch_stays_on_it_and_records_it(tmp_path, monkeypatch):
+    vault = owner(tmp_path, monkeypatch)
+    with_remote(tmp_path, vault)
+    git(vault, "switch", "-q", "-c", "waiting-for-review")
+    began = git(vault, "rev-parse", "HEAD")
+    code, output = start(vault, "--mode", "grill", "--topic", "consent", "--for-lead")
+    assert code == 0, output
+    assert "needs its own branch" not in output  # said only on the default branch
+    assert head(vault)[1] == "waiting-for-review"
+    record = (vault / "sessions" / f"{TODAY}-consent.md").read_text(encoding="utf-8")
+    assert "branch: waiting-for-review\n" in record and f"start_commit: {began}\n" in record
+    assert git(vault, "rev-parse", "main") == began  # no pull, no switch, nothing committed to main
+
+
+def test_new_branch_makes_a_session_branch_from_the_current_one(tmp_path, monkeypatch):
+    vault = owner(tmp_path, monkeypatch)
+    git(vault, "switch", "-q", "-c", "waiting-for-review")
+    began = git(vault, "rev-parse", "HEAD")
+    code, output = start(vault, "--mode", "grill", "--topic", "consent", "--new-branch", "--for-lead")
+    assert code == 0, output
+    assert "needs its own branch" not in output
+    assert head(vault)[1] == f"session/{TODAY}-consent"
+    assert git(vault, "rev-parse", "HEAD~1") == began
+    record = (vault / "sessions" / f"{TODAY}-consent.md").read_text(encoding="utf-8")
+    assert f"branch: session/{TODAY}-consent\n" in record and f"start_commit: {began}\n" in record
+
+
 def test_open_sessions_exit_3_and_list(tmp_path, monkeypatch):
     vault = owner(tmp_path, monkeypatch)
-    assert start(vault, "--mode", "shape", "--topic", "till options")[0] == 0
+    assert start(vault, "--mode", "shape", "--topic", "till options", "--new-branch")[0] == 0
     git(vault, "switch", "-q", "main")
     before = head(vault)
     code, output = start(vault, "--mode", "grill", "--topic", "consent", "--json")
@@ -93,37 +124,29 @@ def test_open_sessions_exit_3_and_list(tmp_path, monkeypatch):
     assert "Shape: till options" in output and "^c" not in output
     code, output = start(vault, "--mode", "grill", "--topic", "consent", "--new")
     assert code == 0, output
-    assert head(vault)[1] == f"session/{TODAY}-consent"
+    assert head(vault)[1] == "main" and (vault / "sessions" / f"{TODAY}-consent.md").is_file()
 
 
 def test_resume_switches_to_the_open_one(tmp_path, monkeypatch):
     vault = owner(tmp_path, monkeypatch)
-    assert start(vault, "--mode", "shape", "--topic", "till options")[0] == 0
+    assert start(vault, "--mode", "shape", "--topic", "till options", "--new-branch")[0] == 0
     git(vault, "switch", "-q", "main")
     code, output = start(vault, "--resume", f"{TODAY}-till-options")
     assert code == 0, output
     assert head(vault)[1] == f"session/{TODAY}-till-options"
 
 
-def test_dirty_tree_that_pull_would_clobber_exits_3(tmp_path, monkeypatch):
+def test_a_dirty_tree_never_stops_a_start_that_pulls_nothing(tmp_path, monkeypatch):
     vault = owner(tmp_path, monkeypatch)
     bare = with_remote(tmp_path, vault)
     advance_remote(tmp_path, bare, text="from the teammate\n")  # adds note.md on origin's main
     (vault / "note.md").write_text("mine, not committed\n", encoding="utf-8")
     (vault / "01-goals.md").write_text((vault / "01-goals.md").read_text(encoding="utf-8") + "\nmine\n",
                                        encoding="utf-8")
-    before = head(vault)
-    code, output = start(vault, "--mode", "grill", "--topic", "consent", "--json")
-    assert code == 3, output
-    asked = [n for n in json.loads(output)["needs_lead"] if n["ask"] == "uncommitted changes"]
-    assert asked and asked[0]["paths"] == ["note.md"]
-    assert head(vault) == before and not (vault / "sessions" / f"{TODAY}-consent.md").exists()
-    (vault / "note.md").unlink()
     code, output = start(vault, "--mode", "grill", "--topic", "consent")
     assert code == 0, output
     assert "01-goals.md" in output  # carried into the session, unstaged, and said
-    assert (vault / "note.md").read_text(encoding="utf-8") == "from the teammate\n"  # main was pulled
-    assert "01-goals.md" in git(vault, "status", "--short")
+    assert (vault / "note.md").read_text(encoding="utf-8") == "mine, not committed\n"  # nothing was pulled over it
 
 
 def test_w718_exits_3_with_the_naming_question(tmp_path, monkeypatch):
@@ -343,8 +366,7 @@ def test_a_dashboard_left_by_a_no_session_close_never_stops_the_next_start(tmp_p
     assert code == 0, output
     found = json.loads(output)
     assert not [n for n in found["needs_lead"] if n.get("ask") == "uncommitted changes"]
-    assert head(vault)[1] == f"session/{TODAY}-consent"
-    assert git(vault, "rev-parse", "HEAD~1") == git(vault, "rev-parse", "origin/main")  # main was pulled
+    assert head(vault)[1] == "main"
     assert (vault / "dashboard.html").read_bytes() == left  # set aside and written back, not dropped
     code, output = start(vault, "--resume", f"{TODAY}-consent", "--for-lead")
     assert code == 0 and "dashboard" not in output, output  # the lead never hears about vela's own page
@@ -360,4 +382,4 @@ def test_turning_the_dashboard_branch_down_leaves_main_clean(tmp_path, monkeypat
     assert (vault / "dashboard.html").read_text(encoding="utf-8") == "<p>first build</p>\n"
     code, output = start(vault, "--mode", "grill", "--topic", "consent")
     assert code == 0, output
-    assert (vault / "dashboard.html").read_text(encoding="utf-8") == "<p>a merged session's build</p>\n"
+    assert (vault / "dashboard.html").read_text(encoding="utf-8") == "<p>first build</p>\n"  # a start pulls nothing

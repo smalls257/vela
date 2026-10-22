@@ -91,7 +91,7 @@ Then send, in this order: the yes must come after the notice and before the reco
 1. Run `vela close push --for-lead`. It prints the send notice and exits 3. Say it ("I'll send this for review to Ines and the payments team. OK?") and wait.
 2. Capture the lead's answer, whatever it is: `vela record add --origin @<handle from vela whoami> --tag decision --mark "drop: the yes to send this for review" "<their words>"`. It prints the capture's number. Never another name or an email address: close push sends only on the lead's own handle. On a no, do step 3 and stop: the session is filed and nothing is sent.
 3. Run `vela close finish --summary "<one line, in plain words>" --for-lead`. It closes the record, commits it from an allow-list (it never stages the inbox, `voice/local/` or `voice/corpus/`), writes and commits each handoff record, then rebuilds the dashboard. Say what it lists as not settled at handoff, so nobody hands an app over without knowing. If it stops because an app's handoff record exists, that app's team is accepting changes: run it with `--replace` only once they say so in this session.
-4. Run `vela close push --consent ^cN --for-lead`, with the number from step 2. If it fails, say so in one sentence, give the branch and the retry it names, and stop. Do not open a PR for a branch that is not pushed.
+4. Run `vela close push --consent ^cN --for-lead`, with the number from step 2. If it says a review needs its own branch, ask the lead; on a yes run `vela session branch --for-lead` and start this section again. If it fails, say so in one sentence, give the branch and the retry it names, and stop. Do not open a PR for a branch that is not pushed.
 
 ## 8. Open the pull request
 

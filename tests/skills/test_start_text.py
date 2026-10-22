@@ -107,6 +107,7 @@ def test_the_choices_session_start_prints_are_not_copied_into_start():
 def test_start_keeps_bringing_main_in_and_freshness():
     one = section("1. Start the session")
     assert "never call the plan up to date when the shared copy was out of reach" in one
+    assert "doesn't switch branches or pull `main`" in one and "`vela close sync-main`" in one
     assert "`vela freshness --for-lead`" in section("Owner or reader")
 
 

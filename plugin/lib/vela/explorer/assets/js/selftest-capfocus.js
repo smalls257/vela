@@ -1,54 +1,40 @@
 /* ------------------------------------------------------------ Capability focus (capfocus.js)
-   Pick a capability and the map and the sidebar keep only what it touches; the rest is removed, not dimmed. */
+   Pick a capability: the focus view opens and the sidebar keeps only the apps, flows and epics it touches. */
 (() => {
   const base = SelfTest.run, tick = () => new Promise((r) => setTimeout(r, 30));
-  const drawnNodes = () => $$("#board svg.cockpit g.hit[data-key]").map((g) => g.dataset.key).filter((k) => NODE[k]);
-  const drawnFlows = () => $$("#board svg.cockpit g.hit[data-key]").map((g) => g.dataset.key).filter((k) => FLOW[k]);
   const same = (a, b) => a.length === b.length && a.every((x) => b.includes(x));
 
   async function focusing(ok, out) {
     const caps = D.trace.capabilities.map((c) => c.key);
-    if (!caps.length || !D.nodes.length) { out.push("skip capability focus: this vault has no capabilities or no apps"); return; }
-    let narrower = 0, empties = 0;
+    if (!caps.length) { out.push("skip capability focus: this vault has no capabilities"); return; }
+    let narrower = 0;
     for (const cap of caps) {
       const title = ent(cap).title;
       Nav.open("capabilities", cap); await tick();
-      const s = CapFocus.scope(), bar = $('#main .capfocus-bar[data-where="map"]'), side = $('#side .capfocus-bar');
-      ok(!!s && CapFocus.key() === cap && !!bar && bar.textContent.includes(`Showing ${title} only`) && bar.textContent.includes("Show everything") && !!side,
-        `capability focus, ${title}: the map and the sidebar both say it is the only one showing, with a way back`, `capability focus, ${title}: bar ${!!bar}, side ${!!side}, key ${CapFocus.key()}`);
-      if (s.empty) {
-        empties++;
-        ok(!!$("#board .empty-state") && !$("#board svg.cockpit"), `capability focus, ${title}: it touches nothing yet, and the view says so instead of drawing an empty map`, `capability focus, ${title}: empty scope, board shows ${$("#board").textContent.slice(0, 80)}`);
-      } else {
-        const nodes = drawnNodes(), flows = drawnFlows();
-        ok(same(nodes, [...s.nodes]) && same(flows, [...s.flows]), `capability focus, ${title}: the map draws only its ${s.nodes.size} boxes and ${s.flows.size} flows`, `capability focus, ${title}: drawn ${nodes.join(",")} / ${flows.join(",")}, wanted ${[...s.nodes].join(",")} / ${[...s.flows].join(",")}`);
-        const lamps = $$("#board svg.cockpit [data-contract]").map((e) => e.dataset.contract).filter((c, i, a) => a.indexOf(c) === i);
-        ok(lamps.every((c) => s.contracts.has(c)), `capability focus, ${title}: no contract it doesn't touch is on the map`, `capability focus, ${title}: stray contracts ${lamps.filter((c) => !s.contracts.has(c)).join(",")}`);
-        if (s.nodes.size < D.nodes.length) narrower++;
-        const vb = $("#board svg.cockpit").getAttribute("viewBox");
-        ok(Pan.view("cockpit").z === 1 && !!vb, `capability focus, ${title}: the drawing is fitted to what is left (zoom back at 1)`, `capability focus, ${title}: zoom ${Pan.view("cockpit").z}`);
-      }
-      // the bar's "N flows", the map's flows and the panel's "Flows that cross this" are one list
+      const s = CapFocus.scope(), side = $('#side .capfocus-bar'), shown = !!$("#cv-board svg.cv-svg") || !!$("#main .cv-lone");
+      ok(!!s && CapFocus.key() === cap && App.view === "capmap" && shown && !!side && side.textContent.includes(`Showing ${title} only`) && side.textContent.includes("Show everything") && !$("#main .cv-grid"),
+        `capability focus, ${title}: the focus view is up, not the cards, and the sidebar says it is the only one showing, with a way back`, `capability focus, ${title}: view ${App.view}, drawn ${shown}, side ${!!side}, key ${CapFocus.key()}`);
+      // the panel's "Flows that cross this" and the sidebar's Flows list are one list
       const sec = $$("#panel .p-sec").find((x) => $("h3", x) && /^Flows that cross this/.test($("h3", x).textContent.trim())), listed = sec ? $$(".flow-chip [data-ref]", sec).map((a) => a.dataset.ref) : [];
-      const said = (bar && /(\d+) flows?/.exec(bar.textContent) || [])[1], counted = sec && /(\d+)\s*$/.exec($("h3", sec).textContent.trim());
-      ok(!!sec && same(listed, [...s.flows]) && +said === s.flows.size && (!counted || +counted[1] === s.flows.size),
-        `capability focus, ${title}: the bar, the map and the panel's "Flows that cross this" all count the same ${s.flows.size} flows`,
-        `capability focus, ${title}: bar says ${said}, panel lists ${listed.join(",") || "none"}${counted ? " (heading " + counted[1] + ")" : ""}, focus uses ${[...s.flows].join(",") || "none"}`);
+      const counted = sec && /(\d+)\s*$/.exec($("h3", sec).textContent.trim());
+      ok(!!sec && same(listed, [...s.flows]) && (!counted || +counted[1] === s.flows.size),
+        `capability focus, ${title}: the panel's "Flows that cross this" lists the ${s.flows.size} flows the focus counts`,
+        `capability focus, ${title}: panel lists ${listed.join(",") || "none"}${counted ? " (heading " + counted[1] + ")" : ""}, focus uses ${[...s.flows].join(",") || "none"}`);
       const apps = $$('#side .side-kid[data-section="apps"]');
       const row = $('#side .side-link[data-section="apps"] .capfocus-count');
       ok(!!row && row.textContent === `${s.apps.size} of ${D.sections.find((x) => x.id === "apps").children.length}` && (!apps.length || apps.length === s.apps.size),
         `capability focus, ${title}: the sidebar's Apps list narrows to the ${s.apps.size} it touches, with a count`, `capability focus, ${title}: apps row ${row ? row.textContent : "none"}, ${apps.length} listed, wanted ${s.apps.size}`);
+      if (s.apps.size < D.map.apps.length) narrower++;
     }
-    if (narrower) ok(true, `capability focus: ${narrower} of ${caps.length} capabilities leave boxes off the map (removed, not dimmed)`);
-    else out.push("skip capability focus: every capability here touches every box, so nothing could be removed");
+    if (narrower) ok(true, `capability focus: ${narrower} of ${caps.length} capabilities leave apps out of the sidebar's list (removed, not dimmed)`);
+    else out.push("skip capability focus: every capability touches every app, so nothing could be removed");
     const cap = caps[0];
     Nav.open("capabilities", cap); await tick();
-    $('#main .capfocus-bar .capfocus-clear').click(); await tick();
-    ok(!CapFocus.key() && !$(".capfocus-bar") && (!!$("#board svg.cockpit.grouped") || drawnNodes().length === D.nodes.length) && !$('#side .capfocus-count'), "capability focus: Show everything brings back the whole map and the whole sidebar", `capability focus: after Show everything ${drawnNodes().length} of ${D.nodes.length} boxes, grouped ${!!$("#board svg.cockpit.grouped")}, bar ${!!$(".capfocus-bar")}`);
+    $('#side .capfocus-bar .capfocus-clear').click(); await tick();
+    ok(!CapFocus.key() && !$(".capfocus-bar") && !$('#side .capfocus-count') && App.view === "capmap" && !!$("#main .cv-grid"), "capability focus: Show everything brings back the cards and the whole sidebar", `capability focus: after Show everything key ${CapFocus.key()}, bar ${!!$(".capfocus-bar")}, cards ${!!$("#main .cv-grid")}`);
     Nav.home(); await tick();
-    MapView.st.lens = "cockpit"; rerender(); await tick();
     go(cap, { reveal: true }); await tick();
-    ok(CapFocus.key() === cap && App.section === "capabilities", "capability focus: a capability chip picked from the map focuses it", `capability focus: chip left key ${CapFocus.key()} in ${App.section}`);
+    ok(CapFocus.key() === cap && App.section === "capabilities" && !!($("#cv-board svg.cv-svg") || $("#main .cv-lone")), "capability focus: a capability chip picked from another page lands on its focus view", `capability focus: chip left key ${CapFocus.key()} in ${App.section}, view ${App.view}`);
     Nav.home(); await tick();
   }
 

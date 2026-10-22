@@ -67,8 +67,8 @@ def docs(tmp_path):
     return repo, heron, payments
 
 
-def session_start(plan, topic):
-    return run("session", "start", "--vault", str(plan), "--mode", "grill", "--topic", topic, "--today", TODAY)
+def session_start(plan, topic, *flags):
+    return run("session", "start", "--vault", str(plan), "--mode", "grill", "--topic", topic, "--today", TODAY, *flags)
 
 
 def checkpoint(plan):
@@ -154,11 +154,11 @@ def test_plans_in_a_repo_with_none_says_so_and_a_root_plan_is_dot(tmp_path):
 
 def test_each_plan_starts_a_session_on_a_branch_that_carries_its_name(docs):
     repo, heron, payments = docs
-    code, out = session_start(heron, "pilot scope")
+    code, out = session_start(heron, "pilot scope", "--new-branch")
     assert code == 0, out
     assert git(repo, "branch", "--show-current") == f"session/heron/{TODAY}-pilot-scope"
     git(repo, "switch", "-q", "main")
-    code, out = session_start(payments, "pilot scope")  # the same topic on the same day does not collide
+    code, out = session_start(payments, "pilot scope", "--new-branch")  # the same topic on the same day does not collide
     assert code == 0, out
     assert git(repo, "branch", "--show-current") == f"session/payments/{TODAY}-pilot-scope"
     branches = git(repo, "branch", "--format=%(refname:short)").split("\n")
@@ -201,14 +201,18 @@ def test_a_start_refuses_when_files_outside_the_plan_have_unsaved_changes_and_ch
     assert not list((heron / "sessions").glob(f"{TODAY}-*"))
 
 
-def test_a_start_refuses_from_another_plans_session_branch_or_the_owners_own_branch(docs):
+def test_a_start_on_the_owners_branch_with_nothing_unsaved_outside_the_plan_starts(docs):
     repo, heron, payments = docs
-    assert session_start(heron, "pilot scope")[0] == 0
-    code, out = run("session", "start", "--vault", str(payments), "--mode", "grill", "--topic", "ledger", "--for-lead")
-    assert code == 3 and "another plan's session" in out
+    assert session_start(heron, "pilot scope", "--new-branch")[0] == 0
+    code, out = run("session", "start", "--vault", str(payments), "--mode", "grill", "--topic", "ledger")
+    assert code == 0, out  # HEAD is on heron's session branch: any branch will do while nothing outside is unsaved
     assert git(repo, "branch", "--show-current") == f"session/heron/{TODAY}-pilot-scope"  # nothing moved
     git(repo, "switch", "-q", "-c", "owner-feature")
-    assert run("session", "start", "--vault", str(payments), "--mode", "grill", "--topic", "ledger")[0] == 3
+    code, out = session_start(payments, "second", "--new")
+    assert code == 0, out
+    assert git(repo, "branch", "--show-current") == "owner-feature"
+    record = (payments / "sessions" / f"{TODAY}-second.md").read_text(encoding="utf-8")
+    assert "branch: owner-feature\n" in record
 
 
 def test_a_start_from_the_plans_own_open_session_branch_is_not_refused(docs):
@@ -475,7 +479,7 @@ def test_a_plan_that_is_its_own_repo_keeps_every_name_it_had(tmp_path):
     folder.mkdir()
     assert new_plan(folder, "Solo")[0] == 0
     assert git(folder, "log", "--format=%s") == "Start the plan"
-    code, out = session_start(folder, "kickoff")
+    code, out = session_start(folder, "kickoff", "--new-branch")
     assert code == 0, out
     assert git(folder, "branch", "--show-current") == f"session/{TODAY}-kickoff"
     (folder / "01-goals.md").write_text((folder / "01-goals.md").read_text(encoding="utf-8") + "\nA goal.\n", encoding="utf-8")

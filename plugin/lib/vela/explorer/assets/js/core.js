@@ -522,7 +522,7 @@ function go(key, opts = {}) {
   Panel.render();
   const e = ent(key);
   // a capability picked on the map, or revealed from a chip, narrows the map and the sidebar to what it touches
-  if (e && e.kind === "capability" && !opts.quiet && (App.view === "map" || opts.reveal) && !CapFocus.isIt(key)) { Nav.open("capabilities", key); return; }
+  if (e && e.kind === "capability" && !opts.quiet && (["map", "capmap", "capmatrix"].includes(App.view) || opts.reveal) && !CapFocus.isIt(key)) { Nav.open("capabilities", key, { stay: App.view === "capmatrix" }); return; }
   if (opts.reveal && e) {
     const target = revealView(e);
     if (target && target !== App.view) { showView(target); afterReveal(key, e); Minimap.refresh(); return; }
@@ -534,6 +534,7 @@ function go(key, opts = {}) {
 }
 function revealView(e) {
   if (e.kind === "flow") return "flows";
+  if (e.kind === "capability") return "capmap";
   if (e.kind === "unknown") return "asks";
   if (e.kind === "decision") return "decisions";
   if (e.kind === "slice") return "slices";

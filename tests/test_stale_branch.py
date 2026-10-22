@@ -3,7 +3,8 @@
 S15 releases began on the last session's `dashboard/2026-10-14-close` branch. Allocation had merged to origin/main at
 the end of S14, but `vela freshness` said only "this branch has no upstream", the skill read the stale working tree
 and told the lead "nothing has been allocated yet", and no tracer was recorded. These tests rebuild that state: the
-releases precondition now hears it (`freshness` exits 3 and names the fix), and `session start` brings it in.
+releases precondition hears it (`freshness` exits 3 and names the fix, `close sync-main`). A session now runs on the
+branch the lead is on and pulls nothing at start; a resumed session's branch gets main merged in.
 """
 import json
 import shutil
@@ -58,16 +59,19 @@ def s15(tmp_path):
     return vault, bare
 
 
-def test_releases_precondition_sees_the_allocation_waiting_on_origin_main(tmp_path):
+def test_a_start_leaves_a_stale_branch_where_it_is_and_sync_main_brings_main_in(tmp_path):
     vault, _ = s15(tmp_path)
     assert "/vela:allocate" in releases_missing(vault)  # what S15 read and wrongly reported as the truth
     code, said = run("freshness", "--vault", str(vault))
     assert code == freshness.EXIT_BEHIND, said
-    assert f"Your branch {STALE} is 1 commit behind the shared plan (origin/main); run `vela session start`" in said
+    assert f"Your branch {STALE} is 1 commit behind the shared plan (origin/main); run `vela close sync-main`" in said
     code, said = run("session", "start", "--vault", str(vault), "--today", TODAY, "--mode", "releases",
                      "--topic", "first release")
     assert code == 0, said
-    assert git(vault, "rev-parse", "--abbrev-ref", "HEAD") == f"session/{TODAY}-first-release"
+    assert git(vault, "rev-parse", "--abbrev-ref", "HEAD") == STALE  # the session runs here, and nothing was pulled
+    assert run("freshness", "--vault", str(vault))[0] == freshness.EXIT_BEHIND
+    code, said = run("close", "sync-main", "--vault", str(vault), "--today", TODAY)
+    assert code == 0, said
     assert "/vela:allocate" not in releases_missing(vault)
     assert run("freshness", "--vault", str(vault))[0] == 0
 
@@ -79,7 +83,7 @@ def resumable(tmp_path):
     """An open session on its own branch, then a teammate's change merged to origin/main."""
     vault, bare = s15(tmp_path)
     code, said = run("session", "start", "--vault", str(vault), "--today", TODAY, "--mode", "shape",
-                     "--topic", "till options")
+                     "--topic", "till options", "--new-branch")
     assert code == 0, said
     git(vault, "switch", "-q", STALE)
     teammate_commits(tmp_path, bare, "01-goals.md", "\nA goal a teammate added.\n", "Teammate goal")

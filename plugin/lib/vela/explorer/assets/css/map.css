@@ -233,10 +233,9 @@ g.hit[data-movable] { cursor: grab; touch-action: none; }
 .cockpit .cluster[data-movable] .cluster-frame, g.cluster-lamp[data-movable] { cursor: grab; }
 button.cell > span { max-width: calc(100% - 6px); min-width: 0; text-align: center; white-space: normal; overflow-wrap: anywhere; line-height: 1.12; font-size: 11px; }  /* a name wraps to the next line, it is never cut */
 
-/* capability focus (capfocus.js): the bar over the map and at the top of the sidebar */
+/* capability focus (capfocus.js): the bar at the top of the sidebar */
 .capfocus-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; padding: 6px 24px; background: var(--deck-2); border-top: 1px solid var(--rule); font-size: 13px; color: var(--ink-2); }
 .capfocus-bar b { color: var(--ink); font-weight: 600; }
-.capfocus-n { color: var(--ink-3); }
 .capfocus-clear { border: 1px solid var(--rule-3); background: transparent; color: var(--ink); border-radius: 6px; padding: 2px 10px; cursor: pointer; font-size: 12px; margin-left: auto; }
 .capfocus-clear:hover { background: var(--deck-3); }
 #side .capfocus-bar { padding: 8px 10px; margin: 0 0 8px; border: 1px solid var(--rule-3); border-radius: 8px; }
