@@ -6,6 +6,7 @@ import shutil
 
 from conftest import REPO, edit, findings, run
 from vela import schema
+import session_files
 
 FIXTURE = REPO / "examples" / "unified-booking"
 
@@ -60,7 +61,7 @@ def test_what_a_challenge_writes_turns_the_check_red_and_verify_names_it(tmp_pat
     edit(vault / "05-building-blocks" / "booking-building-blocks.md", "- **Decision:** [[2026-08-26-kiosks-and-rollout]]\n",
          "- **Decision:** [[2026-08-26-kiosks-and-rollout]]\n- **Dissent:** @hl-port-senior, 2026-11-21: a 10-minute hold "
          "is too short for a peak kiosk queue (see [[11-unknowns-and-risks#UNK-009 Hold expiry under load|UNK-009]])\n")
-    (vault / "sessions" / "2026-11-21-challenge-con-001.md").write_text(RECORD, encoding="utf-8")
+    session_files.write_record(vault, "2026-11-21-challenge-con-001", RECORD)
     assert run("render", "--vault", str(vault))[0] == 0
     code, out = run("check", "--vault", str(vault), "--today", "2026-11-21")
     assert code == 1
@@ -80,7 +81,7 @@ def _challenged_vault(tmp_path, blocks):
     shutil.copytree(FIXTURE, vault)
     edit(vault / "11-unknowns-and-risks.md", "## Risks\n", UNKNOWN.replace(
         "[[booking-building-blocks#CON-001 Booking API|CON-001]]", blocks))
-    (vault / "sessions" / "2026-11-21-challenge-con-001.md").write_text(RECORD, encoding="utf-8")
+    session_files.write_record(vault, "2026-11-21-challenge-con-001", RECORD)
     assert run("render", "--vault", str(vault))[0] == 0
     return vault
 

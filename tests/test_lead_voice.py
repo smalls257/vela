@@ -14,6 +14,7 @@ import pytest
 from conftest import REPO, run
 from sharing import git, make_vault, with_remote
 from vela import say
+import session_files
 
 HERON = REPO / "tests" / "sim" / "snapshots" / "heron-desk" / "after-full-1"
 BOOKING = REPO / "examples" / "unified-booking"
@@ -101,7 +102,7 @@ def session(tmp_path):
               "## Captures", "", '- [unknown] (claude) Does the till count stock twice? ^c01',
               '- [wild] (@priya) "What if stock counted itself?" ^c02', "", "## Changes", "",
               "| ID | From | To | Source |", "|---|---|---|---|", ""]
-    (vault / "sessions" / f"{RECORD}.md").write_text("\n".join(record), encoding="utf-8")
+    session_files.write_record(vault, RECORD, "\n".join(record))
     git(vault, "add", "sessions")
     git(vault, "commit", "-q", "-m", f"Open session {RECORD}")
     return vault

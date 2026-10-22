@@ -3,6 +3,7 @@ None of them is ever an error, so a stale vault never blocks a PR."""
 import shutil
 
 from conftest import REPO, check, edit, findings
+import session_files
 
 GOALS = "01-goals.md"
 FIXTURE = REPO / "examples" / "unified-booking"
@@ -80,14 +81,14 @@ def test_no_closed_session_for_30_days_warns_once(mini):
 
 
 def test_an_open_session_does_not_count_as_closed(mini):
-    edit(mini / "sessions" / "2026-01-10-shop-api.md", "status: closed", "status: open")
+    session_files.edit_record(mini, "2026-01-10-shop-api", "status: closed", "status: open")
     _, out = check(mini, today="2026-02-06")
     assert "The last session closed on 2026-01-05, 32 days ago." in out
 
 
 def test_a_vault_with_no_closed_session_is_not_judged(mini):
     for path in (mini / "sessions").glob("*.md"):
-        edit(path, "status: closed", "status: open")
+        session_files.edit_record(mini, path.stem, "status: closed", "status: open")
     assert "W711" not in check(mini, today="2027-01-01")[1]
 
 

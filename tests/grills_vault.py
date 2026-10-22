@@ -6,6 +6,7 @@ no case table), CON-013 is an item the lead said yes to in a shape session. EPC-
 import shutil
 
 from conftest import MINI, edit
+import session_files
 
 TODAY = "2026-01-15"
 TABLE = """
@@ -79,7 +80,7 @@ def make(tmp_path):
     edit(shop, "## Contracts this app consumes", extra + "## Contracts this app consumes")
     edit(root / "11-unknowns-and-risks.md", "- **Question:** Is there a test till we can use?\n",
          "- **Question:** Is there a test till we can use?\n- **Blocks:** [[shop-building-blocks#CON-011 Refund window|CON-011]]\n")
-    (root / "sessions" / "2026-01-12-shape-extras.md").write_text(SESSION, encoding="utf-8")
+    session_files.write_record(root, "2026-01-12-shape-extras", SESSION)
     (root / "13-epics").mkdir()
     (root / "13-epics" / "EPC-001-loyalty.md").write_text(EPIC, encoding="utf-8")
     return root
@@ -104,7 +105,7 @@ def booking_grills(tmp_path):
     edit(root / "11-unknowns-and-risks.md", "- **Ask by:** 2027-03-01\n- **Notes:** Deferred to INI-005.",
          "- **Ask by:** 2027-03-01\n- **Blocks:** [[booking-building-blocks#CON-002 Booking state changed|CON-002]]\n- **Notes:** Deferred to INI-005.")
     edit(root / "13-epics" / "EPC-039-run-booking.md", "state: decided", "state: draft")  # an epic nothing waits on: the batch has a grill that unblocks none
-    (root / "sessions" / "2026-10-20-shape-pricing.md").write_text(BOOKING_SESSION, encoding="utf-8")
+    session_files.write_record(root, "2026-10-20-shape-pricing", BOOKING_SESSION)
     with open(root / ".vela.yaml", "a", encoding="utf-8") as config:
         config.write("roles:\n  hl-solution-lead: lead\n  hl-booking-senior: eng\n")
     for argv in (("CON-001", "--owner", "@hl-solution-lead", "--join", "@hl-booking-senior"), ("CON-002", "--owner", "@hl-solution-lead"),

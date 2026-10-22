@@ -9,6 +9,7 @@ import yaml
 
 from conftest import REPO
 from vela import reviews
+import session_files
 
 PLUGIN = REPO / "plugin"
 
@@ -62,8 +63,7 @@ def test_a_reviews_section_in_the_documented_form_passes_check(tmp_path):
     from conftest import check, findings
     vault = tmp_path / "ub"
     shutil.copytree(REPO / "examples" / "unified-booking", vault)
-    record = vault / "sessions" / "2026-11-19-owed-questions.md"
-    text = record.read_text(encoding="utf-8").replace("## Changes", """## Reviews
+    text = session_files.record_text(vault, "2026-11-19-owed-questions").replace("## Changes", """## Reviews
 
 ### 1. after the read-back, 2026-11-19
 
@@ -75,7 +75,7 @@ def test_a_reviews_section_in_the_documented_form_passes_check(tmp_path):
 | F1.1 | FIN | normal | new | Who tells the loyalty scheme \\| and when? | "because points are earned at reservation" in [[04a-capability-delta]] |
 
 ## Changes""")
-    record.write_text(text, encoding="utf-8")
+    session_files.write_record(vault, "2026-11-19-owed-questions", text)
     code, out = check(vault, "2026-11-20")
     assert code == 0 and findings(out) == [], out
 
@@ -158,7 +158,7 @@ def test_the_ledger_grammar_close_describes_passes_check(tmp_path):
     ledger = unknowns.read_text(encoding="utf-8").rstrip("\n") + "\n" + "\n".join(rows) + "\n"
     unknowns.write_text(ledger, encoding="utf-8")
 
-    (vault / "sessions" / "2026-11-20-credit-dump.md").write_text("""\
+    session_files.write_record(vault, "2026-11-20-credit-dump", """\
 ---
 id: 2026-11-20-credit-dump
 type: session
@@ -190,7 +190,7 @@ summary: Typed travel credit as stored value and recorded where its owed questio
 | Q-FIN-03@SV-02 | - | unknown | [[2026-11-20-credit-dump#^c04]] |
 | Q-FIN-04@SV-* | - | not-applicable | [[2026-11-20-credit-dump#^c05]] |
 | R-FIN-02 | - | open | [[2026-11-20-credit-dump#^c01]] |
-""", encoding="utf-8")
+""")
 
     code, out = run("render", "--vault", str(vault))
     assert code == 0, out
@@ -321,8 +321,7 @@ def _evidence(vault, copy, said, session):
 
 def _close(vault, record_name, said):
     """Mark every capture, type subjects, write the ledger rows, then close the record."""
-    record = vault / "sessions" / f"{record_name}.md"
-    lines = record.read_text(encoding="utf-8").splitlines()
+    lines = session_files.record_text(vault, record_name).splitlines()
     findings_ = {m["f"]: m for m in map(REVIEW_ROW.match, lines) if m}
     checkpoint = next((l[4:] for l in lines if re.match(r"^### \d+\. ", l)), None)
     ledger_rows, changes, taken = [], [], set()
@@ -369,7 +368,7 @@ def _close(vault, record_name, said):
     text = "\n".join(lines) + "\n"
     text = text.replace("status: open", "status: closed")
     text = text.rstrip("\n") + "\n" + "".join(f"| {i} | - | {s} | {src} |\n" for i, s, src in changes)
-    record.write_text(text, encoding="utf-8")
+    session_files.write_record(vault, record_name, text)
 
 
 DUMP_RECORD = """\
@@ -480,7 +479,7 @@ def test_a_close_run_by_its_rules_on_a_dump_then_a_shape_passes_check(tmp_path):
                               if not l.startswith(("| Q-FIN-01@INI-002 |", "| Q-DAT-01@INI-002 |"))), encoding="utf-8")
     gate = run("check", "--gate", "epics", "--vault", str(vault), "--today", TODAY)[1]
     assert any(" E805 " in l and "(Q-FIN-01@INI-002)" in l for l in gate.splitlines()), gate
-    (vault / "sessions" / "2026-11-20-credit-dump.md").write_text(DUMP_RECORD, encoding="utf-8")
+    session_files.write_record(vault, "2026-11-20-credit-dump", DUMP_RECORD)
 
     _close(vault, "2026-11-20-credit-dump", DUMP_SAID)
     run("render", "--vault", str(vault))
@@ -488,7 +487,7 @@ def test_a_close_run_by_its_rules_on_a_dump_then_a_shape_passes_check(tmp_path):
     assert code == 0 and findings(out) == [], out
     scope = (vault / "03-context-and-scope.md").read_text(encoding="utf-8")
     assert "### SV-02 Travel credit" in scope and "PTY-03" not in scope
-    dump = (vault / "sessions" / "2026-11-20-credit-dump.md").read_text(encoding="utf-8")
+    dump = session_files.record_text(vault, "2026-11-20-credit-dump")
     assert "→ keep: [[11-unknowns-and-risks#UNK-010 How we deal with a travel insurer|UNK-010]] (open) ^c02" in dump
     assert "→ park ^c03" in dump
     assert "travel credit, held in Booking. type at close: SV → keep: [[03-context-and-scope#SV-02 Travel credit|SV-02]] (subject) ^c01" in dump
@@ -502,7 +501,7 @@ def test_a_close_run_by_its_rules_on_a_dump_then_a_shape_passes_check(tmp_path):
     assert sorted(owed) == ["Q-DAT-04@SV-02", "Q-FIN-03@SV-02", "Q-FIN-04@SV-02", "Q-FIN-05@SV-02", "Q-FIN-06@SV-02"]
     assert set(owed.values()) == {"no row"}, owed
 
-    (vault / "sessions" / "2026-11-20-credit-expiry.md").write_text(SHAPE_RECORD, encoding="utf-8")
+    session_files.write_record(vault, "2026-11-20-credit-expiry", SHAPE_RECORD)
     _close(vault, "2026-11-20-credit-expiry", SHAPE_SAID)
     run("render", "--vault", str(vault))
     code, out = check(vault, TODAY)
@@ -519,7 +518,7 @@ def test_a_close_run_by_its_rules_on_a_dump_then_a_shape_passes_check(tmp_path):
     assert "| R-FIN-02 | open | question: Does a refund to card cancel the credit" in ledger
     assert "Q-FIN-06@SV-02 |" not in ledger.split("<!-- /generated:undisposed-questions -->")[1]
     assert "| SRC-11 | Solution lead's first-hand account of travel credit |" in (vault / "sources.md").read_text(encoding="utf-8")
-    shape = (vault / "sessions" / "2026-11-20-credit-expiry.md").read_text(encoding="utf-8")
+    shape = session_files.record_text(vault, "2026-11-20-credit-expiry")
     assert "| R-FIN-02 | - | open | [[2026-11-20-credit-expiry#1. before options, 2026-11-20]] |" in shape
 
     code, out = run("check", "--gate", "shape", "--vault", str(vault), "--today", TODAY)
@@ -528,8 +527,8 @@ def test_a_close_run_by_its_rules_on_a_dump_then_a_shape_passes_check(tmp_path):
     assert not any(" E805 Q-FIN-01@" in l or " E805 Q-DAT-01@" in l for l in gate.splitlines()), gate
 
     # The rule the untyped party's mark exists for: a keep to the heading it never got is E202.
-    record = vault / "sessions" / "2026-11-20-credit-dump.md"
-    record.write_text(record.read_text(encoding="utf-8").replace(
+    session_files.edit_record(
+        vault, "2026-11-20-credit-dump",
         "[[11-unknowns-and-risks#UNK-010 How we deal with a travel insurer|UNK-010]] (open)",
-        "[[03-context-and-scope#PTY-03 Travel insurer|PTY-03]] (subject)"), encoding="utf-8")
+        "[[03-context-and-scope#PTY-03 Travel insurer|PTY-03]] (subject)")
     assert ("E202", "sessions/2026-11-20-credit-dump.md") in findings(check(vault, TODAY)[1])

@@ -8,6 +8,7 @@ import pytest
 from conftest import REPO, run
 from vela import say
 from vela.edge import vaultgit
+import session_files
 
 TEMPLATE = REPO / "plugin" / "template"
 SESSION = "2026-10-14-close-test"
@@ -50,7 +51,7 @@ def vault(tmp_path):
     git(root, "config", "user.email", "lead@example.com")
     git(root, "add", "-A")
     git(root, "commit", "-q", "-m", "Start")
-    (root / "sessions" / f"{SESSION}.md").write_text(RECORD, encoding="utf-8")
+    session_files.write_record(root, SESSION, RECORD)
     return root
 
 
@@ -139,8 +140,7 @@ def test_commit_flags_are_one_at_a_time(vault):
 
 
 def test_the_session_must_be_clear(vault):
-    (vault / "sessions" / "2026-10-13-other.md").write_text(RECORD.replace(SESSION, "2026-10-13-other"),
-                                                            encoding="utf-8")
+    session_files.write_record(vault, "2026-10-13-other", RECORD.replace(SESSION, "2026-10-13-other"))
     code, out = stage(vault, "--json")
     assert code == 3 and json.loads(out)["needs_lead"] == ["2026-10-13-other", SESSION]
     assert staged(vault) == []

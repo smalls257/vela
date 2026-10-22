@@ -25,6 +25,7 @@ import types
 from conftest import REPO, FINDING
 from vela import closefinish, closegate, ledger, parse, say, schema
 from vela.commands import close_stage, decide, voice_settle
+import session_files
 
 SNAPSHOT = REPO / "tests" / "sim" / "snapshots" / "heron-desk" / "after-full-1"
 STEPS = REPO / "tests" / "replay"
@@ -163,9 +164,8 @@ def test_a_session_replays_end_to_end_on_todays_commands(tmp_path):
     new_errors = check_errors(ctx) - errors_before
     assert not new_errors, f"the steps {ran} left errors vela check did not report before: {sorted(new_errors)}"
 
-    record = vault / "sessions" / f"{RECORD_ID}.md"
-    assert record.is_file(), "no step wrote the session record"
-    problems = record_problems(record.read_text(encoding="utf-8"))
+    assert (vault / "sessions" / f"{RECORD_ID}.md").is_file(), "no step wrote the session record"
+    problems = record_problems(session_files.record_text(vault, RECORD_ID))
     assert not problems, "the record does not read in today's grammar:\n" + "\n".join(problems)
 
     subjects = ctx.git("log", "--format=%s", f"{start}..HEAD").splitlines()

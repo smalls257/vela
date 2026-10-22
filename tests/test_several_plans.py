@@ -15,6 +15,7 @@ from sharing import git
 
 from vela import doctor, planscope
 from vela.edge import idgit, plans
+import session_files
 
 LAUNCHER = REPO / "plugin" / "scripts" / "vela"
 TODAY = "2026-10-21"
@@ -211,7 +212,7 @@ def test_a_start_on_the_owners_branch_with_nothing_unsaved_outside_the_plan_star
     code, out = session_start(payments, "second", "--new")
     assert code == 0, out
     assert git(repo, "branch", "--show-current") == "owner-feature"
-    record = (payments / "sessions" / f"{TODAY}-second.md").read_text(encoding="utf-8")
+    record = session_files.record_text(payments, f"{TODAY}-second")
     assert "branch: owner-feature\n" in record
 
 

@@ -1,4 +1,5 @@
 from conftest import check, edit, findings
+import session_files
 
 SHOP = "05-building-blocks/shop-building-blocks.md"
 UNK = "11-unknowns-and-risks.md"
@@ -24,8 +25,7 @@ def test_anchor_to_a_missing_heading(mini):
 
 
 def test_block_reference_must_exist(mini):
-    path = mini / "sessions" / "2026-01-10-shop-api.md"
-    edit(path, "[[2026-01-10-shop-api#^c01]]", "[[2026-01-10-shop-api#^c02]]")
+    session_files.edit_record(mini, "2026-01-10-shop-api", "[[2026-01-10-shop-api#^c01]]", "[[2026-01-10-shop-api#^c02]]")
     _, out = check(mini)
     assert findings(out) == [("E202", "sessions/2026-01-10-shop-api.md")]
 

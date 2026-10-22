@@ -14,6 +14,7 @@ from conftest import run
 from sharing import git, make_vault
 from test_session_cli import TODAY, no_gh, start
 from vela import closedrafts, cli, guard, importqueue, say, voicecheck, voicescore, wording
+import session_files
 
 RECORD_ID = f"{TODAY}-partner-files"
 RECORD = f"sessions/{RECORD_ID}.md"
@@ -62,10 +63,8 @@ def started(tmp_path, monkeypatch, captures=()):
     code, output = start(vault, "--mode", "discover", "--topic", "partner files")
     assert code == 0, output
     if captures:
-        record = vault / RECORD
-        text = record.read_text(encoding="utf-8")
-        record.write_text(text.replace("## Captures\n", "## Captures\n\n" + "\n".join(captures) + "\n", 1),
-                          encoding="utf-8")
+        text = session_files.record_text(vault, RECORD_ID)
+        session_files.write_record(vault, RECORD_ID, text.replace("## Captures\n", "## Captures\n\n" + "\n".join(captures) + "\n", 1))
     return vault
 
 
@@ -203,7 +202,7 @@ def test_a_stated_decision_is_decided_with_the_yes_citing_the_document(tmp_path,
     assert code == 0, output
     text = path.read_text(encoding="utf-8")
     assert "state: decided" in text and f"- **Decision:** [[{RECORD_ID}]], as SRC-04 states" in text
-    assert f"| ADR-0001 | proposed | decided | [[{RECORD_ID}#^c02]] |" in (vault / RECORD).read_text(encoding="utf-8")
+    assert f"| ADR-0001 | proposed | decided | [[{RECORD_ID}#^c02]] |" in session_files.record_text(vault, RECORD_ID)
     assert git(vault, "log", "-1", "--format=%s") == "import: ADR-0001 decided, as SRC-04 states"
     assert "E303" not in check_codes(vault)
 

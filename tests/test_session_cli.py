@@ -8,6 +8,7 @@ import sys
 
 from conftest import MINI, run
 from sharing import advance_remote, git, make_vault, with_remote
+import session_files
 
 TODAY = "2026-10-14"
 NO_SEND = ("I can file the session here, but I can't send it. Open Claude Code in this folder and type /vela:close "
@@ -73,7 +74,7 @@ def test_start_on_main_stays_on_main_notes_it_and_says_a_review_needs_a_branch(t
     assert head(vault)[1] == "main"
     assert git(vault, "log", "-1", "--format=%s") == f"Open session {record_id}"
     assert git(vault, "rev-parse", "HEAD~1") == began
-    record = (vault / "sessions" / f"{record_id}.md").read_text(encoding="utf-8")
+    record = session_files.record_text(vault, record_id)
     assert 'title: "Grill: desk agent calendar"' in record and "modes: [grill]" in record
     assert "branch: main\n" in record and f"start_commit: {began}\n" in record
     state = json.loads((vault / ".vela" / "session.json").read_text(encoding="utf-8"))
@@ -91,7 +92,7 @@ def test_start_on_a_feature_branch_stays_on_it_and_records_it(tmp_path, monkeypa
     assert code == 0, output
     assert "needs its own branch" not in output  # said only on the default branch
     assert head(vault)[1] == "waiting-for-review"
-    record = (vault / "sessions" / f"{TODAY}-consent.md").read_text(encoding="utf-8")
+    record = session_files.record_text(vault, f"{TODAY}-consent")
     assert "branch: waiting-for-review\n" in record and f"start_commit: {began}\n" in record
     assert git(vault, "rev-parse", "main") == began  # no pull, no switch, nothing committed to main
 
@@ -105,7 +106,7 @@ def test_new_branch_makes_a_session_branch_from_the_current_one(tmp_path, monkey
     assert "needs its own branch" not in output
     assert head(vault)[1] == f"session/{TODAY}-consent"
     assert git(vault, "rev-parse", "HEAD~1") == began
-    record = (vault / "sessions" / f"{TODAY}-consent.md").read_text(encoding="utf-8")
+    record = session_files.record_text(vault, f"{TODAY}-consent")
     assert f"branch: session/{TODAY}-consent\n" in record and f"start_commit: {began}\n" in record
 
 
@@ -221,9 +222,9 @@ def test_reader_copy_uses_no_git(tmp_path, monkeypatch):
 
 def challenge_branch(vault, branch, record_id):
     git(vault, "switch", "-q", "-c", branch)
-    (vault / "sessions" / f"{record_id}.md").write_text(
+    session_files.write_record(vault, record_id,
         f"---\nid: {record_id}\ntype: session\ntitle: \"Challenge: CON-001\"\ndate: 2026-10-10\nmodes: [challenge]\n"
-        "status: closed\nsummary: s.\n---\n\n# x\n\n## Captures\n\n## Changes\n", encoding="utf-8")
+        "status: closed\nsummary: s.\n---\n\n# x\n\n## Captures\n\n## Changes\n")
     git(vault, "add", "sessions")
     git(vault, "commit", "-q", "-m", f"Open session {record_id}")
     git(vault, "push", "-q", "origin", branch)
@@ -243,7 +244,7 @@ def test_answer_pr_title_must_end_with_exact_id(tmp_path, monkeypatch):
     record_id = f"{TODAY}-answer-con-001"
     assert head(vault)[1] == branch  # on the challenge's branch, no new one
     assert git(vault, "log", "-1", "--format=%s") == f"Open session {record_id}"
-    record = (vault / "sessions" / f"{record_id}.md").read_text(encoding="utf-8")
+    record = session_files.record_text(vault, record_id)
     assert "modes: [answer]" in record and 'title: "Answer: CON-001"' in record
 
 

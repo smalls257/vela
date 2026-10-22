@@ -7,6 +7,7 @@ import shutil
 
 from conftest import MINI, run
 from sharing import git, make_vault, with_remote
+import session_files
 
 YEAR = datetime.date.today().year  # `--for-lead` says the year only when it is not this one
 
@@ -23,7 +24,7 @@ def record(record_id, modes, status="open", title=None, date=None):
 def commit_record(root, branch, record_id, modes, status="open", title=None, new_branch=True, date=None):
     """Write a session record on `branch` (created from main when new), commit it, and come back to main."""
     git(root, "switch", "-q", *(["-c"] if new_branch else []), branch)
-    (root / "sessions" / f"{record_id}.md").write_text(record(record_id, modes, status, title, date), encoding="utf-8")
+    session_files.write_record(root, record_id, record(record_id, modes, status, title, date))
     git(root, "add", "sessions")
     git(root, "commit", "-q", "-m", f"Open session {record_id}")
     git(root, "switch", "-q", "main")
@@ -159,8 +160,7 @@ def test_reader_copy_uses_no_git(tmp_path, monkeypatch):
     shutil.copytree(MINI, copy)
     (copy / ".vela").mkdir()
     (copy / ".vela" / "workspace.json").write_text('{"role": "reader"}', encoding="utf-8")
-    (copy / "sessions" / "2026-10-14-reading.md").write_text(record("2026-10-14-reading", ["discover"]),
-                                                            encoding="utf-8")
+    session_files.write_record(copy, "2026-10-14-reading", record("2026-10-14-reading", ["discover"]))
     shims, called = tmp_path / "shims", tmp_path / "git-was-called"
     shims.mkdir()
     (shims / "git").write_text(f"#!/bin/sh\ntouch '{called}'\nexit 1\n", encoding="utf-8")
@@ -182,8 +182,7 @@ def test_vault_in_a_subfolder_of_its_repo(tmp_path):
     git(repo, "add", "-A")
     git(repo, "commit", "-q", "-m", "first")
     git(repo, "switch", "-q", "-c", "session/2026-10-14-consent-grill")
-    (repo / "plan" / "sessions" / "2026-10-14-consent-grill.md").write_text(
-        record("2026-10-14-consent-grill", ["grill"]), encoding="utf-8")
+    session_files.write_record(repo / "plan", "2026-10-14-consent-grill", record("2026-10-14-consent-grill", ["grill"]))
     git(repo, "add", "-A")
     git(repo, "commit", "-q", "-m", "Open session")
     git(repo, "switch", "-q", "main")

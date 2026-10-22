@@ -13,6 +13,7 @@ import pytest
 from conftest import REPO, check, edit, findings, run
 from vela import override
 from vela.parse import Bullet
+import session_files
 
 FIXTURE = REPO / "examples" / "unified-booking"
 PLUGIN = REPO / "plugin"
@@ -140,10 +141,9 @@ def test_grill_override_turns_e303_into_w303(ub):
 
 
 def test_grill_override_turns_e317_into_w317(ub):
-    (ub / "sessions" / "2026-11-10-amend-requirements.md").write_text(
+    session_files.write_record(ub, "2026-11-10-amend-requirements",
         "---\nid: 2026-11-10-amend-requirements\ntype: session\ndate: 2026-11-10\nmodes: [requirements]\n"
-        "status: closed\nsummary: Wrote amend and cancel requirements as assumptions.\n---\n\n# Requirements: amend\n",
-        encoding="utf-8")
+        "status: closed\nsummary: Wrote amend and cancel requirements as assumptions.\n---\n\n# Requirements: amend\n")
     edit(ub / CAP, DECISION, "- **Decision:** [[2026-11-10-amend-requirements]]\n"
          "- **Override:** grill by @hl-solution-lead on 2026-11-10: the lead decided FR1 in the requirements session\n")
     assert codes(ub) == [("W317", CAP)]

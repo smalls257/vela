@@ -11,6 +11,7 @@ from conftest import run
 from sharing import git, make_vault, with_remote
 from vela import say
 from vela.edge import saidlog
+import session_files
 
 RECORD = "2026-10-20-grill-stock"
 BRANCH = f"session/{RECORD}"
@@ -51,7 +52,7 @@ def sent_session(tmp_path, stock_owner=None, handle="lead", record_id=RECORD, br
         branch = on_branch
     else:
         git(vault, "switch", "-q", "-c", branch)
-    (vault / "sessions" / f"{record_id}.md").write_text(record_text(record_id, modes, title), encoding="utf-8")
+    session_files.write_record(vault, record_id, record_text(record_id, modes, title))
     commit_all(vault, f"Open session {record_id}")
     assert run("close", "sync-main", "--vault", str(vault), "--today", TODAY)[0] == 0
     page = vault / STOCK

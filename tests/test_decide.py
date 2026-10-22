@@ -16,6 +16,7 @@ from vela import cli, closegate, decisions, parse
 from vela.decisions import decide, record as records, textedit
 from vela.edge import apply as disk
 from vela.flowcheck import standing
+import session_files
 
 RECORD_ID = "2026-10-20-grill-stock"
 RECORD = f"sessions/{RECORD_ID}.md"
@@ -204,7 +205,7 @@ def make_vault(tmp_path, captures=CAPTURES, agenda=()):
     if agenda:
         lines += ["## Agenda", "", *agenda, ""]
     lines += ["## Captures", "", *captures, ""]
-    (root / RECORD).write_text("\n".join(lines) + "\n", encoding="utf-8")
+    session_files.write_record(root, RECORD_ID, "\n".join(lines) + "\n")
     return root
 
 
@@ -214,7 +215,7 @@ def block_con_002(root):
 
 
 def opened(root):
-    found, problem = records.open_record([("", RECORD, (root / RECORD).read_text(encoding="utf-8"))])
+    found, problem = records.open_record([("", RECORD, session_files.record_text(root, RECORD_ID))])
     assert problem is None, problem
     return found
 
@@ -411,7 +412,7 @@ def test_reopen_writes_changes_row(tmp_path):
     before = cli.load_vault(root)
     code, out = run("decide", "--reopen", "CON-001", "--why", "^c14", "--vault", str(root), "--today", TODAY, "--json")
     assert code == 0, out
-    record = (root / RECORD).read_text(encoding="utf-8")
+    record = session_files.record_text(root, RECORD_ID)
     assert f"| CON-001 | decided | assumption | [[{RECORD_ID}#^c14]] |" in record
     assert "- CON-001: GATE-3 confirmed yes, status open" in record
     assert "\n- **State:** assumption\n" in (root / SHOP).read_text(encoding="utf-8")
@@ -515,7 +516,7 @@ def test_the_decide_kind_files_through_vela_apply(tmp_path):
                     encoding="utf-8")
     code, out = run("apply", str(path), "--vault", str(root), "--today", TODAY, "--json")
     assert code == 0, out
-    assert f"| CON-002 | assumption | decided | [[{RECORD_ID}#^c02]] |" in (root / RECORD).read_text(encoding="utf-8")
+    assert f"| CON-002 | assumption | decided | [[{RECORD_ID}#^c02]] |" in session_files.record_text(root, RECORD_ID)
     assert run("apply", "--schema", "decide", "--json")[0] == 0
 
 
@@ -528,9 +529,8 @@ def test_dispatch_names_one_module_per_kind():
 
 # --- a yes in a session that can't decide is kept, not lost (full3: D4, D7, D8 had a lead yes and stayed assumptions)
 def in_session_with_modes(root, modes):
-    path = root / RECORD
-    text = re.sub(r"^modes: \[[^\]]*\]", f"modes: [{modes}]", path.read_text(encoding="utf-8"), flags=re.M)
-    path.write_text(text, encoding="utf-8")
+    text = re.sub(r"^modes: \[[^\]]*\]", f"modes: [{modes}]", session_files.record_text(root, RECORD_ID), flags=re.M)
+    session_files.write_record(root, RECORD_ID, text)
 
 
 def decide_con_002(root):
@@ -549,10 +549,10 @@ def test_decide_in_a_session_that_cannot_decide_refuses_and_marks_it_ready(tmp_p
     assert said["refusals"][0]["rule"] == "decide-not-in-this-session"
     assert "short grill" in said["refusals"][0]["plain"] and "Offer the lead a short grill" in said["refusals"][0]["fix"]
     assert (root / STOCK).read_text(encoding="utf-8") == before, "nothing was decided"
-    record = (root / RECORD).read_text(encoding="utf-8")
+    record = session_files.record_text(root, RECORD_ID)
     assert f"## Ready to decide\n\n- CON-002: the lead said yes in {RECORD_ID} (^c02)" in record
     assert decide_con_002(root)[0] == 1
-    assert (root / RECORD).read_text(encoding="utf-8").count("- CON-002: the lead said yes") == 1, "marked once"
+    assert session_files.record_text(root, RECORD_ID).count("- CON-002: the lead said yes") == 1, "marked once"
 
 
 @pytest.mark.parametrize("mode", ["grill", "answer, grill", "epics, grill", "shape, grill"])
@@ -562,7 +562,7 @@ def test_decide_still_works_in_a_session_with_a_grill_part(tmp_path, mode):
     git_init(root)
     code, output = decide_con_002(root)
     assert code == 0, output
-    assert "Ready to decide" not in (root / RECORD).read_text(encoding="utf-8")
+    assert "Ready to decide" not in session_files.record_text(root, RECORD_ID)
 
 
 def test_the_next_session_brief_lists_what_the_lead_already_said_yes_to(tmp_path):

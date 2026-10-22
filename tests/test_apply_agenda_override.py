@@ -1,9 +1,10 @@
 """The `agenda`, `override`, `defer` and `resolve` apply kinds (overhaul Task 15): grill's agenda lines, the lead's
 override in their own words with an end date for a standing rule, an owed question deferred to an owner, and an
 unknown resolved from a source."""
-from test_apply_add import RECORD, filed, make_vault, plan, write
+from test_apply_add import RECORD, RECORD_ID, filed, make_vault, plan, write
 from vela import override as overrides
 from vela.decisions import override as override_kind
+import session_files
 
 UNKNOWNS = "11-unknowns-and-risks.md"
 STOCK = "05-building-blocks/stock-building-blocks.md"
@@ -23,7 +24,7 @@ def test_agenda_writes_and_updates_lines(tmp_path):
     assert "## Agenda\n\n- CON-002: GATE-3 confirmed yes, status open\n- CON-001: GATE-3 confirmed no, status " \
            "off-agenda: GATE-2\n" in record
     assert record.index("## Agenda") < record.index("## Captures")
-    (root / RECORD).write_text(record, encoding="utf-8")
+    session_files.write_record(root, RECORD_ID, record)
     writes = filed(root, "agenda", [{"id": "CON-002", "readback": "^c01", "yes": "^c02", "status": "open",
                                      "override": ["GATE-5"]}])
     assert "- CON-002: GATE-3 confirmed yes, status open, override: GATE-5\n- CON-001:" in writes[RECORD]

@@ -9,6 +9,7 @@ import subprocess
 from conftest import REPO, run
 from vela import closegate, say
 from sharing import git, make_vault, with_remote
+import session_files
 
 RECORD = "2026-10-20-grill-stock"
 STOCK = "05-building-blocks/stock-building-blocks.md"
@@ -25,7 +26,7 @@ def session(tmp_path, sync=True):
     vault = make_vault(tmp_path)
     with_remote(tmp_path, vault)
     git(vault, "switch", "-q", "-c", f"session/{RECORD}")
-    (vault / "sessions" / f"{RECORD}.md").write_text(record_text(), encoding="utf-8")
+    session_files.write_record(vault, RECORD, record_text())
     git(vault, "add", "sessions")
     git(vault, "commit", "-q", "-m", f"Open session {RECORD}")
     if sync:
@@ -43,7 +44,7 @@ YES_ROW = f"| CON-002 | fact | decided | [[{RECORD}#^c01]] |"
 def decide_stock(vault, captures=(), rows=(), extra=""):
     page = vault / STOCK
     page.write_text(page.read_text(encoding="utf-8").replace("- **State:** fact", DECIDED + extra, 1), encoding="utf-8")
-    (vault / "sessions" / f"{RECORD}.md").write_text(record_text(captures, rows), encoding="utf-8")
+    session_files.write_record(vault, RECORD, record_text(captures, rows))
     assert run("render", "--vault", str(vault))[0] == 0
 
 
@@ -153,7 +154,7 @@ def session_with(tmp_path, before_branch):
     with_remote(tmp_path, vault)
     on_main(vault, *before_branch)
     git(vault, "switch", "-q", "-c", f"session/{RECORD}")
-    (vault / "sessions" / f"{RECORD}.md").write_text(record_text(), encoding="utf-8")
+    session_files.write_record(vault, RECORD, record_text())
     git(vault, "add", "sessions")
     git(vault, "commit", "-q", "-m", f"Open session {RECORD}")
     assert run("close", "sync-main", "--vault", str(vault), "--today", "2026-10-20")[0] == 0
@@ -258,7 +259,7 @@ def test_flowcheck_line_per_affected_slice(tmp_path):
     git(vault, "add", "-A")
     git(vault, "commit", "-q", "-m", "the plan")
     git(vault, "switch", "-q", "-c", f"session/{RECORD}")
-    (vault / "sessions" / f"{RECORD}.md").write_text(record_text(), encoding="utf-8")
+    session_files.write_record(vault, RECORD, record_text())
     billing = vault / "05-building-blocks" / "billing-building-blocks.md"
     billing.write_text(billing.read_text(encoding="utf-8").replace("| declined |  | 402 |", "| declined |  | 403 |", 1),
                        encoding="utf-8")

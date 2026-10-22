@@ -5,6 +5,7 @@ import json
 import shutil
 
 from conftest import REPO, check, edit, findings, run
+import session_files
 
 FIXTURE = REPO / "examples" / "unified-booking"
 PLUGIN = REPO / "plugin"
@@ -48,7 +49,7 @@ summary: in progress
 def vault_with_record(tmp_path):
     vault = tmp_path / "ub"
     shutil.copytree(FIXTURE, vault)
-    (vault / "sessions" / "2026-11-20-points-dump.md").write_text(RECORD, encoding="utf-8")
+    session_files.write_record(vault, "2026-11-20-points-dump", RECORD)
     return vault
 
 

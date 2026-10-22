@@ -10,9 +10,10 @@ import pytest
 from conftest import REPO, run
 from sharing import make_vault
 from test_close_gate_core import RECORD, judged
-from test_record_add import add, record_of, started, typed
+from test_record_add import RECORD_ID, add, started, typed
 from vela import guard, said, say
 from vela.edge import saidlog
+import session_files
 
 PLUGIN = REPO / "plugin"
 LAUNCHER = PLUGIN / "scripts" / "vela"
@@ -91,12 +92,12 @@ def test_a_part_of_a_word_is_not_an_excerpt():
 def test_the_models_sentence_as_the_leads_yes_is_refused_and_nothing_is_written(tmp_path, monkeypatch):
     vault = started(tmp_path, monkeypatch)
     typed(vault, "Yes, I'd go with Tauri.")
-    before = record_of(vault).read_text(encoding="utf-8")
+    before = session_files.record_text(vault, RECORD_ID)
     code, out = add(vault, "--origin", "@priya", "--tag", "decision", CAPTURE, "--for-lead")
     assert code == 3
     assert out.strip() == "Those aren't words the person typed. Quote what they said, or record it as your own note."
     assert say.leak_in(out) is None
-    assert record_of(vault).read_text(encoding="utf-8") == before
+    assert session_files.record_text(vault, RECORD_ID) == before
 
 
 def test_a_refused_default_origin_capture_is_refused_the_same_way(tmp_path, monkeypatch):
@@ -117,7 +118,7 @@ def test_a_typed_excerpt_is_written_as_the_persons_own_words(tmp_path, monkeypat
     vault = started(tmp_path, monkeypatch)
     typed(vault, "Yes, I'd go with Tauri. It keeps the bundle small!")
     assert add(vault, "--origin", "@priya", "--tag", "decision", '"I\'d go with Tauri."') == (0, "^c01\n")
-    assert "(@priya) \"I'd go with Tauri.\"" in record_of(vault).read_text(encoding="utf-8")
+    assert "(@priya) \"I'd go with Tauri.\"" in session_files.record_text(vault, RECORD_ID)
 
 
 # ---- no log: written unverified, said so, and never counted silently ----
@@ -132,7 +133,7 @@ def unverified_yes(tmp_path, monkeypatch):
 
 def test_with_no_log_the_capture_is_written_unverified_and_the_line_says_so(tmp_path, monkeypatch):
     vault, out = unverified_yes(tmp_path, monkeypatch)
-    assert "(@priya, unverified) Yes, decide it as read. ^c01" in record_of(vault).read_text(encoding="utf-8")
+    assert "(@priya, unverified) Yes, decide it as read. ^c01" in session_files.record_text(vault, RECORD_ID)
     assert "unverified" in out and say.leak_in(out) is None
 
 
@@ -147,7 +148,7 @@ def test_the_close_gate_lists_the_unverified_yes_and_does_not_count_it():
 def test_the_close_gate_counts_it_once_the_lead_has_confirmed(tmp_path, monkeypatch):
     vault, _ = unverified_yes(tmp_path, monkeypatch)
     assert run("record", "confirm", "--vault", str(vault), "^c01")[0] == 0
-    line = next(l for l in record_of(vault).read_text(encoding="utf-8").splitlines() if l.endswith("^c01"))
+    line = next(l for l in session_files.record_text(vault, RECORD_ID).splitlines() if l.endswith("^c01"))
     problems, consent = judged([line], [f"| CON-003 | assumption | decided | [[{RECORD}#^c01]] |"])
     assert not problems and consent
 
@@ -155,9 +156,9 @@ def test_the_close_gate_counts_it_once_the_lead_has_confirmed(tmp_path, monkeypa
 def test_confirming_a_capture_that_is_not_unverified_changes_nothing(tmp_path, monkeypatch):
     vault = started(tmp_path, monkeypatch)
     add(vault, "--origin", "claude", "--tag", "idea", "one")
-    before = record_of(vault).read_text(encoding="utf-8")
+    before = session_files.record_text(vault, RECORD_ID)
     assert run("record", "confirm", "--vault", str(vault), "1")[0] == 1
-    assert record_of(vault).read_text(encoding="utf-8") == before
+    assert session_files.record_text(vault, RECORD_ID) == before
 
 
 def test_a_removal_yes_that_is_unverified_does_not_count():
@@ -188,7 +189,7 @@ def test_a_stub_session_fills_the_log_and_a_fake_yes_is_refused(tmp_path, monkey
     assert done.returncode == 0, done.stderr
     assert said.messages(saidlog.read_all(vault)) == ["Yes, go with Tauri."]
     assert "record add exit 0" in done.stdout and "record add exit 3" in done.stdout
-    text = record_of(vault).read_text(encoding="utf-8")
+    text = session_files.record_text(vault, RECORD_ID)
     assert "(@priya) Yes, go with Tauri. ^c01" in text and "Tauri with Rust" not in text
 
 

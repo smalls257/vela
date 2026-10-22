@@ -7,6 +7,7 @@ from conftest import run
 from test_apply_add import RECORD, RECORD_ID, TODAY, filed, make_vault, opened, plan, write
 from vela import ledger, markrules
 from vela.decisions import ledger_rows
+import session_files
 
 UNKNOWNS = "11-unknowns-and-risks.md"
 SHOP = "05-building-blocks/shop-building-blocks.md"
@@ -115,8 +116,8 @@ def test_page_quote_from_this_close_refused(tmp_path):
 
 def test_review_row_not_taken_gets_a_ledger_row(tmp_path):
     root = make_vault(tmp_path, captures=["- [thought] (@priya) waits on UNK-001: F1.2 ^c01"])
-    text = (root / RECORD).read_text(encoding="utf-8")
-    write(root, RECORD, text + "\n## Reviews\n\n" + REVIEWS)
+    text = session_files.record_text(root, RECORD_ID)
+    session_files.write_record(root, RECORD_ID, text + "\n## Reviews\n\n" + REVIEWS)
     items = drafted(root)
     assert {i["finding"] for i in items} == {"F1.1", "F1.2"}
     writes = filed(root, "ledger", items)  # a marks-plan draft applies as drafted

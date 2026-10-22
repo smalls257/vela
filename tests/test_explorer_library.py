@@ -18,6 +18,7 @@ from sharing import git, make_vault
 from vela import cli, publish
 from vela.explorer import build, library_data
 from vela.explorer.record import Keys
+import session_files
 
 BOOKING = REPO / "examples" / "unified-booking"
 TEN = "| ID | Title | Owner | Date | Kind | Type | Relates to | Version | Stored | Location |\n|---|---|---|---|---|---|---|---|---|---|\n"
@@ -102,7 +103,7 @@ def test_cited_by_is_counted_from_the_pages_never_typed(tmp_path):
 
 def test_sessions_and_the_register_itself_do_not_count_as_citing(tmp_path):
     vault = booking_with(tmp_path, ["| SRC-02 | Vendor contract | @a | 2026-07-09 | exists | document | | | | Procurement |"])
-    (vault / "sessions" / "2026-11-20-mentions.md").write_text("---\nid: x\ntype: session\ntitle: x\n---\n\nTouched SRC-02.\n", encoding="utf-8")
+    session_files.write_record(vault, "2026-11-20-mentions", "---\nid: x\ntype: session\ntitle: x\n---\n\nTouched SRC-02.\n")
     assert "page:2026-11-20-mentions" not in extract(vault)[0]["citedBy"]
     assert "sources" not in extract(vault)[0]["citedBy"]
 

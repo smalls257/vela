@@ -3,9 +3,11 @@
 on the open challenge PR instead of opening a new one."""
 from conftest import REPO, check, edit, findings
 from vela import schema
+import session_files
 
 PLUGIN = REPO / "plugin"
-SESSION = "sessions/2026-01-10-shop-api.md"
+SESSION_ID = "2026-01-10-shop-api"
+SESSION = f"sessions/{SESSION_ID}.md"
 
 
 def read(*parts):
@@ -15,12 +17,12 @@ def read(*parts):
 def test_answer_is_a_session_mode_the_check_knows(mini):
     assert "answer" in schema.SESSION_MODES
     assert "`challenge`, `answer`." in read("plugin", "template", "CONVENTIONS.md")
-    edit(mini / SESSION, "modes: [grill]", "modes: [answer, grill]")
+    session_files.edit_record(mini, SESSION_ID, "modes: [grill]", "modes: [answer, grill]")
     assert findings(check(mini)[1]) == []
 
 
 def test_an_answer_session_without_a_grill_cannot_decide(mini):
-    edit(mini / SESSION, "modes: [grill]", "modes: [answer]")
+    session_files.edit_record(mini, SESSION_ID, "modes: [grill]", "modes: [answer]")
     assert "E303" in {code for code, _ in findings(check(mini)[1])}
 
 

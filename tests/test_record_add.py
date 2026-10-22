@@ -2,6 +2,7 @@
 handed out again (two captures sharing `^c12` break every consent check that cites it)."""
 import json
 
+import session_files
 from conftest import run
 from vela.edge import saidlog
 from sharing import git, make_vault
@@ -18,8 +19,7 @@ def typed(vault, *messages):
         saidlog.append(vault, "test-session", "2026-10-14T09:00:00Z", message)
 
 
-def record_of(vault):
-    return vault / "sessions" / f"{TODAY}-consent.md"
+RECORD_ID = f"{TODAY}-consent"
 
 
 def started(tmp_path, monkeypatch):
@@ -36,7 +36,7 @@ def test_add_appends_numbered_lines_and_prints_the_number(tmp_path, monkeypatch)
     assert add(vault, "--origin", "@priya", "--tag", "idea", '"A shared calendar."') == (0, "^c01\n")
     code, output = add(vault, "--origin", "claude", "--tag", "worry", "The calendar may be private.", "--json")
     assert code == 0 and json.loads(output)["number"] == "^c02"
-    text = record_of(vault).read_text(encoding="utf-8")
+    text = session_files.record_text(vault, RECORD_ID)
     assert '- [idea] (@priya) "A shared calendar." ^c01\n- [worry] (claude) The calendar may be private. ^c02\n' in text
 
 
@@ -44,20 +44,17 @@ def test_capture_numbers_never_reused_after_delete(tmp_path, monkeypatch):
     vault = started(tmp_path, monkeypatch)
     for words in ("one", "two", "three"):
         assert add(vault, "--origin", "claude", "--tag", "idea", words)[0] == 0
-    path = record_of(vault)
-    path.write_text(path.read_text(encoding="utf-8").replace("- [idea] (claude) three ^c03\n", ""), encoding="utf-8")
+    session_files.edit_record(vault, RECORD_ID, "- [idea] (claude) three ^c03\n", "")
     assert add(vault, "--origin", "claude", "--tag", "idea", "four") == (0, "^c04\n")
 
 
 def test_a_number_only_git_remembers_is_not_reused(tmp_path, monkeypatch):
     """Another machine, no `.vela/session.json`: the record's history still knows ^c05 was used."""
     vault = started(tmp_path, monkeypatch)
-    path = record_of(vault)
-    body = path.read_text(encoding="utf-8")
-    path.write_text(body.replace("## Captures\n\n", "## Captures\n\n- [idea] (claude) five ^c05\n", 1),
-                    encoding="utf-8")
+    body = session_files.record_text(vault, RECORD_ID)
+    session_files.write_record(vault, RECORD_ID, body.replace("## Captures\n\n", "## Captures\n\n- [idea] (claude) five ^c05\n", 1))
     git(vault, "commit", "-q", "-am", f"Checkpoint {TODAY}-consent")
-    path.write_text(body, encoding="utf-8")
+    session_files.write_record(vault, RECORD_ID, body)
     git(vault, "commit", "-q", "-am", f"Checkpoint {TODAY}-consent")
     (vault / ".vela" / "session.json").unlink()
     assert add(vault, "--origin", "claude", "--tag", "idea", "six") == (0, "^c06\n")
@@ -68,7 +65,7 @@ def test_mark_written_at_once(tmp_path, monkeypatch):
     mark = "keep: [[shop-building-blocks#CON-001 Orders|CON-001]] (decided)"
     typed(vault, "Yes.")
     assert add(vault, "--origin", "@priya", "--tag", "decision", '"Yes."', "--mark", mark)[0] == 0
-    assert f'- [decision] (@priya) "Yes." → {mark} ^c01\n' in record_of(vault).read_text(encoding="utf-8")
+    assert f'- [decision] (@priya) "Yes." → {mark} ^c01\n' in session_files.record_text(vault, RECORD_ID)
 
 
 def test_no_open_record_exits_1(tmp_path, monkeypatch):
@@ -81,7 +78,7 @@ def test_a_line_that_would_not_parse_is_refused(tmp_path, monkeypatch):
     vault = started(tmp_path, monkeypatch)
     code, output = add(vault, "--origin", "a (b)", "--tag", "idea", "x")
     assert code == 1 and "origin" in output
-    assert "^c" not in record_of(vault).read_text(encoding="utf-8").split("## Captures", 1)[1].split("## Changes")[0]
+    assert "^c" not in session_files.record_text(vault, RECORD_ID).split("## Captures", 1)[1].split("## Changes")[0]
 
 
 def test_reader_copy_adds_without_git(tmp_path, monkeypatch):
@@ -103,7 +100,7 @@ def test_no_origin_writes_the_leads_handle_so_the_consent_check_reads_their_yes(
     assert run("whoami", "--vault", str(vault), "--set", "Priya-K")[0] == 0
     typed(vault, "Yes, send it.")
     assert add(vault, "--tag", "decision", '"Yes, send it."') == (0, "^c01\n")
-    line = next(l for l in record_of(vault).read_text(encoding="utf-8").splitlines() if l.endswith("^c01"))
+    line = next(l for l in session_files.record_text(vault, RECORD_ID).splitlines() if l.endswith("^c01"))
     assert line == '- [decision] (@Priya-K) "Yes, send it." ^c01'
     found = closegate.CAPTURE_RE.match(line)
     capture = closegate.Capture(found["n"], found["tag"], found["origin"], found["words"])
@@ -112,10 +109,10 @@ def test_no_origin_writes_the_leads_handle_so_the_consent_check_reads_their_yes(
 
 def test_no_origin_and_no_known_handle_asks_once_and_writes_nothing(tmp_path, monkeypatch):
     vault = started(tmp_path, monkeypatch)  # gh is shimmed to fail, and .vela/handle is empty
-    before = record_of(vault).read_text(encoding="utf-8")
+    before = session_files.record_text(vault, RECORD_ID)
     code, output = add(vault, "--tag", "idea", "x", "--for-lead")
     assert code == 3 and "GitHub handle" in output
-    assert record_of(vault).read_text(encoding="utf-8") == before
+    assert session_files.record_text(vault, RECORD_ID) == before
 
 
 def test_help_says_origin_defaults_to_the_lead(capsys):
@@ -132,7 +129,7 @@ def test_every_spelling_of_the_lead_is_written_as_the_handle(tmp_path, monkeypat
     typed(vault, "Yes, that is right.")
     for spelling in spellings:
         assert add(vault, "--origin", spelling, "--tag", "decision", "Yes, that is right.")[0] == 0
-    lines = [l for l in record_of(vault).read_text(encoding="utf-8").splitlines() if l.startswith("- [decision]")]
+    lines = [l for l in session_files.record_text(vault, RECORD_ID).splitlines() if l.startswith("- [decision]")]
     assert len(lines) == len(spellings)
     assert all(l.startswith("- [decision] (@sim-lead) ") for l in lines), lines
 
@@ -142,7 +139,7 @@ def test_a_role_origin_is_not_taken_for_the_lead(tmp_path, monkeypatch):
     assert run("whoami", "--vault", str(vault), "--set", "sim-lead")[0] == 0
     typed(vault, "Yes.")
     assert add(vault, "--origin", "the security officer", "--tag", "thought", "Yes.")[0] == 0
-    assert "(the security officer)" in record_of(vault).read_text(encoding="utf-8")
+    assert "(the security officer)" in session_files.record_text(vault, RECORD_ID)
 
 
 def test_the_leads_display_name_is_written_as_the_handle(tmp_path, monkeypatch):
@@ -154,7 +151,7 @@ def test_the_leads_display_name_is_written_as_the_handle(tmp_path, monkeypatch):
     assert run("whoami", "--vault", str(vault), "--set", "sim-lead", "--name", "Sim Lead")[0] == 0
     typed(vault, "Yes, that is right.")
     assert add(vault, "--origin", "sim lead", "--tag", "decision", "Yes, that is right.")[0] == 0
-    line = next(l for l in record_of(vault).read_text(encoding="utf-8").splitlines() if l.startswith("- [decision]"))
+    line = next(l for l in session_files.record_text(vault, RECORD_ID).splitlines() if l.startswith("- [decision]"))
     assert line.startswith("- [decision] (@sim-lead) ")
     named = closegate.Capture("01", "decision", "Sim Lead", "Yes.")
     assert consent.from_the_lead(named, "sim-lead", ("Sim Lead",)) is None
@@ -165,7 +162,7 @@ def test_the_leads_display_name_is_written_as_the_handle(tmp_path, monkeypatch):
 
 def test_the_lead_spelled_loosely_with_no_known_handle_asks_once(tmp_path, monkeypatch):
     vault = started(tmp_path, monkeypatch)
-    before = record_of(vault).read_text(encoding="utf-8")
+    before = session_files.record_text(vault, RECORD_ID)
     code, output = add(vault, "--origin", "the lead", "--tag", "idea", "x", "--for-lead")
     assert code == 3 and "GitHub handle" in output
-    assert record_of(vault).read_text(encoding="utf-8") == before
+    assert session_files.record_text(vault, RECORD_ID) == before

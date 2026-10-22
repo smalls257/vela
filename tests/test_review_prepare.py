@@ -9,9 +9,11 @@ import shutil
 from conftest import MINI, run
 from sharing import git, make_vault
 from test_session_cli import TODAY, no_gh, start
+import session_files
 
 LEDGER = "11-unknowns-and-risks.md"
-RECORD = f"sessions/{TODAY}-consent.md"
+RECORD_ID = f"{TODAY}-consent"
+RECORD = f"sessions/{RECORD_ID}.md"
 
 
 def started(tmp_path, monkeypatch):
@@ -79,10 +81,9 @@ def test_changed_page_carries_only_its_changed_lines(tmp_path, monkeypatch):
 
 def test_rerun_numbers_checkpoint_n_plus_1(tmp_path, monkeypatch):
     vault = started(tmp_path, monkeypatch)
-    record = vault / RECORD
-    record.write_text(record.read_text(encoding="utf-8").replace(
-        "## Changes", "## Reviews\n\n### 1. after the pre-mortem, 2026-10-14\n\n- **Coverage:** FIN found 1\n\n"
-                      "## Changes"), encoding="utf-8")
+    session_files.edit_record(
+        vault, RECORD_ID, "## Changes",
+        "## Reviews\n\n### 1. after the pre-mortem, 2026-10-14\n\n- **Coverage:** FIN found 1\n\n## Changes")
     code, answer = prepare(vault, "--checkpoint", "after the pre-mortem", "--focus", "01-goals.md",
                            "--rerun", "1", "--areas", "FIN,REG")
     assert code == 0, answer
@@ -140,8 +141,7 @@ def test_reader_copy_runs_no_git_and_commits_nothing(tmp_path, monkeypatch):
     (copy / ".vela" / "workspace.json").write_text('{"role": "reader"}', encoding="utf-8")
     shutil.copytree(MINI, copy / ".vela" / "baseline")
     from vela import sessions
-    (copy / RECORD).write_text(sessions.record_text(f"{TODAY}-consent", "Dump & Diverge: consent", TODAY, ["dump"]),
-                               encoding="utf-8")
+    session_files.write_record(copy, RECORD_ID, sessions.record_text(f"{TODAY}-consent", "Dump & Diverge: consent", TODAY, ["dump"]))
     git_log = shim(tmp_path, monkeypatch, "git")
     code, answer = prepare(copy, "--checkpoint", "after the pre-mortem", "--focus", "01-goals.md")
     assert code == 0, answer
@@ -188,11 +188,11 @@ def test_digest_skips_a_copy_a_capture_already_took(tmp_path, monkeypatch):
 def test_digest_shown_line_written_to_record(tmp_path, monkeypatch):
     vault = started(tmp_path, monkeypatch)
     first = digest(vault, "--session", f"{TODAY}-consent")
-    text = (vault / RECORD).read_text(encoding="utf-8")
+    text = session_files.record_text(vault, RECORD_ID)
     line = f"Digest shown: {', '.join(copies_of(first))}"
     assert f"## Reviews\n\n{line}\n\n## Changes" in text
     second = digest(vault, "--session", f"{TODAY}-consent")
-    text = (vault / RECORD).read_text(encoding="utf-8")
+    text = session_files.record_text(vault, RECORD_ID)
     assert text.count("Digest shown:") == 1
     assert f"Digest shown: {', '.join(copies_of(first) + copies_of(second))}\n" in text
     # a second machine has only the record: the line is read back from it
@@ -202,12 +202,11 @@ def test_digest_shown_line_written_to_record(tmp_path, monkeypatch):
 
 def test_digest_line_sits_above_the_checkpoints(tmp_path, monkeypatch):
     vault = started(tmp_path, monkeypatch)
-    record = vault / RECORD
-    record.write_text(record.read_text(encoding="utf-8").replace(
-        "## Changes", "## Reviews\n\n### 1. after the pre-mortem, 2026-10-14\n\n- **Coverage:** x\n\n## Changes"),
-        encoding="utf-8")
+    session_files.edit_record(
+        vault, RECORD_ID, "## Changes",
+        "## Reviews\n\n### 1. after the pre-mortem, 2026-10-14\n\n- **Coverage:** x\n\n## Changes")
     digest(vault, "--session", f"{TODAY}-consent")
-    text = record.read_text(encoding="utf-8")
+    text = session_files.record_text(vault, RECORD_ID)
     assert text.index("Digest shown:") < text.index("### 1. after the pre-mortem")
     code, answer = prepare(vault, "--checkpoint", "next", "--focus", "01-goals.md")
     assert answer["checkpoint"] == 2, "the bare line is not a checkpoint"
@@ -228,10 +227,10 @@ def test_digest_session_must_name_a_record(tmp_path, monkeypatch):
 
 def test_digest_without_session_unchanged(tmp_path, monkeypatch):
     vault = started(tmp_path, monkeypatch)
-    before = (vault / RECORD).read_text(encoding="utf-8")
+    before = session_files.record_text(vault, RECORD_ID)
     plain = run("questions", "--vault", str(vault), "--digest")
     assert plain == run("questions", "--vault", str(vault), "--digest")
     assert "held" not in digest(vault)
     digest(vault, "--session", f"{TODAY}-consent")
     assert run("questions", "--vault", str(vault), "--digest") == plain, "a session's memory never filters the plain digest"
-    assert (vault / RECORD).read_text(encoding="utf-8") != before
+    assert session_files.record_text(vault, RECORD_ID) != before

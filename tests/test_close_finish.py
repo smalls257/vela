@@ -8,6 +8,7 @@ import subprocess
 from conftest import run
 from vela import closefinish, closegate, handoff, parse, say
 from sharing import git, make_vault, with_remote
+import session_files
 
 RECORD = "2026-10-20-grill-stock"
 STOCK = "05-building-blocks/stock-building-blocks.md"
@@ -39,14 +40,14 @@ def session(tmp_path, sync=True, handed=None, captures=(), on_main=None):
     if on_main:
         on_main(vault)
     git(vault, "switch", "-q", "-c", f"session/{RECORD}")
-    (vault / "sessions" / f"{RECORD}.md").write_text(record_text(), encoding="utf-8")
+    session_files.write_record(vault, RECORD, record_text())
     git(vault, "add", "sessions")
     git(vault, "commit", "-q", "-m", f"Open session {RECORD}")
     if sync:
         assert run("close", "sync-main", "--vault", str(vault), "--today", TODAY)[0] == 0
     if handed:
         hand_off(vault, handed)
-    (vault / "sessions" / f"{RECORD}.md").write_text(record_text(captures), encoding="utf-8")
+    session_files.write_record(vault, RECORD, record_text(captures))
     assert run("render", "--vault", str(vault))[0] == 0
     return vault
 
@@ -64,7 +65,7 @@ def files_in(vault, ref):
 
 
 def record_meta(vault):
-    return parse.split_frontmatter((vault / "sessions" / f"{RECORD}.md").read_text(encoding="utf-8"))[0]
+    return parse.split_frontmatter(session_files.record_text(vault, RECORD))[0]
 
 
 def manifest_already_accepted(vault):
@@ -128,7 +129,7 @@ def test_replace_without_team_yes_exits_3(tmp_path):
         assert git(vault, "rev-parse", "HEAD") == head and record_meta(vault)["status"] == "open"
         assert git(vault, "show", "HEAD:handoffs/APP-stock.md") == (vault / "handoffs" / "APP-stock.md").read_text(
             encoding="utf-8").rstrip("\n")
-    (vault / "sessions" / f"{RECORD}.md").write_text(record_text([TEAM_YES]), encoding="utf-8")
+    session_files.write_record(vault, RECORD, record_text([TEAM_YES]))
     code, out = finish(vault, "--replace")
     assert code == 0, out
     assert subjects(vault, 3) == ["Rebuild dashboard", "Handoff manifest for APP-stock", f"Close session {RECORD}"]
@@ -238,10 +239,9 @@ def test_close_tells_the_lead_which_yeses_wait_for_a_short_grill(tmp_path):
     page = vault / STOCK
     page.write_text(page.read_text(encoding="utf-8").replace("- **State:** fact", "- **State:** assumption", 1),
                     encoding="utf-8")
-    record = vault / "sessions" / f"{RECORD}.md"
-    record.write_text(record.read_text(encoding="utf-8").replace(
-        "## Captures", f"## Ready to decide\n\n- CON-002: the lead said yes in {RECORD} (^c01)\n\n## Captures"),
-        encoding="utf-8")
+    session_files.edit_record(
+        vault, RECORD, "## Captures",
+        f"## Ready to decide\n\n- CON-002: the lead said yes in {RECORD} (^c01)\n\n## Captures")
     assert run("render", "--vault", str(vault))[0] == 0
     code, out = finish(vault, "--for-lead")
     assert code == 0, out

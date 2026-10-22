@@ -2,6 +2,7 @@
 import pytest
 
 from conftest import check, edit, findings
+import session_files
 
 SHOP = "05-building-blocks/shop-building-blocks.md"
 UNK = "11-unknowns-and-risks.md"
@@ -56,8 +57,7 @@ def test_ordinary_prose_about_a_grill_is_left_alone(mini):
 
 
 def test_a_session_record_may_say_it(mini):
-    session = next((mini / "sessions").glob("*.md"))
-    text = session.read_text(encoding="utf-8")
-    session.write_text(text + "\nThe float was left for a Grill.\n", encoding="utf-8")
+    record_id = next((mini / "sessions").glob("*.md")).stem
+    session_files.write_record(mini, record_id, session_files.record_text(mini, record_id) + "\nThe float was left for a Grill.\n")
     _, out = check(mini)
     assert "W389" not in codes(out)
