@@ -4,6 +4,8 @@ Vela turns a pile of ideas, documents and meetings into one planning vault: a fo
 
 This guide is for people who have never seen Vela. Start by finding your role in the table.
 
+For the reasoning behind the steps (why they come in this order, what holds each one up, and what vela can't promise), read [How vela thinks](METHOD.md).
+
 | You are | You have | You do | Go to |
 |---|---|---|---|
 | Owner | the vault's git repo, and rights to commit | run sessions, decide, publish | [Owners](#owners) |
