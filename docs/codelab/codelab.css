@@ -1,0 +1,44 @@
+/* The codelab: one step on screen, a step list above. The palette, fonts and width come from ../method/method.css. */
+.codelab h1{margin-bottom:4px}
+.progress{height:6px;background:var(--tint);border:1px solid var(--line);border-radius:999px;overflow:hidden;margin:6px 0 4px}
+.progress #bar{height:100%;width:0;background:var(--accent);transition:width .2s}
+.left{margin:0 0 10px;font-size:14px;color:var(--soft);text-align:right}
+.route ol{list-style:none;margin:0 0 8px;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.route li{margin:0}
+.route a{display:flex;align-items:center;gap:8px;padding:5px 12px 5px 6px;border:1px solid var(--line);border-radius:999px;background:var(--tint);color:var(--ink);text-decoration:none;font-size:14px}
+.route a:hover{border-color:var(--accent)}
+.route .dot{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--bg);border:1px solid var(--line);font-size:12px;font-weight:700}
+.route .mins{color:var(--soft);font-size:12px}
+.route li.current a{border-color:var(--accent);background:var(--accent);color:var(--accent-ink)}
+.route li.current .dot{background:var(--accent-ink);color:var(--accent);border-color:var(--accent-ink)}
+.route li.current .mins{color:var(--accent-ink)}
+.route li.done .dot{background:var(--ok);color:var(--bg);border-color:var(--ok)}
+section.step{padding-top:1.4rem}
+.codelab.js section.step{display:none}
+.codelab.js section.step.active{display:block}
+section.step>header .meta{margin:0;font-size:14px;color:var(--soft)}
+section.step>header h2{font-size:28px;letter-spacing:-.3px;margin:.1rem 0 .2rem}
+section.step>header .sum{margin:0 0 1rem;color:var(--soft)}
+.cl{margin:1rem 0;padding:12px 16px;border:1px solid var(--line);border-radius:12px}
+.cl>h3{margin:0 0 .3rem;font-size:13px;text-transform:uppercase;letter-spacing:.07em;color:var(--soft)}
+.cl-type{border-left:4px solid var(--accent)}
+.cl-asks{border-left:4px solid var(--grill);background:var(--grill-bg)}
+.cl-asks>h3::after{content:" \00b7  an example, not a script";text-transform:none;letter-spacing:0}
+.cl-asks blockquote{color:var(--ink);border-left-color:var(--grill)}
+.cl-see{background:var(--tint)}
+.cl-see pre{background:var(--bg)}
+.cl{min-width:0}
+.cl pre{overflow-x:auto;max-width:100%}
+.cl-see{overflow-x:auto}
+.cl table{display:block;max-width:100%;overflow-x:auto}
+.cl-checkpoint{border:2px solid var(--ok)}
+.cl-checkpoint>h3{color:var(--ok)}
+.cl-checkpoint>h3::before{content:"\2713  "}
+.code{position:relative}
+.code .copy{position:absolute;right:8px;top:8px;font:inherit;font-size:12px;padding:2px 10px;border:1px solid var(--line);border-radius:999px;background:var(--bg);color:var(--soft);cursor:pointer}
+.code .copy:hover{border-color:var(--accent);color:var(--accent)}
+.step-nav{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:2rem;padding-top:1rem;border-top:1px solid var(--line)}
+.step-nav a{display:inline-block;padding:8px 14px;border:1px solid var(--line);border-radius:10px;text-decoration:none;color:var(--ink);background:var(--tint)}
+.step-nav a.next-step{margin-left:auto;border-color:var(--accent)}
+.step-nav a span{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--soft)}
+@media print{.route,.progress,.left,.step-nav,.copy{display:none}.codelab.js section.step{display:block}}

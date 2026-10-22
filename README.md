@@ -2,6 +2,8 @@
 
 Vela is a Claude Code toolkit for planning at the initiative level. It takes you from a one-line ask to fully specified epics, written in Markdown that every reader can follow. It was called "planner" before 2026-10-14, and the design records in `docs/` dated before then use that name.
 
+To see why it works the way it does, from a vague idea to tickets, read [How vela thinks](docs/method/index.html), a small site you click through. It explains each step, what holds it up, and what hasn't been proven yet.
+
 ## Install
 
 Three steps, in Claude Code:

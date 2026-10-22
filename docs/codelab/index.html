@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plan your first initiative with vela | Vela</title>
+<link rel="stylesheet" href="../method/method.css">
+<link rel="stylesheet" href="codelab.css">
+<script>(function(){try{var t=localStorage.getItem("vela-theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){console.warn("vela: theme choice not read",e)}})();</script>
+<script src="../method/method.js" defer></script>
+<script src="codelab.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top"><a class="brand" href="../index.html">Vela</a><a href="../method/index.html">How vela thinks</a><a href="index.html">Plan your first initiative</a><button type="button" id="theme-toggle" class="theme-toggle"></button>
+<script>(function(){var b=document.getElementById("theme-toggle"),r=document.documentElement;function cur(){return r.getAttribute("data-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light")}function show(){var n=cur()==="dark"?"light":"dark";b.textContent=n==="light"?"Light":"Dark";b.setAttribute("aria-label","Switch to "+n+" theme")}b.addEventListener("click",function(){var n=cur()==="dark"?"light":"dark";r.setAttribute("data-theme",n);try{localStorage.setItem("vela-theme",n)}catch(e){console.warn("vela: theme choice not saved",e)}show()});show()})();</script></header>
+<main id="main" class="codelab">
+<h1>Plan your first initiative with vela</h1><p class="lede">From one sentence to tickets, on the Heron example. About 161 minutes.</p><div class="progress" aria-hidden="true"><div id="bar"></div></div><p class="left"><span id="timeleft">161 min left</span></p><nav class="route" aria-label="Steps"><ol><li><a href="#step-1"><span class="dot">1</span><span class="t">Overview</span><span class="mins">3 min</span></a></li><li><a href="#step-2"><span class="dot">2</span><span class="t">Install vela</span><span class="mins">5 min</span></a></li><li><a href="#step-3"><span class="dot">3</span><span class="t">Start a plan</span><span class="mins">3 min</span></a></li><li><a href="#step-4"><span class="dot">4</span><span class="t">Dump</span><span class="mins">20 min</span></a></li><li><a href="#step-5"><span class="dot">5</span><span class="t">Discover or import</span><span class="mins">20 min</span></a></li><li><a href="#step-6"><span class="dot">6</span><span class="t">Shape</span><span class="mins">15 min</span></a></li><li><a href="#step-7"><span class="dot">7</span><span class="t">Requirements and boundary</span><span class="mins">30 min</span></a></li><li><a href="#step-8"><span class="dot">8</span><span class="t">Grill a decision</span><span class="mins">15 min</span></a></li><li><a href="#step-9"><span class="dot">9</span><span class="t">Releases and epics</span><span class="mins">20 min</span></a></li><li><a href="#step-10"><span class="dot">10</span><span class="t">Open the dashboard</span><span class="mins">3 min</span></a></li><li><a href="#step-11"><span class="dot">11</span><span class="t">Hand off an app</span><span class="mins">10 min</span></a></li><li><a href="#step-12"><span class="dot">12</span><span class="t">Write tickets</span><span class="mins">15 min</span></a></li><li><a href="#step-13"><span class="dot">13</span><span class="t">What&#x27;s next</span><span class="mins">2 min</span></a></li></ol></nav>
+<section class="step" id="step-1" data-title="Overview" data-min="3"><header><p class="meta">Step 1 of 13 &middot; 3 min</p><h2>Overview</h2><p class="sum">What you'll build, what you need, how long it takes</p></header>
+<p>You'll take one sentence from a chief information officer (CIO) and follow it, one working session at a time, to tickets a team can build from. The example is Heron, a made-up desk helper for Marlowe, a company of 4,200 people. The sentence is real, from the demo plan:</p>
+<blockquote>The CIO wants "a desk helper for Mac and Windows that sets up in two minutes, quietly watches your meetings, email and documents, and tells you what matters each morning".</blockquote>
+<ul><li><strong>What you'll build:</strong> a plan in a folder of Markdown pages: goals, open questions, the apps involved, what the business needs, two releases, the work for each team, and tickets.</li><li><strong>What you need:</strong> Claude Code, git, and a folder you can write to. Vela runs on Python 3.9 or later and brings its own copy of PyYAML, so nothing else to install. You play the solution lead, the person who owns the plan.</li><li><strong>How long:</strong> about 161 minutes on a first run, the sum of the rough times on each step. A real session with real answers can run longer.</li><li><strong>How to read this:</strong> each step shows what you type, what Claude asks you, and what you should see. Use the arrow keys or the buttons to move. The step list above jumps anywhere.</li></ul>
+<details class="fold"><summary>How to tell a real excerpt from an example</summary><p>What Claude asks is an example of what the skills tell it to ask. Your questions will differ, because Claude reads your plan first. Everything under "What you should see" is real: it comes from the Heron demo plan, or from vela commands run on a copy of it.</p>
+<p>The Heron plan was made by vela's session simulator, so it shows the format and the real check output. It isn't evidence from a real initiative. Its handles read <code>@sim-lead</code>.</p></details>
+
+<div class="cl cl-checkpoint"><h3>Checkpoint</h3><p>You can say, in one sentence, what you'll have at the end: a plan that goes from the CIO's sentence to tickets, with the reason for every step kept.</p></div>
+
+<details class="fold"><summary>Stuck?</summary><p>Nothing to run yet, so nothing to get stuck on. If a later step doesn't match this page, check that you're on the step you think you're on: the address ends in <code>#step-</code> and a number.</p></details>
+<div class="step-nav"><span></span><a rel="next" class="next-step" href="#step-2"><span>Next</span> Install vela</a></div></section>
+<section class="step" id="step-2" data-title="Install vela" data-min="5"><header><p class="meta">Step 2 of 13 &middot; 5 min</p><h2>Install vela</h2><p class="sum">Add the plugin to Claude Code and check the machine</p></header>
+<p>Two commands in Claude Code add vela. Then you ask Claude to check that the machine has what vela needs.</p>
+<div class="cl cl-type"><h3>You type</h3><p>In Claude Code:</p>
+<div class="code"><button type="button" class="copy">Copy</button><pre><code>/plugin marketplace add smalls257/vela
+/plugin install vela@vela</code></pre></div>
+<p>Then ask Claude: "Run vela doctor."</p></div>
+
+<div class="cl cl-asks"><h3>Claude asks you</h3><p>Nothing yet. Claude doesn't ask you anything in this step.</p></div>
+
+<div class="cl cl-see"><h3>What you should see</h3><p><code>vela doctor</code> prints one line per item, run in an empty folder on a Mac:</p>
+<pre><code>ok    Python 3.14.4 (/opt/homebrew/opt/python@3.14/bin/python3.14)
+ok    PyYAML 6.0.3, bundled with the plugin (nothing to install)
+ok    git version 2.50.1 (Apple Git-155)
+ok    node v26.11.1: vela check parses the diagrams
+ok    claude command found: the explorer&#x27;s Ask Claude box works
+info  vela plugin 0.5.0
+vela doctor: ready.</code></pre></div>
+
+<div class="cl cl-checkpoint"><h3>Checkpoint</h3><p>The last line reads <code>vela doctor: ready.</code> Your versions will differ. A line starting <code>optional</code> is fine: it says what that item would add.</p></div>
+
+<details class="fold"><summary>Why this step</summary><p>Vela checks things (<code>vela check</code>) and writes pages. Both need a known setup on your machine, and the doctor is the one place that says what's missing. The idea behind the rest, that a claim should be checkable by something other than Claude's say-so, is on <a href="../method/trust.html">the trust page</a>.</p></details>
+
+<details class="fold"><summary>Stuck?</summary><ul><li>A line that says <code>optional</code> isn't a failure. It names what the item adds and the one command that gets it.</li><li><code>vela: &lt;folder&gt; has no .vela.yaml, so it is not a vault. Run vela from the vault root or pass --vault.</code> means you ran a plan command outside a plan. That's expected here. The next step makes the plan.</li><li>The repo is public, so installing needs no access grant. Git should be signed in to GitHub, which <code>gh auth login</code> does.</li></ul></details>
+<div class="step-nav"><a rel="prev" class="prev" href="#step-1"><span>Back</span> Overview</a><a rel="next" class="next-step" href="#step-3"><span>Next</span> Start a plan</a></div></section>
+<section class="step" id="step-3" data-title="Start a plan" data-min="3"><header><p class="meta">Step 3 of 13 &middot; 3 min</p><h2>Start a plan</h2><p class="sum">Make a folder, open Claude Code in it, and let vela start the plan</p></header>
+<p>A plan is a git repository of Markdown pages, one folder per initiative. You make an empty folder and ask for a first session. If there's no plan yet, Claude offers to start one, and that runs <code>vela new</code>.</p>
+<div class="cl cl-type"><h3>You type</h3><p>In a terminal:</p>
+<div class="code"><button type="button" class="copy">Copy</button><pre><code>mkdir heron-desk
+cd heron-desk
+claude</code></pre></div>
+<p>Then in Claude Code: <code>/vela:dump</code>. If you'd rather start the plan by hand: <code>vela new --title &quot;Heron Desk&quot;</code>.</p></div>
+
+<div class="cl cl-asks"><h3>Claude asks you</h3><p>Claude asks two things:</p>
+<blockquote>There's no plan in this folder yet. Want me to start one? What short name should the initiative go by, a few words as you'd say it to a colleague?</blockquote>
+<p>If vela can't find your GitHub handle, Claude asks for it once.</p></div>
+
+<div class="cl cl-see"><h3>What you should see</h3><p><code>vela new</code>, run for real with the handle <code>@solution-lead</code>:</p>
+<pre><code>vela new: started INI-001 &#x27;Heron Desk&#x27; for @solution-lead in .../heron-desk: 48 files, committed 2dae834: Start the plan.
+vela check: 0 errors, 0 warnings.
+Left for a person: a GitHub repository, the required check, Obsidian (see README.md).</code></pre>
+<p>Then <code>vela next</code>, which suggests what to do:</p>
+<pre><code>vela next: for the whole plan: no app page exists yet, so start by getting everything known written down (/vela:dump, a brainstorm), or by reading the existing sources (/vela:discover).</code></pre></div>
+
+<div class="cl cl-checkpoint"><h3>Checkpoint</h3><p>The folder holds <code>01-goals.md</code>, <code>11-unknowns-and-risks.md</code>, a <code>README.md</code> and about 45 more files, and <code>vela check</code> reports 0 errors. <code>git log</code> shows one commit, "Start the plan".</p></div>
+
+<details class="fold"><summary>Why this step</summary><p>Everything vela knows lives in plain files in git, so you can read, review and undo it. Starting with <code>vela new</code> instead of copying a template means the first commit holds only the plan's own files. More on why plans are files with checks, not documents: <a href="../method/problem.html">the problem page</a>.</p></details>
+
+<details class="fold"><summary>Stuck?</summary><ul><li><code>vela new</code> refuses a folder that already holds a plan, a folder inside another plan, and a folder with plans below it. Pick an empty one.</li><li>To put a plan inside a repository that already holds others: <code>vela new --vault projects/heron --title &quot;Heron rollout&quot;</code>.</li><li>If it asks for your GitHub handle, give it once: <code>vela new --title &quot;Heron Desk&quot; --handle @your-handle</code>.</li><li>The README the new plan carries lists what's left for a person: a GitHub repository, the required check, and Obsidian if you use it. None of it blocks the next step.</li></ul></details>
+<div class="step-nav"><a rel="prev" class="prev" href="#step-2"><span>Back</span> Install vela</a><a rel="next" class="next-step" href="#step-4"><span>Next</span> Dump</a></div></section>
+<section class="step" id="step-4" data-title="Dump" data-min="20"><header><p class="meta">Step 4 of 13 &middot; 20 min</p><h2>Dump</h2><p class="sum">Get everything out of your head, ideas and worries and unknowns alike</p></header>
+<p>A dump is the first session. You talk, Claude writes each point down as its own numbered line in your words, and pushes back on nothing. Nothing reaches the plan's pages until you close the session.</p>
+<div class="cl cl-type"><h3>You type</h3><p>In Claude Code, in the plan folder:</p>
+<div class="code"><button type="button" class="copy">Copy</button><pre><code>/vela:dump</code></pre></div>
+<p>Say the CIO's sentence, then what you're unsure of. When you're done: <code>/vela:close</code>.</p></div>
+
+<div class="cl cl-asks"><h3>Claude asks you</h3><p>Claude adds one "what if" per idea and labels it as its own. After a while it runs a pre-mortem:</p>
+<blockquote>Imagine it's six months from now and Heron has failed. What went wrong?</blockquote>
+<p>Then it shows the questions nobody has asked yet, and you choose which to take.</p></div>
+
+<div class="cl cl-see"><h3>What you should see</h3><p>Captures from the Heron dump, after close. Each line says who said it, and where it went:</p>
+<pre><code>- [thought] (solution lead) The CIO wants &quot;a desk helper for Mac and Windows that sets up in two minutes, ...&quot; → keep: [[01-goals#Goals|goals]] (inkling) ^c01
+- [worry] (solution lead) I&#x27;ve been made solution lead and it&#x27;s a blank page. I don&#x27;t know where to start. → keep: UNK-052 (open) ^c02
+- [idea] (claude) What if the morning briefing came first and alone, built from just the calendar, ... → park ^c04
+- [unknown] (solution lead) The CIO just gave me the one-liner and nothing since. Honestly not sure what morning they were picturing. → keep: UNK-055 (open) ^c08</code></pre></div>
+
+<div class="cl cl-checkpoint"><h3>Checkpoint</h3><p>You have a session record under <code>sessions/</code> with your lines in it, and Claude's ideas are labeled <code>(claude)</code>. After close, each line ends in <code>keep</code>, <code>park</code> or <code>drop</code>, and every unknown you kept has an owner.</p></div>
+
+<details class="fold"><summary>Why this step</summary><p>The vague intent becomes a recorded unknown with an owner, so it can't turn into a decision nobody made. Dump is the first rung of <a href="../method/ladder.html#dump">the ladder</a>. The plan marks the CIO's sentence <code>inkling</code>, a hunch: see <a href="../method/certainty.html">how sure each thing is</a>.</p></details>
+
+<details class="fold"><summary>Stuck?</summary><ul><li>I said something and it isn't on any page yet. That's right: a dump writes nothing outside <code>sessions/</code> until <code>/vela:close</code>.</li><li><code>E207</code> means an ID reference resolves to nothing, usually a mistyped <code>UNK-</code> number in a capture.</li><li><code>E201</code> means a link goes to a page that doesn't exist. Real output: <code>01-goals.md:124: E201 [[no-such-page]] links to a page that does not exist. Fix: Fix the basename, or create the page.</code></li></ul></details>
+<div class="step-nav"><a rel="prev" class="prev" href="#step-3"><span>Back</span> Start a plan</a><a rel="next" class="next-step" href="#step-5"><span>Next</span> Discover or import</a></div></section>
+<section class="step" id="step-5" data-title="Discover or import" data-min="20"><header><p class="meta">Step 5 of 13 &middot; 20 min</p><h2>Discover or import</h2><p class="sum">Read what already exists, and write down only what a source says</p></header>
+<p>Pick one. If you have documents (a brief, a tenant note, a survey), run Discover. If an initiative is already under way in documents, code and tickets, run Import, which shows a map of what it found before writing anything.</p>
+<div class="cl cl-type"><h3>You type</h3><p>Put the documents in the plan folder, then:</p>
+<div class="code"><button type="button" class="copy">Copy</button><pre><code>/vela:discover</code></pre></div>
+<p>or, for work already under way: <code>/vela:import</code></p></div>
+
+<div class="cl cl-asks"><h3>Claude asks you</h3><p>Claude asks you to rank the documents, then reads back what it thinks exists, in groups of about five, naming each source and saying whether it describes today or a plan:</p>
+<blockquote>1. Partners get a nightly file of changed bookings (the partner guide, what runs today). 2. Guests can rebook on their phones by Q4 (the 2026 roadmap deck, a plan, so not decided yet).</blockquote>
+<p>&gt;</p>
+<blockquote>Do these hold?</blockquote>
+<p>If two lines disagree, it says so aloud and offers one open question naming both sides.</p></div>
+
+<div class="cl cl-see"><h3>What you should see</h3><p>Two Heron sources in the Library, one that exists today and one that is only intended:</p>
+<pre><code>| SRC-006 | Microsoft 365 tenant note | IT endpoint lead | 2026-10-02 | exists | document | ...
+| SRC-007 | CIO brief on Heron | CIO | 2026-09-30 | intends | document | ...</code></pre>
+<p>They disagreed, and discover didn't pick a side:</p>
+<pre><code>- [unknown] (claude) The CIO brief says staff install the helper themselves, while the tenant note says staff cannot install software and everything is pushed from Intune or Jamf. Two sources disagree; the CIO and the IT endpoint lead are asked. → keep: UNK-086 (open) ^c06</code></pre></div>
+
+<div class="cl cl-checkpoint"><h3>Checkpoint</h3><p>Every fact the session wrote cites a source in <code>sources.md</code>. A line from an <code>intends</code> source is an assumption, not a fact. Any clash is an open question with an owner.</p></div>
+
+<details class="fold"><summary>Why this step</summary><p>Nobody designs anything before finding out what exists. A fact needs a source, and Claude's general knowledge is never a source: see <a href="../method/ladder.html#discover">Discover and Import</a> and <a href="../method/certainty.html#a-fact-needs-a-source">a fact needs a source</a>.</p></details>
+
+<details class="fold"><summary>Stuck?</summary><ul><li><code>E304</code> means a fact has no source. Add the source row to <code>sources.md</code>, or set the line back to an assumption.</li><li><code>E307</code> and <code>E309</code> mean a Library row has a bad type, or neither a stored file nor a location.</li><li>Documents in <code>.inbox/</code> stay on your machine. Git ignores that folder, so company files aren't committed unless you agree to keep one.</li></ul></details>
+<div class="step-nav"><a rel="prev" class="prev" href="#step-4"><span>Back</span> Dump</a><a rel="next" class="next-step" href="#step-6"><span>Next</span> Shape</a></div></section>
+<section class="step" id="step-6" data-title="Shape" data-min="15"><header><p class="meta">Step 6 of 13 &middot; 15 min</p><h2>Shape</h2><p class="sum">Two or three options to react to, and a pick that stays not decided</p></header>
+<p>Shape gives you something concrete to react to. Claude lays out two or three options, never one and never more than three, and records the ones you turn down with the reason. What you pick stays "not decided yet" until a grill decides it.</p>
+<div class="cl cl-type"><h3>You type</h3><div class="code"><button type="button" class="copy">Copy</button><pre><code>/vela:shape the first release</code></pre></div></div>
+
+<div class="cl cl-asks"><h3>Claude asks you</h3><p>Each option comes with what it does, costs and rules out, and what must be true for it to work. Then:</p>
+<blockquote>Which of these would you pick, and what would make you drop it?</blockquote>
+<p>For the pick, Claude takes each "what must be true" line in turn: is it known (with a source), a belief, or an open question for someone?</p></div>
+
+<div class="cl cl-see"><h3>What you should see</h3><p>The Heron strategy page, with the options and the reasons for turning two down:</p>
+<pre><code>- **Options considered:** Follow-ups owed after client calls (picked); morning calendar briefing on the laptop: rejected, Sam&#x27;s team would only use Heron if it works on client calls; briefing by invitation: rejected, people who have to hand things over by hand won&#x27;t, so it is dead.</code></pre>
+<p>The page is still at <code>inkling</code>, so the lead recorded an override to go on to requirements anyway:</p>
+<pre><code>- **Override:** &quot;If 04-solution-strategy.md is not decided, say so: requirements written against it may be written again.&quot; by @sim-lead on 2026-10-19: Go on—requirements will show us what questions the grill needs to ask anyway.</code></pre></div>
+
+<div class="cl cl-checkpoint"><h3>Checkpoint</h3><p>The strategy page has an <code>Options considered</code> line naming what you picked and each option you rejected with its reason. Its state is still not decided.</p></div>
+
+<details class="fold"><summary>Why this step</summary><p>Giving someone three choices gets better reactions than asking for requirements cold, and the rejected options keep the reason on the page. See <a href="../method/ladder.html#shape">Shape</a>. The override is how you're never blocked: you can go on, and the rule you set aside is named on the page (<a href="../method/certainty.html#overrides-you-are-never-blocked">overrides</a>).</p></details>
+
+<details class="fold"><summary>Stuck?</summary><ul><li><code>vela check --gate shape</code> warns <code>W806</code> for each question still marked assumed. A warning, not a stop: you may go on.</li><li><code>E303</code> means a page says decided with no grill behind it. Set it back to assumption.</li></ul></details>
+<div class="step-nav"><a rel="prev" class="prev" href="#step-5"><span>Back</span> Discover or import</a><a rel="next" class="next-step" href="#step-7"><span>Next</span> Requirements and boundary</a></div></section>
+<section class="step" id="step-7" data-title="Requirements and boundary" data-min="30"><header><p class="meta">Step 7 of 13 &middot; 30 min</p><h2>Requirements and boundary</h2><p class="sum">What the business needs with no app named, then where the apps divide</p></header>
+<p>Two sessions, in order. Requirements says what the business needs, once, naming no app, screen or technology. Boundary then turns a direction into apps: two or three ways to cut it, then one page per app.</p>
+<div class="cl cl-type"><h3>You type</h3><div class="code"><button type="button" class="copy">Copy</button><pre><code>/vela:requirements
+/vela:boundary</code></pre></div></div>
+
+<div class="cl cl-asks"><h3>Claude asks you</h3><p>Requirements takes one requirement at a time, with its recommended answer, and pushes on the edge cases:</p>
+<blockquote>What should happen when a call has one person on it who hasn't opted in? I'd say no summary at all, for anyone. Does that hold?</blockquote>
+<p>Boundary asks you to pick between its cuts, and says what each rules out.</p></div>
+
+<div class="cl cl-see"><h3>What you should see</h3><p>A requirement from the Heron plan. It names no app:</p>
+<pre><code>### CAP-023.FR1 Summarize only fully opted-in calls
+
+- **State:** assumption
+- Heron summarizes a call only when every participant on it has opted in to Heron.
+  - Trace: UNK-093
+- A call with even one participant who hasn&#x27;t opted in gets no summary.</code></pre>
+<p>The boundary cut it to four apps, and the decision keeps the cuts it rejected:</p>
+<pre><code>| Three apps, with the admin view inside the Heron service | The works council&#x27;s view and the reading service would ship and fail together. |
+| Two apps, with consent inside the Heron service | The consent record is lost with the service, and the identity team&#x27;s registration review has no seam. |</code></pre></div>
+
+<div class="cl cl-checkpoint"><h3>Checkpoint</h3><p>There's a capability page with numbered requirements, each with criteria and a trace to what it depends on. There's a page for each app saying what it does and doesn't do. <code>vela status</code> lists the apps at the stage <code>boundaries</code>.</p></div>
+
+<details class="fold"><summary>Why this step</summary><p>Naming apps too early freezes a guess. Requirements come first so the cut can be argued against something. See <a href="../method/ladder.html#requirements">Requirements</a> and <a href="../method/ladder.html#boundary">Boundary</a>. Allocation, the step that gives each requirement an owning app, comes next in a full run: see What's next. The Heron demo plan stopped before it, and <code>vela check</code> says so for each requirement.</p></details>
+
+<details class="fold"><summary>Stuck?</summary><ul><li><code>W505</code>: a requirement is not decided yet and no app has taken it. Real output: <code>Fix: Run /vela:allocate CAP-022, or add a row for CAP-022.FR1 to the app page that delivers it.</code> The Heron plan shows nine of these.</li><li><code>E350</code> means a flow step names a sender or receiver its contract doesn't join.</li><li><code>E103</code> means a page is missing a required frontmatter field.</li></ul></details>
+<div class="step-nav"><a rel="prev" class="prev" href="#step-6"><span>Back</span> Shape</a><a rel="next" class="next-step" href="#step-8"><span>Next</span> Grill a decision</a></div></section>
+<section class="step" id="step-8" data-title="Grill a decision" data-min="15"><header><p class="meta">Step 8 of 13 &middot; 15 min</p><h2>Grill a decision</h2><p class="sum">A grill is the only way something becomes decided</p></header>
+<p>A grill is a working session where vela asks you questions one at a time until a part of the plan is settled. Only a grill can mark something decided, and only after your explicit yes.</p>
+<div class="cl cl-type"><h3>You type</h3><div class="code"><button type="button" class="copy">Copy</button><pre><code>/vela:grill Admin console</code></pre></div>
+<p>Name the thing by its name, as the plan calls it.</p></div>
+
+<div class="cl cl-asks"><h3>Claude asks you</h3><p>Each question comes with a recommended answer and a reason. Claude picks an edge case, not the happy path, and reads back what it would write:</p>
+<blockquote>Record consent: the desktop agent asks for both choices, the calendar and the chosen folder, and keeps each with the time it was given. If saving doesn't answer within two seconds, the agent says "Couldn't save your choice, so nothing was switched on" and asks again at the next start. That's what I'll write as decided. Right?</blockquote>
+<p>Only a plain yes counts. "Looks fine" doesn't.</p></div>
+
+<div class="cl cl-see"><h3>What you should see</h3><p>A decision from the Heron plan. The state is <code>decided</code>, and the page links the grill session that decided it:</p>
+<pre><code>state: decided
+...
+## Decision
+The Admin console is its own app. It shows what the Consent and identity service holds and keeps no consent record of its own.
+...
+- **Decision:** [[2026-10-19-tracer-slice-first-path]]</code></pre></div>
+
+<div class="cl cl-checkpoint"><h3>Checkpoint</h3><p>The item says decided and has a <code>**Decision:**</code> line pointing at a grill session. No open question blocks it.</p></div>
+
+<details class="fold"><summary>Why this step</summary><p>Without a gate, "decided" means whoever wrote it last. Here it means a named person said yes in a session that's on record. See <a href="../method/certainty.html#only-a-grill-decides">how only a grill decides</a> and <a href="../method/claude.html#what-claude-is-never-allowed-to-do">what Claude may never do</a>.</p></details>
+
+<details class="fold"><summary>Stuck?</summary><ul><li><code>E303</code> decided with no grill. Real output: <code>04-solution-strategy.md:6: E303 solution-strategy is decided, but no **Decision:** bullet links a Grill session. Fix: Add &#x27;- **Decision:** [[&lt;grill session&gt;]]&#x27;, or set the state back to assumption.</code></li><li><code>E316</code> decided while an open question blocks it. Answer the question first, or override the rule and say why.</li><li>You can always override. Claude says once what the rule protects, does what you asked and records your reason. It never blocks you.</li></ul></details>
+<div class="step-nav"><a rel="prev" class="prev" href="#step-7"><span>Back</span> Requirements and boundary</a><a rel="next" class="next-step" href="#step-9"><span>Next</span> Releases and epics</a></div></section>
+<section class="step" id="step-9" data-title="Releases and epics" data-min="20"><header><p class="meta">Step 9 of 13 &middot; 20 min</p><h2>Releases and epics</h2><p class="sum">When people first see it, what must hold that day, and each team's work</p></header>
+<p>Releases come first: a date someone outside the team will see, and the requirements, or only some of their checks, that must hold that day. Epics then cut the work for each team, each with a "done when" a tester can check.</p>
+<div class="cl cl-type"><h3>You type</h3><div class="code"><button type="button" class="copy">Copy</button><pre><code>/vela:releases
+/vela:epics</code></pre></div></div>
+
+<div class="cl cl-asks"><h3>Claude asks you</h3><p>Releases asks one question at a time, date first:</p>
+<blockquote>When does anyone outside the team first use this, and who are they?</blockquote>
+<p>Then, requirement by requirement: must be there, can wait, or only part. Epics reads back the checks a tester will use, with a recommended tightening, for example "within two minutes" in place of "as soon as it can be built".</p></div>
+
+<div class="cl cl-see"><h3>What you should see</h3><p>The first Heron release. Some requirements only come in part:</p>
+<pre><code>## Release one: February pilot, Client Delivery London
+- **Target:** 2027-02-02
+- **State:** assumption
+- **Slices:** SLC-005
+
+| Close a follow-up | AC1, AC2, AC3 | AC4 and AC5 in release two, no date yet |</code></pre>
+<p><code>vela releases brief</code> says it back:</p>
+<pre><code>- Release one: February pilot, Client Delivery London: aimed at February 2, 2027, not decided yet; slices on by then: A person gets their first follow-up list; ...
+- Release two: what the pilot leaves for later: with no date yet, early idea; slices on by then: none; ...</code></pre></div>
+
+<div class="cl cl-checkpoint"><h3>Checkpoint</h3><p><code>04b-releases.md</code> names each release with a date or "no date yet", and says which requirements it delivers. Each epic lists its owning team and its "done when" checks.</p></div>
+
+<details class="fold"><summary>Why this step</summary><p>Nothing waits for a release; a release is a promise about a date. Writing it down is how a team learns that a requirement it thought was whole is only half due. See <a href="../method/ladder.html#releases">Releases</a> and <a href="../method/ladder.html#epics">Epics</a>.</p></details>
+
+<details class="fold"><summary>Stuck?</summary><ul><li><code>W343</code> a requirement isn't decided yet and no release delivers it, so nothing says when it ships. Add it to the release that will deliver it, once nothing holds it back.</li><li><code>W347</code> a slice passes through an app that the release delivers no share of, so its journey can't run end to end by that date. The Heron plan has seven of these.</li><li><code>E805</code> a high-severity question is still pending at the epics gate. Answer it, or override with a reason under <code>## Question ledger</code>; the error then prints as <code>W805</code>.</li></ul></details>
+<div class="step-nav"><a rel="prev" class="prev" href="#step-8"><span>Back</span> Grill a decision</a><a rel="next" class="next-step" href="#step-10"><span>Next</span> Open the dashboard</a></div></section>
+<section class="step" id="step-10" data-title="Open the dashboard" data-min="3"><header><p class="meta">Step 10 of 13 &middot; 3 min</p><h2>Open the dashboard</h2><p class="sum">The whole plan on one page you can present from</p></header>
+<p>The dashboard is one offline HTML page drawn from the plan: the map of apps, each journey played step by step, who holds each open question, and where each app stands. It never changes a page.</p>
+<div class="cl cl-type"><h3>You type</h3><div class="code"><button type="button" class="copy">Copy</button><pre><code>/vela:explore</code></pre></div>
+<p>or by hand: <code>vela explore</code></p></div>
+
+<div class="cl cl-asks"><h3>Claude asks you</h3><p>Nothing needed from you. Claude builds the page and opens it in your browser.</p></div>
+
+<div class="cl cl-see"><h3>What you should see</h3><p>The last line of <code>vela explore</code> on the Heron plan:</p>
+<pre><code>vela explore: wrote dashboard.html for INI-001 Heron: 4 apps, 6 contracts, 49 unknowns, 3 epics, 1 flows, as of 2026-10-22.</code></pre>
+<p><img src="../method/dashboard-map.png" alt="The Heron dashboard map: four apps and the contracts between them" loading="lazy"></p></div>
+
+<div class="cl cl-checkpoint"><h3>Checkpoint</h3><p>You have <code>dashboard.html</code> at the plan's root, and clicking an app in the map opens its detail. The top says when the page was built.</p></div>
+
+<details class="fold"><summary>Why this step</summary><p>Under pressure, you need to find a topic and the apps it touches in about two clicks. The dashboard is for a live call; <code>vela view</code> builds the reading copy you email. See <a href="../method/claude.html#the-dashboard-for-finding-things-under-pressure">the dashboard</a>.</p></details>
+
+<details class="fold"><summary>Stuck?</summary><ul><li>The page says at the top when it was built. If it looks old, build it again; an unchanged plan rebuilds to the same bytes.</li><li>The "Ask Claude" box needs the <code>claude</code> command, which <code>vela doctor</code> checks.</li><li><code>vela view --out ~/Desktop/&lt;name&gt;.html</code> builds the reading copy. It works offline and can't run page script.</li></ul></details>
+<div class="step-nav"><a rel="prev" class="prev" href="#step-9"><span>Back</span> Releases and epics</a><a rel="next" class="next-step" href="#step-11"><span>Next</span> Hand off an app</a></div></section>
+<section class="step" id="step-11" data-title="Hand off an app" data-min="10"><header><p class="meta">Step 11 of 13 &middot; 10 min</p><h2>Hand off an app</h2><p class="sum">Give an app to its team lead, with what isn't settled said out loud</p></header>
+<p>When an app is ready for its team, you grill its handoff. It records what the team lead accepts, and what isn't settled yet, so nobody finds out later.</p>
+<div class="cl cl-type"><h3>You type</h3><div class="code"><button type="button" class="copy">Copy</button><pre><code>/vela:grill the Desktop agent&#x27;s handoff
+/vela:close</code></pre></div></div>
+
+<div class="cl cl-asks"><h3>Claude asks you</h3><p>Claude reads back what the team is taking and what stays open, then asks:</p>
+<blockquote>Hand the Desktop agent to its team lead, with these items not decided yet and this question still open. Yes to send it?</blockquote></div>
+
+<div class="cl cl-see"><h3>What you should see</h3><p>The handoff record Heron wrote. It lists what the team accepted:</p>
+<pre><code>- **App:** APP-desktop-agent
+- **Commit:** 8e30fa9
+- **Items:** 7
+| APP-desktop-agent | app | 05-building-blocks/desktop-agent-building-blocks.md | assumption | ec4c4412c80b |
+| CON-021 | consumes | ... | assumption | 8eed90afa9ff |</code></pre>
+<p>Later, <code>vela handoff verify</code> says what moved since:</p>
+<pre><code>vela handoff verify APP-desktop-agent: since Desktop agent was handed off on 2026-10-19 at 8e30fa9, 2 things changed, 2 added and 0 removed.
+changed: app Desktop agent (APP-desktop-agent): its wording changed
+added: epic Setting Heron up in two minutes (EPC-038), ..., draft</code></pre></div>
+
+<div class="cl cl-checkpoint"><h3>Checkpoint</h3><p><code>handoffs/&lt;app&gt;.md</code> exists, the app page says who has it and when, and a "Not settled at handoff" list says what's still open.</p></div>
+
+<details class="fold"><summary>Why this step</summary><p>A team that finds an undecided contract halfway through blames the plan. A team told on day one plans around it. See <a href="../method/joins.html#handoff-challenge-and-answer">handoff, challenge and answer</a>.</p></details>
+
+<details class="fold"><summary>Stuck?</summary><ul><li><code>W386</code> an item in the handoff list isn't decided. Decide it in a grill, or tell the team it isn't settled.</li><li><code>W388</code> the handoff record points at a commit this repository doesn't have. Commit your changes, then <code>vela handoff &lt;app&gt; --replace</code>.</li><li><code>vela handoff verify</code> exits 1 when something the team accepted has changed. That's a signal, not a failure.</li></ul></details>
+<div class="step-nav"><a rel="prev" class="prev" href="#step-10"><span>Back</span> Open the dashboard</a><a rel="next" class="next-step" href="#step-12"><span>Next</span> Write tickets</a></div></section>
+<section class="step" id="step-12" data-title="Write tickets" data-min="15"><header><p class="meta">Step 12 of 13 &middot; 15 min</p><h2>Write tickets</h2><p class="sum">The team lead designs and breaks down the work; vela turns it into tickets</p></header>
+<p>The team lead takes it from here, in three sessions on the app's own branch: a technical design, a breakdown into stories and tasks, and the ticket list. You can run them yourself to see the result.</p>
+<div class="cl cl-type"><h3>You type</h3><div class="code"><button type="button" class="copy">Copy</button><pre><code>/vela:design Desktop agent
+/vela:breakdown
+/vela:tickets</code></pre></div></div>
+
+<div class="cl cl-asks"><h3>Claude asks you</h3><p>Tickets first checks the plan against the plan, then asks:</p>
+<blockquote>I'd write one Markdown file with a section per story. Or a CSV for Jira import. Which one?</blockquote></div>
+
+<div class="cl cl-see"><h3>What you should see</h3><p><code>vela tickets check</code> on the Heron plan:</p>
+<pre><code>Needs fixing: Story S-06 isn&#x27;t linked to an epic&#x27;s acceptance criterion or to a requirement the app owns, so nothing in the plan says when it&#x27;s done
+...
+10 stories, 49 tasks, 3 flagged</code></pre>
+<p>The ticket file it writes:</p>
+<pre><code>## S-01 A person sees a first follow-up list
+- Slice: tracer, SLC-005 A person gets their first follow-up list
+- Traces to: CAP-022.FR1@APP-desktop-agent, CON-021, CON-022, CON-025, EPC-036.AC1, ...
+- Release fit: cannot tell for 2027-02-02.</code></pre></div>
+
+<div class="cl cl-checkpoint"><h3>Checkpoint</h3><p><code>docs/work/tickets.md</code> lists every story with its criteria, size and what it waits on, and each one traces to a goal.</p></div>
+
+<details class="fold"><summary>Why this step</summary><p>The plan is the source of truth and tickets are copies. See <a href="../method/ladder.html#tickets">breakdown and tickets</a> and <a href="../method/trust.html#every-story-traces-back">how every story traces back</a>.</p></details>
+
+<details class="fold"><summary>Stuck?</summary><ul><li>A plan that is still moving gets no ticket list. Tickets stops and offers <code>/vela:breakdown</code>.</li><li><code>vela tickets check</code> exits 1 when it flags something. That's a result, not a failure.</li><li><code>vela export jira-csv --out epics.csv</code> writes one row per epic for Jira's CSV import. Nothing is read back.</li></ul></details>
+<div class="step-nav"><a rel="prev" class="prev" href="#step-11"><span>Back</span> Hand off an app</a><a rel="next" class="next-step" href="#step-13"><span>Next</span> What&#x27;s next</a></div></section>
+<section class="step" id="step-13" data-title="What&#x27;s next" data-min="2"><header><p class="meta">Step 13 of 13 &middot; 2 min</p><h2>What's next</h2><p class="sum">Where to go from here</p></header>
+<p>You've followed one sentence to tickets. A real plan keeps going: new questions arrive, answers change pages, and teams challenge boundaries.</p>
+<ul><li><strong>Ask the plan:</strong> <code>/vela:ask</code> answers from the pages alone and says "Not recorded" when they're silent. <code>/vela:find</code> points to where something is.</li><li><strong>Fill the gap this demo left:</strong> <code>/vela:allocate</code> gives each requirement an owning app. <code>vela next</code> suggests it first on the Heron plan.</li><li><strong>Keep it honest:</strong> <code>vela check</code> before each pull request, <code>vela health</code> for stale pages, <code>vela upgrade</code> after a <code>W717</code> warning.</li><li><strong>Read why it works this way:</strong> <a href="../method/index.html">How vela thinks</a> and the <a href="../../docs/GUIDE.html" data-repo="docs/GUIDE.html">user guide</a>.</li></ul>
+<div class="cl cl-see"><h3>What you should see</h3><p><code>vela next</code> on the Heron copy still says:</p>
+<pre><code>vela next: for the whole plan: decide which app owns List my open follow-ups (CAP-022.FR1), with /vela:allocate. It is not decided yet and no app has taken it, so no team owns it yet.</code></pre></div>
+
+<div class="cl cl-checkpoint"><h3>Checkpoint</h3><p>You can name the next session you'd run on your own plan, and why <code>vela next</code> suggests it.</p></div>
+
+<details class="fold"><summary>Stuck?</summary><ul><li><code>W717</code> means the plan's rule book differs from the installed vela's. Run <code>vela upgrade</code>, check <code>git diff CONVENTIONS.md</code> and commit.</li><li>A challenge to a boundary: a team lead runs <code>/vela:challenge</code>. It opens a pull request that stays red on purpose until you answer.</li></ul></details>
+<div class="step-nav"><a rel="prev" class="prev" href="#step-12"><span>Back</span> Write tickets</a><a class="next-step" href="../method/index.html"><span>Finish</span> How vela thinks</a></div></section>
+</main>
+<footer class="foot"><p><a class="home" href="../index.html">&larr; Back to the Vela home page</a> &middot; <a href="../method/index.html">How vela thinks</a></p></footer>
+</body>
+</html>
