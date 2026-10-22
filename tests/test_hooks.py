@@ -263,3 +263,16 @@ def test_post_edit_reports_a_broken_page_to_the_model(tmp_path):
     page.write_text(PAGE, encoding="utf-8")
     assert hook("post-edit", {"hook_event_name": "PostToolUse", "tool_name": "Edit", "cwd": str(folder),
                               "tool_input": {"file_path": str(page)}}) == {}
+
+
+def test_the_toolkit_repo_marker_turns_the_bash_hook_off_there(tmp_path):
+    """vela's own repo carries .vela-toolkit at its root: its template and example plans are fixtures its developers
+    commit, so hand staging there isn't denied. Any other repo with plans keeps the guard."""
+    import subprocess
+    repo = tmp_path / "repo"
+    (repo / "examples").mkdir(parents=True)
+    plan = vault(repo / "examples")
+    subprocess.run(["git", "init", "-q", str(repo)], check=True)
+    assert decision(bash(plan, "git add -A")) == "deny"
+    (repo / ".vela-toolkit").write_text("toolkit\n", encoding="utf-8")
+    assert decision(bash(plan, "git add -A")) is None

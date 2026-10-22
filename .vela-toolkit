@@ -1,0 +1,2 @@
+This is vela's own source repo. Its plugin/template/ and examples/ plans are fixtures, so vela's Bash hook
+doesn't guard staging or pushes here (plugin/lib/vela/commands/hook.py, toolkit_repo). Never add this file to a plan.
