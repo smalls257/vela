@@ -247,6 +247,10 @@ def sections_of(lines):
     return sections
 
 
+THEME_HEAD = '<script>(function(){try{var t=localStorage.getItem("vela-theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){console.warn("vela: theme choice not read",e)}})();</script>'
+THEME_BUTTON = '<button type="button" id="theme-toggle" class="theme-toggle"></button>\n<script>(function(){var b=document.getElementById("theme-toggle"),r=document.documentElement;function cur(){return r.getAttribute("data-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light")}function show(){var n=cur()==="dark"?"light":"dark";b.textContent=n==="light"?"Light":"Dark";b.setAttribute("aria-label","Switch to "+n+" theme")}b.addEventListener("click",function(){var n=cur()==="dark"?"light":"dark";r.setAttribute("data-theme",n);try{localStorage.setItem("vela-theme",n)}catch(e){console.warn("vela: theme choice not saved",e)}show()});show()})();</script>'
+
+
 def chrome(title, body, depth_note, nav_prev, nav_next, position):
     prev_link = f'<a rel="prev" href="{nav_prev[0]}.html"><span>Before</span> {html.escape(nav_prev[1])}</a>' if nav_prev else "<span></span>"
     next_link = f'<a rel="next" href="{nav_next[0]}.html"><span>Next</span> {html.escape(nav_next[1])}</a>' if nav_next else "<span></span>"
@@ -258,11 +262,12 @@ def chrome(title, body, depth_note, nav_prev, nav_next, position):
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{html.escape(title)}</title>
 <link rel="stylesheet" href="method.css">
+{THEME_HEAD}
 <script src="method.js" defer></script>
 </head>
 <body>
 <a class="skip" href="#main">Skip to the page</a>
-<header class="top"><a class="brand" href="../index.html">Vela</a><a href="index.html">How vela thinks</a>{where}</header>
+<header class="top"><a class="brand" href="../index.html">Vela</a><a href="index.html">How vela thinks</a>{where}{THEME_BUTTON}</header>
 <main id="main">
 {body}
 </main>

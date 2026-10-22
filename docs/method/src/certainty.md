@@ -54,7 +54,7 @@ Stated in [Certainty and sources][c-cert]. Enforced by E303, E317 and W390 for a
 
 ## A fact needs a source
 
-Without sources, plans fill up with "everyone knows" statements nobody can check. The Library records each source's kind, owner, date and where it lives, and shows "newer version out" when the owner has been told of one.
+Without sources, plans fill up with "everyone knows" statements nobody can check. The Library records each source's kind, owner, date and where it lives, and shows "newer version out" when the source's owner has been told of one.
 
 Two companion rules. **Disputes are unknowns:** when two sources disagree, vela writes one question naming both and doesn't pick. The demo plan's tenant note says staff can't install software, while the CIO brief says they install the helper themselves. **State a value once:** the page that owns a number states it, and others link to it, because copies drift and links don't.
 
@@ -91,7 +91,7 @@ Stated in [Questions and the ledger][c-q] and the Unknowns section of [MODES.md]
 
 A rule that can't be broken pushes people to work around the tool, which is worse than breaking the rule in the open. So the person using vela may override any rule. Claude says once what the rule protects, does what they asked, and writes an `**Override:**` line on the item: the rule, their handle, the date, an end date where the rule stays true until someone acts, and the reason in their words. `vela check` turns the matching error into a warning that quotes it, and an expired override is an error again (E398).
 
-If the lead decides for someone absent, the page says `**Decided by:** @lead, on behalf of @owner` until the owner confirms or challenges. The demo plan's Desktop agent was handed over before its contracts were decided, because "the team can't sit idle while the contracts are decided." Both lines are on the page.
+If the lead decides for someone absent, the page says `**Decided by:** @lead, on behalf of @owner` until that person confirms or challenges. The demo plan's Desktop agent was handed over before its contracts were decided, because "the team can't sit idle while the contracts are decided." Both lines are on the page.
 
 ::: fold Where this is stated and enforced
 Stated in [Overrides][c-over] and the "user can override" rule in [START.md][start]. Enforced by E321, E322, E398, W323, W324 ([override.py][override-py]). Pinned by [`test_override.py`][t-override] and [`test_override_until.py`][t-override_until].

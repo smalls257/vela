@@ -114,7 +114,7 @@ Stated in the repository's own README and design notes. We haven't added to the 
 - **No finished real initiative is on record.** The demo plan comes from the simulator. The README's kill rule is the honest test: "if it isn't faster than plain Markdown after five sessions, cut back to the conventions, `check` and the viewer."
 - **No comparison with plain Claude Code** is recorded in the design notes yet.
 - **Not yet run against a real GitHub repo:** the weekly health issue, close's owner-only harvest, answering a challenge, and close's merge of a moved `main`. "Each is tested on local git repos only."
-- **Vault mode for the owner's own grills** hasn't been applied to anyone's `~/.claude` yet.
+- **Vault mode for the lead's own grills** hasn't been applied to anyone's `~/.claude` yet.
 - **Cowork:** whether plugin hooks run, and whether only the working folder keeps files between sessions. `/vela:where` answers both on a given machine.
 - **Open design questions:** how many questions to raise before they bury the lead, what "complete" should mean when a design has accepted gaps, and whether the tool should draft the pages or mainly interview you.
 - **The question catalog is small** (29 entries), and finds only what has been written into it.

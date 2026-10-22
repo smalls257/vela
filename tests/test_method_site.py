@@ -68,3 +68,15 @@ def test_a_page_never_loads_anything_from_the_network(built):
     for name, text in built.items():
         assert not re.search(r'(?:src|href)="https?://', text.replace('<a href="https://', "")), name
     assert "http" not in (SITE / "method.css").read_text(encoding="utf-8").replace("https://github.com", "")
+
+
+def test_every_page_carries_the_theme_toggle_and_the_shared_storage_key(built):
+    """The choice must carry between the landing page and the method pages, so one key and one button everywhere."""
+    pages = dict(built)
+    pages["landing"] = (DOCS / "site" / "index.html").read_text(encoding="utf-8")
+    for name, text in pages.items():
+        assert 'id="theme-toggle"' in text, name
+        assert text.count('"vela-theme"') == 2, name  # read before first paint, written on click
+        assert text.index("localStorage.getItem") < text.index("<body"), f"{name}: the saved theme must apply before first paint"
+        assert "Switch to " in text, name
+    assert render_method.THEME_HEAD in pages["landing"] and render_method.THEME_BUTTON in pages["landing"]

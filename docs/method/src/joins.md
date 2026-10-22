@@ -104,7 +104,7 @@ Stated in [Slices][c-slice], [Releases][c-rel] and the explainer [`tracer-bullet
 Neither reads the other's whole world. Access decides role: an **owner** works in the vault's git clone, and a **reader** works in a published copy with no git, whose decisions stay pending until an owner clears them. Vela never sends anything; people move the files.
 
 ::: fold Where this is stated and enforced
-Stated in [Roles and published copies][c-roles], [Pending approval][c-pend] and [Handoff][c-hand]. Enforced by `vela role`, which reads access and never a title. Pinned by [`test_roles.py`][t-roles] and [`test_pending.py`][t-pending]. The quotation is from the owner's philosophy notes (not in the repository).
+Stated in [Roles and published copies][c-roles], [Pending approval][c-pend] and [Handoff][c-hand]. Enforced by `vela role`, which reads access and never a title. Pinned by [`test_roles.py`][t-roles] and [`test_pending.py`][t-pending].
 :::
 
 ## Handoff, challenge and answer
@@ -135,10 +135,10 @@ The lead answers on the challenge's own branch, either by deciding in a grill or
 ::: end step
 ::: end steps
 
-An owner whose item was decided on their behalf has the same two answers: a `Confirmed by:` line, or a challenge. The dashboard's "Needs you" list shows each role up to five things to act on. Frequent stepping in by the solution lead is, in the owner's reasoning, "a capacity problem to escalate, not absorb."
+An owner whose item was decided on their behalf has the same two answers: a `Confirmed by:` line, or a challenge. The dashboard's "Needs you" list shows each role up to five things to act on. Vela's design choice is that frequent stepping in by the solution lead is a capacity problem to escalate, not absorb.
 
 ::: fold Where this is stated and enforced
 Stated in [the challenge skill][s-challenge], [ANSWER-A-CHALLENGE.md][answer], [Handoff][c-hand] and [Overrides][c-over]. Enforced by `vela handoff verify`, E316, E322 and W324. Pinned by [`test_handoff.py`][t-handoff], [`test_challenge.py`][t-challenge], [`test_answer.py`][t-answer], [`test_override.py`][t-override], [`test_needsyou.py`][t-needsyou].
 
-The plan records decisions and their reasons, not runtime state: "we switched the slice on, here's who and why" belongs in it, "the flag is on right now" belongs to the flag tool (from the owner's philosophy notes).
+The plan records decisions and their reasons, not runtime state: "we switched the slice on, here's who and why" belongs in it, "the flag is on right now" belongs to the flag tool.
 :::

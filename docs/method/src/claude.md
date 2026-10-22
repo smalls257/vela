@@ -115,8 +115,8 @@ A plan is read by people who weren't in the sessions: a new team lead, an execut
 > We're assuming the first release is a pilot for the 60 people on Sam Hadley's team, and that it succeeds if they miss fewer follow-ups they owe after client calls. That isn't decided. It holds only if Legal says clients can opt in and a call summary isn't a client record, and a grill will test it once Legal answers.
 :::
 
-::: fold Drafted from examples, and the owner's own voice wins
-Rules alone drift, so pages are drafted from examples (`vela voice examples`). The public seed examples hold until the owner adds two of their own for a page type. After that the owner's examples win, and `voice/VOICE.md`, in the owner's own words, wins over everything. The owner answers for the plan; if the pages don't sound like them, they won't trust or fix them.
+::: fold Drafted from examples, and the lead's own voice wins
+Rules alone drift, so pages are drafted from examples (`vela voice examples`). The public seed examples hold until the lead adds two of their own for a page type. After that the lead's examples win, and `voice/VOICE.md`, in the lead's own words, wins over everything. The lead answers for the plan; if the pages don't sound like them, they won't trust or fix them.
 :::
 
 ::: fold What a rewrite is never allowed to lose

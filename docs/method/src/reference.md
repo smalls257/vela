@@ -26,7 +26,7 @@ For the commands, see the [README](../../../README.md#the-vela-cli). For install
 
 ## Sources
 
-Every outside claim has a number. They come from two places only: the owner's research notes (kept outside the repository) and works the repository itself cites. Where the notes record that a source couldn't be opened, that is stated.
+Every outside claim has a number. They come from works the repository itself cites. Where a source couldn't be opened, that is stated.
 
 1. Cowan, N. (2001). "The magical number 4 in short-term memory: A reconsideration of mental storage capacity." *Behavioral and Brain Sciences*. <https://www.cambridge.org/core/journals/behavioral-and-brain-sciences/article/magical-number-4-in-shortterm-memory-a-reconsideration-of-mental-storage-capacity/44023F1147D4A1D44BDC0AD226838496>. Cited in [`CONVENTIONS.md`](../../../plugin/template/CONVENTIONS.md#pages) ("A page fits in a head"). Used for: people hold only a handful of things in mind at once.
 2. Miller, G. A. (1956). "The magical number seven, plus or minus two." *Psychological Review*. <https://psychclassics.yorku.ca/Miller/>. Cited in the same place. Used for the "four to seven" range.
