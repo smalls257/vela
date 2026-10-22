@@ -2,6 +2,7 @@
 name: voice-reviewer
 description: Fresh-context reviewer for initiative-vault prose. Compares each drafted paragraph with the vault's active house-voice examples of its voice type and flags the ones that do not read like them. Close dispatches it after drafting. It reads and reports; it never writes or rewrites.
 tools: Read, Grep, Glob
+model: sonnet
 ---
 
 # Voice reviewer

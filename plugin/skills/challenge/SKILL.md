@@ -14,7 +14,7 @@ Vela is `sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela` (`START.md`, "Where vela run
 
 Run `vela role`. In a reader copy (a published copy with no `.git`), say "Only the owner can record a challenge here. Write your disagreement as a proposal (/vela:propose) and send it to <the owner named in `.vela/published.json`>." Write nothing and open no session.
 
-Run only the steps of `${CLAUDE_PLUGIN_ROOT}/references/START.md` that show the state of the clone, find open sessions, open the record and read how to talk (its steps 0, 1, 2 and 5): `vela session start --mode challenge --topic <ID> --for-lead` does the first three, and you read step 6 and the Challenge row of `${CLAUDE_PLUGIN_ROOT}/references/MODES.md`. The session is `<date>-challenge-<id-lowercased>` (`2026-11-21-challenge-con-001`), titled `Challenge: <ID>`; the answer path finds the PR by that title. Relay its lines as START's "Relaying a command" says; on exit 3, ask what it asks and run it again with `--resume <id>`, `--new` or `--title "<name>"`.
+Run only the steps of `${CLAUDE_PLUGIN_ROOT}/references/START.md` that show the state of the clone, find open sessions, open the record and read how to talk (its steps 0, 1, 2 and 5): `vela session start --mode challenge --topic <ID> --for-lead` does steps 1, 2 and 5, and you read step 0 and the Challenge row of `${CLAUDE_PLUGIN_ROOT}/references/MODES.md`. The session is `<date>-challenge-<id-lowercased>` (`2026-11-21-challenge-con-001`), titled `Challenge: <ID>`; the answer path finds the PR by that title. Relay its lines as START's "Relaying a command" says; on exit 3, ask what it asks and run it again with `--resume <id>`, `--new` or `--title "<name>"`.
 
 ## 2. Find the challenged item
 
@@ -73,7 +73,7 @@ This skill files its own record: `vela close finish` and `vela close push` stop 
 
 The reviewer is the solution lead: the `owner:` of `01-goals.md`. Strip the leading `@`, pass `@org/team` as `org/team`, and drop the user's own handle (`vela whoami`). If nobody remains, leave out `--reviewer`.
 
-1. Ask before anything leaves the machine: "I'll send this challenge for review to <the solution lead's name>. OK?" Capture the answer with `vela record add --origin <handle> --tag thought --mark "drop: the yes to send this for review" "<their words>"`. No yes: stop, with the record open.
+1. Ask before anything leaves the machine: "I'll send this challenge for review to <the solution lead's name>. OK?" Capture the answer with `vela record add --origin @<handle from vela whoami> --tag decision --mark "drop: the yes to send this for review" "<their words>"`. No yes: stop, with the record open.
 2. Set `summary:` to one line the team lead accepts and `status: closed`, then run `vela close stage --session <id> --close --paths-from-render`. It commits the record and the changed pages by exact path; tell the team lead about any file it names as left out.
    When the plan shares its repository with other plans (`vela plans` lists more than one), the session's branch is `session/<plan>/<id>`, not `session/<id>`: wherever `session/<id>` appears below, use the `branch` in `.vela/session.json`, and put `[<plan>] ` in front of the PR title (the plan is the last folder of the path `vela plans --here` prints).
 3. Run `git push -u origin session/<id>`. If it fails, say in one plain sentence that the challenge didn't go up and why, without pasting the push's own message, give the commands for the user to run, and stop.

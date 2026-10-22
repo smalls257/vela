@@ -100,4 +100,4 @@ The agenda is empty or the user stops. When the lead says they are done, close a
 ## Never
 
 - Never batch decisions to the end: each is filed as its branch closes.
-- Never write `fact` from what someone said in the grill without a source; `decide` holds every other rule that used to be listed here.
+- Never write `fact` from what someone said in the grill without a source.
