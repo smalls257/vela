@@ -229,12 +229,25 @@ def template_opening_findings(page, known):
 
 # ---------------------------------------------------------------------------------------------------- W369
 
+QUOTED = re.compile(r"\"[^\"\n]*\"|“[^”\n]*”")  # a direct quote keeps its speaker's words, abbreviations included
+
+
+def _link_words(match):
+    """What a reader sees of a link: its label ("[[prd|product requirements doc]]" reads "product requirements doc"),
+    else its target's last part. An expansion written as a link's label still spells the abbreviation out."""
+    inner = match.group(0)[2:-2].replace("\\|", "|")
+    target, _, label = inner.partition("|")
+    return " " + (label or target.split("#")[-1].split("/")[-1]) + " "
+
+
 def _abbreviation_text(page):
-    """(line number, prose with links, code and IDs taken out) for each prose line a reader meets, outside History."""
+    """(line number, prose a reader meets, with code, URLs, IDs and direct quotes taken out and links read as their
+    labels) for each prose line outside History and block quotes."""
     for n, raw, _, history in _regions(page):
-        if history or not _is_prose(raw):
+        if history or not _is_prose(raw) or raw.lstrip().startswith(">"):
             continue
-        plain = URL.sub(" ", CODE_SPAN.sub(" ", WIKILINK.sub(" ", raw)))
+        text = MD_LINK.sub(lambda m: " " + m.group(0)[1:m.group(0).index("](")] + " ", WIKILINK.sub(_link_words, raw))
+        plain = QUOTED.sub(" ", URL.sub(" ", CODE_SPAN.sub(" ", text)))
         yield n, BARE_VAULT_ID.sub(" ", plain)
 
 

@@ -211,6 +211,11 @@ def test_an_abbreviation_not_spelled_out_warns_once_per_page(mini):
     "The CISO reads the pack. The Chief Information Security Officer (CISO) signs it.",
     "The till is an IT matter, and the PC in the shop runs it.",
     "The lines run on AT&T, and the R&D team signs off the P&L.",  # a name joined by & is not an abbreviation
+    "Read the [[01-goals|product requirements doc]] (PRD) first.",  # an expansion written as a link's label
+    "Read the [product requirements doc](https://example.com/prd) (PRD) first.",
+    'The lead said "the PRD is late" on the call.',  # a direct quote keeps the speaker's words
+    "The lead said “the PRD is late” on the call.",
+    "> The PRD is late, and the CISO knows.",
 ])
 def test_an_abbreviation_spelled_out_or_understood_does_not_warn(mini, text):
     write_page(mini, 1, f"## Notes\n\n{text}\n")
