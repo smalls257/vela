@@ -1,8 +1,9 @@
 name: tests
 
+# Manual only: the owner turned off runs on every push and pull request on 2026-10-21 to save Actions usage.
+# Start it from the Actions tab (Run workflow) when you want it.
 on:
-  push:
-  pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read

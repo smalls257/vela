@@ -8,7 +8,9 @@
 # stdin: <local-ref> <local-sha> <remote-ref> <remote-sha> per ref (git-scm.com/docs/githooks#_pre_push)
 set -uo pipefail
 zero=0000000000000000000000000000000000000000
-mode="${GATE_MODE:-fast}"
+# Static by default (rules, sync, vault checks; no pytest): the owner turned the long test runs off on 2026-10-21
+# to save time. GATE_MODE=fast (or full) brings the tests back for one push.
+mode="${GATE_MODE:-static}"
 passed_file="$(git rev-parse --git-common-dir)/gate-passed"
 touch "$passed_file"
 status=0
