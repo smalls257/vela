@@ -12,7 +12,12 @@ vendored copy in the vault, and last the path a reader workspace recorded when i
 both variables empty and the skill loaded from /mnt/skills with nothing beside it, while the plugin itself sat in
 ~/.claude/plugins/synced/<id>/vela/, the folder the Claude Code docs name for plugins synced from claude.ai; a
 marketplace install sits in ~/.claude/plugins/cache/<marketplace>/vela/<version>/. The caller finds those copies
-(INSTALLED_GLOBS, newest first) and passes them in, so this module stays pure. START.md lists the same order.
+(INSTALLED_GLOBS, newest first) and passes them in, so this module stays pure. `/vela:where` lists the same order;
+START.md keeps one line pointing there (the six-step ladder it once held cost every session ~250 words).
+
+Why skills call `sh <plugin root>/scripts/run-vela` and not a shell variable holding the command: `P="sh .../run-vela";
+$P check` exits 127 in zsh, which doesn't split `$P` into words (44 retries in two runs, diagnosis 6C), and shell state may
+not carry from one command to the next. `run-vela` picks whichever of `python3`, `python` or `py` the machine has.
 """
 import posixpath
 from dataclasses import dataclass
