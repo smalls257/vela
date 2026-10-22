@@ -3,7 +3,7 @@ title: How vela thinks
 lede: Vela turns one vague sentence into tickets a team can build from, and keeps the reason for every step along the way. It does that with a ladder of working sessions, a certainty label on every item, and checks that fail in the open.
 ---
 
-This site explains why each step is there, and says plainly what hasn't been proven yet. If you're deciding whether to trust vela, start with number 6. If you're learning to use it, start with 2, then 7.
+This site explains why each step is there, and says plainly what hasn't been proven yet. If you're deciding whether to trust vela, start with number 6. If you're learning to use it, start with 2, then 7. To try it on an example, step through [Plan your first initiative](../codelab/index.html).
 
 ::: entry problem.md | The problem | Why plans go wrong between an idea and the first ticket.
 ::: entry ladder.md | From idea to tickets | Twelve steps in three stretches. Click a step to see what it produces and why it's there.
