@@ -149,3 +149,13 @@ A plan that is its own repo works exactly as before.
 Vela is open source under the [MIT License](LICENSE): use it, change it, ship it, commercially or not. A mention of
 where it came from (github.com/smalls257/vela) is appreciated but not required beyond keeping the license notice.
 The libraries it bundles keep their own licenses; `plugin/lib/vela/assets/NOTICE.md` and `plugin/lib/yaml/` list them.
+
+Two kinds of file in the repo are not MIT:
+
+- **Bundled libraries** keep their own licenses, as above.
+- **The voice examples** in `plugin/template/voice/examples/` (and their copy in `examples/unified-booking/voice/examples/`)
+  are word-for-word excerpts from *The Architecture of Open Source Applications*, Volume 1, under
+  [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). Each file names its author, chapter, source link and license,
+  and says it is unchanged. Keep that attribution if you copy them. `vela new` copies them into a new plan as starting
+  examples; your own examples (`voice/local/`) and the writing they learn from (`voice/corpus/`) are git-ignored and never
+  committed.
