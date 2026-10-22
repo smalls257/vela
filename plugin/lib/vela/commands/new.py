@@ -267,13 +267,10 @@ def started(folder, args, title, handle, count, commit, moved, warnings, scope="
     if scope:
         lines.append(say.Line(
             f"This plan shares its repository with others. Its sessions are on session/{scope}/..., and its pull requests "
-            f"are titled [{scope}]. GitHub runs workflows only from the repository's own .github/workflows/: copy this "
-            "plan's .github/workflows/ files there once; they check every plan whose folder changed.",
-            plain="This plan shares its repository with other plans, so its sessions and pull requests carry its name. "
-                  "For the check to run on GitHub, the workflow files in the plan's .github folder need copying to the "
-                  "repository's top level, once; it then checks every plan."))
-    lines.append(say.Line("Left for a person: a GitHub repository, the required check, Obsidian (see README.md).",
-                          plain="What's left for you is in the plan's README: GitHub, the required check and Obsidian."))
+            f"are titled [{scope}].",
+            plain="This plan shares its repository with other plans, so its sessions and pull requests carry its name."))
+    lines.append(say.Line("Left for a person: a GitHub repository, Obsidian (see README.md).",
+                          plain="What's left for you is in the plan's README: GitHub and Obsidian."))
     return say.Result(NAME, lines=lines, wrote=[], data={
         "folder": str(folder), "initiative": args.initiative, "title": title, "handle": handle, "commit": commit,
         "files": count, "moved_to_inbox": moved, "check": {"errors": 0, "warnings": warnings}})

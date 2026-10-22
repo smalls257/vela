@@ -20,9 +20,8 @@ Prerequisites: Python 3.11 or later, and PyYAML (`python3 -m pip install pyyaml`
 5. Rewrite `CLAUDE.md` in your own words and delete its first line.
 6. Run `python3 .claude/skills/vela/bin/vela check`. It should report 0 errors.
 7. Start every Claude Code session with `bin/claude-vela` (or `sh bin/claude-vela`). The copied plugin only loads through its `--plugin-dir` flag, so a plain `claude` will not find `/vela:dump` or `/vela:close`.
-8. On GitHub, make the `vela-check` job a required status check on `main`. The `vela weekly` workflow needs Issues enabled on the repo and no other setup: every Monday it posts the vault's health to one issue titled "Vault health".
-9. To read the vault without Obsidian, build the offline viewer to a path outside the vault: `python3 .claude/skills/vela/bin/vela view --out ~/Desktop/<name>.html`. It is one HTML file. Its header shows the commit, whether the vault had uncommitted changes, and the error and warning counts from `vela check` at build time.
-10. Open the folder in Obsidian if you use it. `.obsidian/app.json` is committed; workspace files are ignored.
+8. To read the vault without Obsidian, build the offline viewer to a path outside the vault: `python3 .claude/skills/vela/bin/vela view --out ~/Desktop/<name>.html`. It is one HTML file. Its header shows the commit, whether the vault had uncommitted changes, and the error and warning counts from `vela check` at build time.
+9. Open the folder in Obsidian if you use it. `.obsidian/app.json` is committed; workspace files are ignored.
 
 ## How the vault is laid out
 

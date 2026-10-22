@@ -227,13 +227,6 @@ def behind_ahead(root, upstream_ref, ref="HEAD"):
     return int(left), int(right)
 
 
-def changed_since(root, ref):
-    """Repository-relative paths changed between `ref` and HEAD, compared from where HEAD left `ref` (three dots), for
-    the plans a pull request or a push touched. GitUnavailable with git's words when git fails."""
-    out = git_out(root, "diff", "--name-only", "-z", f"{ref}...HEAD", "--", ":/")
-    return [path for path in out.split("\0") if path]
-
-
 def current_branch(root):
     """The checked-out branch's name, or "" when HEAD is detached."""
     code, out, _ = run_git(root, "symbolic-ref", "--quiet", "--short", "HEAD")

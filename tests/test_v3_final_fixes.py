@@ -283,4 +283,4 @@ def test_start_here_tomorrow_agrees_with_v3():
 def test_the_template_checklist_is_what_vela_new_leaves_a_person():
     checklist = (REPO / "plugin" / "template" / "README.md").read_text(encoding="utf-8").split("## Setup checklist", 1)[1]
     steps = [l for l in checklist.split("\n## ", 1)[0].splitlines() if l[:1].isdigit()]
-    assert len(steps) == 4 and "required status check" in steps[1] and "Obsidian" in steps[3]
+    assert len(steps) == 3 and "required status check" not in " ".join(steps) and "Obsidian" in steps[2]

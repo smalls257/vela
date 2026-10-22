@@ -36,16 +36,16 @@ def test_readme_explains_voice_seed_review_harvest_and_challenge():
     assert "answer session on the challenge's branch" in readme
 
 
-def test_readme_is_honest_about_the_weekly_workflow_and_names_generated_diagrams():
+def test_readme_names_generated_diagrams_and_no_github_automation():
     readme = read("README.md")
-    assert '"Vault health"' in readme and "Issues enabled" in readme and "not been tested live" in readme
+    assert "vela-weekly" not in readme and "vela-check.yml" not in readme and "Issues enabled" not in readme
     assert "generated diagrams" in readme and "`vela render`" in readme
 
 
 def test_readme_checklist_count_matches_the_template_checklist():
     checklist = read("plugin", "template", "README.md").split("## Setup checklist", 1)[1].split("\n## ", 1)[0]
     steps = re.findall(r"(?m)^(\d+)\. ", checklist)
-    assert len(steps) == 4  # what vela new leaves a person; the README names no step count of its own
+    assert len(steps) == 3  # what vela new leaves a person; the README names no step count of its own
     assert "steps 1 to 12" not in read("README.md")
 
 
@@ -120,7 +120,7 @@ def test_the_bumped_manifest_validates():
 
 def test_readme_names_what_has_not_run_against_real_github():
     line = [l for l in read("README.md").splitlines() if l.startswith("- **Not yet run against a real GitHub repo:**")][0]
-    for piece in ("weekly issue", "harvest", "answering a challenge", "merge of a moved `main`"):
+    for piece in ("harvest", "answering a challenge", "merge of a moved `main`"):
         assert piece in line, piece
 
 

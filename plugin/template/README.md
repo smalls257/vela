@@ -13,12 +13,13 @@ Prerequisites: Python 3.9 or later, which every Mac already has. Nothing to pip 
 
 ## Setup checklist
 
-`vela new` made this folder from the installed plugin, ran `vela check` with no errors and saved the first commit. There is no copy of the plugin to keep, and no special way to start Claude Code: the plugin you installed from the marketplace loads as usual. Four steps are left for a person.
+`vela new` made this folder from the installed plugin, ran `vela check` with no errors and saved the first commit. There is no copy of the plugin to keep, and no special way to start Claude Code: the plugin you installed from the marketplace loads as usual. Three steps are left for a person.
 
 1. Put the plan on GitHub. Make an empty repository there, then `git remote add origin <its URL>` and `git push -u origin main`.
-2. On GitHub, make the vault check (the `vela-check` job) a required status check on `main`. The weekly health report (the `vela weekly` workflow) needs Issues enabled on the repo and nothing else: every Monday it posts the plan's health to one issue titled "Vault health".
-3. Ask Claude to run `vela doctor` once in this folder. If the commit check that keeps the inbox and your private voice files out of a commit isn't switched on, it prints the one command that does it.
-4. Rewrite `CLAUDE.md` in your own words and delete its first line. Open the folder in Obsidian if you use it; `.obsidian/app.json` is committed, and workspace files are ignored.
+2. Ask Claude to run `vela doctor` once in this folder. If the commit check that keeps the inbox and your private voice files out of a commit isn't switched on, it prints the one command that does it.
+3. Rewrite `CLAUDE.md` in your own words and delete its first line. Open the folder in Obsidian if you use it; `.obsidian/app.json` is committed, and workspace files are ignored.
+
+No checks run on GitHub for you. Before a pull request, run `vela check`; to see what has gone stale, run `vela health`.
 
 To read the plan without Obsidian, ask Claude to run `vela view --out ~/Desktop/<name>.html` builds every page into one HTML file to send or print. Its header says when it was built, whether there were changes not yet committed, and how many problems `vela check` found. For a live call, open the dashboard instead (`vela explore`).
 

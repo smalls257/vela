@@ -131,7 +131,7 @@ What stays apart, and why it matters when two plans have work in flight:
 - **A session start moves the whole repo's branch,** so it asks first when files outside the plan have unsaved changes, or when the repo is on another plan's session or on a branch of yours. Switch back to `main` and it goes ahead. `close stage` and `close push` likewise refuse once the repo has left the session's branch.
 - **`main` is shared.** A session starts from `main` brought up to the shared copy and `close sync-main` merges it in, both as a normal pull. Neither rewrites another plan's files beyond what the merge brings in; the other plan's uncommitted files do not stop either one.
 - **Hooks follow the plan.** The hooks walk up from the edited file or the command's folder to the nearest `.vela.yaml`, stopping at the repo's root, so editing `projects/heron/02-constraints.md` from the repo's root is guarded by heron's rules. A folder with no plan above it, such as `notes/`, is not guarded.
-- **CI and the pre-commit hook are repo-wide.** GitHub runs only the repo's own `.github/workflows/`, so copy one plan's `vela-check.yml` and `vela-weekly.yml` there once. The check job runs `vela check` and the generated-block test for each plan whose folder changed (`vela plans --changed-since <ref> --paths` is the list), and the weekly job posts one "Vault health: projects/heron" issue per plan. Point git at one plan's `.githooks` folder (`vela doctor` prints the line); it judges every staged file by the plan that holds it.
+- **The pre-commit hook is repo-wide.** Point git at one plan's `.githooks` folder (`vela doctor` prints the line); it judges every staged file by the plan that holds it.
 
 ### The session order
 

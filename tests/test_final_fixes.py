@@ -208,15 +208,6 @@ def read(*parts):
     return (REPO.joinpath(*parts)).read_text(encoding="utf-8")
 
 
-def test_pr_workflow_fails_a_stale_generated_block():
-    import yaml
-    workflow = yaml.safe_load(read("plugin/template/.github/workflows/vela-check.yml"))
-    commands = [s.get("run", "") for s in workflow["jobs"]["vela-check"]["steps"]]
-    render = next(c for c in commands if 'vela render --vault "$plan"' in c)
-    assert "git diff --exit-code" in render  # the diff comes after every plan's render, so a stale block fails the job
-    assert commands.index(next(c for c in commands if 'vela check --vault "$plan"' in c)) < commands.index(render)
-
-
 def test_template_wrapper_readme_and_claude_md():
     assert not (REPO / "plugin" / "template" / "bin").exists()  # a marketplace install needs no launcher
     assert "`/ask`" not in read("plugin/template/CLAUDE.md") and "`/vela:ask`" in read("plugin/template/CLAUDE.md")

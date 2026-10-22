@@ -142,19 +142,6 @@ def test_plans_here_finds_the_plan_above_a_folder_and_asks_at_a_root_with_severa
     assert code == 3 and "Which one are we working on?" in out and "projects" not in out
 
 
-def test_plans_changed_since_names_only_the_plans_whose_folder_changed(docs):
-    repo, heron, _ = docs
-    base = git(repo, "rev-parse", "HEAD")
-    (heron / "01-goals.md").write_text((heron / "01-goals.md").read_text(encoding="utf-8") + "\nMore.\n", encoding="utf-8")
-    (repo / "README.md").write_text("# docs, edited\n", encoding="utf-8")
-    git(repo, "add", "-A")
-    git(repo, "commit", "-q", "-m", "heron and the readme")
-    code, out = run("plans", "--vault", str(repo), "--changed-since", base, "--paths")
-    assert code == 0 and out.split() == ["projects/heron"]
-    code, out = run("plans", "--vault", str(repo), "--changed-since", "0" * 40, "--paths")
-    assert code == 0 and out.split() == ["projects/heron", "projects/payments"]  # an unknown ref checks everything
-
-
 def test_plans_in_a_repo_with_none_says_so_and_a_root_plan_is_dot(tmp_path):
     folder = tmp_path / "alone"
     folder.mkdir()
@@ -538,11 +525,10 @@ def test_a_plan_owns_its_own_session_branches_and_the_old_unscoped_ones():
     assert planscope.owns_session_branch("", "session/payments/2026-10-21-x")  # a repo-root plan owns them all, as before
 
 
-def test_the_deepest_plan_holds_a_path_and_changed_plans_keep_their_order():
+def test_the_deepest_plan_holds_a_path():
     folders = ["projects/heron/", "projects/payments/"]
     assert planscope.plan_of("projects/heron/a.md", folders) == "projects/heron/"
     assert planscope.plan_of("README.md", folders) is None
-    assert planscope.changed_plans(["projects/payments/x.md", "README.md"], folders) == ["projects/payments/"]
     assert planscope.duplicate_slugs(["a/heron/", "b/heron/", "c/other/"]) == {"heron": ["a/heron/", "b/heron/"]}
 
 

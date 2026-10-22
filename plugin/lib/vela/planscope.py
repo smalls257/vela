@@ -61,12 +61,6 @@ def inside(path, folder):
     return path[len(folder):] if path.startswith(folder) else None
 
 
-def changed_plans(changed, folders):
-    """The plan folders that hold at least one changed repo-relative path, in the order of `folders`."""
-    hit = {plan_of(path, folders) for path in changed}
-    return [folder for folder in folders if folder in hit]
-
-
 def duplicate_slugs(folders):
     """{slug: [folders]} for slugs two plans share: their session branches would live in one namespace."""
     by_slug = {}

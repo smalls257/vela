@@ -98,10 +98,10 @@ def test_challenge_asks_the_solution_lead_in_a_pr():
 def test_the_pr_says_the_red_check_is_deliberate_and_blocks_the_merge():
     text = skill_text_challenge()
     assert "E316 is deliberate." in text
-    assert "blocks the merge wherever vela-check is a required check" in text
+    assert "`vela check` fails on it until it is answered" in text
     assert "either by resolving `UNK-nnn` with a grill or by setting the item back" in text
     conv = (REPO / "plugin" / "template" / "CONVENTIONS.md").read_text(encoding="utf-8")
-    assert "deliberate" in conv and "blocks the merge" in conv
+    assert "deliberate" in conv and "`vela check` fails until the lead answers" in conv
 
 
 def test_handoff_verify_exit_2_has_two_cases_and_the_skill_shows_the_message():

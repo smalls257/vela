@@ -44,34 +44,16 @@ def test_claude_md_carries_the_rewrite_sentinel():
     assert first == "TEMPLATE: a person must rewrite this file."
 
 
-def test_pr_template_asks_for_the_kill_rule_numbers():
-    text = (TEMPLATE / ".github" / "pull_request_template.md").read_text(encoding="utf-8")
-    for heading in ("## Minutes", "## Structural fixes", "## Prose edits"):
-        assert heading in text
-
-
 def test_eight_concern_pages():
     names = sorted(p.stem for p in (TEMPLATE / "08-concerns").glob("concern-*.md"))
     assert names == ["concern-cost", "concern-data", "concern-observability", "concern-operations",
                      "concern-ownership", "concern-rollout", "concern-security", "concern-testing"]
 
 
-def test_pr_check_workflow_runs_vela_check():
-    workflow = yaml.safe_load((TEMPLATE / ".github" / "workflows" / "vela-check.yml").read_text(encoding="utf-8"))
-    triggers = workflow.get("on", workflow.get(True))  # YAML 1.1 reads a bare "on" key as True
-    assert "pull_request" in triggers
-    steps = workflow["jobs"]["vela-check"]["steps"]
-    commands = [s.get("run", "") for s in steps]
-    # vela comes from its public repository, not a copy in the plan; it checks each plan whose folder changed
-    assert any('python .vela/tool/plugin/scripts/vela check --vault "$plan"' in c for c in commands)
-    assert any("vela plans --changed-since" in c for c in commands)
-    assert not any("pyyaml" in c for c in commands)  # the plugin brings its own
-
-
 def test_toolkit_ci_runs_the_suite():
     workflow = yaml.safe_load((REPO / ".github" / "workflows" / "tests.yml").read_text(encoding="utf-8"))
     triggers = workflow.get("on", workflow.get(True))
-    assert "push" in triggers
+    assert "workflow_dispatch" in triggers  # manual only for now, to save Actions usage
     commands = " ".join(s.get("run", "") for s in workflow["jobs"]["pytest"]["steps"])
     assert "pytest" in commands
 

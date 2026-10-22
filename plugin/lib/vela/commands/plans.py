@@ -1,17 +1,14 @@
-"""`vela plans [--vault DIR] [--here] [--changed-since REF] [--paths]`: the plans a git repo holds, each in its own folder.
+"""`vela plans [--vault DIR] [--here] [--paths]`: the plans a git repo holds, each in its own folder.
 
 One docs repo may hold several plans: any folder with `.vela.yaml` is one, at the repo's root or in a subfolder
 (`projects/heron/`). The plan's folder is the vault root for every other command. This command is how a skill, a
-person or a CI job finds those folders, so none of them guesses a path (Forensic Coding) or runs a command in the
+person finds those folders, so none of them guesses a path (Forensic Coding) or runs a command in the
 repo's root where no plan lives.
 
 - no flag: every plan in the repo `--vault` sits in, with its folder and title.
 - `--here`: the one plan that holds `--vault`, found by walking up to the nearest `.vela.yaml` and stopping at the repo's
   root. Opened at a repo's root that holds several plans, it exits 3 with the plans by title for the lead to choose
   from; with exactly one plan below, that one; with none, exit 1 (`vela new` starts one).
-- `--changed-since REF`: only the plans with a file changed between REF and HEAD (three-dot, so a branch is compared
-  from where it left REF). A REF that names no commit here (the first push of a branch has an all-zero "before") counts
-  every plan as changed, said in a line: checking more is the safe side of not knowing.
 - `--paths`: the folders only, one per line, relative to the repo's root (`.` for a plan at the root), for a shell loop.
 
 Exit codes: 0 listed; 1 no plan; 2 git failed; 3 several plans and the lead has not said which.
@@ -21,7 +18,7 @@ import pathlib
 import yaml
 
 from vela import commands, planscope, say
-from vela.edge import plans, vaultgit
+from vela.edge import plans
 
 NAME = "plans"
 UNNAMED = "New initiative"  # the template's title until the first session replaces it
@@ -33,8 +30,6 @@ def register(sub):
     one.add_argument("--vault", default=".", help="any folder in the repo (default: current directory)")
     one.add_argument("--here", action="store_true",
                      help="only the plan that holds --vault; several below a repo's root exits 3 with the choices")
-    one.add_argument("--changed-since", metavar="REF", default="",
-                     help="only the plans with a file changed between REF and HEAD (CI runs the check on these)")
     one.add_argument("--paths", action="store_true", help="print the folders only, one per line, for a shell loop")
     say.add_output_flags(one)
     one.set_defaults(func=cmd_plans)
@@ -79,14 +74,6 @@ def folder_of(row):
     return "" if row["folder"] == "." else row["folder"] + "/"
 
 
-def changed_rows(root, rows, ref):
-    """(rows with a file changed since `ref`, note). The note says so when `ref` named no commit and every plan stays."""
-    if not vaultgit.has_commit(root, ref):
-        return rows, f"{ref} isn't a commit here, so every plan counts as changed."
-    hit = set(planscope.changed_plans(vaultgit.changed_since(root, ref), [folder_of(row) for row in rows]))
-    return [row for row in rows if folder_of(row) in hit], ""
-
-
 def names(rows):
     return say.names_said([said_name(row) for row in rows])
 
@@ -118,7 +105,7 @@ def here(start, top, rows):
     return rows, (no_plan() if not rows else which_plan(rows))
 
 
-def listing(rows, note):
+def listing(rows):
     if not rows:
         said = "There's no plan here yet."
     elif len(rows) == 1:
@@ -127,8 +114,6 @@ def listing(rows, note):
         said = f"There are {say.count_words(len(rows))} plans here: {names(rows)}."
     lines = [say.Line(f"vela plans: {len(rows)} plan{'s' if len(rows) != 1 else ''}.", plain=said)]
     lines += [say.Line(f"  {row['folder']}: {row['title']}", audience=say.MODEL) for row in rows]
-    if note:
-        lines.append(say.Line(f"vela plans: {note}", audience=say.MODEL))
     return lines
 
 
@@ -139,23 +124,17 @@ def cmd_plans(args, out):
         raise cli.ToolError(f"{start} is not a folder.")
     top, rows = find_rows(start)
     held = len(rows)
-    note, ended = "", None
-    try:
-        if args.here:
-            rows, ended = here(start, top, rows)
-        if args.changed_since and ended is None:
-            rows, note = changed_rows(top, rows, args.changed_since)
-    except vaultgit.GitUnavailable as exc:
-        return commands.emit(say.Result(NAME, exit=say.FAILED, lines=[say.Line(
-            f"vela: {exc}", plain="Git couldn't tell me which plans changed.")]), args, out)
+    ended = None
+    if args.here:
+        rows, ended = here(start, top, rows)
     if ended is not None:
         return commands.emit(ended, args, out)
     if args.paths:
         for row in rows:
             print(row["folder"], file=out)
-        return say.DONE if held else say.REFUSED  # no plan changed is a fine answer; no plan at all is not
+        return say.DONE if held else say.REFUSED
     shared = planscope.duplicate_slugs([folder_of(row) for row in rows])
-    result = say.Result(NAME, lines=listing(rows, note), data={"repo": str(top), "plans": rows, "duplicate_names": shared})
+    result = say.Result(NAME, lines=listing(rows), data={"repo": str(top), "plans": rows, "duplicate_names": shared})
     for slug, folders in shared.items():
         result.lines.append(say.Line(f"vela plans: {', '.join(folders)} all go by '{slug}', so their session branches and "
                                      "pull request titles share one name; rename a folder.", audience=say.MODEL))

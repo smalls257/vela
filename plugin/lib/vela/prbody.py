@@ -292,7 +292,7 @@ def red_check(ident, name, state):
                 "dispute lives in the open question and the Dissent line, and the item can't be decided while that "
                 "question is open.")
     back = "reopened" if ident.startswith("EPC-") else "assumption"
-    return (f"E316 is deliberate. It blocks the merge wherever vela-check is a required check, so this PR can't merge "
+    return (f"E316 is deliberate. `vela check` fails on it until it is answered, so this PR shouldn't merge "
             f"while main reads {name} ({ident}) as decided with an open blocker. The solution lead answers on this "
             f"branch, either by resolving the open question in a Grill or by setting the item back to {back}. After "
             "that the check turns green and the PR can merge. To answer, run /vela:grill and name this PR or "

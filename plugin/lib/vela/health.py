@@ -1,7 +1,7 @@
-"""Vault health as one Markdown report, for the weekly "Vault health" issue. Pure.
+"""Vault health as one Markdown report, for a person to run (`vela health`) and read or paste. Pure.
 
 The report is built from `vela check`'s own findings (W704, W705, W711, W716),
-so the issue and the check never disagree about what is stale or overdue.
+so the report and the check never disagree about what is stale or overdue.
 """
 import datetime
 
@@ -98,7 +98,7 @@ def section(title, header, rows, found):
 
 
 def report(vault, findings, today, commit):
-    """The issue body, as Markdown. `findings` is the output of rules.check for the same `today`."""
+    """The report, as Markdown. `findings` is the output of rules.check for the same `today`."""
     by_code = {}
     for finding in findings:
         by_code.setdefault(finding.code, []).append(finding)

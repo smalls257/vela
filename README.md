@@ -33,7 +33,7 @@ The repo is public (github.com/smalls257/vela), so installing needs no access gr
    - `/vela:onboard` gets someone who has just joined up to speed: it asks their role, what they need and whether they like diagrams or explanations, then sets up a path through the plan in the dashboard. Everything on it comes from the plan, and what the plan doesn't hold says "Not recorded yet" and who to ask.
    - `/vela:explore` builds the dashboard, one offline page of the whole initiative (map, flows played, who holds each answer), and opens it in your browser.
    - Discover, Shape and Grill each run a review checkpoint too. Between sessions, `sh .claude/skills/vela/scripts/run-vela questions --digest` shows what is still owed. See "What v3 adds" below.
-5. **Before each PR,** run `sh .claude/skills/vela/scripts/run-vela check`. CI runs it too. If you make it a required check, a broken vault can't merge.
+5. **Before each PR,** run `sh .claude/skills/vela/scripts/run-vela check`. `vela health` lists what has gone stale.
 6. **For the CIO,** run `sh .claude/skills/vela/scripts/run-vela view --out ~/Desktop/<name>.html` and email the file. It works offline and can't run page script or make network calls. The viewer is the reading copy: every page rendered, stamped with the commit and the check counts. For a live conversation use the dashboard instead, `/vela:explore`: the map, the flows played step by step, and what needs the lead. The two are kept apart on purpose, one a document you send and the other a surface you present from.
 
 The kill rule you set: if it isn't faster than plain Markdown after five sessions, cut back to the conventions, `check` and the viewer.
@@ -119,15 +119,13 @@ docs/                       one git repo
 - **Find them.** `vela plans` lists the plans in the repo with their folders and titles. `vela plans --here` names the one that holds the folder you are in, and asks which when you are at a root that holds several.
 - **Each plan stays in its own folder.** Staging, commits, the uncommitted-work check, the publish stamp and the copied files look only at the plan's folder, so one plan's unsaved edits are never staged, committed, published or counted by another's. A session branch carries the plan's name (`session/heron/2026-10-21-pilot-scope`) and its pull request is titled `[heron] ...`, so two plans' sessions never collide. Bringing in `main` is the one shared step, and it is a normal merge.
 - **Hooks.** Open Claude at the repo's root and the hooks still find the plan: they walk up from the edited file or the command's folder to the nearest `.vela.yaml`, never past the repo's root. A folder with no plan above it is left alone.
-- **CI.** GitHub reads workflows only from the repo's own `.github/workflows/`, so copy a plan's `vela-check.yml` and `vela-weekly.yml` there once. The check job runs `vela check` for each plan whose folder changed, and the weekly job posts one "Vault health: projects/heron" issue per plan.
 - **The pre-commit hook.** Point git at one plan's `.githooks` folder (`vela doctor` prints the exact line, with the plan's path in it). It judges every staged file by the rules of the plan that holds it.
 
 A plan that is its own repo works exactly as before.
 
 ## Later
 
-- **Weekly "Vault health" issue.** `.github/workflows/vela-weekly.yml` posts `vela health` every Monday to one issue titled "Vault health". It needs Issues enabled on the repo. It has not been tested live yet, so watch the first Monday's run.
-- **Not yet run against a real GitHub repo:** the weekly issue, close's owner-only harvest (it reads merged PRs with `gh`), answering a challenge (it comments on the challenge PR with `gh pr comment`), and close's merge of a moved `main`. Each is tested on local git repos only, so watch the first real run of each.
+- **Not yet run against a real GitHub repo:** close's owner-only harvest (it reads merged PRs with `gh`), answering a challenge (it comments on the challenge PR with `gh pr comment`), and close's merge of a moved `main`. Each is tested on local git repos only, so watch the first real run of each.
 - **Long-lived PRs.** If `main` moves while a long-lived PR is open, merge `origin/main` into the session branch, then run `vela render`. A conflict inside a generated block goes away when you re-render. Close does this before it renders.
 - **Vault mode for your own grills:** `integrations/requirements-grill/INSTALL.md` and `integrations/tech-design-grill/INSTALL.md`. Each one backs up first and dry-runs before applying. Nothing has been applied to `~/.claude` yet.
 - **Jira export details:** Owner team drops the leading `@` of the handle, so `@org/team` becomes `org/team`. The link points at the repository and commit from `git`, or pass `--repo-url` and `--commit`.

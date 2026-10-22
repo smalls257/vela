@@ -1,13 +1,7 @@
-"""vela health and the weekly workflow that posts it as the "Vault health" issue."""
-import os
+"""vela health: the Markdown report a person runs by hand."""
 import re
-import subprocess
 
-import yaml
-
-from conftest import REPO, check, edit, findings, run
-
-WORKFLOW = REPO / "plugin" / "template" / ".github" / "workflows" / "vela-weekly.yml"
+from conftest import check, edit, findings, run
 
 
 def stale(mini):
@@ -98,102 +92,3 @@ def test_findings_that_map_to_no_row_are_counted_not_dropped():
 
 def test_bad_date_is_a_tool_failure(mini):
     assert run("health", "--vault", str(mini), "--today", "monday")[0] == 2
-
-
-# The workflow. It cannot run against a live repo here, so its script runs against a stand-in gh.
-
-def workflow():
-    return yaml.safe_load(WORKFLOW.read_text(encoding="utf-8"))
-
-
-def test_workflow_runs_weekly_with_issue_permission_only():
-    data = workflow()
-    triggers = data.get("on", data.get(True))
-    assert triggers["schedule"] == [{"cron": "0 7 * * 1"}] and "workflow_dispatch" in triggers
-    assert data["permissions"] == {"contents": "read", "issues": "write"}
-    steps = data["jobs"]["vault-health"]["steps"]
-    runs = [s.get("run") for s in steps]
-    assert "python .vela/tool/plugin/scripts/vela plans --paths > plans.txt" in runs  # one report per plan the repo holds
-    assert any('vela health --vault "$plan" > "vault-health-$n.md"' in (run or "") for run in runs)
-    assert steps[-1]["env"] == {"GH_TOKEN": "${{ secrets.GITHUB_TOKEN }}"}
-
-
-# Exits with FAKE_FAIL's value when the subcommand named in FAKE_FAIL_ON is called.
-FAKE_GH = """#!/bin/sh
-echo "$@" >> "$GH_LOG"
-if [ "$1 $2" = "$FAKE_FAIL_ON" ]; then echo "gh: boom" >&2; exit 1; fi
-if [ "$1 $2" = "issue list" ]; then printf '%s' "$FAKE_ISSUE"; fi
-"""
-
-
-def run_issue_step(tmp_path, existing, fail_on="none", plans=(".",)):
-    bin_dir = tmp_path / "bin"
-    bin_dir.mkdir()
-    (bin_dir / "gh").write_text(FAKE_GH, encoding="utf-8")
-    os.chmod(bin_dir / "gh", 0o755)
-    (tmp_path / "plans.txt").write_text("".join(f"{plan}\n" for plan in plans), encoding="utf-8")
-    for number in range(1, len(plans) + 1):
-        (tmp_path / f"vault-health-{number}.md").write_text("# Vault health\n", encoding="utf-8")
-    log = tmp_path / "gh.log"
-    env = {**os.environ, "PATH": f"{bin_dir}:{os.environ['PATH']}", "GH_LOG": str(log), "FAKE_ISSUE": existing,
-           "FAKE_FAIL_ON": fail_on}
-    script = workflow()["jobs"]["vault-health"]["steps"][-1]["run"]
-    result = subprocess.run(["bash", "-e", "-c", script], cwd=tmp_path, env=env, capture_output=True, text=True)
-    calls = log.read_text(encoding="utf-8").splitlines() if log.exists() else []
-    return result, calls
-
-
-def test_first_run_creates_the_issue(tmp_path):
-    result, calls = run_issue_step(tmp_path, "")
-    assert result.returncode == 0, result.stderr
-    assert calls[-1] == "issue create --title Vault health --body-file vault-health-1.md"
-
-
-def test_later_runs_edit_the_open_issue(tmp_path):
-    result, calls = run_issue_step(tmp_path, "17\n")
-    assert result.returncode == 0, result.stderr
-    assert calls[-1] == "issue edit 17 --body-file vault-health-1.md"
-    assert not [c for c in calls if c.startswith("issue create")]
-
-
-def test_a_repo_with_several_plans_gets_one_issue_per_plan_named_for_its_folder(tmp_path):
-    result, calls = run_issue_step(tmp_path, "", plans=("projects/heron", "projects/payments"))
-    assert result.returncode == 0, result.stderr
-    assert [c for c in calls if c.startswith("issue create")] == [
-        "issue create --title Vault health: projects/heron --body-file vault-health-1.md",
-        "issue create --title Vault health: projects/payments --body-file vault-health-2.md"]
-
-
-def test_a_failed_lookup_fails_the_job_instead_of_opening_a_duplicate(tmp_path):
-    result, calls = run_issue_step(tmp_path, "17\n", fail_on="issue list")
-    assert result.returncode != 0
-    assert not [c for c in calls if c.startswith("issue create") or c.startswith("issue edit")]
-
-
-def test_a_failed_edit_fails_the_job(tmp_path):
-    assert run_issue_step(tmp_path, "17\n", fail_on="issue edit")[0].returncode != 0
-
-
-def test_a_failed_create_fails_the_job(tmp_path):
-    assert run_issue_step(tmp_path, "", fail_on="issue create")[0].returncode != 0
-
-
-def test_workflow_queues_runs_instead_of_canceling_one_mid_write():
-    assert workflow()["concurrency"] == {"group": "vault-health", "cancel-in-progress": False}
-
-
-def test_a_source_date_cannot_mention_or_link(mini):
-    edit(mini / "sources.md", "| 2026-01-02 |", "| @ceo #12 |")
-    code, out = run("health", "--vault", str(mini), "--today", "2026-03-10")
-    assert code == 0, out
-    assert "@ceo" not in out and "#12" not in out
-    assert "SRC-01" in out.split("## Stale sources")[1]
-
-
-def test_future_dates_show_in_health_as_typos(mini):
-    edit(mini / "01-goals.md", "authored: mixed\n", "authored: mixed\nlast_verified: 2027-01-15\nverified_by: \"@mini-lead\"\n")
-    edit(mini / "sources.md", "| 2026-01-02 |", "| 2062-01-02 |")
-    _, out = run("health", "--vault", str(mini), "--today", "2025-12-01")
-    assert "| 01-goals.md | 2027-01-15 (in the future; check for a typo) |" in out
-    assert "| SRC-01 | Stock read API documentation | 2062-01-02 (in the future; check for a typo) |" in out
-    assert "The last closed session is dated in the future (2026-01-10); check for a typo." in out

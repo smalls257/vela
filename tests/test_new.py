@@ -50,6 +50,13 @@ def test_an_empty_folder_becomes_a_clean_plan_with_one_commit_of_exactly_the_tem
     assert git(tmp_path, "branch", "--show-current").strip() == "main"
 
 
+def test_a_new_plan_has_no_github_folder_because_the_template_ships_no_automation(tmp_path):
+    code, out = new(tmp_path)
+    assert code == 0, out
+    assert not (tmp_path / ".github").exists() and not (TEMPLATE / ".github").exists()
+    assert not [p for p in git(tmp_path, "ls-files").split() if p.startswith(".github")]
+
+
 def test_the_name_the_initiative_and_the_handle_are_filled_in(tmp_path):
     code, out = new(tmp_path, "--initiative", "INI-007")
     assert code == 0, out
