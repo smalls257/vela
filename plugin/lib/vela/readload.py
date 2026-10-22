@@ -240,13 +240,18 @@ def _link_words(match):
     return " " + (label or target.split("#")[-1].split("/")[-1]) + " "
 
 
-def _abbreviation_text(page):
-    """(line number, prose a reader meets, with code, URLs, IDs and direct quotes taken out and links read as their
-    labels) for each prose line outside History and block quotes."""
+def _abbreviation_text(page, labels=False):
+    """(line number, prose a reader meets) for each prose line outside History and block quotes, with code, URLs, IDs
+    and direct quotes taken out. Links are taken out too, since a link's label is another page's title and spelled out
+    there; with `labels`, a link reads as its label instead, which is only for finding where an abbreviation is
+    spelled out ("[[prd|product requirements doc]] (PRD)")."""
     for n, raw, _, history in _regions(page):
         if history or not _is_prose(raw) or raw.lstrip().startswith(">"):
             continue
-        text = MD_LINK.sub(lambda m: " " + m.group(0)[1:m.group(0).index("](")] + " ", WIKILINK.sub(_link_words, raw))
+        if labels:
+            text = MD_LINK.sub(lambda m: " " + m.group(0)[1:m.group(0).index("](")] + " ", WIKILINK.sub(_link_words, raw))
+        else:
+            text = MD_LINK.sub(" ", WIKILINK.sub(" ", raw))
         plain = QUOTED.sub(" ", URL.sub(" ", CODE_SPAN.sub(" ", text)))
         yield n, BARE_VAULT_ID.sub(" ", plain)
 
@@ -279,7 +284,7 @@ def abbreviation_findings(page):
     seen, out = set(), []
     allowed = set(schema.ABBREVIATIONS_UNDERSTOOD)
     lines = list(_abbreviation_text(page))
-    whole = "\n".join(text for _, text in lines)
+    whole = "\n".join(text for _, text in _abbreviation_text(page, labels=True))
     for n, text in lines:
         for found in ABBREVIATION.finditer(text):
             letters = found.group(0)
