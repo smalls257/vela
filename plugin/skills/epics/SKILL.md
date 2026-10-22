@@ -48,6 +48,8 @@ Write the skeleton with `vela add epic --title "<title>" --team <@team> --apps <
 
 Run `vela epics lint <EPC-id> --for-lead` before you propose them. For each finding, rewrite the criterion at the boundary and show it beside the original; never offer the failing version. An epic in the first shape (numbered criteria under `## Epic acceptance criteria`) gets `vela epics lint --fix-shape <EPC-id>` when this session touches it, which keeps each number.
 
+Draft the paragraph each filed item owes now, as `START.md` says under "Draft the paragraph when the item is filed", and show it with the filed line.
+
 ## 5. Behavior the plan doesn't hold
 
 Start from the apps' `## Requirements allocated` rows: each row is the team's share of a requirement, and its criteria are that requirement's, as far as the share carries them. Write each as a sentence of its own; never copy the requirement's wording into a table. If a criterion needs behavior no requirement holds, stop on it, say which capability it belongs to, and offer `/vela:requirements` on that `CAP-nnn`, then `/vela:allocate`. The requirement is written once, on the capability, not decided yet, until a grill decides it. Never write the requirement into the epic. If the lead declines, list the criterion under `## Out of scope` as waiting on it.

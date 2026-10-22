@@ -25,6 +25,12 @@ Sources, each with the reason close section 4 gives for it:
   its `## Who this is for and what changes` section, in the template's order, because the PR lists them under
   "Prose drafted".
 
+A paragraph drafted earlier in the session counts as done (Anchor: the house voice is written when an item settles,
+not rebuilt at close). It is done unless the facts it stands on changed after its last write: `history` says when each
+paragraph was last written and hands back the pages as they stood then, and this module compares the facts then with
+the facts now. What is left is either missing (never written this session) or stale (written, then the facts moved);
+each entry says which, and for stale what moved.
+
 Alongside the paragraphs:
 
 - **Read-back** (close section 5): each item that became `decided`, so its final wording is shown to its owner.
@@ -53,6 +59,10 @@ EPIC_SECTIONS = (("summary", "the epic's summary, first in the template's order"
 FOLDED = ("history",)
 PLAIN_BULLET = re.compile(r"^- (?!\*\*[^*:]+:\*\*)\S")
 OPENING = "opening"
+MISSING, STALE = "missing", "stale"
+SHOWN = 80  # characters of a changed line quoted in a stale reason
+NOT_PROSE = re.compile(r"^\s*(?:[-*+] |\d+[.)] |\||#|<!--|\[generated block|```)")
+STILL_OPEN = re.compile(r"^Still open:")
 
 JUDGMENT = ("A glossary entry on 12-glossary.md for each term this session used that a newcomer to the initiative "
             "would not know: the term in bold, then what it means here.",)
@@ -78,6 +88,8 @@ class Owed:
     whys: list = field(default_factory=list)
     items: list = field(default_factory=list)
     mentions: dict = field(default_factory=dict)  # ID -> what this session did to it, for a sentence that names it
+    status: str = MISSING
+    moved: str = ""  # for a stale paragraph, what changed after it was written
 
     @property
     def why(self):
@@ -85,11 +97,13 @@ class Owed:
         if self.mentions:
             verbs = " or ".join(sorted(set(self.mentions.values())))
             said.insert(0, WHY["ref"].format(names=", ".join(self.mentions), verbs=verbs))
+        if self.moved:
+            said.append(f"written earlier in this session, but stale since a later change: {self.moved}")
         return "; ".join(said)
 
     def as_json(self):
         return {"page": self.page, "title": self.title, "heading": self.heading, "kind": self.kind,
-                "why": self.why, "items": self.items}
+                "status": self.status, "why": self.why, "items": self.items}
 
 
 @dataclass(frozen=True)
@@ -135,6 +149,7 @@ class Drafts:
     split: object  # Split or None
     judgment: tuple = JUDGMENT
     kept: list = field(default_factory=list)  # imported pages that keep the documents' words: owed no voiced prose
+    done: list = field(default_factory=list)  # paragraphs written this session whose facts have not moved since
 
     @property
     def count(self):
@@ -374,9 +389,135 @@ def split_facts(paragraphs):
     return Split(len(paragraphs), len({p.page for p in paragraphs}), dict(groups))
 
 
-def owed(before, after, changes, modes=()):
+def section_range(page, heading):
+    """(first, last) line of the prose a heading owns: after the page title for "opening", else after the heading to
+    the next heading of any level. None when the page has no such heading."""
+    heads = page.headings
+    if heading == OPENING:
+        start = next((h.line for h in heads if h.level == 1), 0)
+        stop = next((h.line for h in heads if h.line > start and h.level >= 2), None)
+    else:
+        found = next((h for h in heads if h.text == heading), None)
+        if found is None:
+            return None
+        start = found.line
+        stop = next((h.line for h in heads if h.line > start), None)
+    return start + 1, (stop - 1 if stop else len(parse.lines_of(page.text)))
+
+
+def names_any(line, names):
+    low = line.lower()
+    return any(name.lower() in low for name in names)
+
+
+def paragraph(text, heading, names=()):
+    """(prose, facts) of a page as tuples of lines. Prose is the paragraph a section's heading owns: plain lines, not
+    bullets, table rows, headings or fences, and "Still open:" for the epic line of that name. Facts are every other
+    line of the page, so a changed state, bullet or cell shows. A line that names one of `names` (the items a sentence
+    mentions) is prose wherever it sits, because a mention in a table row or a bullet is rewritten like a sentence. Generated blocks are collapsed: render's churn is not
+    a fact."""
+    if text is None:
+        return (), ()
+    page = parse.parse_page("page.md", "\n".join(drafts.collapse_generated(text)))
+    lines = parse.lines_of(page.text)
+    if heading == "Still open":
+        prose = {n for n, line in enumerate(lines, 1) if STILL_OPEN.match(line)}
+    else:
+        rng = section_range(page, OPENING if heading == "summary" else heading)
+        first, last = rng if rng else (1, 0)
+        prose = {n for n in range(first, last + 1) if lines[n - 1].strip() and not STILL_OPEN.match(lines[n - 1])
+                 and (not NOT_PROSE.match(lines[n - 1]) or names_any(lines[n - 1], names))}
+    return (tuple(lines[n - 1].strip() for n in sorted(prose)),
+            tuple(line.strip() for n, line in enumerate(lines, 1) if n not in prose and line.strip()))
+
+
+def has_section(text, heading):
+    """True when the page had a place for this paragraph: the page itself for its opening, else the heading."""
+    if text is None:
+        return False
+    if heading in (OPENING, "summary", "Still open"):
+        return True
+    page = parse.parse_page("page.md", text)
+    return any(h.text == heading for h in page.headings)
+
+
+def item_facts(text, item_id):
+    """The lines of one item's section, or of the whole page when the ID names the page itself."""
+    if text is None:
+        return ()
+    page = parse.parse_page("page.md", "\n".join(drafts.collapse_generated(text)))
+    lines = parse.lines_of(page.text)
+    heading = next((h for h in page.headings if h.text.startswith(f"{item_id} ")), None)
+    if heading is None:
+        return tuple(line.strip() for line in lines if line.strip())
+    stop = next((h.line for h in page.headings if h.line > heading.line and h.level <= 3), len(lines) + 1)
+    return tuple(line.strip() for line in lines[heading.line - 1:stop - 1] if line.strip())
+
+
+def first_difference(then, now):
+    """A short quote of the first line that is in `now` and not in `then`, else of one that went away."""
+    gained = next((line for line in now if line not in then), None)
+    lost = next((line for line in then if line not in now), None)
+    line = gained if gained is not None else lost
+    if line is None:
+        return "its lines moved"
+    quote = line if len(line) <= SHOWN else line[:SHOWN].rstrip() + "..."
+    return f"now has \"{quote}\"" if gained is not None else f"no longer has \"{quote}\""
+
+
+def now_text(vault, path):
+    return next((p.text for p in vault.pages if p.path == path), None)
+
+
+def home_of(vault, item_id):
+    """The path of the page an item lives on, or of the page the ID names; None when the vault holds neither."""
+    item = vault.item(item_id)
+    if item is not None:
+        return item.page.path
+    pages = vault.by_id.get(item_id)
+    return pages[0].path if pages else None
+
+
+def mention_names(entry, vault):
+    return [name for item_id in entry.mentions for name in (item_id, vault.name_of(item_id))]
+
+
+def moved_since(entry, then, after):
+    """What changed under a paragraph after it was written, in words; "" when nothing it stands on moved. The
+    paragraph stands on the rest of its page, and a sentence that names a resolved or decided item also on that item."""
+    names = mention_names(entry, after)
+    facts_then = paragraph(then(entry.page), entry.heading, names)[1]
+    facts_now = paragraph(now_text(after, entry.page), entry.heading, names)[1]
+    if facts_then != facts_now:
+        return f"the page {first_difference(facts_then, facts_now)}"
+    for item_id in entry.mentions:
+        path = home_of(after, item_id)
+        if path is not None and item_facts(then(path), item_id) != item_facts(now_text(after, path), item_id):
+            return f"{after.name_of(item_id)} changed"
+    return ""
+
+
+def settle(entries, history, after):
+    """Split the ledger into (owed, done). With no `history` (a reader copy runs no git) everything is missing."""
+    owing, done = [], []
+    for entry in entries:
+        then = history.written(entry.page, entry.heading, mention_names(entry, after)) if history and entry.kind != "adr" else None
+        entry.status = MISSING
+        if then is not None:
+            entry.moved = moved_since(entry, then, after)
+        if then is None or entry.moved:
+            entry.status = MISSING if then is None else STALE
+            owing.append(entry)
+        else:
+            done.append(entry)
+    return owing, done
+
+
+def owed(before, after, changes, modes=(), history=None):
     """Everything close section 4 and 5 need from the facts: `before` and `after` are vault models, `changes` is
-    {page path: text before, or None when new} for every page that differs, `modes` the session record's modes."""
+    {page path: text before, or None when new} for every page that differs, `modes` the session record's modes.
+    `history.written(page, heading, names)` returns a function path -> the page's text as it stood when that paragraph was
+    last written this session, or None when it was not written; None for `history` means nothing was written."""
     pages = changed_pages(after, changes)
     was, now = closegate.states(before), closegate.states(after)
     decided, resolved = moved_to(was, now, DECIDED), moved_to(was, now, RESOLVED)
@@ -390,9 +531,10 @@ def owed(before, after, changes, modes=()):
     # An imported page the lead hasn't had voiced keeps the documents' words: it is never handed to the voice redraft,
     # and it is listed, so the skip is seen (wording.py).
     kept = sorted({p.page for p in ledger.all() if is_kept(after, p.page)})
-    paragraphs = sorted([p for p in ledger.all() if p.page not in kept], key=lambda p: p.page)  # stable order
+    entries = sorted([p for p in ledger.all() if p.page not in kept], key=lambda p: p.page)  # stable order
+    paragraphs, done = settle(entries, history, after)
     back = [ReadBack(r.item, r.name, was.get(r.item, "-"), r.page, r.heading) for r in readback(after, decided)]
-    return Drafts(paragraphs, back, long_lists(after, pages), split_facts(paragraphs), kept=kept)
+    return Drafts(paragraphs, back, long_lists(after, pages), split_facts(entries), kept=kept, done=done)
 
 
 def is_kept(vault, path):

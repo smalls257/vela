@@ -14,7 +14,7 @@ Run the steps in `${CLAUDE_PLUGIN_ROOT}/references/START.md` with mode `discover
 
 ## 1. Read the sources
 
-Use the access the user already has: local files, a clone, an export, a tool in their session. Never ask for or store a credential, never upload material, and keep raw copies only in `.inbox/`, which is never committed. Say what you can't reach.
+Use the access the user already has: local files, a clone, an export, a tool in their session. Never ask for or store a credential or upload material; keep raw copies only in `.inbox/`, which is never committed. Say what you can't reach.
 
 Propose each source's Kind (`exists`, `intends` or `repo`, as `vela conventions "Certainty and sources"` defines), let the user confirm it, and register it: `vela add source --title "<title>" --owner <handle> --date <YYYY-MM-DD> --kind <kind> --location "<where>" --for-lead`. Location must find it again: a path, a URL, `<url>@<sha>` for a repo (the command takes out any credential and says so), or `export of <space> on <date>`. A skipped source is listed, with why.
 
@@ -57,7 +57,7 @@ Write pages in the format `vela conventions "<section>"` gives, committing after
 - A gap stays a gap; general knowledge is no source.
 - Write a hand-over step as `Sender -> Receiver: ...`, with linked apps or registered parties. Before closing, settle E351, W354 and W374 from `vela check` with the lead: link plain-text apps; an outside actor becomes a party (`vela add subject --subject-type PTY`) only on their yes.
 
-Keep an `## Import ledger` in the session record, one line per source, `processed` or `pending`, so a later import resumes.
+Keep an `## Import ledger` in the session record, a line per source, `processed` or `pending`, so a later import resumes. Draft each filed item's paragraph now (`START.md`).
 
 ## Done only when
 

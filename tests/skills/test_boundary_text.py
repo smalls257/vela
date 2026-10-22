@@ -236,3 +236,9 @@ def test_boundary_offers_links_to_the_library_and_keeps_links_front_matter():
     body = (PLUGIN / "skills/boundary/SKILL.md").read_text(encoding="utf-8")
     assert "vela library add" in body and "for the Library" in body
     assert "The page's `links:` stay as they are" in body
+
+
+def test_boundary_drafts_the_paragraph_of_each_item_it_files_now():
+    body = (REPO / "plugin" / "skills" / "boundary" / "SKILL.md").read_text(encoding="utf-8")
+    assert "Draft" in body and "paragraph" in body and "START.md" in body
+    assert "Draft the paragraph when the item is filed" in body or "Draft each filed item's paragraph now" in body

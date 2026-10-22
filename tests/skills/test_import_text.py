@@ -133,3 +133,9 @@ def test_import_settles_the_flow_end_codes_with_the_lead_before_the_session_clos
     assert "settle E351, W354 and W374 from `vela check` with the lead" in IMPORT
     assert "an outside actor becomes a party (`vela add subject --subject-type PTY`) only on their yes" in IMPORT
     assert "flow-end codes settled" in IMPORT.split("## Done only when", 1)[1]
+
+
+def test_import_drafts_the_paragraph_of_each_item_it_files_now():
+    body = (REPO / "plugin" / "skills" / "import" / "SKILL.md").read_text(encoding="utf-8")
+    assert "Draft" in body and "paragraph" in body and "START.md" in body
+    assert "Draft the paragraph when the item is filed" in body or "Draft each filed item's paragraph now" in body

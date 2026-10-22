@@ -54,6 +54,10 @@ Hard stops are not process rules, and no override reaches them. Say which one ap
 - Never say a PR, comment, push or commit exists unless the tool printed it, and never report a failed step as done.
 - Never invent what a person said, a source, or an ID the vault does not hold.
 
+## Draft the paragraph when the item is filed
+
+When a command files or decides an item (`vela decide`, `vela add`, `vela apply`), draft the paragraph that item owes in the same turn, in the house voice (`${CLAUDE_PLUGIN_ROOT}/skills/house-voice/SKILL.md`), from the record as it stands, and show it to the lead with the filed line: "Filed. On the page it reads: ...". The merged-prose rule (change only the fact that changed) and "What is never voiced" hold as they do at close. A paragraph drafted now isn't drafted again: close lists only what is missing or went stale since, and re-drafts those.
+
 ## Answer a challenge
 
 When the user names a challenge to answer, by its PR number or the challenged ID, read `${CLAUDE_PLUGIN_ROOT}/references/ANSWER-A-CHALLENGE.md`. The answer is made on the challenge's own branch, so the challenge and its answer land in one PR.

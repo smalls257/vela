@@ -70,6 +70,8 @@ On `04b-releases.md`, one section per release, in the order they ship:
 
 Then run `vela render` and `vela check`, fix every error (E340 and E341 mean a link or a criterion number is wrong, E394 a circle of After), fix what W392, W393 and W347 say about a slice, tell the lead which requirements are still on no release, by their plain names (what the W343 lines list; don't say the code), and commit a checkpoint with `vela close stage --checkpoint --for-lead`.
 
+Draft the paragraph each filed item owes now, as `START.md` says under "Draft the paragraph when the item is filed", and show it with the filed line.
+
 ## 4. Review, then finish
 
 When the lead says a plain yes to a pick, run `vela decide` on it: if it answers that this session can't decide and marks the item ready to decide, offer the lead a short grill on it now, as it says.

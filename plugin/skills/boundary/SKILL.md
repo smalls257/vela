@@ -84,6 +84,8 @@ After each sheet, write what was confirmed. `${CLAUDE_PLUGIN_ROOT}/skills/bounda
 
 The checkpoint: `vela render`, then `vela check --for-lead`, fixing every error the new pages cause, then `vela close stage --checkpoint --for-lead`, which commits by exact path.
 
+Draft the paragraph each filed item owes now, as `START.md` says under "Draft the paragraph when the item is filed", and show it with the filed line.
+
 ## 5. Review the new apps and contracts
 
 Once every sheet is written, run the review checkpoint in `${CLAUDE_PLUGIN_ROOT}/references/REVIEW.md`, with the checkpoint "after the pages are written" and the new app, contract and runtime pages as its focus: `vela reviewers prepare --checkpoint "after the pages are written" --focus <those pages> --for-lead`. Each new app and contract is now a subject the catalog owes questions about: run `vela questions --subject <ID>` for each and show the copies it owes. Show the digest and capture what they take, as REVIEW says.

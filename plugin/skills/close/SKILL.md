@@ -10,7 +10,7 @@ argument-hint: "[session id, if more than one is open]"
 
 Before your first command and your first question, read `voice/VOICE.md` if the vault has one, then `${CLAUDE_PLUGIN_ROOT}/references/CONVERSATION-VOICE.md` (the first step of `${CLAUDE_PLUGIN_ROOT}/references/START.md`); write page prose through `house-voice`.
 
-Close files the session and sends it for review. The steps, in order: find the session (1), mark the captures (2), write the items (3), draft the prose (4), read back decided wording (5), bring in main and check (6), finish and send (7), open the pull request (8), the dashboard (9). Commands do the filing; you do the talking. Never report a step as done when it failed.
+Close files the session and sends it for review. The steps, in order: find the session (1), mark the captures (2), write the items (3), draft what is missing or stale (4), read back decided wording (5), bring in main and check (6), finish and send (7), open the pull request (8), the dashboard (9). Commands do the filing; you do the talking. Never report a step as done when it failed.
 
 Vela is `sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela` (`START.md`, "Where vela runs from", covers a host that leaves the variable unexpanded). Use `--for-lead` when you'll tell the lead the result and `--json` when you need to reason over it, and say it in your own words, in the voice: names, not codes or IDs. Never pass raw git or `gh` error text on: say in one sentence that it didn't work and what you'll do. A failure you fix isn't news. When a command can't express what the lead wants, say so and stop; never fall back to doing its steps by hand.
 
@@ -44,7 +44,7 @@ When `marks plan` leaves a ledger row's state to you, or the lead said the catal
 
 ## 4. Draft the prose
 
-Run `vela close drafts --json`. It lists every paragraph this session owes, each with why. Read `${CLAUDE_PLUGIN_ROOT}/skills/house-voice/SKILL.md` and follow it for each. Keep the owner's wording wherever its facts still hold, because a later close harvests their edits. A page has one opening: the one you rewrite replaces the old one, and you never write a new opening beside it.
+Run `vela close drafts --json`. Paragraphs written as items settled are `done`; leave them. Draft only what it lists, each marked missing or stale (written, then a fact under it changed; it says which). Read `${CLAUDE_PLUGIN_ROOT}/skills/house-voice/SKILL.md` and follow it for each, merged paragraphs included. A page has one opening: the one you rewrite replaces the old one, and you never write a new opening beside it.
 
 - Before you rewrite a merged paragraph whole, run `vela prose replace --page 05-building-blocks/till.md --line 12` with its page and any line of it, so no edit of the owner's is lost.
 - A decision record starts as `vela add adr --state decided --decision <the deciding session id> --decides <ID> --title "<what was decided>"`; then draft its sections.
@@ -56,7 +56,7 @@ Then run `vela style <each drafted page>` and fix what it prints until it prints
 
 ### Voice review
 
-Skip it if nothing was drafted. Otherwise read `${CLAUDE_PLUGIN_ROOT}/skills/close/VOICE-REVIEW.md`: a fresh reader checks the drafts, because the drafter can't judge its own voice.
+Skip it if the session touched no prose. Otherwise read `${CLAUDE_PLUGIN_ROOT}/skills/close/VOICE-REVIEW.md` and run it once, on every paragraph the session touched, `done` or just drafted. Show the lead only the new or changed ones.
 
 ### Harvest the owner's edits
 

@@ -221,3 +221,9 @@ def test_releases_says_what_to_do_with_the_ready_to_decide_hand_off():
     from conftest import REPO
     text = (REPO / "plugin/skills/releases/SKILL.md").read_text(encoding="utf-8")
     assert "run `vela decide` on it" in text and "ready to decide, offer the lead a short grill" in text
+
+
+def test_releases_drafts_the_paragraph_of_each_item_it_files_now():
+    body = (REPO / "plugin" / "skills" / "releases" / "SKILL.md").read_text(encoding="utf-8")
+    assert "Draft" in body and "paragraph" in body and "START.md" in body
+    assert "Draft the paragraph when the item is filed" in body or "Draft each filed item's paragraph now" in body

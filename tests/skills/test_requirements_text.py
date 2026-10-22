@@ -135,3 +135,9 @@ def test_requirements_names_the_grill_by_the_capability_and_in_lower_case():
     assert "`/vela:grill CAP-nnn`" not in BODY and '"/vela:grill Refund a canceled booking"' in BODY
     assert not re.search(r"\bGrill\b", BODY)
     assert "the user" not in BODY.split("---", 2)[2]
+
+
+def test_requirements_drafts_the_paragraph_of_each_item_it_files_now():
+    body = (REPO / "plugin" / "skills" / "requirements" / "SKILL.md").read_text(encoding="utf-8")
+    assert "Draft" in body and "paragraph" in body and "START.md" in body
+    assert "Draft the paragraph when the item is filed" in body or "Draft each filed item's paragraph now" in body

@@ -82,10 +82,10 @@ def test_ref_inside_a_generated_block_or_history_owes_nothing(tmp_path):
 
 def test_changed_page_owes_its_paragraph(tmp_path):
     vault = session(tmp_path)
-    edit(vault, TILL, "\n## ", "\nThe till now reads one more thing.\n\n## ")
+    edit(vault, TILL, "change: changed", "change: new")
     data = drafts_json(vault)
     till = owed_at(data, TILL)
-    assert any(p["kind"] == "opening" for p in till), till
+    assert any(p["kind"] == "opening" and p["status"] == "missing" for p in till), till
     assert all(not p["page"].startswith("sessions/") and p["page"] != "sources.md" for p in data["paragraphs"])
 
 
@@ -193,3 +193,59 @@ def test_no_open_session_is_refused(tmp_path):
     vault = make_vault(tmp_path)
     code, out = drafts(vault)
     assert code == 1 and "No session is open" in out
+
+
+def commit(vault, message):
+    git(vault, "add", "-A")
+    git(vault, "commit", "-q", "-m", message)
+
+
+def opening_of(data, page):
+    return next((p for p in owed_at(data, page) if p["kind"] == "opening"), None)
+
+
+def test_an_opening_written_earlier_in_the_session_is_done(tmp_path):
+    vault = session(tmp_path)
+    edit(vault, TILL, "change: changed", "change: new")
+    commit(vault, "Till is a new app")
+    edit(vault, TILL, "The till rings up sales and calls the shop.", "The till is new: it rings up sales.")
+    data = drafts_json(vault)
+    assert opening_of(data, TILL) is None
+    assert any(d["page"] == TILL and d["kind"] == "opening" for d in data["done"]), data["done"]
+    code, out = drafts(vault)
+    assert "already written this session" in out and TILL in out
+
+
+def test_an_opening_whose_facts_changed_after_it_was_written_is_stale(tmp_path):
+    vault = session(tmp_path)
+    edit(vault, TILL, "The till rings up sales and calls the shop.", "The till rings up sales and calls the shop, today.")
+    commit(vault, "Opening drafted")
+    assert opening_of(drafts_json(vault), TILL) is None
+    edit(vault, TILL, "change: changed", "change: new")
+    stale = opening_of(drafts_json(vault), TILL)
+    assert stale["status"] == "stale", stale
+    assert "stale since a later change" in stale["why"] and "change: new" in stale["why"]
+    code, out = drafts(vault, "--for-lead")
+    assert "wrote it earlier" in out and "changed afterward" in out
+
+
+def test_a_page_whose_opening_was_never_touched_is_missing_not_done(tmp_path):
+    vault = session(tmp_path)
+    edit(vault, TILL, "change: changed", "change: new")
+    commit(vault, "Facts only")
+    data = drafts_json(vault)
+    assert opening_of(data, TILL)["status"] == "missing"
+    assert not data["done"]
+
+
+def test_a_sentence_naming_a_resolved_item_is_done_until_the_item_changes_again(tmp_path):
+    vault = session(tmp_path)
+    resolve_till_rig(vault)
+    edit(vault, TESTING, "| Waiting on [[11-unknowns-and-risks#UNK-001 Till test rig\\|UNK-001]] |",
+         "| Answered: the old till serves ([[11-unknowns-and-risks#UNK-001 Till test rig\\|UNK-001]]) |")
+    commit(vault, "Till rig answered")
+    data = drafts_json(vault)
+    assert not [p for p in owed_at(data, TESTING) if p["kind"] == "ref"], data["paragraphs"]
+    edit(vault, UNKNOWNS, "- **Outcome:** Yes, the old till.", "- **Outcome:** No, a new till is needed.")
+    stale = [p for p in owed_at(drafts_json(vault), TESTING) if p["kind"] == "ref"]
+    assert stale and stale[0]["status"] == "stale" and "Till test rig changed" in stale[0]["why"], stale

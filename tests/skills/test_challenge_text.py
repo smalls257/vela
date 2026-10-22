@@ -208,3 +208,9 @@ def test_the_team_lead_hears_names_not_codes():
     assert "I'd challenge only the contract." in text
     assert "|<short name>]])`" in text  # the Dissent link reads as the question's name, not its number
     assert "I've added the open question 'Hold expiry under load'" in text  # the worked read-back, by name
+
+
+def test_challenge_drafts_the_paragraph_of_each_item_it_files_now():
+    body = (REPO / "plugin" / "skills" / "challenge" / "SKILL.md").read_text(encoding="utf-8")
+    assert "Draft" in body and "paragraph" in body and "START.md" in body
+    assert "Draft the paragraph when the item is filed" in body or "Draft each filed item's paragraph now" in body

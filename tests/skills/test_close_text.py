@@ -620,3 +620,23 @@ def test_close_keeps_the_one_relay_line_and_the_hard_stop():
 
 def test_close_has_flow_end_codes_fixed_with_the_lead_before_the_session_closes():
     assert "(E351)" in CLOSE_SKILL and "(W354)" in CLOSE_SKILL and "(W374)" in CLOSE_SKILL and "only on their yes" in CLOSE_SKILL
+
+
+# --- Drafting as each item settles: close drafts only what `close drafts` still lists, runs the voice reviewer once on
+# every paragraph the session touched, and shows the lead only the new or changed ones.
+
+
+def test_close_drafts_only_what_is_missing_or_stale_and_reviews_everything_touched():
+    four = section(CLOSE_SKILL, "## 4. Draft the prose", "### Harvest")
+    assert "Paragraphs written as items settled are `done`; leave them" in four
+    assert "Draft only what it lists" in four and "missing or stale" in four
+    assert "run it once, on every paragraph the session touched" in four
+    assert "Show the lead only the new or changed ones" in four
+    assert "every prose paragraph this session touched" in read("plugin", "skills", "close", "VOICE-REVIEW.md")
+    assert len(four.split()) < 330
+
+
+def test_close_no_longer_rebuilds_every_paragraph_at_the_end():
+    for gone in ("It lists every paragraph this session owes", "Keep the owner's wording wherever its facts still hold",
+                 "Skip it if nothing was drafted", "a fresh reader checks the drafts"):
+        assert gone not in CLOSE_SKILL, gone

@@ -393,3 +393,9 @@ def test_a_grill_opens_with_the_items_the_lead_already_said_yes_to():
     from conftest import REPO
     grill = (REPO / "plugin/skills/grill/SKILL.md").read_text(encoding="utf-8")
     assert "ready to decide" in grill and "Open the agenda with them" in grill
+
+
+def test_grill_drafts_the_paragraph_of_each_item_it_files_now():
+    body = (REPO / "plugin" / "skills" / "grill" / "SKILL.md").read_text(encoding="utf-8")
+    assert "Draft" in body and "paragraph" in body and "START.md" in body
+    assert "Draft the paragraph when the item is filed" in body or "Draft each filed item's paragraph now" in body

@@ -283,3 +283,15 @@ def test_relaying_a_command_says_more_and_what_to_do_on_my_side():
     assert "never say that line or the command's own text" in relay
     assert "run the same command again with `--more` added" in relay
     assert '"Relaying a command" below' in section("0. Read how to talk")
+
+
+# --- Drafting as each item settles: the house voice is written when the item is filed, and close only fills what is
+# missing or went stale. The rule is written once here; each mode skill's own test file pins its one line.
+
+def test_start_says_once_to_draft_the_paragraph_when_the_item_is_filed():
+    rule = section("Draft the paragraph when the item is filed")
+    assert "in the same turn" in rule and "skills/house-voice/SKILL.md" in rule
+    assert "from the record as it stands" in rule and "with the filed line" in rule
+    assert "change only the fact that changed" in rule and "What is never voiced" in rule
+    assert "close lists only what is missing or went stale" in rule
+    assert START.count("Draft the paragraph when the item is filed") == 1

@@ -310,3 +310,9 @@ def test_epics_names_only_commands_that_exist():
 def test_epics_offers_the_tracker_link_to_the_library():
     body = (PLUGIN / "skills/epics/SKILL.md").read_text(encoding="utf-8")
     assert "vela library add" in body and "for the Library" in body and "`links:` stays as written" in body
+
+
+def test_epics_drafts_the_paragraph_of_each_item_it_files_now():
+    body = (REPO / "plugin" / "skills" / "epics" / "SKILL.md").read_text(encoding="utf-8")
+    assert "Draft" in body and "paragraph" in body and "START.md" in body
+    assert "Draft the paragraph when the item is filed" in body or "Draft each filed item's paragraph now" in body

@@ -87,6 +87,8 @@ The same command takes a functional requirement, a release by its heading, a sli
 
 If the decision shapes the whole design (the strategy, an app, a flow), also offer a decision record: say it is optional, and on a yes run `vela add adr --title "<what was decided>" --decides <ID> --capture ^cN`. Close fills it in.
 
+Draft the paragraph each filed item owes now, as `START.md` says under "Draft the paragraph when the item is filed", and show it with the filed line.
+
 ## 5. A new unknown mid-grill
 
 If a question turns up that nobody present can answer, run `vela add unknown --name "<short name>" --capture ^cN --owner <handle> --blocks <ID> --for-lead` (repeat `--blocks` for each item it holds up). It takes the items it blocks off the agenda and says which; relay that, offer to decide them anyway, commit the unknown at once with `vela close stage --checkpoint`, and go on with the rest.

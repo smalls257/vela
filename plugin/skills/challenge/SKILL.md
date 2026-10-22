@@ -61,6 +61,8 @@ Write only these:
 
 Never touch the item's `state:`, `**State:**`, wording, criteria or any other line. A challenge records a dispute. It does not settle one.
 
+Draft the paragraph each filed item owes now, as `START.md` says under "Draft the paragraph when the item is filed", and show it with the filed line.
+
 ## 5. Render, check, read back
 
 Run `vela render`, then `vela check`. For a `decided` item, check now reports E316, "decided, but open unknown UNK-nnn blocks it": deliberate, and it stays in the PR as the answer owed. Fix any other error with the team lead, or stop and show it.
