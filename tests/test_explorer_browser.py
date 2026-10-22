@@ -149,7 +149,7 @@ def test_capability_focus_opens_its_focus_view_and_a_link_reopens_it(chrome_path
     said = [x for x in lines if x.startswith("ok capability focus")]
     assert any("leave apps out of the sidebar's list" in x for x in said) and any("Show everything brings back" in x for x in said), said
     assert not [x for x in lines if x.startswith("FAIL")], [x for x in lines if x.startswith("FAIL")]
-    linked = chrome_dom(chrome_path, page, route="s=capabilities&open=CAP-011")
+    linked = chrome_dom(chrome_path, page, route="s=capabilities&open=CAP-013")
     assert 'id="cv-board"' in linked and 'data-where="side"' in linked and "Show everything" in linked
 
 

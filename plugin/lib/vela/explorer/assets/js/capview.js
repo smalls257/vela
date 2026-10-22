@@ -255,10 +255,9 @@ const CapView = (() => {
   const quiet = (text) => Panel.empty(text);
   const head2 = (kind, title, meta) => h("div", { class: "p-head" }, h("div", { class: "kind" }, kind), h("h2", {}, title), meta ? h("div", { class: "p-meta" }, meta) : null);
   function summary() {
-    const note = flowNote();
     return [h("div", { class: "p-head" }, h("div", { class: "kind" }, "Capabilities"), h("h2", {}, "What needs what"),
       h("p", { class: "p-lede" }, "A capability depends on another when a journey that serves it lists the other. Pick a card, a box, a chip or a cell to see why."), h("div", { class: "p-meta" }, ledeText())),
-      note ? h("div", { class: "p-body" }, note) : null, PlanDetails.aboutSection()];
+      PlanDetails.aboutSection()];
   }
   function depList(title, edges, side) {
     return Panel.section(title, edges.length, edges.length ? h("ul", { class: "mini-list cv-deplist" }, edges.map((e) => h("li", {}, DetailsPanel.link(side(e), titleOf(side(e))),

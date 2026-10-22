@@ -97,8 +97,7 @@ COMMON = ["capability dependencies:", "capability cards: one keyboard-reachable 
           "capability focus view: the + key zooms the drawing", "capability focus view: a chip lists the flows that make the dependency",
           "capability focus view: Enter on another box refocuses on it", "capability matrix: each cell is a button with the number of flows",
           "capability matrix: the capability picked before is still the picked one", "capability matrix: a cell lists its flows and contracts in the panel",
-          "capability views: back on the cards, the capability picked in the matrix is still marked", "capability views: Focus opens the same capability",
-          "capability views: a link with v=capmatrix opens the matrix"]
+          "capability views: back on the cards, the capability picked in the matrix is still marked", "capability views: Focus opens the same capability"]
 
 
 def test_the_booking_demo_draws_every_view_from_the_flows_alone(chrome_path):

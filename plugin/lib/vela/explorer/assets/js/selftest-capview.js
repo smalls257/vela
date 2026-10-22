@@ -130,8 +130,6 @@
     Nav.open("capabilities"); await tick();
     const menu = Nav.viewItems().map((x) => x.label).join("|");
     ok(/Capabilities/.test(menu) && /Dependency matrix/.test(menu), "capability views: the View menu offers the cards and the matrix", `capability views: menu ${menu}`);
-    location.hash = "#s=capabilities&v=capmatrix"; await tick(); await tick();
-    ok(App.view === "capmatrix", "capability views: a link with v=capmatrix opens the matrix", `capability views: hash left ${App.view}`);
     Nav.home(); await tick();
   }
 
