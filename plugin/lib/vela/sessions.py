@@ -219,7 +219,7 @@ _own = is_tool_state
 
 
 def clobbered(dirty, incoming):
-    """The uncommitted paths the switch to main and the pull would overwrite: the ones that need the lead."""
+    """The uncommitted paths that bringing in a challenge's branch would overwrite: the ones that need the lead."""
     coming = set(incoming)
     return [path for path in dirty if path in coming and not _own(path)]
 
@@ -254,12 +254,28 @@ def title_for(modes, topic, challenged=""):
     return f"{MODE_NAMES.get(modes[0], modes[0].capitalize())}: {topic.strip()}"
 
 
-def record_text(record_id, title, today, modes):
-    """A new session record, in the form START step 5 gives."""
+def record_text(record_id, title, today, modes, branch="", start_commit=""):
+    """A new session record, in the form START step 5 gives. `branch` and `start_commit` say where the session began, so
+    a second session on a reused branch can tell its own changes from the first one's (`close drafts`)."""
     quoted = title.replace("\\", "\\\\").replace('"', '\\"')
+    where = (f"branch: {branch}\n" if branch else "") + (f"start_commit: {start_commit}\n" if start_commit else "")
     return (f"---\nid: {record_id}\ntype: session\ntitle: \"{quoted}\"\ndate: {today}\nmodes: [{', '.join(modes)}]\n"
-            f"status: open\nsummary: In progress.\n---\n\n# {today} {title}\n\n## Captures\n\n## Changes\n\n"
+            f"status: open\nsummary: In progress.\n{where}---\n\n# {today} {title}\n\n## Captures\n\n## Changes\n\n"
             "| ID | From | To | Source |\n|---|---|---|---|\n")
+
+
+def start_commit_of(text):
+    """The commit the session began at, from its record's frontmatter, or "" for a record that doesn't say."""
+    meta, _, error = parse.split_frontmatter(text)
+    return "" if error is not None else str(meta.get("start_commit") or "").strip()
+
+
+def with_branch(text, branch):
+    """The record with its `branch:` line set to `branch`, added after `summary:` when it has none."""
+    line = f"branch: {branch}"
+    if re.search(r"^branch:.*$", text, re.M):
+        return re.sub(r"^branch:.*$", lambda _: line, text, count=1, flags=re.M)
+    return re.sub(r"^(summary:.*)$", lambda m: m.group(1) + "\n" + line, text, count=1, flags=re.M)
 
 
 def last_closed(metas):

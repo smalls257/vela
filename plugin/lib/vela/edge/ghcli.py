@@ -29,6 +29,7 @@ class Sent:
     why: str = ""
     url: str = None
     number: int = None
+    added: bool = False  # the body went onto a pull request the branch already had
 
 
 def push_args(branch, track):
@@ -106,3 +107,21 @@ def open_prs_for(root, branch):
     except ValueError:
         return None, f"gh printed something that isn't JSON: {ran.out.strip()[:200]}"
     return [p for p in found if isinstance(p, dict)] if isinstance(found, list) else [], ""
+
+
+NO_PR = "no pull requests found"
+
+
+def open_pr_on(root, branch):
+    """({number, url}, why): the open pull request whose head is `branch`, or (None, "") when it has none. `why` is gh's
+    words when it failed for any other reason; a failure is never read as "no pull request" (that would open a second)."""
+    ran, failed = _gh(root, ["pr", "view", branch, "--json", "number,url,state"])
+    if failed is not None:
+        return (None, "") if NO_PR in failed.why.lower() else (None, failed.why)
+    try:
+        found = json.loads(ran.out or "null")
+    except ValueError:
+        return None, f"gh printed something that isn't JSON: {ran.out.strip()[:200]}"
+    if isinstance(found, dict) and str(found.get("state", "")).upper() == "OPEN" and found.get("number"):
+        return found, ""
+    return None, ""

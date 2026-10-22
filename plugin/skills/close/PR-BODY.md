@@ -1,6 +1,6 @@
 # The sentences a reviewer reads first
 
-Read by close in section 8. `vela close pr` builds the rest of the body: the title, the reviewers, the consent list with the lead's words, what changed, the voice review, what was kept on Claude's suggestion, the overrides, the open and overdue questions, the check, the stage and the minutes. Don't repeat any of it.
+Read by close in section 8. `vela close pr` builds the rest of the body: the title, the reviewers, the consent list with the lead's words, what changed, the voice review, what was kept on Claude's suggestion, the overrides, the open and overdue questions, the check and the stage. Don't repeat any of it.
 
 Write two or three sentences, in the house voice:
 

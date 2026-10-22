@@ -171,6 +171,34 @@ def fast_forward(root, upstream):
     return code == 0, _words(err, out)
 
 
+def default_branch(root):
+    """The branch reviews go into: origin's HEAD when it says, else `main` or `master` as the repo has it, else `main`."""
+    code, out, _ = run_git(root, "symbolic-ref", "-q", "--short", "refs/remotes/origin/HEAD")
+    if code == 0 and out.startswith("origin/"):
+        return out[len("origin/"):]
+    for name in ("main", "master"):
+        if ref_exists(root, f"refs/heads/{name}") or ref_exists(root, f"refs/remotes/origin/{name}"):
+            return name
+    return "main"
+
+
+def head_commit(root):
+    """The full sha HEAD points at, or "" in a repo with no commit yet."""
+    code, out, _ = run_git(root, "rev-parse", "--verify", "--quiet", "HEAD^{commit}")
+    return out if code == 0 else ""
+
+
+def commits_between(root, base, tip):
+    """How many commits `tip` has that `base` lacks."""
+    return int(git_out(root, "rev-list", "--count", f"{base}..{tip}") or 0)
+
+
+def move_branch(root, branch, target):
+    """(ok, git's words): point the local `branch` at `target`. Only for a branch that is not checked out."""
+    code, out, err = run_git(root, "branch", "-f", branch, target)
+    return code == 0, _words(err, out)
+
+
 def create_branch(root, branch):
     code, out, err = run_git(root, "switch", "-c", branch, timeout=SWITCH_TIMEOUT)
     return code == 0, _words(err, out)

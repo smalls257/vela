@@ -3,7 +3,9 @@
 Close section 4 used to be a list the model walked by memory, so a skipped paragraph was invisible (Black Box). This
 command prints the checklist; the skill drafts each paragraph on it (Filter). What it reads, and why:
 
-- the pages changed since the branch point (`git diff` against the merge-base with main, plus untracked pages), or,
+- the pages changed since this session began (`git diff` against the `start_commit` its record holds, so a second
+  session on a reused branch owes only its own paragraphs; a record without one, or whose commit is no longer in this
+  branch's history, falls back to the merge-base with main), plus untracked pages, or,
   in a reader copy, the folder against its `.vela/baseline`, so a reader copy runs no git at all;
 - the vault as it is now, which `closedrafts` asks `query refs` of for each item resolved or decided this session;
 - the open session record, for its modes (an epics session owes each epic's own sections).
@@ -62,8 +64,17 @@ def branch_point(root):
     raise vaultgit.GitUnavailable("this branch shares no commit with main or origin/main")
 
 
-def git_changes(root):
-    return flowstore.changed_files(root, since=branch_point(root))
+def session_start(root, record):
+    """The commit to count changes from: the one the record began at, else the branch point."""
+    began = sessions.start_commit_of((root / record.path).read_text(encoding="utf-8"))
+    if began and sessiongit.ref_exists(root, began) and mergegit.is_ancestor(root, began, "HEAD"):
+        return began
+    return branch_point(root)
+
+
+def git_changes(root, record=None):
+    """The changed pages since the session began, or, with no record (a reviewer's whole-branch read), since the branch point."""
+    return flowstore.changed_files(root, since=session_start(root, record) if record else branch_point(root))
 
 
 def reader_changes(root):
@@ -105,7 +116,7 @@ def list_owed(args, out, cli):
     if early is not None:
         return commands.emit(early, args, out)
     after = cli.load_vault(root)
-    changes = page_changes(reader_changes(root) if reader else git_changes(root), cli.page_kind)
+    changes = page_changes(reader_changes(root) if reader else git_changes(root, record), cli.page_kind)
     changes = {p: t for p, t in changes.items() if (root / p).is_file()}
     found = closedrafts.owed(closedrafts.vault_before(after, changes), after, changes, record.modes)
     resolver = say.Resolver(after)
@@ -124,7 +135,7 @@ def as_data(found, record_id, reader):
 
 
 def default_lines(found, record_id, reader):
-    since = "its baseline" if reader else "the branch point"
+    since = "its baseline" if reader else "the session began"
     n = found.count
     out = [say.Line(f"close drafts: {n} paragraph{'' if n == 1 else 's'} owed for {record_id} (changes since {since}).")]
     for p in found.paragraphs:

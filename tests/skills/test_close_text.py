@@ -379,7 +379,7 @@ def test_close_keeps_its_existing_guards():
                  "never stages the inbox, `voice/local/` or `voice/corpus/`", "vela voice settle --checkpoint",
                  "vela voice settle --rewrites"):
         assert kept in CLOSE, kept
-    assert len(CLOSE_SKILL.split()) <= 2300
+    assert len(CLOSE_SKILL.split()) <= 2330
 
 
 # --- From tests/test_session_experience.py: What the skills make a lead go through (the constraints the skills put on a lead's session).

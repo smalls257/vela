@@ -21,6 +21,12 @@ with open({log!r}, "a", encoding="utf-8") as out:
 mode = os.environ.get("FAKE_GH", "ok")
 if args[:2] == ["api", "user"]:
     sys.exit(1)
+if args[:2] == ["pr", "view"]:
+    if os.environ.get("FAKE_GH_OPEN_PR"):
+        print(json.dumps({{"number": 9, "url": "https://github.invalid/mini/vault/pull/9", "state": "OPEN"}}))
+        sys.exit(0)
+    print("no pull requests found for branch " + args[2], file=sys.stderr)
+    sys.exit(1)
 if mode == "fail":
     print("HTTP 502: the fake GitHub is down", file=sys.stderr)
     sys.exit(1)
@@ -87,6 +93,20 @@ def test_reviewers_drop_own_handle_and_keep_teams(tmp_path, monkeypatch):
     assert "--head" in call["args"] and call["args"][call["args"].index("--head") + 1] == BRANCH
     assert call["args"][call["args"].index("--title") + 1] == f"{TODAY} Decisions: stock"
     assert "https://github.invalid/mini/vault/pull/7" in out
+
+
+def test_a_branch_with_an_open_pull_request_gets_the_session_added_not_a_second_one(tmp_path, monkeypatch):
+    log = fake_gh(tmp_path, monkeypatch)
+    monkeypatch.setenv("FAKE_GH_OPEN_PR", "1")
+    vault, _ = pushed(tmp_path)
+    code, out = pr(vault, "--for-lead")
+    assert code == 0, out
+    assert not created(log)
+    (comment,) = [c for c in calls(log) if c["args"][:2] == ["pr", "comment"]]
+    assert comment["args"][2] == "9" and "**Consent**" in comment["body"]
+    assert "already has a review open" in out and "pull/9" in out
+    code, out = pr(vault, "--json")
+    assert json.loads(out)["added_to_open"] is True
 
 
 def test_gh_failure_saves_body_and_says_one_sentence(tmp_path, monkeypatch):
@@ -203,11 +223,6 @@ def test_reviewer_handles():
     owners = ["@lead @mini/shop-team", "@priya", "@mini/shop-team"]
     assert prbody.reviewers(owners, "lead") == ["mini/shop-team", "priya"]
     assert prbody.reviewer_words(["mini/identity-team", "priya"]) == "Priya and the identity team"
-
-
-def test_minutes_from_the_commit_log():
-    assert prbody.minutes([1000, 1000 + 47 * 60]) == "about 47 minutes (from the commit log)"
-    assert prbody.minutes([1000]) == "not recorded"
 
 
 def test_overdue_and_open_questions_by_their_words():

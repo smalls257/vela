@@ -106,7 +106,7 @@ def test_start_steps_one_to_five_no_longer_carry_the_recipes():
 
 def test_start_keeps_bringing_main_in_and_freshness():
     one = section("1. Show the state of the clone")
-    assert "brings `main` up to the shared copy" in one and "never call the plan up to date" in one
+    assert "doesn't switch branches or pull `main`" in one and "`vela close sync-main`" in one and "never call the plan up to date" in one
     assert "`vela freshness`" in one
 
 

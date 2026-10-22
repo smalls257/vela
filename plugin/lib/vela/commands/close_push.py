@@ -26,11 +26,14 @@ it's checked whatever the host.
    uncommitted yes would be quoted in the PR but missing from the branch.
 5. The gate (`close_gate.observe` then `closegate.ready`, the same pair `close finish` composes): a session that isn't
    ready isn't sent.
-6. The push, to the branch the session sits on: `session/<id>` with `-u`, or, for an answer session, its challenge's
+6. The push, to the branch the session sits on (any branch but the default one: a pull request can't be opened from the
+   branch it goes into, so a session on main is told so and offered `vela session branch`, after the lead's yes): with
+   `-u`, or, for an answer session, its challenge's
    branch as it is (the answer lands in the challenge's PR). It leaves `.vela/close/<id>.push.json` (the branch, the
    head, the yes) for `close pr`.
 
-`close pr`: reviewers from `owner:` fields (the lead's own handle dropped, `vela whoami`; team handles kept as
+`close pr`: when the branch already has an open pull request (`gh pr view` on the branch), the session's body is added to
+it as a comment and no second one is opened; the lead is told so. Reviewers from `owner:` fields (the lead's own handle dropped, `vela whoami`; team handles kept as
 `org/team`), the body `prbody.body` builds (the Consent list now lives there, with the push yes added), and
 `gh pr create`; for an answer session, `gh pr comment` on the challenge's open PR instead. When `gh` fails, or prints
 no URL, the body is saved to `.vela/pr-body.md` and the lead hears one sentence; a PR is never said to exist unless
@@ -148,6 +151,23 @@ def find_session(root, command):
     return Session(record, text, branch)
 
 
+def refuse_default_branch(root, session, command):
+    """A pull request goes from a branch into the default branch, so a session sitting on the default branch has nothing
+    to open one from. Said in plain words with the way out, which is the lead's yes: moving the session's commits to a
+    new branch changes where the work lives. Nothing is committed to main and nothing is pushed."""
+    default = sessiongit.default_branch(root)
+    if session.branch != default or session.answer:
+        return
+    question = (f"This session is on {default}, and a review needs its own branch, so I haven't sent anything. Want me "
+                f"to move today's work onto a new branch for the review? {default.capitalize()} goes back to how it "
+                "was before.")
+    raise Stop(say.Result(command, exit=say.REFUSED, lines=[say.Line(
+        f"vela {command}: {session.id} is on {default}, and a pull request can't be opened from {default} into itself; "
+        f"nothing was pushed. With the lead's yes, run vela session branch to move the session's commits onto "
+        f"session/{session.id}, then run close push again.", plain=question)],
+        needs_lead=[{"ask": "move to a branch", "question": question, "answer_with": "vela session branch"}]))
+
+
 def can_send(root, command):
     """Refuse first in a reader copy, or on a host whose probe says sending fails (plan 7.3)."""
     if sessiongit.is_read_copy(root):
@@ -205,6 +225,7 @@ def cmd_push(args, out):
     try:
         can_send(root, PUSH)
         session = find_session(root, PUSH)
+        refuse_default_branch(root, session, PUSH)
         vault = cli.load_vault(root)
         if not args.consent:
             # Readiness first: asking "OK?" for a session that can't go yet asks the lead for a yes that is then
@@ -331,6 +352,7 @@ def cmd_pr(args, out):
         if sessiongit.is_read_copy(root):
             raise refused(PR, "vela close pr: a reader copy: no pull request is opened from here.", READER_SENTENCE)
         session = find_session(root, PR)
+        refuse_default_branch(root, session, PR)
         vault = cli.load_vault(root)
         result = open_pr(root, vault, session, args)
     except Stop as stop:
@@ -353,12 +375,6 @@ def pushed_marker(root, session):
                           f"--consent ^{marker.get('consent')} again so the remote has them.",
                       "Something changed after I sent the session. Shall I send it again?")
     return marker
-
-
-def commit_times(root):
-    out = vaultgit.git_out(root, "log", "--format=%ct", f"{close_gate.branch_point(root)}..HEAD",
-                           *vaultgit.plan_pathspec(root))
-    return [int(t) for t in out.split()]
 
 
 def body_facts(root, vault, session, marker, before_texts, before, args):
@@ -403,7 +419,7 @@ def body_facts(root, vault, session, marker, before_texts, before, args):
         overdue=prbody.overdue_lines(prbody.overdue_rows(vault, findings)),
         open_questions=prbody.open_question_lines(owed),
         catalog_gaps=prbody.catalog_gap_lines(questions.stats(vault), entries),
-        red_check=red, check=check, stage=stage, minutes=prbody.minutes(commit_times(root)))
+        red_check=red, check=check, stage=stage)
 
 
 def open_pr(root, vault, session, args):
@@ -420,20 +436,49 @@ def open_pr(root, vault, session, args):
         else:
             title = planscope.titled(vaultgit.plan_scope(root), prbody.title(
                 session.record.date, list(session.record.modes), session.record.title))
-            sent = ghcli.pr_create(root, session.branch, title, body_file, found)
-    data = {"url": sent.url, "number": sent.number, "reviewers": found, "title": title, "command": sent.command}
+            sent = add_to_open_pr(root, session, body_file)
+            if sent is None:
+                sent = ghcli.pr_create(root, session.branch, title, body_file, found,
+                                       base=sessiongit.default_branch(root))
+    added = sent.added
+    data = {"url": sent.url, "number": sent.number, "reviewers": found, "title": title, "command": sent.command,
+            "added_to_open": added}
     if not sent.ok:
         wrote = [sessiongit.write_text(root, BODY_FILE, text)]
         sentence = prbody.SAVED_COMMENT_SENTENCE if session.answer else prbody.SAVED_SENTENCE
         return say.Result(PR, exit=say.REFUSED, wrote=wrote, data={**data, "body_file": BODY_FILE}, lines=[
             say.Line(f"vela close pr: {sent.command} failed: {sent.why}. The body is in {BODY_FILE}; nothing says a "
                      "pull request exists.", plain=sentence)])
-    lines = [say.Line(f"{'commented on' if session.answer else 'opened'} {sent.url}",
-                      plain=(f"I added the answer to the challenge's pull request: {sent.url}" if session.answer
-                             else f"The pull request is open: {sent.url}"))]
+    lines = [pr_line(session, sent, data["added_to_open"])]
     if session.answer:
         return say.Result(PR, data=data, lines=lines)
     return write_pr_number(root, vault, session, sent, before_texts, data, lines)
+
+
+def pr_line(session, sent, added):
+    if session.answer:
+        return say.Line(f"commented on {sent.url}", plain=f"I added the answer to the challenge's pull request: {sent.url}")
+    if added:
+        return say.Line(f"{session.branch} already has an open pull request; added this session to it: {sent.url}",
+                        plain=f"This branch already has a review open, so I added today's session to it instead of "
+                              f"opening another: {sent.url}")
+    return say.Line(f"opened {sent.url}", plain=f"The pull request is open: {sent.url}")
+
+
+def add_to_open_pr(root, session, body_file):
+    """None when the branch has no open pull request. Otherwise the session's body goes on it as a comment, and the
+    result is a `ghcli.Sent` for that pull request (its own URL and number), or the failure of the lookup or the comment.
+    A second pull request for the same branch is never opened."""
+    found, why = ghcli.open_pr_on(root, session.branch)
+    command = f"gh pr view {session.branch} --json number,url,state"
+    if why:
+        return ghcli.Sent(False, command, why)
+    if found is None:
+        return None
+    said = ghcli.pr_comment(root, found["number"], body_file)
+    if not said.ok:
+        return said
+    return ghcli.Sent(True, said.command, url=found.get("url") or said.url, number=int(found["number"]), added=True)
 
 
 def comment_on_challenge(root, session, body_file):

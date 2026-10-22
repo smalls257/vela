@@ -170,7 +170,7 @@ def owner_report(local, upstream, behind, ahead, uncommitted, fetch_error, probl
     if behind:
         return Report("owner", NEWER, checked_at,
                       f"{whose[0].upper()}{whose[1:]} is {_plural(behind, 'commit')} behind the shared plan ({SHARED}); "
-                      f"run `vela session start` to bring it in.{_local_main(branch, main_behind)} I have not pulled. "
+                      f"run `vela close sync-main` to bring it in.{_local_main(branch, main_behind)} I have not pulled. "
                       f"({counts})", **facts,
                       lead=f"This copy is behind the shared plan: {_changes(behind)} others made since you last brought "
                            "it in. Want me to bring them in before we start?")
