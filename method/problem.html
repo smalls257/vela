@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The problem: why plans go wrong | How vela thinks</title>
+<link rel="stylesheet" href="method.css">
+<script>(function(){try{var t=localStorage.getItem("vela-theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){console.warn("vela: theme choice not read",e)}})();</script>
+<script src="method.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top"><a class="brand" href="../index.html">Vela</a><a href="index.html">How vela thinks</a><span class="where">Topic 1 of 7</span><button type="button" id="theme-toggle" class="theme-toggle"></button>
+<script>(function(){var b=document.getElementById("theme-toggle"),r=document.documentElement;function cur(){return r.getAttribute("data-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light")}function show(){var n=cur()==="dark"?"light":"dark";b.textContent=n==="light"?"Light":"Dark";b.setAttribute("aria-label","Switch to "+n+" theme")}b.addEventListener("click",function(){var n=cur()==="dark"?"light":"dark";r.setAttribute("data-theme",n);try{localStorage.setItem("vela-theme",n)}catch(e){console.warn("vela: theme choice not saved",e)}show()});show()})();</script></header>
+<main id="main">
+<h1>The problem: why plans go wrong</h1>
+<p class="lede">Between one sentence from a boss and the first ticket, five things go wrong, and they usually go wrong together. Vela is built so each one fails in the open instead of in silence.</p>
+<nav class="count" aria-label="On this page"><p>Six things below.</p><ol><li><a href="#vague-intent">Vague intent</a></li><li><a href="#decisions-nobody-recorded">Decisions nobody recorded</a></li><li><a href="#guesses-passed-off-as-facts">Guesses passed off as facts</a></li><li><a href="#apps-that-disagree-on-their-edges">Apps that disagree on their edges</a></li><li><a href="#work-with-no-traceable-reason">Work with no traceable reason</a></li><li><a href="#three-beliefs-under-everything">Three beliefs under everything</a></li></ol></nav>
+<section id="vague-intent"><h2>Vague intent</h2>
+<p>"A desk helper that tells you what matters each morning" could be a calendar briefing, a list of promises made on client calls, or a reminder service. Each is a different product with different apps behind it, and nobody notices until someone builds one.</p>
+<p>In the demo plan the lead wrote it down as it happened: "Honestly not sure what morning they were picturing." That became a recorded question with an owner. <em>Vela's answer:</em> <a href="ladder.html">a first session that organizes nothing</a>.</p>
+</section>
+<section id="decisions-nobody-recorded"><h2>Decisions nobody recorded</h2>
+<p>Someone agrees in a meeting that the admin view is its own app. Three weeks later a second team assumes it lives inside the main service. The decision was real but left no trace, so nobody can find it, question it or reverse it on purpose. <em>Vela's answer:</em> <a href="certainty.html">only a grill decides, and it keeps the why</a>.</p>
+</section>
+<section id="guesses-passed-off-as-facts"><h2>Guesses passed off as facts</h2>
+<p>The lead quotes "71 percent of staff missed a follow-up" from memory, and by page two everyone cites it. The demo plan's goals page says instead: "That's a belief, not a fact, because nobody has read the survey report." <em>Vela's answer:</em> <a href="certainty.html">every item has a state, and a fact has a source</a>.</p>
+</section>
+<section id="apps-that-disagree-on-their-edges"><h2>Apps that disagree on their edges</h2>
+<p>Team A thinks Team B's service never returns an empty answer. Team B thinks "empty" is normal and Team A will cope. Both are reasonable, and the product breaks at the join. <em>Vela's answer:</em> <a href="joins.html">contracts list every answer, and flows are checked</a>.</p>
+<details class="fold"><summary>Where this story comes from</summary><p>An illustration of the pattern: one team assumed an account already existed, the answer came back empty, the code read "empty" as "fine", later work built on it, and nobody owned the logic across teams.</p></details>
+</section>
+<section id="work-with-no-traceable-reason"><h2>Work with no traceable reason</h2>
+<p>Six months in, a developer asks why a story exists. If the answer is "someone said so", nobody can safely change it or drop it. <em>Vela's answer:</em> <a href="trust.html">every story traces back to a goal</a>.</p>
+<details class="fold"><summary>Where these five are stated</summary><p>The repository's own summary lists them: late questions, decisions never written down, open questions with no owner, beliefs treated as facts, work falling between teams, and stale notes (<a href="../../docs/PHILOSOPHY.html" data-repo="docs/PHILOSOPHY.html">PHILOSOPHY.md, "The problem, briefly"</a>). The remedies are in <a href="../../plugin/template/CONVENTIONS.md#certainty-and-sources" data-repo="plugin/template/CONVENTIONS.md#certainty-and-sources">Certainty and sources</a>, <a href="../../plugin/template/CONVENTIONS.md#questions-and-the-ledger" data-repo="plugin/template/CONVENTIONS.md#questions-and-the-ledger">Questions and the ledger</a>, <a href="../../plugin/template/CONVENTIONS.md#fact-bullets" data-repo="plugin/template/CONVENTIONS.md#fact-bullets">Fact bullets</a> and <a href="../../plugin/template/CONVENTIONS.md#epics-and-traceability" data-repo="plugin/template/CONVENTIONS.md#epics-and-traceability">Epics and traceability</a>.</p></details>
+</section>
+<section id="three-beliefs-under-everything"><h2>Three beliefs under everything</h2>
+<p>Vela's design choices, which the rest of the design follows.</p>
+<ol><li><strong>Assumptions are made visible, or they become incidents.</strong> Each is written down and checked, or recorded with an owner and a date. "Empty" and "missing" are never the same thing.</li><li><strong>Boundaries carry behavior, not just shape.</strong> If a contract doesn't say what each answer means, it isn't agreed.</li><li><strong>Someone owns the whole.</strong> The solution lead holds the logic between teams, and the plan is where it lives.</li></ol>
+<details class="fold"><summary>Where these are stated and enforced</summary><p>The repository turns these beliefs into rules: an assumption must carry an owner or a signpost (<a href="../../plugin/template/CONVENTIONS.md#questions-and-the-ledger" data-repo="plugin/template/CONVENTIONS.md#questions-and-the-ledger">ledger rows</a>), contracts list every answer (<a href="../../plugin/template/CONVENTIONS.md#fact-bullets" data-repo="plugin/template/CONVENTIONS.md#fact-bullets">Fact bullets</a>, pinned by <a href="../../tests/test_cases.py" data-repo="tests/test_cases.py"><code>test_cases.py</code></a>), and the lead holds the whole while teams hold their apps (<a href="../../plugin/template/CONVENTIONS.md#handoff" data-repo="plugin/template/CONVENTIONS.md#handoff">Handoff</a>, <a href="../../docs/PHILOSOPHY.html" data-repo="docs/PHILOSOPHY.html">PHILOSOPHY.md</a>).</p></details>
+</section>
+</main>
+<footer class="foot"><nav aria-label="Pages"><a rel="prev" href="index.html"><span>Before</span> All topics</a><a rel="next" href="ladder.html"><span>Next</span> From idea to tickets</a></nav>
+<p><a class="home" href="../index.html">&larr; Back to the Vela home page</a> &middot; <a href="index.html">All topics</a> &middot; <a href="reference.html">Words and sources</a></p></footer>
+</body>
+</html>
