@@ -5,15 +5,6 @@ summary: Give an app to its team lead, with what isn't settled said out loud
 ---
 When an app is ready for its team, you grill its handoff. It records what the team lead accepts, and what isn't settled yet, so nobody finds out later.
 
-::: sequence
-skills: grill, grill/HANDOFF
-You > Claude: Grill the app's handoff
-Claude > vela: `vela handoff preview`
-Claude > You: What the team takes and what's open
-You > Claude: A yes to send it
-vela > plan: `vela handoff` writes the record
-:::
-
 ::: type
 ```
 /vela:grill the Desktop agent's handoff

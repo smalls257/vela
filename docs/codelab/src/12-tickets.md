@@ -5,16 +5,6 @@ summary: The team lead designs and breaks down the work; vela turns it into tick
 ---
 The team lead takes it from here, in three sessions on the app's own branch: a technical design, a breakdown into stories and tasks, and the ticket list. You can run them yourself to see the result.
 
-::: sequence
-skills: tickets
-Claude > vela: `tickets check`
-Claude > You: What doesn't line up, four at a time
-You > Claude: Fix it, or go on and say so
-Claude > You: A Markdown list or a Jira CSV?
-You > Claude: Your pick
-vela > plan: `tickets write` makes tickets.md
-:::
-
 ::: type
 ```
 /vela:design Desktop agent

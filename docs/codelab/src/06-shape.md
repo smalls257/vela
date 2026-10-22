@@ -5,16 +5,6 @@ summary: Two or three options to react to, and a pick that stays not decided
 ---
 Shape gives you something concrete to react to. Claude lays out two or three options, never one and never more than three, and records the ones you turn down with the reason. What you pick stays "not decided yet" until a grill decides it.
 
-::: sequence
-skills: shape
-Claude > vela: `record add` for each option
-Claude > You: Two or three options, with costs
-You > Claude: Your pick, and why
-Claude > You: What must be true for it?
-You > Claude: Known, a belief, or a question
-vela > plan: At close, the pick is saved
-:::
-
 ::: type
 ```
 /vela:shape the first release

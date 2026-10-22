@@ -27,6 +27,10 @@ section.step>header .sum{margin:0 0 1rem;color:var(--soft)}
 .cl-asks blockquote{color:var(--ink);border-left-color:var(--grill)}
 .cl-see{background:var(--tint)}
 .cl-see pre{background:var(--bg)}
+.cl{min-width:0}
+.cl pre{overflow-x:auto;max-width:100%}
+.cl-see{overflow-x:auto}
+.cl table{display:block;max-width:100%;overflow-x:auto}
 .cl-checkpoint{border:2px solid var(--ok)}
 .cl-checkpoint>h3{color:var(--ok)}
 .cl-checkpoint>h3::before{content:"\2713  "}
@@ -37,20 +41,4 @@ section.step>header .sum{margin:0 0 1rem;color:var(--soft)}
 .step-nav a{display:inline-block;padding:8px 14px;border:1px solid var(--line);border-radius:10px;text-decoration:none;color:var(--ink);background:var(--tint)}
 .step-nav a.next-step{margin-left:auto;border-color:var(--accent)}
 .step-nav a span{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--soft)}
-/* sequence diagrams: lanes, one arrow lit at a time */
-.seq{margin:1rem 0;padding:12px 16px;border:1px solid var(--line);border-radius:12px}
-.seq-svg{width:100%;height:auto;display:block;background:var(--tint);border-radius:10px}
-.seq-svg .life{stroke:var(--line);stroke-width:2;stroke-dasharray:5 5}
-.seq-svg .lane rect{fill:var(--bg);stroke:var(--line);stroke-width:2}
-.seq-svg .lane text{fill:var(--ink);font-size:15px;font-weight:600;text-anchor:middle;dominant-baseline:central}
-.seq-svg .arrow line{stroke:var(--ink);stroke-width:2}
-.seq-svg .arrow text{fill:var(--ink);font-size:13px;text-anchor:middle;paint-order:stroke;stroke:var(--tint);stroke-width:5px}
-.seq-svg marker path{fill:var(--ink)}
-.seq.js .arrow{opacity:.18}
-.seq.js .arrow.past{opacity:.6}
-.seq.js .arrow.now{opacity:1}
-.seq.js .arrow.now line{stroke:var(--accent);stroke-width:3.5}
-.seq.js .arrow.now text{fill:var(--accent);font-weight:700}
-.seq .controls{margin:0 0 .6rem}
-.seq-list{margin:.4rem 0 .9rem 1.4rem;font-size:16px}
 @media print{.route,.progress,.left,.step-nav,.copy{display:none}.codelab.js section.step{display:block}}

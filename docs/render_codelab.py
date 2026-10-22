@@ -14,7 +14,6 @@ Source: one file per step, named NN-slug.md, with front matter title, minutes an
   asks        what Claude asks you (an example, labeled as one)
   see         what you should see after (real excerpts)
   checkpoint  how you know the step worked
-  sequence    who sends what to whom in the step: `skills: a, b`, then lines `You > Claude: words`, four to six of them
 The first and last steps need no Why. Every other step needs fold "Why this step" and fold "Stuck?".
 """
 import html
@@ -29,9 +28,6 @@ SRC = HERE / "codelab" / "src"
 OUT = HERE / "codelab" / "index.html"
 TITLE = "Plan your first initiative with vela"
 BLOCKS = {"type": "You type", "asks": "Claude asks you", "see": "What you should see", "checkpoint": "Checkpoint"}
-LANES = ["You", "Claude", "vela", "plan"]
-LANE_LABELS = {"You": "You", "Claude": "Claude", "vela": "vela", "plan": "The plan (git)"}
-MIN_ARROWS, MAX_ARROWS, MAX_LABEL = 4, 6, 42
 PLUGIN = HERE.parent / "plugin"
 
 
@@ -48,78 +44,6 @@ def read_refs():
     return refs
 
 
-def skill_file(name):
-    """skills named `dump` mean plugin/skills/dump/SKILL.md; `grill/HANDOFF` and `references/START` name the file."""
-    if name.startswith("references/"):
-        return PLUGIN / f"{name}.md"
-    return PLUGIN / "skills" / (f"{name}.md" if "/" in name else f"{name}/SKILL.md")
-
-
-def parse_sequence(lines):
-    """-> (skills, [(sender, receiver, text)]). Refuses what would make a diagram nobody can check against its skills."""
-    skills, arrows = [], []
-    for line in lines:
-        if not line.strip():
-            continue
-        head = re.match(r"^skills:\s*(.*)$", line)
-        if head:
-            skills = [s.strip() for s in head.group(1).split(",") if s.strip()]
-            continue
-        arrow = re.match(r"^(\w+) > (\w+): (.+)$", line)
-        if not arrow or arrow.group(1) not in LANES or arrow.group(2) not in LANES or arrow.group(1) == arrow.group(2):
-            raise StepError(f"sequence line '{line}' is not 'Lane > OtherLane: words' with lanes from {LANES}")
-        if len(arrow.group(3).replace("`", "")) > MAX_LABEL:
-            raise StepError(f"sequence label '{arrow.group(3)}' is over {MAX_LABEL} characters")
-        arrows.append(arrow.groups())
-    if not MIN_ARROWS <= len(arrows) <= MAX_ARROWS:
-        raise StepError(f"a sequence holds {MIN_ARROWS} to {MAX_ARROWS} arrows, this one has {len(arrows)}")
-    if not skills:
-        raise StepError("a sequence names the skills it describes: 'skills: dump, references/START'")
-    corpus = ""
-    for name in skills:
-        path = skill_file(name)
-        if not path.exists():
-            raise StepError(f"sequence skill '{name}' has no file at {path}")
-        corpus += path.read_text(encoding="utf-8")
-    for _, _, text in arrows:
-        for token in re.findall(r"`([^`]+)`", text):
-            if token not in corpus:
-                raise StepError(f"sequence names `{token}`, which none of the skills {skills} contain")
-    return skills, arrows
-
-
-SEQUENCES = [0]
-
-
-def render_sequence(lines, refs):
-    SEQUENCES[0] += 1
-    marker = f"seq-head-{SEQUENCES[0]}"
-    skills, arrows = parse_sequence(lines)
-    lanes = [l for l in LANES if any(l in (a[0], a[1]) for a in arrows)]
-    width, gap, top = 1040, 50, 84
-    height = top + gap * len(arrows) + 10
-    x = {lane: round(width / len(lanes) * (i + 0.5)) for i, lane in enumerate(lanes)}
-    parts = [f'<svg class="seq-svg" viewBox="0 0 {width} {height}" role="img" aria-label="Who sends what to whom">'
-             f'<defs><marker id="{marker}" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto-start-reverse">'
-             '<path d="M0 0L10 5L0 10z"/></marker></defs>']
-    for lane in lanes:
-        parts.append(f'<line class="life" x1="{x[lane]}" y1="44" x2="{x[lane]}" y2="{height}"/>'
-                     f'<g class="lane"><rect x="{x[lane] - 70}" y="8" width="140" height="34" rx="9"/>'
-                     f'<text x="{x[lane]}" y="25">{html.escape(LANE_LABELS[lane])}</text></g>')
-    items = []
-    for i, (sender, receiver, text) in enumerate(arrows):
-        y = top + gap * i
-        plain = html.escape(text.replace("`", ""))
-        mid = (x[sender] + x[receiver]) // 2
-        parts.append(f'<g class="arrow" data-i="{i}"><line x1="{x[sender]}" y1="{y}" x2="{x[receiver]}" y2="{y}" marker-end="url(#{marker})"/>'
-                     f'<text x="{mid}" y="{y - 9}">{plain}</text></g>')
-        items.append(f'<li><b>{html.escape(LANE_LABELS[sender])}</b> to <b>{html.escape(LANE_LABELS[receiver])}</b>: '
-                     f'{rm.inline(text, refs)}</li>')
-    parts.append("</svg>")
-    return (f'<figure class="seq" data-skills="{html.escape(", ".join(skills))}">{"".join(parts)}'
-            f'<details class="fold"><summary>The same exchange as a list</summary><ol class="seq-list">{"".join(items)}</ol></details></figure>')
-
-
 def render_body(lines, refs):
     out = []
     for piece in rm.split_blocks(lines):
@@ -132,8 +56,6 @@ def render_body(lines, refs):
             if name == "type":
                 inner = inner.replace("<pre>", '<div class="code"><button type="button" class="copy">Copy</button><pre>').replace("</pre>", "</pre></div>")
             out.append(f'<div class="cl cl-{name}"><h3>{BLOCKS[name]}</h3>{inner}</div>')
-        elif name == "sequence":
-            out.append(render_sequence(children, refs))
         elif name == "fold":
             out.append(rm.render_children(name, args, children, refs))
         else:
@@ -180,7 +102,6 @@ def step_nav(i, steps):
 
 
 def build():
-    SEQUENCES[0] = 0
     refs = read_refs()
     steps = load_steps()
     total = sum(int(m["minutes"]) for _, m, _ in steps)

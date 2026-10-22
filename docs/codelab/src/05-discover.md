@@ -5,15 +5,6 @@ summary: Read what already exists, and write down only what a source says
 ---
 Pick one. If you have documents (a brief, a tenant note, a survey), run Discover. If an initiative is already under way in documents, code and tickets, run Import, which shows a map of what it found before writing anything.
 
-::: sequence
-skills: discover
-You > Claude: Documents, ranked, with cuts
-Claude > You: "Here's what I think exists"
-You > Claude: Corrections, then a yes
-Claude > vela: `vela add unknown` for each clash
-Claude > plan: Cited facts into their pages
-:::
-
 ::: type
 Put the documents in the plan folder, then:
 

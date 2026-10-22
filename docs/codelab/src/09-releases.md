@@ -5,16 +5,6 @@ summary: When people first see it, what must hold that day, and each team's work
 ---
 Releases come first: a date someone outside the team will see, and the requirements, or only some of their checks, that must hold that day. Epics then cut the work for each team, each with a "done when" a tester can check.
 
-::: sequence
-skills: releases
-Claude > vela: `vela releases brief`
-Claude > You: "When do outsiders first see this?"
-You > Claude: A date, and who they are
-Claude > You: Must, can wait, or part?
-You > Claude: Your answer for each
-Claude > plan: Writes 04b-releases.md
-:::
-
 ::: type
 ```
 /vela:releases

@@ -5,16 +5,6 @@ summary: A grill is the only way something becomes decided
 ---
 A grill is a working session where vela asks you questions one at a time until a part of the plan is settled. Only a grill can mark something decided, and only after your explicit yes.
 
-::: sequence
-skills: grill
-Claude > You: A question, a suggestion, a reason
-You > Claude: Your answer
-Claude > You: Read-back: "Right?"
-You > Claude: A plain yes
-Claude > vela: `vela decide`
-vela > plan: Decision line written, then closed
-:::
-
 ::: type
 ```
 /vela:grill Admin console

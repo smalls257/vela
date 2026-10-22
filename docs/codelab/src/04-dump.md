@@ -5,16 +5,6 @@ summary: Get everything out of your head, ideas and worries and unknowns alike
 ---
 A dump is the first session. You talk, Claude writes each point down as its own numbered line in your words, and pushes back on nothing. Nothing reaches the plan's pages until you close the session.
 
-::: sequence
-skills: dump
-You > Claude: Ideas, worries and unknowns
-Claude > vela: `record add`, one numbered line each
-Claude > You: A "what if", labeled as Claude's
-Claude > You: Pre-mortem: "it failed, why?"
-Claude > vela: `vela close stage --checkpoint`
-vela > plan: Commits the session record
-:::
-
 ::: type
 In Claude Code, in the plan folder:
 

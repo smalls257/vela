@@ -5,15 +5,6 @@ summary: Make a folder, open Claude Code in it, and let vela start the plan
 ---
 A plan is a git repository of Markdown pages, one folder per initiative. You make an empty folder and ask for a first session. If there's no plan yet, Claude offers to start one, and that runs `vela new`.
 
-::: sequence
-skills: dump, references/START
-You > Claude: /vela:dump in an empty folder
-Claude > You: Offers a plan, asks its name
-You > Claude: "Heron Desk"
-Claude > vela: `vela new --title`
-vela > plan: Writes 48 files and commits them
-:::
-
 ::: type
 In a terminal:
 

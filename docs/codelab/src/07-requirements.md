@@ -5,16 +5,6 @@ summary: What the business needs with no app named, then where the apps divide
 ---
 Two sessions, in order. Requirements says what the business needs, once, naming no app, screen or technology. Boundary then turns a direction into apps: two or three ways to cut it, then one page per app.
 
-::: sequence
-skills: requirements, boundary
-Claude > You: One requirement and a suggested answer
-You > Claude: A yes, or what's missing
-Claude > vela: `vela add fr` for each yes
-vela > plan: Requirement page written
-Claude > You: Boundary: two or three cuts
-You > Claude: Your cut
-:::
-
 ::: type
 ```
 /vela:requirements
