@@ -33,7 +33,7 @@ BOLD_LABEL = re.compile(r"^\s*\*\*[^*]+:\*\*")  # "**Domain:** Sell": a label th
 MD_LINK = re.compile(r"\[[^\]]*\]\([^)]*\)")
 WORD = re.compile(r"[A-Za-z0-9][A-Za-z0-9'’@-]*")
 SPACES = re.compile(r"\s+")
-ABBREVIATION = re.compile(r"(?<![\w@./#-])[A-Z]{2,5}(?![\w-])")
+ABBREVIATION = re.compile(r"(?<![\w@./#&-])[A-Z]{2,5}(?![\w&-])")  # "AT&T", "R&D": a name joined by & is not an abbreviation
 SLUG_ID = re.compile(r"(?<![\w-])(?:APP|RUN|concern)-[a-z0-9]+(?:-[a-z0-9]+)*")  # APP-call-centre names a file, not a word
 SMALL_WORDS = {"of", "the", "and", "for", "to", "a", "an", "in", "on", "or", "by", "with"}
 
