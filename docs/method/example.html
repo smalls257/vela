@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A worked example | How vela thinks</title>
+<link rel="stylesheet" href="method.css">
+<script src="method.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top"><a class="home" href="index.html">How vela thinks</a><span class="where">Topic 7 of 7</span></header>
+<main id="main">
+<h1>A worked example</h1>
+<p class="lede">One sentence from a CIO, followed through the ladder on the Heron demo plan, with the plan's real words at each step.</p>
+<nav class="count" aria-label="On this page"><p>Four things below.</p><ol><li><a href="#what-this-is-and-isn-t">What this is, and isn&#x27;t</a></li><li><a href="#step-through-it">Step through it</a></li><li><a href="#what-to-notice">What to notice</a></li><li><a href="#try-it-on-a-committed-plan">Try it on a committed plan</a></li></ol></nav>
+<section id="what-this-is-and-isn-t"><h2>What this is, and isn't</h2>
+<p>Heron is a desktop helper for the 4,200-person company Marlowe. The session simulator made the plan, so it demonstrates the format and its real check output. It isn't evidence from a real initiative, and its handles read <code>@sim-lead</code>.</p>
+<details class="fold"><summary>Where the excerpts come from</summary><p>The excerpts are word for word, shortened with "...". The demo plan isn't in this repository: it was generated at <code>/tmp/demo-vault</code>, and its numbers were read from it and its dashboard on October 21, 2026, on the <code>release-0.5</code> branch at commit <code>77940a68</code>. The committed worked example is <a href="../../examples/unified-booking/" data-repo="examples/unified-booking/"><code>examples/unified-booking/</code></a>; run <code>vela check</code> and <code>vela explore</code> on it to see the same behavior.</p></details>
+</section>
+<section id="step-through-it"><h2>Step through it</h2>
+<p>Use Next and Back, or the arrow keys.</p>
+<div class="stepper" data-kind="steps" data-label="The Heron plan, step by step" id="heron"><div class="step-list"><div class="step" ><h3>The ask</h3><blockquote>The CIO wants "a desk helper for Mac and Windows that sets up in two minutes, quietly watches your meetings, email and documents, and tells you what matters each morning".</blockquote>
+<p>That's the only input. Everything after it is the ladder.</p></div><div class="step" ><h3>Dump: get it out of your head</h3><p>The lead's thoughts, worries and unknowns are filed in their own words, and Claude's what-ifs are parked.</p>
+<pre><code>- [idea] (claude) What if the morning briefing came first and alone, built from just the calendar, ... → park ^c04
+- [unknown] (solution lead) The CIO just gave me the one-liner and nothing since. Honestly not sure what morning they were picturing. → keep: UNK-055 (open) ^c08</code></pre>
+<p>The vague intent is now a recorded unknown with an owner. Nothing was decided.</p></div><div class="step" ><h3>Discover: what exists, and who disagrees</h3><p>Each document goes into the Library with a kind.</p>
+<pre><code>| SRC-006 | Microsoft 365 tenant note | IT endpoint lead | 2026-10-02 | exists | document | ... |
+| SRC-007 | CIO brief on Heron | CIO | 2026-09-30 | intends | document | ... |</code></pre>
+<p>Lines from the tenant note (<code>exists</code>) became facts, and lines from the CIO brief (<code>intends</code>) became assumptions. Where they disagreed, Discover didn't pick a side:</p>
+<pre><code>- [unknown] (claude) The CIO brief says staff install the helper themselves, while the tenant note says staff cannot install software and everything is pushed from Intune or Jamf. Two sources disagree; ... → keep: UNK-086 (open) ^c06</code></pre></div><div class="step" ><h3>Shape, and an override</h3><p>Shape recorded the pick, with the options it rejected and why.</p>
+<blockquote><strong>Options considered:</strong> Follow-ups owed after client calls (picked); morning calendar briefing on the laptop: rejected, Sam's team would only use Heron if it works on client calls; ...</blockquote>
+<p>The strategy page is still at <code>inkling</code>. The lead chose to write requirements against it anyway, which is an override on the page:</p>
+<blockquote><strong>Override:</strong> "If 04-solution-strategy.md is not decided, say so: requirements written against it may be written again." by @sim-lead on 2026-10-19: Go on—requirements will show us what questions the grill needs to ask anyway.</blockquote>
+<p>The rule was named, the person chose, the reason is on the page.</p></div><div class="step" ><h3>Requirements: what the business needs</h3><pre><code>### CAP-023.FR1 Summarize only fully opted-in calls
+
+- **State:** assumption
+- Heron summarizes a call only when every participant on it has opted in to Heron.
+  - Trace: UNK-093
+- A call with even one participant who hasn&#x27;t opted in gets no summary.</code></pre>
+<p>No app, screen or technology. Its first criterion traces to the open question about whether clients can opt in, so the plan shows what this depends on.</p></div><div class="step" ><h3>Boundary, allocation, and an honest gap</h3><p>The cut was four apps; the two- and three-app cuts were recorded with reasons. The first journey is drawn as a flow, FLO-001, in <a href="joins.html#flows-are-journeys-across-the-joins">five steps across the apps</a>.</p>
+<p>This plan didn't get as far as allocation, so the check says so for each requirement, with the command to run:</p>
+<pre><code>W505 Delete data from a switched-off source (CAP-023.FR3) is not decided yet, but no app has taken it on (no Requirements allocated row), so no team owns it. Fix: Run /vela:allocate CAP-023, or add a row for CAP-023.FR3 to the app page that delivers it.</code></pre></div><div class="step" ><h3>Releases and the tracer</h3><p>Release one, the February pilot, is dated, points at the tracer slice (SLC-005), and says what waits:</p>
+<pre><code>- **Target:** 2027-02-02
+- **Slices:** SLC-005
+
+| Delivers | Criteria | Note |
+|---|---|---|
+| ... CAP-022.FR2 Close a follow-up | AC1, AC2, AC3 | AC4 and AC5 in release two, no date yet |</code></pre>
+<p>"Done" for the tracer means: "a pilot user signs in, switches meetings on, the tenant admin has approved transcript access, and the next morning the user sees what they promised on a client call."</p></div><div class="step" ><h3>A grill, and a hold</h3><p>Claude read back what the Admin console is, and the lead said why and said yes:</p>
+<pre><code>- [thought] (@sim-lead) Out of hours is a service desk constraint anyway, and they&#x27;re eight to six with no cover—doesn&#x27;t change what the console is. → keep: APP-admin-console (decided) ^c02
+- [thought] (@sim-lead) Yes. → keep: APP-admin-console (decided) ^c03
+- [thought] (claude) Lead decided with Q-DAT-02@APP-admin-console and Q-OPS-01@APP-admin-console still open (W807). → park ^c05
+- [thought] (@sim-lead) Hold it. The services aren&#x27;t named and the flow isn&#x27;t drawn → drop: The lead&#x27;s hold on the Desktop agent; ... ^c06</code></pre>
+<p>The lead held the Desktop agent back and Claude didn't push it through. The console was decided with two catalog questions still open, and the session recorded that as W807.</p></div><div class="step" ><h3>Handoff, with what isn't settled</h3><p>The Desktop agent was handed to its team before its contracts were decided, as a recorded override. The record lists what the team accepted:</p>
+<pre><code>## Not settled at handoff
+
+- Desktop agent (APP-desktop-agent) is not decided yet: nobody has said yes to it.
+- Sign-in token (CON-021) is not decided yet: nobody has said yes to it.
+- Desktop agent calls Call items (CON-025) on Heron service, but no team has taken Heron service or designed it yet, so there is no design behind those calls to build against.</code></pre></div><div class="step" ><h3>Epics, and the stricter check</h3><p>The epic's criteria are things a tester could read over the phone, each with a trace line:</p>
+<pre><code>Each morning a person sees every promise they made on a client call that they haven&#x27;t marked done or dropped. ...
+
+- Trace: CAP-022.FR1, CON-025  ·  AC1</code></pre>
+<p>Then the stricter check refuses to call the epics finished:</p>
+<pre><code>E805 A high-priority question hasn&#x27;t been dealt with yet (it has no row in the question ledger), so the epics can&#x27;t be called finished: What customer data does it hold or receive, and on what lawful basis may it use that data? (Q-DAT-02@APP-desktop-agent) ...</code></pre>
+<p>A plain <code>vela check</code> on the same plan says "0 errors, 54 warnings." The stricter one says 29 errors. Both are true, and they answer different questions.</p></div><div class="step" ><h3>Design, breakdown and tickets</h3><p>The team's design is <code>complete-with-gaps</code> and names each guess as a guess. The breakdown puts the tracer first, and says where it rests on less than it should: "S-06, S-07 and S-08 rest on the design alone: no requirement in the vault says when they are done." The ticket for S-01 says "Release fit: cannot tell for 2027-02-02," with its reason.</p></div><div class="step" ><h3>What a reader sees</h3><p>The dashboard shows the map of the four apps, the flow playing step by step, "2 of 18 items settled and 0 of 49 questions answered," and who holds each answer. The plan doesn't claim to be further along than it is. That is the whole point.</p></div></div></div>
+</section>
+<section id="what-to-notice"><h2>What to notice</h2>
+<ul><li><strong>Every rule showed up as a recorded line.</strong> The override, the on-behalf decision, the disagreeing sources: each is on a page with a name and a date.</li><li><strong>The plan names its own holes,</strong> and the command that closes each.</li><li><strong>Two checks, two meanings.</strong> Well formed is not finished.</li><li><strong>Numbers carry a date.</strong> Counts here were read October 21, 2026, and will drift.</li></ul>
+</section>
+<section id="try-it-on-a-committed-plan"><h2>Try it on a committed plan</h2>
+<p>Run <code>vela check</code> and <code>vela explore</code> on <a href="../../examples/unified-booking/" data-repo="examples/unified-booking/"><code>examples/unified-booking/</code></a>, then read <a href="ladder.html">from idea to tickets</a> with the dashboard open beside it.</p>
+</section>
+</main>
+<footer class="foot"><nav aria-label="Pages"><a rel="prev" href="trust.html"><span>Before</span> Can I trust it</a><span></span></nav>
+<p><a href="index.html">All topics</a> &middot; <a href="reference.html">Words and sources</a></p></footer>
+</body>
+</html>
