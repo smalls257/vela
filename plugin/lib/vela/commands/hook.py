@@ -159,6 +159,8 @@ def cmd_bash(args, out):
     if not isinstance(command, str):
         return 0
     folder = marker_folder(payload)
+    if toolkit_repo(folder):
+        return 0
     if vault_for(folder) is not None:
         return answer(out, hookverdict.bash_verdict(command), payload)
     roots = plan_roots_around(folder) if "git" in command else []
@@ -179,6 +181,17 @@ def staged_in(folder, command):
     except vaultgit.GitUnavailable as exc:
         warn(f"couldn't read the index ({exc}); a commit here is treated as holding a plan's files", "bash")
         return None
+
+
+TOOLKIT_MARKER = ".vela-toolkit"
+
+
+def toolkit_repo(folder):
+    """True in vela's own source repo, which marks itself with a `.vela-toolkit` file at its root. Its template and
+    example plans are fixtures the toolkit's own developers change and commit, not anyone's plan, so the Bash hook's
+    staging and push rules stay out of it. No plan repo carries the marker: `vela new` never writes it."""
+    top = plans.repo_root(folder)
+    return top is not None and (top / TOOLKIT_MARKER).is_file()
 
 
 def plan_roots_around(folder):
