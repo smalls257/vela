@@ -57,7 +57,9 @@ def test_every_link_and_image_lands_on_a_real_file(built):
     missing = []
     for name, text in built.items():
         for target in re.findall(r'(?:href|src)="([^"#:]+)(?:#[^"]*)?"', text):
-            if not (SITE / target).resolve().exists():
+            base = DOCS / "site" if target == "../index.html" else SITE  # the home page sits one level up once published
+            home = base / "index.html" if base != SITE else SITE / target
+            if not home.resolve().exists():
                 missing.append(f"{name}.html -> {target}")
     assert not missing, missing
 

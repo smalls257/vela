@@ -262,12 +262,12 @@ def chrome(title, body, depth_note, nav_prev, nav_next, position):
 </head>
 <body>
 <a class="skip" href="#main">Skip to the page</a>
-<header class="top"><a class="home" href="index.html">How vela thinks</a>{where}</header>
+<header class="top"><a class="brand" href="../index.html">Vela</a><a href="index.html">How vela thinks</a>{where}</header>
 <main id="main">
 {body}
 </main>
 <footer class="foot"><nav aria-label="Pages">{prev_link}{next_link}</nav>
-<p><a href="index.html">All topics</a> &middot; <a href="reference.html">Words and sources</a></p></footer>
+<p><a class="home" href="../index.html">&larr; Back to the Vela home page</a> &middot; <a href="index.html">All topics</a> &middot; <a href="reference.html">Words and sources</a></p></footer>
 </body>
 </html>
 """
