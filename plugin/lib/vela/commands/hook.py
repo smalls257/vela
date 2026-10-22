@@ -139,8 +139,12 @@ def vault_of(path):
     return None
 
 
-def answer(out, verdict):
-    """Print a PreToolUse decision. No verdict prints nothing, which leaves the call to the normal permission flow."""
+def answer(out, verdict, payload=None):
+    """Print a PreToolUse decision. No verdict prints nothing, which leaves the call to the normal permission flow.
+    An "ask" is dropped when the person runs with bypassed permissions: they chose not to be prompted, so the hook
+    doesn't prompt either. A deny still denies: it guards the plan, not the person's attention."""
+    if verdict is not None and verdict.decision == "ask" and (payload or {}).get("permission_mode") == "bypassPermissions":
+        return 0
     if verdict is not None:
         print(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": verdict.decision,
                                                  "permissionDecisionReason": verdict.reason},
@@ -156,11 +160,11 @@ def cmd_bash(args, out):
         return 0
     folder = marker_folder(payload)
     if vault_for(folder) is not None:
-        return answer(out, hookverdict.bash_verdict(command))
+        return answer(out, hookverdict.bash_verdict(command), payload)
     roots = plan_roots_around(folder) if "git" in command else []
     if not roots:
         return 0
-    return answer(out, hookverdict.bash_verdict(command, str(folder.resolve()), roots, staged_in(folder, command)))
+    return answer(out, hookverdict.bash_verdict(command, str(folder.resolve()), roots, staged_in(folder, command)), payload)
 
 
 def staged_in(folder, command):

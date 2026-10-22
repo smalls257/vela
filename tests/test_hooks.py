@@ -166,6 +166,17 @@ def test_hook_push_asks(tmp_path):
     assert decision(bash(folder, "gh pr view 12")) is None
 
 
+def test_hook_never_prompts_when_permissions_are_bypassed(tmp_path):
+    """The owner runs with bypassed permissions and asked not to be prompted: an "ask" becomes no opinion, while a
+    deny (hand staging in a plan) still denies."""
+    folder = vault(tmp_path)
+    run = lambda command: hook("bash", {"hook_event_name": "PreToolUse", "tool_name": "Bash", "cwd": str(folder),
+                                        "permission_mode": "bypassPermissions", "tool_input": {"command": command}})
+    assert decision(run("git push origin session/x")) is None
+    assert decision(run("gh pr create --title x --body y")) is None
+    assert decision(run("git add -A")) == "deny"
+
+
 def test_hook_edit_inside_generated_denied(tmp_path):
     folder = vault(tmp_path)
     page = str(folder / "02-constraints.md")
