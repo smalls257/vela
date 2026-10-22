@@ -51,7 +51,7 @@ import io
 import pathlib
 import re
 
-from vela import closestate, commands, guard, planscope, progress, records, say, sessions
+from vela import closestate, commands, guard, planscope, privaterecord, progress, records, say, sessions
 from vela.commands import close_sync
 from vela.edge import hostprobe, mergegit, sessiongit, vaultgit
 from vela.edge.vaultgit import GitUnavailable
@@ -716,7 +716,10 @@ def open_record(root, args, today, modes, challenged, on_branch, lines, carried,
     rel = f"sessions/{record_id}.md"
     title = sessions.title_for(modes, args.topic, challenged)
     began = sessiongit.head_commit(root)
-    wrote = [sessiongit.write_text(root, rel, sessions.record_text(record_id, title, today, modes, branch, began))]
+    text = sessions.record_text(record_id, title, today, modes, branch, began)
+    if "challenge" in modes:
+        text = privaterecord.with_lists(text, {"challenges": [args.topic]})
+    wrote = [sessiongit.write_text(root, rel, text)]
     sessiongit.commit(root, f"Open session {record_id}", [rel])
     where = ", and your answer goes onto the challenge itself" if challenged else ""
     lines.append(say.Line(f"started: {record_id} on {branch}, modes: {', '.join(modes)}",
@@ -917,7 +920,7 @@ def ready_to_decide(result, root, vault, today):
     from vela.decisions import decide, ready, textedit
     from vela.edge import apply as disk
     staged = textedit.attach(decisions.Staged(vault, disk.reader(root)), today, [])
-    found = ready.waiting([text for _, _, text in sessiongit.folder_records(root)],
+    found = ready.waiting([privaterecord.stub_meta(text) for _, _, text in sessiongit.folder_records(root)],
                           lambda ident: decide.already(staged, ident) is not None)
     for entry in found:
         entry["name"] = vault.name_of(entry["id"])

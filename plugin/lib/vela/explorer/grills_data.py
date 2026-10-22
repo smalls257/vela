@@ -24,9 +24,9 @@ def keyed(vault, keys, ids):
 
 def row(vault, keys, found, library_ids):
     out = found.as_json()
-    # when and by whom, as plain words: which session said it stays in the vault
+    # when, as plain words: which session said it stays in the vault, and the words stay in the private file
     out["since"] = {k: v for k, v in out["since"].items() if k in ("date", "kept")}
-    out["yes"] = {k: v for k, v in out["yes"].items() if k in ("date", "quote", "who")}
+    out["yes"] = {k: v for k, v in out["yes"].items() if k == "date"}
     out.update({"key": key_of(vault, keys, found.id), "holdsUp": keyed(vault, keys, found.holds_up), "apps": keyed(vault, keys, found.apps),
                 "sources": [f"lib:{s}" for s in found.sources if s in library_ids]})
     return out

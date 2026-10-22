@@ -99,12 +99,12 @@
       const c = $(`.g-card[data-grill="${r.id}"]`);
       if (!c) { parts.push(`${r.id} has no card`); continue; }
       if (!/^Owner: /.test($(".g-owner", c).textContent)) parts.push(`${r.name}: no owner line`);
-      if (r.group === "said-yes" && !($(".g-quote", c) && $(".g-quote", c).textContent.includes(r.yes.quote))) parts.push(`${r.name}: the yes is not quoted`);
+      if (r.group === "said-yes" && ($(".g-quote", c) || c.textContent.includes("Yes,"))) parts.push(`${r.name}: the lead's words show on the card`);
       if (r.group === "one-away" && !/^(Waiting on|In the way): /.test($(".g-need", c).textContent)) parts.push(`${r.name}: no word on what is in the way`);
       if (r.group === "one-away" && r.missing.due && !$(".g-need", c).textContent.includes(day(r.missing.due))) parts.push(`${r.name}: no due date`);
       if (IDLIKE.test([".g-t", ".g-owner", ".g-need"].map((q) => ($(q, c) ? $(q, c).textContent : "")).join(" "))) parts.push(`${r.name}: an ID or handle shows`);
     }
-    ok(!parts.length, "grills: each card has an owner line; a said-yes card quotes the lead, a one-away card says what it waits on and by when", `grills: ${parts.join("; ")}`);
+    ok(!parts.length, "grills: each card has an owner line; a said-yes card shows no words, a one-away card says what it waits on and by when", `grills: ${parts.join("; ")}`);
 
     // a card opens in the right-hand panel
     const pick = rows.find((r) => r.group === "ready") || rows[0];
@@ -145,6 +145,16 @@
     click($("[data-act=clear-batch]")); await tick();
     ok(!$(".g-batch") && !Grills.st.batch.length, "grills: Clear the batch empties it", "grills: the batch is still there");
     DetailsPanel.clear();
+
+    // a said-yes grill shows the date as a link, never the words; the link opens the item itself
+    const yesRow = rows.find((r) => r.group === "said-yes");
+    if (yesRow) {
+      Grills.setViewer("*"); Grills.open(); await tick();
+      click($(`.g-card[data-grill="${yesRow.id}"] .g-open`)); await tick();
+      const receipt = $("#panel-body [data-act=open-receipt]");
+      ok(!!receipt && receipt.tagName === "BUTTON" && /^You said yes on /.test(receipt.textContent) && !$("#panel-body .g-quote"), "grills: a said-yes panel shows the date as a link and none of the words", `grills: receipt link ${receipt && receipt.textContent}, words ${!!$("#panel-body .g-quote")}`);
+      if (receipt) { click(receipt); await tick(); ok(!$("#panel-body [data-act=open-receipt]"), "grills: the You said yes link opens the item itself", "grills: the link left the grill panel showing"); }
+    }
 
     // an item's own details: a small Ready for a grill line, only when a grill could decide it
     const ready = rows.find((r) => r.group !== "one-away" && ent(r.key)), away = rows.find((r) => r.group === "one-away" && ent(r.key));

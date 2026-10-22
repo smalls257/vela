@@ -74,7 +74,7 @@ PAGE_TYPES = {
     },
     "session": {
         "required": ("id", "type", "date", "modes", "status", "summary"),
-        "optional": ("title", "branch", "start_commit"),
+        "optional": ("title", "branch", "start_commit", "ready", "challenges", "harvest_declined"),
         "states": None,
     },
     "sources": {

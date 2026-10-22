@@ -37,7 +37,7 @@ the record, by exact path. In a reader copy no git runs at all, and the marker s
 import datetime
 import pathlib
 
-from vela import commands, decisions, gates, say
+from vela import commands, decisions, gates, privaterecord, say
 from vela import override as overrides
 from vela.commands import apply as apply_command
 from vela.decisions import decide, ready, schema, textedit
@@ -164,7 +164,8 @@ def run(args, out):
 def cannot_decide_here(root, record, ident, args):
     """A yes in a shape, boundary, releases (...) session is kept, not lost: the item is listed as ready to decide in
     this record, `vela session brief` shows it to the next grill, and the model is told to offer the lead one now."""
-    text = ready.mark(record.text, ident, record.id, (args.yes or "").strip() or None)
+    marked = ready.mark(record.text, ident, record.id, (args.yes or "").strip() or None)
+    text = privaterecord.synced_stub(marked, marked)
     wrote = [sessiongit.write_text(root, record.path, text)] if text != record.text else []
     return say.Result(NAME, exit=say.REFUSED, wrote=wrote, data={"id": ident, "ready_to_decide": True},
                       refusals=[textedit.refusal(

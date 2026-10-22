@@ -21,12 +21,12 @@ already names the item and its state, so the yes is tied to the item mechanicall
 """
 import re
 
-from vela import say
+from vela import privaterecord, say
 from vela.decisions import consent, textedit
 
-HEADING = "Ready to decide"
+HEADING = privaterecord.READY_HEADING
 CANNOT_DECIDE = frozenset({"dump", "discover", "shape", "boundary", "requirements", "allocate", "releases"})
-LINE = re.compile(r"^- (?P<id>\S+): the lead said yes in (?P<session>\S+)(?: \((?P<yes>\^c\d+)\))?\s*$")
+LINE = privaterecord.READY_LINE
 YES_OPENERS = ("yes", "yeah", "yep", "yup", "agreed", "absolutely", "correct", "go ahead", "that's right",
                "thats right", "sounds good", "do it")
 KEPT_AT = "assumption"
@@ -67,15 +67,16 @@ def entries(record_text):
     return found
 
 
-def waiting(record_texts, is_decided):
-    """[{id, session}] across records, each item once, leaving out any `is_decided(id)` says is decided now."""
+def waiting(metas, is_decided):
+    """[{id, session}] across the records' frontmatter (`ready:` in each stub), each item once, leaving out any
+    `is_decided(id)` says is decided now. The session is the record's own id."""
     seen, found = set(), []
-    for text in record_texts:
-        for entry in entries(text):
-            if entry["id"] in seen or is_decided(entry["id"]):
+    for meta in metas:
+        for ident in privaterecord.listed(meta, "ready"):
+            if ident in seen or is_decided(ident):
                 continue
-            seen.add(entry["id"])
-            found.append({"id": entry["id"], "session": entry["session"]})
+            seen.add(ident)
+            found.append({"id": ident, "session": str(meta.get("id", ""))})
     return found
 
 

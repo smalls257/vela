@@ -6,7 +6,7 @@ import shutil
 import subprocess
 
 from conftest import run
-from vela import closefinish, closegate, handoff, parse, say
+from vela import closefinish, closegate, handoff, parse, privaterecord, say
 from sharing import git, make_vault, with_remote
 import session_files
 
@@ -242,6 +242,8 @@ def test_close_tells_the_lead_which_yeses_wait_for_a_short_grill(tmp_path):
     session_files.edit_record(
         vault, RECORD, "## Captures",
         f"## Ready to decide\n\n- CON-002: the lead said yes in {RECORD} (^c01)\n\n## Captures")
+    text = session_files.record_text(vault, RECORD)
+    session_files.write_record(vault, RECORD, privaterecord.synced_stub(text, text))
     assert run("render", "--vault", str(vault))[0] == 0
     code, out = finish(vault, "--for-lead")
     assert code == 0, out

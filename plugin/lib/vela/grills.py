@@ -10,7 +10,7 @@ A grill appears in one of three groups, and an item more than one thing away app
 unsettled is the plan itself, not a queue):
 
 - `said-yes`: a session that could not decide kept the lead's yes (`## Ready to decide`) and the item is still not
-  decided. The lead's own words ride along as the quote, so the grill opens by reading them back.
+  decided. Only the date rides along; the words stay in the private file, so the grill opens by asking the lead to say it again.
 - `ready`: the grill gate passes.
 - `one-away`: the gate names exactly one missing thing. It says who owes it and by when, where the plan knows.
 
@@ -20,7 +20,7 @@ the shell reads the flow checker's record only for those). It reads no disk and 
 import re
 from dataclasses import dataclass
 
-from vela import closegate, gates, grillowners, progress, say, schema, slices, trace
+from vela import gates, grillowners, progress, say, schema, slices, trace
 from vela.decisions import ready
 
 SAID_YES, READY, ONE_AWAY = "said-yes", "ready", "one-away"
@@ -47,7 +47,7 @@ class Grill:
     owner: tuple  # handles who run it: the grill owner, else the item's own owners
     owner_set: bool  # True when a grill owner was set with `vela grill owner`
     join: tuple  # handles asked to join
-    yes: dict  # {} unless said-yes: {"quote", "who", "session", "date", "title"}
+    yes: dict  # {} unless said-yes: {"session", "date", "title"}
 
     def as_json(self):
         return {"id": self.id, "name": self.name, "kind": self.kind, "group": self.group, "state": self.state,
@@ -59,7 +59,7 @@ class Grill:
 # ------------------------------------------------------------------ what is waiting on a yes
 
 def _session_info(vault):
-    """{session name: (date, title, text)} for every session record, so a yes can be dated and read back."""
+    """{session name: (date, title, text)} for every session record, so a yes can be dated."""
     return {s.name: (str(s.meta.get("date", "")), str(s.meta.get("title", s.name)), s.text) for s in vault.sessions}
 
 
@@ -76,25 +76,16 @@ def _exists(vault, ident):
 
 
 def yes_marks(vault):
-    """[{id, session, date, title, quote, who}]: each item a lead's kept yes still waits on, once, newest session kept
-    when it was marked twice. Items that are decided now, or are no longer in the plan, are left out."""
+    """[{id, session, date, title}]: each item a lead's kept yes still waits on, once. Items that are decided now, or
+    are no longer in the plan, are left out. The lead's words are not here: a stub carries the date, never the words."""
     sessions = _session_info(vault)
-    texts = [(name, info[2]) for name, info in sorted(sessions.items())]
-    waiting = ready.waiting([t for _, t in texts], lambda ident: not _exists(vault, ident) or _state(vault, ident) in DECIDED)
+    metas = [s.meta for s in sorted(vault.sessions, key=lambda s: s.name)]
+    waiting = ready.waiting(metas, lambda ident: not _exists(vault, ident) or _state(vault, ident) in DECIDED)
     out = []
     for entry in waiting:
-        date, title, text = sessions.get(entry["session"], ("", entry["session"], ""))
-        capture = _capture(text, entry["session"], entry["id"])
-        out.append({"id": entry["id"], "session": entry["session"], "date": date, "title": title,
-                    "quote": capture.quote if capture else "", "who": capture.origin if capture else ""})
+        date, title, _ = sessions.get(entry["session"], ("", entry["session"], ""))
+        out.append({"id": entry["id"], "session": entry["session"], "date": date, "title": title})
     return out
-
-
-def _capture(text, session, ident):
-    for entry in ready.entries(text):
-        if entry["id"] == ident and entry.get("yes"):
-            return closegate.captures(text).get(entry["yes"][2:])
-    return None
 
 
 def judged_ids(vault):
@@ -247,5 +238,5 @@ def waiting(vault, verdicts, today):
             holds_up=holds_up(vault, ident), apps=apps_of(vault, ident), sources=sources_of(vault, ident),
             missing=missing_thing(vault, verdict, run_by, resolver) if group == ONE_AWAY else {},
             owner=run_by, owner_set=entry is not None and bool(entry.owner), join=entry.join if entry is not None else (),
-            yes={k: mark[k] for k in ("quote", "who", "session", "date", "title")} if mark else {}))
+            yes={k: mark[k] for k in ("session", "date", "title")} if mark else {}))
     return sorted(found, key=lambda g: (GROUPS.index(g.group), -len(g.holds_up), g.id))

@@ -28,7 +28,7 @@ import io
 import json
 import pathlib
 
-from vela import closefinish, closegate, explorereport, handoffpreview, handoffwarn, planscope, say, schema, sessions
+from vela import closefinish, closegate, explorereport, handoffpreview, handoffwarn, planscope, privaterecord, say, schema, sessions
 from vela.edge import atomic, mergegit, sessiongit, stagegit, vaultgit
 
 # The explore report lines the lead hears after the dashboard line (close section 9): what the build went on without.
@@ -244,7 +244,7 @@ class Finish:
         from vela.decisions import decide, ready, textedit
         from vela.edge import apply as disk
         staged = textedit.attach(decisions.Staged(self.vault, disk.reader(self.root)), self.today, [])
-        found = ready.waiting([self.closed], lambda ident: decide.already(staged, ident) is not None)
+        found = ready.waiting([privaterecord.stub_meta(self.closed)], lambda ident: decide.already(staged, ident) is not None)
         names = [self.vault.name_of(e["id"]) for e in found]
         self.result.data["ready_to_decide"] = [e["id"] for e in found]
         if found:

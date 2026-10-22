@@ -34,6 +34,8 @@ import hashlib
 import re
 from dataclasses import dataclass, field
 
+from vela import privaterecord
+
 VOICE_TYPES = ("diagnosis", "decision", "how-it-works", "conversation")
 PAGE_TYPES = ("diagnosis", "decision", "how-it-works")
 STRUCTURED = "structured"
@@ -61,7 +63,7 @@ _TRAILER = re.compile(r"^(?:Co-Authored-By:\s*Claude\b|Claude-Session:)", re.I |
 _HUNK = re.compile(r"^@@ -(?P<old>\d+)(?:,(?P<old_n>\d+))? \+(?P<new>\d+)(?:,(?P<new_n>\d+))? @@")
 # Lines that start a block house-voice never voices: headings, tables, generated blocks, code, lists and quotes.
 UNVOICED_STARTS = ("#", "|", "<!--", "```", "- ", "* ", "> ")
-DECLINE = re.compile(r"^Harvest declined: PR (?P<pr>\d+) (?P<page>.+) (?P<hash>[0-9a-f]{12})\s*$")
+DECLINE = privaterecord.DECLINE
 
 
 @dataclass(frozen=True)
@@ -321,12 +323,12 @@ def decline_line(pr, page, digest):
     return f"Harvest declined: PR {pr} {page} {digest}"
 
 
-def declined(record_texts):
-    """{(pr, page, hash)} of every decline line in the records."""
+def declined(metas):
+    """{(pr, page, hash)} of every decline listed in the records' frontmatter (`harvest_declined:`)."""
     found = set()
-    for text in record_texts:
-        for line in text.splitlines():
-            match = DECLINE.match(line)
+    for meta in metas:
+        for entry in privaterecord.listed(meta, "harvest_declined"):
+            match = DECLINE.match(privaterecord.DECLINE_PREFIX + entry)
             if match:
                 found.add((int(match["pr"]), match["page"], match["hash"]))
     return found

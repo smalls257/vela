@@ -14,7 +14,7 @@ import json
 import pathlib
 import subprocess
 
-from vela import parse, voiceplan
+from vela import parse, privaterecord, voiceplan
 from vela.edge import atomic
 from vela.edge.vaultgit import GitUnavailable, git_out, run_git
 
@@ -109,8 +109,10 @@ def page_meta(root, page):
     return meta if error is None else None
 
 
-def record_texts(root):
-    return [p.read_text(encoding="utf-8") for p in sorted((pathlib.Path(root) / "sessions").glob("*.md"))]
+def record_metas(root):
+    """The frontmatter of every session stub, for the lists it carries (`harvest_declined`)."""
+    return [privaterecord.stub_meta(p.read_text(encoding="utf-8"))
+            for p in sorted((pathlib.Path(root) / "sessions").glob("*.md"))]
 
 
 def write_paragraph(root, pr, n, text):

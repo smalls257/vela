@@ -394,7 +394,11 @@ def new_id(item, view, prefix):
 
 
 def record_writes(record, view, new_text):
+    """The write for a record's new text, with its frontmatter lists (`ready`, `harvest_declined`) brought in step
+    with the body, so the committed header never disagrees with the words under it."""
+    from vela import privaterecord
     from vela.decisions.schema import Write
+    new_text = privaterecord.synced_stub(new_text, new_text)
     return [Write(record.path, new_text)] if new_text != (view.text(record.path) or record.text) else []
 
 

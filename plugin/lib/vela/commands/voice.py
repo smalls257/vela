@@ -29,7 +29,7 @@ import importlib
 import pathlib
 import re
 
-from vela import commands, say, voiceplan
+from vela import commands, privaterecord, say, voiceplan
 from vela.decisions import consent, record as records
 from vela.edge import atomic, sessiongit, voicegit
 from vela.edge.vaultgit import GitUnavailable
@@ -392,7 +392,7 @@ def collect(root, found, prs):
     if len(prs) >= voicegit.PR_LIMIT:
         lines.append(say.Line(f"{len(prs)} merged PRs came back, so older PRs were not checked."))
     voicegit.clear_harvest(root)
-    declined = voiceplan.declined(voicegit.record_texts(root))
+    declined = voiceplan.declined(voicegit.record_metas(root))
     for pr in prs:
         number = int(pr["number"])
         for offer in pr_offers(root, number, failures):
@@ -495,9 +495,10 @@ def decline_result(root, pr, page, digest):
     if problem is not None:
         return problem
     line = voiceplan.decline_line(pr, page, digest)
-    if (pr, page, digest) in voiceplan.declined([record.text]):
+    if (pr, page, digest) in voiceplan.declined([privaterecord.stub_meta(record.text)]):
         return say.Result(command, lines=[say.Line(f"already declined: {line}", "That one was already declined.")])
     text = voiceplan.with_decline(record.text, line)
+    text = None if text is None else privaterecord.synced_stub(text, text)
     if text is None:
         return refused(command, "voice-no-captures", "The session record has no captures section to write it under.",
                        f"Add a `## Captures` heading to {record.path}, then decline again.")

@@ -34,6 +34,7 @@ title: "Shape: the shop's extras"
 modes: [shape]
 status: closed
 summary: Shaped the shop's extras.
+ready: ["CON-013"]
 ---
 
 # 2026-01-12 Shape: the shop's extras
@@ -123,6 +124,7 @@ title: "Shape: how pricing answers"
 modes: [shape]
 status: closed
 summary: Shaped how Booking asks Pricing for a fare.
+ready: ["CON-003"]
 ---
 
 # 2026-10-20 Shape: how pricing answers
