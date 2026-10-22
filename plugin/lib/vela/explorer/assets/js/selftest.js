@@ -1440,6 +1440,14 @@ const SelfTest = (() => {
       const comps = $$("#inside-stage .in-box.component").length, stubs = $$("#inside-stage .in-stub").length, o = overlaps();
       ok(comps === d.components.length && stubs === d.stubs.length && !o.bad.length, `inside ${name}, components: ${comps} components and ${stubs} integration stubs, ${o.n} boxes and labels, no two overlap`,
         `inside ${name}, components: ${comps} of ${d.components.length}, ${stubs} of ${d.stubs.length} stubs; overlaps ${o.bad.slice(0, 3).join("; ")}`);
+      {  // opens at a size a reader can read, with the whole in a minimap; "Whole" fits all of it, and the tabs fold away
+        const holder = $("#inside-draw"), box = holder.getBoundingClientRect(), svg = $("svg", holder).getBoundingClientRect(), scale = +holder.dataset.scale;
+        const spills = svg.width > box.width + 1 || svg.height > box.height + 1;  // the minimap's own test: the drawing is bigger than its room
+        const mini = $("#inside-stage .in-mini"), view = mini && $(".in-mini-view", mini), shown = $$("#inside-stage .in-box.component").filter((g) => { const r = g.getBoundingClientRect(); return r.left >= box.left - 1 && r.right <= box.right + 1 && r.top >= box.top - 1 && r.bottom <= box.bottom + 1; });
+        ok(scale >= 0.85 && shown.length > 0 && (!spills || (mini && !mini.hidden && view && +view.getAttribute("width") > 0)),
+          `inside ${name}, components: opens at reading size (${scale.toFixed(2)}), ${shown.length} of ${comps} components in view${spills ? ", the whole in the minimap" : ", all of it in view"}`,
+          `inside ${name}, components: opens at ${scale.toFixed(2)} with ${shown.length} components in view; the drawing ${spills ? "spills" : "fits"} and the minimap is ${mini ? (mini.hidden ? "hidden" : "shown") : "missing"}`);
+      }
       {  // drag to pan (pan.js): the drawing's background scrolls its holder
         const holder = $("#inside-draw"), svg = $("svg", holder), was = [holder.scrollLeft, holder.scrollTop], r = svg.getBoundingClientRect();
         const can = holder.scrollWidth > holder.clientWidth + 1, ev = (type, x, y) => new PointerEvent(type, { bubbles: true, cancelable: true, clientX: x, clientY: y, button: 0, buttons: 1, isPrimary: true, pointerId: 11, pointerType: "mouse" });
@@ -1450,13 +1458,8 @@ const SelfTest = (() => {
         holder.scrollLeft = was[0]; holder.scrollTop = was[1];
         ok(holder.classList.contains("pannable") && (!can || went > 0), `inside ${name}, components: the drawing can be panned by dragging its background${can ? ` (it scrolled ${went} px)` : ""}`, `inside ${name}, components: pannable ${holder.classList.contains("pannable")}, scrolled ${went} px of a possible ${holder.scrollWidth - holder.clientWidth}`);
       }
-      {  // opens at a size a reader can read, with the whole in a minimap; "Whole" fits all of it, and the tabs fold away
-        const holder = $("#inside-draw"), box = holder.getBoundingClientRect(), svg = $("svg", holder).getBoundingClientRect(), scale = +holder.dataset.scale;
-        const spills = svg.width > box.width + 1 || svg.height > box.height + 1;  // the minimap's own test: the drawing is bigger than its room
-        const mini = $("#inside-stage .in-mini"), view = mini && $(".in-mini-view", mini), shown = $$("#inside-stage .in-box.component").filter((g) => { const r = g.getBoundingClientRect(); return r.left >= box.left - 1 && r.right <= box.right + 1 && r.top >= box.top - 1 && r.bottom <= box.bottom + 1; });
-        ok(scale >= 0.85 && shown.length > 0 && (!spills || (mini && !mini.hidden && view && +view.getAttribute("width") > 0)),
-          `inside ${name}, components: opens at reading size (${scale.toFixed(2)}), ${shown.length} of ${comps} components in view${spills ? ", the whole in the minimap" : ", all of it in view"}`,
-          `inside ${name}, components: opens at ${scale.toFixed(2)} with ${shown.length} components in view; the drawing ${spills ? "spills" : "fits"} and the minimap is ${mini ? (mini.hidden ? "hidden" : "shown") : "missing"}`);
+      {  // "Whole" fits all of it, and the tabs fold away
+        const holder = $("#inside-draw"), mini = $("#inside-stage .in-mini");
         const zoom = $$("#inside-stage .inside-frame .zoom-bar button");
         zoom[1].click();
         const whole = $("svg", holder).getBoundingClientRect(), now = holder.getBoundingClientRect();
