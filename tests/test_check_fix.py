@@ -132,3 +132,14 @@ def test_target_is_read_from_the_finding_or_fails_loudly():
     assert w326fix.target(ok) == "decided"
     with pytest.raises(w326fix.FixDrift):
         w326fix.target(Finding("01-goals.md", 7, "W326", "x", "Raise the page's state."))
+
+
+def test_set_state_changes_only_the_state_line_and_keeps_line_endings_and_escaped_links():
+    """A report said the fix broke links in table cells. It rewrites only the frontmatter state line: an escaped
+    label pipe in a table cell, and a page saved with Windows line endings, come back byte for byte."""
+    from vela import w326fix
+    row = "| G1 | Stop it (see [[02-constraints#Constraints\\|the constraints]]) | decided |"
+    for nl in ("\n", "\r\n"):
+        text = nl.join(["---", "id: goals", "state: inkling", "---", "", "| ID | Goal | State |", "|---|---|---|", row, ""])
+        after = w326fix.set_state(text, "decided")
+        assert after == text.replace("state: inkling", "state: decided")

@@ -69,7 +69,8 @@ def set_state(text, state):
     """`text` with its frontmatter `state:` line set to `state`; every other byte unchanged."""
     index, _ = frontmatter_state(text)
     lines = text.split("\n")
-    lines[index] = f"state: {state}"
+    ending = "\r" if lines[index].endswith("\r") else ""  # a page saved with Windows line endings keeps them
+    lines[index] = f"state: {state}{ending}"
     return "\n".join(lines)
 
 
