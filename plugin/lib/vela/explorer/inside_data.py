@@ -179,10 +179,10 @@ def depends_edges(design):
 
 
 def challenge_recorded(vault, vault_id):
-    """A session with mode `challenge` that names the ID: the vault has recorded the senior's challenge."""
+    """True when a session with mode `challenge` names the ID: the vault has recorded the senior's challenge. The
+    dashboard says only whether it is recorded, never which session."""
     pattern = re.compile(rf"\b{re.escape(vault_id)}\b")
-    return next((s.name for s in vault.sessions if "challenge" in (s.meta.get("modes") or []) and pattern.search(s.text)),
-                None)
+    return any("challenge" in (s.meta.get("modes") or []) and pattern.search(s.text) for s in vault.sessions)
 
 
 def inside(vault, keys, designs):

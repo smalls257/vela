@@ -227,7 +227,7 @@ function reasonText(r) {
 /* ------------------------------------------------------------------ the record, indexed */
 const KIND_WORD = { app: "App", runtime: "How it runs", contract: "Contract", party: "Outside service", external: "Outside service",
   unknown: "Open question", risk: "Risk", epic: "Epic", capability: "Capability", flow: "Flow", requirement: "Requirement",
-  decision: "Decision", concern: "Concern", session: "Session", section: "Plan section", page: "Page", slice: "Slice",
+  decision: "Decision", concern: "Concern", section: "Plan section", page: "Page", slice: "Slice",
   "stored-value": "Stored data", owner: "Person", bundle: "Contracts", lights: "Waiting", inside: "Inside this app", library: "Library item", grill: "Grill" };
 const CONTRACT = Object.fromEntries(D.map.contracts.map((c) => [c.id, c]));
 const UNKNOWN = Object.fromEntries(D.unknowns.map((u) => [u.id, u]));

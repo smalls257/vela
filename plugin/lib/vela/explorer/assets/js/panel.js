@@ -312,7 +312,7 @@ const Panel = (() => {
       if (o.names.length) out.push(h("div", { class: "note" }, "Also called: " + o.names.slice(0, 4).join("; ")));
       out.push(h("div", { class: "p-actions" }, h("button", { class: "btn", onclick: () => { showView("asks"); Asks.meet(e.title); } }, "Meet with them")));
       out.push(section("Open questions they own", openQ.length, openQ.length ? h("ul", { class: "mini-list" }, openQ.map((x) => unknownLine(x.key))) : empty("None open.")));
-      const rest = owned.filter((x) => !(x.kind === "unknown" && isOpen(UNKNOWN[x.key])) && x.kind !== "session");
+      const rest = owned.filter((x) => !(x.kind === "unknown" && isOpen(UNKNOWN[x.key])));
       out.push(section("Everything else they own", rest.length, rest.map((x) => refChip(x.key))));
     } else {
       if (e.kind === "runtime" && RUNTIME_TO_APP[k]) out.push(section("How this app runs", null, refChip(RUNTIME_TO_APP[k])));

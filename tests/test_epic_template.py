@@ -163,5 +163,6 @@ def test_a_design_may_cite_a_headed_criterion_by_its_id_even_when_the_numbers_ha
 def test_the_roles_data_rows_keep_the_numbered_shape_they_always_had():
     vault = cli.load_vault(HERON)
     rows = roles_data.epic_criteria(vault, type("K", (), {"page": lambda self, p: p.id, "names": readability.NameIndex(vault),
-                                                         "key_of": lambda self, e: e.id})())
+                                                         "key_of": lambda self, e: e.id,
+                                                         "without_sessions": lambda self, text, page: text})())
     assert rows["EPC-001"] and set(rows["EPC-001"][0]) == {"n", "heading", "html", "markers", "struck", "group", "trace"}

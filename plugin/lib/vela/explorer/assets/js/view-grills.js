@@ -280,11 +280,11 @@ const Grills = (() => {
   const bulletList = (items) => h("ul", { class: "g-list" }, items.map((t) => h("li", {}, t)));
   function standsLines(r) {
     const out = [];
-    if (r.since && r.since.date) out.push(r.since.kept ? `${stateWord(r.state)} since ${dayYear(r.since.date)}, in the session "${r.since.title}"` : `First named on ${dayYear(r.since.date)}, in the session "${r.since.title}"`);
-    else out.push(`${stateWord(r.state)}. No session record names it.`);
+    if (r.since && r.since.date) out.push(r.since.kept ? `${stateWord(r.state)} since ${dayYear(r.since.date)}` : `First named on ${dayYear(r.since.date)}`);
+    else out.push(`${stateWord(r.state)}. Nobody has named it yet.`);
     if (r.sources.length) out.push(`Rests on ${plural(r.sources.length, "source")}: ${r.sources.map(titleOf).join(", ")}`);
     out.push(r.group === "one-away" ? `One thing is in the way: ${waitingSentence(r)}` : "No open question is in the way");
-    if (r.group === "said-yes") out.push(`You said yes on ${dayYear(r.yes.date)}, in the session "${r.yes.title}"`);
+    if (r.group === "said-yes") out.push(`You said yes on ${dayYear(r.yes.date)}`);
     return out;
   }
   function chip(key) {
