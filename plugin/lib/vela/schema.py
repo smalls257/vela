@@ -372,6 +372,7 @@ CODES = {
     "W717": "CONVENTIONS.md is not the copy the plugin ships",
     "W718": "the initiative's title in .vela.yaml is still the template's placeholder",
     "W719": "git tracks one of vela's own working files under .vela/",
+    "W720": "a session's private notes are committed",
     "W334": "prose calls an answered question open",
     "E340": "release row names no functional requirement",
     "E341": "release row names a criterion the requirement does not have",

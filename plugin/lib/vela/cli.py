@@ -241,10 +241,31 @@ def tracked_tool_file_findings(root):
                           f"sure .gitignore lists {TOOL_IGNORE}.")]
 
 
+def tracked_private_findings(root):
+    """W720 when git tracks a session's private notes (a forced add got past the ignore line and the guard). Vela's own
+    source repo commits its fixtures' notes on purpose and marks itself with `.vela-toolkit`, so it is skipped. A git
+    that cannot answer is said, not read as "nothing tracked"."""
+    from vela.commands import hook
+    if hook.toolkit_repo(root):
+        return []
+    try:
+        tracked = vaultgit.tracked_paths(root)
+    except vaultgit.GitUnavailable as exc:
+        return [model.Finding(".gitignore", 1, "W720", f"I couldn't ask git which files it tracks ({exc}), so I "
+                              "haven't checked that session notes stay out of it.",
+                              "Run vela check again where git works.")]
+    return [model.Finding(path, 1, "W720",
+                          "This session record still holds its notes, so they're shared with everyone who clones the plan.",
+                          f"Run git rm --cached -- {path} and commit that (the file stays on disk), and make sure "
+                          ".gitignore lists sessions/private/.")
+            for path in tracked if privaterecord.is_private(path)]
+
+
 def vault_file_findings(root):
     """The findings about the vault's own files, which are not pages: its conventions copy, its config, its manifests
     and the working files git should not track."""
     return (conventions_findings(root) + config_findings(root) + manifest_findings(root) + tracked_tool_file_findings(root)
+            + tracked_private_findings(root)
             + gap_acknowledgement_findings(root) + library_file_findings(root))
 
 

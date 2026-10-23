@@ -87,3 +87,13 @@ def test_pre_commit_rejects_inbox(tmp_path):
 
     missing = git(repo, "commit", "-q", "-m", "oops", env={"VELA": str(tmp_path / "nowhere")})
     assert missing.returncode != 0 and "were not checked" in missing.stderr, "a hook that cannot run must not pass"
+
+
+def test_the_guard_refuses_a_staged_private_file_at_any_depth():
+    assert guard.forbidden(["plans/a/sessions/private/x.md"])[0][1] is guard.SESSION_PRIVATE
+    assert guard.forbidden(["Plans/A/Sessions/PRIVATE/x.md"])[0][1] is guard.SESSION_PRIVATE
+    assert guard.forbidden(["sessions/2026-10-14-x.md"]) == []
+
+
+def test_the_hook_comment_names_the_private_session_notes():
+    assert "session notes" in HOOK.read_text(encoding="utf-8").split("exec python3")[0].lower()
