@@ -18,8 +18,9 @@ before the quotes were required (`@raj, 2026-01-10: too slow`) still parses.
 import re
 from dataclasses import dataclass
 
-from vela import privaterecord
+from vela import closegate, override, privaterecord, questions
 from vela.decisions import textedit
+from vela.model import Finding
 
 _HANDLE = r"@?[A-Za-z0-9][\w./-]*"
 _DECISION = re.compile(
@@ -101,3 +102,58 @@ def parse_dissent(value):
     if words and len(words) >= 2 and words[0] == words[-1] == '"':
         words = words[1:-1]
     return Dissent(handle_ref(found["who"]), found["date"], words, found["see"] or "")
+
+
+# ---- the check (E315) --------------------------------------------------------------------------------------------
+
+
+def _predates_receipts(vault, bullet):
+    """Whether the bullet links a record from before receipts were required, so its line is left as it was: a stub
+    dated earlier than `records_split`, or a record still committed whole (a plan that has not split; W720 nags it).
+    A stub with no `records_split` key is not exempt."""
+    if not bullet.links:
+        return False
+    record = vault.page(bullet.links[0].target)
+    if record is None or record.type != "session":
+        return False
+    if questions.holds_its_words(record):
+        return True
+    split = vault.config.get("records_split")
+    return bool(split) and bool(record.meta.get("date")) and str(record.meta["date"]) < str(split)
+
+
+def _bare_link_is_overridden(page, bullet):
+    return any(closegate.QUOTED_YES_RULE in o.rules for o in override.valid_overrides(page, bullet.item))
+
+
+def _decision_problem(page, bullet):
+    receipt = parse_decision(bullet.value)
+    if receipt is None:
+        return ("is not a receipt. Write [[<session>]] c07, @who, naming the session, the capture and who said yes.")
+    if (receipt.ref is None or not receipt.who) and not _bare_link_is_overridden(page, bullet):
+        return ("has no capture or no one who said yes. Write [[<session>]] c07, @who, or record an override of "
+                f"{closegate.QUOTED_YES_RULE}.")
+    return None
+
+
+def receipt_rules(vault, today):
+    """E315: every `**Decision:**` and `**Dissent:**` bullet is in the receipt form, once per line. The Violation this
+    prevents is a Silent Fallback in the record: a free-text "Decision: the team agreed" reads like a yes that someone
+    gave. `vela check` judges the form only, because it does not know who the lead is; the close gate adds the lead
+    clause."""
+    for page in vault.pages:
+        seen = set()
+        for bullet in page.bullets:
+            if bullet.label not in ("Decision", "Dissent") or bullet.generated or bullet.line in seen:
+                continue
+            seen.add(bullet.line)
+            if _predates_receipts(vault, bullet):
+                continue
+            if bullet.label == "Decision":
+                problem = _decision_problem(page, bullet)
+            else:
+                problem = None if parse_dissent(bullet.value) else (
+                    "is not a Dissent. Write @who, <date>, with the words only when they said yes to being quoted.")
+            if problem:
+                yield Finding(page.path, bullet.line, "E315", f"The {bullet.label} line {problem}",
+                              "Use the receipt form in CONVENTIONS (Page level).")

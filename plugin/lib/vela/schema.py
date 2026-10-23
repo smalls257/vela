@@ -357,6 +357,7 @@ CODES = {
     "E311": "consumers name no app",
     "E312": "an OpenAPI or AsyncAPI spec sits in specs/, not library/specs/",
     "E313": "library row names a stored file that is not in the vault",
+    "E315": "a Decision or Dissent line is not in the receipt form",
     "E316": "decided while an open unknown blocks it",
     "E317": "a requirements session cannot decide",
     "E318": "decided contract has no Tested by",

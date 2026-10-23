@@ -412,7 +412,7 @@ def quotable_text(page):
     return _HTML_COMMENT.sub(" ", kept)
 
 
-def _holds_its_words(page):
+def holds_its_words(page):
     """True for a session record still committed whole (a plan not yet moved by `vela records split`): its words are in
     the plan, so a quote of them can be checked. A stub has a header and no body, and its words are on one machine."""
     _, body_start, _ = split_frontmatter(page.text)
@@ -432,7 +432,7 @@ def quote_problem(vault, value, label):
         return f"{label} cites [[{name}]], which is not a page in this vault"
     # Why only a stub: its words are on one machine, so nothing here can check a quote of them. A record still committed
     # whole (a plan not yet split; W720 flags it) has its words in the plan, so the quote stays checkable.
-    if page.type == "session" and not _holds_its_words(page):
+    if page.type == "session" and not holds_its_words(page):
         return (f"{label} quotes a session record, and a session's notes stay on the lead's machine; cite a source, "
                 "or the item that holds the answer")
     words = normal_text(match["text"])

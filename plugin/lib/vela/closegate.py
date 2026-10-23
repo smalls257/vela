@@ -107,9 +107,9 @@ class Problem:
 
 
 # What holds a close up, in the order the lead hears it: one line per kind when there is more than one of it.
-CONSENT, UNMARKED, CHECK, REMOVED_ROW, STRAY, RENDER, SYNC = (
-    "consent", "unmarked", "check", "removed", "stray", "render", "sync")
-KINDS = (SYNC, CONSENT, UNMARKED, CHECK, REMOVED_ROW, STRAY, RENDER)
+CONSENT, RECEIPT, UNMARKED, CHECK, REMOVED_ROW, STRAY, RENDER, SYNC = (
+    "consent", "receipt", "unmarked", "check", "removed", "stray", "render", "sync")
+KINDS = (SYNC, CONSENT, RECEIPT, UNMARKED, CHECK, REMOVED_ROW, STRAY, RENDER)
 
 
 @dataclass(frozen=True)
@@ -260,7 +260,8 @@ class Seen:
     choice. `stray` is every changed path the close's allow-list would leave out; `stale` the pages render would still
     rewrite (`render_problems` when render can't run at all). `flow` is ((default line, lead line), ...), one per slice
     this session's changes reach, and `flow_note` says why there are none when the check couldn't run. `host` is
-    `.vela/host.json` as read, or None."""
+    `.vela/host.json` as read, or None. `lead` is `(handle, display names)` from `vela whoami`, or None when no handle
+    is kept: then the receipt check's lead clause cannot run, and `vela check`'s form check is all that judges them."""
     today: str
     sync: object  # closestate.Verdict
     before: object = None
@@ -273,6 +274,7 @@ class Seen:
     hooks_ran: bool = False
     host: dict = None
     reader: bool = False
+    lead: object = None
 
 
 @dataclass(frozen=True)
@@ -480,6 +482,93 @@ def notes_of(seen):
     return notes
 
 
+# ------------------------------------------------------------------ the receipts this session wrote
+
+NO_WORDS = "The decision on {name} has none of your words on record yet."
+UNQUOTED = "{name}'s decision quotes someone who hasn't said yes to being quoted."
+
+
+def _speaker_is_lead(who, lead):
+    from vela.decisions import consent
+    handle, names = lead
+    return consent.same_handle(who, handle) or who.strip().casefold() in {n.casefold() for n in names}
+
+
+def _has_quote_yes(said, who):
+    from types import SimpleNamespace
+    from vela.decisions import consent
+    return consent.quote_yes(SimpleNamespace(captures=said), who) is not None
+
+
+def _new_bullets(vault, before):
+    """(page, bullet) for every Decision and Dissent bullet this session added or reworded since `before`."""
+    for page in vault.pages:
+        old = before.page(page.name)
+        was = {(b.label, b.value) for b in old.bullets} if old is not None else set()
+        for bullet in page.bullets:
+            if bullet.label in ("Decision", "Dissent") and not bullet.generated and (bullet.label, bullet.value) not in was:
+                yield page, bullet
+
+
+def _scope_name(vault, page, bullet):
+    return vault.name_of(bullet.item) if bullet.item else str(page.meta.get("title") or page.name)
+
+
+def receipt_problems(vault, before, record_id, part, record_text, lead):
+    """The lead clause of E315, which `vela check` cannot judge because it does not know who the lead is. For the
+    receipts on pages changed since `before` that cite this record and this part: a receipt whose who is the lead needs
+    the lead's words; a receipt or Dissent that quotes someone else needs that person's own `quote-yes` in this
+    session. A relayed yes has the lead as its origin, so it never counts for anyone else. With no known lead nothing
+    is judged here."""
+    from vela import receipts
+    if lead is None or before is None:
+        return []
+    said, out = captures(record_text), []
+    for page, bullet in _new_bullets(vault, before):
+        name = _scope_name(vault, page, bullet)
+        where = f"{bullet.item or page.id} at {page.path}:{bullet.line}"
+        if bullet.label == "Decision":
+            found = receipts.parse_decision(bullet.value)
+            if found is None or found.record != record_id or found.ref is None or found.ref.part != part or not found.who:
+                continue
+            words, who = found.words, found.who
+        else:
+            found = receipts.parse_dissent(bullet.value)
+            if found is None or found.see != record_id or not found.words:
+                continue
+            words, who = found.words, found.who
+        if _speaker_is_lead(who, lead):
+            if bullet.label == "Decision" and not words:
+                out.append(Problem(NO_WORDS.format(name=name), f"{where}: the receipt names {who} and holds no words",
+                                   "Quoting the lead's own words in the receipt clears it.", kind=RECEIPT))
+        elif words and not _has_quote_yes(said, who):
+            out.append(Problem(UNQUOTED.format(name=name), f"{where}: {who}'s words, with no quote-yes from {who}",
+                               f"Asking {who}, in the session, whether they may be quoted clears it; so does taking "
+                               "their words out of the line.", kind=RECEIPT))
+    return out
+
+
+def mark_target_problems(vault, record_text):
+    """A capture marked `keep: [[page#heading|ID]]` whose page or heading is not in the plan. `vela check` cannot
+    read the notes, so the gate is where a mark that points nowhere is stopped."""
+    from vela import markrules
+    out = []
+    for capture in captures(record_text).values():
+        mark = markrules.parse_mark(capture.mark)
+        for target in (mark.targets if mark else ()):
+            page = vault.page(target.page)
+            if page is None or not _heading_in(vault, page, target.heading):
+                out.append(Problem(f"Something you said was kept on a page I can't find a place for: {target.page}.",
+                                   f"^c{capture.n} keeps into [[{target.page}#{target.heading}|{target.id}]], which is not in the plan",
+                                   "Pointing the mark at a page and heading that exist clears it.", kind=CHECK))
+    return out
+
+
+def _heading_in(vault, page, heading):
+    row = vault.row_ids.get(heading)
+    return heading in [h.text for h in page.headings] or (row is not None and row[0] is page)
+
+
 def ready(vault, record_text, record_id, seen, part=1):
     """The whole gate, pure: a Readiness for one session record against what `seen` holds. `close gate` prints it and
     `close finish` refuses on it. The order is the order the lead fixes things in: main, decisions, filing, the tree."""
@@ -493,7 +582,9 @@ def ready(vault, record_text, record_id, seen, part=1):
     if seen.sync.blocks:
         problems.insert(0, Problem(seen.sync.plain, f"sync-main: {seen.sync.status or 'not run'}",
                                    "Running vela close sync-main clears it.", kind=SYNC, audience=seen.sync.audience))
+    problems += receipt_problems(vault, seen.before, record_id, part, record_text, seen.lead)
     problems += unmarked_problem(record_text)
+    problems += mark_target_problems(vault, record_text)
     problems += error_problems(seen.errors, vault)
     if seen.before is not None:
         problems += removal_problems(seen.before, vault, rows, said)

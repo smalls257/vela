@@ -5,7 +5,7 @@ Every rule runs on every page it can read. No rule stops the others.
 import datetime
 import re
 
-from vela import allocation, cases, deferrals, flows, handoffwarn, links, override, parse, pending, privaterecord, progress, questions, readability, readload, releases, render, schema, slices, sourcerows, trace, wording
+from vela import allocation, cases, deferrals, flows, handoffwarn, links, override, parse, pending, privaterecord, progress, questions, receipts, readability, readload, releases, render, schema, slices, sourcerows, trace, wording
 from vela.model import Finding, blocked_units, decided_goal_rows, goal_rows_at, meta_line
 
 
@@ -1506,4 +1506,4 @@ def session_note_rules(vault, today):
 
 RULES = (parse_errors, frontmatter_rules, duplicate_rules, link_rules, reference_rules, table_rules,
          history_rules, page_state_rules, stale_mention_rules, allocation_rules, release_rules, slice_rules, flow_sender_rules, flow_end_rules, flow_capability_rules, domain_rules, ask_rules, requirement_coverage_rules, contract_rules, case_table_rules, handoff_rules, deferral_rules, why_rules, wording_rules, requirement_rules, unknown_rules, risk_rules, subject_rules, question_rules, certainty_rules, stage_rules, concern_rules,
-         diagram_rules, block_rules, trace_rules, freshness_rules, link_field_rules, link_pipe_rules, reading_load_rules, session_note_rules)
+         diagram_rules, block_rules, trace_rules, freshness_rules, link_field_rules, link_pipe_rules, reading_load_rules, session_note_rules, receipts.receipt_rules)

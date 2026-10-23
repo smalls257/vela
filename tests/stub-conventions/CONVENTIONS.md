@@ -596,7 +596,7 @@ Run `vela check` from the vault root. It reads, never writes, and never stops at
 
 The table is generated from the codes `vela check` uses, so it cannot drift from them, and each finding's fix line says how to put it right. `vela upgrade` brings a vault's copy up to date.
 
-<!-- generated:check-codes sha=601feaf7: do not edit, run vela render -->
+<!-- generated:check-codes sha=08956284: do not edit, run vela render -->
 | Code | Finding |
 |---|---|
 | E101 | page has no frontmatter |
@@ -628,6 +628,7 @@ The table is generated from the codes `vela check` uses, so it cannot drift from
 | E311 | consumers name no app |
 | E312 | an OpenAPI or AsyncAPI spec sits in specs/, not library/specs/ |
 | E313 | library row names a stored file that is not in the vault |
+| E315 | a Decision or Dissent line is not in the receipt form |
 | E316 | decided while an open unknown blocks it |
 | W316 | decided while an open unknown blocks it, by override |
 | E317 | a requirements session cannot decide |

@@ -43,6 +43,7 @@ import re
 import time
 
 from vela import closegate, closestate, model, parse, privaterecord, say, sessions
+from vela.commands import apply
 from vela.edge import flowstore, hostprobe, mergegit, sessiongit, stagegit, vaultgit
 
 
@@ -163,7 +164,7 @@ def observe(root, vault, record, text, today):
     reader = mergegit.is_reader_copy(root)
     stale, render_problems = stale_render(root, vault)
     host = hostprobe.read_json(root / hostprobe.HOST_FILE)
-    common = dict(today=today, sync=mergegit.sync_verdict(root), errors=check_errors(vault, today), stale=stale,
+    common = dict(lead=apply.lead_of(root), today=today, sync=mergegit.sync_verdict(root), errors=check_errors(vault, today), stale=stale,
                   render_problems=render_problems, hooks_ran=(root / hostprobe.ACTIVE_FILE).is_file(), host=host or None,
                   reader=reader)
     if reader:
@@ -188,6 +189,7 @@ def run(args, out):
 KIND_WORDS = {
     closegate.SYNC: ("main changed the same pages we did", "main changed the same pages we did"),
     closegate.CONSENT: ("one decision needs your yes", "{n} decisions need your yes"),
+    closegate.RECEIPT: ("one decision's record needs a fix", "{n} decisions' records need a fix"),
     closegate.UNMARKED: ("some of what you said isn't sorted yet", "some of what you said isn't sorted yet"),
     closegate.CHECK: ("one item can't be finished as it stands", "{n} items can't be finished as they stand"),
     closegate.REMOVED_ROW: ("one thing was taken out this session", "{n} things were taken out this session"),
@@ -253,7 +255,7 @@ def judge_session(args, out):
     n = len(readiness.problems)
     head = (say.Line(f"close gate: ready to finish {record.id}.", plain="") if not n
             else say.Line(f"close gate: {n} thing{'' if n == 1 else 's'} before {record.id} can finish:", plain=""))
-    asks = any(p.audience == say.LEAD and p.kind in (closegate.CONSENT, closegate.CHECK) for p in readiness.problems)
+    asks = any(p.audience == say.LEAD and p.kind in (closegate.CONSENT, closegate.RECEIPT, closegate.CHECK) for p in readiness.problems)
     data = {"ready": readiness.ready, "consent": [c.__dict__ for c in readiness.consent],
             "problems": [p.__dict__ for p in readiness.problems], "notes": [p.__dict__ for p in readiness.notes]}
     result = say.Result("close gate", exit=say.DONE if readiness.ready else say.REFUSED,
