@@ -126,7 +126,9 @@ def judge(args, root, vault, record, lead):
 
 
 def show(listing, vault, lead):
-    lines = [say.Line(f"close readback: {len(listing)} sentence(s) to read back.")]
+    many = len(listing)
+    lines = [say.Line(f"close readback: {many} sentence(s) to read back.",
+                      plain=f"{say.count_words(many, capital=True)} sentence{'s' if many != 1 else ''} to read back.")]
     if lead is None and listing:
         lines.append(say.Line(NO_LEAD, plain=NO_LEAD_PLAIN))
     for s in listing:
@@ -211,11 +213,22 @@ def pick(ref, root, record, lead, picked, vault):
     capture = record.capture(ref)
     if capture is None:
         return _refused(f"{ref} is not in this session's notes.", "I can't find that in what you said.")
-    if not consent.may_quote(capture, SimpleNamespace(captures=record.captures), lead):
+    session = SimpleNamespace(captures=record.captures)
+    if not consent.may_quote(capture, session, lead):
+        if consent.agreed_but_unconfirmed(capture, session):
+            return _refused(f"{ref} is {capture.origin}'s and unverified: {consent.NOT_CONFIRMED}{consent.NOT_CONFIRMED_FIX}",
+                            consent.NOT_CONFIRMED)
         return _refused(f"{ref} is {capture.origin}'s, with no quote-yes from them.", NOT_THEIRS)
     number = int(capture.n)
     row = next((r for r in closegate.change_rows(record.text) if r.capture_number and int(r.capture_number) == number), None)
     entry = {"number": number, "words": capture.quote, "item": row.item if row else ""}
     kept = [p for p in picked if int(p["number"]) != number] + [entry]
     wrote = sessiongit.write_text(root, _file(root, record.id, "quotes"), json.dumps({"quotes": kept}, indent=2) + "\n")
-    return _done([wrote], f"close readback: picked ^c{number:02d} as a quote.", "Picked. It goes in the pull request as your words.")
+    whose = "your" if _is_the_lead(capture, lead) else "their"
+    return _done([wrote], f"close readback: picked ^c{number:02d} as a quote.",
+                 f"Picked. It goes in the pull request in {whose} words.")
+
+
+def _is_the_lead(capture, lead):
+    handle, names = lead
+    return consent.from_the_lead(capture, handle, names) is None

@@ -30,7 +30,7 @@ from dataclasses import dataclass, replace
 
 from vela import override, privaterecord, say, schema
 from vela.schema import QUOTED_YES_RULE
-from vela.said import is_unverified
+from vela.said import confirmed, is_unverified
 
 CONSENT_CLEAR = ("The lead's own yes, quoted in the session record with a Changes row citing it, clears it; so does "
                  "their override with a reason.")
@@ -353,10 +353,17 @@ def unmarked_problem(record_text):
     first = _first_words(left[0].words)
     said = (f"One thing you said isn't sorted yet: keep it, set it aside for later, or drop it? It was: '{first}'."
             if n == 1 else
-            f"{say.count_words(n, capital=True)} things you said aren't sorted yet: each needs a keep, a set aside "
+            f"{say.count_words(n, capital=True)} things {said_by(left)} aren't sorted yet: each needs a keep, a set aside "
             f"for later or a drop. The first was: '{first}'.")
     return [Problem(said, "unmarked: " + ", ".join(f"^c{c.n}" for c in left),
                     "Marking each one keep, park or drop clears it.", kind=UNMARKED)]
+
+
+def said_by(captures):
+    """'you said' when every unsorted line is one person's; 'said in the session' once other people's lines are among
+    them, so the lead is not told they said what a participant did."""
+    people = {confirmed(c.origin).lstrip("@").casefold() for c in captures if c.is_person}
+    return "you said" if len(people) <= 1 else "said in the session"
 
 
 def _first_words(words, limit=12):

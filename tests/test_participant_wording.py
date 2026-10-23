@@ -1,0 +1,78 @@
+"""What the lead hears about a participant's words: whose they are, when they are not confirmed as theirs yet, and how
+many sentences wait at the read-back. The pull request's "In their words" names who said a quote that is not the lead's."""
+import json
+
+from conftest import run
+from vela import closegate, prbody, say
+import session_files
+import test_close_readback as rb
+from test_close_readback import RECORD, closing_vault, readback
+
+ANA_YES = '- [quote-yes] (@cto-ana) "Yes, you can quote me." ^c10'
+UNCONFIRMED = '- [thought] (@cto-ana, unverified) "Ship it on Friday." → park ^c11'
+
+
+def with_ana(tmp_path, yes=True):
+    vault = closing_vault(tmp_path)
+    notes = session_files.record_text(vault, RECORD)
+    extra = ([ANA_YES] if yes else []) + [UNCONFIRMED]
+    session_files.write_private(vault, RECORD, notes.replace("\n## Changes", "\n" + "\n".join(extra) + "\n\n## Changes", 1))
+    return vault
+
+
+def test_picking_a_participants_confirmed_words_says_whose_they_are(tmp_path):
+    vault = with_ana(tmp_path)
+    code, out = readback(vault, "--pick", "^c08", "--for-lead")
+    assert code == 0, out
+    assert "Picked. It goes in the pull request in their words." in out and "your words" not in out
+    assert say.leak_in(out) is None
+    code, out = readback(vault, "--pick", "^c02", "--for-lead")
+    assert code == 0 and "in your words" in out
+
+
+def test_a_pick_on_unconfirmed_words_says_so_not_that_they_gave_no_yes(tmp_path):
+    vault = with_ana(tmp_path)
+    code, out = readback(vault, "--pick", "^c11", "--for-lead")
+    assert code == 1, out
+    assert "aren't confirmed as theirs yet" in out and "only with their own yes" not in out
+    assert say.leak_in(out) is None
+    code, detail = readback(vault, "--pick", "^c11")
+    assert "vela record confirm" in detail
+    no_yes = with_ana(tmp_path / "again", yes=False)
+    code, out = readback(no_yes, "--pick", "^c11", "--for-lead")
+    assert code == 1 and "only with their own yes" in out
+
+
+def test_records_show_on_unconfirmed_words_says_so(tmp_path):
+    vault = with_ana(tmp_path)
+    code, out = run("records", "show", RECORD, "c11", "--vault", str(vault), "--for-lead")
+    assert code == 1 and "aren't confirmed as theirs yet" in out and say.leak_in(out) is None
+
+
+def test_unsorted_lines_from_several_people_are_not_all_yours():
+    mixed = ['- [thought] (@priya) "One." ^c01', '- [thought] (@cto-ana) "Two." ^c02']
+    problem = closegate.unmarked_problem("## Captures\n\n" + "\n".join(mixed) + "\n")[0]
+    assert problem.plain.startswith("Two things said in the session aren't sorted yet")
+    alone = closegate.unmarked_problem("## Captures\n\n" + "\n".join(
+        ['- [thought] (@priya) "One." ^c01', '- [thought] (@priya) "Two." ^c02']) + "\n")[0]
+    assert alone.plain.startswith("Two things you said aren't sorted yet")
+
+
+def test_the_read_back_header_is_plain_for_the_lead(tmp_path):
+    vault = closing_vault(tmp_path)
+    code, out = readback(vault, "--for-lead")
+    assert out.splitlines()[0] == "Two sentences to read back." and "sentence(s)" not in out
+    assert "sentence(s)" in readback(vault)[1]
+
+
+class Vault:
+    def name_of(self, item):
+        return item
+
+
+def test_in_their_words_names_a_participant_but_not_the_lead():
+    captures = closegate.captures('- [thought] (@priya) "Mine." ^c01\n- [thought] (@cto-ana) "Fine by me." ^c08\n')
+    picked = [{"number": 1, "words": "Mine.", "item": ""}, {"number": 8, "words": "Fine by me.", "item": ""}]
+    lead = ("priya", ())
+    assert prbody.in_their_words(picked, Vault(), captures, lead) == [
+        '- Said in the session: "Mine."', '- Said in the session, said by cto-ana: "Fine by me."']

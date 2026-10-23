@@ -32,6 +32,8 @@ import re
 from dataclasses import dataclass, field
 
 from vela import closegate, privaterecord, receipts, say, schema, sessions
+from vela.decisions import consent
+from vela.said import confirmed
 
 # Plain names for PR titles. A mode not listed keeps its own name, capitalized.
 MODE_TITLES = {"dump": "Brainstorm", "discover": "Discovery", "shape": "Options", "boundary": "App boundaries",
@@ -178,14 +180,26 @@ def fingerprint_notes(stub_meta, part):
             if held == privaterecord.PENDING and n != part]
 
 
-def in_their_words(picked, vault):
-    """The lines the lead kept at the read-back, each by the item it concerns."""
+def in_their_words(picked, vault, captures=None, lead=None):
+    """The lines the lead kept at the read-back, each by the item it concerns. A quote that is a participant's, not the
+    lead's, names who said it: they said yes to being quoted, and a reader should not take it for the lead's words."""
     out = []
     for quote in picked:
         item = str(quote.get("item") or "")
         label = vault.name_of(item) if item else "Said in the session"
-        out.append(f'- {label}: "{quote["words"]}"')
+        speaker = speaker_of(quote, captures or {}, lead)
+        out.append(f'- {label}{f", said by {speaker}" if speaker else ""}: "{quote["words"]}"')
     return out
+
+
+def speaker_of(quote, captures, lead):
+    """The origin of a picked quote's capture when it is not the lead's, else "". Unknown lead: the origin is named."""
+    capture = captures.get(f"{int(quote['number']):02d}") or captures.get(str(int(quote["number"])))
+    if capture is None:
+        return ""
+    if lead is not None and consent.from_the_lead(capture, *lead) is None:
+        return ""
+    return confirmed(capture.origin).lstrip("@")
 
 
 def kept_on_claude(record_text, vault):

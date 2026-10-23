@@ -29,8 +29,10 @@ import dataclasses
 import pathlib
 import shutil
 import tempfile
+import types
 
 from vela import closegate, commands, handoff, planscope, privaterecord, publish, receipts, recordsplit, say, schema
+from vela.decisions import consent
 from vela.edge import idgit, plans, sessiongit, vaultgit
 
 VERIFY, SEAL, SPLIT, BACKUP, SHOW = ("records verify", "records seal", "records split", "records backup",
@@ -181,6 +183,8 @@ def show(root, record_id, ref_text):
         return refusal(NO_LEAD + NO_LEAD_FIX, NO_LEAD)
     lead = {name.casefold() for name in sessiongit.lead_names(root)} | {handle.lstrip("@").casefold()}
     if found.origin.strip().lstrip("@").casefold() not in lead:
+        if consent.agreed_but_unconfirmed(found, types.SimpleNamespace(captures=closegate.captures(notes))):
+            return refusal(consent.NOT_CONFIRMED + consent.NOT_CONFIRMED_FIX, consent.NOT_CONFIRMED)
         return refusal(NOT_THEIRS)
     return say.Result(SHOW, lines=[say.Line(f'"{found.quote}"')], data={"id": record_id, "ref": ref.text})
 

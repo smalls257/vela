@@ -426,7 +426,8 @@ def body_facts(root, vault, session, marker, before_texts, before, args):
         summary=summary, prose=prose,
         decisions=prbody.decision_lines(vault, session.id), push_line=prbody.push_words(marker.get("date", "")),
         in_their_words=prbody.in_their_words(closereadback.valid_picks(
-            close_gate.read_picked(root, session.id), closegate.captures(session.text), apply.lead_of(root)), vault),
+            close_gate.read_picked(root, session.id), closegate.captures(session.text), apply.lead_of(root)), vault,
+            closegate.captures(session.text), apply.lead_of(root)),
         fingerprint_note=prbody.fingerprint_notes(stub_meta(root, session), session.part),
         changed=prbody.what_changed(rows, vault, session.id, session.part), voice=prbody.voice_lines(voice, lambda p: titles.get(p, p)),
         kept_on_claude=prbody.kept_on_claude(session.text, vault),

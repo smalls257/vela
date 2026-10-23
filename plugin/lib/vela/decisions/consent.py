@@ -35,7 +35,7 @@ an override citing their reason, which then goes on record and into the Consent 
 import re
 
 from vela import closegate, say
-from vela.said import is_unverified
+from vela.said import confirmed, is_unverified
 from vela.decisions.schema import quote_hash
 
 # "Yes, but don't quote me" opens with a yes and takes it back; a negation anywhere after the opener is not a yes.
@@ -150,6 +150,17 @@ def quote_yes(record, origin):
                 and not NEGATION.search(capture.quote)):
             return capture
     return None
+
+
+NOT_CONFIRMED = ("They said yes to being quoted, but these words aren't confirmed as theirs yet, so I won't use them "
+                 "until they are.")
+NOT_CONFIRMED_FIX = " (Once they say they typed them, vela record confirm takes the mark off.)"
+
+
+def agreed_but_unconfirmed(capture, record):
+    """True when the person gave a quote-yes but this capture of theirs is still marked unverified: the refusal to quote
+    it is about whose words these are, not about whether they agreed to be quoted."""
+    return capture.unverified and quote_yes(record, confirmed(capture.origin)) is not None
 
 
 def may_quote(capture, record, lead):
