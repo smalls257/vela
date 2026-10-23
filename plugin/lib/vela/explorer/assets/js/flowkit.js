@@ -184,7 +184,7 @@ const FlowKit = (() => {
     } else if (u.kind === "section") {
       r.up = r.down = 15 * k;
     } else if (u.kind === "merge") {
-      const m = G.flow.starts.merge, n = G.flow.starts.options.length;
+      const m = G.flow.starts.merge, n = G.flow.starts.options.filter((o) => o.steps.length).length;
       const where = m.lane ? `${n === 2 ? "Both" : "All " + n} starts reach ${laneName(m.lane)} here.` : `The ${n === 2 ? "two" : n} starts join here.`;
       r.words = [where, `From step ${m.step} on, the flow is the same.`];
       MEASURE.font = FONT.say(k);
@@ -214,7 +214,7 @@ const FlowKit = (() => {
   }
   /* The starts and the folds the reader sees (flowview.js): which lanes are entry lanes, and which host folded lanes in. */
   const viewOf = (flow) => flow.view || { start: "all", hidden: new Set(), hosts: {}, folded: new Set(), pickable: {} };
-  const entryLanes = (flow) => (flow.starts ? flow.starts.options.map((o) => ({ lane: o.lane, id: o.id })) : []);
+  const entryLanes = (flow) => (flow.starts ? flow.starts.options.filter((o) => o.lane && LANE_INDEX[o.lane] !== undefined).map((o) => ({ lane: o.lane, id: o.id })) : []);
   function layoutAt(flow, box, k) {
     const { x, y, w, h: ht } = box;
     const gutter = 46 * k, bottomPad = 10 * k, view = viewOf(flow);

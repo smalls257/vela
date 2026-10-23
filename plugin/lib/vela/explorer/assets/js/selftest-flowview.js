@@ -130,6 +130,8 @@
       clean(key); Nav.open("flows", key); Flows.select(key, -1); await tick(); await tick();
       const btn = $("#simplify-btn");
       if (!btn || btn.getAttribute("aria-pressed") !== "false" || btn.textContent !== "Simplify") { bad.push(`${key}: no Simplify button`); continue; }
+      const answering = new Set(plain.steps.flatMap((x) => x.messages.flatMap((m) => (m.kind === "request" ? [m.to] : m.kind === "answer" ? [m.from] : []))));
+      for (const m of Object.values(hosts).flat()) if (!answering.has(m)) bad.push(`${key}: ${m} folds but never answers its partner`);
       const members = Object.values(hosts).flat(), before = FlowKit.touchedLanes(FlowKit.flowOf(key));
       if (!members.every((m) => before.has(m)) || !Object.keys(hosts).every((h) => hitOf("fold", h))) bad.push(`${key}: unfolded, a lane or its fold badge is missing`);
       btn.click(); await tick(); await tick();
@@ -212,6 +214,14 @@
     had.forEach(([k, v]) => HASH.append(k, v));
     if (other) Flows.select(other.key, -1);
     ok(back && (!other || (!FlowView.isHidden(other.key, lane) && !/hide=/.test(location.hash))), "hide: a link naming a hidden lane opens with it hidden; another flow starts with nothing hidden", `hide: the link gave ${back}`);
+    clean(key);
+    // a link naming what the flow doesn't have says so, never silently
+    const had2 = [...HASH.entries()];
+    HASH.set("open", key); HASH.set("fold", "APP-nothing"); HASH.set("start", "S9"); Flows.select(key, -1); Nav.open("flows", key); await tick();
+    const line = $("[data-ignored-link]");
+    for (const k of [...HASH.keys()]) HASH.delete(k);
+    had2.forEach(([k, v]) => HASH.append(k, v));
+    ok(!!line && /folding/.test(line.textContent) && /doesn't have any more/.test(line.textContent), "address: a link that names a fold or a start the flow doesn't have says so on the page", `address: the link's ignored words say "${line && line.textContent}"`);
     clean(key);
   }
 

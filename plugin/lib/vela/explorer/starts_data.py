@@ -4,7 +4,7 @@ A flow with more than one way in ("a customer browses page A" and "a customer ca
 one long list unless the page can say which steps belong to which way in. This module names the starts and says which
 numbered step belongs to which, so the page only reads it. Two sources, the first wins:
 
-- The diagram. A strict sequence diagram whose first statement is an `alt` names the flow's starts, one per alt/else
+- The diagram. A strict sequence diagram whose first statement (after any GIVEN) is an `alt` names the flow's starts, one per alt/else
   option, labeled by the option's own words. The diagram is read once, by the flow checker's parser
   (`flowcheck.mermaid.parse_tree`); nothing here parses mermaid. Each option's calls are tied to the numbered steps the
   way branches_data.py ties the diagram to lanes (`participant_keys`): a step belongs to an option when it carries the
@@ -16,11 +16,15 @@ numbered step belongs to which, so the page only reads it. Two sources, the firs
 
 One start, or none, is no starts at all: the page shows nothing extra (None).
 
+A start the diagram names that no numbered step carries stays in the record with no steps, and is listed under `unmatched`
+so the page says so; the diagram's starts are never swapped for a guess.
+
 The record on each flow (`flow["starts"]`, or None), and `step["start"]` on each step (the option's id, "" for a shared step):
 
     {"source": "diagram" | "guess", "guessed": bool,
      "options": [{"id": "S1", "label": "...", "lane": lane id, "steps": [step numbers]}],
-     "merge": {"step": first shared step number, "lane": lane id or ""} | None}
+     "merge": {"step": first shared step number, "lane": lane id or ""} | None,
+     "unmatched": [labels of starts with no step]}
 
 What it exists to prevent: a Paper Tiger flow page that lists both ways in as one numbered line of steps, so a reader
 cannot tell "either" from "both"; and a second reading of the diagram that drifts from the checker's (a Leaky
@@ -65,12 +69,10 @@ def from_diagram(vault, keys, catalog, page, flow, by_name):
     for b in tree.starts:
         calls = calls_within(b.body, people)
         options.append({"label": " ".join(b.label.split()), "calls": calls, "lane": calls[0][0] if calls else ""})
-    owner = tie_steps(flow["steps"], options)
-    kept = [i for i, o in enumerate(options) if any(v == i for v in owner.values())]
-    if len(kept) < 2:
-        return NO_STARTS
-    fill_gaps(flow["steps"], owner, kept)
-    return record(flow["steps"], owner, kept, options, source="diagram")
+    tail = calls_within(tree.tail, people)
+    owner = tie_steps(flow["steps"], options, tail)
+    fill_gaps(flow["steps"], owner, len(options))
+    return record(flow["steps"], owner, list(range(len(options))), options, source="diagram")
 
 
 def calls_within(nodes, people):
@@ -85,18 +87,24 @@ def calls_within(nodes, people):
     return found
 
 
-def tie_steps(steps, options):
-    """{step number: option index} for every step that carries a call of exactly one option: the same contract between the
+def tie_steps(steps, options, tail=()):
+    """{step number: option index} for the steps that carry a call of exactly one option: the same contract between the
     same two lanes, either way round (a step whose direction is inferred may draw the pair reversed). A step two options
-    claim goes to the one whose entry lane the step's text names, else to neither."""
-    owner = {}
+    claim goes to the one whose entry lane the step's text names, else to neither. The steps are read in order and the
+    reading stops at the first step that carries a call of the shared steps after the alt, or that would take a step back
+    to an earlier start: what follows is shared, even when it calls the same contract between the same lanes."""
+    owner, last = {}, 0
     for step in steps:
+        if any(carries(step, call) for call in tail):
+            break
         claims = [i for i, o in enumerate(options) if any(carries(step, call) for call in o["calls"])]
         if len(claims) > 1:
             named = [i for i in claims if options[i]["calls"] and options[i]["calls"][0][0] in step.get("named", [])]
             claims = named if len(named) == 1 else []
         if len(claims) == 1:
-            owner[step["n"]] = claims[0]
+            if claims[0] < last:
+                break
+            owner[step["n"]] = last = claims[0]
     return owner
 
 
@@ -106,15 +114,14 @@ def carries(step, call):
     return bool(frm and to) and any(m["contract"] == item and {m["from"], m["to"]} == ends for m in step["messages"])
 
 
-def fill_gaps(steps, owner, kept):
+def fill_gaps(steps, owner, count):
     """Steps between the previous option's last tied step and this option's last tied step belong to this option, so a
-    start's own steps ("The customer picks a room") travel with it. Options whose tied steps interleave are left as tied."""
-    order = [i for _, i in sorted((n, i) for n, i in owner.items())]
-    if order != sorted(order):
-        return
+    start's own steps ("The customer picks a room") travel with it."""
     floor = 0
-    for i in kept:
+    for i in range(count):
         mine = [n for n, o in owner.items() if o == i]
+        if not mine:
+            continue
         top = max(mine)
         for step in steps:
             if floor < step["n"] <= top:
@@ -174,16 +181,17 @@ def guess(steps, names=None):
 
 def record(steps, owner, kept, options, source, merge_lane=None):
     out = []
-    for n, i in enumerate(kept, 1):
+    for i in kept:
         mine = [s["n"] for s in steps if owner.get(s["n"]) == i]
         lane = options[i].get("lane") or entry_lane(steps, mine)
-        out.append({"id": f"S{n}", "label": options[i]["label"], "lane": lane, "steps": mine})
-    last = max(n for o in out for n in o["steps"])
-    shared = next((s for s in steps if s["n"] > last and s["n"] not in owner), None)
+        out.append({"id": f"S{i + 1}", "label": options[i]["label"], "lane": lane, "steps": mine})
+    tied = [n for o in out for n in o["steps"]]
+    shared = next((s for s in steps if tied and s["n"] > max(tied) and s["n"] not in owner), None)
     if merge_lane is None:
         merge_lane = common_target(options, kept)
     merge = {"step": shared["n"], "lane": merge_lane} if shared is not None else None
-    return {"source": source, "guessed": False, "options": out, "merge": merge}
+    # a start the diagram names that no numbered step carries is said, never dropped
+    return {"source": source, "guessed": False, "options": out, "merge": merge, "unmatched": [o["label"] for o in out if not o["steps"]]}
 
 
 def entry_lane(steps, numbers):

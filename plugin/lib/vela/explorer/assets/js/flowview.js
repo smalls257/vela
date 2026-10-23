@@ -8,7 +8,7 @@
    start is picked. Nothing here draws, and nothing here changes the record: the steps and starts come from the build
    (flows_data.py, starts_data.py).
 
-   A lane can fold into another when it talks to exactly one other lane, which itself talks to at least two, and it is not
+   A lane can fold into another when it talks to exactly one other lane, answers it at least once, that lane itself talks to at least two, and it is not
    where the flow starts (a start lane, or with one way in, the lane the first step is in): fold it and its steps read as one step on the other ("Booking prices the stay and takes the
    deposit, via Pricing, Ledger"), with the numbers it hid kept ("5–9"). "Simplify" folds every lane that can. Hiding is
    the reader's own: any lane can go to a narrow dashed column that says its name and how to show it. */
@@ -48,9 +48,12 @@ const FlowView = (() => {
     const entry = startsFor(flow), first = flow.steps[0] ? actorsOf(flow.steps[0])[0] : null;
     const starts = new Set(entry ? entry.options.map((o) => o.lane) : first ? [flow.steps[0].messages[0] ? flow.steps[0].messages[0].from : first] : []);
     for (const s of flow.steps) for (const m of s.messages) { (partners[m.from] ||= new Set()).add(m.to); (partners[m.to] ||= new Set()).add(m.from); }
+    // a lane answers when a request was made of it (its answer comes back) or one of its messages is an answer
+    const answers = new Set();
+    for (const s of flow.steps) for (const m of s.messages) { if (m.kind === "request") answers.add(m.to); if (m.kind === "answer") answers.add(m.from); }
     const groups = {};
     for (const id of Object.keys(partners)) {
-      if (starts.has(id) || partners[id].size !== 1) continue;
+      if (starts.has(id) || partners[id].size !== 1 || !answers.has(id)) continue;
       const host = [...partners[id]][0];
       if (partners[host].size >= 2 && LANE_INDEX[id] !== undefined) (groups[host] ||= []).push(id);
     }
@@ -103,7 +106,12 @@ const FlowView = (() => {
       hosts[host] = { members, folded: foldedNow, open: pins.filter((p) => ASK[p.id] && ASK[p.id].state === "open").length };
     }
     const entry = startsFor(base), start = entry && entry.options.some((o) => o.id === v.start) ? v.start : "all";
-    const flow = { ...base, starts: entry, steps: folding ? foldSteps(base.steps, hostOf) : base.steps, view: { start, hidden: new Set([...v.hidden].filter((id) => touched.has(id))), hosts, groups } };
+    // what a pasted link asked for that this flow no longer has, said on the page rather than dropped
+    const ignored = [];
+    if (!base.branch && v.start !== "all" && start === "all") ignored.push(`a start (${v.start})`);
+    for (const h of v.folded) if (!groups[h]) ignored.push(`folding ${titleOf(h)}`);
+    for (const l of v.hidden) if (!touched.has(l)) ignored.push(`hiding ${titleOf(l)}`);
+    const flow = { ...base, starts: entry, steps: folding ? foldSteps(base.steps, hostOf) : base.steps, view: { start, hidden: new Set([...v.hidden].filter((id) => touched.has(id))), hosts, groups, ignored } };
     cache[key] = { tag, flow };
     return flow;
   }

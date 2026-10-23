@@ -239,8 +239,8 @@ const Flows = (() => {
     box.innerHTML = "";
     if (st.cur === -1) {
       const e = E[st.key];
-      box.append(h("div", { class: "cap-where" }, h("span", {}, `${e.state ? stateWord(e.state) : "Nobody has given this flow a state yet"} \u00b7 ${plural(f.steps.length, "step")}`), h("span", { class: "muted" }, "Press space to play, or pick a step")),
-        h("div", { class: "cap-title" }, e.title), ...[startsLine(f), inferredLine()].filter(Boolean));  // native append prints a null as "null"
+      box.append(h("div", { class: "cap-where" }, h("span", {}, `${e.state ? stateWord(e.state) : "Nobody has given this flow a state yet"} \u00b7 ${plural(f.steps.length, "step")}${f.steps.length !== plainCount(f) ? ` shown of ${plainCount(f)}` : ""}`), h("span", { class: "muted" }, "Press space to play, or pick a step")),
+        h("div", { class: "cap-title" }, e.title), ...[startsLine(f), ignoredLine(f), inferredLine()].filter(Boolean));  // native append prints a null as "null"
       return;
     }
     const stp = f.steps[st.cur];
@@ -287,12 +287,20 @@ const Flows = (() => {
     if (named.length) facts.append(h("li", {}, h("i", { class: "lane-dot named" }), h("span", { class: "heuristic" }, "Also mentioned in the step: ", named.map((k) => refChip(k)))));
   }
   /* Where the flow starts, in a sentence: under the overview, and under a step that belongs to one start. A guess says so. */
+  const plainCount = (f) => FlowKit.flowOf(f.key, { plain: true }).steps.length;  // the steps before anything is folded
   function startsLine(f, stp) {
     if (!f.starts) return null;
     const names = f.starts.options.map((o) => o.label), own = stp && stp.start ? f.starts.options.find((o) => o.id === stp.start) : null;
     const words = stp ? (own ? `This step is only in the start "${own.label}".` : "Every start shares this step.")
       : `This flow starts ${names.length === 2 ? "two ways" : names.length + " ways"}: ${names.map((n) => `"${n}"`).join(" or ")}. Pick one under Starts from to follow it alone.`;
-    return h("div", { class: "cap-starts" + (f.starts.guessed ? " heuristic" : ""), "data-starts-line": "" }, words + (f.starts.guessed ? " (A guess: the page doesn't say who sends some of these steps.)" : ""));
+    const lost = !stp && f.starts.unmatched && f.starts.unmatched.length
+      ? ` The diagram names ${f.starts.unmatched.map((n) => `"${n}"`).join(" and ")}, but no numbered step carries it, so no step is marked for it.` : "";
+    return h("div", { class: "cap-starts" + (f.starts.guessed || lost ? " heuristic" : ""), "data-starts-line": "" }, words + lost + (f.starts.guessed ? " (A guess: the page doesn't say who sends some of these steps.)" : ""));
+  }
+  /* What the address asked for that this flow no longer has. */
+  function ignoredLine(f) {
+    const gone = f.view && f.view.ignored;
+    return gone && gone.length ? h("div", { class: "cap-starts heuristic", "data-ignored-link": "" }, `The link asked for ${gone.join(", ")}, which this flow doesn't have any more.`) : null;
   }
   function buildTransport() {
     const tr = $("#transport"); if (!tr) return;

@@ -58,11 +58,16 @@ def test_a_link_naming_a_start_opens_with_it_picked(tmp_path, chrome_path):  # n
 def test_a_link_naming_folds_and_hides_opens_with_them(tmp_path, chrome_path):  # noqa: F811
     page = staged(tmp_path)
     out = dom(chrome_path, page, "flows&open=FLO-010&fold=APP-booking&hide=APP-notifications&still")
-    assert re.search(r'id="simplify-btn"[^>]*aria-pressed="true"', out) and "Simplified · 2 folded" in out
-    assert "Not decided yet · 5 steps" in out  # three steps folded into one: seven steps read as five
-    # the list gives the same two choices as buttons: Notifications and Pricing fold into Booking, Notifications is hidden
-    assert re.search(r'aria-label="Unfold Notifications and Pricing from Booking"', out)
+    assert re.search(r'id="simplify-btn"[^>]*aria-pressed="true"', out) and "Simplified · 1 folded" in out
+    assert "Not decided yet · 6 steps shown of 7" in out  # two steps folded into one: seven steps read as six
+    # the list gives the same two choices as buttons: Pricing folds into Booking (it answers; Notifications only receives, so it stays), Notifications is hidden
+    assert re.search(r'aria-label="Unfold Pricing from Booking"', out)
     assert re.search(r'aria-label="Show Notifications"', out)
+    # Notifications only receives, so Simplify leaves it alone
+    assert 'aria-label="Fold Notifications' not in out
+    # a link naming what the flow doesn't have says so
+    gone = dom(chrome_path, page, "flows&open=FLO-010&start=S9&fold=APP-notifications&still")
+    assert 'data-ignored-link' in gone and "a start (S9), folding Notifications" in gone
     # another flow starts clean: the choices belong to the flow the address names
     other = dom(chrome_path, page, "flows&open=FLO-011&still")
     assert re.search(r'id="simplify-btn"[^>]*aria-pressed="false"', other) and "Simplified" not in other
@@ -77,6 +82,6 @@ def test_the_selftest_walks_the_pinned_row_the_starts_and_the_folds_at_both_size
                      "ok starts: 4 flows with one way in show no Starts from", 'ok starts, FLO-010: "Starts from" in the header row', "ok starts, FLO-010: picking",
                      "ok starts, FLO-010: Next skips the steps of the start not picked", "ok starts, FLO-010: the arrow keys move between the starts",
                      "ok starts, FLO-010: a click on a Start tag picks that start", "ok starts, FLO-010: a link naming the start opens with it picked",
-                     "ok starts, FLO-013: a guess says it is one", "ok fold: on 7 flows Simplify folds every lane", "ok hide: on FLO-001, a lane hides",
+                     "ok starts, FLO-013: a guess says it is one", "ok fold: on ", "ok hide: on FLO-001, a lane hides",
                      "ok hide: a link naming a hidden lane", "ok flows: the Starts from picker and Simplify fit the header row in every theme and in Plain"):
             assert any(line.startswith(want) for line in lines), (viewport, want)

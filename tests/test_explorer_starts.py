@@ -181,3 +181,36 @@ def test_an_option_written_as_an_answer_inside_the_opening_alt_is_flagged(tmp_pa
     vault = starts_vault(tmp_path, lambda t: t.replace("else A customer calls in", "else timeout"))
     _, problems = tree_of(vault, "FLO-010")
     assert any("written as an answer" in p.text for p in problems)
+
+
+def flow_data(vault, tmp_path, key="FLO-010"):
+    out = tmp_path / "d.html"
+    assert run("explore", str(vault), "-o", str(out), "--today", TODAY, "--no-open")[0] == 0
+    return next(f for f in json.loads(DATA.search(out.read_text(encoding="utf-8")).group(1))["flows"] if f["key"] == key)
+
+
+def test_a_start_no_step_carries_is_kept_and_said_never_swapped_for_a_guess(tmp_path):
+    from starts_flows import DESK, BOOKING, HOLD, STATE
+    line = f"4. {DESK} → {BOOKING}: asks to hold a seat, over {HOLD}."
+    vault = starts_vault(tmp_path)
+    page = vault / "06-runtime" / "flows" / "FLO-010-book-two-ways.md"
+    text = page.read_text(encoding="utf-8")
+    assert line in text
+    page.write_text(text.replace(line, line.replace(HOLD, STATE)), encoding="utf-8")
+    starts = flow_data(vault, tmp_path)["starts"]
+    assert starts["source"] == "diagram"  # the diagram's own words, not the lanes' names
+    assert [o["label"] for o in starts["options"]] == ["A customer books on the website", "A customer calls in"]
+    assert starts["options"][1]["steps"] == [] and starts["unmatched"] == ["A customer calls in"]
+
+
+def test_a_shared_step_over_a_start_s_contract_is_not_a_third_start(tmp_path):
+    from starts_flows import WEB, BOOKING, HOLD
+    vault = starts_vault(tmp_path)
+    page = vault / "06-runtime" / "flows" / "FLO-010-book-two-ways.md"
+    text = page.read_text(encoding="utf-8")
+    marker = "\n```mermaid"
+    text = text.replace(marker, f"8. {WEB} → {BOOKING}: confirms the hold, over {HOLD}.\n" + marker, 1)
+    page.write_text(text, encoding="utf-8")
+    flow = flow_data(vault, tmp_path)
+    assert [o["steps"] for o in flow["starts"]["options"]] == [[1, 2], [3, 4]]
+    assert flow["starts"]["merge"]["step"] == 5 and flow["steps"][-1]["start"] == ""
