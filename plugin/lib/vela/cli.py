@@ -819,7 +819,8 @@ def attached_record(root, record_id, home):
         raise ToolError(f"--with-record takes a session id (a file name in sessions/ without .md), not '{record_id}'. Nothing was written.")
     notes = sessiongit.private_text(root, record_id)
     if notes is None:
-        raise ToolError(f"{sessiongit.PrivateMissing(record_id)} Nothing was written.")
+        missing = sessiongit.PrivateMissing(record_id)
+        raise ToolError(f"{missing} ({missing.path}) Nothing was written.")
     return {proposal_files.RECORD: proposal.hide_home(notes, home) if home else notes}
 
 

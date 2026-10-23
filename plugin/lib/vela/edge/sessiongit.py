@@ -63,8 +63,8 @@ class PrivateMissing(ValueError):
 
     def __init__(self, record_id):
         self.record_id = record_id
-        super().__init__(f"This session's notes are not on this machine ({privaterecord.private_path(record_id)}). "
-                         "They stay on the machine that wrote them.")
+        self.path = privaterecord.private_path(record_id)  # for a log or --json; a line the lead hears names no file
+        super().__init__("This session's notes are not on this machine. They stay on the machine that wrote them.")
 
 
 def private_text(root, record_id):

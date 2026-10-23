@@ -42,7 +42,8 @@ INSIDE_THE_PLAN = "That folder is inside the plan, so the copy would be committe
 NOT_THEIRS = "Those are someone else's words, and they go out only with their own yes, so I won't paste them."
 OTHER_MACHINE = "That note is on the other machine."
 NOT_A_LINE = "I can't find that line in this session's notes."
-NO_LEAD = "I don't know your GitHub handle yet, so I can't tell which lines are yours. Run vela whoami first."
+NO_LEAD = "I don't know your GitHub handle yet, so I can't tell which lines are yours."
+NO_LEAD_FIX = " Run vela whoami first."
 NOTHING_TO_BACK_UP = "There are no session notes here to back up."
 
 
@@ -80,16 +81,31 @@ def register(sub):
     backup.set_defaults(func=cmd_backup)
 
 
+NOT_SAYABLE = "I couldn't do that, and I haven't changed anything."
+
+
+def sayable(text, plain=None):
+    """What the lead hears: `plain` when given, else `text` unless it names a file, branch or command (git's own words
+    and exception messages do), which the lead never hears; the full text stays in the non-plain output."""
+    return plain or (NOT_SAYABLE if say.leak_in(text) else text)
+
+
 def failed(command, text, plain=None):
-    return say.Result(command, exit=say.FAILED, lines=[say.Line(f"vela: {text}", plain=plain or text)])
+    return say.Result(command, exit=say.FAILED, lines=[say.Line(f"vela: {text}", plain=sayable(text, plain))])
+
+
+def notes_elsewhere(command, missing):
+    """Notes that are on another machine are the lead's situation, not a tool failure: a refusal (1), with the file the
+    notes would be in kept for the non-plain output and `--json`."""
+    return say.Result(command, exit=say.REFUSED, data={"id": missing.record_id, "path": missing.path},
+                      lines=[say.Line(f"vela {command}: {missing} ({missing.path})", plain=str(missing))])
 
 
 def load(command, root, record_id):
     """(notes, stub, None), or (None, None, the Result that says why not)."""
     notes = sessiongit.private_text(root, record_id)
     if notes is None:
-        words = str(sessiongit.PrivateMissing(record_id))
-        return None, None, failed(command, words)
+        return None, None, notes_elsewhere(command, sessiongit.PrivateMissing(record_id))
     try:
         stub = (root / privaterecord.stub_path(record_id)).read_text(encoding="utf-8")
     except FileNotFoundError:
@@ -143,15 +159,15 @@ def cmd_show(args, out):
     return commands.emit(result, args, out)
 
 
-def refusal(text):
-    return say.Result(SHOW, exit=say.REFUSED, lines=[say.Line(f"vela records show: {text}", plain=text)])
+def refusal(text, plain=None):
+    return say.Result(SHOW, exit=say.REFUSED, lines=[say.Line(f"vela records show: {text}", plain=sayable(text, plain))])
 
 
 def show(root, record_id, ref_text):
     """The lead's own words for one capture of this machine's part. Reads only; the lead is `vela whoami`'s handle."""
     notes = sessiongit.private_text(root, record_id)
     if notes is None:
-        return failed(SHOW, str(sessiongit.PrivateMissing(record_id)))
+        return notes_elsewhere(SHOW, sessiongit.PrivateMissing(record_id))
     ref = privaterecord.parse_ref(ref_text)
     if ref is None:
         return refusal(NOT_A_LINE)
@@ -162,7 +178,7 @@ def show(root, record_id, ref_text):
         return refusal(NOT_A_LINE)
     handle = sessiongit.read_handle(root)
     if not handle:
-        return refusal(NO_LEAD)
+        return refusal(NO_LEAD + NO_LEAD_FIX, NO_LEAD)
     lead = {name.casefold() for name in sessiongit.lead_names(root)} | {handle.lstrip("@").casefold()}
     if found.origin.strip().lstrip("@").casefold() not in lead:
         return refusal(NOT_THEIRS)
@@ -393,11 +409,13 @@ def apply_split(root, lead, today, branch_texts):
     branch = planscope.session_branch(scope, SPLIT_BRANCH) if scope else SPLIT_BRANCH
     if sessiongit.branch_taken(root, branch):
         return failed_refused(SPLIT, f"The branch {branch} already exists. Merge or delete it, then split again.",
-                              {"branch": branch})
+                              {"branch": branch},
+                              "The split already has a branch waiting. Merge or delete it, then split again.")
     original = sessiongit.current_branch(root)
     made, words = sessiongit.create_branch(root, branch)
     if not made:
-        return failed(SPLIT, f"couldn't start the branch {branch}: {words}")
+        return failed(SPLIT, f"couldn't start the branch {branch}: {words}",
+                      "I couldn't start the branch for the split, so I haven't changed anything.")
     try:
         report = split_folder(root, lead, today, branch_texts)
         shared = sorted(rel for rel in report.writes if not privaterecord.is_private(rel))
@@ -433,8 +451,8 @@ def put_back(root, original, branch, planned):
     return f"I put the plan back as it was and removed the branch {branch}, so nothing is half-done."
 
 
-def failed_refused(command, text, data):
-    return say.Result(command, exit=say.REFUSED, lines=[say.Line(f"vela records split: {text}", plain=text)],
+def failed_refused(command, text, data, plain=None):
+    return say.Result(command, exit=say.REFUSED, lines=[say.Line(f"vela records split: {text}", plain=sayable(text, plain))],
                       data=data)
 
 
@@ -475,7 +493,8 @@ def backup(root, to, today, config):
         placed = write_folder(target, name, notes)
     count = len(notes)
     text = f"Copied {count} session note{'s' if count != 1 else ''} to {placed}."
-    return say.Result(BACKUP, lines=[say.Line(text)], data={"count": count, "to": str(placed)})
+    plain = f"Copied {count} session note{'s' if count != 1 else ''} to the place you named."
+    return say.Result(BACKUP, lines=[say.Line(text, plain=plain)], data={"count": count, "to": str(placed)})
 
 
 def claimed(make):

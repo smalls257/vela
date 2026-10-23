@@ -25,10 +25,10 @@ world = test_proposals.world  # the reader workspace fixture, shared with the pr
 
 def an_owner_vault_that_lost_its_ignore_line(tmp_path, monkeypatch):
     vault = owner(tmp_path, monkeypatch)
+    assert start(vault, "--mode", "dump", "--topic", "consent")[0] == 0  # start puts the line back, so lose it after
     ignore = vault / ".gitignore"
     ignore.write_text(ignore.read_text(encoding="utf-8").replace("sessions/private/\n", ""), encoding="utf-8")
     git(vault, "commit", "-qam", "lose the ignore line")
-    assert start(vault, "--mode", "dump", "--topic", "consent")[0] == 0
     private = vault / "sessions" / "private" / f"{TODAY}-consent.md"
     private.write_text(private.read_text(encoding="utf-8") + f"\n{SECRET}\n", encoding="utf-8")
     return vault, private

@@ -99,7 +99,7 @@ def test_verify_after_close_and_after_an_edit(tmp_path, monkeypatch):
     code, out = run("records", "verify", rid, "--vault", str(vault))
     assert code == 1 and "changed since" in out
     private.unlink()
-    assert run("records", "verify", rid, "--vault", str(vault))[0] == 2
+    assert run("records", "verify", rid, "--vault", str(vault))[0] == 1  # the lead's situation, not a tool failure
 
 
 def test_verify_says_a_part_is_not_fingerprinted_yet(tmp_path, monkeypatch):
