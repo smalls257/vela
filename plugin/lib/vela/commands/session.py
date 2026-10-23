@@ -51,9 +51,9 @@ import io
 import pathlib
 import re
 
-from vela import closestate, commands, guard, planscope, privaterecord, progress, records, say, sessions
+from vela import closestate, commands, guard, planscope, privaterecord, progress, records, say, sessions, titlecheck
 from vela.commands import close_sync
-from vela.edge import hostprobe, mergegit, sessiongit, vaultgit
+from vela.edge import ghcli, hostprobe, mergegit, sessiongit, vaultgit
 from vela.edge.vaultgit import GitUnavailable
 
 NAME = "session open"
@@ -435,12 +435,65 @@ def resume(root, found, wanted, reader, lines, today, plain, host=None):
         result.wrote += bring_main_in(root, today, host or {}, result.lines, "copy of the session's branch")
     if result.exit == say.DONE:
         text = sessiongit.private_text(root, record.id)
-        if text is None:  # until a session's notes can be fetched from another machine, this one can't resume it
-            raise sessiongit.PrivateMissing(record.id)
-        result.wrote.append(write_state(root, record.id, record.branch, list(record.modes), record.date,
-                                        privaterecord.part_of(text), max(records.numbers_in(text), default=0)))
+        part = privaterecord.part_of(text) if text is not None else claim_part(root, record, result.lines)
+        result.wrote.append(write_state(root, record.id, record.branch, list(record.modes), record.date, part,
+                                        max(records.numbers_in(text or ""), default=0)))
         result.data.update(id=record.id, path=privaterecord.private_path(record.id), branch=record.branch)
     return result
+
+
+CLAIM_TRIES = 3
+NOT_CLAIMED = ("I couldn't tell the other machine I'm taking notes here, so I haven't started. Check the connection "
+               "and say the word, and I'll try again.")
+
+
+def another_machine(part):
+    return (f"This session's notes are on the other machine and stay there. I'll keep new notes here as part {part}.")
+
+
+def claim_part(root, record, lines):
+    """Take the next part number for this machine, tell the other machines, and open its private file. Returns the
+    part. The claim is committed and pushed first because two machines that both wrote part 2 would fingerprint two
+    different files under one key (a Distributed Monolith in the record); a lost push takes the next number, and a
+    push that fails for any other reason stops the start, never an unclaimed part (Silent Fallback)."""
+    rel = privaterecord.stub_path(record.id)
+    for _ in range(CLAIM_TRIES):
+        stub = (root / rel).read_text(encoding="utf-8")
+        part = privaterecord.next_part(privaterecord.stub_meta(stub))
+        sessiongit.write_text(root, rel, privaterecord.with_part(stub, part, privaterecord.PENDING))
+        if not record.branch:  # a reader copy has no git: the claim stays in this folder
+            return opened_part(root, record, part, lines)
+        sessiongit.commit(root, f"Take part {part} of {record.id}", [rel])
+        if not sessiongit.has_origin(root):
+            return opened_part(root, record, part, lines)
+        sent = ghcli.push(root, record.branch, track=False)
+        if sent.ok:
+            return opened_part(root, record, part, lines)
+        if not lost_race(sent.why):
+            raise failed(f"the claim of part {part} was not pushed: {sent.why}", NOT_CLAIMED, lines)
+        take_back_claim(root, record, lines)
+    raise failed(f"{CLAIM_TRIES} claims in a row lost the push", NOT_CLAIMED, lines)
+
+
+def lost_race(why):
+    return any(sign in why for sign in ("rejected", "non-fast-forward", "fetch first"))
+
+
+def take_back_claim(root, record, lines):
+    """Drop the claim that lost and bring in the one that won, so the next try numbers after it."""
+    ok, said = sessiongit.drop_last_commit(root)
+    fetched, said_fetch = sessiongit.fetch(root) if ok else (False, "")
+    moved, said_move = sessiongit.fast_forward(root, f"origin/{record.branch}") if fetched else (False, "")
+    if not (ok and fetched and moved):
+        raise failed(f"couldn't catch up with {record.branch} after a lost claim: {said or said_fetch or said_move}",
+                     NOT_CLAIMED, lines)
+
+
+def opened_part(root, record, part, lines):
+    sessiongit.write_text(root, privaterecord.private_path(record.id),
+                          privaterecord.new_private(record.id, record.title, record.date, part))
+    lines.append(say.Line(f"claimed part {part} of {record.id}", plain=another_machine(part)))
+    return part
 
 
 def write_state(root, record_id, branch, modes, started, part=1, last_capture=0):
@@ -465,6 +518,25 @@ def config_of(root):
         raise failed(f"vela: {exc}", f"The vault's settings file can't be read, so I haven't started: {exc}") from exc
 
 
+def check_title(root, topic):
+    """Stop, before anything is written, when the session's name is a person's (exit 3). The name is committed
+    with the stub, so it is the one place a private session would show who was in it."""
+    if not topic:
+        return
+    from vela import cli
+    private = pathlib.Path(root) / privaterecord.PRIVATE_DIR
+    origins = set()
+    for path in sorted(private.glob("*.md")) if private.is_dir() else ():
+        origins |= titlecheck.origins_in(path.read_text(encoding="utf-8"))
+    known = titlecheck.people(cli.load_vault(root), sessiongit.read_handle(root), sessiongit.lead_names(root), origins)
+    found = titlecheck.named(topic, known)
+    if found:
+        raise Stop(say.Result(START, exit=say.NEEDS_LEAD, needs_lead=[{
+            "ask": "session name", "question": titlecheck.TITLE_QUESTION}], lines=[say.Line(
+            f"vela: the session name '{topic}' has {', '.join(found)} in it, a person; nothing was written.",
+            plain=titlecheck.TITLE_QUESTION)]))
+
+
 def start_in_copy(root, args, today, modes, plain, said):
     """A reader copy: the record is written in place and nothing runs git (START, "Owner or reader")."""
     open_records, problems = sessions.find_open(sessiongit.folder_records(root))
@@ -474,6 +546,7 @@ def start_in_copy(root, args, today, modes, plain, said):
     if open_records and not args.new:
         asks, asked = open_choices(open_records, today, plain)
         raise Stop(say.Result(START, exit=say.NEEDS_LEAD, needs_lead=asks, lines=lines + asked))
+    check_title(root, args.topic)
     if args.title or sessions.is_unnamed(config_of(root)):
         lines.append(say.Line("read copy: naming the initiative is the owner's; .vela.yaml not changed.",
                               plain="The owner names the initiative, so I haven't changed its name here."))
@@ -628,6 +701,7 @@ def start_owner(root, args, today, modes, plain, said, host):
     lines = said + problem_lines(problems)
     if args.resume:
         return resume(root, open_records, args.resume, False, lines, today, plain, host)
+    check_title(root, "" if pr else args.topic)
     asks, asked = [], []
     if open_records and not args.new:
         asks, asked = open_choices(open_records, today, plain)

@@ -192,6 +192,7 @@ def finish_session(root, today, summary, args, out):
     except closefinish.SummaryRefused as exc:
         raise cli.ToolError(f"close finish: {exc}") from exc
     notes = privaterecord.with_summary(text, summary)
+    closed = privaterecord.with_part(closed, privaterecord.part_of(text), privaterecord.fingerprint(notes))
     handoffs = due_handoffs(root, vault, seen.before, text)
     plan = closefinish.plan(seen.reader, handoffs, args.replace)
     if plan.needs_lead:

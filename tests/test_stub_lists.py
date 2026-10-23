@@ -64,8 +64,8 @@ def test_a_challenge_session_lists_its_item_at_start(tmp_path, monkeypatch):
 
 def test_a_session_that_is_not_a_challenge_lists_none(tmp_path, monkeypatch):
     vault = owner(tmp_path, monkeypatch)
-    assert start(vault, "--mode", "grill", "--topic", "stock")[0] == 0
-    meta = privaterecord.stub_meta(session_files.stub_text(vault, f"{TODAY}-stock"))
+    assert start(vault, "--mode", "grill", "--topic", "inventory")[0] == 0
+    meta = privaterecord.stub_meta(session_files.stub_text(vault, f"{TODAY}-inventory"))
     assert privaterecord.listed(meta, "challenges") == ()
 
 

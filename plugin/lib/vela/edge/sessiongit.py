@@ -253,6 +253,13 @@ def create_branch(root, branch):
     return code == 0, _words(err, out)
 
 
+def drop_last_commit(root):
+    """(ok, git's words): undo the newest commit and keep every file as it is on disk, for a claim that lost its push.
+    `--keep` refuses rather than overwrite changes the lead has in the working tree."""
+    code, out, err = run_git(root, "reset", "--keep", "HEAD~1")
+    return code == 0, _words(err, out)
+
+
 def commit(root, message, paths):
     """Stage exactly `paths` and commit them with `message`; the short hash. Raises GitUnavailable with git's words."""
     stagegit.stage(root, paths)

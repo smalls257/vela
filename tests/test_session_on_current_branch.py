@@ -29,11 +29,11 @@ def test_a_second_session_on_a_branch_owes_only_its_own_paragraphs(tmp_path, mon
     vault = make_vault(tmp_path)
     no_gh(tmp_path, monkeypatch)
     git(vault, "switch", "-q", "-c", "waiting-for-review")
-    assert start(vault, "--mode", "grill", "--topic", "stock")[0] == 0
+    assert start(vault, "--mode", "grill", "--topic", "inventory")[0] == 0
     decide_stock(vault)
     commit_all(vault, "Decide the stock level")
     assert pages_owed(vault), "the first session changed a page and owes paragraphs"
-    close_record(vault, f"{TODAY}-stock")
+    close_record(vault, f"{TODAY}-inventory")
     code, out = start(vault, "--mode", "grill", "--topic", "till")
     assert code == 0, out
     assert git(vault, "branch", "--show-current") == "waiting-for-review"
@@ -48,7 +48,7 @@ def test_close_push_on_the_default_branch_offers_a_branch_and_session_branch_mov
     bare = with_remote(tmp_path, vault)
     no_gh(tmp_path, monkeypatch)
     began = git(vault, "rev-parse", "HEAD")
-    assert start(vault, "--mode", "grill", "--topic", "stock")[0] == 0
+    assert start(vault, "--mode", "grill", "--topic", "inventory")[0] == 0
     decide_stock(vault)
     commit_all(vault, "Decide the stock level")
     code, out = run("close", "push", "--vault", str(vault), "--today", TODAY, "--for-lead")
@@ -57,11 +57,11 @@ def test_close_push_on_the_default_branch_offers_a_branch_and_session_branch_mov
     assert git(bare, "rev-parse", "main") == began  # nothing was pushed
     code, out = run("session", "branch", "--vault", str(vault), "--json")
     assert code == 0, out
-    branch = f"session/{TODAY}-stock"
+    branch = f"session/{TODAY}-inventory"
     assert git(vault, "branch", "--show-current") == branch
     assert git(vault, "rev-parse", "main") == began  # main holds nothing of the session
-    assert git(vault, "log", "--format=%s", began + ".." + branch).split("\n")[0] == f"Move session {TODAY}-stock to {branch}"
-    assert privaterecord.stub_meta(session_files.stub_text(vault, f"{TODAY}-stock"))["branch"] == branch
+    assert git(vault, "log", "--format=%s", began + ".." + branch).split("\n")[0] == f"Move session {TODAY}-inventory to {branch}"
+    assert privaterecord.stub_meta(session_files.stub_text(vault, f"{TODAY}-inventory"))["branch"] == branch
     code, out = run("session", "open", "--vault", str(vault), "--json")
     assert code == 0 and json.loads(out)["open"][0]["branch"] == branch
     code, out = run("session", "branch", "--vault", str(vault))

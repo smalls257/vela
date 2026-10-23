@@ -15,14 +15,16 @@ several): nothing was staged.
 The commit flags carry the close skill's own messages:
 - `--draft`: `draft: prose for <id>`, the drafted pages whole, so the reviewer's later edits show as a diff against it.
 - `--checkpoint`: `Checkpoint <id>`, because a merge refuses to run over uncommitted edits (`close sync-main` says when).
-- `--close`: `Close session <id>`, after the record says `status: closed`.
+- `--close`: `Close session <id>`, after the record says `status: closed`. With `--summary "<line>"` this command
+  does that itself: the summary goes into the private notes, the stub says closed, and this part's fingerprint is
+  written, then the commit. A challenge's answer closes this way, never by editing the files by hand.
 
 A reader copy (`.vela/workspace.json`, no `.git`) has no git, so nothing is run at all: the record is the reader's
 work, and it reaches the owner through a proposal.
 """
 import pathlib
 
-from vela import guard, parse, roles, say
+from vela import closefinish, guard, parse, privaterecord, roles, say
 from vela.edge import sessiongit, stagegit, vaultgit
 
 MESSAGES = {"draft": "draft: prose for {id}", "checkpoint": "Checkpoint {id}", "close": "Close session {id}"}
@@ -40,6 +42,9 @@ def register_close(steps):
                        help="then commit as `Checkpoint <id>`, before a merge")
     which.add_argument("--close", dest="commit", action="store_const", const="close",
                        help="then commit as `Close session <id>`")
+    stage.add_argument("--summary", default="", metavar="LINE",
+                       help="with --close only: write the summary to the private notes, close the record and "
+                            "fingerprint this part first (the challenge skill's close; a full close uses `close finish`)")
     stage.add_argument("--paths-from-render", action="store_true",
                        help="first check that render has nothing left to rewrite, so the staged pages are its output")
     say.add_output_flags(stage)
@@ -212,6 +217,10 @@ def cmd_close_stage(args, out):
         raise cli.ToolError(str(exc)) from exc
     if ident is None:
         return cli_emit(result, args, out)
+    if args.summary:
+        closing = close_record(args, root, ident)
+        if closing is not None:
+            return cli_emit(closing, args, out)
     if args.paths_from_render:
         stale, problems = stale_render(root)
         if stale or problems:
@@ -239,6 +248,27 @@ def cmd_close_stage(args, out):
     result.exit = say.REFUSED if (plan.left or plan.never) else say.DONE
     report(result, plan, commit_line, committed, mode)
     return cli_emit(result, args, out)
+
+
+def close_record(args, root, ident):
+    """Write the summary, close the stub and fingerprint this part. None when done, else the Result to emit."""
+    from vela import cli
+    if args.commit != "close":
+        raise cli.ToolError("close stage: --summary goes with --close, which is the commit that files the summary")
+    try:
+        summary = closefinish.checked_summary(args.summary)
+        notes = sessiongit.private_text(root, ident)
+        if notes is None:
+            raise sessiongit.PrivateMissing(ident)
+        notes = privaterecord.with_summary(notes, summary)
+        stub = (root / privaterecord.stub_path(ident)).read_text(encoding="utf-8")
+        stub = privaterecord.with_part(closefinish.closed_stub(stub), privaterecord.part_of(notes),
+                                       privaterecord.fingerprint(notes))
+        sessiongit.write_text(root, privaterecord.private_path(ident), notes)
+        sessiongit.write_text(root, privaterecord.stub_path(ident), stub)
+    except (closefinish.SummaryRefused, ValueError, OSError) as exc:  # PrivateMissing is a ValueError
+        return say.Result("close stage", exit=say.FAILED, lines=[say.Line(f"vela close stage: {exc}", plain=str(exc))])
+    return None
 
 
 def cli_emit(result, args, out):
