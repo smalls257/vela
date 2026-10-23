@@ -390,3 +390,16 @@ def test_two_contracts_with_one_name_are_counted_as_two_contracts_by_id():
         pages[f"05-building-blocks/{name}-building-blocks.md"] = app_page(name, "unchanged")
     [lines] = mermaid_lines(render.context_map(vault_of(pages), None))
     assert [l for l in lines if "others_box" in l and "-->" in l] == ['  n_APP_hub -->|"2 contracts"| others_box']
+
+
+def test_a_title_cannot_smuggle_a_tag_into_the_others_box_only_the_line_break_is_allowed():
+    pages = {}
+    for i in range(25):
+        title = "<b>Bold</b><script>x</script><br/>" if i == 24 else f"A{i:02d}"
+        pages[f"05-building-blocks/a{i:02d}-building-blocks.md"] = app_page(f"a{i:02d}", "unchanged").replace(f"title: A{i:02d}", f"title: {title}")
+    text = render.context_map(vault_of(pages), None)
+    [lines] = mermaid_lines(text)
+    [box] = [l for l in lines if l.startswith("  others_box[")]
+    assert "Bold" in box and "script" in box  # the words stay; the tags are gone
+    assert box.count("<") == box.count("<br/>")
+    assert "<b>" not in box and "<script" not in box and "</" not in box
