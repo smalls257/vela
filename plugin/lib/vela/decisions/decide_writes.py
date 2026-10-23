@@ -292,7 +292,7 @@ def _override_bullets(item, view, record, target):
 
 def speaker(capture, lead):
     """Who a committed line names: the lead's `whoami` handle when the capture is the lead's (its origin may be a
-    display name, never to become `@Priya`), else the capture's origin."""
+    display name, never to become `@Jo`), else the capture's origin."""
     if lead is not None and consent.from_the_lead(capture, lead[0], lead[1]) is None:
         return receipts.handle_ref(lead[0])
     return capture.origin.strip()
