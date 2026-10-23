@@ -103,8 +103,9 @@ def test_a_reworded_why_stays_an_excerpt_of_what_the_lead_said(tmp_path):
 
 def test_an_approval_that_is_not_the_leads_is_refused(tmp_path):
     vault = closing_vault(tmp_path)
+    before = page_text(vault)
     code, out = readback(vault, "--reword", "CON-002", "--line", "decision", "--words", "Fine by me", "--approved", "^c08")
-    assert code == 1 and f"c01, @priya" in page_text(vault)
+    assert code == 1 and page_text(vault) == before
 
 
 def test_editing_a_sentence_after_done_reopens_the_read_back(tmp_path):
@@ -179,3 +180,62 @@ def test_is_excerpt_ignores_case_and_curly_marks():
 def test_a_curly_apostrophe_still_takes_back_a_quote_yes():
     for said in ("Yes, but don’t quote me", "Yes, but don't quote me", "Yes, but I won’t be quoted"):
         assert consent.NEGATION.search(said), said
+
+
+# ---- review round 1
+
+def test_a_why_traces_to_the_leads_capture_not_someone_elses(tmp_path):
+    vault = closing_vault(tmp_path)
+    page = vault / STOCK
+    page.write_text(page_text(vault).replace(WHY, "- **Why:** Fine by me."), encoding="utf-8")
+    code, out = readback(vault, "--json")
+    why = next(s for s in json.loads(out)["sentences"] if s["line"] == "why")
+    assert why["number"] == 0  # ^c08 is cto-ana's
+    code, out = readback(vault, "--for-lead")
+    assert "not traceable to your words" in out and "^c00" not in out
+    assert readback(vault, "--reword", "CON-002", "--line", "why", "--words", "Fine")[0] == 1
+    code, out = readback(vault, "--reword", "CON-002", "--line", "why", "--words", "Yes, say it as one till API",
+                         "--approved", "^c09")
+    assert code == 0, out
+
+
+def test_two_whys_on_one_item_need_number(tmp_path):
+    vault = closing_vault(tmp_path)
+    page = vault / STOCK
+    second = "- **Why:** Yes, one till API for the web"
+    page.write_text(page_text(vault).replace(WHY, WHY + "\n" + second), encoding="utf-8")
+    code, out = readback(vault, "--cut", "CON-002", "--line", "why")
+    assert code == 1 and "--number" in out
+    assert readback(vault, "--cut", "CON-002", "--line", "why", "--number", "c01")[0] == 0
+    assert second not in page_text(vault) and WHY in page_text(vault)
+
+
+def test_with_no_known_lead_everything_is_listed_but_nothing_changes(tmp_path):
+    vault = closing_vault(tmp_path)
+    (vault / ".vela" / "handle").unlink()
+    code, out = readback(vault, "--for-lead")
+    assert code == 0 and "don't know your GitHub handle" in out and "Yes, one till API" in out
+    assert "vela whoami" in readback(vault)[1]
+    before = page_text(vault)
+    code, out = readback(vault, "--cut", "CON-002", "--line", "why")
+    assert code == 1 and "don't know your GitHub handle" in out and page_text(vault) == before
+    assert readback(vault, "--reword", "CON-002", "--line", "decision", "--words", "one till API")[0] == 1
+    assert page_text(vault) == before
+
+
+def test_a_hand_edited_quotes_file_cannot_add_words(tmp_path):
+    vault = closing_vault(tmp_path)
+    folder = vault / ".vela" / "close"
+    folder.mkdir(parents=True, exist_ok=True)
+    (folder / f"{RECORD}.readback.json").write_text("[]", encoding="utf-8")
+    code, out = run("close", "gate", "--vault", str(vault), "--today", "2026-10-20")
+    assert code == 2 and "isn't a JSON object" in out
+    assert readback(vault, "--done")[0] == 0
+    (folder / f"{RECORD}.quotes.json").write_text(json.dumps({"quotes": [
+        {"number": 8, "words": "Fine by me.", "item": ""}, {"number": 1, "words": "We all agree", "item": ""},
+        {"number": 2, "words": "kiosks can't run", "item": ""}]}), encoding="utf-8")
+    code, out = readback(vault, "--json")
+    quotes = [s["words"] for s in json.loads(out)["sentences"] if s["line"] == "quote"]
+    assert quotes == ["kiosks can't run"]
+    (folder / f"{RECORD}.quotes.json").write_text('{"quotes": 3}', encoding="utf-8")
+    assert run("close", "gate", "--vault", str(vault), "--today", "2026-10-20")[0] == 2

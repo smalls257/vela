@@ -19,6 +19,8 @@ import hashlib
 import re
 from dataclasses import dataclass
 
+from types import SimpleNamespace
+
 from vela import closegate, privaterecord, questions, receipts
 from vela.decisions import consent, textedit
 
@@ -48,7 +50,7 @@ def sentences(vault, record_id, part, record_text, lead, picked):
     found = []
     for page in vault.pages:
         found += _page_sentences(page, record_id, part, said, lead)
-    for pick in picked:
+    for pick in valid_picks(picked, said, lead):
         number = int(pick["number"])
         found.append(Sentence(pick.get("item") or f"^c{number:02d}", QUOTE, "", number, str(pick["words"])))
     return found
@@ -73,7 +75,7 @@ def _page_sentences(page, record_id, part, said, lead):
         for bullet in bullets:
             if bullet.label == "Why":
                 words = textedit.unescape(bullet.value)
-                out.append(Sentence(name, WHY, page.path, _capture_of(words, said), words, bullet.line))
+                out.append(Sentence(name, WHY, page.path, _capture_of(words, said, lead), words, bullet.line))
     return out
 
 
@@ -91,13 +93,30 @@ def _is_lead(who, lead):
     return consent.same_handle(who, handle) or who.strip().casefold() in {n.casefold() for n in names}
 
 
-def _capture_of(words, said):
-    """The number of the first capture whose words contain `words`, else 0."""
+def _capture_of(words, said, lead):
+    """The number of the lead's capture the words trace to, else 0: only captures `consent.from_the_lead` accepts, an
+    exact match first, then the longest quote that contains the words. With no known lead nothing traces."""
     wanted = questions.normal_text(words)
-    for capture in said.values():
-        if wanted and wanted in questions.normal_text(capture.quote):
-            return int(capture.n)
-    return 0
+    if lead is None or not wanted:
+        return 0
+    handle, names = lead
+    mine = [c for c in said.values() if c.is_person and consent.from_the_lead(c, handle, names) is None]
+    exact = [c for c in mine if questions.normal_text(c.quote) == wanted]
+    inside = sorted((c for c in mine if wanted in questions.normal_text(c.quote)), key=lambda c: -len(c.quote))
+    found = (exact or inside)[:1]
+    return int(found[0].n) if found else 0
+
+
+def valid_picks(picked, said, lead):
+    """The picked quotes the notes still back: the capture exists, its words may be on a page (`consent.may_quote`)
+    and the quote is an excerpt of it. A hand-edited quotes file cannot add words the lead never said."""
+    held = SimpleNamespace(captures=said)
+    out = []
+    for pick in picked:
+        capture = next((c for c in said.values() if int(c.n) == int(pick["number"])), None)
+        if capture is not None and consent.may_quote(capture, held, lead) and is_excerpt(str(pick["words"]), capture.quote):
+            out.append(pick)
+    return out
 
 
 def digest(found):
@@ -112,16 +131,20 @@ def is_excerpt(words, quote):
     return bool(wanted) and wanted in questions.normal_text(quote)
 
 
-def reword(page_text, sentence, words, approved, cited):
-    """`page_text` with the sentence's line carrying `words`. Raises ValueError when the words are neither an excerpt
-    of `cited.quote` nor the words (or an excerpt) of `approved`, the lead capture that approves the new wording. With
-    `approved`, a decision receipt is re-pointed to it. A quote has no page line: the text comes back as it was."""
+def check_words(words, approved, cited):
+    """Raises ValueError unless `words` are an excerpt of `cited.quote`, or of `approved.quote`, the lead capture that
+    approves the new wording. Returns whether `cited` backs them (an approved wording re-points a receipt only when
+    it does not)."""
     ok_cited = cited is not None and is_excerpt(words, cited.quote)
-    ok_approved = approved is not None and is_excerpt(words, approved.quote)
-    if not (ok_cited or ok_approved):
+    if not (ok_cited or (approved is not None and is_excerpt(words, approved.quote))):
         raise ValueError("those words are not in what you said, and you haven't said yes to them")
-    if sentence.line == QUOTE:
-        return page_text
+    return ok_cited
+
+
+def reword(page_text, sentence, words, approved, cited):
+    """`page_text` with the page sentence's line carrying `words` (a decision receipt or a Why; a quote has no page
+    line, see `check_words`). With `approved`, a decision receipt is re-pointed to it."""
+    ok_cited = check_words(words, approved, cited)
     lines = page_text.split("\n")
     index = _line_index(lines, sentence)
     prefix = f"- **{_BULLET_FOR[sentence.line]}:** "

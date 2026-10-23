@@ -1,4 +1,4 @@
-"""`vela close gate [--consent-block] [--today D] [--json|--for-lead]`: is this session ready to finish? (overhaul
+"""`vela close gate [--today D] [--json|--for-lead]`: is this session ready to finish? (overhaul
 Tasks 10a and 10)
 
 The Violation this command's shape prevents is the God Method it replaces: "is this ready?" used to be a checklist
@@ -29,9 +29,6 @@ plan 2.1; the record in `.vela/flowcheck-cache.json` is read, never written, so 
 not run in this session" when `.vela/hooks-active` is missing (a missing hook costs earlier feedback, never
 correctness: every rule a hook holds, a command holds too); and the host's stance from `.vela/host.json`.
 
-`--consent-block` prints the PR body's **Consent** list: each decision with the lead's exact words and the capture link,
-so the reviewer reads what the record claims the lead said (the code can't prove the lead said it; plan 4.3).
-
 Exit codes: 0 ready; 1 not ready (the plain list, each line with what would clear it); 2 the tool failed; 3 several
 sessions are open (nothing judged). A reader copy runs no git: it has no branch point, so every Changes row into or out
 of decided is judged as written, and removals, strays and the flow check are left out and the list says so.
@@ -51,8 +48,6 @@ def register_close(steps):
     gate = steps.add_parser("gate", help="whether this session is ready to finish: one list of what stops it, each "
                                          "with what would clear it")
     gate.add_argument("--vault", default=".", help="vault root (default: current directory)")
-    gate.add_argument("--consent-block", action="store_true",
-                      help="print the PR body's Consent list: each decision with the lead's exact words")
     gate.add_argument("--today", help="the date check and overrides are judged by, YYYY-MM-DD (default: system date)")
     say.add_output_flags(gate)
     gate.set_defaults(func=run)
@@ -161,14 +156,23 @@ def slice_words(name, status):
 
 def read_back_digest(root, record_id):
     """The digest the lead's read-back stored, or None when they have not done it."""
-    held = sessiongit.read_json(root, f"{closestate.FOLDER}/{record_id}.readback.json")
-    return held.get("digest") if held else None
+    rel = f"{closestate.FOLDER}/{record_id}.readback.json"
+    held = sessiongit.read_json(root, rel)  # raises ValueError for a file that is not a JSON object
+    if held is None:
+        return None
+    if not isinstance(held.get("digest"), str):
+        raise ValueError(f"{rel} has no digest; run vela close readback --done again")
+    return held["digest"]
 
 
 def read_picked(root, record_id):
     """The quotes the lead picked at the read-back: `[{"number", "words", "item"}, ...]`."""
-    held = sessiongit.read_json(root, f"{closestate.FOLDER}/{record_id}.quotes.json")
-    return held.get("quotes", []) if held else []
+    rel = f"{closestate.FOLDER}/{record_id}.quotes.json"
+    held = sessiongit.read_json(root, rel)
+    quotes = held.get("quotes", []) if held else []
+    if not isinstance(quotes, list) or not all(isinstance(q, dict) and "number" in q and "words" in q for q in quotes):
+        raise ValueError(f"{rel} is not a list of picked quotes (number and words each)")
+    return quotes
 
 
 def observe(root, vault, record, text, today):
@@ -191,7 +195,7 @@ def run(args, out):
     """Judge the open session; git that can't answer is a tool failure (exit 2) with git's words, never a pass."""
     try:
         return judge_session(args, out)
-    except (vaultgit.GitUnavailable, mergegit.MergeGitFailed, closestate.StateUnreadable) as exc:
+    except (vaultgit.GitUnavailable, mergegit.MergeGitFailed, closestate.StateUnreadable, ValueError) as exc:
         from vela import commands
         return commands.emit(say.Result("close gate", exit=say.FAILED, lines=[say.Line(
             f"vela close gate: could not judge the session: {exc}",
@@ -262,9 +266,6 @@ def judge_session(args, out):
     vault = cli.load_vault(root)
     readiness = closegate.ready(vault, text, record.id, observe(root, vault, record, text, today),
                                privaterecord.part_of(text))
-    if args.consent_block:
-        print("\n".join(closegate.consent_block(readiness.consent)), file=out)
-        return 0
     resolver = say.Resolver(vault, today=today_date(today))
     n = len(readiness.problems)
     head = (say.Line(f"close gate: ready to finish {record.id}.", plain="") if not n

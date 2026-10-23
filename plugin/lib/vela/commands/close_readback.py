@@ -37,6 +37,8 @@ def register_close(steps):
     p.add_argument("--cut", metavar="ITEM", help="the item whose Why line or quote to cut")
     p.add_argument("--line", choices=closereadback.LINES, help="which sentence: decision, why or quote")
     p.add_argument("--words", help="with --reword: the new words")
+    p.add_argument("--number", metavar="^cNN", help="with --reword or --cut: which one, when an item has several "
+                                                    "sentences of that line")
     p.add_argument("--approved", metavar="^cNN", help="with --reword: the lead's capture that approves the new words")
     p.add_argument("--pick", metavar="^cNN", help="add the lead's words in this capture as a quote")
     p.add_argument("--done", action="store_true", help="record that the lead has read back what stands now")
@@ -61,8 +63,30 @@ def _done(wrote, text, plain=None):
     return say.Result(NAME, exit=say.DONE, wrote=list(wrote), lines=[say.Line(text, plain=plain or text)])
 
 
-def _find(found, item, line):
-    return next((s for s in found if s.item == item and s.line == line), None)
+NO_LEAD = ("I can't tell whose words these are, because I don't know your GitHub handle yet. "
+           "Run vela whoami --set <handle> first.")
+NO_LEAD_PLAIN = "I can't tell whose words these are, because I don't know your GitHub handle yet. What is it?"
+UNTRACEABLE = "not traceable to your words"
+
+
+def _find(found, item, line, number):
+    """(the sentence, None), or (None, the refusal Result): the item's one sentence of that line, or the one `--number`
+    names when there are several."""
+    several = [s for s in found if s.item == item and s.line == line]
+    if number:
+        wanted = record_number(number)
+        several = [s for s in several if s.number == wanted]
+    if len(several) == 1:
+        return several[0], None
+    if not several:
+        return None, _refused(f"No {line} sentence is listed for {item}.", f"I don't have a {line} line like that.")
+    return None, _refused(f"{len(several)} {line} sentences are listed for {item}; say which with --number ^cNN.",
+                          "There's more than one of those. Which one do you mean?")
+
+
+def record_number(ref):
+    from vela.decisions import record
+    return record.number_of(ref)
 
 
 def run(args, out):
@@ -87,6 +111,8 @@ def judge(args, root, vault, record, lead):
     listing = closereadback.sentences(vault, record.id, record.part, record.text, lead, picked)
     if args.pick:
         return pick(args.pick, root, record, lead, picked, vault)
+    if (args.reword or args.cut) and lead is None and listing:
+        return _refused(NO_LEAD, NO_LEAD_PLAIN)
     if args.reword:
         return reword(args, root, vault, record, listing, picked, lead)
     if args.cut:
@@ -96,15 +122,19 @@ def judge(args, root, vault, record, lead):
         wrote = sessiongit.write_text(root, _file(root, record.id, "readback"), json.dumps({"digest": digest}) + "\n")
         return _done([wrote], f"close readback: {len(listing)} sentence(s) read back ({digest[:12]}).",
                      "Thank you. That wording is on record as you read it.")
-    return show(listing, vault)
+    return show(listing, vault, lead)
 
 
-def show(listing, vault):
+def show(listing, vault, lead):
     lines = [say.Line(f"close readback: {len(listing)} sentence(s) to read back.")]
+    if lead is None and listing:
+        lines.append(say.Line(NO_LEAD, plain=NO_LEAD_PLAIN))
     for s in listing:
-        text = f'{s.item} {s.line} (^c{s.number:02d}): "{s.words}"'
+        cite = f"^c{s.number:02d}" if s.number else UNTRACEABLE
+        text = f'{s.item} {s.line} ({cite}): "{s.words}"'
         label = _lead_label(s, vault)
-        lines.append(say.Line(text, plain=f'{label}: "{s.words}"'))
+        note = "" if s.number else f" ({UNTRACEABLE})"
+        lines.append(say.Line(text, plain=f'{label}: "{s.words}"{note}'))
     if not listing:
         lines[0] = say.Line("close readback: nothing goes on record in the lead's name.",
                             plain="Nothing goes on record in your name, so there's nothing to read back.")
@@ -121,10 +151,9 @@ def _lead_label(sentence, vault):
 def reword(args, root, vault, record, listing, picked, lead):
     if not (args.line and args.words is not None):
         return _refused("--reword needs --line and --words.", "Which sentence, and what should it say?")
-    sentence = _find(listing, args.reword, args.line)
-    if sentence is None:
-        return _refused(f"No {args.line} sentence is listed for {args.reword}.",
-                        "I don't have a sentence like that to reword.")
+    sentence, refusal = _find(listing, args.reword, args.line, args.number)
+    if refusal is not None:
+        return refusal
     approved = record.capture(args.approved) if args.approved else None
     if args.approved and not _may_approve(approved, record, lead):
         return _refused(f"{args.approved} is not the lead's own yes to the new words.",
@@ -132,7 +161,7 @@ def reword(args, root, vault, record, listing, picked, lead):
     cited = record.captures.get(sentence.number)
     try:
         if sentence.line == closereadback.QUOTE:
-            closereadback.reword("", sentence, args.words, approved, cited)
+            closereadback.check_words(args.words, approved, cited)
             return _write_quote(root, record, picked, sentence, args.words)
         page = pathlib.Path(root) / sentence.page
         new = closereadback.reword(page.read_text(encoding="utf-8"), sentence, args.words, approved, cited)
@@ -166,9 +195,9 @@ def cut(args, root, vault, record, listing, picked):
         return _refused(DECISION_STAYS)
     if args.line not in closereadback.CUTTABLE:
         return _refused("--cut needs --line why or quote.", "Which sentence should I cut, a reason or a quote?")
-    sentence = _find(listing, args.cut, args.line)
-    if sentence is None:
-        return _refused(f"No {args.line} sentence is listed for {args.cut}.", "I don't have a sentence like that to cut.")
+    sentence, refusal = _find(listing, args.cut, args.line, args.number)
+    if refusal is not None:
+        return refusal
     if sentence.line == closereadback.QUOTE:
         kept = [p for p in picked if not _is(p, sentence)]
         wrote = sessiongit.write_text(root, _file(root, record.id, "quotes"), json.dumps({"quotes": kept}, indent=2) + "\n")
