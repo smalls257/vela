@@ -254,3 +254,11 @@ def test_a_picked_quote_the_notes_do_not_back_stops_the_send(tmp_path):
     assert [p for p in problems if p["kind"] == "receipt" and "Fine by me." in p["detail"]]
     (folder / f"{RECORD}.quotes.json").write_text(json.dumps({"quotes": []}), encoding="utf-8")
     assert "receipt" not in gate_kinds(vault)
+
+
+def test_no_handle_is_said_and_not_a_quiet_pass(tmp_path):
+    vault = closing_vault(tmp_path)
+    (vault / ".vela" / "handle").unlink()
+    code, out = run("close", "gate", "--vault", str(vault), "--json", "--today", "2026-10-20")
+    notes = json.loads(out).get("notes", [])
+    assert any("I don't know your handle, so I haven't judged whose words are in the receipts." in n["plain"] for n in notes), out

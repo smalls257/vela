@@ -491,17 +491,18 @@ def cites_another_part(vault, item, record_id, part):
 
 
 def away(vault, before, rows, said, record_id, part):
-    """The `Away` things in a later part (part 2 and up): each change into or out of decided with no Changes row here
-    whose receipt cites another part of this session, and every removal this part holds no yes for. Part 1 has no
-    other machine to ask, and a reader copy has no branch point to compare with."""
-    if part < 2 or before is None:
+    """The `Away` things: each change into or out of decided with no Changes row here whose receipt cites another part
+    of this session, and (part 2 and up) every removal this part holds no yes for. Any part can close last, so part 1 is asked too
+    (a receipt that cites part 1 itself is not away); a reader copy has no branch point to compare with."""
+    if before is None:
         return []
     out = [Away(c.item, vault.name_of(c.item), c.before, c.after)
            for c in consent_changes(states(before), states(vault), vault)
            if not overrides_for(vault, c.item) and change_row(c, rows) is None
            and cites_another_part(vault, c.item, record_id, part)]
-    out += [Away(r.key, r.name, OVERRIDE_ROW if r.is_override else LEDGER_ROW, REMOVED, is_removal=True)
-            for r in unagreed_removals(before, vault, rows, said)]
+    if part >= 2:  # a removal carries no receipt to cite, so only a later part can tell it was the other machine's
+        out += [Away(r.key, r.name, OVERRIDE_ROW if r.is_override else LEDGER_ROW, REMOVED, is_removal=True)
+                for r in unagreed_removals(before, vault, rows, said)]
     return out
 
 
@@ -535,6 +536,9 @@ def render_problem(stale, render_problems):
     return []
 
 
+NO_HANDLE = "I don't know your handle, so I haven't judged whose words are in the receipts."
+
+
 def notes_of(seen):
     """What the lead hears that doesn't stop the close. The hooks line is informational on purpose: every rule a hook
     holds is also held by the command it guards, so a missing hook costs earlier feedback, never correctness (plan 1,
@@ -546,6 +550,8 @@ def notes_of(seen):
     if seen.reader:
         notes.append(Problem("This is your copy, so I can't tell whether anything was deleted this session.",
                              "reader copy: no merge-base"))
+    if seen.lead is None:
+        notes.append(Problem(NO_HANDLE, "no whoami handle: the receipt lead clause and the picked quotes were not judged"))
     notes += [Problem(lead, line) for line, lead in seen.flow]
     if seen.flow_note:
         notes.append(Problem(seen.flow_note, seen.flow_note))

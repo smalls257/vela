@@ -142,3 +142,17 @@ def test_reconfirm_after_a_finished_read_back_says_it_reopens_it(tmp_path):
     assert code == 0, out
     assert "I've changed a line you already read back, so read it back again." in out
     assert closegate.READBACK in {p["kind"] for p in gate(vault)}
+
+
+def test_part_one_closing_last_is_asked_about_what_part_two_decided(tmp_path):
+    """The other machine's part 2 decided it, so part 1 hits no dead end: it gets the same one question."""
+    vault = two_machine_session(tmp_path)
+    notes = vault / privaterecord.private_path(RID)
+    notes.write_text(notes.read_text(encoding="utf-8").replace("part: 2", "part: 1"), encoding="utf-8")
+    page = vault / STOCK
+    page.write_text(text_of(vault, STOCK).replace(f"[[{RID}]] c01", f"[[{RID}]] 2.c01"), encoding="utf-8")
+    assert len(elsewhere(vault)) == 1
+    code, out = reconfirm(vault, "--yes", "^c03", "CON-002")
+    assert code == 0, out
+    assert f"[[{RID}]] c03, @priya" in text_of(vault, STOCK)
+    assert not elsewhere(vault)
