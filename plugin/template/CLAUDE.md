@@ -11,4 +11,4 @@ TEMPLATE: a person must rewrite this file.
 5. When two pages disagree, show both and say which page owns the value.
 6. Pitch the answer at the asker's level.
 7. Never create, edit or delete a file while answering a question.
-8. `sessions/` holds working notes, not the plan. `voice/` is never a source.
+8. `sessions/` holds only each session's header. The notes are private (`sessions/private/`) and are never a source. `voice/` is never a source.

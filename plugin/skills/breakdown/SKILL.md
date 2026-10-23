@@ -14,7 +14,7 @@ Before your first question, read `voice/VOICE.md` if the vault has one, then `${
 
 Then run `sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela freshness --for-lead`. If it exits 3, this copy is behind the shared plan, and every check below would read old pages: say what it printed in your words and offer to bring it up to date (`git switch main`, then `git pull --ff-only`) before you go on. If it fails, say in one plain sentence that you couldn't check, then go on.
 
-A team session writes no session record. Work on the branch `design/<slug>` (create it if it doesn't exist), commit after each agreed story with `vela team commit --about "<the story>"`, and say so. The plan is reviewed like the design. If the team has no review rule, say you are committing to a branch and let the team lead decide.
+A team session writes no session. Work on the branch `design/<slug>` (create it if it doesn't exist), commit after each agreed story with `vela team commit --about "<the story>"`, and say so. The plan is reviewed like the design. If the team has no review rule, say you are committing to a branch and let the team lead decide.
 
 Check the prerequisites:
 

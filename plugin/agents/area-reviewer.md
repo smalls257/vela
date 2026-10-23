@@ -41,7 +41,7 @@ Whatever your area, also look for these. Each one is a finding with a quote, lik
 
 ## Steps
 
-1. Read every page you were given, but skip the `## Reviews` section of any session record: it holds earlier findings, and you never read another reviewer's output.
+1. Read every page you were given, but skip the `## Reviews` section of any session's notes: it holds earlier findings, and you never read another reviewer's output.
 2. For each owed question whose `pending` is `true`, find what the pages say about it. If they answer it, the finding quotes the answer. If they say nothing, or two pages disagree, the finding says so.
 3. Look across the `Changed:` pages for anything your area covers that no owed question asks. Such a finding has `copy` set to `new`, and it quotes a `Changed:` page: a new question that quotes any other page is dropped, because it was owed when that page was written. A new question about something already `decided` is kept only at `high` severity, so raise one there only if it would change that decision. When a finding addresses a question in the `reviewer` list, set `copy` to its `R-` id. A clash between two subjects counts: two apps, two schemes or two documents that disagree.
 4. For each finding, copy a quote exactly as the page writes it, a few words to a sentence, and give that page's path. A quote that is not on its page is dropped, so never reword inside the quote. For a gap, quote the words nearest to where the answer belongs. The quote must be about what the finding asks: it shares a word with your question, or with the name of the copy's subject, or sits under a heading or after a bold bullet label that does. A quote that is only near the topic is dropped as "the quote does not mention what the finding is about".

@@ -17,23 +17,23 @@ Out of scope: behavior inside one app (that is the app team's own requirements w
 
 ## Session
 
-If a session record is already open in this conversation, add `requirements` to its `modes` and capture into it; otherwise run START. The session record is the vault's; there is no `docs/requirements/<slug>.md` and no `slug`, `status` or `deferred` frontmatter.
+If a session is already open in this conversation, add `requirements` to its `modes` and capture into it; otherwise run START. The session's notes are the vault's; there is no `docs/requirements/<slug>.md` and no `slug`, `status` or `deferred` frontmatter.
 
-Capture every answer in the session record. The user's own words take their name as origin. A recommended answer the user accepts as it stands has origin `claude, from <name>`.
+Capture every answer in the session's notes. The user's own words take their name as origin. A recommended answer the user accepts as it stands has origin `claude, from <name>`.
 
 ## Where each section goes
 
 | requirements-grill section | Vault mode writes | Where |
 |---|---|---|
-| Problem, Users | Nothing new. Link the goal the capability serves. If no goal fits, a `[worry]` capture: "CAP-NNN serves no goal". | session record |
+| Problem, Users | Nothing new. Link the goal the capability serves. If no goal fits, a `[worry]` capture: "CAP-NNN serves no goal". | session notes |
 | Scope In and Out | `- **In:** ...` and `- **Out:** ...` lines | the capability page, under `## Scope` |
 | Functional requirements | `vela add fr --capability CAP-NNN --name "<short name>" --need "<one paragraph of what it does>" --criteria "<criterion>" --capture ^cNN`, which writes `### CAP-NNN.FRn <short name>` (at most six words), numbered after the highest, with `- **State:** assumption` and `- **Source:**` linking the capture | the capability page, under `## Functional requirements` |
 | Acceptance criteria | Plain bullets under each FR, stated at a boundary the vault knows: a flow, a contract or an actor in the glossary | under the FR; an indented `- Trace:` line under a bullet holds the IDs it rests on, and is not a criterion. Each criterion is a sentence a tester could read aloud, with its IDs on that line. They stay here: allocation rows and epics point at the requirement and never copy the criteria into a table cell |
-| Constraints | A link to an existing `CST-n`. A new constraint becomes a capture for `02-constraints.md`. | session record |
+| Constraints | A link to an existing `CST-n`. A new constraint becomes a capture for `02-constraints.md`. | session notes |
 | Open questions | An unknown with `**Question:**`, `**Owner:**`, `**State:** open`, `**Ask by:**` and a `**Blocks:**` link to the FR, as shown below | `11-unknowns-and-risks.md` |
-| Deferred items | A capture with the reason. Close parks it. | session record |
+| Deferred items | A capture with the reason. Close parks it. | session notes |
 | Glossary | A new term with `assumption` beside it | `12-glossary.md` |
-| A tech or NFR detour | The skill's redirect stays. Also write a `[worry]` capture naming the concern page, or a note for the app's senior. | session record |
+| A tech or NFR detour | The skill's redirect stays. Also write a `[worry]` capture naming the concern page, or a note for the app's senior. | session notes |
 
 An unknown that blocks an FR links the FR's heading:
 
@@ -41,13 +41,13 @@ An unknown that blocks an FR links the FR's heading:
 - **Blocks:** [[CAP-021-amend-or-cancel#CAP-021.FR2 Partial cancel|CAP-021.FR2]]
 ```
 
-`vela add fr` never reuses a number. When the lead drops an FR, never strike its heading through, because that breaks every link to it: run `vela query refs <ID>`, take it out of every row that names it in the same checkpoint, delete it, and keep the reason in the session record as a `→ drop` capture. `/vela:requirements` does the same.
+`vela add fr` never reuses a number. When the lead drops an FR, never strike its heading through, because that breaks every link to it: run `vela query refs <ID>`, take it out of every row that names it in the same checkpoint, delete it, and keep the reason in the session's notes as a `→ drop` capture. `/vela:requirements` does the same.
 
 ## Certainty
 
 - Vault mode is a Shape, not a Grill. It writes at most `assumption`.
 - It never writes `fact`. Requirements state intent.
-- If the user says "decide FR1", say once: "Requirements are recorded as assumptions, so a Grill can test them before anyone builds to them." Offer `/vela:grill CAP-NNN.FRn`. If they still want it decided here, that is an override of `grill`: write it `decided`, with `- **Decision:** [[<session id>]]` and `- **Override:** grill by @<handle> on <today>: <their reason>` under its heading, as `START.md` says. The check then reports W317 instead of E317 for it.
+- If the user says "decide FR1", say once: "Requirements are recorded as assumptions, so a Grill can test them before anyone builds to them." Offer `/vela:grill CAP-NNN.FRn`. If they still want it decided here, that is an override of `grill`: write it `decided`, with the bare link `- **Decision:** [[<session id>]]` and `- **Override:** grill by @<handle> on <today>: <their reason>` under its heading, as `START.md` says. The check then reports W317 instead of E317 for it.
 - The check enforces this: a session whose `modes` include only `requirements` cannot be the `**Decision:**` behind a `decided` item.
 - If the capability page is already `decided`, an open unknown that blocks one of its FRs makes the check fail with E316, because the capability was decided before the question was answered. Say so before writing the unknown, and let the user choose: keep the unknown and take the capability back to `assumption` in a Grill, or record the question as not blocking (`**Blocks:** nothing`) with the reason in `**Notes:**`.
 

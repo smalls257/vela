@@ -36,7 +36,7 @@ JSON
 ```
 
 8. Say what it printed in your own words: where the proposal is, what to send and to whom. Errors from their copy's check are listed first in the proposal and didn't stop it; the owner decides about them. The owner's answer comes back as `answer.md`, with a new published copy to open and continue from.
-9. If it stopped on a private path (a home folder, the place the copy was opened from), show that line and offer to reword it. If it is in a session record and the user agrees, run again with `--rewrite-home`: the proposal says `<home>` there, and their own files don't change. Never add that flag without their yes.
+9. If it stopped on a private path (a home folder, the place the copy was opened from), show that line and offer to reword it. If it is in a session's notes and the user agrees, run again with `--rewrite-home`: the proposal says `<home>` there, and their own files don't change. Never add that flag without their yes.
 
 ## Never
 

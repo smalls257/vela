@@ -14,7 +14,7 @@ Vela is `sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela` (`START.md`, "Where vela run
 
 Run `vela role`. In a reader copy (a published copy with no `.git`), say "Only the owner can record a challenge here. Write your disagreement as a proposal (/vela:propose) and send it to <the owner named in `.vela/published.json`>." Write nothing and open no session.
 
-Run only the steps of `${CLAUDE_PLUGIN_ROOT}/references/START.md` that show the state of the clone, find open sessions, open the record and read how to talk (its steps 0, 1, 2 and 5): `vela session start --mode challenge --topic <ID> --for-lead` does the first three, and you read step 6 and the Challenge row of `${CLAUDE_PLUGIN_ROOT}/references/MODES.md`. The session is `<date>-challenge-<id-lowercased>` (`2026-11-21-challenge-con-001`), titled `Challenge: <ID>`; the answer path finds the PR by that title. Relay its lines as START's "Relaying a command" says; on exit 3, ask what it asks and run it again with `--resume <id>`, `--new` or `--title "<name>"`.
+Run only the steps of `${CLAUDE_PLUGIN_ROOT}/references/START.md` that show the state of the clone, find open sessions, open the session and read how to talk (its steps 0, 1, 2 and 5): `vela session start --mode challenge --topic <ID> --for-lead` does the first three, and you read step 6 and the Challenge row of `${CLAUDE_PLUGIN_ROOT}/references/MODES.md`. The session is `<date>-challenge-<id-lowercased>` (`2026-11-21-challenge-con-001`), titled `Challenge: <ID>`; the answer path finds the PR by that title. Relay its lines as START's "Relaying a command" says; on exit 3, ask what it asks and run it again with `--resume <id>`, `--new` or `--title "<name>"`. The session's words stay in notes on this machine, and only its header is committed. The topic is the item's ID, never a person's name.
 
 ## 2. Find the challenged item
 
@@ -56,8 +56,8 @@ Write only these:
 ```
 
   `**Blocks:**` takes `link` from the query answer; an app page or an epic is `[[<page>|<ID>]]`. Challenging an app page blocks every decided item on it, so E316 fires once per item. Say so without the code before writing, and recommend the one contract when that is the dispute: "Challenging the whole app page flags every decided item on it (about 9), not just the one you dispute. I'd challenge only the contract."
-- On the item, one line: under a contract's heading after its last bullet, or for a page or epic after its `**Decision:**` line: `- **Dissent:** <team lead's handle>, <today>: <the reason in a few words> (see [[11-unknowns-and-risks#UNK-nnn <short name>|<short name>]])`.
-- In `## Changes`, `| UNK-nnn | - | open | [[<session id>#^cNN]] |`, citing the question's capture. Mark it, and each other capture of theirs, `→ keep: [[11-unknowns-and-risks#UNK-nnn <short name>|UNK-nnn]] (open)`. Park a `claude` capture unless they picked it.
+- On the item, one line: under a contract's heading after its last bullet, or for a page or epic after its `**Decision:**` line: `- **Dissent:** @<team lead's handle>, <today>`. The team lead's own words follow it, as `: "<the reason in a few words>" (see [[<session id>]])`, only if they keep them at the read-back in step 5; without that the line says who disagreed and when, and the open question holds the reason.
+- In the notes' `## Changes`, `| UNK-nnn | - | open | [[<session id>#^cNN]] |`, citing the question's capture. Mark it, and each other capture of theirs, `→ keep: [[11-unknowns-and-risks#UNK-nnn <short name>|UNK-nnn]] (open)`. Park a `claude` capture unless they picked it.
 
 Never touch the item's `state:`, `**State:**`, wording, criteria or any other line. A challenge records a dispute. It does not settle one.
 
@@ -67,18 +67,20 @@ Run `vela render`, then `vela check`. For a `decided` item, check now reports E3
 
 Read back by name before anything is sent: "I've added the open question 'Hold expiry under load', owned by you, answer wanted by December 5. It blocks the Booking API contract, which stays decided and unchanged, with your dissent beside it. The check stays red until the solution lead answers. Anything to change?"
 
+Then read back each line of theirs that will leave the machine, the Dissent words and any line the pull request will quote, with `vela close readback --for-lead`: they keep, reword or cut each. A line goes in the pull request only if they pick it (`vela close readback --pick ^cNN`), and only their own words can be picked.
+
 ## 6. Close and send
 
-This skill files its own record: `vela close finish` and `vela close push` stop on the deliberate red check.
+This skill files its own session: `vela close finish` and `vela close push` stop on the deliberate red check.
 
 The reviewer is the solution lead: the `owner:` of `01-goals.md`. Strip the leading `@`, pass `@org/team` as `org/team`, and drop the user's own handle (`vela whoami`). If nobody remains, leave out `--reviewer`.
 
-1. Ask before anything leaves the machine: "I'll send this challenge for review to <the solution lead's name>. OK?" Capture the answer with `vela record add --origin <handle> --tag thought --mark "drop: the yes to send this for review" "<their words>"`. No yes: stop, with the record open.
-2. Set `summary:` to one line the team lead accepts and `status: closed`, then run `vela close stage --session <id> --close --paths-from-render`. It commits the record and the changed pages by exact path; tell the team lead about any file it names as left out.
+1. Ask before anything leaves the machine: "I'll send this challenge for review to <the solution lead's name>. OK?" Capture the answer with `vela record add --origin <handle> --tag thought --mark "drop: the yes to send this for review" "<their words>"`. No yes: stop, with the session open.
+2. Run `vela close stage --session <id> --close --summary "<one line the team lead accepts>" --paths-from-render`. It closes the session, fingerprints the notes and commits the stub and the changed pages by exact path, and never the notes; tell the team lead about any file it names as left out.
    When the plan shares its repository with other plans (`vela plans` lists more than one), the session's branch is `session/<plan>/<id>`, not `session/<id>`: wherever `session/<id>` appears below, use the `branch` in `.vela/session.json`, and put `[<plan>] ` in front of the PR title (the plan is the last folder of the path `vela plans --here` prints).
 3. Run `git push -u origin session/<id>`. If it fails, say in one plain sentence that the challenge didn't go up and why, without pasting the push's own message, give the commands for the user to run, and stop.
 4. Write the PR body to a temporary file, each item by name with its ID beside it:
-   - **Challenge.** The item, the question, the case and the proposal, quoted from the captures.
+   - **Challenge.** The item, the question, the case and the proposal, in your words. Quote only the team lead's own words that they picked at the read-back, never anyone else's.
    - **Open question.** Its short name, `UNK-nnn`, owner and, when it has one, ask-by date.
    - **Check.** The check's first line and the E316 line, if any.
    - **The red check.** Never promise a red check for an item that is not `decided`. Not decided (an `assumption`, a `draft`): nothing blocks this merge; the dispute lives in `UNK-nnn` and the `**Dissent:**` line, and the item can't be decided while the question is open. Decided: E316 is deliberate. `vela check` fails on it until it is answered, so the PR shouldn't merge while `main` reads `decided` with an open blocker. The solution lead answers on this branch, either by resolving `UNK-nnn` with a grill or by setting the item back: a contract to `assumption`, an epic to `reopened`, which a later grill decides again with `| EPC-nnn | reopened | decided | ... |`. Then the check turns green. `/vela:grill` naming this PR or <ID> opens an answer session on this branch, and `/vela:close` pushes the answer here and comments on this PR. Say: "Run `/vela:grill` and name this PR or <ID>."
