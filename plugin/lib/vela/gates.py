@@ -47,6 +47,9 @@ from vela import cases, closegate, model, override, progress, questions, say, sc
 from vela.flowcheck import standing as flowstanding
 
 FLOW_CHECK, CASE_TABLE = "flow check", "case table"
+# The model's route when the lead lives with a finding: the command, never the Override bullet's grammar.
+FLOW_OVERRIDE_ROUTE = ('If the lead lives with a finding, record it with vela apply (kind override, the slice page, rule '
+                       '"flow check") with their reason and an end date; "not fully checked" takes none.')
 CASE_TABLE_RULE = '"case table"'
 OVERRIDE_NAMES = {"GATE-1": ("GATE-1",), "GATE-2": ("GATE-2",), "GATE-4": ("GATE-4", "E316"),
                   CASE_TABLE: (CASE_TABLE_RULE,)}
@@ -305,7 +308,8 @@ def flow_reason(vault, found, name, flows):
             else f"has {worst.words}" + (f" ({', '.join(worst.open)})" if worst.open else ""))
     return Reason(FLOW_CHECK, f"The flow check of {name} {said}.",
                   "I'd read each finding out with its owners and settle it. If you're happy to live with one for "
-                  "now, I'll note that with an end date; a check that didn't finish can't be waved through.", command)
+                  "now, I'll note that with an end date; a check that didn't finish can't be waved through.",
+                  f"{command}. {FLOW_OVERRIDE_ROUTE}")
 
 
 def slice_reasons(vault, found, name, today):
