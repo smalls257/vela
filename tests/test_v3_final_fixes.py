@@ -282,3 +282,17 @@ def test_the_template_checklist_is_what_vela_new_leaves_a_person():
     checklist = (REPO / "plugin" / "template" / "README.md").read_text(encoding="utf-8").split("## Setup checklist", 1)[1]
     steps = [l for l in checklist.split("\n## ", 1)[0].splitlines() if l[:1].isdigit()]
     assert len(steps) == 3 and "required status check" not in " ".join(steps) and "Obsidian" in steps[2]
+
+
+# ------------------------------------------------------------------ a record still committed whole
+
+def test_a_whole_committed_record_keeps_checkable_words_but_not_its_reviews(tmp_path):
+    """The stub-only rule: a record not yet split has its words in the plan, so a quote of a capture holds; the
+    `## Reviews` section stays out, so a dropped quote can't come back as evidence through a re-run."""
+    vault = tmp_path / "ub"
+    shutil.copytree(FIXTURE, vault)
+    (vault / "sessions" / "2026-11-20-points-dump.md").write_text(RECORD, encoding="utf-8")
+    kept = merge_one(tmp_path, vault, "customers keep their loyalty points across both brands")
+    assert kept["dropped"] == [] and len(kept["kept"]) == 1
+    again = merge_one(tmp_path, vault, DROPPED)
+    assert again["kept"] == [] and "is not in the written text" in again["dropped"][0]["reason"]

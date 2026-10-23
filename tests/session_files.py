@@ -95,7 +95,7 @@ def split_copy(src, dst):
     shutil.copytree(src, dst, symlinks=True, ignore=shutil.ignore_patterns(".git"))
     dst = pathlib.Path(dst)
     private_records.split_folder(dst, "", SPLIT_DAY)
-    _requote_reviewer_rows(dst)
+    _stand_in_for_the_hand_requote(dst)
     return dst
 
 
@@ -117,7 +117,8 @@ def _page_sentences(vault):
     return found
 
 
-def _requote_reviewer_rows(root):
+def _stand_in_for_the_hand_requote(root):
+    # Test stand-in only: `vela records split` lists these rows as Left and the lead requotes them; a copy can't wait.
     from vela import cli
     ledger = root / "11-unknowns-and-risks.md"
     if not ledger.is_file():

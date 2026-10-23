@@ -343,7 +343,8 @@ def send(root, vault, session, args):
                      plain=f"I couldn't send it: {trouble(sent.why)}. Shall I try again?")])
     head = vaultgit.git_out(root, "rev-parse", "HEAD")
     pushed = {"version": VERSION, "branch": session.branch, "head": head, "consent": f"c{yes.n}",
-              "words": yes.quote, "link": privaterecord.citation(session.id, session.part, int(yes.n)), "answer": session.answer}
+              "words": yes.quote, "answer": session.answer,
+              "link": privaterecord.citation(session.id, session.part, int(yes.n))}
     wrote = [sessiongit.write_text(root, close_file(session.id, "push"), json.dumps(pushed, indent=2) + "\n")]
     plain = ("Sent. Now I'll add your answer to the challenge." if session.answer
              else "Sent. Now I'll open the review.")

@@ -260,6 +260,7 @@ def link_rules(vault, today):
                 continue
             if link.anchor.startswith("^"):
                 if link.anchor[1:] not in target.block_ids:
+                    # Only when the block is missing: a record still committed whole keeps its anchors, a stub has none.
                     if target.type == "session" and re.fullmatch(r"\^c\d+", link.anchor):
                         yield _f(page, link.line, "E202", f"[[{target.name}#{link.anchor}]] points into a session's "
                                  "notes, which stay on the lead's machine.",

@@ -7,6 +7,8 @@ an existing name is never overwritten; and an empty result says so instead of wr
 import json
 import zipfile
 
+import shutil
+
 import pytest
 
 from conftest import run
@@ -21,6 +23,7 @@ NOTES = "---\nid: 2026-10-12-till-options\npart: 1\n---\n\n## Captures\n\n- [ide
 @pytest.fixture
 def started(tmp_path, monkeypatch):
     vault = owner(tmp_path, monkeypatch)
+    shutil.rmtree(vault / "sessions" / "private")  # the mini fixture's own notes: these tests count their own
     assert start(vault, "--mode", "dump", "--topic", "consent")[0] == 0
     session_files.write_private(vault, OTHER, NOTES)
     return vault
@@ -97,6 +100,7 @@ def test_a_second_backup_never_overwrites(started, tmp_path):
 
 def test_with_no_private_notes_it_says_so_and_writes_nothing(tmp_path, monkeypatch):
     vault = owner(tmp_path, monkeypatch)
+    shutil.rmtree(vault / "sessions" / "private")
     code, text = backup(vault, tmp_path / "keep")
     assert code == 1 and "There are no session notes here to back up." in text
     assert not (tmp_path / "keep").exists()

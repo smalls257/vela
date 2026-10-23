@@ -295,6 +295,12 @@ def dry_run_lines(report, lead):
         lines.append(say.Line(f'{s.path}:{s.line}: {s.what} words removed: "{s.words}"',
                               plain=f"On the {page_name(s.path)} page, I'd take out {STRIP_WORDS[s.what]}."))
     for item in report.left:
+        if item.what == recordsplit.REVIEWER_QUOTE:
+            lines.append(say.Line(f"{item.path}:{item.line}: a reviewer question quotes a session, which will be a stub",
+                                  plain=f"On the {page_name(item.path)} page, a reviewer question quotes a session, "
+                                        "and that session's words will stay on this machine. Quote a page instead, "
+                                        "then I'll split."))
+            continue
         lines.append(say.Line(f"{item.path}:{item.line}: a {item.what} line I can't read, so I can't tell whether it "
                               "holds someone's words",
                               plain=f"On the {page_name(item.path)} page, there's a line about a {item.what} I can't "
@@ -325,8 +331,8 @@ def apply_split(root, lead, today, branch_texts):
                   "out first, so I keep them.")])
     planned = recordsplit.plan(plan_files(root), lead, today, branch_texts)  # refuses before any branch is made
     if planned.left:
-        text = (f"{plural(len(planned.left), 'line', 'lines')} I can't read, so I can't tell whether they hold "
-                "someone's words. Fix them by hand first, then split again.")
+        text = (f"{plural(len(planned.left), 'line', 'lines')} I can't split as they stand: ones I can't read, or "
+                "reviewer questions that quote a session. Fix them by hand first, then split again.")
         return say.Result(SPLIT, exit=say.REFUSED, data=split_data(planned), lines=[
             say.Line(f"vela records split: {text}", plain=text)] + dry_run_lines(planned, lead)[1:])
     if not planned.writes:

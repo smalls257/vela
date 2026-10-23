@@ -32,10 +32,12 @@ HISTORY_TELL = (
 IGNORE_LINE = f"{privaterecord.PRIVATE_DIR}/"
 SOURCES_FILE = "sources.md"
 DISSENT, RECEIPT, ANSWERED_QUOTE = "dissent", "receipt", "answered quote"
+REVIEWER_QUOTE = "reviewer quote"
 
 _RECORD_PATH = re.compile(r"^sessions/[^/]+\.md$")
 _WORDS_LINE = re.compile(r"^(?P<head>\s*- \*\*(?P<label>Decision|Dissent):\*\* )(?P<value>.*?)(?P<tail>\s*)$")
 _QUOTED_SOURCE = re.compile(r'(?P<key>\bsource:\s*)"(?P<words>[^"]+)"\s+in\s+\[\[(?P<page>[^\]|#]+)\]\]')
+_REVIEWER_QUOTE = re.compile(r'\bquote:\s*"[^"]*"\s+in\s+\[\[(?P<page>[^\]|#]+)\]\]')
 _LEDGER_ROW = re.compile(r"^\|\s*(?:Q-|R-)")
 _RECORDS_SPLIT_LINE = re.compile(r"^records_split:.*$", re.M)
 
@@ -54,7 +56,7 @@ class Left:
     words are carried: the line is the lead's to look at and fix by hand."""
     path: str
     line: int
-    what: str  # DISSENT or RECEIPT
+    what: str  # DISSENT, RECEIPT or REVIEWER_QUOTE
 
 
 @dataclass(frozen=True)
@@ -243,10 +245,19 @@ def _page_stripped(path, text, lead, session_ids, first_hand):
         elif cut is not None:
             line = cut[0]
             stripped.append(Stripped(path, number, cut[1], cut[2]))
+        elif in_ledger and _quotes_a_session(line, session_ids):
+            left.append(Left(path, number, REVIEWER_QUOTE))
         elif in_ledger and _LEDGER_ROW.match(line):
             line = _strip_answered_quote(path, number, line, session_ids, first_hand, stripped)
         out.append(line)
     return "\n".join(out), stripped, left
+
+
+def _quotes_a_session(line, session_ids):
+    """True for a reviewer row (R-) whose quote is cited to a session: a stub can't hold the words, no replacement
+    exists, and E802 would refuse the row, so the lead requotes it from a page before the split."""
+    found = _REVIEWER_QUOTE.search(line)
+    return bool(found) and line.startswith("| R-") and found["page"].strip() in session_ids
 
 
 def _strip_answered_quote(path, number, line, session_ids, first_hand, stripped):

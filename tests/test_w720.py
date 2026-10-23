@@ -22,7 +22,7 @@ def w720(vault, path="sessions/"):
 def test_w720_on_a_tracked_private_file(tmp_path):
     vault = make_vault(tmp_path)
     private = vault / "sessions" / "private" / f"{RECORD_ID}.md"
-    private.parent.mkdir(parents=True)
+    private.parent.mkdir(parents=True, exist_ok=True)
     private.write_text(NOTES, encoding="utf-8")
     assert w720(vault, "sessions/private/") == [], "an untracked, ignored file is the normal case"
     git(vault, "add", "-f", f"sessions/private/{RECORD_ID}.md")
@@ -46,7 +46,7 @@ def test_w720_stays_out_of_the_toolkit_repo(tmp_path):
     vault = make_vault(tmp_path)
     (vault / ".vela-toolkit").write_text("", encoding="utf-8")
     private = vault / "sessions" / "private" / f"{RECORD_ID}.md"
-    private.parent.mkdir(parents=True)
+    private.parent.mkdir(parents=True, exist_ok=True)
     private.write_text(NOTES, encoding="utf-8")
     git(vault, "add", "-f", "sessions/private", ".vela-toolkit")
     assert w720(vault, "sessions/private/") == []

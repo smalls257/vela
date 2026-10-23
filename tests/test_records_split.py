@@ -396,3 +396,23 @@ def test_apply_refuses_when_no_handle_is_cached_so_the_leads_words_are_kept(tmp_
     assert git(vault, "branch", "--show-current") == "main" and tree_bytes(vault) == before
     code, out = run("records", "split", "--apply", "--vault", str(vault), "--today", "2026-10-22", "--for-lead")
     assert code == 1 and "whoami" not in out and "find out first" in out
+
+
+def test_a_reviewer_row_quoting_a_session_is_listed_without_its_words_and_stops_apply(tmp_path):
+    vault = full_records_vault(tmp_path)
+    ledger = vault / UNKNOWNS
+    row = (f'| R-FIN-01 | open | question: Who owns the till?; quote: "the till rounds every sale up" in [[{RECORD}]]; '
+           "severity: high |  |  |")
+    ledger.write_text(ledger.read_text(encoding="utf-8").rstrip("\n") + f"\n{row}\n", encoding="utf-8")
+    git(vault, "commit", "-qam", "a reviewer row")
+    code, out = run("records", "split", "--vault", str(vault), "--today", "2026-10-22", "--json")
+    data = json.loads(out)
+    assert code == 1 and [(i["path"], i["what"]) for i in data["left"]] == [(UNKNOWNS, "reviewer quote")]
+    assert "rounds every sale" not in out
+    code, out = run("records", "split", "--apply", "--vault", str(vault), "--today", "2026-10-22")
+    assert code == 1 and "reviewer questions that quote a session" in out and "rounds every sale" not in out
+    assert not (vault / "sessions" / "private").exists()
+    ledger.write_text(ledger.read_text(encoding="utf-8").replace(f"in [[{RECORD}]]", "in [[shop-building-blocks]]"),
+                      encoding="utf-8")
+    assert [i for i in json.loads(run("records", "split", "--vault", str(vault), "--today", "2026-10-22",
+                                      "--json")[1])["left"]] == [], "requoted from a page, nothing is left"
