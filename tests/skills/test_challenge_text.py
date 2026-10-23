@@ -79,7 +79,8 @@ def test_challenge_writes_an_unknown_the_senior_owns():
     text = skill_text_challenge()
     assert "- **Owner:** @<team lead's handle> (<their role>)" in text
     assert "- **Blocks:** [[<page>#<heading>|<ID>]]" in text
-    assert "- **Dissent:** <team lead's handle>, <today>: <the reason in a few words>" in text
+    assert "- **Dissent:** @<team lead's handle>, <today>`" in text  # who and when; the words follow only if kept
+    assert '`: "<the reason in a few words>" (see [[<session id>]])`' in text
     assert "Never name anyone but the team lead as the open question's owner." in text
     assert "vela next-id UNK" in text and "counts `main` and every open session branch" in text  # the command counts; the skill does not
 
@@ -175,7 +176,8 @@ def test_challenge_names_only_commands_that_exist():
 def test_the_session_opens_with_session_start_and_files_with_close_stage():
     text = skill_text_challenge()
     assert "`vela session start --mode challenge --topic <ID> --for-lead`" in text
-    assert "`vela close stage --session <id> --close --paths-from-render`" in text
+    assert "`vela close stage --session <id> --close --summary \"<one line the team lead accepts>\" --paths-from-render`" in text
+    assert "commits the stub and the changed pages by exact path, and never the notes" in text
     # rule deletion: staging by exact path is the command's now, with its reason in its docstring
     assert "Never use `git add -A`" not in text and "Stage every file `vela render` reported" not in text
     assert "git add -A" in close_stage.__doc__ and "allow-list" in close_stage.__doc__
@@ -206,5 +208,6 @@ def test_the_team_lead_hears_names_not_codes():
     assert "Here's what changed since you took the app on." in text
     assert "There's no record of what you accepted at handover" in text
     assert "I'd challenge only the contract." in text
-    assert "|<short name>]])`" in text  # the Dissent link reads as the question's name, not its number
+    assert "only if they keep them at the read-back" in text  # the reason is theirs, committed only if kept
+    assert "the open question holds the reason" in text  # without their words the line names no reason, and the question carries it
     assert "I've added the open question 'Hold expiry under load'" in text  # the worked read-back, by name

@@ -163,7 +163,7 @@ def test_close_finish_push_pr_in_order():
     at = [seven.index(step) for step in order]
     assert at == sorted(at), order
     assert '--mark "drop: the yes to send this for review"' in seven
-    assert (CLOSE_SKILL.index("vela close sync-main") < CLOSE_SKILL.index("vela close gate")
+    assert (CLOSE_SKILL.index("vela close sync-main") < CLOSE_SKILL.index("vela close gate --for-lead")
             < CLOSE_SKILL.index("vela close pr --prose"))
     assert "captured with `vela record add` while the record is still open" in read(
         "tests", "replay", "step_45_close_push_notice.py")
@@ -254,7 +254,7 @@ def test_close_pr_body_carries_the_no_examples_line():
 def test_pr_body_is_the_sentences_a_reviewer_reads():
     """Task 22a: `close pr` builds the lists; PR-BODY.md keeps only what code can't write."""
     body = (PLUGIN / "skills" / "close" / "PR-BODY.md").read_text(encoding="utf-8")
-    assert len(body.split()) < 260
+    assert len(body.split()) < 340  # the paragraph on what the body never says (the notes stay private) is new
     assert "two or three sentences" in body and "Don't repeat any of it" in body
     for heading in ("**Promoted on a nod:**", "**May still say the old value:**", "**Minutes.**", "**Stage:**"):
         assert heading not in body, heading
@@ -376,10 +376,10 @@ def test_close_reports_questions_and_reviews_in_the_pr_body():
 
 def test_close_keeps_its_existing_guards():
     for kept in ("### Voice review", "### Harvest the owner's edits", "vela close sync-main",
-                 "never stages the inbox, `voice/local/` or `voice/corpus/`", "vela voice settle --checkpoint",
+                 "nor the inbox, `voice/local/` or `voice/corpus/`", "vela voice settle --checkpoint",
                  "vela voice settle --rewrites"):
         assert kept in CLOSE, kept
-    assert len(CLOSE_SKILL.split()) <= 2330
+    assert len(CLOSE_SKILL.split()) <= 3050  # was 2330; the private-notes close adds still-yes, the read-back and the receipts (3007 words)
 
 
 # --- From tests/test_session_experience.py: What the skills make a lead go through (the constraints the skills put on a lead's session).
@@ -489,7 +489,7 @@ def test_close_pr_body_reviewers_and_staging():
 
 
 def test_close_never_stages_the_inbox():
-    assert "never stages the inbox" in skill_text("close")  # close stage owns it (tests/test_guard.py)
+    assert "it never stages the notes" in skill_text("close") and "nor the inbox" in skill_text("close")  # close stage owns it (tests/test_guard.py)
 
 
 def test_close_drafts_prose_through_house_voice():
@@ -544,9 +544,9 @@ def test_close_lists_w809_and_w804_to_the_lead():
 # rewrites each once, and voicecheck keeps every fact the draft carried.
 
 
-def test_a_decline_is_a_bare_line_under_captures_and_conventions_say_so():
+def test_a_decline_is_a_stub_entry_and_conventions_say_so():
     assert "vela voice harvest decline" in text("skills/close/HARVEST.md")  # the command writes the bare line
-    sentence = "A harvest decline is one bare line, `Harvest declined: PR <n> <page> <hash>`, directly under `## Captures`, never a bullet."
+    sentence = "A voice-harvest paragraph the lead declined is one entry in the stub's `harvest_declined`, `PR <n> <page> <hash>`"
     for path in ("plugin/template", "tests/stub-conventions", "examples/unified-booking"):
         assert sentence in (REPO / path / "CONVENTIONS.md").read_text(encoding="utf-8")
 
@@ -586,7 +586,7 @@ def test_voice_review_dispatches_a_fresh_reviewer_and_voice_settle_does_the_git(
 
 def test_harvest_asks_the_two_questions_and_voice_save_files_the_sample():
     harvest = text("skills/close/HARVEST.md")
-    assert len(harvest.split()) <= 300
+    assert len(harvest.split()) <= 330  # includes the line saying a decline is kept as a hash, none of the words
     assert harvest.index("Did you write this change?") < harvest.index(
         "Keep this paragraph as a sample of how you describe how things work?")
     assert "May this text be committed to the vault?" in harvest

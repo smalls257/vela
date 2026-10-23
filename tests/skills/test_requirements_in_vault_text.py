@@ -25,7 +25,7 @@ def text(rel):
 
 def test_requirements_called_from_another_mode_joins_the_open_session():
     text = read("plugin/references/REQUIREMENTS-IN-VAULT.md")
-    assert "If a session record is already open in this conversation, add `requirements` to its `modes`" in text
+    assert "If a session is already open in this conversation, add `requirements` to its `modes`" in text
     assert "otherwise run START" in text
 
 

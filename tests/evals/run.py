@@ -116,7 +116,8 @@ ID_PATTERNS = [*schema.PAGE_ID_RE.values(), schema.ITEM_ID_RE, schema.GOAL_ID_RE
 
 
 def vault_pages(read, names):
-    return [(n, read(n)) for n in names if n.endswith(".md") and not n.startswith((".", "voice/")) and "/.claude/" not in "/" + n]
+    """The committed pages. sessions/private/ holds the lead's own notes, which are never committed or graded."""
+    return [(n, read(n)) for n in names if n.endswith(".md") and not n.startswith((".", "voice/", "sessions/private/")) and "/.claude/" not in "/" + n]
 
 
 def ids_in(name, text):
