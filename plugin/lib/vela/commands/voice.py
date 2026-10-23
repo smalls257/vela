@@ -1,6 +1,6 @@
 """`vela voice <step>`: the voice examples' mechanics, so a skill asks the owner and the CLI does the files (Task 18).
 
-- `voice examples --type T | --page P`: the example paths a draft reads, in house-voice's fixed order.
+- `voice examples --type T | --page P | --key ID-OR-TYPE`: the example paths a draft reads, in house-voice's fixed order.
 - `voice plan --type T --place committed|local [--source S] [--adding N] [--from FILE]`: what retires before a save.
 - `voice save --from FILE --type T --place committed|local --consent ^cN [--commit-consent ^cM] --author H
   (--where TEXT | --page P --harvested-from SHA) [--retire-consent ^cK]`: the passage, byte for byte, with its
@@ -59,6 +59,7 @@ def add_examples(each):
     which = parser.add_mutually_exclusive_group(required=True)
     which.add_argument("--type", choices=voiceplan.VOICE_TYPES, help="a voice type")
     which.add_argument("--page", help="a page; its voice type comes from house-voice's page-type table")
+    which.add_argument("--key", help="a page id or page type, for a page with no file yet; the same table")
     common(parser)
     parser.set_defaults(func=cmd_examples)
 
@@ -125,11 +126,18 @@ def failed(command, text, plain, data=None):
 # --- examples ---------------------------------------------------------------------------------------------------------
 
 def cmd_examples(args, out):
-    return commands.emit(examples_result(root_of(args), args.type, args.page), args, out)
+    return commands.emit(examples_result(root_of(args), args.type, args.page, args.key), args, out)
 
 
-def examples_result(root, voice_type, page):
+def examples_result(root, voice_type, page, key=None):
     command = "voice examples"
+    if key is not None:
+        voice_type = voiceplan.PAGE_VOICE.get(key)
+        if voice_type is None:
+            return refused(command, "voice-type-unknown", "I don't know which voice that page is written in.",
+                           f"{key!r} is not a page id or type in the page-type table (voiceplan.PAGE_VOICE). Draft from "
+                           "the default voice alone, say \"No examples for <type>: drafted without examples\" in the PR "
+                           "body, and name the missing row there so it gets added.")
     if page is not None:
         rel = pathlib.Path(page)
         if not (root / rel).is_file():
@@ -140,11 +148,13 @@ def examples_result(root, voice_type, page):
             kind = (meta or {}).get("type", "no type")
             return refused(command, "voice-type-unknown", "I don't know which voice that page is written in.",
                            f"{page} has type {kind!r}, which house-voice's page-type table does not list; pick the "
-                           "voice type from that table and run with --type.")
-        if voice_type == voiceplan.STRUCTURED:
-            return say.Result(command, lines=[say.Line(f"{page} is structured: it holds no voiced prose.",
-                                                       "That page holds tables and lists, so it has no voice.")],
-                              data={"voice_type": voice_type, "examples": []})
+                           "voice type from that table and run with --type, or draft from the default voice alone, say \"No examples "
+                           "for <type>: drafted without examples\" in the PR body, and name the missing row there.")
+    if voice_type == voiceplan.STRUCTURED:
+        shown = page or key
+        return say.Result(command, lines=[say.Line(f"{shown} is structured: it holds no voiced prose.",
+                                                   "That page holds tables and lists, so it has no voice.")],
+                          data={"voice_type": voice_type, "examples": []})
     chosen = voiceplan.reading_order(voicegit.examples(root), voice_type)
     lines = [say.Line(e.path, plain="") for e in chosen]  # files for the model to read; nothing for the lead
     if len(chosen) < 2:

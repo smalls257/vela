@@ -118,6 +118,22 @@ def test_examples_unknown_page_type_is_refused(vault):
     assert code == 1 and "memo" in out
 
 
+def test_examples_resolve_a_key_for_a_page_with_no_file_yet(vault):
+    """`--key` reads the page-type table, so the skill needs no copy of it: an id first, then a type."""
+    code, out = voice(vault, "examples", "--key", "goals", "--json")
+    assert code == 0 and json.loads(out)["voice_type"] == "diagnosis"
+    code, out = voice(vault, "examples", "--key", "flow", "--json")
+    assert code == 0 and json.loads(out)["voice_type"] == "how-it-works"
+    code, out = voice(vault, "examples", "--key", "glossary", "--json")
+    assert (code, json.loads(out)["examples"]) == (0, [])
+
+
+def test_examples_unknown_key_is_refused_with_the_fallback(vault):
+    code, out = voice(vault, "examples", "--key", "memo")
+    assert code == 1 and "memo" in out
+    assert "No examples for <type>: drafted without examples" in out and "name the missing row" in out
+
+
 # --- voice plan: the retirement rules ----------------------------------------------------------------------------------
 
 def test_local_never_retires_committed_seed(vault):
