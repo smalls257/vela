@@ -35,15 +35,12 @@ MAP_VALUES = VOICE_TYPES + ("structured",)
 
 
 SKILL = REPO / "plugin" / "skills" / "house-voice" / "SKILL.md"
-TYPES = REPO / "plugin" / "skills" / "house-voice" / "TYPES.md"
 
 
 def voice_map():
-    """The page-type table, which moved to TYPES.md (Task 22i): read only when `voice examples --page` can't resolve."""
-    text = TYPES.read_text(encoding="utf-8")
-    section = text.split("## Page types and voice types", 1)[1].split("\n## ", 1)[0]
-    rows = re.findall(r"^\| `([a-z0-9-]+)` \| ([a-z-]+) \|$", section, re.M)
-    return dict(rows)
+    """The page-type table lives in the CLI (`vela voice examples --key`); the skill carries no copy."""
+    from vela import voiceplan
+    return dict(voiceplan.PAGE_VOICE)
 
 
 # --- From tests/test_cases.py: A contract's case table: the parser reads it, `vela check` warns when it is missing or
@@ -92,8 +89,8 @@ def test_house_voice_rules():
     voice = text("skills/house-voice/SKILL.md")
     assert "in file-name order" in voice
     assert "Never read `voice/corpus/`." in voice
-    assert "Replaces the paragraph above" not in voice and "## Replaced prose" in voice  # a page never carries two openings
-    assert "more than about 20 prose paragraphs" in voice and "`vela close drafts --json`" in voice
+    assert "Replaces the paragraph above" not in voice and "## Replaced prose" not in voice  # a page never carries two openings; the file is the command's
+    assert "more than about 20 prose paragraphs" not in voice and "`vela close drafts --json`" not in voice  # rule deletion: close owns the size question
     assert "acceptance criteria, and the `- Trace:` line under each;" in voice and "`**Decision:**` and `**Dissent:**` lines;" in voice
 
 
@@ -128,7 +125,8 @@ def test_house_voice_protects_quoted_sentences_and_writes_capabilities_as_planne
     """S51: the Heron rewrite broke 8 evidence quotes (E802). And capability prose said "the business can have" or
     "reads" for something not built; the user picked "will read"."""
     voice = text("skills/house-voice/SKILL.md")
-    assert "a sentence another page quotes as evidence" in voice and "change the quote in the same edit" in voice and "E802" in voice
+    assert "a sentence another page quotes as evidence" in voice and "change the quote in the same edit" in voice
+    assert "E802" not in voice  # rule deletion: `vela check` names the code
     assert "what the system will do" in voice and '"The Rider app will unlock' in voice and '"the business can have"' in voice
 
 
@@ -168,7 +166,7 @@ def test_house_voice_reads_the_examples_voice_examples_lists():
     assert "Read every example of that type it lists, in the order it lists them" in voice
     assert "active examples in file-name order" in voice
     assert "fewer than two active examples" in voice
-    assert "`/vela:voice-seed`" in voice
+    assert "`/vela:voice-seed`" not in voice and "public seed retires" not in voice  # rule deletion: `voice save` retires it
 
 
 # fix round 1: write mechanism, risky lines, privacy, count and cap rules, quoting, final check.
@@ -192,24 +190,19 @@ def test_house_voice_reads_local_owner_examples_first():
 # --- Task 22i: the table moved to TYPES.md, the order and the copy to the CLI, the thresholds to `check`.
 
 
-def test_the_types_table_and_the_code_table_are_one_table():
-    """`voice examples --page` reads `voiceplan.PAGE_VOICE`; TYPES.md is what the model reads when it can't. Two copies
-    that drift send a draft to the wrong examples, so they are pinned equal."""
-    from vela import voiceplan
-    assert voice_map() == voiceplan.PAGE_VOICE
-
-
-def test_house_voice_reads_types_only_when_the_command_cannot_resolve():
+def test_the_page_type_table_is_the_clis_alone():
+    """Rule deletion: the table and its copy are gone; a page with no file yet asks the command with `--key`."""
     voice = SKILL.read_text(encoding="utf-8")
-    assert "## Page types and voice types" not in voice and "| `goals` |" not in voice
-    assert "When the command can't resolve the page, read `${CLAUDE_PLUGIN_ROOT}/skills/house-voice/TYPES.md`" in voice
-    assert "vela voice examples --type how-it-works --json` with that voice type" in TYPES.read_text(encoding="utf-8")
+    assert not SKILL.with_name("TYPES.md").exists()
+    assert "TYPES.md" not in voice and "## Page types and voice types" not in voice and "| `goals` |" not in voice
+    assert "`--key <page id or type>` for a page with no file yet" in voice
 
 
 def test_merged_prose_is_copied_by_the_cli():
     voice = SKILL.read_text(encoding="utf-8")
-    assert "`vela prose replace --page 05-building-blocks/till.md --line 12` with the page and any line of the paragraph" in voice
+    assert "`vela prose replace --page 05-building-blocks/till.md --line 12` (any line of the paragraph will do)" in voice
     assert "Never copy it by hand." in voice
+    assert "byte for byte" not in voice and "with the page and the date" not in voice  # rule deletion: the command's doing
 
 
 def test_the_moved_numbers_are_gone_from_the_rules():
@@ -218,16 +211,16 @@ def test_the_moved_numbers_are_gone_from_the_rules():
     for gone in ("at most about 80 words", "under 120 words", "about four", "limit of about 80 words",
                  "Split into PRs by page group", "whose frontmatter says `state: active`"):
         assert gone not in voice, gone
-    assert "Send them for review as one batch, or split them by section (apps, flows, the rest)?" in voice
+    assert "## Size" not in voice and "split them by section" not in voice  # rule deletion: `close drafts` asks it
 
 
 def test_house_voice_names_only_commands_that_exist():
     import shlex
     from vela import cli
     parser = cli.build_parser()
-    text = SKILL.read_text(encoding="utf-8") + TYPES.read_text(encoding="utf-8")
+    text = SKILL.read_text(encoding="utf-8")
     found = re.findall(r"`vela ((?:voice|prose|close|check) [^`]*)`", text)
-    assert len(found) >= 3, found
+    assert len(found) >= 2, found
     for call in found:
         argv = shlex.split(re.sub(r"<[^>]*>", "X", call))
         _, extras = parser.parse_known_args(argv)
@@ -239,3 +232,8 @@ def test_the_voice_rule_covers_what_ifs():
     from conftest import REPO
     voice = (REPO / "plugin/skills/house-voice/SKILL.md").read_text(encoding="utf-8")
     assert "A what-if is framed as one" in voice and "never reports a new event" in voice
+
+
+def test_house_voice_stays_lean():
+    """Sensor against regrowth: the skill was 2,856 words before the voice and the rules were merged (now 2,462)."""
+    assert len(SKILL.read_text(encoding="utf-8").split()) <= 2540

@@ -73,7 +73,8 @@ def test_boundary_turns_a_decided_direction_into_apps_and_decides_nothing():
     assert "Offer 2 or 3 ways to cut the direction into apps, never one and never more than three" in b
     assert "write a line only after the yes `START.md` defines" in b and "a yes to a group counts for the lines in it" in b
     assert "read the sheet back in two groups" in b.lower()
-    assert "Every page this session writes is an `assumption`, never `decided`" in b and "never `addressed`" in b
+    assert "every page this session writes is an `assumption`" in b and "never `addressed`" in b
+    assert "never `decided`" not in b  # rule deletion: the checks hold `decided`
     assert "→ keep: [[<page>#<heading>|<ID>]] (assumption)" in b
     assert 'the checkpoint "after the pages are written"' in b and "questions --subject <ID>" in b
     assert "/vela:grill Desktop agent" in b and "/vela:grill <APP-id>" not in b  # by name, not by ID
@@ -132,6 +133,7 @@ def test_boundary_counts_cut_coverage_with_boundary_cover():
 def test_boundary_writes_the_pick_with_add_cut():
     b = text("skills/boundary/SKILL.md")
     assert "`vela add cut --for-lead`" in b
+    assert "it marks the pick's capture" not in b  # rule deletion: the command marks it
     assert "`- **Options considered:**` bullet, `<picked cut> (picked)" not in b  # add cut writes it
 
 
@@ -146,6 +148,8 @@ def test_boundary_writes_contracts_unknowns_and_marks_through_commands():
     b = text("skills/boundary/SKILL.md")
     assert "`vela add contract --for-lead`" in b and "`vela add unknown --for-lead`" in b
     assert "vela apply --schema marks" in b
+    assert "Commands write the templated parts" not in b and "won't write `decided`" not in b and "It writes the required bullets" not in b
+    assert "which commits by exact path" not in b and "sends a stub back to Boundary" not in b
     assert "When a command can't express what the lead wants, say so and stop." in b
 
 
@@ -183,6 +187,7 @@ def test_boundary_names_only_commands_that_exist():
 def test_boundary_reads_back_by_name_in_plain_labels():
     b = text("skills/boundary/SKILL.md")
     assert "in your own sentences as well as in what a command prints" in b
+    assert "CONVERSATION-VOICE.md`, rule 7" not in b and "about four things to judge" not in b  # rule deletion: START and CONVERSATION-VOICE say it
     assert "A read-back by name:" in b and "Not this:" in b
     for label in ("**Doesn't do:**", "**Main parts:**", "**What it offers other apps:**",
                   "**What it needs from others:**", "**When something fails:**"):
@@ -199,6 +204,7 @@ def test_boundary_keeps_the_first_thin_path_words_releases_reads():
 
 def test_pages_leaves_to_add_what_add_writes():
     pages = text("skills/boundary/PAGES.md")
+    assert "no reader has to guess the direction" not in pages and "padding" not in pages and "no \"no strategy is set yet\"" not in pages
     assert "fill the stub `vela add app-stub` wrote" in pages and "`vela add contract` writes the heading" in pages
     assert "`type: app-building-blocks`, `title`, `state: assumption`" not in pages  # the stub's frontmatter
     assert "one `### CON-nnn <name>` each, with every required bullet" not in pages
@@ -226,7 +232,7 @@ def test_pages_names_the_field_the_code_writes_and_no_line():
 def test_boundary_says_what_to_do_with_the_ready_to_decide_hand_off():
     from conftest import REPO
     text = (REPO / "plugin/skills/boundary/SKILL.md").read_text(encoding="utf-8")
-    assert "run `vela decide` on it" in text and "ready to decide, offer the lead a short grill" in text
+    assert "run `vela decide` on it" not in text and "ready to decide, offer the lead a short grill" not in text  # MODES.md owns it
 
 
 # --- Library Task 5: a spec, wiki or repo link is offered for the Library; the page's `links:` stay as they are.
@@ -242,3 +248,9 @@ def test_boundary_drafts_the_paragraph_of_each_item_it_files_now():
     body = (REPO / "plugin" / "skills" / "boundary" / "SKILL.md").read_text(encoding="utf-8")
     assert "Draft" in body and "paragraph" in body and "START.md" in body
     assert "Draft the paragraph when the item is filed" in body or "Draft each filed item's paragraph now" in body
+
+
+def test_boundary_stays_lean():
+    """Sensor against regrowth: 2,552 words before the trim (now 2,387); PAGES.md 1,001 before (now about 930)."""
+    assert len(text("skills/boundary/SKILL.md").split()) <= 2460
+    assert len(text("skills/boundary/PAGES.md").split()) <= 960

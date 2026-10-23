@@ -57,7 +57,7 @@ def test_the_voice_is_conversational_and_short():
 
 def test_the_owners_voice_md_outranks_the_default():
     skill = read(SKILL)
-    assert "wins over the default voice, the rules below and the examples" in skill
+    assert "wins over the default voice below and the examples" in skill
     assert skill.index("voice/VOICE.md") < skill.index("## The default voice")
     assert "A line in the owner's `voice/VOICE.md` wins over any line here" in default_section()
     owner = read(DEFAULT)
