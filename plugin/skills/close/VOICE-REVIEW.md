@@ -1,6 +1,6 @@
 # Voice review
 
-Read by close in section 4, after `vela close stage --draft`. A fresh reader checks the drafts, because the drafter can't judge its own voice.
+Read by close under "Write the items and the prose", after `vela close stage --draft`. A fresh reader checks the drafts, because the drafter can't judge its own voice.
 
 1. List every prose paragraph this session touched (`done` and `paragraphs` in `vela close drafts --json`): for each, a number, the page, its voice type from house-voice's table, and its text. Leave out the bullets, table rows and headings. Give the reviewer the path `${CLAUDE_PLUGIN_ROOT}/references/lint-words.txt`; don't copy its words into the list or into your own drafting.
 2. Dispatch the `vela:voice-reviewer` subagent with the Agent tool, and give it the list. If the Agent tool lists no `vela:voice-reviewer`, dispatch a general-purpose subagent, and give it everything in `${CLAUDE_PLUGIN_ROOT}/agents/voice-reviewer.md` after the frontmatter, then the list, then this: you must not change any file, and you must report any file you changed. Never review the drafts yourself in this conversation.

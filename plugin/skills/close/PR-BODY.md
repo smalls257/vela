@@ -1,6 +1,6 @@
 # The sentences a reviewer reads first
 
-Read by close in section 8. `vela close pr` builds the rest of the body. Don't repeat any of it. The body says what changed, never what anyone said: the session's notes stay on the lead's machine, and a reviewer who wants to see one of the lead's own yeses asks them (`vela records show <id> <ref>` prints it).
+Read by close under "The pull request, and what you tell the lead". `vela close pr` builds the rest of the body. Don't repeat any of it. The body says what changed, never what anyone said: the session's notes stay on the lead's machine, and a reviewer who wants to see one of the lead's own yeses asks them (`vela records show <id> <ref>` prints it).
 
 Write two or three sentences, in the house voice:
 

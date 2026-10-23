@@ -1,6 +1,6 @@
 # Harvest the owner's edits
 
-Read by close in section 4, when `vela voice harvest list --json` returns candidates. Each is an owner's edit to a merged draft: its pull request, page, hash, both paragraphs, its voice type, and the file holding the merged text, so you never retype it. Offer them one at a time; capture each answer as section 7 does, without the mark.
+Read by close under "Write the items and the prose", when `vela voice harvest list --json` returns candidates. Each is an owner's edit to a merged draft: its pull request, page, hash, both paragraphs, its voice type, and the file holding the merged text, so you never retype it. Offer them one at a time; capture each answer with `vela record add`, without a mark.
 
 1. Show the draft and the merged paragraph and ask "Did you write this change?" The answer is the check that the edit is theirs; if it's unclear, ask once more. On a no, or still unclear, run `vela voice harvest decline 42 <page> <hash>` with its pull request number, page and hash, and go to the next one. The decline is kept in the session's header as a hash, with none of the words, so the paragraph isn't offered again.
 2. Ask whether to keep it, naming the voice type in plain words: "Keep this paragraph as a sample of how you describe how things work?" On anything but a clear yes, decline it the same way.
