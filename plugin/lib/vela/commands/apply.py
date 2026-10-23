@@ -147,6 +147,8 @@ def file_decision(decision, path, root, vault, record, reader, context=None):
             return refused(refusals)
         new_file = decisions.applied_text(decision, writes, decisions.record_after(record, staged))
         written = disk.write_all(root, writes, {path.resolve(): new_file})
+    except textedit.StubUnreadable as exc:
+        return failed(str(exc), str(exc))
     except disk.OutsideVault as exc:
         return refused([say.Refusal("apply-outside-vault", "One of those would have changed a file outside the vault, "
                                                            "so I filed nothing.",

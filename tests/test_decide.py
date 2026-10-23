@@ -7,6 +7,7 @@ The vault is the mini fixture with one item of each target kind added, so every 
 import json
 import shutil
 import subprocess
+import types
 
 import pytest
 
@@ -578,3 +579,23 @@ def test_the_next_session_brief_lists_what_the_lead_already_said_yes_to(tmp_path
     code, output = run("session", "brief", "--vault", str(root), "--today", TODAY, "--json")
     assert json.loads(output)["ready_to_decide"] == [], "decided items drop off the list"
     assert ready.can_decide("modes: [dump]\n") is False and ready.can_decide("no front matter") is True
+
+
+
+def test_an_unreadable_stub_refuses_the_decision_instead_of_letting_a_shape_session_decide(tmp_path):
+    root = make_vault(tmp_path)
+    in_session_with_modes(root, "shape")
+    rec = sessiongit.open_record(root)[0]
+    gone = types.SimpleNamespace(text=lambda path: None)
+    with pytest.raises(textedit.StubUnreadable, match=f"sessions/{RECORD_ID}.md"):
+        textedit.stub_text(rec, gone)
+    # the command path: the stub is open when found and gone when the modes are read
+    real = textedit.stub_text
+    textedit.stub_text = lambda record, view: real(record, gone)
+    try:
+        before = (root / STOCK).read_text(encoding="utf-8")
+        code, output = decide_con_002(root)
+    finally:
+        textedit.stub_text = real
+    assert code == 2 and f"sessions/{RECORD_ID}.md" in output, output
+    assert (root / STOCK).read_text(encoding="utf-8") == before

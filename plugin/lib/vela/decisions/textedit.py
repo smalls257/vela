@@ -413,8 +413,17 @@ def record_text(record, view):
 
 
 def stub_text(record, view):
-    """The committed header of the record: where a session's modes are kept."""
-    return view.text(record.stub) or ""
+    """The committed header of the record: where a session's modes are kept. A header that can't be read raises
+    StubUnreadable: with no modes, `ready.can_decide` would say a shape session may decide (a Silent Fallback)."""
+    text = view.text(record.stub)
+    if not text:
+        raise StubUnreadable(f"I can't read the session's header, {record.stub}, so I can't tell which modes this "
+                             "session is in. Nothing was decided.")
+    return text
+
+
+class StubUnreadable(ValueError):
+    pass
 
 
 def yaml_value(text):

@@ -34,8 +34,8 @@ Staged by a close (the allow-list):
   `cli.page_kind` decides). `vela render` only ever rewrites vault pages, so render's files are always inside this
   rule; `close stage --paths-from-render` adds the proof that they are render's latest output, which is why a page
   left out of the commit used to fail CI's render check.
-- **The open session's stub** `sessions/<id>.md` (the header; the notes are never staged). Another session's record is left out: a close files one session,
-  and a change to another record is someone else's work.
+- **The open session's stub** `sessions/<id>.md` (the header; the notes are never staged). Another session's
+  record is left out: a close files one session, and a change to another record is someone else's work.
 - **Harvested voice examples** under `voice/examples/`, which the owner agreed to share when they were saved, and
   **`voice/VOICE.md`**, the owner's own rules in their words (voice-seed writes it with them; every session reads it
   first). Leaving it out would leave voice-seed nowhere to commit it but a hand-typed stage, which the Claude Code

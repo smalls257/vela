@@ -147,8 +147,13 @@ def run(args, out):
     # A decision numbers nothing, so no branch is read for IDs; the view still carries the (empty) list `attach` gives.
     staged = textedit.attach(decisions.Staged(vault, disk.reader(root)), today, [])
     _, target = decide.locate(staged, ident)
-    if not (args.reopen or args.stated_in) and target is not None and not ready.can_decide(textedit.stub_text(record, staged)):
-        return commands.emit(cannot_decide_here(root, record, ident, args), args, out, resolver)
+    if not (args.reopen or args.stated_in) and target is not None:
+        try:
+            may_decide = ready.can_decide(textedit.stub_text(record, staged))
+        except textedit.StubUnreadable as exc:
+            return commands.emit(failed(str(exc), str(exc)), args, out, resolver)
+        if not may_decide:
+            return commands.emit(cannot_decide_here(root, record, ident, args), args, out, resolver)
     if target is not None and target.gate:
         keys = gates.flow_keys(vault, target.gate)
         staged.flows = cli.recorded_standings(root, vault, keys, today)[0] if keys else {}
