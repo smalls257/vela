@@ -242,10 +242,11 @@ def cmd_close_stage(args, out):
             committed = True
         elif args.commit:
             commit_line = "nothing to commit: no allow-listed file changed"
-    except vaultgit.GitUnavailable as exc:
-        for rel, text in before.items():  # a failed stage leaves no closed record behind
-            sessiongit.write_text(root, rel, text)
+    except (vaultgit.GitUnavailable, OSError) as exc:
+        put_back(root, before)
         raise cli.ToolError(f"close stage: {exc}") from exc
+    if before and not (committed and privaterecord.stub_path(ident) in plan.stage):
+        put_back(root, before)  # the close commit didn't take the closed stub, so nothing may keep saying closed
     result.data = {"session": ident, "staged": list(plan.stage),
                    "left": [{"path": p, "reason": why} for p, why in plan.left],
                    "never": [{"path": p, "rule": r.key, "reason": r.plain} for p, r in plan.never],
@@ -271,6 +272,15 @@ def closed_files(args, root, ident):
     except (closefinish.SummaryRefused, ValueError, OSError) as exc:  # PrivateMissing is a ValueError
         return {}, say.Result("close stage", exit=say.FAILED, lines=[say.Line(f"vela close stage: {exc}", plain=str(exc))])
     return {privaterecord.private_path(ident): notes, privaterecord.stub_path(ident): stub}, None
+
+
+def put_back(root, before):
+    """One way back after `--summary` wrote the closed stub and notes: both files as they were, the stub out of the
+    index, so a failed or partial close leaves no record that says closed without a commit that filed it."""
+    for rel, text in before.items():
+        sessiongit.write_text(root, rel, text)
+    vaultgit.run_git(root, "reset", "-q", "--", *[rel for rel in before if rel.startswith("sessions/") and
+                                                    not privaterecord.is_private(rel)])
 
 
 def write_closed(root, files):

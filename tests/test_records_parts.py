@@ -166,3 +166,18 @@ def test_a_failed_stage_leaves_no_closed_stub_behind(tmp_path, monkeypatch):
     assert code == 1 and "render would still rewrite" in out, out  # the new open record leaves render stale
     assert session_files.stub_text(vault, rid) == stub_before
     assert private_of(vault, rid).read_text(encoding="utf-8") == notes_before
+
+
+def test_a_failing_commit_after_the_write_puts_back_both_files_and_unstages_the_stub(tmp_path, monkeypatch):
+    vault, _, rid, _ = machine_a(tmp_path, monkeypatch)
+    stub_before = session_files.stub_text(vault, rid)
+    notes_before = private_of(vault, rid).read_text(encoding="utf-8")
+    hook = vault / ".git" / "hooks" / "pre-commit"
+    hook.parent.mkdir(exist_ok=True)
+    hook.write_text("#!/bin/sh\necho refused by a test hook >&2\nexit 1\n", encoding="utf-8")
+    hook.chmod(0o755)
+    code, out = run("close", "stage", "--close", "--session", rid, "--vault", str(vault), "--summary", SUMMARY)
+    assert code == 2, out
+    assert session_files.stub_text(vault, rid) == stub_before
+    assert private_of(vault, rid).read_text(encoding="utf-8") == notes_before
+    assert git(vault, "diff", "--cached", "--name-only") == ""

@@ -474,8 +474,9 @@ def claim_part(root, record, lines):
         if sent.ok:
             return opened_part(root, record, part, lines)
         if not lost_race(sent.why):
-            sessiongit.drop_last_commit(root)  # a retry must claim this same number, not leave it pending forever
-            raise failed(f"the claim of part {part} was not pushed: {sent.why}", NOT_CLAIMED, lines)
+            dropped, said = sessiongit.drop_last_commit(root)  # a retry must claim this same number
+            kept = "" if dropped else f"; and the claim commit stays, because git refused to undo it: {said}"
+            raise failed(f"the claim of part {part} was not pushed: {sent.why}{kept}", NOT_CLAIMED, lines)
         take_back_claim(root, record, lines)
     raise failed(f"{CLAIM_TRIES} claims in a row lost the push", NOT_CLAIMED, lines)
 
