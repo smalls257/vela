@@ -15,12 +15,12 @@ committed pages. Its dry run (the default) runs the same `split_folder` on a tem
 `--apply` writes, and it exits 3 asking for the lead's yes. `--apply` refuses a dirty tree, works on its own branch,
 stages named paths only (never the private notes) and commits once. `split_folder` writes in place and runs no git.
 """
+import dataclasses
 import pathlib
 import shutil
 import tempfile
 
 from vela import commands, handoff, planscope, privaterecord, receipts, recordsplit, say, schema
-from vela.commands import whoami
 from vela.edge import idgit, sessiongit, vaultgit
 
 VERIFY, SEAL, SPLIT = "records verify", "records seal", "records split"
@@ -191,18 +191,18 @@ def split_folder(root, lead, today, branch_texts=()):
     writes, rows = dict(report.writes), []
     for rel, text, entries in manifests:
         old, new = hashes(before, entries), hashes(after, entries)
-        moved = recordsplit.updated_manifest(text, old, new)
-        if moved != text:
+        moved, ids = recordsplit.updated_manifest(text, old, new)
+        if ids:
             sessiongit.write_text(root, rel, moved)
             writes[rel] = moved
-            rows += [f"{rel}: {e.id}" for e in entries if e.id in old and e.id in new and old[e.id] == e.hash != new[e.id]]
-    return recordsplit.replace_report(report, writes=writes, handoff_rows=rows)
+            rows += [f"{rel}: {ident}" for ident in ids]
+    return dataclasses.replace(report, writes=writes, handoff_rows=rows)
 
 
 def lead_handle(root):
-    """The lead's handle, or "" when whoami can't say: the split then keeps no one's words, which is the safe side."""
-    found = whoami.find_handle(root)
-    return receipts.handle_ref(found.data.get("handle", "")) if found.exit == say.DONE else ""
+    """The lead's handle from the cache `vela whoami` keeps, or "" when there is none. It never calls gh or writes
+    the cache, so the dry run changes nothing; an unknown lead keeps no one's words, which is the safe side."""
+    return receipts.handle_ref(sessiongit.read_handle(root))
 
 
 def cmd_split(args, out):
@@ -234,6 +234,8 @@ def dry_run(root, lead, today, branch_texts):
         report = split_folder(copy, lead, today, branch_texts)
     if not report.writes:
         return nothing_to_split(report)
+    if report.left:
+        return say.Result(SPLIT, exit=say.REFUSED, lines=dry_run_lines(report, lead), data=split_data(report))
     ask = "Want me to go ahead?"
     return say.Result(SPLIT, exit=say.NEEDS_LEAD, lines=dry_run_lines(report, lead), data=split_data(report),
                       needs_lead=[{"ask": "split", "question": ask, "answer_with": "--apply"}])
@@ -245,16 +247,10 @@ def nothing_to_split(report):
         plain="Nothing to split: every session record is already kept private.")])
 
 
-def abandon_branch(root, original, branch):
-    """Back to the branch the split started from, and the empty split branch deleted."""
-    if original:
-        sessiongit.switch(root, original, False)
-        vaultgit.run_git(root, "branch", "-D", branch)
-
-
 def split_data(report):
     return {"records": report.records, "links": report.links, "sources_added": report.sources_added,
             "split_date": report.split_date, "handoff_rows": report.handoff_rows,
+            "left": [{"path": item.path, "line": item.line, "what": item.what} for item in report.left],
             "stripped": [{"path": s.path, "line": s.line, "what": s.what, "words": s.words}
                          for s in report.stripped]}
 
@@ -285,6 +281,12 @@ def dry_run_lines(report, lead):
     for s in report.stripped:
         lines.append(say.Line(f'{s.path}:{s.line}: {s.what} words removed: "{s.words}"',
                               plain=f"On the {page_name(s.path)} page, I'd take out {STRIP_WORDS[s.what]}."))
+    for item in report.left:
+        lines.append(say.Line(f"{item.path}:{item.line}: a {item.what} line I can't read, so I can't tell whether it "
+                              "holds someone's words",
+                              plain=f"On the {page_name(item.path)} page, there's a line about a {item.what} I can't "
+                                    "read, so I can't tell whether it holds someone's words. Fix it by hand first, "
+                                    "then I'll split."))
     if report.sources_added:
         lines.append(say.Line(f"sources added: {', '.join(report.sources_added)}",
                               plain=f"I'd add {plural(len(report.sources_added), 'first-hand source', 'first-hand sources')} "
@@ -297,10 +299,19 @@ def dry_run_lines(report, lead):
 
 
 def apply_split(root, lead, today, branch_texts):
+    from vela import cli
     dirty = vaultgit.uncommitted(root)
     if dirty:
         text = "This plan has changes that aren't committed, and the split edits many pages. Commit or set them aside first."
         return failed_refused(SPLIT, text, {"uncommitted": dirty})
+    planned = recordsplit.plan(plan_files(root), lead, today, branch_texts)  # refuses before any branch is made
+    if planned.left:
+        text = (f"{plural(len(planned.left), 'line', 'lines')} I can't read, so I can't tell whether they hold "
+                "someone's words. Fix them by hand first, then split again.")
+        return say.Result(SPLIT, exit=say.REFUSED, data=split_data(planned), lines=[
+            say.Line(f"vela records split: {text}", plain=text)] + dry_run_lines(planned, lead)[1:])
+    if not planned.writes:
+        return nothing_to_split(planned)
     scope = vaultgit.plan_scope(root)
     branch = planscope.session_branch(scope, SPLIT_BRANCH) if scope else SPLIT_BRANCH
     if sessiongit.branch_taken(root, branch):
@@ -312,14 +323,10 @@ def apply_split(root, lead, today, branch_texts):
         return failed(SPLIT, f"couldn't start the branch {branch}: {words}")
     try:
         report = split_folder(root, lead, today, branch_texts)
-    except ValueError:
-        abandon_branch(root, original, branch)  # the plan is refused before anything is written
-        raise
-    if not report.writes:
-        abandon_branch(root, original, branch)
-        return nothing_to_split(report)
-    shared = sorted(rel for rel in report.writes if not privaterecord.is_private(rel))
-    commit = sessiongit.commit(root, SPLIT_COMMIT, shared)
+        shared = sorted(rel for rel in report.writes if not privaterecord.is_private(rel))
+        commit = sessiongit.commit(root, SPLIT_COMMIT, shared)
+    except (ValueError, OSError, vaultgit.GitUnavailable, cli.ToolError) as exc:
+        return failed(SPLIT, f"{exc} {put_back(root, original, branch, planned)}")
     data = {**split_data(report), "branch": branch, "commit": commit}
     n = len(report.records)
     return say.Result(SPLIT, wrote=shared, data=data, lines=[
@@ -328,6 +335,25 @@ def apply_split(root, lead, today, branch_texts):
                        "it on a branch of its own, for review."),
         say.Line(recordsplit.HISTORY_TELL, plain=recordsplit.HISTORY_TELL.replace(" (W720)", "")),
         say.Line(REPUBLISH)])
+
+
+def put_back(root, original, branch, planned):
+    """Undo a split that failed after the branch was made: restore the tracked files, remove the files the split
+    created (the private notes are untracked and ignored, so git would leave them), go back to the starting branch
+    and delete the split branch. Returns the sentence that says what state is left."""
+    try:
+        tracked = set(vaultgit.tracked_paths(root))
+        vaultgit.run_git(root, "restore", "--source=HEAD", "--staged", "--worktree", "--", ".")
+        for rel in planned.writes:
+            if rel not in tracked or privaterecord.is_private(rel):
+                (root / rel).unlink(missing_ok=True)
+        if original:
+            sessiongit.switch(root, original, False)
+            vaultgit.run_git(root, "branch", "-D", branch)
+    except (OSError, vaultgit.GitUnavailable) as exc:
+        return (f"I couldn't put the plan back either ({exc}). The branch {branch} may hold a half-done split: "
+                "check it with git status before doing anything else.")
+    return f"I put the plan back as it was and removed the branch {branch}, so nothing is half-done."
 
 
 def failed_refused(command, text, data):

@@ -254,7 +254,8 @@ MANIFEST = ("| ID | Kind | Page | State | Hash |\n|---|---|---|---|---|\n"
 def test_updated_manifest_moves_a_hash_only_when_the_split_was_the_only_change():
     before = {"APP-shop": "aaaaaaaaaaaa", "CON-001": "bbbbbbbbbbbb", "CON-002": "111111111111"}
     after = {"APP-shop": "aaaaaaaaaaaa", "CON-001": "dddddddddddd", "CON-002": "222222222222"}
-    moved = recordsplit.updated_manifest(MANIFEST, before, after)
+    moved, ids = recordsplit.updated_manifest(MANIFEST, before, after)
+    assert ids == ["CON-001"]
     assert "| CON-001 | provides | p.md | decided | dddddddddddd |" in moved
     assert "| APP-shop | app | p.md | decided | aaaaaaaaaaaa |" in moved
     assert "| CON-002 | provides | p.md | decided | cccccccccccc |" in moved  # changed by someone since: left to verify
@@ -303,3 +304,61 @@ def test_load_config_reads_a_real_records_split_date(tmp_path):
 def test_the_guard_names_the_split_as_the_fix_for_a_missing_ignore_line():
     from vela import guard
     assert "vela records split" in guard.SESSION_PRIVATE.fix
+
+
+def test_the_first_hand_row_lands_on_sources_text_the_page_loop_already_changed():
+    files = whole_files()
+    files["sources.md"] += f"\nSee [[{RECORD}#^c07]] for how it came up.\n"
+    report = recordsplit.plan(files, "@mini-lead", "2026-10-22")
+    text = report.writes["sources.md"]
+    assert f"[[{RECORD}]] c07" in text and "#^c07" not in text
+    assert "| SRC-002 |" in text and report.links == 2
+
+
+def test_a_line_the_split_cannot_read_is_listed_without_its_words_and_stops_apply(tmp_path):
+    vault = full_records_vault(tmp_path)
+    page = vault / SHOP
+    page.write_text(page.read_text(encoding="utf-8").replace(
+        "- **Dissent:** @raj, 2026-01-10: too slow", "- **Dissent:** Raj thinks it is slow"), encoding="utf-8")
+    git(vault, "commit", "-qam", "odd dissent")
+    code, out = run("records", "split", "--vault", str(vault), "--today", "2026-10-22", "--json")
+    data = json.loads(out)
+    assert code == 1 and [(i["path"], i["what"]) for i in data["left"]] == [(SHOP, "dissent")]
+    assert "thinks" not in out
+    before = tree_bytes(vault)
+    code, out = run("records", "split", "--apply", "--vault", str(vault), "--today", "2026-10-22")
+    assert code == 1 and "Fix them by hand" in out and "thinks" not in out
+    assert git(vault, "branch", "--show-current") == "main" and tree_bytes(vault) == before
+
+
+def test_a_failure_after_the_branch_is_made_puts_everything_back(tmp_path, monkeypatch):
+    vault = full_records_vault(tmp_path)
+
+    def explode(root):
+        raise ToolError("the vault would not load")
+    monkeypatch.setattr(cli, "load_vault", explode)
+    (vault / "handoffs").mkdir()
+    (vault / "handoffs" / "APP-shop.md").write_text(
+        handoff.write("APP-shop", [handoff.Entry("APP-shop", "app", SHOP, "decided", "0" * 12)], "abc", "2026-01-20"),
+        encoding="utf-8")
+    git(vault, "add", "-A")
+    git(vault, "commit", "-q", "-m", "handoff")
+    before = tree_bytes(vault)
+    code, out = run("records", "split", "--apply", "--vault", str(vault), "--today", "2026-10-22")
+    assert code == 2 and "would not load" in out and "put the plan back" in out
+    assert git(vault, "branch", "--show-current") == "main" and "records-split" not in git(vault, "branch")
+    assert tree_bytes(vault) == before and git(vault, "status", "--porcelain") == ""
+    assert not (vault / "sessions" / "private").exists()
+
+
+def test_the_dry_run_never_asks_gh_or_writes_the_handle(tmp_path, monkeypatch):
+    from vela.edge import sessiongit
+    vault = full_records_vault(tmp_path)
+    (vault / ".vela" / "handle").unlink()
+
+    def no_gh(*args, **kwargs):
+        raise AssertionError("the dry run called gh")
+    monkeypatch.setattr(sessiongit, "gh", no_gh)
+    code, out = run("records", "split", "--vault", str(vault), "--today", "2026-10-22", "--json")
+    assert code == 3 and not (vault / ".vela" / "handle").exists()
+    assert any("handle" in line for line in json.loads(out)["lines"])

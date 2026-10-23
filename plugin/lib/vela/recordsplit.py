@@ -18,7 +18,7 @@ row); `records_split: <date>` and the `.gitignore` line are written.
 """
 import datetime
 import re
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass, field
 
 from vela import ids, ledger, parse, privaterecord, receipts, sourcerows
 from vela.decisions import textedit
@@ -49,6 +49,15 @@ class Stripped:
 
 
 @dataclass(frozen=True)
+class Left:
+    """A Decision or Dissent line the split could not read, so could not tell whether it holds someone's words. No
+    words are carried: the line is the lead's to look at and fix by hand."""
+    path: str
+    line: int
+    what: str  # DISSENT or RECEIPT
+
+
+@dataclass(frozen=True)
 class Report:
     writes: dict
     stripped: list
@@ -57,11 +66,7 @@ class Report:
     records: list
     split_date: str
     handoff_rows: list = field(default_factory=list)  # filled by the edge, which re-hashes the manifests
-
-
-def replace_report(report, **changes):
-    """The report with some fields changed: the edge adds the handoff rows it re-hashed."""
-    return replace(report, **changes)
+    left: list = field(default_factory=list)  # lines the split could not read: apply refuses while any remain
 
 
 # ---- small pure writers ------------------------------------------------------------------------------------------
@@ -92,17 +97,18 @@ def with_ignore_line(gitignore_text):
 
 
 def updated_manifest(text, before, after):
-    """A handoff manifest with a row's hash replaced only when the row still held the hash the vault had before the
-    split (nobody had changed the item since the handoff) and the split changed it. Any other change since the
+    """(manifest text, ids moved): a row's hash is replaced only when the row still held the hash the vault had before
+    the split (nobody had changed the item since the handoff) and the split changed it. Any other change since the
     handoff stays for `vela handoff verify` to report."""
-    out = []
+    out, moved = [], []
     for line in text.split("\n"):
         cells = parse.split_row(line) if line.lstrip().startswith("|") else []
         item = cells[0] if len(cells) == 5 else None
         if item in before and item in after and cells[4] == before[item] != after[item]:
             line = line.rstrip()[:-len(before[item]) - 2] + f"{after[item]} |"
+            moved.append(item)
         out.append(line)
-    return "\n".join(out)
+    return "\n".join(out), moved
 
 
 # ---- finding the records ---------------------------------------------------------------------------------------
@@ -142,19 +148,24 @@ def _may_keep(who, lead):
 
 
 def _strip_words_line(line, lead):
-    """(new line, what, words) for a Decision or Dissent line that carries someone else's words, else None."""
+    """(new line, what, words) for a Decision or Dissent line that carries someone else's words; None when it holds
+    none; (None, what, None) when the line can't be read, so the caller reports it instead of passing it."""
     found = _WORDS_LINE.match(line)
     if not found:
         return None
     value = found["value"]
     if found["label"] == "Decision":
         receipt = receipts.parse_decision(value)
-        if receipt is None or not receipt.words or _may_keep(receipt.who, lead):
+        if receipt is None:
+            return None, RECEIPT, None
+        if not receipt.words or _may_keep(receipt.who, lead):
             return None
         bare = receipts.decision_value(receipt.record, receipt.ref, receipt.who, None, receipt.stated_in)
         return found["head"] + bare + found["tail"], RECEIPT, receipt.words
     dissent = receipts.parse_dissent(value)
-    if dissent is None or not dissent.words or _may_keep(dissent.who, lead):
+    if dissent is None:
+        return None, DISSENT, None
+    if not dissent.words or _may_keep(dissent.who, lead):
         return None
     return found["head"] + receipts.dissent_value(dissent.who, dissent.date) + found["tail"], DISSENT, dissent.words
 
@@ -167,7 +178,7 @@ class _FirstHand:
         self.text = files.get(self.path, "")
         self.today = today
         self.numbers = list(files.values())
-        self.added = {}
+        self.added = {}  # handle -> SRC-nn, in the order added
 
     def row_for(self, handle, where):
         """The SRC-nn of the first-hand row for `handle`, adding it when sources.md has none."""
@@ -183,13 +194,18 @@ class _FirstHand:
             raise ValueError(f"{where} is answered with a quote from a session, and this plan has no sources.md "
                              "to hold the first-hand source that replaces it.")
         ident = ids.next_id("SRC", self.numbers)
-        self.text = self._with_row(ident, handle)
-        self.numbers.append(self.text)
+        self.numbers.append(ident)
         self.added[handle] = ident
         return ident
 
-    def _table(self):
-        lines = self.text.split("\n")
+    def with_rows(self, text):
+        """`text` (sources.md as the page loop left it) with the added first-hand rows."""
+        for handle, ident in self.added.items():
+            text = self._with_row(text, ident, handle)
+        return text
+
+    def _table(self, text=None):
+        lines = (self.text if text is None else text).split("\n")
         index = textedit.find_table(lines, sourcerows.CORE)
         if index is None:
             raise ValueError("sources.md has no register table (ID | Title | Owner | Date | Kind ...), so the "
@@ -206,28 +222,31 @@ class _FirstHand:
                 return row.id
         return None
 
-    def _with_row(self, ident, handle):
-        _, _, header = self._table()
+    def _with_row(self, text, ident, handle):
+        _, _, header = self._table(text)
         values = {"ID": ident, "Title": f"First-hand knowledge of {receipts.handle_ref(handle)[1:]}", "Owner": handle,
                   "Date": self.today, "Kind": "exists", "Location": f"first-hand: {handle}"}
         row = textedit.row(*[values.get(name, "") for name in header])
-        return textedit.add_row(self.text, sourcerows.CORE, row)
+        return textedit.add_row(text, sourcerows.CORE, row)
 
 
 def _page_stripped(path, text, lead, session_ids, first_hand):
-    """(new text, [Stripped]) for one committed page: Decision and Dissent words, then answered ledger quotes."""
-    out, stripped, in_ledger = [], [], False
+    """(new text, [Stripped], [Left]) for one committed page: Decision and Dissent words, then answered ledger
+    quotes."""
+    out, stripped, left, in_ledger = [], [], [], False
     for number, line in enumerate(text.split("\n"), start=1):
         if line.startswith("#"):
             in_ledger = line.lstrip("#").strip() == ledger.HEADING
         cut = _strip_words_line(line, lead)
-        if cut is not None:
+        if cut is not None and cut[0] is None:
+            left.append(Left(path, number, cut[1]))
+        elif cut is not None:
             line = cut[0]
             stripped.append(Stripped(path, number, cut[1], cut[2]))
         elif in_ledger and _LEDGER_ROW.match(line):
             line = _strip_answered_quote(path, number, line, session_ids, first_hand, stripped)
         out.append(line)
-    return "\n".join(out), stripped
+    return "\n".join(out), stripped, left
 
 
 def _strip_answered_quote(path, number, line, session_ids, first_hand, stripped):
@@ -251,18 +270,19 @@ def plan(files, lead, today, branch_texts=()):
     session_ids = {path[len("sessions/"):-3] for path in files if _RECORD_PATH.match(path)}
     first_hand = _FirstHand(files, today)
     first_hand.numbers += list(branch_texts)
-    stripped, links = [], 0
+    stripped, left, links = [], [], 0
     for path, text in sorted(files.items()):
         if not path.endswith(".md") or path.startswith(("sessions/", "handoffs/")):
             continue
         linked, count = privaterecord.rewrite_anchor_links(text)
-        cut, found = _page_stripped(path, linked, lead, session_ids, first_hand)
+        cut, found, unread = _page_stripped(path, linked, lead, session_ids, first_hand)
         links += count
         stripped += found
+        left += unread
         if cut != text:
             writes[path] = cut
     if first_hand.added:
-        writes[first_hand.path] = first_hand.text
+        writes[first_hand.path] = first_hand.with_rows(writes.get(first_hand.path, files[first_hand.path]))
     if whole:
         date = split_date(dates, today)
         writes[".vela.yaml"] = with_records_split(files.get(".vela.yaml", ""), date)
@@ -272,4 +292,4 @@ def plan(files, lead, today, branch_texts=()):
     if ignored != files.get(".gitignore"):
         writes[".gitignore"] = ignored
     return Report(writes, stripped, links, list(first_hand.added.values()),
-                  sorted(whole), date)
+                  sorted(whole), date, left=left)
