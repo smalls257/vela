@@ -6,7 +6,7 @@ argument-hint: "--app <APP-id> [slug]"
 
 # Design
 
-The vault already says what the app must do. This session settles how the team builds it, and writes that where the team's review and the dashboard find it. The vault is the folder this runs in; `--app APP-x` names the app. Vela is `sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela` (`${CLAUDE_PLUGIN_ROOT}/references/START.md`, "Where vela runs from"). Every file this skill names sits beside this one.
+The vault already says what the app must do. This session settles how the team builds it, and writes that where the team's review and the dashboard find it. The vault is the folder this runs in; `--app APP-x` names the app. Vela is `sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela` (`${CLAUDE_PLUGIN_ROOT}/references/START.md`, "Where vela runs from"). The format files named below sit beside this one.
 
 ## 1. Start
 
@@ -18,7 +18,7 @@ A design opens no session, so START's numbered steps don't apply; its rules "Own
 
 In conversation the team lead hears names, not codes. Say "the calendar entries", "the consent check", "the question about mail"; the IDs go in the files, on Trace lines and in the pull request.
 
-Then follow `${CLAUDE_PLUGIN_ROOT}/references/TECH-DESIGN-FROM-VAULT.md`. It checks the app is handed off, runs `vela handoff verify`, records the vault commit, opens the `design/<slug>` branch, and says what to read and in what order.
+Then follow `${CLAUDE_PLUGIN_ROOT}/references/TECH-DESIGN-FROM-VAULT.md`. It runs `vela handoff verify`, opens the `design/<slug>` branch, and says what to read and in what order.
 
 Read your app's slices' flow check from the handoff rather than running it again: `handoffs/<APP-id>.md`, under `## Flow checks when written`. If the handoff record has no `## Flow checks when written` section, run `vela check-slice <slice> --for-lead` once. If a slice is 'not fully checked' or has open findings, tell the team lead before you design against it.
 
@@ -44,13 +44,13 @@ If the vault has no releases page at all, propose a skeleton from the app's firs
 
 ## 4. Write as you go
 
-Propose each choice with its reason ("I'd keep the key behind a small interface, so it can move later. OK?"), wait for the yes, record it with `vela record add --tag decision "<their words>"`, write it into `docs/tech-design/<slug>.md`, then `vela team commit --about "<the section>"` after each section settles; the commit stops on a choice no yes names.
+Propose each choice with its reason ("I'd keep the key behind a small interface, so it can move later. OK?"), wait for the yes, record it with `vela record add --tag decision "<their words>"`, write it into `docs/tech-design/<slug>.md`, then `vela team commit --about "<the section>"` after each section settles.
 
 - The doc follows `TECH-DESIGN-FORMAT.md`, its frontmatter `FRONTMATTER-FORMAT.md`: a summary first, then full detail, each topic under about 120 words.
 - An ADR only when a decision is hard to reverse, surprising without context and a real trade-off: `ADR-FORMAT.md`.
 - The vault's glossary owns its terms. `CONTEXT.md` holds only terms the app adds: `CONTEXT-FORMAT.md`.
 - A choice deliberately put off is a deferral (`D-XXX`); a question nobody can answer yet is an open question (`OQ-XXX`). `FRONTMATTER-FORMAT.md` says which is which.
-- In a mermaid diagram a `;` ends the statement, so a message or label never holds one: `R->>S: stop; cancel` stopped a cancel-hold flow from drawing. Write a comma or "then".
+- In a diagram label or message write a comma or "then", never `;`.
 
 ## 5. When the vault is wrong or silent
 
@@ -68,7 +68,7 @@ A gap the team lead accepts goes into `gaps[]` in the same plain words, with the
 
 ## 7. Finish
 
-Before the pull request, run `sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela check-diagrams docs/tech-design/<slug>.md` with each ADR that has a diagram. Exit 1 names every diagram mermaid can't draw, at its line: fix each and run it again. A W604 means Node.js is missing and nothing was checked; tell the team lead so, and never call the diagrams checked.
+Before the pull request, run `sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela check-diagrams docs/tech-design/<slug>.md` with each ADR that has a diagram. Fix each diagram it names and run it again. If it says it couldn't check (Node.js is missing), tell the team lead and never call the diagrams checked.
 
 Push the branch and open the pull request when the design is `complete` or `complete-with-gaps`, after saying what will be sent and getting a yes. Its body holds the summary, the audit checklist and the challenges. Never say a push or a pull request exists unless the tool printed it; if git or GitHub fails, say in one plain sentence that it didn't go, never the raw error.
 
