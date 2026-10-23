@@ -16,7 +16,7 @@ import subprocess
 
 from vela import parse, privaterecord, voiceplan
 from vela.edge import atomic
-from vela.edge.vaultgit import GitUnavailable, git_out, run_git
+from vela.edge.vaultgit import GitUnavailable, at, git_out, run_git
 
 GH_TIMEOUT = 30
 FETCH_TIMEOUT = 60  # a PR's objects over the network
@@ -82,7 +82,7 @@ def diff_u0(root, oid, page):
 
 def show(root, ref, path):
     """The text of `path` at `ref`, exactly (not stripped), or None when it is not there."""
-    code, out, err = run_git(root, "show", f"{ref}:{path}", binary=True)
+    code, out, err = run_git(root, "show", at(ref, path), binary=True)
     if code != 0:
         if "does not exist" in err or "exists on disk, but not in" in err:
             return None

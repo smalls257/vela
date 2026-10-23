@@ -75,8 +75,12 @@ def report(result, plan, commit, message, branch):
 
 def head_text(root, rel):
     """The committed text of `rel`, "" when HEAD doesn't have it (a new file)."""
-    code, out, _ = vaultgit.run_git(root, "show", f"HEAD:{rel}")
-    return out if code == 0 else ""
+    code, out, err = vaultgit.run_git(root, "show", vaultgit.at("HEAD", rel))
+    if code == 0:
+        return out
+    if "does not exist" in err or "exists on disk, but not in" in err:
+        return ""
+    raise vaultgit.GitUnavailable(f"git show HEAD:{rel} failed: {err}")
 
 
 def person_yes_words(root, branch):

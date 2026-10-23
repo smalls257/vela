@@ -20,6 +20,14 @@ FETCH_TIMEOUT = 8  # an owner's session start must not hang on a dead network
 NO_PROMPT = {"GIT_TERMINAL_PROMPT": "0", "GIT_ASKPASS": "true", "SSH_ASKPASS": "true"}
 
 
+def at(ref, path):
+    """`ref:path` for git show, cat-file and rev-parse, with `path` read from the vault folder. Bare `HEAD:path` is
+    read from the repo's top folder, so a plan kept in a subfolder of its repo (`projects/heron/`) found none of its
+    pages there and close failed; `./` makes git read the path from `-C root`, the vault, which is how every pathspec
+    after `--` is already read."""
+    return f"{ref}:./{path}"
+
+
 class GitUnavailable(Exception):
     """git is missing, timed out, or refused: the reason, in a form a person can read."""
 
