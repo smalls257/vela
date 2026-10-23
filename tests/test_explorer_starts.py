@@ -138,11 +138,46 @@ def test_words_for_an_option_anywhere_but_the_opening_stay_unreadable(tmp_path):
     assert any("Unreadable line, outside the checked subset: alt the fare is high" in p.text for p in problems), [p.text for p in problems]
 
 
-def test_a_slice_check_says_it_walked_the_first_start_only(built):
-    vault, _ = built
-    catalog = readers.read_catalog(cli.load_vault(vault), {})
+def starts_vault(tmp_path, diagram_edit=None):
+    vault = tmp_path / "v"
+    shutil.copytree(REPO / "examples" / "unified-booking", vault)
+    add_flows(vault, ["FLO-010-book-two-ways.md"])
+    page = vault / "06-runtime" / "flows" / "FLO-010-book-two-ways.md"
+    if diagram_edit:
+        page.write_text(diagram_edit(page.read_text(encoding="utf-8")), encoding="utf-8")
+    return vault
+
+
+def test_the_check_walks_every_start_so_a_defect_in_the_second_is_found(tmp_path):
     from vela import flowcheck
+    # the phone start calls a contract nobody wrote: the check must say so, and say nothing about "first start only"
+    vault = starts_vault(tmp_path, lambda t: t.replace("D->>B: CON-001 hold a seat", "D->>B: CON-999 hold a seat"))
+    result = flowcheck.check_catalog(readers.read_catalog(cli.load_vault(vault), {}), "FLO-010", TODAY)
+    assert any(f.code == "F10" and "CON-999" in f.summary for f in result.findings), [f.summary for f in result.findings]
+    assert not [line for line in result.limits if "start" in line]
+
+
+def test_every_start_runs_to_the_shared_steps_and_the_trace_names_the_start(tmp_path):
+    from vela import flowcheck
+    from vela.flowcheck import build
+    vault = starts_vault(tmp_path)
+    catalog = readers.read_catalog(cli.load_vault(vault), {})
+    program, _ = build.build(catalog, ["FLO-010"], TODAY)
+    fork = next(i for i in program.code if i.kind == "fork")
+    assert fork.data["labels"] == ["A customer books on the website", "A customer calls in"]
+    assert len(set(fork.data["targets"])) == 2
     result = flowcheck.check_catalog(catalog, "FLO-010", TODAY)
-    said = [line for line in result.limits if "starts more than one way" in line]
-    assert said == ["FLO-010 starts more than one way. The check walked only the first, “A customer books on the website”, and not “A customer calls in”."]
     assert not [f for f in result.findings if f.code == "F10" and "FLO-010" in f.items and "Unreadable" in f.summary]
+
+
+def test_a_given_before_the_opening_alt_still_names_the_starts(tmp_path):
+    vault = starts_vault(tmp_path, lambda t: t.replace("    alt A customer books", "    Note over B: GIVEN seat free\n    alt A customer books"))
+    tree, problems = tree_of(vault, "FLO-010")
+    assert [b.label for b in tree.starts] == ["A customer books on the website", "A customer calls in"]
+    assert [n.kind for n in tree.head] == ["given"] and not [p for p in problems if "alt" in p.text or "Unreadable" in p.text]
+
+
+def test_an_option_written_as_an_answer_inside_the_opening_alt_is_flagged(tmp_path):
+    vault = starts_vault(tmp_path, lambda t: t.replace("else A customer calls in", "else timeout"))
+    _, problems = tree_of(vault, "FLO-010")
+    assert any("written as an answer" in p.text for p in problems)

@@ -10,7 +10,7 @@ Only these lines are read; any other line is an unreadable-line problem (F10, R0
                                            the handler that runs when it arrives, or when the timer fires
     alt <case>[, <case>...] / else <case>[, <case>...] / end   branches on the call (or AWAIT) just before
     alt <words> / else <words> / end       as the first statement: the flow's starts, one per option, named in words.
-                                           The check walks the first start only and says so (a Limit line).
+                                           The check walks every start, each to the shared steps after the alt.
     Note over X: SET <entity> <state>
     Note over X: END <outcome> [leaves <entity>=<state>[, ...]]
     Note over X: AWAIT EVT-nnn             block this thread until the event reaches X
@@ -145,6 +145,12 @@ class Tree:
     nodes: list
     participants: dict = field(default_factory=dict)  # name -> (title, line)
     starts: list = field(default_factory=list)  # [Branch] of an opening alt written in words; `nodes` holds the first one's walk
+    head: list = field(default_factory=list)  # the GIVEN notes before that alt
+    tail: list = field(default_factory=list)  # what follows the alt, shared by every start
+
+    def all_nodes(self):
+        """Every node of every start, then the shared tail: what a walk that must see every call reads."""
+        return self.head + [n for b in self.starts for n in b.body] + self.tail if self.starts else self.nodes
 
 
 def actor_of(token):
@@ -171,15 +177,27 @@ class _Parser:
         return self.tokens[self.i - 1]
 
     def opening_alt(self):
-        """The branches of an alt written in words as the flow's first statement (after the participants), else []."""
-        while self.peek() is not None and self.peek().kind == "participant":
-            token = self.take()
-            self.participants.setdefault(token.parts[0], (token.parts[1] or token.parts[0], token.line))
-        token = self.peek()
-        if token is None or token.kind != "alt" or token.parts[0] is not None:
-            return []
-        self.take()
-        return self.alt_rest(token, words_allowed=True)
+        """(leading GIVEN nodes, branches) of an alt written in words as the flow's first statement (after the participants
+        and any GIVEN, which the flow check wants first), else ([], [])."""
+        j = self.i
+        while j < len(self.tokens) and self.tokens[j].kind in ("participant", "given"):
+            j += 1
+        if j >= len(self.tokens) or self.tokens[j].kind != "alt" or self.tokens[j].parts[0] is not None:
+            return [], []
+        head = []
+        while self.i < j:
+            token = self.peek()
+            if token.kind == "participant":
+                self.take()
+                self.participants.setdefault(token.parts[0], (token.parts[1] or token.parts[0], token.line))
+            else:
+                head += self.statement()
+        branches = self.alt_rest(self.take(), words_allowed=True)
+        for branch in branches:
+            if branch.keys:
+                self.problem(branch.line, f"This option of the alt that names the flow's starts is written as an answer ({branch.label}); "
+                                          "every option names a start in words.")
+        return head, branches
 
     def block(self, stop, opener=None):
         out = []
@@ -297,8 +315,8 @@ def _replies(nodes, provider, caller):
 
 def parse_tree(flow, problems):
     parser = _Parser(flow.lines, flow.path, flow.id, problems)
-    starts = parser.opening_alt()
-    nodes = parser.block(set())
-    if starts:
-        nodes = starts[0].body + nodes  # the check walks the first start; the rest is the shared tail
-    return Tree(nodes, parser.participants, starts)
+    head, starts = parser.opening_alt()
+    tail = parser.block(set())
+    # `nodes` is the diagram read as its first start: what the explorer's branch view walks. The check walks every start (build.py).
+    nodes = head + starts[0].body + tail if starts else tail
+    return Tree(nodes, parser.participants, starts, head, tail)

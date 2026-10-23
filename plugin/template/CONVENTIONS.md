@@ -991,7 +991,7 @@ The strict sequence diagram is the flow page's first ` ```mermaid ` block that s
 | `S->>I: CON-010 place a hold` | Shop calls Inventory's CON-010. The words after the ID read as the step in a trace. |
 | `I-->>S: 409 unavailable` | Inventory's answer: inside Inventory's drawn handling it returns the call; as the first line of a branch it labels it. |
 | `alt placed` ... `else unavailable, timeout` ... `end` | Branches on the call just before, one per answer. `timeout` and `gave_up` are the answers the check adds from Can time out and Retries. |
-| `alt The customer books on the website` ... `else The customer calls in` ... `end` | As the diagram's first statement, before any call: the flow's starts, one per option, named in plain words. The dashboard's Flows view offers them under "Starts from" and marks which numbered steps belong to which. The check walks the first start only and says so. |
+| `alt The customer books on the website` ... `else The customer calls in` ... `end` | As the diagram's first statement, before any call: the flow's starts, one per option, named in plain words. The dashboard's Flows view offers them under "Starts from" and marks which numbered steps belong to which. The check walks every start, each on to the steps after the alt; GIVEN notes may come before the alt. |
 | `S-)B: EVT-008 order placed` | Shop publishes the event for Billing. |
 | `par Billing takes the payment` ... `end` | Right after an event line, a call from an outside party, or a TIMER: what the receiver does when it arrives, or when the timer fires. |
 | `Note over S: SET hold held` | Shop changes an entity's state. |
@@ -1041,7 +1041,7 @@ A flow page may say what each ending means to the person, so the dashboard ends 
 
 A provider whose handling is drawn answers as the drawing says. One that is not drawn answers with any case of its table whose When holds, Sets and Emits included. A timed-out call may still have been answered, so after a timeout the provider either did nothing or applied a case. A drawn provider can also time out part-way through its handling: it stops there, with what it has done so far standing, or it carries on alone and its answer goes nowhere. A party outside the vault always answers from its contract.
 
-Every result says what it rests on, in a `Limit:` line each: a flow touching a shared entity runs two journeys at once, not three (`--journeys 3` tries three, at more cost); a timer is taken to fire in the end, so an order in which it never fires isn't explored; a flow whose diagram opens with an alt naming its starts is walked from the first start only; and when the budget runs out, the runs it left unexplored are named.
+Every result says what it rests on, in a `Limit:` line each: a flow touching a shared entity runs two journeys at once, not three (`--journeys 3` tries three, at more cost); a timer is taken to fire in the end, so an order in which it never fires isn't explored; and when the budget runs out, the runs it left unexplored are named.
 
 Findings, each with the step it sits on, a trace in plain words, the owners of the decision, and the IDs on a line of their own:
 

@@ -124,6 +124,8 @@ class Renderer:
             return f"{ins.actor} starts the {words(timer.name)} timer ({timer.band})."
         if kind == "human":
             return ins.data["words"].rstrip(".") + "."
+        if kind == "fork":
+            return f"The flow starts: {ins.data['labels'][x]}."
         return kind
 
     def retry_words(self, caller, table, attempt, flag):
