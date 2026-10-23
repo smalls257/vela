@@ -12,13 +12,15 @@ import pytest
 
 from conftest import run
 from sharing import git
-from test_proposals import GROUPS, TODAY as PROPOSE_DAY, propose, read, review_it, whys, world  # noqa: F401
+import test_proposals
+from test_proposals import propose, read, review_it, whys
 from test_session_cli import TODAY, owner, start
 from vela import privaterecord, publish
 from vela.edge import proposals
 
 SECRET = "SECRET-WORDS"
 READER_ID = "2026-10-18-cap-rule"
+world = test_proposals.world  # the reader workspace fixture, shared with the proposal tests
 
 
 def an_owner_vault_that_lost_its_ignore_line(tmp_path, monkeypatch):
@@ -62,7 +64,7 @@ def test_publish_excludes_a_private_path_at_any_depth_and_case():
     assert not publish.is_excluded("sessions/privately.md")
 
 
-def reader_with_a_session(world):  # noqa: F811
+def reader_with_a_session(world):
     """The reader workspace after a session of their own: a stub that names CON-001 as waiting, and private notes."""
     _, workspace = world
     stub = privaterecord.new_stub(READER_ID, "Cap rule", "2026-10-18", ["grill"])
