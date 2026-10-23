@@ -61,7 +61,8 @@ def test_challenge_is_offered_then_started_on_a_yes():
 
 def test_challenge_never_changes_the_item_and_never_decides():
     text = skill_text_challenge()
-    assert "Never touch the item's `state:`, `**State:**`, wording, criteria or any other line." in text
+    assert "Touch no other line of the item: a challenge records a dispute, it does not settle one." in text
+    assert "Never touch the item's `state:`, `**State:**`, wording, criteria or any other line." not in text  # the Never list says it
     assert "Never change the challenged item's state or text. Only the `**Dissent:**` line is added." in text
     assert "Never decide, resolve, reopen or set back anything. Only a grill decides" in text
     assert "never argue the item's side" in text
@@ -72,7 +73,7 @@ def test_challenge_resolves_the_id_and_shows_what_changed_since_handoff():
     assert "sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela query get <ID> --json" in text
     assert "If it says `not_found`, stop" in text and "Do not guess another ID." in text
     assert "sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela handoff verify <APP-id> --for-lead" in text
-    assert "Never cite an ID that `vela query get` reports `not_found`." in text
+    assert "Never cite an ID that `vela query get` reports `not_found`." not in text  # E207 holds it, and the stop above says it
 
 
 def test_challenge_writes_an_unknown_the_senior_owns():
@@ -82,7 +83,7 @@ def test_challenge_writes_an_unknown_the_senior_owns():
     assert "- **Dissent:** @<team lead's handle>, <today>`" in text  # who and when; the words follow only if kept
     assert '`: "<the reason in a few words>" (see [[<session id>]])`' in text
     assert "Never name anyone but the team lead as the open question's owner." in text
-    assert "vela next-id UNK" in text and "counts `main` and every open session branch" in text  # the command counts; the skill does not
+    assert "vela next-id UNK" in text and "counts `main` and every open session branch" not in text  # the command counts; the skill does not
 
 
 def test_challenge_asks_the_solution_lead_in_a_pr():
@@ -107,14 +108,14 @@ def test_the_pr_says_the_red_check_is_deliberate_and_blocks_the_merge():
 
 def test_handoff_verify_exit_2_has_two_cases_and_the_skill_shows_the_message():
     text = skill_text_challenge()
-    assert "read the tool's message to tell them apart; it's for you, not the team lead" in text
-    assert 'If it says "doesn\'t exist", there is no manifest' in text  # the words the CLI prints, pinned below
-    assert "could not be read, and go on without claiming anything" in text
+    assert "tell its two cases apart from its message (it's for you, not the team lead)" in text
+    assert '"doesn\'t exist" means no manifest' in text  # the words the CLI prints, pinned below
+    assert "could not be read. Either way go on without claiming anything" in text
 
 
 def test_the_next_unknown_number_is_highest_plus_one_and_the_session_id_names_the_item():
     text = skill_text_challenge()
-    assert "use exactly what it prints" in text and "a number is never handed out twice" in text
+    assert "and use its number" in text and "a number is never handed out twice" not in text
     assert "highest `UNK-nnn` in use plus one" not in text  # a dead hand method: vela next-id does it
     assert "at the end of `## Unknowns`, before `## Risks`" in text.replace("Add the entry at", "at")
     assert "`<date>-challenge-<id-lowercased>`" in text
@@ -177,7 +178,7 @@ def test_the_session_opens_with_session_start_and_files_with_close_stage():
     text = skill_text_challenge()
     assert "`vela session start --mode challenge --topic <ID> --for-lead`" in text
     assert "`vela close stage --session <id> --close --summary \"<one line the team lead accepts>\" --paths-from-render`" in text
-    assert "commits the stub and the changed pages by exact path, and never the notes" in text
+    assert "commits the stub and the changed pages by exact path, and never the notes" not in text
     # rule deletion: staging by exact path is the command's now, with its reason in its docstring
     assert "Never use `git add -A`" not in text and "Stage every file `vela render` reported" not in text
     assert "git add -A" in close_stage.__doc__ and "allow-list" in close_stage.__doc__
@@ -217,3 +218,14 @@ def test_challenge_drafts_the_paragraph_of_each_item_it_files_now():
     body = (REPO / "plugin" / "skills" / "challenge" / "SKILL.md").read_text(encoding="utf-8")
     assert "Draft" in body and "paragraph" in body and "START.md" in body
     assert "Draft the paragraph when the item is filed" in body or "Draft each filed item's paragraph now" in body
+
+
+def test_the_ask_by_date_is_the_team_leads_not_a_recommended_fortnight():
+    # MODES "Unknowns": the tool never picks a date, and a proposal carries its reason and waits for a yes
+    text = skill_text_challenge()
+    assert "Recommend 14 days" not in text and "propose a date with its reason and take their yes" in text
+
+
+def test_challenge_is_leaner_than_it_was():
+    assert len(skill_text_challenge().split()) <= 1780  # 1,795 before the trim; 1,726 after
+    assert "on exit 3, ask what it asks" not in skill_text_challenge()  # `session start` prints each choice
