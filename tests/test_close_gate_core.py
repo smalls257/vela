@@ -131,7 +131,7 @@ def test_unmarked_capture_blocks():
     result = readied(captures=(unmarked, "- [idea] (claude) a second note ^c05"))
     assert not result.ready
     problem = next(p for p in result.problems if p.kind == closegate.UNMARKED)
-    assert problem.plain.startswith("Two things you said aren't sorted yet")
+    assert problem.plain.startswith("Two things said in the session aren't sorted yet")
     assert "^c04" in problem.detail and "^c05" in problem.detail and problem.clear
 
 

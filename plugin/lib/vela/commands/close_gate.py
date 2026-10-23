@@ -208,7 +208,7 @@ KIND_WORDS = {
     closegate.CONSENT: ("one decision needs your yes", "{n} decisions need your yes"),
     closegate.RECEIPT: ("one decision's record needs a fix", "{n} decisions' records need a fix"),
     closegate.READBACK: ("the wording in your name isn't read back yet", "the wording in your name isn't read back yet"),
-    closegate.UNMARKED: ("some of what you said isn't sorted yet", "some of what you said isn't sorted yet"),
+    closegate.UNMARKED: ("some of what was said isn't sorted yet", "some of what was said isn't sorted yet"),
     closegate.CHECK: ("one item can't be finished as it stands", "{n} items can't be finished as they stand"),
     closegate.REMOVED_ROW: ("one thing was taken out this session", "{n} things were taken out this session"),
     closegate.STRAY: ("some files changed outside this session", "some files changed outside this session"),

@@ -170,7 +170,7 @@ def test_unmarked_capture_blocks(tmp_path):
     decide_stock(vault, [YES, "- [idea] (claude) ask the till team about returns ^c02"], [YES_ROW])
     code, out = gate(vault, "--for-lead")
     assert code == 1, out
-    assert "One thing you said isn't sorted yet: keep it, set it aside for later, or drop it?" in out
+    assert "One thing said in the session isn't sorted yet: keep it, set it aside for later, or drop it?" in out
     assert say.leak_in(out) is None
 
 

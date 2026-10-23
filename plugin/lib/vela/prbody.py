@@ -186,9 +186,12 @@ def in_their_words(picked, vault, captures=None, lead=None):
     out = []
     for quote in picked:
         item = str(quote.get("item") or "")
-        label = vault.name_of(item) if item else "Said in the session"
         speaker = speaker_of(quote, captures or {}, lead)
-        out.append(f'- {label}{f", said by {speaker}" if speaker else ""}: "{quote["words"]}"')
+        if item:
+            label = vault.name_of(item) + (f", said by {speaker}" if speaker else "")
+        else:
+            label = f"{speaker}, in the session" if speaker else "Said in the session"
+        out.append(f'- {label}: "{quote["words"]}"')
     return out
 
 

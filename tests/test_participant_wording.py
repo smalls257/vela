@@ -49,13 +49,14 @@ def test_records_show_on_unconfirmed_words_says_so(tmp_path):
     assert code == 1 and "aren't confirmed as theirs yet" in out and say.leak_in(out) is None
 
 
-def test_unsorted_lines_from_several_people_are_not_all_yours():
+def test_unsorted_lines_are_never_called_the_leads():
+    """One participant's lines alone are still not the lead's, so the gate never says "you said" about them."""
     mixed = ['- [thought] (@priya) "One." ^c01', '- [thought] (@cto-ana) "Two." ^c02']
     problem = closegate.unmarked_problem("## Captures\n\n" + "\n".join(mixed) + "\n")[0]
     assert problem.plain.startswith("Two things said in the session aren't sorted yet")
     alone = closegate.unmarked_problem("## Captures\n\n" + "\n".join(
         ['- [thought] (@priya) "One." ^c01', '- [thought] (@priya) "Two." ^c02']) + "\n")[0]
-    assert alone.plain.startswith("Two things you said aren't sorted yet")
+    assert alone.plain.startswith("Two things said in the session aren't sorted yet")
 
 
 def test_the_read_back_header_is_plain_for_the_lead(tmp_path):
@@ -75,4 +76,11 @@ def test_in_their_words_names_a_participant_but_not_the_lead():
     picked = [{"number": 1, "words": "Mine.", "item": ""}, {"number": 8, "words": "Fine by me.", "item": ""}]
     lead = ("priya", ())
     assert prbody.in_their_words(picked, Vault(), captures, lead) == [
-        '- Said in the session: "Mine."', '- Said in the session, said by cto-ana: "Fine by me."']
+        '- Said in the session: "Mine."', '- cto-ana, in the session: "Fine by me."']
+
+
+def test_records_show_refusal_says_it_pastes_only_the_leads_own_lines():
+    """A participant who said yes is still refused by `records show`, so the refusal must not blame a missing yes."""
+    from vela.commands import private_records
+    assert "only with their own yes" not in private_records.NOT_THEIRS
+    assert "only your own" in private_records.NOT_THEIRS and "read-back" in private_records.NOT_THEIRS
