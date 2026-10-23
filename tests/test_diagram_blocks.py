@@ -370,3 +370,23 @@ def test_the_cut_is_deterministic():
 
 def test_the_others_box_is_in_the_key():
     assert "dashed outline: the boxes left out" in render.context_map(big_vault(25), None)
+
+
+def test_the_others_label_breaks_lines_with_a_plain_br_slash_tag_inside_the_quotes():
+    """Mermaid (the viewer's strict, no-HTML-labels mode, and GitHub's preview) turns <br/> into a line break.
+    An escaped tag (&lt;br/&gt;) or a bare <br> would show as text, and a quote or bracket would end the label early."""
+    text = render.context_map(big_vault(25), None)
+    [lines] = mermaid_lines(text)
+    [box] = [l for l in lines if l.startswith("  others_box[")]
+    assert box == '  others_box["7 others<br/>A18<br/>A19<br/>A20<br/>A21<br/>A22<br/>A23<br/>A24"]'
+    assert "&lt;" not in text and "&amp;" not in text and "<br>" not in text
+
+
+def test_two_contracts_with_one_name_are_counted_as_two_contracts_by_id():
+    leaves = [f"a{i:02d}" for i in range(30)]
+    pages = {"05-building-blocks/hub-building-blocks.md": app_page("hub", "new", contract("CON-001", leaves, name="Feed")
+                                                                  + contract("CON-002", leaves, name="Feed"))}
+    for name in leaves:
+        pages[f"05-building-blocks/{name}-building-blocks.md"] = app_page(name, "unchanged")
+    [lines] = mermaid_lines(render.context_map(vault_of(pages), None))
+    assert [l for l in lines if "others_box" in l and "-->" in l] == ['  n_APP_hub -->|"2 contracts"| others_box']

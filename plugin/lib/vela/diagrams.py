@@ -51,7 +51,8 @@ class Node:
 class Edge:
     source: str  # node key of the provider
     target: str  # node key of the consumer
-    label: str  # the contract id
+    label: str  # the contract name, as drawn on the arrow
+    contract: str = ""  # the contract id; two contracts with one name stay two edges, and the others box counts by it
 
 
 @dataclass(frozen=True)
@@ -130,15 +131,15 @@ def edge_label(contract):
 
 
 def _graph(nodes, edges, skipped=()):
-    """`edges` is [(provider Node, consumer Node, contract id)], so keys can be settled before edges use them."""
+    """`edges` is [(provider Node, consumer Node, contract name, contract id)], so keys can be settled before edges use them."""
     final = _unique_keys(list(nodes) + [n for e in edges for n in e[:2]])
     rekey = lambda n: replace(n, key=final[(n.key, n.ref)])
     by_key = {}
     for node in map(rekey, nodes):
         by_key.setdefault(node.key, node)
-    drawn = {Edge(rekey(s).key, rekey(t).key, label) for s, t, label in edges}
+    drawn = {Edge(rekey(s).key, rekey(t).key, label, cid) for s, t, label, cid in edges}
     return Graph(tuple(sorted(by_key.values(), key=lambda n: n.key)),
-                 tuple(sorted(drawn, key=lambda e: (e.label, e.source, e.target))),
+                 tuple(sorted(drawn, key=lambda e: (e.label, e.source, e.target, e.contract))),
                  tuple(sorted(set(skipped))))
 
 
@@ -175,7 +176,7 @@ def context_graph(vault, after=False):
             if consumer in retired:
                 skipped.append((contract.id, f"consumer {consumer.id or consumer.name} is retired"))
             else:
-                edges.append((source, app_node(consumer, "app", False) if after else app_node(consumer), edge_label(contract)))
+                edges.append((source, app_node(consumer, "app", False) if after else app_node(consumer), edge_label(contract), contract.id))
     return _graph(nodes, edges, skipped)
 
 
@@ -197,7 +198,7 @@ def app_graph(vault, app):
         for target in consumers if provides else [app]:
             node = focus if target is app else app_node(target)
             nodes.append(node)
-            edges.append((source, node, edge_label(contract)))
+            edges.append((source, node, edge_label(contract), contract.id))
     return _graph(nodes, edges, skipped)
 
 
@@ -270,9 +271,12 @@ def others_label(left_out):
     return "<br/>".join([f"{len(names)} others"] + shown)
 
 
-def rolled_up(labels):
-    """One arrow label for the contracts between a kept node and the others box."""
-    return next(iter(labels)) if len(labels) == 1 else f"{len(labels)} contracts"
+def rolled_up(contracts):
+    """One arrow label for the contracts between a kept node and the others box: the name of a single contract,
+    else a count. `contracts` is a set of (id, name); two contracts that share a name are still two."""
+    if len(contracts) == 1:
+        return next(iter(contracts))[1]
+    return f"{len(contracts)} contracts"
 
 
 def others_edges(graph, drawn, left_out):
@@ -282,9 +286,9 @@ def others_edges(graph, drawn, left_out):
     into, out_of = {}, {}
     for e in graph.edges:
         if e.source in kept and e.target in gone:
-            into.setdefault(e.source, set()).add(e.label)
+            into.setdefault(e.source, set()).add((e.contract or e.label, e.label))
         elif e.source in gone and e.target in kept:
-            out_of.setdefault(e.target, set()).add(e.label)
+            out_of.setdefault(e.target, set()).add((e.contract or e.label, e.label))
     return ([Edge(k, OTHERS_KEY, rolled_up(into[k])) for k in sorted(into)]
             + [Edge(OTHERS_KEY, k, rolled_up(out_of[k])) for k in sorted(out_of)])
 
@@ -310,7 +314,7 @@ def flowchart(graph, direction="LR", groups=()):
         lines.extend(f'    {k}["{by_key[k].label}"]' for k in keys if k in by_key)
         lines.append("  end")
     lines.extend(f'  {n.key}["{n.label}"]' for n in graph.nodes if n.key not in grouped)
-    lines.extend(f'  {e.source} -->|"{e.label}"| {e.target}' for e in graph.edges)
+    lines.extend(dict.fromkeys(f'  {e.source} -->|"{e.label}"| {e.target}' for e in graph.edges))  # same-name contracts draw one arrow
     styles = sorted({n.style for n in graph.nodes})
     lines.extend(f"  classDef {s} {STYLES[s]}" for s in styles)
     for style in styles:
