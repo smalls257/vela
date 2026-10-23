@@ -107,9 +107,9 @@ class Problem:
 
 
 # What holds a close up, in the order the lead hears it: one line per kind when there is more than one of it.
-CONSENT, RECEIPT, UNMARKED, CHECK, REMOVED_ROW, STRAY, RENDER, SYNC = (
-    "consent", "receipt", "unmarked", "check", "removed", "stray", "render", "sync")
-KINDS = (SYNC, CONSENT, RECEIPT, UNMARKED, CHECK, REMOVED_ROW, STRAY, RENDER)
+CONSENT, RECEIPT, READBACK, UNMARKED, CHECK, REMOVED_ROW, STRAY, RENDER, SYNC = (
+    "consent", "receipt", "readback", "unmarked", "check", "removed", "stray", "render", "sync")
+KINDS = (SYNC, CONSENT, RECEIPT, READBACK, UNMARKED, CHECK, REMOVED_ROW, STRAY, RENDER)
 
 
 @dataclass(frozen=True)
@@ -275,6 +275,8 @@ class Seen:
     host: dict = None
     reader: bool = False
     lead: object = None
+    readback: object = None  # the digest `.vela/close/<id>.readback.json` holds, or None when the lead has not read back
+    picked: tuple = ()  # the quotes the lead picked (`.vela/close/<id>.quotes.json`), for the read-back
 
 
 @dataclass(frozen=True)
@@ -551,6 +553,22 @@ def receipt_problems(vault, before, record_id, part, record_text, lead):
     return out
 
 
+READBACK_OWED = "I haven't read back the wording that goes on record in your name yet."
+
+
+def readback_problems(vault, record_id, part, record_text, seen):
+    """The lead has not read back the sentences that go on record in their name, or one changed after they did. Silent
+    until there is a sentence to read: a session that put no words on a page owes no read-back."""
+    from vela import closereadback
+    found = closereadback.sentences(vault, record_id, part, record_text, seen.lead, seen.picked)
+    if not found or closereadback.digest(found) == seen.readback:
+        return []
+    return [Problem(READBACK_OWED, f"{len(found)} sentence(s) to read back; `vela close readback` lists them, "
+                    "`--done` records the lead's yes",
+                    "Reading the sentences back to the lead, then vela close readback --done, clears it.",
+                    kind=READBACK)]
+
+
 def mark_target_problems(vault, record_text):
     """A capture marked `keep: [[page#heading|ID]]` whose page or heading is not in the plan. `vela check` cannot
     read the notes, so the gate is where a mark that points nowhere is stopped."""
@@ -590,6 +608,7 @@ def ready(vault, record_text, record_id, seen, part=1):
         problems.insert(0, Problem(seen.sync.plain, f"sync-main: {seen.sync.status or 'not run'}",
                                    "Running vela close sync-main clears it.", kind=SYNC, audience=seen.sync.audience))
     problems += receipt_problems(vault, seen.before, record_id, part, record_text, seen.lead)
+    problems += readback_problems(vault, record_id, part, record_text, seen)
     problems += unmarked_problem(record_text)
     problems += mark_target_problems(vault, record_text)
     problems += error_problems(seen.errors, vault)

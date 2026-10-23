@@ -297,7 +297,7 @@ def test_close_offers_only_ready_steps():
     close.register(parser.add_subparsers())
     top = next(a for a in parser._actions if isinstance(a, argparse._SubParsersAction))
     steps = next(a for a in top.choices["close"]._actions if isinstance(a, argparse._SubParsersAction)).choices
-    names = {"close_sync": "sync-main", "close_stage": "stage", "close_gate": "gate", "close_drafts": "drafts",
+    names = {"close_sync": "sync-main", "close_stage": "stage", "close_gate": "gate", "close_readback": "readback", "close_drafts": "drafts",
              "close_finish": "finish", "close_push": "push"}
     for name in close.STEPS:
         module = importlib.import_module(f"vela.commands.{name}")

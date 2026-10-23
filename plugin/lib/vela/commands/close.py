@@ -8,7 +8,7 @@ another's internals. A step module whose task has not landed sets `register_clos
 """
 import importlib
 
-STEPS = ("close_sync", "close_stage", "close_gate", "close_drafts", "close_finish", "close_push")
+STEPS = ("close_sync", "close_stage", "close_gate", "close_readback", "close_drafts", "close_finish", "close_push")
 
 
 def ready_steps():

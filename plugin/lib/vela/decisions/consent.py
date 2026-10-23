@@ -39,7 +39,7 @@ from vela.said import is_unverified
 from vela.decisions.schema import quote_hash
 
 # "Yes, but don't quote me" opens with a yes and takes it back; a negation anywhere after the opener is not a yes.
-NEGATION = re.compile(r"\b(?:don'?t|do not|not|no|never|won'?t|wouldn'?t|shouldn'?t|can'?t|cannot)\b", re.I)
+NEGATION = re.compile(r"\b(?:don[’']?t|do not|not|no|never|won[’']?t|wouldn[’']?t|shouldn[’']?t|can[’']?t|cannot)\b", re.I)
 QUOTE_YES_TAG = "quote-yes"  # the tag of a capture where a person says, in their own words, that they may be quoted
 GROUP_LIMIT = 7  # the most items one read-back may name for one yes
 OVERRIDE_YES = (f'an override of {closegate.QUOTED_YES_RULE} on the item, its reason citing the capture with the '

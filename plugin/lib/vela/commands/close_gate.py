@@ -159,12 +159,25 @@ def slice_words(name, status):
     return f"{name} breaks somewhere along the way; the boundary session is where that gets fixed."
 
 
+def read_back_digest(root, record_id):
+    """The digest the lead's read-back stored, or None when they have not done it."""
+    held = sessiongit.read_json(root, f"{closestate.FOLDER}/{record_id}.readback.json")
+    return held.get("digest") if held else None
+
+
+def read_picked(root, record_id):
+    """The quotes the lead picked at the read-back: `[{"number", "words", "item"}, ...]`."""
+    held = sessiongit.read_json(root, f"{closestate.FOLDER}/{record_id}.quotes.json")
+    return held.get("quotes", []) if held else []
+
+
 def observe(root, vault, record, text, today):
     """Everything `closegate.ready` judges, gathered from git and the disk. A reader copy runs no git at all."""
     reader = mergegit.is_reader_copy(root)
     stale, render_problems = stale_render(root, vault)
     host = hostprobe.read_json(root / hostprobe.HOST_FILE)
-    common = dict(lead=apply.lead_of(root), today=today, sync=mergegit.sync_verdict(root), errors=check_errors(vault, today), stale=stale,
+    common = dict(lead=apply.lead_of(root), readback=read_back_digest(root, record.id),
+                  picked=tuple(read_picked(root, record.id)), today=today, sync=mergegit.sync_verdict(root), errors=check_errors(vault, today), stale=stale,
                   render_problems=render_problems, hooks_ran=(root / hostprobe.ACTIVE_FILE).is_file(), host=host or None,
                   reader=reader)
     if reader:
@@ -190,6 +203,7 @@ KIND_WORDS = {
     closegate.SYNC: ("main changed the same pages we did", "main changed the same pages we did"),
     closegate.CONSENT: ("one decision needs your yes", "{n} decisions need your yes"),
     closegate.RECEIPT: ("one decision's record needs a fix", "{n} decisions' records need a fix"),
+    closegate.READBACK: ("the wording in your name isn't read back yet", "the wording in your name isn't read back yet"),
     closegate.UNMARKED: ("some of what you said isn't sorted yet", "some of what you said isn't sorted yet"),
     closegate.CHECK: ("one item can't be finished as it stands", "{n} items can't be finished as they stand"),
     closegate.REMOVED_ROW: ("one thing was taken out this session", "{n} things were taken out this session"),

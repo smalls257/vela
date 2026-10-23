@@ -6,6 +6,7 @@ says it and the lead's doesn't."""
 
 
 def run(ctx):
+    ctx.vela("close", "readback", "--done")  # the lead keeps every line as written (Task 10)
     code, out = ctx.vela("close", "gate", "--for-lead", "--today", ctx.today, check=False)
     assert code == 0 and out.startswith("The session is ready to finish."), f"close gate exit {code}:\n{out}"
     assert "Hooks did not run" not in out, out
