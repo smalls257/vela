@@ -50,4 +50,4 @@ def test_a_person_a_private_file_quotes_cannot_be_the_title(tmp_path, monkeypatc
     private.mkdir(parents=True)
     (private / "2026-10-01-older.md").write_text("- [said] (Dana Okafor) words ^c1\n", encoding="utf-8")
     code, out = start(vault, "--mode", "grill", "--topic", "Okafor concerns", "--for-lead")
-    assert code == 3 and titlecheck.TITLE_QUESTION in out and "okafor" not in out.lower()
+    assert code == 3 and titlecheck.TITLE_QUESTION in out and "I matched on okafor" in out

@@ -141,3 +141,28 @@ def test_close_stage_summary_needs_close(tmp_path, monkeypatch):
     vault, _, rid, _ = machine_a(tmp_path, monkeypatch)
     code, out = run("close", "stage", "--checkpoint", "--session", rid, "--vault", str(vault), "--summary", SUMMARY)
     assert code != 0 and "--summary goes with --close" in out
+
+
+def test_a_failed_claim_push_leaves_nothing_behind_and_a_retry_takes_the_same_part(tmp_path, monkeypatch):
+    vault_a, bare, rid, branch = machine_a(tmp_path, monkeypatch)
+    vault_b = clone(tmp_path, bare, "bea")
+    git(vault_b, "remote", "set-url", "--push", "origin", str(tmp_path / "nowhere.git"))
+    assert resume(vault_b, rid)[0] == 2
+    assert git(vault_b, "status", "--porcelain") == ""  # the stub is back as committed
+    git(vault_b, "switch", "-q", branch)
+    assert git(vault_b, "rev-parse", "HEAD") == git(vault_b, "rev-parse", f"origin/{branch}")
+    git(vault_b, "remote", "set-url", "--push", "origin", str(bare))
+    assert resume(vault_b, rid)[0] == 0
+    assert privaterecord.part_of(private_of(vault_b, rid).read_text(encoding="utf-8")) == 2
+    assert privaterecord.parts(on_origin(vault_a, branch, rid)) == {1: "pending", 2: "pending"}
+
+
+def test_a_failed_stage_leaves_no_closed_stub_behind(tmp_path, monkeypatch):
+    vault, _, rid, _ = machine_a(tmp_path, monkeypatch)
+    stub_before = session_files.stub_text(vault, rid)
+    notes_before = private_of(vault, rid).read_text(encoding="utf-8")
+    code, out = run("close", "stage", "--close", "--session", rid, "--vault", str(vault), "--summary", SUMMARY,
+                    "--paths-from-render")
+    assert code == 1 and "render would still rewrite" in out, out  # the new open record leaves render stale
+    assert session_files.stub_text(vault, rid) == stub_before
+    assert private_of(vault, rid).read_text(encoding="utf-8") == notes_before

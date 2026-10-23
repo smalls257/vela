@@ -463,13 +463,18 @@ def claim_part(root, record, lines):
         sessiongit.write_text(root, rel, privaterecord.with_part(stub, part, privaterecord.PENDING))
         if not record.branch:  # a reader copy has no git: the claim stays in this folder
             return opened_part(root, record, part, lines)
-        sessiongit.commit(root, f"Take part {part} of {record.id}", [rel])
+        try:
+            sessiongit.commit(root, f"Take part {part} of {record.id}", [rel])
+        except GitUnavailable:
+            sessiongit.write_text(root, rel, stub)
+            raise
         if not sessiongit.has_origin(root):
             return opened_part(root, record, part, lines)
         sent = ghcli.push(root, record.branch, track=False)
         if sent.ok:
             return opened_part(root, record, part, lines)
         if not lost_race(sent.why):
+            sessiongit.drop_last_commit(root)  # a retry must claim this same number, not leave it pending forever
             raise failed(f"the claim of part {part} was not pushed: {sent.why}", NOT_CLAIMED, lines)
         take_back_claim(root, record, lines)
     raise failed(f"{CLAIM_TRIES} claims in a row lost the push", NOT_CLAIMED, lines)
@@ -534,7 +539,7 @@ def check_title(root, topic):
         raise Stop(say.Result(START, exit=say.NEEDS_LEAD, needs_lead=[{
             "ask": "session name", "question": titlecheck.TITLE_QUESTION}], lines=[say.Line(
             f"vela: the session name '{topic}' has {', '.join(found)} in it, a person; nothing was written.",
-            plain=titlecheck.TITLE_QUESTION)]))
+            plain=f"{titlecheck.TITLE_QUESTION} (I matched on {say.names_said(found)}.)")]))
 
 
 def start_in_copy(root, args, today, modes, plain, said):

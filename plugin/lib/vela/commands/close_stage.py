@@ -198,6 +198,8 @@ def cmd_close_stage(args, out):
     from vela import cli
     root = pathlib.Path(args.vault).resolve()
     mode = say.mode_of(args)
+    if args.summary and args.commit != "close":
+        raise cli.ToolError("close stage: --summary goes with --close, which is the commit that files the summary")
     result = say.Result("close stage")
     if is_reader_copy(root):
         result.lines.append(say.Line("vela close stage: this is a read copy, so nothing is staged or committed.",
@@ -217,16 +219,18 @@ def cmd_close_stage(args, out):
         raise cli.ToolError(str(exc)) from exc
     if ident is None:
         return cli_emit(result, args, out)
+    files = {}
     if args.summary:
-        closing = close_record(args, root, ident)
-        if closing is not None:
-            return cli_emit(closing, args, out)
+        files, early = closed_files(args, root, ident)
+        if early is not None:
+            return cli_emit(early, args, out)
     if args.paths_from_render:
         stale, problems = stale_render(root)
         if stale or problems:
             result.exit = say.REFUSED
             result.refusals.append(render_refusal(stale, problems))
             return cli_emit(result, args, out)
+    before = write_closed(root, files) if files else {}
     try:
         changed = stagegit.changed_paths(root)
         plan = guard.plan(changed, vault_pages(changed), ident)
@@ -239,6 +243,8 @@ def cmd_close_stage(args, out):
         elif args.commit:
             commit_line = "nothing to commit: no allow-listed file changed"
     except vaultgit.GitUnavailable as exc:
+        for rel, text in before.items():  # a failed stage leaves no closed record behind
+            sessiongit.write_text(root, rel, text)
         raise cli.ToolError(f"close stage: {exc}") from exc
     result.data = {"session": ident, "staged": list(plan.stage),
                    "left": [{"path": p, "reason": why} for p, why in plan.left],
@@ -250,11 +256,9 @@ def cmd_close_stage(args, out):
     return cli_emit(result, args, out)
 
 
-def close_record(args, root, ident):
-    """Write the summary, close the stub and fingerprint this part. None when done, else the Result to emit."""
-    from vela import cli
-    if args.commit != "close":
-        raise cli.ToolError("close stage: --summary goes with --close, which is the commit that files the summary")
+def closed_files(args, root, ident):
+    """({path: new text}, None) for `--summary`: the notes with the summary, and the stub closed and fingerprinted for
+    this part. Nothing is written here. Else ({}, the Result that says why not)."""
     try:
         summary = closefinish.checked_summary(args.summary)
         notes = sessiongit.private_text(root, ident)
@@ -264,11 +268,17 @@ def close_record(args, root, ident):
         stub = (root / privaterecord.stub_path(ident)).read_text(encoding="utf-8")
         stub = privaterecord.with_part(closefinish.closed_stub(stub), privaterecord.part_of(notes),
                                        privaterecord.fingerprint(notes))
-        sessiongit.write_text(root, privaterecord.private_path(ident), notes)
-        sessiongit.write_text(root, privaterecord.stub_path(ident), stub)
     except (closefinish.SummaryRefused, ValueError, OSError) as exc:  # PrivateMissing is a ValueError
-        return say.Result("close stage", exit=say.FAILED, lines=[say.Line(f"vela close stage: {exc}", plain=str(exc))])
-    return None
+        return {}, say.Result("close stage", exit=say.FAILED, lines=[say.Line(f"vela close stage: {exc}", plain=str(exc))])
+    return {privaterecord.private_path(ident): notes, privaterecord.stub_path(ident): stub}, None
+
+
+def write_closed(root, files):
+    """Write `files`; the earlier text of each, to put back if the stage or commit then fails."""
+    before = {rel: (root / rel).read_text(encoding="utf-8") for rel in files}
+    for rel, text in files.items():
+        sessiongit.write_text(root, rel, text)
+    return before
 
 
 def cli_emit(result, args, out):

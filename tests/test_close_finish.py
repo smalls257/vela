@@ -98,6 +98,16 @@ def test_commit_order_close_then_manifest_then_dashboard(tmp_path):
     assert not git(vault, "status", "--porcelain", "--", "sessions", "handoffs", "dashboard.html")
 
 
+def test_the_finished_stub_holds_this_parts_fingerprint_and_verify_agrees(tmp_path):
+    vault = session(tmp_path, handed="@stock-team, 2026-10-20")
+    code, out = finish(vault)
+    assert code == 0, out
+    notes = session_files.record_text(vault, RECORD)
+    held = privaterecord.parts(privaterecord.stub_meta(session_files.stub_text(vault, RECORD)))
+    assert held == {privaterecord.part_of(notes): privaterecord.fingerprint(notes)}
+    assert run("records", "verify", RECORD, "--vault", str(vault))[0] == 0
+
+
 def test_manifest_written_after_close_commit_and_names_it(tmp_path):
     vault = session(tmp_path, handed="@stock-team, 2026-10-20")
     code, out = finish(vault, "--for-lead")
