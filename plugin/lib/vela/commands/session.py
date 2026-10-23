@@ -46,6 +46,7 @@ is a printed line and exit 2, and `review_comments` is null, never an empty list
 (Silent Fallback). Everything else in the brief still runs.
 """
 import argparse
+import dataclasses
 import datetime
 import io
 import json
@@ -879,6 +880,8 @@ def move_to_own_branch(root):
     current, default = sessiongit.current_branch(root), sessiongit.default_branch(root)
     found, _ = sessions.find_open(sessiongit.branch_records(root), scope)
     here = [r for r in found if r.branch == current]
+    if not here and current == default:  # finished on the default branch, never pushed: close push sent the lead here
+        here = finished_unpushed(root, default)
     if len(here) != 1:
         raise refuse_branch(f"vela session branch: {len(here)} open sessions on {current or 'no branch'}; need exactly one.",
                             "I can't tell which session to move, so I haven't moved anything.")
@@ -907,6 +910,19 @@ def move_to_own_branch(root):
                       plain="The session has its own branch now, with everything we did on it.")]
     lines += main_back(root, default, began, branch)
     return say.Result(BRANCH, lines=lines, wrote=[rel], data={"id": record.id, "branch": branch, "from": default})
+
+
+def finished_unpushed(root, default):
+    """The sessions on the default branch that `close finish` closed and whose commits origin's default branch lacks:
+    what `close push` sends back to `session branch` once the open one is gone."""
+    upstream = f"refs/remotes/origin/{default}"
+    found = []
+    for ref, path, text in sessiongit.folder_records(root):
+        record, _ = sessions.read(ref, path, text)
+        if (record is not None and record.status == "closed" and privaterecord.stub_meta(text).get("branch") == default
+                and sessiongit.unshared_commits_touching(root, upstream, "HEAD", path)):
+            found.append(dataclasses.replace(record, branch=default))
+    return found
 
 
 def failed_branch(text, plain):

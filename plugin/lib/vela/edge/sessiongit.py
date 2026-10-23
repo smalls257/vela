@@ -242,6 +242,12 @@ def commits_between(root, base, tip):
     return int(git_out(root, "rev-list", "--count", f"{base}..{tip}") or 0)
 
 
+def unshared_commits_touching(root, base, tip, path):
+    """How many commits on `tip` that `base` lacks change `path`. `base` missing (no origin copy) counts every one."""
+    span = f"{base}..{tip}" if ref_exists(root, base) else tip
+    return len(git_out(root, "rev-list", span, "--", path).split())
+
+
 def move_branch(root, branch, target):
     """(ok, git's words): point the local `branch` at `target`. Only for a branch that is not checked out."""
     code, out, err = run_git(root, "branch", "-f", branch, target)
