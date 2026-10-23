@@ -73,7 +73,7 @@ def test_conventions_document_the_fr_format_and_grill_decides_it_with_decide():
     conventions = (REPO / "plugin" / "template" / "CONVENTIONS.md").read_text(encoding="utf-8")
     assert "### CAP-nnn.FRn" in conventions and "CAP-001.FR1" in conventions
     grill = (REPO / "plugin" / "skills" / "grill" / "SKILL.md").read_text(encoding="utf-8")
-    assert "takes a functional requirement" in grill
+    assert "a requirement, a release, a slice, an epic, an app's share" in grill
     assert "`**State:**` bullet moves to `decided`" not in grill  # decide_fr writes it
 
 
@@ -82,7 +82,8 @@ def test_conventions_document_the_fr_format_and_grill_decides_it_with_decide():
 
 def test_grill_files_the_agenda_through_its_kind():
     grill = read("plugin/skills/grill/SKILL.md")
-    assert "`agenda` kind" in grill and "START's resume reads it" in grill
+    assert "`agenda` kind" in grill
+    assert "START's resume reads it" not in grill  # rule deletion: decisions/agenda.py keeps the agenda current
     for gone in ("off-agenda: GATE-n", "GATE-3 confirmed yes|no", "write the agenda into the session record",
                  "- CON-003: GATE-3 confirmed yes, status open, override: GATE-5"):
         assert gone not in grill, gone
@@ -90,7 +91,8 @@ def test_grill_files_the_agenda_through_its_kind():
 
 def test_grill_says_how_a_decision_file_is_filed():
     grill = read("plugin/skills/grill/SKILL.md")
-    assert "`vela apply --schema <kind>`" in grill and "`vela apply <file> --for-lead`" in grill
+    assert "`vela apply`" in grill and "`--schema <kind>`" in grill
+    assert "`vela apply <file> --for-lead`" not in grill  # rule deletion: START's relaying rule covers --for-lead
     assert '"version": 1' not in grill  # the decision file's shape is `vela apply`'s, not the skill's
 
 
@@ -161,9 +163,13 @@ def test_grill_tells_the_lead_how_an_absent_owner_confirms_by_name():
 
 
 def test_grill_refuses_a_handoff_in_a_reader_copy_naming_the_owner():
-    grill = text("skills/grill/SKILL.md")
-    assert "Only the plan's owner can hand an app to its team" in grill and "published.json" in grill
-    assert "owner's call: it stamps their commit" not in grill
+    # NEW-13 was dropped: `vela handoff preview` is read-only on purpose, so a reader can see what a handoff leaves
+    # unmet. The stop is step 0 of HANDOFF.md, a branch file read only when a handoff item comes up.
+    handoff = text("skills/grill/HANDOFF.md")
+    assert handoff.split("0. ", 1)[1].startswith("Run `vela role`. In a reader copy, stop")
+    assert "Only the plan's owner can hand an app to its team" in handoff and "published.json" in handoff
+    assert "`SKILL.md` has already stopped a reader copy" not in handoff  # Fossil Comment: SKILL.md no longer does
+    assert "owner's call: it stamps their commit" not in text("skills/grill/SKILL.md")
 
 
 def test_grill_leaves_the_pending_marker_to_decide():
@@ -184,7 +190,8 @@ def test_grill_reads_the_blocking_questions_and_runs_the_checkpoint_on_the_agend
 
 def test_grill_records_a_decision_over_an_open_blocking_question():
     grill = text("skills/grill/SKILL.md")
-    assert "sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela" in grill
+    assert "sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela" not in grill  # rule deletion: START's "Where vela runs from"
+    assert "sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela" in text("references/START.md")
     assert "repeating `--item`" in grill and "decided with <copy IDs> open (W807)" in grill
     for gone in ("exits 2", "at most three questions", "Per item it says ready, or not ready", "skipping any the record already answers"):
         assert gone not in grill, gone  # the gate's output and REVIEW's digest say these
@@ -210,8 +217,8 @@ def test_grill_leaves_the_digest_to_review():
 
 
 def test_the_grill_gate_prose_carries_no_code():
-    grill = section_session_experience(text("skills/grill/SKILL.md"), "3. The gate, per item")
-    assert "never as a table or a gate name" in grill
+    grill = section_session_experience(text("skills/grill/SKILL.md"), "3. The gate and the agenda")
+    assert "never as a table" in grill
     assert "Show the result as a table" not in grill
 
 
@@ -238,10 +245,11 @@ def test_grill_leaves_options_considered_to_the_gate():
 def test_grill_holds_the_loop_and_files_each_decision_at_once():
     grill = text("skills/grill/SKILL.md")
     assert "If no item passes and the user overrides none after you offered it for each item their answers settled, do not start the grill: make no change to any page" in grill
-    assert "claude, from <name>" in grill
+    assert "claude, from <name>" not in grill  # rule deletion: START's "Captures during the session" owns origins
+    assert "claude, from <name>" in text("references/START.md")
     assert "Keep your recommendation when the user pushes back without a reason." in grill
     assert "Never answer your own question." in grill
-    assert "File each decision as its branch closes, before the next question." in grill
+    assert "## 4. File each decision as its branch closes" in grill and "Before the next question:" in grill
     assert "Never batch decisions to the end" not in grill and "## Never" not in grill  # the line above says it
 
 
@@ -258,7 +266,10 @@ def test_grill_defines_acceptance_and_the_owner_rule():
 
 
 def test_grill_never_drafts_an_ask():
-    assert "Never draft an ask, an email or a chase for the user to send." in text("skills/grill/SKILL.md")
+    # rule deletion: MODES "The lead does the asking" and START step 1 hold it, for every mode
+    assert "Never draft an ask, an email or a chase for the user to send." not in text("skills/grill/SKILL.md")
+    assert "The lead does the asking" in text("references/MODES.md")
+    assert "never draft an ask for the user to send" in text("references/START.md")
 
 
 # --- From tests/test_tracer_skills.py: the tracer, never a gate, no codes read to the lead.
@@ -298,7 +309,7 @@ def test_grill_says_the_capture_is_the_record_of_an_open_owed_question():
 def test_the_grill_asks_for_the_why_in_the_leads_words_and_offers_a_record_for_big_ones():
     grill = skill_text("grill")
     assert "Why this one, in your words?" in grill and "A declined reason is captured as given" in grill
-    assert "decision record" in grill and "vela add adr --title" in grill
+    assert "decision record" in grill and "`vela add adr`" in grill  # the flags are `vela add adr --help`'s
     assert "word for word as `- **Why:** <the lead's words>`" not in grill  # decide copies it
 
 
@@ -309,17 +320,20 @@ def test_questions_section_is_first():
     grill = text("skills/grill/SKILL.md")
     numbered = re.findall(r"^## (\d+)\. (.+)$", grill, re.M)
     assert numbered[0] == ("1", "The questions"), numbered
-    assert [n for n, _ in numbered] == ["1", "2", "3", "4", "5"]
+    assert [n for n, _ in numbered] == ["1", "2", "3", "4"]  # "Handing an app over" is unnumbered
 
 
-def test_flow_check_line_carried_as_written():
-    line = ("Run `vela check-slice --changed --for-lead` first. A finding on the item's slice blocks it unless the lead overrides "
-            "it with a reason and an end date, which you record under the slice page's `## Overrides`; 'not fully "
-            "checked' takes no override")
+def test_flow_check_line_is_the_commands_not_the_skills():
     grill = text("skills/grill/SKILL.md")
-    assert line in grill
+    assert "Run `vela check-slice --changed --for-lead`" in grill
+    # rule deletion: how to record a finding the lead lives with is gates.flow_reason's model line (NEW-12), through
+    # `vela apply`, never a hand-written `## Overrides` bullet (tests/test_gates.py)
+    assert "which you record under the slice page's `## Overrides`" not in grill
+    assert "'not fully checked' takes no override" not in grill
     assert "not ready while `vela check-slice` reports a finding on it" not in grill
     assert "It moves to `planned` only when every flow it names" not in grill
+    from vela import gates
+    assert "vela apply (kind override, the slice page" in gates.FLOW_OVERRIDE_ROUTE
 
 
 def test_grill_names_only_commands_that_exist():
@@ -377,8 +391,9 @@ def test_decide_says_it_is_already_decided_and_offers_the_reopen():
 
 
 def test_grill_is_leaner_than_it_was():
-    assert len(text("skills/grill/SKILL.md").split()) <= 2100  # 2,342 before the trim; 2,040 after
-    assert len(text("skills/grill/HANDOFF.md").split()) <= 380  # 415 before; 364 after
+    assert len(text("skills/grill/SKILL.md").split()) <= 1450  # 2,342 before the first trim; 2,046 after it; 1,407 after the second
+    # 415 before the first trim; 364 after it; step 0 (a reader stops, the review's fix for NEW-13) made it 396
+    assert len(text("skills/grill/HANDOFF.md").split()) <= 410
 
 
 def test_grill_reads_back_by_name_and_keeps_ids_out_of_its_own_wording():
@@ -399,9 +414,9 @@ def test_grill_description_and_lower_case_name():
 
 
 def test_new_unknown_goes_through_add_unknown():
-    five = section(text("skills/grill/SKILL.md"), "## 5.", "## Ends when")
-    assert "vela add unknown --name" in five and "--blocks <ID>" in five
-    assert "re-run GATE-4 for every other agenda item" not in five
+    four = section(text("skills/grill/SKILL.md"), "## 4.", "## Ends when")
+    assert "`vela add unknown --capture ^cN --blocks <ID> --for-lead`" in four
+    assert "re-run GATE-4 for every other agenda item" not in four
 
 
 # --- grill SKILL.md section 1, house-voice "Sound sure": full3 T118 opened a part with "It's November 3. Procurement
