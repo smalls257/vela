@@ -620,3 +620,14 @@ def test_close_keeps_the_one_relay_line_and_the_hard_stop():
 
 def test_close_has_flow_end_codes_fixed_with_the_lead_before_the_session_closes():
     assert "(E351)" in CLOSE_SKILL and "(W354)" in CLOSE_SKILL and "(W374)" in CLOSE_SKILL and "only on their yes" in CLOSE_SKILL
+
+
+def test_a_session_on_main_moves_to_its_own_branch_before_finish():
+    """After `close finish` the session is closed and `record add` can't take the send yes, so a lead who learns at step 4
+    that main needs a review branch can never send. The move is offered at step 1, while the session is open."""
+    text = (REPO / "plugin" / "skills" / "close" / "SKILL.md").read_text(encoding="utf-8")
+    send = text[text.index("Then send, in this order"):text.index("## 8. Open the pull request")]
+    step1, step4 = send[send.index("1. Run `vela close push --for-lead`"):send.index("2. Capture")], send[send.index("4. Run"):]
+    assert "review needs its own branch" in step1 and "`vela session branch --for-lead`" in step1
+    assert "still open" in step1
+    assert "session branch" not in step4
