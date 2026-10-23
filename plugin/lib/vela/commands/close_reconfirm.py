@@ -14,11 +14,12 @@ Exit codes: 0 filed; 1 refused (said in plain words, nothing written); 2 the too
 """
 import pathlib
 
-from vela import closegate, privaterecord, receipts, say
+from vela import closegate, closereadback, privaterecord, receipts, say
 from vela.decisions import consent, textedit
 from vela.edge import flowstore, mergegit, sessiongit, vaultgit
 
 NAME = "close reconfirm"
+REOPENED = "I've changed a line you already read back, so read it back again."
 NOT_ASKED = "{ids} wasn't something the other machine decided, so I haven't filed anything."
 
 
@@ -71,6 +72,7 @@ def reconfirm(args, root, vault, before, record, lead):
                         "I didn't ask about one of those, so I haven't filed anything.")
     yes = record.capture(args.yes)
     source = textedit.capture_link(record.id, args.yes)
+    was_read_back = _read_back(root, vault, record, lead)
     notes, pages = record.text, {}
     for ident in dict.fromkeys(args.ids):
         notes = textedit.add_change(notes, ident, asked[ident].before, asked[ident].after, source)
@@ -78,9 +80,28 @@ def reconfirm(args, root, vault, before, record, lead):
     wrote = [sessiongit.write_text(root, rel, text) for rel, text in pages.items()]
     wrote.append(sessiongit.write_text(root, record.path, notes))
     names = say.names_said([asked[i].name for i in dict.fromkeys(args.ids)])
-    return say.Result(NAME, exit=say.DONE, wrote=wrote, lines=[say.Line(
+    lines = [say.Line(
         f"close reconfirm: {len(set(args.ids))} item(s) reconfirmed in part {record.part} by {args.yes}.",
-        plain=f"Thank you. {names[0].upper() + names[1:]} stands as your yes today.")])
+        plain=f"Thank you. {names[0].upper() + names[1:]} stands as your yes today.")]
+    if was_read_back and not _read_back(root, _reloaded(root), record, lead):
+        lines.append(say.Line("close reconfirm: the read-back digest changed; run close readback again.", plain=REOPENED))
+    return say.Result(NAME, exit=say.DONE, wrote=wrote, lines=lines)
+
+
+def _reloaded(root):
+    from vela import cli
+    return cli.load_vault(root)
+
+
+def _read_back(root, vault, record, lead):
+    """Whether the lead's finished read-back still matches the sentences as they stand."""
+    from vela.commands import close_gate
+    stored = close_gate.read_back_digest(root, record.id)
+    if stored is None:
+        return False
+    found = closereadback.sentences(vault, record.id, record.part, record.text, lead,
+                                    close_gate.read_picked(root, record.id))
+    return closereadback.digest(found) == stored
 
 
 def _yes_refusal(ref, record, lead):

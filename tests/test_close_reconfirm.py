@@ -132,3 +132,13 @@ def test_a_ledger_row_taken_off_on_the_other_machine_is_asked_about_and_reconfir
     assert f"| {copy} | ledger row | removed | [[{RID}#^c03]] |" in text_of(vault, privaterecord.private_path(RID))
     assert not elsewhere(vault)
     assert not [p for p in gate(vault) if p["kind"] == closegate.REMOVED_ROW]
+
+
+def test_reconfirm_after_a_finished_read_back_says_it_reopens_it(tmp_path):
+    vault = two_machine_session(tmp_path)
+    assert run("close", "readback", "--done", "--vault", str(vault))[0] == 0
+    assert closegate.READBACK not in {p["kind"] for p in gate(vault)}
+    code, out = reconfirm(vault, "--yes", "^c03", "CON-002", "--for-lead")
+    assert code == 0, out
+    assert "I've changed a line you already read back, so read it back again." in out
+    assert closegate.READBACK in {p["kind"] for p in gate(vault)}
