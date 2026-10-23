@@ -295,7 +295,9 @@ def notice(root, vault, session):
     sessiongit.write_text(root, close_file(session.id, "push-notice"), json.dumps(marker, indent=2) + "\n")
     s = "" if count == 1 else "s"
     lines = [say.Line(f"{said[0]}\nThe record holds {count} capture{s} at this notice; capture the lead's yes after "
-                      "it (vela record add), then run vela close push --consent ^cNN.", plain=said[1])]
+                      "it (vela record add --tag decision --mark \"drop: the yes to send this for review\"), run "
+                      "vela close finish while the session is still open, then vela close push --consent ^cNN.",
+                      plain=said[1])]
     result = say.Result(PUSH, exit=say.NEEDS_LEAD, lines=lines, data={"branch": session.branch, "reviewers": found},
                         needs_lead=[{"ask": "push", "question": said[1], "captures_at_notice": count,
                                      "answer_with": "--consent ^cNN"}])

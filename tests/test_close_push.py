@@ -100,6 +100,8 @@ def test_push_without_consent_prints_notice_exits_3(tmp_path):
     assert f"I'll push `{BRANCH}` and open a pull request for" in out
     assert "stock-team" in out and "mini/shop-team" in out  # the changed app's owner and its contract's consumer
     assert "1 capture" in out and "--consent" in out
+    assert "run vela close finish while the session is still open, then vela close push --consent ^cNN" in out
+    assert f'--mark "{SEND_MARK}"' in out
     assert git(vault, "rev-parse", "HEAD") == head and not remote_has(bare, BRANCH)
     code, lead = push(vault, "--for-lead")
     assert code == 3 and lead.strip().startswith("I'll send this for review to") and lead.strip().endswith("OK?")
