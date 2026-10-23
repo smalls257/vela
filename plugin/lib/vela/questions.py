@@ -1022,5 +1022,5 @@ def untyped_mentions(vault):
                 yield Finding(page.path, line, "W809",
                               f"'{hits[0]}' may be an untyped subject: this page holds or links no {kind}, and {copy} "
                               f"has no answer yet ({entry.question})",
-                              f"Type it as ### {SUBJECT_PREFIX[entry.creates]}nn on 03-context-and-scope.md and link it "
-                              f"from here, or answer {copy} in the question ledger.")
+                              f"Ask the lead: type it with vela add subject from the facts they give, and link it from "
+                              f"here, or answer {copy} in the question ledger.")
