@@ -71,9 +71,13 @@ def test_boundary_marks_its_own_captures():
 def test_boundary_turns_a_decided_direction_into_apps_and_decides_nothing():
     b = text("skills/boundary/SKILL.md")
     assert "Offer 2 or 3 ways to cut the direction into apps, never one and never more than three" in b
-    assert "write a line only after the yes `START.md` defines" in b and "a yes to a group counts for the lines in it" in b
+    assert "a correction needs its own yes" in b
+    start = text("references/START.md")  # the yes rule lives there once, for every mode
+    assert "A line is written after a yes to that line." in start and "A yes that covers a group you read out" in start
+    assert "write a line only after the yes `START.md` defines" not in b
     assert "read the sheet back in two groups" in b.lower()
-    assert "every page this session writes is an `assumption`" in b and "never `addressed`" in b
+    assert 'what it writes is "not decided yet"' in b and "never `addressed`" in b
+    assert "as `(assumption)`" in b  # each capture is marked an assumption through `vela apply`
     assert "never `decided`" not in b  # rule deletion: the checks hold `decided`
     assert "→ keep: [[<page>#<heading>|<ID>]] (assumption)" in b
     assert 'the checkpoint "after the pages are written"' in b and "questions --subject <ID>" in b
@@ -127,7 +131,7 @@ def test_boundary_stubs_through_add_app_stub_and_drops_the_exact_line():
 def test_boundary_counts_cut_coverage_with_boundary_cover():
     b = text("skills/boundary/SKILL.md")
     assert "vela boundary cover --cut .vela/cuts.json --for-lead" in b
-    assert "the trade-offs are yours to say" in b
+    assert "the trade-offs are yours" in b
 
 
 def test_boundary_writes_the_pick_with_add_cut():
@@ -147,28 +151,34 @@ def test_boundary_drops_the_five_things_easy_to_get_wrong():
 def test_boundary_writes_contracts_unknowns_and_marks_through_commands():
     b = text("skills/boundary/SKILL.md")
     assert "`vela add contract --for-lead`" in b and "`vela add unknown --for-lead`" in b
-    assert "vela apply --schema marks" in b
+    assert "`vela apply` (`--schema marks`)" in b
     assert "Commands write the templated parts" not in b and "won't write `decided`" not in b and "It writes the required bullets" not in b
     assert "which commits by exact path" not in b and "sends a stub back to Boundary" not in b
-    assert "When a command can't express what the lead wants, say so and stop." in b
+    # rule deletion: START's first line says it once for every mode skill
+    assert "When a command can't express what the lead wants, say so and stop." not in b
+    assert "When a command can't express what the lead wants, say so and stop" in text("references/START.md")
 
 
 def test_boundary_checkpoints_with_render_check_and_close_stage():
     b = text("skills/boundary/SKILL.md")  # `vela checkpoint` (Task 21i) isn't built: these three are its steps
-    assert "`vela render`, then `vela check --for-lead`" in b and "`vela close stage --checkpoint --for-lead`" in b
+    assert "Then `vela render`, `vela check --for-lead`" in b and "`vela close stage --checkpoint --for-lead`" in b
 
 
 def test_boundary_prepares_its_review_with_reviewers_prepare():
-    assert 'vela reviewers prepare --checkpoint "after the pages are written"' in text("skills/boundary/SKILL.md")
+    # rule deletion: REVIEW.md spells `reviewers prepare` for every checkpoint; boundary names the checkpoint and its focus
+    b = text("skills/boundary/SKILL.md")
+    assert 'vela reviewers prepare --checkpoint "after the pages are written"' not in b
+    assert 'the review checkpoint in `${CLAUDE_PLUGIN_ROOT}/references/REVIEW.md` "after the pages are written"' in b
+    assert "run `vela reviewers prepare --checkpoint" in text("references/REVIEW.md")
 
 
 def test_flow_check_line_carried_as_written():
     b = text("skills/boundary/SKILL.md")
-    assert ("When you've written or changed a case table, run `vela check-slice --changed --for-lead`. Tell the lead which slices "
-            "it checked and why, in your own words, and read out each finding with its owners.") in b
+    assert ("After writing a case table, run `vela check-slice --changed --for-lead`, say which slices it checked and why, "
+            "and settle each finding with its owners") in b
     assert "run `vela check-slice FLO-nnn`" not in b
-    assert b.index("**The case table for each contract") < b.index("vela check-slice --changed")
-    assert 'strict sequence diagram (`vela conventions "Flow check"`)' in b
+    assert b.index("**A case table for each contract") < b.index("vela check-slice --changed")
+    assert '`vela conventions "Flow check"` for the sequence diagram' in b
 
 
 def test_boundary_names_only_commands_that_exist():
@@ -177,7 +187,7 @@ def test_boundary_names_only_commands_that_exist():
     parser = cli.build_parser()
     found = list(calls(PLUGIN / "skills" / "boundary" / "SKILL.md")) + list(calls(PLUGIN / "skills" / "boundary" / "PAGES.md"))
     named = {" ".join(argv[:2]) for _, _, argv in found}
-    for command in ("boundary cover", "add cut", "add app-stub", "add contract", "add unknown", "reviewers prepare",
+    for command in ("boundary cover", "add cut", "add app-stub", "add contract", "add unknown",
                     "close stage", "check-slice --changed"):
         assert command in named, command
     for line, call, argv in found:
@@ -186,7 +196,9 @@ def test_boundary_names_only_commands_that_exist():
 
 def test_boundary_reads_back_by_name_in_plain_labels():
     b = text("skills/boundary/SKILL.md")
-    assert "in your own sentences as well as in what a command prints" in b
+    start = text("references/START.md")  # rule deletion: START's plain-names bullet covers a command's lines too
+    assert "in your own sentences as well as in what a command prints" not in b
+    assert "No ID, capture number, check code, gate name or rule name, in your sentences or a command's." in start
     assert "CONVERSATION-VOICE.md`, rule 7" not in b and "about four things to judge" not in b  # rule deletion: START and CONVERSATION-VOICE say it
     assert "A read-back by name:" in b and "Not this:" in b
     for label in ("**Doesn't do:**", "**Main parts:**", "**What it offers other apps:**",
@@ -194,7 +206,7 @@ def test_boundary_reads_back_by_name_in_plain_labels():
         assert label in b, label
     assert "Is that the direction?" not in b and "a 409 that names the item" not in b
     assert "team senior" not in b and "a Grill" not in b
-    assert '"Route Optimizer", not "Route Optimiser"' in b
+    assert 'Spell names in American English, capitalized ones too ("Route Optimizer")' in b
 
 
 def test_boundary_keeps_the_first_thin_path_words_releases_reads():
@@ -252,5 +264,5 @@ def test_boundary_drafts_the_paragraph_of_each_item_it_files_now():
 
 def test_boundary_stays_lean():
     """Sensor against regrowth: 2,552 words before the trim (now 2,387); PAGES.md 1,001 before (now about 930)."""
-    assert len(text("skills/boundary/SKILL.md").split()) <= 2460
+    assert len(text("skills/boundary/SKILL.md").split()) <= 1650  # 2,387 before the second trim; 1,598 after
     assert len(text("skills/boundary/PAGES.md").split()) <= 960
