@@ -53,3 +53,24 @@ def test_a_person_a_private_file_quotes_cannot_be_the_title(tmp_path, monkeypatc
     (private / "2026-10-01-older.md").write_text("- [said] (Dana Okafor) words ^c1\n", encoding="utf-8")
     code, out = start(vault, "--mode", "grill", "--topic", "Okafor concerns", "--for-lead")
     assert code == 3 and titlecheck.TITLE_QUESTION in out and "I matched on okafor" in out
+
+
+def test_the_same_name_said_twice_is_the_leads_override_and_is_recorded(tmp_path, monkeypatch):
+    """The lead may override any rule: the second ask goes ahead, the stub says so, and the first refusal says how."""
+    vault = owner(tmp_path, monkeypatch)
+    code, out = start(vault, "--mode", "grill", "--topic", "Priya pushback", "--for-lead")
+    assert code == 3 and "say the same name again" in out.lower()
+    assert not list((vault / "sessions").glob("*priya*"))
+    code, out = start(vault, "--mode", "grill", "--topic", "priya pushback", "--json")
+    assert code == 0, out
+    stub = next((vault / "sessions").glob("*priya*.md")).read_text(encoding="utf-8")
+    assert "title_override: " in stub
+
+
+def test_a_different_name_after_a_refusal_is_checked_afresh(tmp_path, monkeypatch):
+    vault = owner(tmp_path, monkeypatch)
+    assert start(vault, "--mode", "grill", "--topic", "Priya pushback")[0] == 3
+    assert start(vault, "--mode", "grill", "--topic", "Priya again")[0] == 3
+    assert start(vault, "--mode", "grill", "--topic", "Pushback on options")[0] == 0
+    stub = next((vault / "sessions").glob("*pushback-on-options*.md")).read_text(encoding="utf-8")
+    assert "title_override" not in stub

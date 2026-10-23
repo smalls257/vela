@@ -25,7 +25,7 @@ PRIVATE_DIR = "sessions/private"
 PENDING = "pending"
 LISTS = ("ready", "challenges", "harvest_declined")
 STUB_KEYS = ("id", "type", "title", "date", "modes", "status", "branch", "start_commit", "captures_sha256",
-             "ready", "challenges", "harvest_declined")
+             "ready", "challenges", "harvest_declined", "title_override")
 READY_HEADING = "Ready to decide"
 READY_LINE = re.compile(r"^- (?P<id>\S+): the lead said yes in (?P<session>\S+)(?: \((?P<yes>\^c\d+)\))?\s*$")
 DECLINE = re.compile(r"^Harvest declined: PR (?P<pr>\d+) (?P<page>.+) (?P<hash>[0-9a-f]{12})\s*$")
@@ -104,10 +104,12 @@ def render_stub(meta):
     return _assemble({key: meta[key] for key in STUB_KEYS if meta.get(key) not in (None, "", [], ())})
 
 
-def new_stub(record_id, title, today, modes, branch="", start_commit="", challenges=()):
+def new_stub(record_id, title, today, modes, branch="", start_commit="", challenges=(), title_override=""):
+    """`title_override` is the day the lead kept a title the name check refused; empty when none was."""
     return render_stub({"id": record_id, "type": "session", "title": title, "date": today, "modes": list(modes),
                         "status": "open", "branch": branch, "start_commit": start_commit,
-                        "captures_sha256": {1: PENDING}, "challenges": list(challenges)})
+                        "captures_sha256": {1: PENDING}, "challenges": list(challenges),
+                        "title_override": title_override})
 
 
 def stub_meta(text):

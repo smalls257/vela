@@ -48,6 +48,7 @@ is a printed line and exit 2, and `review_comments` is null, never an empty list
 import argparse
 import datetime
 import io
+import json
 import pathlib
 import re
 
@@ -524,11 +525,17 @@ def config_of(root):
         raise failed(f"vela: {exc}", f"The vault's settings file can't be read, so I haven't started: {exc}") from exc
 
 
-def check_title(root, topic):
+TITLE_ASKED = ".vela/title-asked.json"
+TITLE_AGAIN = " If you want it anyway, say the same name again and I'll keep it and note that you chose it."
+
+
+def check_title(root, topic, today):
     """Stop, before anything is written, when the session's name is a person's (exit 3). The name is committed
-    with the stub, so it is the one place a private session would show who was in it."""
+    with the stub, so it is the one place a private session would show who was in it. The lead may override the
+    check: the same name a second time is kept, and the day goes in the stub as `title_override`. Returns that day,
+    or "" when the name passed the check."""
     if not topic:
-        return
+        return ""
     from vela import cli
     private = pathlib.Path(root) / privaterecord.PRIVATE_DIR
     origins = set()
@@ -536,11 +543,17 @@ def check_title(root, topic):
         origins |= titlecheck.origins_in(path.read_text(encoding="utf-8"))
     known = titlecheck.people(cli.load_vault(root), sessiongit.read_handle(root), sessiongit.lead_names(root), origins)
     found = titlecheck.named(topic, known)
-    if found:
-        raise Stop(say.Result(START, exit=say.NEEDS_LEAD, needs_lead=[{
-            "ask": "session name", "question": titlecheck.TITLE_QUESTION}], lines=[say.Line(
-            f"vela: the session name '{topic}' has {', '.join(found)} in it, a person; nothing was written.",
-            plain=f"{titlecheck.TITLE_QUESTION} (I matched on {say.names_said(found)}.)")]))
+    if not found:
+        return ""
+    asked = sessiongit.read_json(root, TITLE_ASKED) or {}
+    if str(asked.get("topic", "")).casefold() == topic.strip().casefold():
+        return today
+    sessiongit.write_text(root, TITLE_ASKED, json.dumps({"topic": topic.strip()}) + "\n")
+    raise Stop(say.Result(START, exit=say.NEEDS_LEAD, needs_lead=[{
+        "ask": "session name", "question": titlecheck.TITLE_QUESTION}], lines=[say.Line(
+        f"vela: the session name '{topic}' has {', '.join(found)} in it, a person; nothing was written. "
+        "Run start again with the same --topic to override; the stub records title_override.",
+        plain=f"{titlecheck.TITLE_QUESTION} (I matched on {say.names_said(found)}.){TITLE_AGAIN}")]))
 
 
 def start_in_copy(root, args, today, modes, plain, said):
@@ -552,7 +565,7 @@ def start_in_copy(root, args, today, modes, plain, said):
     if open_records and not args.new:
         asks, asked = open_choices(open_records, today, plain)
         raise Stop(say.Result(START, exit=say.NEEDS_LEAD, needs_lead=asks, lines=lines + asked))
-    check_title(root, args.topic)
+    override = check_title(root, args.topic, today)
     if args.title or sessions.is_unnamed(config_of(root)):
         lines.append(say.Line("read copy: naming the initiative is the owner's; .vela.yaml not changed.",
                               plain="The owner names the initiative, so I haven't changed its name here."))
@@ -560,7 +573,7 @@ def start_in_copy(root, args, today, modes, plain, said):
     title = sessions.title_for(modes, args.topic)
     rel = privaterecord.private_path(record_id)
     wrote = [sessiongit.write_text(root, privaterecord.stub_path(record_id),
-                                   privaterecord.new_stub(record_id, title, today, modes)),
+                                   privaterecord.new_stub(record_id, title, today, modes, title_override=override)),
              sessiongit.write_text(root, rel, privaterecord.new_private(record_id, title, today, 1))]
     wrote.append(write_state(root, record_id, None, modes, today))
     lines.append(say.Line(f"started: {record_id} in this folder, modes: {', '.join(modes)}",
@@ -707,7 +720,7 @@ def start_owner(root, args, today, modes, plain, said, host):
     lines = said + problem_lines(problems)
     if args.resume:
         return resume(root, open_records, args.resume, False, lines, today, plain, host)
-    check_title(root, "" if pr else args.topic)
+    override = check_title(root, "" if pr else args.topic, today)
     asks, asked = [], []
     if open_records and not args.new:
         asks, asked = open_choices(open_records, today, plain)
@@ -725,7 +738,8 @@ def start_owner(root, args, today, modes, plain, said, host):
         raise Stop(say.Result(START, exit=say.NEEDS_LEAD, needs_lead=asks, lines=lines + one_ask_at_a_time(asked)))
     lines += [review_needs_branch(current)] if current == sessiongit.default_branch(root) and not args.new_branch else []
     carried = sessions.carried(sessiongit.dirty_paths(root), [])
-    return open_record(root, args, today, modes, "", "" if args.new_branch else current, lines, carried, plain)
+    return open_record(root, args, today, modes, "", "" if args.new_branch else current, lines, carried, plain,
+                       title_override=override)
 
 
 def review_needs_branch(current):
@@ -786,7 +800,8 @@ def bring_main_in(root, today, host, lines, base_words):
                           needs_lead=synced.needs_lead))
 
 
-def open_record(root, args, today, modes, challenged, on_branch, lines, carried, plain=lambda text: text):
+def open_record(root, args, today, modes, challenged, on_branch, lines, carried, plain=lambda text: text,
+                title_override=""):
     """START step 5: the id, the branch (an answer stays on its challenge's), the record, `Open session <id>`, then
     the initiative's name when the lead gave one, and `.vela/session.json`."""
     scope = vaultgit.plan_scope(root)
@@ -807,7 +822,7 @@ def open_record(root, args, today, modes, challenged, on_branch, lines, carried,
     began = sessiongit.head_commit(root)
     challenges = [args.topic] if "challenge" in modes else []
     wrote = [sessiongit.write_text(root, rel, privaterecord.new_stub(record_id, title, today, modes, branch, began,
-                                                                     challenges)),
+                                                                     challenges, title_override)),
              sessiongit.write_text(root, privaterecord.private_path(record_id),
                                    privaterecord.new_private(record_id, title, today, 1))]
     sessiongit.commit(root, f"Open session {record_id}", [rel])  # the notes stay here; only the stub is committed
