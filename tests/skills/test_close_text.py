@@ -218,7 +218,7 @@ def test_close_leaves_the_owning_team_epics_wrote():
 def test_close_checks_remote_session_records_before_taking_an_id():
     """Close numbers through `vela add`, which reads every local and remote session branch itself."""
     step3 = section(CLOSE_SKILL, "## 3.", "## 4.")
-    assert "numbers past every open session branch" in step3 and "never number an item by hand" in step3
+    assert "numbers past every open session branch" not in step3 and "never number an item by hand" not in step3  # next_id owns it
     assert "every session branch" in add.__doc__
     assert '"refs/heads/session/", "refs/remotes/origin/session/"' in read("plugin/lib/vela/cli.py")
 
@@ -234,7 +234,9 @@ def test_close_merges_a_moved_main_before_render():
     # runs it before render and checkpoints through `close stage`.
     step = close_section("## 6. Bring in main and check", "## 7.")
     assert step.index("vela close sync-main") < step.index("vela render")
-    assert "vela close stage --checkpoint" in step
+    assert "vela close stage --checkpoint" not in step and "--accept-not-compared" not in step  # sync-main prints both
+    assert close_sync.CHECKPOINT == "vela close stage --checkpoint" and "--accept-not-compared" in close_sync.ACCEPT
+    assert "Exit 3 for uncommitted edits" not in step and "Exit 1: main changed lines" not in step
     assert "git merge" not in step and "-X ours" not in step and "--theirs" not in step
     assert "long-lived PR" in read("README.md") and "merge `origin/main`" in read("README.md")
 
@@ -376,10 +378,11 @@ def test_close_reports_questions_and_reviews_in_the_pr_body():
 
 def test_close_keeps_its_existing_guards():
     for kept in ("### Voice review", "### Harvest the owner's edits", "vela close sync-main",
-                 "nor the inbox, `voice/local/` or `voice/corpus/`", "vela voice settle --checkpoint",
+                 "vela voice settle --checkpoint",
                  "vela voice settle --rewrites"):
         assert kept in CLOSE, kept
-    assert len(CLOSE_SKILL.split()) <= 3050  # was 2330; the private-notes close adds still-yes, the read-back and the receipts (3007 words)
+    assert len(CLOSE_SKILL.split()) <= 2660  # was 3061 before the trim (exit ladders and what-it-writes lines went to the commands); now 2583
+    assert "nor the inbox, `voice/local/` or `voice/corpus/`" not in CLOSE_SKILL  # guard.py holds the allow-list
 
 
 # --- From tests/test_session_experience.py: What the skills make a lead go through (the constraints the skills put on a lead's session).
@@ -489,7 +492,8 @@ def test_close_pr_body_reviewers_and_staging():
 
 
 def test_close_never_stages_the_inbox():
-    assert "it never stages the notes" in skill_text("close") and "nor the inbox" in skill_text("close")  # close stage owns it (tests/test_guard.py)
+    assert "it never stages the notes" not in skill_text("close") and "nor the inbox" not in skill_text("close")  # guard.py owns the allow-list (tests/test_guard.py)
+    assert "The notes stay on this machine" in skill_text("close")
 
 
 def test_close_drafts_prose_through_house_voice():
@@ -521,8 +525,7 @@ def test_close_ends_with_the_dashboard_line_close_finish_gives():
 
 
 def test_close_replaces_the_opening_it_rewrites_instead_of_adding_one():
-    assert ("A page has one opening: the one you rewrite replaces the old one, and you never write a new opening "
-            "beside it.") in CLOSE_SKILL
+    assert "A page has one opening" not in CLOSE_SKILL  # W371 holds it
 
 
 # --- From tests/test_v3_final_fixes.py: The v3 final fix wave.
@@ -619,7 +622,7 @@ def test_close_keeps_the_one_relay_line_and_the_hard_stop():
 
 
 def test_close_has_flow_end_codes_fixed_with_the_lead_before_the_session_closes():
-    assert "(E351)" in CLOSE_SKILL and "(W354)" in CLOSE_SKILL and "(W374)" in CLOSE_SKILL and "only on their yes" in CLOSE_SKILL
+    assert "E351, W354, W374" in CLOSE_SKILL and "only on their yes" in CLOSE_SKILL
 
 
 # --- Drafting as each item settles: close drafts only what `close drafts` still lists, runs the voice reviewer once on
