@@ -43,7 +43,8 @@ def test_a_license_in_a_table_row_warns_while_its_existence_question_is_unanswer
     assert code == 0, "a warning, never an error"
     assert findings(out) == [("W809", COST)]
     assert "'licenses' may be an untyped subject: this page holds or links no party, and Q-REG-02@INI-002 has no answer yet" in out
-    assert "Type it as ### PTY-nn on 03-context-and-scope.md" in out
+    assert "Ask the lead: type it with vela add subject from the facts they give" in out
+    assert "### PTY-nn" not in out  # NEW-11: never a heading to type by hand
 
 
 def test_the_british_spelling_of_licence_still_warns(ub):
