@@ -46,7 +46,7 @@ def opened(root):
 
 def staged_view(root, branch_texts=()):
     staged = decisions.Staged(cli.load_vault(root), disk.reader(root))
-    textedit.attach(staged, today=TODAY, branch_texts=list(branch_texts))
+    textedit.attach(staged, today=TODAY, branch_texts=list(branch_texts), lead=("priya", ()))
     return staged
 
 

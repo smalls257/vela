@@ -63,6 +63,8 @@ def started(tmp_path, monkeypatch, captures=()):
     code, output = start(vault, "--mode", "discover", "--topic", "partner files")
     assert code == 0, output
     if captures:
+        (vault / ".vela").mkdir(exist_ok=True)
+        (vault / ".vela" / "handle").write_text("priya\n", encoding="utf-8")  # what vela whoami keeps
         text = session_files.record_text(vault, RECORD_ID)
         session_files.write_record(vault, RECORD_ID, text.replace("## Captures\n", "## Captures\n\n" + "\n".join(captures) + "\n", 1))
     return vault
@@ -201,7 +203,7 @@ def test_a_stated_decision_is_decided_with_the_yes_citing_the_document(tmp_path,
                        "--vault", str(vault), "--today", TODAY, "--json")
     assert code == 0, output
     text = path.read_text(encoding="utf-8")
-    assert "state: decided" in text and f"- **Decision:** [[{RECORD_ID}]], as SRC-04 states" in text
+    assert "state: decided" in text and f'- **Decision:** [[{RECORD_ID}]] c02, @priya, as SRC-04 states: "Yes, that one stands."' in text
     assert f"| ADR-0001 | proposed | decided | [[{RECORD_ID}#^c02]] |" in session_files.record_text(vault, RECORD_ID)
     assert git(vault, "log", "-1", "--format=%s") == "import: ADR-0001 decided, as SRC-04 states"
     assert "E303" not in check_codes(vault)

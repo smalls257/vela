@@ -12,14 +12,17 @@ Why each write, and why it is code's:
 
 - **The Why is copied verbatim** from the lead's capture (`textedit.inline` escapes only what would break the bullet;
   `textedit.unescape` gives the words back exactly), so it can't be tidied, and it must be a person's words
-  (`consent.why_in_their_words`): Claude's recommendation accepted is not the lead's reason (Anchor).
+  (`consent.why_in_their_words`): Claude's recommendation accepted is not the lead's reason (Anchor). The notes stay
+  on the lead's machine, so a Why, a Dissent or a receipt carries a person's words only when they are the lead's or
+  that person said in this session they may be quoted (`consent.may_quote`); the rest stays in the private notes.
 - **The Changes row cites the yes**, `| <ID> | <old state> | <new state> | [[<record>#^cNN]] |`, the row `close gate`
   reads for every change into or out of `decided`. The old state is read from the page, never typed.
 - **The deciding capture is marked now** (`→ keep: [[<page>#<heading>|<ID>]] (<state>)`), the one exception to leaving
   marks to close, and so is every other capture the decision filed (the read-back, the Why, the Dissent, the provider's
   standing, each override's reason), so close finds nothing of the decision left to place.
-- **Dissent** is `<who>, <today>: <their words>`, `who` being the capture's origin: someone disagreeing is recorded,
-  and the item is still decided.
+- **Dissent** is `<who>, <today>`, with `: "<their words>"` only when that person may be quoted (`receipts`), `who`
+  being the capture's origin: someone disagreeing is recorded, and the item is still decided.
+- **The Decision receipt** names the session, the capture of the yes and who said it (`receipts.decision_value`).
 - **An Override** is written by the `override` kind's own grammar (`decisions.override.bullet_value`), parsed back with
   check's parser before it is returned; a standing rule needs `until`, an event rule takes none, so the rules a lead
   sets aside are split into one bullet of each.
@@ -31,7 +34,7 @@ Why each write, and why it is code's:
 import re
 from dataclasses import dataclass
 
-from vela import gates, override as overrides, say, schema as vault_schema
+from vela import gates, override as overrides, privaterecord, receipts, say, schema as vault_schema
 from vela.decisions import agenda, consent, override as override_kind, schema, textedit
 
 HANDLE = re.compile(rf"^{vault_schema.HANDLE}$")
@@ -154,6 +157,8 @@ def rules_set_aside(item):
 def yes_refusals(item, record):
     """The lead's yes to the read-back: there, a person's, not a bare "ok", after the read-back."""
     missing = [name for name in ("readback", "yes") if not item.get(name)]
+    if closegate_rule() in rules_set_aside(item) and not item.get("yes"):
+        return []  # the lead's override of the quoted-yes rule is the record of going ahead; no yes to check
     if missing:
         return [refusal("decide-unfilled", "I still need your yes to the read-back before I can write that down.",
                         f"Give {' and '.join('--' + m for m in missing)}: the read-back capture and the lead's yes "
@@ -168,11 +173,21 @@ def closegate_rule():
     return closegate.QUOTED_YES_RULE
 
 
-def words_refusals(item, record):
-    """The Why must be the lead's words; a Dissent someone's (a person's) words."""
+def lead_unknown():
+    return refusal("decide-lead-unknown", "I don't know your GitHub handle yet, so I can't put your words on record. "
+                                          "What's the short name after the @?",
+                   "Ask the lead once, run vela whoami --set <handle>, then decide again.",
+                   override="none: whose words go on record is checked against the lead's handle")
+
+
+def words_refusals(item, view, record):
+    """The Why must be words that may go on a page; a Dissent a person's (its words go out only with theirs)."""
+    lead = getattr(view, "lead", None)
+    if lead is None:
+        return [lead_unknown()]
     found = []
     if item.get("why"):
-        why = consent.why_in_their_words(item["why"], record)
+        why = consent.why_in_their_words(item["why"], record, lead)
         if why is not None:
             found.append(why)
     if item.get("dissent"):
@@ -275,16 +290,27 @@ def _override_bullets(item, view, record, target):
     return out
 
 
+def receipt(item, view, record):
+    """The value after `- **Decision:**`: the cited yes's session, capture and speaker, with their words when they may
+    be quoted; the bare link for a decision made on an override of the quoted-yes rule."""
+    if not item.get("yes"):
+        return receipts.decision_value(record.id, None)
+    capture = record.capture(item["yes"])
+    words = capture.quote if consent.may_quote(capture, record, view.lead) else None
+    return receipts.decision_value(record.id, privaterecord.Ref(record.part, int(capture.n)), capture.origin.strip(),
+                                   words, item.get("stated_in"))
+
+
 def history_bullets(item, view, record, target, decision=True):
     """The bullets a decision adds under `## History`, in CONVENTIONS' order."""
     today = textedit.today(view)
-    stated = f", as {item['stated_in']} states" if item.get("stated_in") else ""
-    out = [f"- **Decision:** [[{record.id}]]{stated}"] if decision else []
+    out = [f"- **Decision:** {receipt(item, view, record)}"] if decision else []
     if item.get("why"):
         out.append(f"- **Why:** {textedit.inline(record.capture(item['why']).quote)}")
     if item.get("dissent"):
         capture = record.capture(item["dissent"])
-        out.append(f"- **Dissent:** {capture.origin.strip()}, {today}: {textedit.inline(capture.quote)}")
+        words = capture.quote if consent.may_quote(capture, record, view.lead) else None
+        out.append(f"- **Dissent:** {receipts.dissent_value(capture.origin.strip(), today, words)}")
     out += _override_bullets(item, view, record, target)
     if item.get("on_behalf_of"):
         out.append(f"- **Decided by:** {item['by']}, on behalf of {item['on_behalf_of']}")

@@ -21,7 +21,9 @@ import session_files
 RECORD_ID = "2026-10-20-grill-stock"
 RECORD = f"sessions/private/{RECORD_ID}.md"  # the notes: where a decision writes the Changes row and the mark
 TODAY = "2026-10-20"
+LEAD = ("priya", ())  # what textedit.attach gets from vela whoami: (handle, display names)
 WHY = 'Because the till | can\'t wait **long** for [[01-goals|the goal]]'
+DECISION_LINE = f'- **Decision:** [[{RECORD_ID}]] c02, @priya: "Yes, as read."'  # the lead's own yes, in their words
 CAPTURES = [
     '- [thought] (claude) Read back: the stock level contract, the count left for a product ID ^c01',
     '- [answer] (@priya) "Yes, as read." ^c02',
@@ -206,6 +208,8 @@ def make_vault(tmp_path, captures=CAPTURES, agenda=()):
         lines += ["## Agenda", "", *agenda, ""]
     lines += ["## Captures", "", *captures, ""]
     session_files.write_record(root, RECORD_ID, "\n".join(lines) + "\n")
+    (root / sessiongit.HANDLE_FILE).parent.mkdir(exist_ok=True)
+    (root / sessiongit.HANDLE_FILE).write_text("priya\n", encoding="utf-8")  # what vela whoami keeps
     return root
 
 
@@ -221,7 +225,7 @@ def opened(root):
 
 
 def view(root, flows=None):
-    staged = textedit.attach(decisions.Staged(cli.load_vault(root), disk.reader(root)), TODAY, [])
+    staged = textedit.attach(decisions.Staged(cli.load_vault(root), disk.reader(root)), TODAY, [], lead=LEAD)
     staged.flows = flows
     return staged
 
@@ -290,7 +294,7 @@ def test_why_copied_verbatim(tmp_path):
     root = make_vault(tmp_path)
     writes = filed(root, [item(why="^c03")])
     bullets = history_of(writes[STOCK], "CON-002")
-    assert bullets[0] == f"- **Decision:** [[{RECORD_ID}]]"
+    assert bullets[0] == DECISION_LINE
     why = next(b for b in bullets if b.startswith("- **Why:** "))
     assert textedit.unescape(why[len("- **Why:** "):]) == WHY, why
     assert parse.BULLET.match(why), "the escaped words still read as one fact bullet"
@@ -324,7 +328,7 @@ def test_epic_needs_yes_per_criterion_group(tmp_path):
     both = one_group + [{"criteria": "AC3", "readback": "^c11", "yes": "^c12"}]
     writes = filed(root, [item("EPC-001", groups=both)])
     assert "\nstate: decided\n" in writes[EPIC]
-    assert history_of(writes[EPIC])[0] == f"- **Decision:** [[{RECORD_ID}]]"
+    assert history_of(writes[EPIC])[0] == DECISION_LINE
     assert f"| EPC-001 | draft | decided | [[{RECORD_ID}#^c02]] |" in writes[RECORD]
     _, early = plan(root, [item("EPC-001", groups=[{"criteria": "AC1-AC3", "readback": "^c11", "yes": "^c10"}])])
     assert "consent-yes-before-readback" in rules(early), "a group's yes comes after its own read-back"
@@ -468,7 +472,8 @@ def test_dissent_decided_by_and_override_bullets(tmp_path):
     writes = filed(root, [item(dissent="^c05", on_behalf_of="@stock-team",
                                overrides=[{"rules": ["GATE-5"], "reason": "^c06"}])])
     bullets = history_of(writes[STOCK], "CON-002")
-    assert "- **Dissent:** @stock-team, 2026-10-20: The count can lag by a minute." in bullets
+    assert "- **Dissent:** @stock-team, 2026-10-20" in bullets
+    assert not any("lag by a minute" in b for b in bullets), "@stock-team gave no yes to being quoted"
     assert "- **Override:** GATE-5 by @priya on 2026-10-20: Go ahead; the owner answers by Friday." in bullets
     assert "- **Decided by:** @priya, on behalf of @stock-team" in bullets
     _, refusals = plan(root, [item(on_behalf_of="@stock-team")])
@@ -479,13 +484,13 @@ def test_fr_page_and_release_kinds(tmp_path):
     root = make_vault(tmp_path)
     fr = filed(root, [item("CAP-001.FR1")])
     assert "- **State:** decided" in fr[CAPABILITY].split("### CAP-001.FR1")[1].split("\n## ")[0]
-    assert f"- **Decision:** [[{RECORD_ID}]]" in history_of(fr[CAPABILITY], "CAP-001.FR1")
+    assert DECISION_LINE in history_of(fr[CAPABILITY], "CAP-001.FR1")
     page = filed(root, [item("solution-strategy")])
     assert "\nstate: decided\n" in page[STRATEGY] and history_of(page[STRATEGY])[0].startswith("- **Decision:**")
     release = filed(root, [item("Release one: pilot shop")])
     section = release[RELEASES].split("## Release one: pilot shop")[1].split("\n## ")[0]
     assert "- **State:** decided" in section
-    assert f"- **Decision:** [[{RECORD_ID}]]" in history_of(release[RELEASES])
+    assert DECISION_LINE in history_of(release[RELEASES])
 
 
 def test_a_flag_another_kind_takes_is_refused(tmp_path):

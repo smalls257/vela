@@ -10,6 +10,7 @@ from vela import decisions, privaterecord, say
 from vela.decisions import consent, record, schema
 
 RECORD_ID = "2026-10-20-grill-stock"
+LEAD = ("priya", ())
 
 
 def record_text(*captures):
@@ -73,8 +74,8 @@ def test_group_readback_over_seven_refused():
 
 def test_why_must_be_the_leads_words():
     rec = opened("- [why] (claude) because it is simpler ^c32", '- [why] (@priya) "Stores already count it." ^c33')
-    assert consent.why_in_their_words("^c32", rec).plain == "Why this one, in your words?"
-    assert consent.why_in_their_words("^c33", rec) is None
+    assert consent.why_in_their_words("^c32", rec, LEAD).plain == "Why this one, in your words?"
+    assert consent.why_in_their_words("^c33", rec, LEAD) is None
 
 
 def test_push_yes_must_follow_the_send_notice():
@@ -98,7 +99,7 @@ def test_refusal_has_plain_fix_and_override():
     refusals = [consent.exists("^c99", rec), consent.from_a_person(rec.capture("^c30")),
                 consent.not_bare_non_yes(rec.capture("^c31")),
                 consent.after_readback(rec.capture("^c30"), rec.capture("^c31")), consent.group_small_enough(9),
-                consent.why_in_their_words("^c32", rec), consent.after_send_notice(rec.capture("^c31"), 40),
+                consent.why_in_their_words("^c32", rec, LEAD), consent.after_send_notice(rec.capture("^c31"), 40),
                 consent.unchanged_since_draft(rec.capture("^c31"), "0" * 64)]
     for refusal in refusals:
         assert isinstance(refusal, say.Refusal)

@@ -29,7 +29,8 @@ Exit codes (plan 3.1):
 2  the tool failed: the vault or git can't be read, the disk refused a write, or the commit failed (what was written
    is named, so nothing is lost);
 3  the item is already decided: nothing written; the choices are reopening it (`--reopen`, recording the change of
-   mind) or leaving it (`needs_lead`). Also: several sessions are open.
+   mind) or leaving it (`needs_lead`). Also: several sessions are open, or the lead's GitHub handle is unknown
+   (`vela whoami` asks for it once; a decision puts the lead's name on record, so it is never guessed).
 
 Commits `grill: <ID> decided` (`planned` for a slice, `reopened` for a change of mind) with only the changed pages and
 the record, by exact path. In a reader copy no git runs at all, and the marker says the owner sees it before it counts.
@@ -37,9 +38,9 @@ the record, by exact path. In a reader copy no git runs at all, and the marker s
 import datetime
 import pathlib
 
-from vela import commands, decisions, gates, privaterecord, say
+from vela import commands, decisions, gates, privaterecord, receipts, say
 from vela import override as overrides
-from vela.commands import apply as apply_command
+from vela.commands import apply as apply_command, whoami
 from vela.decisions import decide, ready, schema, textedit
 from vela.edge import apply as disk
 from vela.edge import atomic, sessiongit, stagegit
@@ -118,14 +119,13 @@ def item_from(args, ident, by, reader):
     return {k: v for k, v in item.items() if v not in (None, [])}
 
 
-def lead_handle(root, record, args):
-    """`.vela/handle` (what `vela whoami` keeps); else the yes capture's origin when it is a handle."""
-    handle = sessiongit.read_handle(root)
-    if handle:
-        return "@" + handle.lstrip("@")
-    capture = record.capture(args.yes or args.why) if (args.yes or args.why) else None
-    origin = capture.origin.strip() if capture is not None else ""
-    return origin if origin.startswith("@") else ""
+def lead_handle(root):
+    """(the lead's `@handle`, None), or (None, the Result to print instead): `vela whoami`'s answer, which asks the
+    lead once when it doesn't know. A yes capture's origin is never taken for the lead: the model writes it."""
+    found = whoami.find_handle(root)
+    if found.exit != say.DONE:
+        return None, found
+    return receipts.handle_ref(found.data["handle"]), None
 
 
 def run(args, out):
@@ -144,8 +144,11 @@ def run(args, out):
     if early is not None:
         return commands.emit(early, args, out, resolver)
     reader = sessiongit.is_read_copy(root)
+    by, early = lead_handle(root)
+    if early is not None:
+        return commands.emit(early, args, out, resolver)
     # A decision numbers nothing, so no branch is read for IDs; the view still carries the (empty) list `attach` gives.
-    staged = textedit.attach(decisions.Staged(vault, disk.reader(root)), today, [])
+    staged = textedit.attach(decisions.Staged(vault, disk.reader(root)), today, [], lead=apply_command.lead_of(root))
     _, target = decide.locate(staged, ident)
     if not (args.reopen or args.stated_in) and target is not None:
         try:
@@ -161,7 +164,7 @@ def run(args, out):
         done = decide.already(staged, ident)
         if done is not None:
             return commands.emit(already_result(done), args, out, resolver)
-    item = item_from(args, ident, lead_handle(root, record, args), reader)
+    item = item_from(args, ident, by, reader)
     result = file_item(item, root, staged, record, reader)
     return commands.emit(result, args, out, resolver)
 
