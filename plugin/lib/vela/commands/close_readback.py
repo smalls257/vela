@@ -11,7 +11,7 @@ listed and why. Close order (controller ruling C7): "Still yes?" reconfirm first
   cites, or the words of a lead capture that approves them (`--approved ^cNN`, which re-points a decision receipt to it).
 - `--cut ITEM --line why|quote`: drop the line. A decision's words can be reworded, never cut.
 - `--pick ^cNN`: add a quote of the lead's own words (or of someone with their own quote-yes) to
-  `.vela/close/<id>.quotes.json`, which the PR body's "In their words" reads.
+  `.vela/close/<id>.quotes.json`. The PR body no longer prints picked quotes; the pick is still read back and gated.
 - `--done`: store the digest of what stands now in `.vela/close/<id>.readback.json`.
 
 Exit codes: 0 done; 1 refused (said in plain words); 2 the tool failed; 3 several sessions are open.

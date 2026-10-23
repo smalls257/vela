@@ -3,7 +3,7 @@ many sentences wait at the read-back. The pull request's "In their words" names 
 import json
 
 from conftest import run
-from vela import closegate, prbody, say
+from vela import closegate, say
 import session_files
 import test_close_readback as rb
 from test_close_readback import RECORD, closing_vault, readback
@@ -64,19 +64,6 @@ def test_the_read_back_header_is_plain_for_the_lead(tmp_path):
     code, out = readback(vault, "--for-lead")
     assert out.splitlines()[0] == "Two sentences to read back." and "sentence(s)" not in out
     assert "sentence(s)" in readback(vault)[1]
-
-
-class Vault:
-    def name_of(self, item):
-        return item
-
-
-def test_in_their_words_names_a_participant_but_not_the_lead():
-    captures = closegate.captures('- [thought] (@priya) "Mine." ^c01\n- [thought] (@cto-ana) "Fine by me." ^c08\n')
-    picked = [{"number": 1, "words": "Mine.", "item": ""}, {"number": 8, "words": "Fine by me.", "item": ""}]
-    lead = ("priya", ())
-    assert prbody.in_their_words(picked, Vault(), captures, lead) == [
-        '- Said in the session: "Mine."', '- cto-ana, in the session: "Fine by me."']
 
 
 def test_records_show_refusal_says_it_pastes_only_the_leads_own_lines():

@@ -68,11 +68,10 @@ Everything the lead said stays in notes on this machine. What goes into the plan
 
 **Still yes? Only when this session is a later part.** If the session was started on another machine (`vela close gate --json` lists decisions "decided on the other machine"; it will also say main isn't brought in yet, which is expected here and handled at section 6, so don't act on it now), ask once, in one message, with the names the gate gives: "These were decided on the other machine: the booking API, and one question taken off the finance page. Still yes?" On a yes, capture it with the lead as origin (`vela record add --origin @<handle from vela whoami> --tag decision "<their words>"`) and run `vela close reconfirm --yes ^cNN <ID>` (more IDs may follow) with the IDs from the gate's `--json` detail. It points each item's receipt at this machine's capture. On a no, capture that too and run nothing: the gate keeps holding the item, and you offer to reopen it with the lead's word. Never reconfirm anything for them.
 
-**The read-back.** Run `vela close readback --for-lead`. It lists each sentence that goes on record in the lead's name: the receipt of each decision they made (their words), each Why, and any line picked for the pull request. Read them in groups of about five, by item name, and for each the lead keeps it, rewords it or cuts it:
+**The read-back.** Run `vela close readback --for-lead`. It lists each sentence that goes on record in the lead's name: the receipt of each decision they made (their words), and each Why. Read them in groups of about five, by item name, and for each the lead keeps it, rewords it or cuts it:
 
 - Reword: `vela close readback --reword <ID> --line decision --words "<their words>"`, with `--line why` for a Why and `--line quote` for a picked quote. The new words must be part of what they said, or they must have said them and approved this wording; in that case add `--approved ^cNN`, the capture where they did.
 - Cut: `vela close readback --cut <ID> --line why`, or `--line quote`, with the ID of the item whose page holds the line. A decision's own receipt can be reworded, never cut: their decision needs their words on record, and the command says so.
-- Pick a line for the pull request's "In their words": `vela close readback --pick ^cNN`. It takes the lead's own words; someone else's only if they gave their own yes to being quoted, whatever the lead says they told them.
 
 When they're done, run `vela close readback --done`. Changing a sentence after that reopens the read-back. If an item's owner is someone else and isn't here, their decision stays a name in the receipt with no words, and `close pr` lists it for them.
 
@@ -113,7 +112,7 @@ Then send, in this order: the yes must come after the notice and before the reco
 
 ## 8. Open the pull request
 
-Write the two or three sentences a reviewer reads first to `.vela/close/prose.md`, as `${CLAUDE_PLUGIN_ROOT}/skills/close/PR-BODY.md` says. Then run `vela close pr --prose .vela/close/prose.md --for-lead`. It builds the title, the reviewers and every list in the body; for an answer session it comments on the challenge's pull request instead. Exit 0: show the URL. Exit 1: say the one sentence it gives. Exit 3: it doesn't know the lead's handle; ask once, run `vela whoami --set <handle>`, and run it again. Never say a PR exists unless `gh` printed its URL.
+Write the two or three sentences a reviewer reads first to `.vela/close/prose.md`, as `${CLAUDE_PLUGIN_ROOT}/skills/close/PR-BODY.md` says. Then run `vela close pr --prose .vela/close/prose.md --for-lead`. It builds the title, the reviewers and the body (your sentences and what changed); for an answer session it comments on the challenge's pull request instead. Exit 0: show the URL. Exit 1: say the one sentence it gives. Exit 3: it doesn't know the lead's handle; ask once, run `vela whoami --set <handle>`, and run it again. Never say a PR exists unless `gh` printed its URL.
 
 ## What you tell the lead at the end
 
