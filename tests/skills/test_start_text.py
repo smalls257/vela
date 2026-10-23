@@ -182,10 +182,8 @@ def test_start_says_states_and_spelling_in_words():
 
 
 def test_start_holds_conversation_rule_seven():
-    voice = text("references/CONVERSATION-VOICE.md")
-    assert "Answer first, then ask the lead to judge about four things at most" in voice
-    assert '"there are six more; want them?"' in voice
-    # rule deletion: the rule lives in one place, and `say.LEAD_LIMIT` caps what a command prints
+    # rule deletion: the rule lives in CONVERSATION-VOICE rule 7 (tests/test_conversation_voice.py pins it there), and
+    # `say.LEAD_LIMIT` caps what a command prints
     assert "Answer first, then about four things at most" not in START
 
 
@@ -302,3 +300,56 @@ def test_start_says_once_to_draft_the_paragraph_when_the_item_is_filed():
     assert "change only the fact that changed" in rule and "What is never voiced" in rule
     assert "close lists only what is missing or went stale" in rule
     assert START.count("Draft the paragraph when the item is filed") == 1
+
+
+# --- What the trimmed mode skills lean on (the October 23 trim). Each skill's own test file says what it dropped and
+# points here; the words live in START once, so they are pinned here once (a skill's test file pins only its skill).
+
+
+def test_start_holds_what_the_trimmed_mode_skills_lean_on():
+    # boundary and every mode: the one stop, the yes rule, names in a command's lines too
+    assert "When a command can't express what the lead wants, say so and stop; never fall back to doing its work by hand." in START
+    assert "A line is written after a yes to that line." in START and "A yes that covers a group you read out" in START
+    assert "No ID, capture number, check code, gate name or rule name, in your sentences or a command's." in START
+    # grill: how to run vela, who is the origin of a restatement, no asks drafted for the lead
+    assert "sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela" in START and "`claude, from <name>` for a restatement" in START
+    assert "never draft an ask for the user to send" in START
+    assert "offer the brief's next step as a suggestion, never a decision" in START
+    # close and releases: relaying a command, the voice before anything is said, freshness after session start
+    assert "Say a `--for-lead` command's lines in your words." in START and "git's or gh's own error text" in START
+    zero = section("0. Read how to talk")
+    assert zero.index("voice/VOICE.md") < zero.index("CONVERSATION-VOICE.md")
+    one = section("1. Start the session")
+    assert "run `vela freshness --for-lead` next" in one and "offer to bring `main` in (`vela close sync-main`)" in one
+    # close: when it starts, the only yes that sends, what it drafts
+    closing = section("Closing a session")
+    assert "Close starts only on the lead's word" in closing
+    assert "That yes, given after close says what goes, is the only one that sends." in closing
+    assert "close lists only what is missing or went stale since" in section("Draft the paragraph when the item is filed")
+
+
+def test_start_keeps_the_four_hard_stops():
+    """Close carries the four hard stops itself (it sends, and can start cold); START keeps the same four words."""
+    stops = ("Never edit anything under `~/.claude`.",
+             "Never commit or push company material, or anything from `.inbox/`, `voice/local/` or `voice/corpus/`, "
+             "without the owner's explicit consent in this session.",
+             "Never say a PR, comment, push or commit exists unless the tool printed it, and never report a failed "
+             "step as done.",
+             "Never invent what a person said, a source, or an ID the vault does not hold.")
+    for stop in stops:
+        assert stop in START, stop  # close's test pins the same literals in close
+
+
+def test_every_start_section_a_skill_cites_by_name_exists():
+    """A skill that says START "says under" a heading, or lists the rules it takes from it, must name a heading START has
+    (the trim cut "Offering a session" and a shell section; a skill still citing them sends the model to nothing)."""
+    headings = {h.split(". ", 1)[-1] for h in re.findall(r"^## (.+)$", START, re.M)}
+    cited = []
+    for path in sorted((PLUGIN / "skills").glob("*/*.md")):
+        body = path.read_text(encoding="utf-8")
+        cited += [(path.name, h) for h in re.findall(r"START(?:\.md)?[`']?s? says under \"([^\"]+)\"", body)]
+        for rules in re.findall(r"its rules ((?:\"[^\"]+\"(?:, | and )?)+) do", body):
+            cited += [(path.name, h) for h in re.findall(r'"([^"]+)"', rules)]
+    assert len(cited) >= 8, cited
+    missing = [c for c in cited if c[1] not in headings]
+    assert not missing, missing

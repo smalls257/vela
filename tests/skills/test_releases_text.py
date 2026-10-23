@@ -148,10 +148,13 @@ def test_the_conversation_asks_for_names_not_codes():
 
 # ---- tests/test_stale_branch.py: S15 read a stale branch and said nothing was allocated (diagnosis 6B)
 
-def test_releases_checks_freshness_first_and_stops_when_behind():
-    start = SKILL.split("## 1. Start", 1)[1].split("\n\n", 3)[2]  # the paragraph after the voice line
-    assert start.startswith("Then, before any other command, run `vela freshness --for-lead`. If it exits 3") and "stop, say what it printed in your words" in start
-    assert "vela session start --mode releases" in start
+def test_releases_leaves_freshness_to_start_which_runs_it_after_session_start_for_every_mode():
+    """A rule change, not a move (the October 23 trim): releases once ran `vela freshness` before `session start` and
+    stopped when the branch was behind; START step 1 now runs it after `session start` and offers to bring main in, as it
+    already did for the other modes (`vela close sync-main` runs mid-session anyway)."""
+    assert "before any other command, run `vela freshness" not in SKILL and "vela freshness" not in SKILL
+    # START step 1 runs freshness and offers to bring main in (pinned in test_start_text.py)
+    assert "Run the steps in `${CLAUDE_PLUGIN_ROOT}/references/START.md` with mode `releases`" in SKILL
 
 
 # ---- overhaul plan Task 22f: the conversation voice first, the commands that own the lookups and the slice grammar
@@ -161,21 +164,13 @@ def voice_line(text):
     return next(p for p in text.split("\n\n") if "references/CONVERSATION-VOICE.md`" in p and "voice/VOICE.md" in p)
 
 
-def test_releases_loads_the_voice_before_freshness_and_before_its_first_question():
-    line = voice_line(SKILL)
-    assert line.index("voice/VOICE.md") < line.index("references/CONVERSATION-VOICE.md`")
-    assert "house-voice" in line  # releases writes page prose: the release opening and each slice's opening
-    at = SKILL.index(line)
-    assert at < SKILL.index("vela freshness"), "the lead hears freshness's news in the voice, so the voice comes first"
-    assert at < SKILL.index("Ask one question at a time")
-    first_command = re.search(r"`vela [a-z-]+", SKILL[SKILL.index("## 1. Start"):]).group(0)
-    assert first_command == "`vela freshness"
-
-
-def test_releases_says_command_output_in_its_own_words_never_the_tools():
+def test_releases_leaves_the_voice_and_the_relay_to_start():
+    # rule deletion: START step 0 reads the owner's voice, then CONVERSATION-VOICE, before anything is said, and
+    # "Relaying a command" says command output is the lead's in your own words; releases repeats neither
+    assert not any("references/CONVERSATION-VOICE.md`" in p and "voice/VOICE.md" in p for p in SKILL.split("\n\n"))
     assert "in its words" not in SKILL and "as printed" not in SKILL
-    assert "say what it printed in your words and offer to bring it up to date" in SKILL
-    assert "say in one plain sentence that you couldn't check" in SKILL
+    # (START step 0 and "Relaying a command" are pinned in test_start_text.py)
+    assert "## 2. One question at a time" in SKILL
 
 
 def test_releases_flow_check_line_carried_as_written():
@@ -248,4 +243,4 @@ def test_a_stale_branch_decision_still_names_its_fix():
 
 
 def test_releases_stays_under_its_word_cap():
-    assert len(SKILL.split()) <= 1820  # 2,041 before the trim; 1,767 after
+    assert len(SKILL.split()) <= 1390  # 2,041 before the first trim; 1,767 after it; 1,349 after the second

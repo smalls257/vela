@@ -34,6 +34,14 @@ def read(rel):
     return (PLUGIN / rel).read_text(encoding="utf-8")
 
 
+def test_design_cites_only_the_start_sections_that_exist():
+    # MODES once listed the design session and START once had a shell section; both went in the October 23 trim
+    design = read("skills/design/SKILL.md")
+    assert "A design opens no session" in design and "`docs/tech-design/<slug>.md`" in design
+    assert "Shell that runs on a Mac and on Linux" not in design
+    # (the START headings it cites are checked against START in test_start_text.py)
+
+
 # --- From tests/test_design_skill.py: /vela:design (P13, S48, S52): the plugin's design skill, the summary-first doc
 # it writes, and the Heron fixture.
 

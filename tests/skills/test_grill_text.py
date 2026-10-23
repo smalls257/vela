@@ -191,7 +191,6 @@ def test_grill_reads_the_blocking_questions_and_runs_the_checkpoint_on_the_agend
 def test_grill_records_a_decision_over_an_open_blocking_question():
     grill = text("skills/grill/SKILL.md")
     assert "sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela" not in grill  # rule deletion: START's "Where vela runs from"
-    assert "sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela" in text("references/START.md")
     assert "repeating `--item`" in grill and "decided with <copy IDs> open (W807)" in grill
     for gone in ("exits 2", "at most three questions", "Per item it says ready, or not ready", "skipping any the record already answers"):
         assert gone not in grill, gone  # the gate's output and REVIEW's digest say these
@@ -246,7 +245,6 @@ def test_grill_holds_the_loop_and_files_each_decision_at_once():
     grill = text("skills/grill/SKILL.md")
     assert "If no item passes and the user overrides none after you offered it for each item their answers settled, do not start the grill: make no change to any page" in grill
     assert "claude, from <name>" not in grill  # rule deletion: START's "Captures during the session" owns origins
-    assert "claude, from <name>" in text("references/START.md")
     assert "Keep your recommendation when the user pushes back without a reason." in grill
     assert "Never answer your own question." in grill
     assert "## 4. File each decision as its branch closes" in grill and "Before the next question:" in grill
@@ -268,8 +266,7 @@ def test_grill_defines_acceptance_and_the_owner_rule():
 def test_grill_never_drafts_an_ask():
     # rule deletion: MODES "The lead does the asking" and START step 1 hold it, for every mode
     assert "Never draft an ask, an email or a chase for the user to send." not in text("skills/grill/SKILL.md")
-    assert "The lead does the asking" in text("references/MODES.md")
-    assert "never draft an ask for the user to send" in text("references/START.md")
+    # (MODES "The lead does the asking" and START step 1 are pinned in test_modes_text.py and test_start_text.py)
 
 
 # --- From tests/test_tracer_skills.py: the tracer, never a gate, no codes read to the lead.

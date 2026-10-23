@@ -29,6 +29,10 @@ def test_review_prepares_the_checkpoint_with_one_command():
     assert "commits the stub and the changed pages" not in prep and "clears the findings folder" not in prep  # reviewers.py docstring owns it
 
 
+def test_review_spells_the_command_boundary_no_longer_does():
+    assert "run `vela reviewers prepare --checkpoint" in REVIEW  # boundary names its checkpoint and focus only
+
+
 def test_review_sections_one_and_two_lost_their_recipes():
     """Rule deletion: `reviewers prepare` numbers, commits, lists pages, saves the owed questions and skips areas."""
     for recipe in ("1 plus the number of `### ` headings", "`Checkpoint <session id> <n>`",

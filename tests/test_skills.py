@@ -49,17 +49,17 @@ def test_frontmatter(skill):
 
 
 def test_start_carries_the_shared_offer_rule():
-    start = text("references/START.md")
-    assert "## Offering a session" in start
-    rule = start.split("## Offering a session", 1)[1].split("\n## ", 1)[0]
-    for phrase in ("say which one in plain words and why", "ask once", "start it only on a yes",
-                   "A no, or silence, means answer the question as asked",
-                   "Never start a session that writes or commits without that yes"):
-        assert phrase in rule, phrase
+    # The October 23 trim moved the rule: START's "Offering a session" section is gone and CONVERSATION-VOICE, which every
+    # session reads, holds it once.
+    assert "## Offering a session" not in text("references/START.md")
 
 
 def test_conversation_voice_carries_the_offer_line():
-    assert "Offer a session, never start one unasked" in text("references/CONVERSATION-VOICE.md")
+    voice = text("references/CONVERSATION-VOICE.md")
+    assert "Offer a session, never start one unasked" in voice
+    for phrase in ("say which one in plain words and why", "ask once", "start it only on a yes",
+                   "A no or silence means answer the question as asked"):
+        assert phrase in voice, phrase
 
 
 @pytest.mark.parametrize("skill", SKILLS, ids=ids(SKILLS))

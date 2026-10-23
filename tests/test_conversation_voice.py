@@ -55,8 +55,14 @@ def test_every_mode_skill_reaches_the_conversation_voice():
             assert "Run the steps in `${CLAUDE_PLUGIN_ROOT}/references/START.md`" in text, name
 
 
+def test_conversation_voice_rule_seven_is_the_one_place_for_answer_first():
+    assert "Answer first, then ask the lead to judge about four things at most" in VOICE
+    assert '"there are six more; want them?"' in VOICE
+    assert "Answer first, then about four things at most" not in START  # START keeps no second copy (the October 23 trim)
+
+
 def test_no_skill_tells_the_lead_a_code():
-    assert "W324" not in skill("grill").split("Tell the user the owner confirms later", 1)[1].split("\n", 1)[0]
+    assert "W324" not in skill("grill").split("say how that ends:", 1)[1].split("\n", 1)[0]
     assert "without the code" in skill("challenge")
 
 

@@ -31,9 +31,6 @@ def test_modes_lists_every_session_mode_row():
 def test_modes_no_longer_names_the_design_session():
     # rule deletion: the design skill holds its own rules and no mode session reads MODES for it
     assert "## Team-side sessions" not in MODES and "`/vela:design --app APP-x`" not in MODES
-    design = (PLUGIN / "skills" / "design" / "SKILL.md").read_text(encoding="utf-8")
-    assert "A design opens no session" in design and "`docs/tech-design/<slug>.md`" in design
-    assert "Shell that runs on a Mac and on Linux" not in design, "START no longer has that section"
 
 
 def test_modes_says_epics_runs_render_too():
@@ -44,6 +41,12 @@ def test_modes_says_epics_runs_render_too():
 def test_modes_is_leaner_than_it_was():
     # The eval cases grade the "Claude must not" column, so the table stays word for word; the mechanics around it went.
     assert len(MODES.split()) <= 1290  # 2,301 before the first trim; 1,838 after it; 1,253 after the second
+
+
+def test_modes_says_the_lead_does_the_asking_and_the_knowledge_is_claudes():
+    # grill, once, leaned on this instead of repeating it
+    assert "**The lead does the asking.** Claude never drafts an email, a message, a chase or an ask for anyone to send" in MODES
+    assert 'and say the knowledge is yours ("as far as I know")' in MODES
 
 
 def test_modes_says_the_user_may_override_any_rule():
@@ -66,8 +69,7 @@ def test_modes_asks_once_what_the_lead_might_not_know_they_need():
 
 def test_modes_says_where_to_start():
     assert "## Where to start" not in MODES  # rule deletion: `vela session brief` names the next step
-    start = (PLUGIN / "references" / "START.md").read_text(encoding="utf-8")
-    assert "offer the brief's next step as a suggestion, never a decision" in start
+    # START step 1 holds "as a suggestion, never a decision" (pinned in test_start_text.py)
 
 
 def test_modes_writes_assumptions_with_options_considered():

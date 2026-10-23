@@ -91,7 +91,7 @@ def test_house_voice_rules():
     assert "Never read `voice/corpus/`." in voice
     assert "Replaces the paragraph above" not in voice and "## Replaced prose" not in voice  # a page never carries two openings; the file is the command's
     assert "more than about 20 prose paragraphs" not in voice and "`vela close drafts --json`" not in voice  # rule deletion: close owns the size question
-    assert "acceptance criteria, and the `- Trace:` line under each;" in voice and "`**Decision:**` and `**Dissent:**` lines;" in voice
+    assert "acceptance criteria and their `- Trace:` lines;" in voice and "`**Decision:**` and `**Dissent:**` lines;" in voice
 
 
 # tech-design-grill vault mode (V1-18): read the slice, link back by ID and commit, never copy vault text.
@@ -236,4 +236,4 @@ def test_the_voice_rule_covers_what_ifs():
 
 def test_house_voice_stays_lean():
     """Sensor against regrowth: the skill was 2,856 words before the voice and the rules were merged (now 2,462)."""
-    assert len(SKILL.read_text(encoding="utf-8").split()) <= 2540
+    assert len(SKILL.read_text(encoding="utf-8").split()) <= 1670

@@ -72,15 +72,14 @@ def test_boundary_turns_a_decided_direction_into_apps_and_decides_nothing():
     b = text("skills/boundary/SKILL.md")
     assert "Offer 2 or 3 ways to cut the direction into apps, never one and never more than three" in b
     assert "a correction needs its own yes" in b
-    start = text("references/START.md")  # the yes rule lives there once, for every mode
-    assert "A line is written after a yes to that line." in start and "A yes that covers a group you read out" in start
+    # the yes rule lives in START once, for every mode (tests/skills/test_start_text.py pins it there)
     assert "write a line only after the yes `START.md` defines" not in b
     assert "read the sheet back in two groups" in b.lower()
     assert 'what it writes is "not decided yet"' in b and "never `addressed`" in b
     assert "as `(assumption)`" in b  # each capture is marked an assumption through `vela apply`
     assert "never `decided`" not in b  # rule deletion: the checks hold `decided`
-    assert "→ keep: [[<page>#<heading>|<ID>]] (assumption)" in b
-    assert 'the checkpoint "after the pages are written"' in b and "questions --subject <ID>" in b
+    assert "→ keep: [[<page>#<heading>|<ID>]] (assumption)" not in b  # rule deletion: `vela apply` writes the mark
+    assert 'REVIEW.md` "after the pages are written"' in b and "questions --subject <ID>" in b
     assert "/vela:grill Desktop agent" in b and "/vela:grill <APP-id>" not in b  # by name, not by ID
 
 
@@ -154,9 +153,8 @@ def test_boundary_writes_contracts_unknowns_and_marks_through_commands():
     assert "`vela apply` (`--schema marks`)" in b
     assert "Commands write the templated parts" not in b and "won't write `decided`" not in b and "It writes the required bullets" not in b
     assert "which commits by exact path" not in b and "sends a stub back to Boundary" not in b
-    # rule deletion: START's first line says it once for every mode skill
+    # rule deletion: START's first line says it once for every mode skill (pinned in test_start_text.py)
     assert "When a command can't express what the lead wants, say so and stop." not in b
-    assert "When a command can't express what the lead wants, say so and stop" in text("references/START.md")
 
 
 def test_boundary_checkpoints_with_render_check_and_close_stage():
@@ -169,7 +167,7 @@ def test_boundary_prepares_its_review_with_reviewers_prepare():
     b = text("skills/boundary/SKILL.md")
     assert 'vela reviewers prepare --checkpoint "after the pages are written"' not in b
     assert 'the review checkpoint in `${CLAUDE_PLUGIN_ROOT}/references/REVIEW.md` "after the pages are written"' in b
-    assert "run `vela reviewers prepare --checkpoint" in text("references/REVIEW.md")
+    # REVIEW.md spells the command (pinned in test_review_text.py)
 
 
 def test_flow_check_line_carried_as_written():
@@ -196,9 +194,8 @@ def test_boundary_names_only_commands_that_exist():
 
 def test_boundary_reads_back_by_name_in_plain_labels():
     b = text("skills/boundary/SKILL.md")
-    start = text("references/START.md")  # rule deletion: START's plain-names bullet covers a command's lines too
+    # rule deletion: START's plain-names bullet covers a command's lines too (pinned in test_start_text.py)
     assert "in your own sentences as well as in what a command prints" not in b
-    assert "No ID, capture number, check code, gate name or rule name, in your sentences or a command's." in start
     assert "CONVERSATION-VOICE.md`, rule 7" not in b and "about four things to judge" not in b  # rule deletion: START and CONVERSATION-VOICE say it
     assert "A read-back by name:" in b and "Not this:" in b
     for label in ("**Doesn't do:**", "**Main parts:**", "**What it offers other apps:**",

@@ -187,7 +187,7 @@ def test_close_relays_the_gate_grouped_and_in_its_own_words():
     assert "as it prints them" not in CLOSE_SKILL and "in its words" not in CLOSE_SKILL
     # rule deletion: START's "Relaying a command" and its plain-names rule say it for every mode
     assert "Never pass raw git or `gh` error text on" not in CLOSE_SKILL
-    assert "git's or gh's own error text" in text("references/START.md")
+    # (START's "Relaying a command" is pinned in test_start_text.py)
 
 
 def test_a_command_that_cant_do_it_is_a_stop_not_a_recipe():
@@ -420,9 +420,7 @@ def test_close_asks_one_confirmation_before_it_pushes_and_never_starts_on_its_ow
     # rule deletion: START says when close starts and that only a yes after the notice sends, and `close push` refuses
     # a yes captured before the notice (decisions/consent.py:after_send_notice)
     assert 'A bare "close" is consent to file, not to send.' not in CLOSE_SKILL
-    start = text("references/START.md")
-    assert "Close starts only on the lead's word" in start
-    assert "That yes, given after close says what goes, is the only one that sends." in start
+    # START's "Closing a session" holds when close starts and the only yes that sends (pinned in test_start_text.py)
 
 
 # --- S25: record by default, ask only the few unsettled items, never the tool's own filing
@@ -535,7 +533,6 @@ def test_close_drafts_prose_through_house_voice():
     assert "`vela style` on each drafted page" in four and "until it prints nothing" in four
     # rule deletion: house-voice owns merged prose (`vela prose replace`) and closedrafts.WHY["adr"] names `vela add adr`
     assert "vela prose replace --page" not in four and "vela add adr --state decided" not in four
-    assert "vela prose replace --page" in text("skills/house-voice/SKILL.md")
     assert "vela add adr --state decided" in closedrafts.WHY["adr"]
     assert "Prose to draft" not in CLOSE
 
@@ -677,7 +674,6 @@ def test_close_drafts_only_what_is_missing_or_stale_and_reviews_everything_touch
     # rule deletion: `close drafts --json` marks a paragraph drafted as an item settled `done` and lists only what is
     # missing or stale (tests/test_close_drafts.py), and START says so under "Draft the paragraph when the item is filed"
     assert "Paragraphs written as items settled are `done`; leave them" not in four
-    assert "close lists only what is missing or went stale since" in text("references/START.md")
     assert "every prose paragraph this session touched" in read("plugin", "skills", "close", "VOICE-REVIEW.md")
     assert len(four.split()) < 330
 
@@ -711,7 +707,6 @@ def test_close_carries_the_four_hard_stops_itself():
                  "step as done.",
                  "Never invent what a person said, a source, or an ID the vault does not hold."):
         assert stop in CLOSE_SKILL, stop
-        assert stop in text("references/START.md"), stop  # the same words in both, so they cannot drift apart
 
 
 def test_close_reconfirms_before_the_read_back_and_sends_in_its_order():
