@@ -19,7 +19,7 @@ const ProgressView = (() => {
   /* A handle as a person reads it (the vault's name for the role, else the handle in words), and a reason without its
      capture marks: the reader text rule, no @handles or ^c codes. Same rule as the decision log's person(). */
   const personOf = (t) => peopleWords(t);
-  const unmarked = (t) => String(t || "").replace(/\[\[([^\]|#]+)(?:#[^\]|]*)?(?:\\?\|([^\]]+))?\]\]/g, (m, target, label) => label || (D.sessions[target] ? D.sessions[target].title : titleOf(target)))
+  const unmarked = (t) => String(t || "").replace(/\[\[([^\]|#]+)(?:#[^\]|]*)?(?:\\?\|([^\]]+))?\]\]/g, (m, target, label) => label || titleOf(target))
     .replace(/\s*\^c\d+\b/g, "");
   function render(main) {
     const P = D.progress, sc = h("div", { class: "scroll pages" });

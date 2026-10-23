@@ -8,11 +8,12 @@ import pytest
 
 from conftest import MINI, run
 from vela import cli, decisions, parse, schema
-from vela.decisions import add, add_unknown, record as records, textedit
-from vela.edge import apply as disk
+from vela.decisions import add, add_unknown, textedit
+from vela.edge import apply as disk, sessiongit
+import session_files
 
 RECORD_ID = "2026-10-20-grill-stock"
-RECORD = f"sessions/{RECORD_ID}.md"
+RECORD = f"sessions/private/{RECORD_ID}.md"
 TODAY = "2026-10-20"
 CAPTURES = ['- [unknown] (@priya) "Who owns the till test rig?" ^c01',
             '- [thought] (@priya) "The shop must open on 2026-11-02." ^c02',
@@ -27,7 +28,7 @@ def make_vault(tmp_path, captures=CAPTURES, agenda=(), name="vault"):
     if agenda:
         lines += ["## Agenda", "", *agenda, ""]
     lines += ["## Captures", "", *captures, ""]
-    (root / RECORD).write_text("\n".join(lines) + "\n", encoding="utf-8")
+    session_files.write_record(root, RECORD_ID, "\n".join(lines) + "\n")
     return root
 
 
@@ -38,14 +39,14 @@ def write(root, path, text):
 
 
 def opened(root):
-    found, problem = records.open_record([("", RECORD, (root / RECORD).read_text(encoding="utf-8"))])
+    found, problem = sessiongit.open_record(root)
     assert problem is None, problem
     return found
 
 
 def staged_view(root, branch_texts=()):
     staged = decisions.Staged(cli.load_vault(root), disk.reader(root))
-    textedit.attach(staged, today=TODAY, branch_texts=list(branch_texts))
+    textedit.attach(staged, today=TODAY, branch_texts=list(branch_texts), lead=("priya", ()))
     return staged
 
 
@@ -99,7 +100,7 @@ def test_add_unknown_blocks_updates_agenda(tmp_path):
     assert "- **Blocks:** [[stock-building-blocks#CON-002 Stock level|CON-002]]" in writes[UNKNOWNS]
     assert "- CON-002: GATE-3 confirmed yes, status off-agenda: UNK-003" in writes[RECORD]
     assert "- CON-001: GATE-3 confirmed yes, status decided" in writes[RECORD]
-    assert add_unknown.now_blocks(dict(item, id="UNK-003"), (root / RECORD).read_text(encoding="utf-8")) == ["CON-002"]
+    assert add_unknown.now_blocks(dict(item, id="UNK-003"), session_files.record_text(root, RECORD_ID)) == ["CON-002"]
     code, out = run("add", "unknown", "--vault", str(root), "--today", TODAY, "--name", "Stock count lag",
                     "--question", "How old can the count be?", "--owner", "@priya", "--blocks", "CON-002", "--json")
     data = json.loads(out)
@@ -255,7 +256,7 @@ def test_fr_numbered_after_the_highest(tmp_path):
                                   "criteria": ["The receipt shows one VAT line."]}])
     page = writes["capabilities/CAP-001-sell.md"]
     assert "### CAP-001.FR4 Print a receipt\n\nA shopper leaves with a receipt.\n\n- **State:** assumption\n" \
-           "- **Source:** [[2026-10-20-grill-stock#^c03]]\n\n- The receipt shows one VAT line.\n" in page
+           "- **Source:** [[2026-10-20-grill-stock]] c03\n\n- The receipt shows one VAT line.\n" in page
 
 
 def test_unknown_field_for_a_type_refused(tmp_path):

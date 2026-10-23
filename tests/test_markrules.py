@@ -14,6 +14,7 @@ import pytest
 from conftest import MINI, run
 from vela import decisions, markrules, say
 from vela.decisions import record as records, schema
+import session_files
 
 TODAY = "2026-10-14"
 RECORD_ID = "2026-10-14-desk-close"
@@ -217,7 +218,7 @@ def test_mark_parser_reads_the_grammar_and_refuses_the_rest():
 def vault_with_record(tmp_path, captures, modes="[dump]"):
     root = tmp_path / "vault"
     shutil.copytree(MINI, root)
-    (root / "sessions" / f"{RECORD_ID}.md").write_text(record_text(captures, modes), encoding="utf-8")
+    session_files.write_record(root, RECORD_ID, record_text(captures, modes))
     (root / ".vela").mkdir(exist_ok=True)
     (root / ".vela" / "handle").write_text("sam\n", encoding="utf-8")
     return root
@@ -242,7 +243,7 @@ def test_draft_matches_task4_file_shape(tmp_path):
     decision, problems = decisions.load(path.read_text(encoding="utf-8"))
     assert not problems and decision.kind == "marks" and decision.session == RECORD_ID
     record = records.from_text(RECORD_ID, f"sessions/{RECORD_ID}.md",
-                               (root / "sessions" / f"{RECORD_ID}.md").read_text(encoding="utf-8"))
+                               session_files.record_text(root, RECORD_ID))
     for item in decision.items:
         assert set(item["seen"]) == {item["capture"]}
         assert item["seen"][item["capture"]] == schema.quote_hash(record.capture(item["capture"]))

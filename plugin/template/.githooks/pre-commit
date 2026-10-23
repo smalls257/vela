@@ -1,5 +1,5 @@
 #!/bin/sh
-# Stops a commit that carries the inbox, the private voice folders or vela's own working files.
+# Stops a commit that carries the inbox, the private voice folders, the private session notes or vela's own working files.
 # The rules and their reasons live in vela (plugin/lib/vela/guard.py); this hook only asks it, so the
 # list is never copied here. `vela close stage` already refuses those paths: this catches a commit typed by hand.
 # Turned on per clone with: git config core.hooksPath .githooks

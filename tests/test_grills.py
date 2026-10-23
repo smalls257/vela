@@ -28,10 +28,9 @@ def test_each_group_holds_the_right_item_and_two_things_away_is_left_out(tmp_pat
     assert [g.group for g in found.values()] == sorted((g.group for g in found.values()), key=grills.GROUPS.index)
 
 
-def test_a_kept_yes_carries_the_leads_words_and_the_session_they_came_from(tmp_path):
+def test_a_kept_yes_carries_the_date_and_the_session_but_not_the_words(tmp_path):
     _, found = load(tmp_path)
-    assert found["CON-013"].yes == {"quote": "Yes, loyalty points stay in the shop.", "who": "@mini-lead",
-                                    "session": "2026-01-12-shape-extras", "date": "2026-01-12", "title": "Shape: the shop's extras"}
+    assert found["CON-013"].yes == {"session": "2026-01-12-shape-extras", "date": "2026-01-12", "title": "Shape: the shop's extras"}
     assert found["CON-013"].since == {"date": "2026-01-12", "session": "2026-01-12-shape-extras",
                                       "title": "Shape: the shop's extras", "kept": True}
     assert found["CON-010"].yes == {}

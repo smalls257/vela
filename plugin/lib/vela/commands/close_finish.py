@@ -28,7 +28,7 @@ import io
 import json
 import pathlib
 
-from vela import closefinish, closegate, explorereport, handoffpreview, handoffwarn, planscope, say, schema, sessions
+from vela import closefinish, closegate, explorereport, handoffpreview, handoffwarn, planscope, privaterecord, say, schema, sessions
 from vela.edge import atomic, mergegit, sessiongit, stagegit, vaultgit
 
 # The explore report lines the lead hears after the dashboard line (close section 9): what the build went on without.
@@ -176,18 +176,24 @@ def finish_session(root, today, summary, args, out):
     record, early = one_open_record(root)
     if early is not None:
         return emit(early, args, out)
-    text = (root / record.path).read_text(encoding="utf-8")
+    text = sessiongit.private_text(root, record.id)
+    if text is None:
+        missing = str(sessiongit.PrivateMissing(record.id))
+        return emit(say.Result("close finish", exit=say.FAILED, lines=[say.Line(f"vela close finish: {missing}",
+                                                                                 plain=missing)]), args, out)
     vault = cli.load_vault(root)
     resolver = say.Resolver(vault)
     seen = close_gate.observe(root, vault, record, text, today)
-    readiness = closegate.ready(vault, text, record.id, seen)
+    readiness = closegate.ready(vault, text, record.id, seen, privaterecord.part_of(text))
     if not readiness.ready:
         return emit(not_ready(readiness, resolver), args, out, resolver)
     try:
-        closed = closefinish.with_closed(text, summary)
+        closed = closefinish.closed_stub((root / record.path).read_text(encoding="utf-8"))
     except closefinish.SummaryRefused as exc:
         raise cli.ToolError(f"close finish: {exc}") from exc
-    handoffs = due_handoffs(root, vault, seen.before, closed)
+    notes = privaterecord.with_summary(text, summary)
+    closed = privaterecord.with_part(closed, privaterecord.part_of(text), privaterecord.fingerprint(notes))
+    handoffs = due_handoffs(root, vault, seen.before, text)
     plan = closefinish.plan(seen.reader, handoffs, args.replace)
     if plan.needs_lead:
         result = say.Result("close finish", exit=say.NEEDS_LEAD,
@@ -195,15 +201,17 @@ def finish_session(root, today, summary, args, out):
                             lines=[say.Line(f"vela close finish: {app}: {words} Nothing was written.", words)
                                    for app, words in plan.needs_lead])
         return emit(result, args, out, resolver)
-    run = Finish(root, today, record, closed, vault, resolver, plan, seen.reader, say.mode_of(args))
+    run = Finish(root, today, record, (closed, notes), vault, resolver, plan, seen.reader, say.mode_of(args))
     return emit(run.walk(), args, out, resolver)
 
 
 class Finish:
     """One walk of a `closefinish.Plan`, step by step, collecting what each step did into one Result."""
 
-    def __init__(self, root, today, record, closed, vault, resolver, plan, reader, mode):
-        self.root, self.today, self.record, self.closed, self.reader = root, today, record, closed, reader
+    def __init__(self, root, today, record, files, vault, resolver, plan, reader, mode):
+        """`files` is the closed stub and the notes with their summary, both ready to write."""
+        self.root, self.today, self.record, self.reader = root, today, record, reader
+        self.stub, self.notes = files
         self.lead = mode == "for-lead"
         self.vault, self.resolver, self.plan = vault, resolver, plan
         self.result = say.Result("close finish", data={"session": record.id, "commits": [], "manifests": []})
@@ -230,9 +238,11 @@ class Finish:
         return self.result
 
     def write_record(self, _):
-        atomic.write_atomic(self.root / self.record.path, self.closed)
-        self.result.wrote.append(self.record.path)
-        self.say(f"vela close finish: {self.record.path}: status: closed, with its summary.",
+        private = privaterecord.private_path(self.record.id)
+        atomic.write_atomic(self.root / private, self.notes)
+        atomic.write_atomic(self.root / self.record.path, self.stub)
+        self.result.wrote += [private, self.record.path]
+        self.say(f"vela close finish: {self.record.path}: status: closed; the summary is in {private}.",
                  None if self.reader else "I've closed the session record, with its summary.")
         self.say_what_waits_for_a_grill()
         return True
@@ -244,7 +254,7 @@ class Finish:
         from vela.decisions import decide, ready, textedit
         from vela.edge import apply as disk
         staged = textedit.attach(decisions.Staged(self.vault, disk.reader(self.root)), self.today, [])
-        found = ready.waiting([self.closed], lambda ident: decide.already(staged, ident) is not None)
+        found = ready.waiting([privaterecord.stub_meta(self.stub)], lambda ident: decide.already(staged, ident) is not None)
         names = [self.vault.name_of(e["id"]) for e in found]
         self.result.data["ready_to_decide"] = [e["id"] for e in found]
         if found:

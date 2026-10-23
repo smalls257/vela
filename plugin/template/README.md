@@ -29,7 +29,7 @@ To read the plan without Obsidian, ask Claude to run `vela view --out ~/Desktop/
 - [[05-building-blocks|Building blocks]]: one page per app, with its contracts.
 - [[06-flows|Flows]]: flows across apps, and one runtime page per app.
 - [[08-concerns|Concerns]], [[09-decisions|Decisions]] and [[13-epics|Epics]]: an index page and one page per item.
-- `capabilities/`: one page per capability touched. `sessions/`: one record per session.
+- `capabilities/`: one page per capability touched. `sessions/`: one header per session; the notes behind it stay on the lead's machine.
 
 ## Reading paths
 

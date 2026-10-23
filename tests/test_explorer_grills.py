@@ -45,9 +45,9 @@ def test_the_people_are_those_the_rows_name_and_none_is_guessed(tmp_path):
     assert data["grills"]["problems"] == []
 
 
-def test_the_lead_quote_and_the_one_missing_thing_ride_with_their_rows(tmp_path):
+def test_the_date_of_the_yes_but_not_its_words_and_the_one_missing_thing_ride_with_their_rows(tmp_path):
     _, rows = extract(tmp_path)
-    assert rows["CON-003"]["yes"]["quote"].startswith("Yes, Booking quotes from the pricing service")
+    assert rows["CON-003"]["yes"] == {"date": "2026-10-20"}
     away = rows["CON-002"]["missing"]
     assert away["due"] == "2027-03-01" and away["owed_by"] == ["@hl-platform-lead"] and "finance reconciliation" in away["question"]
     assert not IDLIKE.search(away["plain"] + away["fix"] + away["question"] + " ".join(rows["CON-002"]["settles"]))

@@ -27,17 +27,18 @@ A person's words are checked against what they typed (`vela/said.py`, the log `v
 be checked, so the capture is written with `, unverified` after its origin, and the close gate and `vela team commit`
 ask the lead to confirm it by name before it counts; `vela record confirm` takes the mark off once they have.
 
-Which record: `.vela/session.json` (written by `session start`) while it names an open record, else the one open
-record in the working tree's `sessions/`. Exit codes: 0 added (the number is printed); 1 no open record, or a line
+Which record: `.vela/session.json` (written by `session start`) while its stub says the session is open, else the one
+open stub in the working tree's `sessions/`. The captures are written to the private file `sessions/private/<id>.md`,
+never to the stub. Exit codes: 0 added (the number is printed); 1 no open record, or a line
 that would not parse; 2 the record or git failed; 3 several open records in this folder (pick with `--record`).
 
-A reader copy writes in place and runs no git: the history is not read there, and the record's text and the
-session file still hold every number this copy used.
+The private file is untracked, so git holds no history of it: a number is never reused because the file's own text
+and the high-water mark in `.vela/session.json` still hold every number this machine handed out.
 """
 import datetime
 import pathlib
 
-from vela import closegate, commands, records, said, say, sessions
+from vela import closegate, commands, privaterecord, records, said, say, sessions
 from vela.commands import whoami
 from vela.edge import saidlog, sessiongit
 from vela.edge import vaultgit
@@ -80,7 +81,7 @@ class Stop(Exception):
 def cmd_add(args, out):
     root = pathlib.Path(args.vault).resolve()
     try:
-        result = add(root, args, sessiongit.is_read_copy(root))
+        result = add(root, args)
     except Stop as stop:
         result = stop.result
     except (GitUnavailable, ValueError, OSError) as exc:
@@ -90,13 +91,13 @@ def cmd_add(args, out):
 
 
 def open_record(root, state, wanted):
-    """(path, record id) of the record to write to, or Stop (exit 1 none, 3 several)."""
-    if not wanted and state and state.get("path"):
-        path = root / str(state["path"])
-        if path.is_file():
-            record, _ = sessions.read("", str(state["path"]), path.read_text(encoding="utf-8"))
+    """(private path, record id) of the notes to write to, or Stop (exit 1 none, 3 several). The status is the stub's."""
+    if not wanted and state and state.get("stub"):
+        stub = root / str(state["stub"])
+        if stub.is_file():
+            record, _ = sessions.read("", str(state["stub"]), stub.read_text(encoding="utf-8"))
             if record is not None and record.status == "open":
-                return str(state["path"]), record.id
+                return private_of(root, record.id), record.id
     found, _ = sessions.find_open(sessiongit.folder_records(root))
     if wanted:
         found = sessions.pick(found, wanted)
@@ -112,7 +113,15 @@ def open_record(root, state, wanted):
                                               "--record <id>:", plain="More than one session is open here, so I "
                                                                       "haven't picked one.")]
                               + [say.Line(f"- {r.id}", plain=f"- {r.title}") for r in found]))
-    return found[0].path, found[0].id
+    return private_of(root, found[0].id), found[0].id
+
+
+def private_of(root, record_id):
+    """The private file's path for an open session, or PrivateMissing when this machine doesn't hold the notes."""
+    rel = privaterecord.private_path(record_id)
+    if not (root / rel).is_file():
+        raise sessiongit.PrivateMissing(record_id)
+    return rel
 
 
 DESIGN_RECORDS = ".vela/design"
@@ -138,7 +147,7 @@ def design_record(root):
     record_id = path.stem
     if not path.is_file():
         today = datetime.date.today().isoformat()
-        sessiongit.write_text(root, rel, sessions.record_text(record_id, f"Design: {record_id}", today, ["design"]))
+        sessiongit.write_text(root, rel, privaterecord.new_private(record_id, f"Design: {record_id}", today, 1))
     return rel, record_id
 
 
@@ -169,7 +178,7 @@ def spells_the_lead(root, origin):
     return bool(handle) and word.lstrip("@") == handle
 
 
-def add(root, args, reader):
+def add(root, args):
     state = sessiongit.read_json(root, sessiongit.STATE_FILE)
     rel, record_id = open_record(root, state, args.record)
     origin, wrote = (args.origin.strip(), []) if args.origin.strip() else lead_origin(root)
@@ -179,8 +188,7 @@ def add(root, args, reader):
     path = root / rel
     text = path.read_text(encoding="utf-8")
     remembered = {int(state.get("last_capture") or 0)} if state and state.get("id") == record_id else set()
-    history = set() if reader else records.numbers_in(sessiongit.history_text(root, rel))
-    number = records.next_number(records.numbers_in(text), remembered, history)
+    number = records.next_number(records.numbers_in(text), remembered)
     try:
         line = records.capture_line(args.tag, origin, args.text, number, args.mark)
         new_text = records.append(text, line)
@@ -188,7 +196,7 @@ def add(root, args, reader):
         raise Stop(say.Result(NAME, exit=say.REFUSED, refusals=[say.Refusal(
             "capture grammar", f"I didn't add the note: {exc}.", "change that part and run it again")])) from exc
     wrote.append(sessiongit.write_text(root, rel, new_text))
-    kept = dict(state) if state and state.get("id") == record_id else {"id": record_id, "path": rel}
+    kept = dict(state) if state and state.get("id") == record_id else {"id": record_id, "path": rel, "stub": privaterecord.stub_path(record_id)}
     kept["last_capture"] = number
     wrote.append(sessiongit.write_state(root, kept))
     label = records.label(number)

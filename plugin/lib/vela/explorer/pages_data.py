@@ -220,8 +220,8 @@ def page_reader(page, keys):
 def readers(vault, keys):
     out = {}
     for page in vault.pages:
-        if page.path.startswith("voice/"):
-            continue
+        if page.path.startswith("voice/") or page.type == "session":
+            continue  # a session record is not shown on the dashboard
         out[keys.page(page)] = page_reader(page, keys)
     return out
 

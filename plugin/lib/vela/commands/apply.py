@@ -24,7 +24,7 @@ import json
 import pathlib
 
 from vela import commands, decisions, say
-from vela.decisions import record as records, schema, textedit
+from vela.decisions import schema, textedit
 from vela.edge import apply as disk
 from vela.edge import atomic, idgit, sessiongit
 from vela.edge.vaultgit import GitUnavailable
@@ -120,7 +120,10 @@ def lead_of(root):
 
 def find_record(root):
     """(OpenRecord, None), or (None, the Result to print instead). Read from the working tree, so no git runs."""
-    rec, opened = records.open_record(sessiongit.folder_records(root))
+    try:
+        rec, opened = sessiongit.open_record(root)
+    except sessiongit.PrivateMissing as exc:
+        return None, say.Result(NAME, exit=say.FAILED, lines=[say.Line(f"vela apply: {exc}", plain=str(exc))])
     if rec is not None:
         return rec, None
     if not opened.several:
@@ -144,6 +147,8 @@ def file_decision(decision, path, root, vault, record, reader, context=None):
             return refused(refusals)
         new_file = decisions.applied_text(decision, writes, decisions.record_after(record, staged))
         written = disk.write_all(root, writes, {path.resolve(): new_file})
+    except textedit.StubUnreadable as exc:
+        return failed(str(exc), str(exc))
     except disk.OutsideVault as exc:
         return refused([say.Refusal("apply-outside-vault", "One of those would have changed a file outside the vault, "
                                                            "so I filed nothing.",
@@ -158,7 +163,7 @@ def file_decision(decision, path, root, vault, record, reader, context=None):
 
 
 def name_of(path, vault, record):
-    if path == record.path:
+    if path in (record.path, record.stub):
         return "the session record"
     for page in vault.pages:
         if page.path == path:
@@ -170,7 +175,7 @@ def filed_result(decision, written, vault, record, reader):
     count = len(decision.items)
     one, many = schema.KIND_WORDS.get(decision.kind, (f"{decision.kind} item", f"{decision.kind} items"))
     words = f"{say.count_words(count)} {one if count == 1 else many}"
-    names = [name_of(p, vault, record) for p in written]
+    names = list(dict.fromkeys(name_of(p, vault, record) for p in written))
     lines = [say.Line(f"applied: {count} {decision.kind} item{'' if count == 1 else 's'}; wrote "
                       f"{', '.join(written) or 'nothing'}.",
                       plain=f"I've filed {words}" + (f", in {join(names)}." if names else "."))]

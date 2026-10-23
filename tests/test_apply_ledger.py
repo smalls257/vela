@@ -7,6 +7,7 @@ from conftest import run
 from test_apply_add import RECORD, RECORD_ID, TODAY, filed, make_vault, opened, plan, write
 from vela import ledger, markrules
 from vela.decisions import ledger_rows
+import session_files
 
 UNKNOWNS = "11-unknowns-and-risks.md"
 SHOP = "05-building-blocks/shop-building-blocks.md"
@@ -115,8 +116,8 @@ def test_page_quote_from_this_close_refused(tmp_path):
 
 def test_review_row_not_taken_gets_a_ledger_row(tmp_path):
     root = make_vault(tmp_path, captures=["- [thought] (@priya) waits on UNK-001: F1.2 ^c01"])
-    text = (root / RECORD).read_text(encoding="utf-8")
-    write(root, RECORD, text + "\n## Reviews\n\n" + REVIEWS)
+    text = session_files.record_text(root, RECORD_ID)
+    session_files.write_record(root, RECORD_ID, text + "\n## Reviews\n\n" + REVIEWS)
     items = drafted(root)
     assert {i["finding"] for i in items} == {"F1.1", "F1.2"}
     writes = filed(root, "ledger", items)  # a marks-plan draft applies as drafted
@@ -168,9 +169,57 @@ def test_schema_takes_every_field_marks_plan_writes():
 
 def test_apply_ledger_through_the_cli(tmp_path):
     root = make_vault(tmp_path, captures=["- [thought] (@priya) Q-DAT-03@INI-900: does not apply, no data kept ^c01"])
+    write(root, ".vela/handle", "priya\n")  # whose words may go on a page is judged against the lead's handle
     path = root / ".vela" / "decisions" / RECORD_ID / "01-ledger.json"
     write(root, str(path.relative_to(root)), json.dumps({"version": 1, "kind": "ledger", "session": RECORD_ID, "items": [
         {"copy": "Q-DAT-03@INI-900", "state": "not-applicable", "capture": "^c01"}]}))
     code, out = run("apply", str(path), "--vault", str(root), "--today", TODAY, "--json")
     assert code == 0, out
     assert "| Q-DAT-03@INI-900 | not-applicable |" in (root / UNKNOWNS).read_text(encoding="utf-8")
+
+
+SOURCES = "sources.md"
+ANA_ANSWER = '- [answer] (@cto-ana) Q-DAT-03@INI-900: "Only the sale total is kept." ^c01'
+ANA_QUOTE_YES = '- [quote-yes] (@cto-ana) "Yes, you can quote me." ^c02'
+ANSWERED = {"copy": "Q-DAT-03@INI-900", "state": "answered", "capture": "^c01", "item": "CON-001", "source": "SRC-01"}
+
+
+def test_a_participants_answer_leaves_as_a_pointer_to_their_first_hand_row(tmp_path):
+    """Someone else's words leave the machine only with their own yes: the ledger holds a pointer, the notes the words."""
+    root = make_vault(tmp_path, captures=[ANA_ANSWER])
+    writes = filed(root, "ledger", [ANSWERED])
+    row = ledger_lines(writes[UNKNOWNS])["Q-DAT-03@INI-900"][0]
+    assert "answer: see SRC-002" in row and "sale total" not in row and "@cto-ana" in row
+    assert "sale total" not in "".join(writes.values()).replace(writes[RECORD], "")
+    source = next(line for line in writes[SOURCES].split("\n") if line.startswith("| SRC-002"))
+    assert "exists" in source and source.rstrip().endswith("first-hand: @cto-ana |")
+
+
+def test_the_first_hand_row_is_reused_not_added_twice(tmp_path):
+    root = make_vault(tmp_path, captures=[ANA_ANSWER])
+    first = filed(root, "ledger", [ANSWERED])
+    write(root, SOURCES, first[SOURCES])
+    again = filed(root, "ledger", [dict(ANSWERED, copy="Q-OPS-02@INI-900")])
+    assert SOURCES not in again  # the row is there already, so sources.md is not written again
+    assert "answer: see SRC-002" in ledger_lines(again[UNKNOWNS])["Q-OPS-02@INI-900"][0]
+
+
+def test_a_participants_belief_signpost_and_reason_are_pointers_too(tmp_path):
+    root = make_vault(tmp_path, captures=[
+        '- [thought] (@cto-ana) "The sale total is enough." ^c01', '- [thought] (@cto-ana) "A refund would show it wrong." ^c02',
+        '- [thought] (@cto-ana) "We hold no card data." ^c03'])
+    writes = filed(root, "ledger", [
+        {"copy": "Q-DAT-03@INI-900", "state": "assumed", "capture": "^c01", "signpost": "^c02", "load_bearing": "yes"},
+        {"copy": "Q-OPS-02@INI-900", "state": "not-applicable", "capture": "^c03"}])
+    rows = ledger_lines(writes[UNKNOWNS])
+    assumed, na = rows["Q-DAT-03@INI-900"][0], rows["Q-OPS-02@INI-900"][0]
+    assert "belief: see SRC-002" in assumed and "signpost: see SRC-002" in assumed and "reason: see SRC-002" in na
+    assert "total" not in assumed + na and "card data" not in na
+
+
+def test_the_leads_own_answer_and_a_participant_with_a_quote_yes_keep_their_words(tmp_path):
+    lead = make_vault(tmp_path / "lead", captures=['- [answer] (@priya) Q-DAT-03@INI-900: "Only the sale total is kept." ^c01'])
+    assert "answer: Only the sale total is kept." in filed(lead, "ledger", [ANSWERED])[UNKNOWNS]
+    own = make_vault(tmp_path / "own", captures=[ANA_ANSWER, ANA_QUOTE_YES])
+    writes = filed(own, "ledger", [ANSWERED])
+    assert "answer: Only the sale total is kept." in writes[UNKNOWNS] and SOURCES not in writes

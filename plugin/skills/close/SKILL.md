@@ -10,7 +10,7 @@ argument-hint: "[session id, if more than one is open]"
 
 Before your first command and your first question, read `voice/VOICE.md` if the vault has one, then `${CLAUDE_PLUGIN_ROOT}/references/CONVERSATION-VOICE.md` (the first step of `${CLAUDE_PLUGIN_ROOT}/references/START.md`); write page prose through `house-voice`.
 
-Close files the session and sends it for review. The steps, in order: find the session (1), mark the captures (2), write the items (3), draft the prose (4), read back decided wording (5), bring in main and check (6), finish and send (7), open the pull request (8), the dashboard (9). Commands do the filing; you do the talking. Never report a step as done when it failed.
+Close files the session and sends it for review. The steps, in order: find the session (1), mark the captures (2), write the items (3), draft the prose (4), check who still says yes, then read back what goes on record in the lead's name (5), bring in main and check (6), finish and send (7), open the pull request (8), the dashboard (9). Commands do the filing; you do the talking. Never report a step as done when it failed.
 
 Vela is `sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela` (`START.md`, "Where vela runs from", covers a host that leaves the variable unexpanded). Use `--for-lead` when you'll tell the lead the result and `--json` when you need to reason over it, and say it in your own words, in the voice: names, not codes or IDs. Never pass raw git or `gh` error text on: say in one sentence that it didn't work and what you'll do. A failure you fix isn't news. When a command can't express what the lead wants, say so and stop; never fall back to doing its steps by hand.
 
@@ -62,9 +62,19 @@ Skip it if nothing was drafted. Otherwise read `${CLAUDE_PLUGIN_ROOT}/skills/clo
 
 Run `vela voice harvest list --json`, even when the review didn't run. With no candidates, say in a line why (the owner hasn't given samples of their writing yet, or none of their edits turned up) and go on. Otherwise read `${CLAUDE_PLUGIN_ROOT}/skills/close/HARVEST.md`.
 
-## 5. Read back decided wording
+## 5. Still yes, then the read-back
 
-For each item `close drafts` lists as decided this session, show its final wording. If its owner is here, they confirm it; if not, `close pr` lists it for them.
+Everything the lead said stays in notes on this machine. What goes into the plan and the pull request in their name is a short list of sentences, and the lead sees every one before it does. Do the two steps below in this order, so the read-back covers the final words.
+
+**Still yes? Only when this session is a later part.** If the session was started on another machine (`vela close gate --json` lists decisions "decided on the other machine"; it will also say main isn't brought in yet, which is expected here and handled at section 6, so don't act on it now), ask once, in one message, with the names the gate gives: "These were decided on the other machine: the booking API, and one question taken off the finance page. Still yes?" On a yes, capture it with the lead as origin (`vela record add --origin @<handle from vela whoami> --tag decision "<their words>"`) and run `vela close reconfirm --yes ^cNN <ID>` (more IDs may follow) with the IDs from the gate's `--json` detail. It points each item's receipt at this machine's capture. On a no, capture that too and run nothing: the gate keeps holding the item, and you offer to reopen it with the lead's word. Never reconfirm anything for them.
+
+**The read-back.** Run `vela close readback --for-lead`. It lists each sentence that goes on record in the lead's name: the receipt of each decision they made (their words), each Why, and any line picked for the pull request. Read them in groups of about five, by item name, and for each the lead keeps it, rewords it or cuts it:
+
+- Reword: `vela close readback --reword <ID> --line decision --words "<their words>"`, with `--line why` for a Why and `--line quote` for a picked quote. The new words must be part of what they said, or they must have said them and approved this wording; in that case add `--approved ^cNN`, the capture where they did.
+- Cut: `vela close readback --cut <ID> --line why`, or `--line quote`, with the ID of the item whose page holds the line. A decision's own receipt can be reworded, never cut: their decision needs their words on record, and the command says so.
+- Pick a line for the pull request's "In their words": `vela close readback --pick ^cNN`. It takes the lead's own words; someone else's only if they gave their own yes to being quoted, whatever the lead says they told them.
+
+When they're done, run `vela close readback --done`. Changing a sentence after that reopens the read-back. If an item's owner is someone else and isn't here, their decision stays a name in the receipt with no words, and `close pr` lists it for them.
 
 ## 6. Bring in main and check
 
@@ -84,14 +94,22 @@ Flow steps whose sender or receiver is no app or party the plan knows (E351), an
 
 ## 7. Finish and send
 
-Run `vela check-slice --changed --for-lead`, which records what the gate reads (don't read its lines out), then `vela close gate --for-lead`. Say in your words which slices still run end to end and which break, and where. If the gate lists anything, group it by what holds the close up, about four at a time ("Three things before I can finish: two decisions have no yes from you yet, one note isn't sorted, and one page is waiting on seven open questions. One at a time?"), and take them one at a time with your view. Remind the lead they may keep any as it is: that's an override, noted with their reason (START, "The user may override any rule"). A decision with no yes needs the lead's own words: read the item back, capture their answer with them as origin (as step 2 below does, without the mark), and cite that capture in the item's `## Changes` row. Run the gate again until it says the session is ready.
+Run `vela check-slice --changed --for-lead`, which records what the gate reads (don't read its lines out), then `vela close gate --for-lead`. Say in your words which slices still run end to end and which break, and where. If the gate lists anything, group it by what holds the close up, about four at a time ("Three things before I can finish: two decisions have no yes from you yet, one note isn't sorted, and one page is waiting on seven open questions. One at a time?"), and take them one at a time with your view. Remind the lead they may keep any as it is: that's an override, noted with their reason (START, "The user may override any rule"). A decision with no yes needs the lead's own words: read the item back, capture their answer with them as origin (as step 2 below does, without the mark), and cite that capture in the item's `## Changes` row in the notes. Run the gate again until it says the session is ready.
+
+Three problems are about the words on record, not about a missing yes:
+
+- *"I haven't read back the wording that goes on record in your name yet."* Do section 5's read-back, then `--done`.
+- *"The decision on <name> has none of your words on record yet."* The lead's decisions carry the lead's own words. Reword it with `vela close readback --reword <ID> --line decision --words "<their words>" --approved ^cNN`, where that capture is a yes they gave in the session. If there is no such yes, ask for one now and capture it.
+- *"<Name>'s decision quotes someone who hasn't said yes to being quoted."* Ask that person once, if they're in the session (`grill` step 3 has the question), and capture their answer with them as origin and the tag `quote-yes`. Otherwise take their words out of the line at the read-back, by cutting it or rewording it. A yes the lead relays doesn't count.
+
+If it lists decisions "decided on the other machine", go back to section 5's first step: reconfirm comes before the read-back, so a finished read-back is never reopened by it.
 
 Then send, in this order: the yes must come after the notice and before the record closes.
 
-1. Run `vela close push --for-lead`. It prints the send notice and exits 3. Say it ("I'll send this for review to Ines and the payments team. OK?") and wait.
+1. Run `vela close push --for-lead`. It prints the send notice and exits 3. Say it ("I'll send this for review to Ines and the payments team. OK?") and wait. If it says a review needs its own branch, ask now, while the session is still open; on a yes run `vela session branch --for-lead`, `vela close sync-main` and `vela close stage`, then start again.
 2. Capture the lead's answer, whatever it is: `vela record add --origin @<handle from vela whoami> --tag decision --mark "drop: the yes to send this for review" "<their words>"`. It prints the capture's number. Never another name or an email address: close push sends only on the lead's own handle. On a no, do step 3 and stop: the session is filed and nothing is sent.
-3. Run `vela close finish --summary "<one line, in plain words>" --for-lead`. It closes the record, commits it from an allow-list (it never stages the inbox, `voice/local/` or `voice/corpus/`), writes and commits each handoff record, then rebuilds the dashboard. Say what it lists as not settled at handoff, so nobody hands an app over without knowing. If it stops because an app's handoff record exists, that app's team is accepting changes: run it with `--replace` only once they say so in this session.
-4. Run `vela close push --consent ^cN --for-lead`, with the number from step 2. If it says a review needs its own branch, ask the lead; on a yes run `vela session branch --for-lead` and start this section again. If it fails, say so in one sentence, give the branch and the retry it names, and stop. Do not open a PR for a branch that is not pushed.
+3. Run `vela close finish --summary "<one line, in plain words>" --for-lead`. It closes the session, fingerprints this machine's notes, and commits the stub and the pages from an allow-list (it never stages the notes, which stay on this machine, nor the inbox, `voice/local/` or `voice/corpus/`), writes and commits each handoff record, then rebuilds the dashboard. The summary opens the pull request and nobody reads it back, so it quotes no one: say what was filed, never what anyone said. Say what it lists as not settled at handoff, so nobody hands an app over without knowing. If it stops because an app's handoff record exists, that app's team is accepting changes: run it with `--replace` only once they say so in this session.
+4. Run `vela close push --consent ^cN --for-lead`, with the number from step 2. If it fails, say so in one sentence, give the branch and the retry it names, and stop. Do not open a PR for a branch that is not pushed.
 
 ## 8. Open the pull request
 
@@ -99,7 +117,7 @@ Write the two or three sentences a reviewer reads first to `.vela/close/prose.md
 
 ## What you tell the lead at the end
 
-Three to six plain sentences: what was filed, by group and in the lead's words; what is waiting on someone, with the date; and the pull request link, or why there is none. No capture number, ID or check code. The pull request is the reviewer's record; the lead doesn't need to read it. For a switch, end with the one line that starts the next mode, by name ("/vela:grill Desktop agent").
+Three to six plain sentences: what was filed, by group and in the lead's words; what is waiting on someone, with the date; and the pull request link, or why there is none. If the lead hasn't backed up their notes, add one line: "Your notes for this session are only on this computer. Want me to copy them somewhere safe?" On a yes, ask for a folder outside the plan and run `vela records backup --to <folder>`. No capture number, ID or check code. The pull request is the reviewer's record; the lead doesn't need to read it. For a switch, end with the one line that starts the next mode, by name ("/vela:grill Desktop agent").
 
 ## 9. The dashboard
 

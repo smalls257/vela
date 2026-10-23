@@ -4,11 +4,13 @@ import subprocess
 import sys
 
 from conftest import REPO, check, edit, findings
+import session_files
 
 BIN = REPO / "plugin" / "scripts" / "vela"
 CAP = "capabilities/CAP-001-sell.md"
 GOALS = "01-goals.md"
-SESSION = "sessions/2026-01-10-shop-api.md"
+SESSION_ID = "2026-01-10-shop-api"
+SESSION = f"sessions/{SESSION_ID}.md"
 CAP_PAGE = """---
 id: CAP-001
 type: capability
@@ -77,7 +79,7 @@ def test_template_ignores_pycache():
 # 4. an impossible date is a finding, not exit 2
 
 def test_impossible_date_is_e102_not_a_crash(mini):
-    edit(mini / SESSION, "date: 2026-01-10\n", "date: 2026-13-01\n")
+    session_files.edit_stub(mini, SESSION_ID, "date: 2026-01-10\n", "date: 2026-13-01\n")
     code, out = check(mini)
     assert code == 1
     assert ("E102", SESSION) in findings(out)
@@ -87,7 +89,7 @@ def test_impossible_date_is_e102_not_a_crash(mini):
 # 5. Changes rows mention IDs; they do not register them
 
 def test_source_id_found_only_in_a_changes_table_is_e207(mini):
-    edit(mini / SESSION, "| CON-001 | assumption | decided | [[2026-01-10-shop-api#^c01]] |",
+    session_files.edit_record(mini, SESSION_ID, "| CON-001 | assumption | decided | [[2026-01-10-shop-api#^c01]] |",
          "| CON-001 | assumption | decided | [[2026-01-10-shop-api#^c01]] |\n| SRC-99 | - | fact | [[2026-01-10-shop-api#^c01]] |")
     edit(mini / GOALS, 'sources: ["2026-01-10-shop-api"]', "sources: [SRC-99]")
     _, out = check(mini)
@@ -96,7 +98,7 @@ def test_source_id_found_only_in_a_changes_table_is_e207(mini):
 
 
 def test_epic_delivering_a_goal_found_only_in_changes_is_e207(mini):
-    edit(mini / SESSION, "| CON-001 | assumption | decided | [[2026-01-10-shop-api#^c01]] |",
+    session_files.edit_record(mini, SESSION_ID, "| CON-001 | assumption | decided | [[2026-01-10-shop-api#^c01]] |",
          "| CON-001 | assumption | decided | [[2026-01-10-shop-api#^c01]] |\n| G9 | - | assumption | [[2026-01-10-shop-api#^c01]] |")
     (mini / "13-epics").mkdir(exist_ok=True)
     (mini / "13-epics" / "EPC-001-sell.md").write_text("""---
@@ -144,7 +146,7 @@ def test_decided_fr_linking_a_grill_passes(mini):
 
 
 def test_decided_fr_linking_a_requirements_session_is_e317(mini):
-    edit(mini / SESSION, "modes: [grill]", "modes: [requirements]")
+    session_files.edit_stub(mini, SESSION_ID, "modes: [grill]", "modes: [requirements]")
     add_cap(mini, CAP_PAGE.replace("- **State:** assumption", "- **State:** decided\n- **Decision:** [[2026-01-10-shop-api]]"))
     _, out = check(mini)
     assert ("E317", CAP) in codes(out)

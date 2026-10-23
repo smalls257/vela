@@ -82,12 +82,16 @@ def everything(args):
 
 
 def open_record_text(root):
-    """(record text or None, note): the one open session record in this folder. None with a note when there are
-    several, so answers captured this session are listed again rather than guessed from the wrong record."""
+    """(record text or None, note): the notes of the one open session in this folder. None with a note when there are
+    several, or when the notes are not on this machine, so answers captured this session are listed again rather than
+    guessed from the wrong record or an empty one."""
     from vela.edge import sessiongit
     found, _ = sessions.find_open(sessiongit.folder_records(root))
     if len(found) == 1:
-        return (root / found[0].path).read_text(encoding="utf-8"), ""
+        text = sessiongit.private_text(root, found[0].id)
+        if text is None:
+            return None, "This session's notes are not on this machine, so questions answered this session are still listed."
+        return text, ""
     if len(found) > 1:
         return None, (f"{len(found)} sessions are open here, so questions answered this session are still listed.")
     return None, ""

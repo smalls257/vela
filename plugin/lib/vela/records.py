@@ -9,11 +9,11 @@ close's parser does not see, so it is never marked.
 
 So the number is the highest one the record has *ever* used, plus one. "Ever" is the union of what the caller can
 see: every `^cNN` in the text now (captures, and the Changes rows and links that cite numbers whose lines are gone),
-the high-water mark `.vela/session.json` keeps for this record, and the numbers in the record's git history. A deleted
-capture's number survives in at least one of those. And the line is built here, from parts, and refused when it would
+the high-water mark `.vela/session.json` keeps for this record. There is no history leg: the record is an untracked
+private file, so git holds none of its versions. A deleted capture's number survives in one of those two. And the line is built here, from parts, and refused when it would
 not read back.
 
-Pure: text in, text out; the edge reads the history and the session file.
+Pure: text in, text out; the edge reads the session file.
 """
 import re
 

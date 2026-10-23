@@ -4,7 +4,7 @@ Each rule here was a sentence in START.md or ANSWER-A-CHALLENGE.md a model follo
 reason in their names."""
 import pytest
 
-from vela import records, sessions
+from vela import privaterecord, records, sessions
 
 
 def text(record_id, status, modes):
@@ -66,11 +66,19 @@ def test_title_line_is_replaced_and_the_rest_kept():
     assert sessions.is_unnamed({"title": "New initiative"}) and not sessions.is_unnamed({"title": "Heron"})
 
 
-def test_record_text_reads_as_a_session_record():
-    body = sessions.record_text("2026-10-14-x", "Grill: x", "2026-10-14", ["grill"])
-    record, why = sessions.read("", "sessions/2026-10-14-x.md", body)
+def test_a_new_stub_reads_as_an_open_session_and_the_notes_hold_the_sections():
+    stub = privaterecord.new_stub("2026-10-14-x", "Grill: x", "2026-10-14", ["grill"])
+    record, why = sessions.read("", "sessions/2026-10-14-x.md", stub)
     assert why is None and (record.status, record.modes, record.title) == ("open", ("grill",), "Grill: x")
+    body = privaterecord.new_private("2026-10-14-x", "Grill: x", "2026-10-14", 1)
     assert "## Captures\n" in body and "| ID | From | To | Source |" in body
+
+
+def test_with_branch_puts_the_line_after_status():
+    stub = privaterecord.new_stub("2026-10-14-x", "Grill: x", "2026-10-14", ["grill"])
+    assert "status: open\nbranch: main\n" in sessions.with_branch(stub, "main")
+    again = sessions.with_branch(sessions.with_branch(stub, "main"), "other")
+    assert again.count("branch:") == 1 and "branch: other\n" in again
 
 
 def test_capture_number_counts_every_number_ever_seen():

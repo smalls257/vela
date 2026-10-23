@@ -14,6 +14,7 @@ import pytest
 
 from conftest import run
 from vela import voiceplan
+import session_files
 
 SESSION = "2026-10-14-voice-test"
 RECORD = f"""---
@@ -59,7 +60,7 @@ def example(root, place, voice_type, number, source="public-seed", state="active
 def vault(tmp_path):
     root = tmp_path / "vault"
     (root / "sessions").mkdir(parents=True)
-    (root / "sessions" / f"{SESSION}.md").write_text(RECORD, encoding="utf-8")
+    session_files.write_record(root, SESSION, RECORD)
     git(root, "init", "-q", "-b", "main")
     return root
 
@@ -269,7 +270,7 @@ def test_reader_copy_saves_only_locally(tmp_path):
     (root / ".vela").mkdir(parents=True)
     (root / ".vela" / "workspace.json").write_text("{}", encoding="utf-8")
     (root / "sessions").mkdir()
-    (root / "sessions" / f"{SESSION}.md").write_text(RECORD, encoding="utf-8")
+    session_files.write_record(root, SESSION, RECORD)
     code, out = voice(root, "save", "--from", str(passage_file(tmp_path)), "--type", "decision", "--place",
                       "committed", "--consent", "^c01", "--commit-consent", "^c02", "--author", "owner", "--where", "x")
     assert code == 1 and "local" in out
@@ -319,7 +320,7 @@ def harvest(tmp_path, monkeypatch):
     git(root, "remote", "add", "origin", str(origin))
     example(root, "committed", "decision", 1, source="owner", author='"@owner"')
     (root / "sessions").mkdir()
-    (root / "sessions" / f"{SESSION}.md").write_text(RECORD, encoding="utf-8")
+    session_files.write_record(root, SESSION, RECORD)
     (root / ".gitignore").write_text(".vela/\n", encoding="utf-8")
     git(root, "add", "-A")
     git(root, "commit", "-q", "-m", "Start")
@@ -406,11 +407,11 @@ def test_declined_line_written_and_skipped_next_time(harvest):
     candidate = data["candidates"][0]
     code, out = voice(root, "harvest", "decline", "7", candidate["page"], candidate["hash"])
     assert code == 0, out
-    record = (root / "sessions" / f"{SESSION}.md").read_text(encoding="utf-8")
+    record = session_files.record_text(root, SESSION)
     line = f"Harvest declined: PR 7 {PAGE} {candidate['hash']}"
     assert f"## Captures\n{line}\n" in record
     code, out = voice(root, "harvest", "decline", "7", candidate["page"], candidate["hash"])
-    assert code == 0 and record == (root / "sessions" / f"{SESSION}.md").read_text(encoding="utf-8")
+    assert code == 0 and record == session_files.record_text(root, SESSION)
     code, data = harvest_list(root)
     assert (code, data["candidates"]) == (0, [])
     assert any("no edits found" in line.lower() for line in data["lines"])

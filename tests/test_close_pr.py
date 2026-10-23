@@ -64,7 +64,7 @@ def calls(log):
 def pushed(tmp_path, **kwargs):
     vault, bare = sent_session(tmp_path, **kwargs)
     assert push(vault)[0] == 3
-    number = add_yes(vault, record_id=kwargs.get("record_id", RECORD))
+    number = add_yes(vault)
     code, out = push(vault, "--consent", number)
     assert code == 0, out
     return vault, bare
@@ -103,7 +103,7 @@ def test_a_branch_with_an_open_pull_request_gets_the_session_added_not_a_second_
     assert code == 0, out
     assert not created(log)
     (comment,) = [c for c in calls(log) if c["args"][:2] == ["pr", "comment"]]
-    assert comment["args"][2] == "9" and "**Consent**" in comment["body"]
+    assert comment["args"][2] == "9" and "**Decisions**" in comment["body"]
     assert "already has a review open" in out and "pull/9" in out
     code, out = pr(vault, "--json")
     assert json.loads(out)["added_to_open"] is True
@@ -116,7 +116,7 @@ def test_gh_failure_saves_body_and_says_one_sentence(tmp_path, monkeypatch):
     assert code == 1, out
     assert out.strip() == prbody.SAVED_SENTENCE and "I've kept its text" in out
     saved = (vault / ".vela" / "pr-body.md").read_text(encoding="utf-8")
-    assert "**Consent**" in saved
+    assert "**Decisions**" in saved
     code, out = pr(vault)
     assert code == 1 and "502" in out and "gh pr create" in out  # the default mode names what failed
 
@@ -131,14 +131,14 @@ def test_no_pr_claimed_without_url(tmp_path, monkeypatch):
     assert "github.invalid" not in out
 
 
-def test_consent_quotes_listed_in_body(tmp_path, monkeypatch):
+def test_receipts_listed_in_body_and_no_quotes(tmp_path, monkeypatch):
     log = fake_gh(tmp_path, monkeypatch)
     vault, _ = pushed(tmp_path)
     assert pr(vault)[0] == 0
     body = created(log)[0]["body"]
-    consent = body.split("**Consent**", 1)[1].split("\n\n**", 1)[0]
-    assert f'Stock level (CON-002), fact to decided: "{YES_WORDS}" [[{RECORD}#^c01]]' in consent
-    assert '"Yes, send it."' in consent and f"[[{RECORD}#^c02]]" in consent
+    assert f"- Stock level: fact to decided, [[{RECORD}]] c01" in body
+    assert YES_WORDS not in body and '"Yes, send it."' not in body
+    assert f"Sent with your yes on October 20, 2026." in body
 
 
 def test_pending_pr_number_written(tmp_path, monkeypatch):
@@ -198,7 +198,7 @@ def test_answer_session_pushes_challenge_branch_and_comments(tmp_path, monkeypat
     before = git(bare, "rev-parse", CHALLENGE_BRANCH)
     code, out = push(vault)
     assert code == 3 and f"`{CHALLENGE_BRANCH}`" in out and "comment on the challenge's pull request" in out, out
-    number = add_yes(vault, record_id=ANSWER)
+    number = add_yes(vault)
     code, out = push(vault, "--consent", number)
     assert code == 0, out
     assert git(bare, "rev-parse", CHALLENGE_BRANCH) == git(vault, "rev-parse", "HEAD") != before

@@ -11,7 +11,9 @@ import pytest
 
 from conftest import MINI, run
 from vela import say
+from vela.edge import sessiongit
 from vela.decisions import consent, schema
+import session_files
 
 RECORD_ID = "2026-10-20-grill-stock"
 STOCK = "05-building-blocks/stock-building-blocks.md"
@@ -55,7 +57,7 @@ def vault_with_record(tmp_path, captures=CAPTURES):
     shutil.copytree(MINI, root)
     lines = ["---", f"id: {RECORD_ID}", "type: session", "date: 2026-10-20", "modes: [grill]", "status: open",
              "summary: In progress.", "---", "", "# 2026-10-20 Stock grill", "", "## Captures", "", *captures, ""]
-    (root / "sessions" / f"{RECORD_ID}.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    session_files.write_record(root, RECORD_ID, "\n".join(lines) + "\n")
     return root
 
 
@@ -126,13 +128,9 @@ def test_reapply_is_noop(tmp_path, note_kind):
 
 def test_capture_text_changed_since_draft_refused(tmp_path, note_kind):
     root = vault_with_record(tmp_path)
-    from vela.decisions import record
-    rec, _ = record.open_record([("", f"sessions/{RECORD_ID}.md",
-                                  (root / "sessions" / f"{RECORD_ID}.md").read_text(encoding="utf-8"))])
+    rec, _ = sessiongit.open_record(root)
     path = decision_file(root, [schema.seal(good(), rec, ["^c31"])])
-    record_path = root / "sessions" / f"{RECORD_ID}.md"
-    record_path.write_text(record_path.read_text(encoding="utf-8").replace("file both as read", "file only stock"),
-                           encoding="utf-8")
+    session_files.edit_record(root, RECORD_ID, "file both as read", "file only stock")
     before = snapshot(root)
     code, out = apply(root, path, "--for-lead")
     assert code == 1 and "the answer changed since i wrote this down" in out.lower()

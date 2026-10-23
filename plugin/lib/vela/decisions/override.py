@@ -69,7 +69,7 @@ def validate(item, vault, record):
     if textedit.find(vault, str(item["on"])) is None:
         found.append(textedit.refusal("override-item", "I can't find the item that override is for.",
                                       f"{item['on']} is no item or page ID in this vault."))
-    why = consent.why_in_their_words(item["reason"], record)
+    why = consent.why_in_their_words(item["reason"], record, getattr(vault, "lead", None))
     if why is not None:
         return found + [why]
     capture = record.capture(item["reason"])

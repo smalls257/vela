@@ -18,7 +18,7 @@ no component owns (acknowledged by a gap or missed), and what the design cites t
 """
 import re
 
-from vela import schema
+from vela import privaterecord, schema
 
 from . import design_data
 from .record import title_of
@@ -179,10 +179,9 @@ def depends_edges(design):
 
 
 def challenge_recorded(vault, vault_id):
-    """A session with mode `challenge` that names the ID: the vault has recorded the senior's challenge."""
-    pattern = re.compile(rf"\b{re.escape(vault_id)}\b")
-    return next((s.name for s in vault.sessions if "challenge" in (s.meta.get("modes") or []) and pattern.search(s.text)),
-                None)
+    """True when a session lists the ID under `challenges`: the vault has recorded the senior's challenge. The
+    dashboard says only whether it is recorded, never which session."""
+    return any(vault_id in privaterecord.listed(s.meta, "challenges") for s in vault.sessions)
 
 
 def inside(vault, keys, designs):

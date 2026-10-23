@@ -14,7 +14,7 @@ Before your first question, read `voice/VOICE.md` if the vault has one, then `${
 
 First run `vela freshness --for-lead`. If it exits 3, this copy is behind the shared plan: stop, say what it printed in your words and offer to bring it up to date (`git switch main`, then `git pull --ff-only`), and go on once it is. When it says the copy is up to date, say nothing about it. A stale copy says an app isn't handed off when main says it is. If the command fails, say in one plain sentence that you couldn't check, then go on.
 
-A design opens no session record, so START's numbered steps don't apply; its rules "Owner or reader", "Plain names and a page a person can hold", "Shell that runs on a Mac and on Linux" and "The user may override any rule" do, and so does "Relaying a command" for every `--for-lead` line. When the terms slice, tracer or grill first come up, define each once from `vela terms <word>`.
+A design opens no session, so START's numbered steps don't apply; its rules "Owner or reader", "Plain names and a page a person can hold", "Shell that runs on a Mac and on Linux" and "The user may override any rule" do, and so does "Relaying a command" for every `--for-lead` line. When the terms slice, tracer or grill first come up, define each once from `vela terms <word>`.
 
 In conversation the team lead hears names, not codes. Say "the calendar entries", "the consent check", "the question about mail"; the IDs go in the files, on Trace lines and in the pull request.
 

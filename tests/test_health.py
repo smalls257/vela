@@ -2,6 +2,7 @@
 import re
 
 from conftest import check, edit, findings, run
+import session_files
 
 
 def stale(mini):
@@ -63,9 +64,9 @@ def test_other_free_text_cannot_mention_or_link(mini):
 
 
 def test_an_impossible_session_date_is_skipped_not_a_crash(mini):
-    session = next(mini.glob("sessions/*.md"))
-    text = session.read_text(encoding="utf-8")
-    session.write_text(re.sub(r"(?m)^date: .*$", 'date: "2026-02-30"', text, count=1), encoding="utf-8")
+    record_id = next(mini.glob("sessions/*.md")).stem
+    text = session_files.record_text(mini, record_id)
+    session_files.write_record(mini, record_id, re.sub(r"(?m)^date: .*$", 'date: "2026-02-30"', text, count=1))
     code, out = run("health", "--vault", str(mini), "--today", "2026-03-10")
     assert code == 0, out
 

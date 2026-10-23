@@ -24,11 +24,9 @@ Each rule keeps its reason:
 The shell (`commands/close_finish.py`) gathers the facts and runs each step through the public command that owns it
 (`close stage --close`, `vela handoff`, `vela explore`); this module never touches git, the disk or the clock.
 """
-import json
-import re
 from dataclasses import dataclass
 
-from vela import closegate, parse, schema
+from vela import closegate, privaterecord, schema
 
 CLOSE_MESSAGE = "Close session {id}"
 MANIFEST_MESSAGE = "Handoff manifest for {app}"
@@ -83,28 +81,13 @@ def checked_summary(summary):
     return text
 
 
-def with_closed(record_text, summary):
-    """The record with `status: closed` and `summary: <summary>` in its frontmatter (each added when missing). The
-    summary is written as a double-quoted YAML scalar (JSON's string form is one), so a colon in it can't break YAML."""
-    lines = record_text.split("\n")
-    if not lines or lines[0].strip() != "---":
-        raise SummaryRefused("the session record has no frontmatter block to close")
-    end = next((i for i in range(1, len(lines)) if lines[i].strip() == "---"), None)
-    if end is None:
-        raise SummaryRefused("the session record's frontmatter block never ends")
-    fields = {"status": "closed", "summary": json.dumps(checked_summary(summary), ensure_ascii=False)}
-    head = lines[1:end]
-    for key, value in fields.items():
-        found = [i for i, line in enumerate(head) if re.match(rf"^{key}\s*:", line)]
-        if found:
-            head[found[0]] = f"{key}: {value}"
-        else:
-            head.append(f"{key}: {value}")
-    text = "\n".join([lines[0], *head, *lines[end:]])
-    meta, _, error = parse.split_frontmatter(text)
-    if error is not None or meta.get("status") != "closed":
-        raise SummaryRefused("the session record's frontmatter would not read after closing it")
-    return text
+def closed_stub(stub_text):
+    """The committed stub with `status: closed`. The summary goes in the private file (`privaterecord.with_summary`),
+    so the committed header never carries the lead's words."""
+    try:
+        return privaterecord.with_status(stub_text, "closed")
+    except ValueError as exc:
+        raise SummaryRefused("the session record's frontmatter would not read after closing it") from exc
 
 
 def handed_off(vault):

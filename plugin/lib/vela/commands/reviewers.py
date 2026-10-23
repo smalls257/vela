@@ -35,7 +35,7 @@ import json
 import pathlib
 import shutil
 
-from vela import commands, questions, reviewprep, say
+from vela import commands, privaterecord, questions, reviewprep, say
 from vela.commands import close_drafts, close_stage, record
 from vela.edge import copies, flowstore, sessiongit, vaultgit
 
@@ -131,11 +131,11 @@ def _changes(root, reader, cli):
     return {p: t for p, t in changes.items() if p.endswith(".md") and cli.page_kind(p) == "page"}
 
 
-def _commit(root, rel, record_id, changes):
-    """Commit the record and each changed page that git still sees as uncommitted; the short hash, or None when
-    everything was already committed."""
+def _commit(root, record_id, changes):
+    """Commit the stub and each changed page that git still sees as uncommitted; the short hash, or None when
+    everything was already committed. The private notes are never committed: they are untracked on purpose."""
     dirty = set(flowstore.changed_files(root))
-    paths = sorted(p for p in {rel} | set(changes) if p in dirty)
+    paths = sorted(p for p in {privaterecord.stub_path(record_id)} | set(changes) if p in dirty)
     if not paths:
         return None
     return sessiongit.commit(root, close_stage.MESSAGES["checkpoint"].format(id=record_id), paths)
@@ -162,7 +162,7 @@ def prepare(root, args, reader, cli):
         raise Failed(f"--rerun {args.rerun}: the record has no checkpoint {args.rerun} under ## Reviews"
                      + (f" (it has {', '.join(map(str, held))})." if held else " (it has none yet)."))
     changes = _changes(root, reader, cli)
-    commit = None if reader else _commit(root, rel, record_id, changes)
+    commit = None if reader else _commit(root, record_id, changes)
     now = {p.path: p.text for p in vault.pages}
     now[rel] = text
     changed = reviewprep.reviewed_changes(changes, now, rel)

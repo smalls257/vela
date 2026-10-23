@@ -229,8 +229,8 @@ def test_every_page_reads_inside_the_explorer(demo):
     vault, (_, data) = demo
     loaded = cli.load_vault(vault)
     for page in loaded.pages:
-        if page.path.startswith("voice/"):
-            continue
+        if page.path.startswith("voice/") or page.type == "session":
+            continue  # a session record is not on the dashboard (test_explorer_no_sessions.py)
         key = build.Keys(loaded).page(page)
         assert key in data["reader"] and data["reader"][key]["html"], page.path
     links = re.findall(r'data-ref="([^"]+)"', "".join(r["html"] for r in data["reader"].values()))
@@ -461,7 +461,7 @@ def test_designs_are_embedded_and_checked_against_the_vault(designed):
     assert booking["targets"] == sorted(design_data.trace_targets(loaded, "APP-booking"))
     assert booking["resolved"]["untraced"] and set(booking["resolved"]["untraced"]) == set(booking["resolved"]["acknowledged"])
     assert D["APP-notifications"]["resolved"]["unresolved"] == [{"id": "EPC-037.AC9", "where": "trace:Booking event consumer"}]
-    assert [(c["oq"], c["id"], c["recorded"]) for c in booking["challenges"]] == [("OQ-001", "CAP-014.FR1", None)]
+    assert [(c["oq"], c["id"], c["recorded"]) for c in booking["challenges"]] == [("OQ-001", "CAP-014.FR1", False)]
     assert "minute 12" in booking["challenges"][0]["scenario"]
     # each Integration point meets the component that cites its contract, and names the boxes it reaches on the map
     stubs = {s["system"]: s for s in booking["stubs"]}

@@ -153,7 +153,7 @@ _Kept up to date by vela from the pages it reads._
 | Copy | State | Evidence | By | Date |
 |---|---|---|---|---|
 | Q-FIN-01@INI-002 | answered | item: [[03-context-and-scope#SV-01 Loyalty points\|SV-01]]; source: "the loyalty scheme, which reads FERRYMASTER directly and stays out of scope until INI-004" in [[03-context-and-scope]]; answer: Yes, the loyalty scheme holds customers' points, and it reads FERRYMASTER directly until INI-004 | @hl-solution-lead | 2026-11-19 |
-| Q-FIN-02@INI-002 | asked | capture: [[2026-11-19-owed-questions#^c01]] | @hl-solution-lead | 2026-11-19 |
+| Q-FIN-02@INI-002 | asked | capture: [[2026-11-19-owed-questions]] c01 | @hl-solution-lead | 2026-11-19 |
 | Q-FIN-03@SV-01 | answered | item: [[03-context-and-scope#SV-01 Loyalty points\|SV-01]]; source: "Finance, through INI-004 Loyalty Revamp" in [[03-context-and-scope]]; answer: Finance owns the points, through INI-004 Loyalty Revamp | @hl-solution-lead | 2026-11-19 |
 | Q-FIN-04@SV-01 | not-applicable | reason: INI-002 neither changes who holds the points nor combines two schemes | @hl-solution-lead | 2026-11-19 |
 | Q-FIN-05@SV-01 | not-applicable | reason: the loyalty scheme holds the balances and stays out of scope until INI-004, so INI-002 sets no expiry or closure rule | @hl-solution-lead | 2026-11-19 |

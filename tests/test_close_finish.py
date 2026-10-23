@@ -6,8 +6,9 @@ import shutil
 import subprocess
 
 from conftest import run
-from vela import closefinish, closegate, handoff, parse, say
+from vela import closefinish, closegate, handoff, parse, privaterecord, say
 from sharing import git, make_vault, with_remote
+import session_files
 
 RECORD = "2026-10-20-grill-stock"
 STOCK = "05-building-blocks/stock-building-blocks.md"
@@ -39,14 +40,14 @@ def session(tmp_path, sync=True, handed=None, captures=(), on_main=None):
     if on_main:
         on_main(vault)
     git(vault, "switch", "-q", "-c", f"session/{RECORD}")
-    (vault / "sessions" / f"{RECORD}.md").write_text(record_text(), encoding="utf-8")
+    session_files.write_record(vault, RECORD, record_text())
     git(vault, "add", "sessions")
     git(vault, "commit", "-q", "-m", f"Open session {RECORD}")
     if sync:
         assert run("close", "sync-main", "--vault", str(vault), "--today", TODAY)[0] == 0
     if handed:
         hand_off(vault, handed)
-    (vault / "sessions" / f"{RECORD}.md").write_text(record_text(captures), encoding="utf-8")
+    session_files.write_record(vault, RECORD, record_text(captures))
     assert run("render", "--vault", str(vault))[0] == 0
     return vault
 
@@ -64,7 +65,9 @@ def files_in(vault, ref):
 
 
 def record_meta(vault):
-    return parse.split_frontmatter((vault / "sessions" / f"{RECORD}.md").read_text(encoding="utf-8"))[0]
+    """The committed stub's header with the private notes' own keys (the summary) laid over it."""
+    notes = parse.split_frontmatter(session_files.record_text(vault, RECORD))[0]
+    return {**privaterecord.stub_meta(session_files.stub_text(vault, RECORD)), **notes}
 
 
 def manifest_already_accepted(vault):
@@ -93,6 +96,16 @@ def test_commit_order_close_then_manifest_then_dashboard(tmp_path):
     assert f"sessions/{RECORD}.md" in close and STOCK in close and "dashboard.html" not in close
     assert record_meta(vault)["status"] == "closed" and record_meta(vault)["summary"] == SUMMARY
     assert not git(vault, "status", "--porcelain", "--", "sessions", "handoffs", "dashboard.html")
+
+
+def test_the_finished_stub_holds_this_parts_fingerprint_and_verify_agrees(tmp_path):
+    vault = session(tmp_path, handed="@stock-team, 2026-10-20")
+    code, out = finish(vault)
+    assert code == 0, out
+    notes = session_files.record_text(vault, RECORD)
+    held = privaterecord.parts(privaterecord.stub_meta(session_files.stub_text(vault, RECORD)))
+    assert held == {privaterecord.part_of(notes): privaterecord.fingerprint(notes)}
+    assert run("records", "verify", RECORD, "--vault", str(vault))[0] == 0
 
 
 def test_manifest_written_after_close_commit_and_names_it(tmp_path):
@@ -128,7 +141,7 @@ def test_replace_without_team_yes_exits_3(tmp_path):
         assert git(vault, "rev-parse", "HEAD") == head and record_meta(vault)["status"] == "open"
         assert git(vault, "show", "HEAD:handoffs/APP-stock.md") == (vault / "handoffs" / "APP-stock.md").read_text(
             encoding="utf-8").rstrip("\n")
-    (vault / "sessions" / f"{RECORD}.md").write_text(record_text([TEAM_YES]), encoding="utf-8")
+    session_files.write_record(vault, RECORD, record_text([TEAM_YES]))
     code, out = finish(vault, "--replace")
     assert code == 0, out
     assert subjects(vault, 3) == ["Rebuild dashboard", "Handoff manifest for APP-stock", f"Close session {RECORD}"]
@@ -225,11 +238,13 @@ def test_the_steps_run_in_one_order():
                                                                            closefinish.DASHBOARD_BUILD]
 
 
-def test_with_closed_keeps_the_body_and_quotes_the_summary():
-    text = closefinish.with_closed(record_text(), 'Said "yes": to stock')
-    meta = parse.split_frontmatter(text)[0]
-    assert meta["status"] == "closed" and meta["summary"] == 'Said "yes": to stock'
-    assert text.split("---", 2)[2] == record_text().split("---", 2)[2]
+def test_closing_sets_the_stub_status_and_quotes_the_summary_in_the_notes():
+    split = privaterecord.split_record(record_text())
+    stub = closefinish.closed_stub(split.stub)
+    assert privaterecord.stub_meta(stub)["status"] == "closed" and "summary" not in privaterecord.stub_meta(stub)
+    notes = privaterecord.with_summary(split.private, 'Said "yes": to stock')
+    assert parse.split_frontmatter(notes)[0]["summary"] == 'Said "yes": to stock'
+    assert notes.split("---", 2)[2] == split.private.split("---", 2)[2]
 
 
 def test_close_tells_the_lead_which_yeses_wait_for_a_short_grill(tmp_path):
@@ -238,10 +253,12 @@ def test_close_tells_the_lead_which_yeses_wait_for_a_short_grill(tmp_path):
     page = vault / STOCK
     page.write_text(page.read_text(encoding="utf-8").replace("- **State:** fact", "- **State:** assumption", 1),
                     encoding="utf-8")
-    record = vault / "sessions" / f"{RECORD}.md"
-    record.write_text(record.read_text(encoding="utf-8").replace(
-        "## Captures", f"## Ready to decide\n\n- CON-002: the lead said yes in {RECORD} (^c01)\n\n## Captures"),
-        encoding="utf-8")
+    session_files.edit_record(
+        vault, RECORD, "## Captures",
+        f"## Ready to decide\n\n- CON-002: the lead said yes in {RECORD} (^c01)\n\n## Captures")
+    stub = vault / "sessions" / f"{RECORD}.md"
+    stub.write_text(privaterecord.synced_stub(stub.read_text(encoding="utf-8"),
+                                              session_files.record_text(vault, RECORD)), encoding="utf-8")
     assert run("render", "--vault", str(vault))[0] == 0
     code, out = finish(vault, "--for-lead")
     assert code == 0, out

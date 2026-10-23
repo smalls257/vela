@@ -14,6 +14,7 @@ import pytest
 from conftest import REPO, run
 from sharing import git, make_vault, with_remote
 from vela import say
+import session_files
 
 HERON = REPO / "tests" / "sim" / "snapshots" / "heron-desk" / "after-full-1"
 BOOKING = REPO / "examples" / "unified-booking"
@@ -59,9 +60,7 @@ def assert_lead_voice(out, heard):
 
 
 def copy_of(tmp_path, source, name):
-    target = tmp_path / name
-    shutil.copytree(source, target)
-    return target
+    return session_files.split_copy(source, tmp_path / name)
 
 
 READ_ONLY = [
@@ -101,7 +100,7 @@ def session(tmp_path):
               "## Captures", "", '- [unknown] (claude) Does the till count stock twice? ^c01',
               '- [wild] (@priya) "What if stock counted itself?" ^c02', "", "## Changes", "",
               "| ID | From | To | Source |", "|---|---|---|---|", ""]
-    (vault / "sessions" / f"{RECORD}.md").write_text("\n".join(record), encoding="utf-8")
+    session_files.write_record(vault, RECORD, "\n".join(record))
     git(vault, "add", "sessions")
     git(vault, "commit", "-q", "-m", f"Open session {RECORD}")
     return vault

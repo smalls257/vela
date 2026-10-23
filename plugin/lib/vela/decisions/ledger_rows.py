@@ -49,8 +49,8 @@ but never hands out a number another branch holds; a collision is the failure th
 """
 import re
 
-from vela import ledger, parse, questions, schema as vault_schema
-from vela.decisions import schema, textedit
+from vela import firsthand, ledger, parse, questions, receipts, schema as vault_schema
+from vela.decisions import consent, schema, textedit
 from vela.decisions.resolve import source_row
 
 PAGE = "11-unknowns-and-risks"
@@ -240,7 +240,7 @@ def validate(item, vault, record):
         found.append(textedit.refusal("ledger-by", "I need to know who said that, so the row says who decided it.",
                                       "Give by: the handle of whoever recorded or decided it (vela whoami for the "
                                       "lead's).", override="none: a row that isn't open names who decided it"))
-    return found + STATE_CHECKS[state](item, vault, record)
+    return found + STATE_CHECKS[state](item, vault, record) + pointer_refusals(item, vault, record)
 
 
 def copy_refusals(item):
@@ -355,6 +355,73 @@ STATE_CHECKS = {"open": lambda i, v, r: [], "asked": _asked, "answered": _answer
                 "unknown": _unknown, "not-applicable": _not_applicable}
 
 
+# --- whose words may leave the machine -------------------------------------------------------------------------------
+
+def free_text_refs(item):
+    """The captures whose words this row copies into a free-text cell (answer, belief, signpost, reason)."""
+    capture = item.get("capture")
+    state = item["state"]
+    if state == "answered":
+        return [item.get("answer") or capture]
+    if state == "assumed":
+        return [item.get("belief") or capture, item.get("signpost")]
+    if state == "not-applicable":
+        return [item.get("reason") or capture]
+    return []
+
+
+def kept_in_notes(record, ref, lead):
+    """The capture behind `ref` when a person's words in it may not be written to a page (their own quote-yes is
+    missing, and they are not the lead), else None. Claude's own captures are no one's words to hold back."""
+    capture = record.capture(ref) if ref else None
+    if capture is None or not capture.is_person or consent.may_quote(capture, record, lead):
+        return None
+    return capture
+
+
+def pointer_refusals(item, vault, record):
+    """A row can point at a person's first-hand source only when it knows who they are: a handle, and a lead to tell
+    them apart from. Otherwise the words would be copied (Silent Fallback) or the pointer would name no one."""
+    lead = getattr(vault, "lead", None)
+    out = []
+    for ref in free_text_refs(item):
+        capture = kept_in_notes(record, ref, lead)
+        if capture is None:
+            continue
+        if lead is None:
+            out.append(textedit.refusal("ledger-lead-unknown", "I don't know your GitHub handle yet, so I can't tell "
+                                        "whose words may go on the page.",
+                                        "Ask the lead once, run vela whoami --set <handle>, then file it again.",
+                                        override="none: whose words go on a page is checked against the lead's handle"))
+            return out
+        if not receipts.is_handle(capture.origin):
+            out.append(textedit.refusal("ledger-speaker-not-handle", f"I don't have a handle for {capture.origin.strip()}, "
+                                        "so I can't point at their first-hand source.",
+                                        f"Re-capture ^c{capture.n} with their handle (like @raj) as origin, then file "
+                                        "it again.", override="leave the row's words out"))
+    return out
+
+
+def first_hand_pointers(item, vault, record):
+    """({ref: "see SRC-nn"}, [Write]) for the cells that hold a person's words back. The first-hand row is the one
+    already in sources.md, or a new one added here (as the split does), numbered past every open branch."""
+    lead = getattr(vault, "lead", None)
+    path = textedit.page_path(vault, "sources")
+    text, cites, writes = (vault.text(path) if path else ""), {}, []
+    for ref in free_text_refs(item):
+        capture = kept_in_notes(record, ref, lead)
+        if capture is None or ref in cites:
+            continue
+        handle = receipts.handle_ref(capture.origin)
+        ident = firsthand.row_id(text, handle)
+        if ident is None:
+            ident = textedit.next_id(vault, "SRC")
+            text = firsthand.with_row(text, ident, handle, textedit.today(vault))
+            writes = [schema.Write(path, text)]
+        cites[ref] = f"see {ident}"
+    return cites, writes
+
+
 # --- writing --------------------------------------------------------------------------------------------------------
 
 def free_text(said):
@@ -365,23 +432,28 @@ def free_text(said):
     return textedit.cell(said)
 
 
-def evidence(item, vault, record, old):
+def evidence(item, vault, record, old, cites=None):
     state = item["state"]
+    cites = cites or {}
+
+    def said(ref):
+        return cites[ref] if ref in cites else free_text(words(record, ref))
+
     pairs = []
     if state == "asked":
-        pairs.append(("capture", textedit.capture_link(record.id, item["capture"])))
+        pairs.append(("capture", textedit.capture_ref(record, item["capture"])))
     elif state == "answered":
         pairs += [("item", textedit.link(vault, str(item["item"]), cell_link=True)),
-                  ("answer", free_text(words(record, item.get("answer") or item["capture"]))),
+                  ("answer", said(item.get("answer") or item["capture"])),
                   ("source", textedit.cell(str(item["source"]).strip()))]
     elif state == "assumed":
-        pairs += [("belief", free_text(words(record, item.get("belief") or item["capture"]))),
+        pairs += [("belief", said(item.get("belief") or item["capture"])),
                   ("load-bearing", str(item["load_bearing"])),
-                  ("signpost", free_text(words(record, item["signpost"])))]
+                  ("signpost", said(item["signpost"]))]
     elif state == "unknown":
         pairs.append(("unknown", textedit.link(vault, str(item["unknown"]), cell_link=True)))
     elif state == "not-applicable":
-        pairs.append(("reason", free_text(words(record, item.get("reason") or item["capture"]))))
+        pairs.append(("reason", said(item.get("reason") or item["capture"])))
     if item.get("covers"):
         pairs.append(("covers", textedit.cell(item["covers"])))
     copy = item.get("copy")
@@ -414,10 +486,10 @@ def ensure_ledger(text):
     return textedit.insert_block(text, HEADING, block, before=before)
 
 
-def row_line(item, vault, record, copy, old):
+def row_line(item, vault, record, copy, old, cites=None):
     by = by_of(item, record) or ""
     date = textedit.today(vault) if by else ""
-    return textedit.row(copy, item["state"], evidence(item, vault, record, old), by, date)
+    return textedit.row(copy, item["state"], evidence(item, vault, record, old, cites), by, date)
 
 
 def parsed_back(line, copy):
@@ -435,16 +507,17 @@ def apply(item, vault, record):
     copy = str(item.get("copy") or next_reviewer_id(vault, first_area(item)))
     rows = existing_rows(text)
     index, old = rows.get(copy, (None, None))
-    line = row_line(item, vault, record, copy, old)
+    cites, sources = first_hand_pointers(item, vault, record)
+    line = row_line(item, vault, record, copy, old, cites)
     parsed_back(line, copy)
     if index is None:
         page = textedit.add_row(text, ledger.HEADER, line)
     else:
         lines = text.rstrip("\n").split("\n")
         if lines[index] == line:
-            return []  # this row is already written as it would be
+            return sources  # this row is already written as it would be
         lines[index] = line
         page = "\n".join(lines) + "\n"
     cite = item.get("cite") or textedit.capture_link(record.id, item["capture"])
     rec = textedit.add_change(textedit.record_text(record, vault), copy, old.state if old else "-", item["state"], cite)
-    return [schema.Write(path, page)] + textedit.record_writes(record, vault, rec)
+    return [schema.Write(path, page)] + sources + textedit.record_writes(record, vault, rec)

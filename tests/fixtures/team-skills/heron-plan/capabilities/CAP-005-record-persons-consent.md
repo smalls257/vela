@@ -22,7 +22,7 @@ The business can have Consent and identity keep a record of who agreed to what, 
 When a person switches Heron on, they choose separately whether Heron may read their calendar entries and whether it may read their Teams transcripts. Each choice is kept.
 
 - **State:** assumption
-- **Source:** [[2026-10-12-heron-capability-requirements#^c39]]
+- **Source:** [[2026-10-12-heron-capability-requirements]] c39
 
 - A person chooses separately for calendar entries and for Teams transcripts.
 - A person cannot agree to transcripts without agreeing to calendar entries.
@@ -37,7 +37,7 @@ When a person switches Heron on, they choose separately whether Heron may read t
 When a person switches Heron off and Consent and identity does not confirm the withdrawal, Heron stops reading for that person at once, so a person never believes they have withdrawn while Heron still reads.
 
 - **State:** assumption
-- **Source:** [[2026-10-12-desk-agent-epics#^c06]]
+- **Source:** [[2026-10-12-desk-agent-epics]] c06
 
 - Heron stops reading for the person at once, without waiting for Consent and identity to confirm.
 - Heron deletes what it holds for the person.

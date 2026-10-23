@@ -71,7 +71,6 @@ def test_an_app_with_no_row_on_a_concern_page_is_unexamined_and_nothing_says_so(
 
 def test_no_code_reads_a_not_looked_at_yet_sentence():
     assert not hasattr(rules, "NOT_LOOKED_LINE") and not hasattr(rules, "not_looked_at")
-    assert "E315" not in schema.CODES
 
 
 def test_the_unknown_writer_leaves_blocks_out_when_it_blocks_nothing(tmp_path):

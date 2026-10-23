@@ -26,19 +26,21 @@ $ARGUMENTS
    - A skipped question, "not sure", or silence is fine: leave that group out, and the proposal says "no reason given". Never write a reason the user did not give or accept, and never hold the proposal back for one.
 4. Ask for a title of a few words, unless they gave one, offering one drawn from the changes.
 5. Ask: a folder, or a single zip (easier to attach to an email)?
-6. Run it with the reasons on standard input (no escaping needed), keyed by the group keys from step 2 exactly, a group with no reason left out:
+6. If they had a session of their own in this copy, ask: "Do you want to send your session notes along? They're your own words from the conversation, and by default they stay on this computer." Only a plain yes attaches them, and then you add `--with-record <session id>`. A no, or no answer, sends the changes without them.
+7. Run it with the reasons on standard input (no escaping needed), keyed by the group keys from step 2 exactly, a group with no reason left out:
 
 ```
-sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela propose --title "<title>" --whys - [--zip] <<'JSON'
+sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela propose --title "<title>" --whys - [--zip] [--with-record <session id>] <<'JSON'
 {"CON-001": "<their reason>", "CON-002": "<their reason>"}
 JSON
 ```
 
-7. Say what it printed in your own words: where the proposal is, what to send and to whom. Errors from their copy's check are listed first in the proposal and didn't stop it; the owner decides about them. The owner's answer comes back as `answer.md`, with a new published copy to open and continue from.
-8. If it stopped on a private path (a home folder, the place the copy was opened from), show that line and offer to reword it. If it is in a session record and the user agrees, run again with `--rewrite-home`: the proposal says `<home>` there, and their own files don't change. Never add that flag without their yes.
+8. Say what it printed in your own words: where the proposal is, what to send and to whom. Errors from their copy's check are listed first in the proposal and didn't stop it; the owner decides about them. The owner's answer comes back as `answer.md`, with a new published copy to open and continue from.
+9. If it stopped on a private path (a home folder, the place the copy was opened from), show that line and offer to reword it. If it is in a session's notes and the user agrees, run again with `--rewrite-home`: the proposal says `<home>` there, and their own files don't change. Never add that flag without their yes.
 
 ## Never
 
+- Never attach the session notes without a yes in this conversation.
 - Never send, email, upload or share the proposal. Say where it is and stop.
 - Never edit the pages in the workspace, and never run `git` or `gh`.
 - Never invent a reason, a title the user did not accept, or an owner's name; use what the tool printed.

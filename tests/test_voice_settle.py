@@ -12,6 +12,7 @@ import pytest
 
 from conftest import REPO, run
 from vela import cli
+import session_files
 
 TEMPLATE = REPO / "plugin" / "template"
 SESSION = "2026-10-14-voice-settle"
@@ -59,7 +60,7 @@ def vault(tmp_path):
     git(root, "init", "-q")
     git(root, "config", "user.name", "Test Lead")
     git(root, "config", "user.email", "lead@example.com")
-    (root / "sessions" / f"{SESSION}.md").write_text(RECORD, encoding="utf-8")
+    session_files.write_record(root, SESSION, RECORD)
     git(root, "add", "-A")
     git(root, "commit", "-q", "-m", "Start")
     for rel, draft in ((A, A_DRAFT), (B, B_DRAFT)):

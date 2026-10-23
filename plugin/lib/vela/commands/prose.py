@@ -22,7 +22,7 @@ so.
 import datetime
 import pathlib
 
-from vela import commands, prosereplace, rules, say, sessions
+from vela import commands, privaterecord, prosereplace, rules, say, sessions
 from vela.edge import atomic, sessiongit
 
 NAME = "prose replace"
@@ -65,22 +65,26 @@ def replace(root, page, line, wanted, today):
     record, why_not = open_record(root, wanted)
     if record is None:
         return why_not
-    record_path = root / record.path
+    record_rel = privaterecord.private_path(record.id)
+    record_path = root / record_rel
+    if not record_path.is_file():
+        missing = sessiongit.PrivateMissing(record.id)
+        return failed(str(missing), str(missing))
     try:
         record_text = record_path.read_bytes().decode("utf-8")
     except (OSError, UnicodeDecodeError) as exc:
-        return failed(f"cannot read {record.path}: {exc}", "I couldn't read the session record.")
+        return failed(f"cannot read {record_rel}: {exc}", "I couldn't read the session record.")
     date = today or datetime.date.today().isoformat()
     shown = page_path.relative_to(root).as_posix()
     try:
         atomic.write_atomic(record_path, prosereplace.with_entry(record_text, shown, date, found.text))
     except atomic.WriteFailed as exc:
-        return failed(f"cannot write {record.path}: {exc}", "I couldn't write the session record, so nothing changed.")
-    result = say.Result(NAME, wrote=[record.path], data={
-        "page": shown, "first": found.first, "last": found.last, "record": record.path, "date": date,
+        return failed(f"cannot write {record_rel}: {exc}", "I couldn't write the session record, so nothing changed.")
+    result = say.Result(NAME, wrote=[record_rel], data={
+        "page": shown, "first": found.first, "last": found.last, "record": record_rel, "date": date,
         "paragraph": found.text})
     result.lines.append(say.Line(f"copied {shown} lines {found.first}-{found.last} under {prosereplace.HEADING} "
-                                 f"in {record.path}.",
+                                 f"in {record_rel}.",
                                  plain="I kept the old paragraph word for word in the session record, so I can "
                                        "rewrite it and you can still see the old one."))  # voice audit row 225
     if sessiongit.is_read_copy(root):

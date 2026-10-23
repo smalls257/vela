@@ -34,7 +34,7 @@ it's checked whatever the host.
 
 `close pr`: when the branch already has an open pull request (`gh pr view` on the branch), the session's body is added to
 it as a comment and no second one is opened; the lead is told so. Reviewers from `owner:` fields (the lead's own handle dropped, `vela whoami`; team handles kept as
-`org/team`), the body `prbody.body` builds (the Consent list now lives there, with the push yes added), and
+`org/team`), the body `prbody.body` builds (its Decisions are the pages' receipts, its push line the day of the lead's yes; no capture's words are in it), and
 `gh pr create`; for an answer session, `gh pr comment` on the challenge's open PR instead. When `gh` fails, or prints
 no URL, the body is saved to `.vela/pr-body.md` and the lead hears one sentence; a PR is never said to exist unless
 `gh` printed its URL. When a PR was created and the session wrote `handed_off_pr: pending`, the number replaces
@@ -51,8 +51,8 @@ import re
 import tempfile
 from dataclasses import replace
 
-from vela import closegate, commands, parse, planscope, prbody, say, sessions
-from vela.commands import close_gate, whoami
+from vela import closegate, closereadback, commands, parse, planscope, prbody, privaterecord, say, sessions
+from vela.commands import apply, close_gate, whoami
 from vela.decisions import consent as consents
 from vela.decisions import record as records
 from vela.edge import flowstore, ghcli, hostprobe, sessiongit, vaultgit
@@ -115,6 +115,11 @@ class Session:
         return self.record.id
 
     @property
+    def part(self):
+        """Which part of the session's notes this machine holds: the part a committed citation names."""
+        return privaterecord.part_of(self.text)
+
+    @property
     def answer(self):
         return "answer" in self.record.modes
 
@@ -132,9 +137,12 @@ def find_session(root, command):
     except ValueError as exc:
         raise failed(command, f"vela {command}: {exc}", f"I couldn't read which session this is: {exc}") from exc
     record, text = None, ""
-    if state.get("path") and (root / str(state["path"])).is_file():
-        text = (root / str(state["path"])).read_text(encoding="utf-8")
-        record, _ = sessions.read("", str(state["path"]), text)
+    if state.get("stub") and (root / str(state["stub"])).is_file():
+        record, _ = sessions.read("", str(state["stub"]), (root / str(state["stub"])).read_text(encoding="utf-8"))
+        text = sessiongit.private_text(root, record.id) if record is not None else ""
+        if text is None:
+            missing = str(sessiongit.PrivateMissing(record.id))
+            raise failed(command, f"vela {command}: {missing}", missing)
     if record is None:
         found, text, early = close_gate.open_record(root)
         if early is not None:
@@ -247,7 +255,8 @@ def unready(root, vault, session, args):
     from vela import cli
     today, _ = cli.parse_today(args.today)
     readiness = closegate.ready(vault, session.text, session.id,
-                                close_gate.observe(root, vault, session.record, session.text, today))
+                                close_gate.observe(root, vault, session.record, session.text, today),
+                                session.part)
     if readiness.ready:
         return None
     lines = close_gate.problem_lines(readiness, say.Resolver(vault))
@@ -272,7 +281,7 @@ def trouble(why):
 
 def notice(root, vault, session):
     """The send notice and exit 3. The marker holds the capture count the yes must be numbered above."""
-    count = records.from_text(session.id, session.record.path, session.text).count
+    count = records.from_text(session.id, privaterecord.private_path(session.id), session.text).count
     found, _ = reviewer_handles(root, vault, changes(root), PUSH)
     if session.answer:
         said = (f"I'll push `{session.branch}` and add a comment on the challenge's pull request.",
@@ -286,7 +295,7 @@ def notice(root, vault, session):
     sessiongit.write_text(root, close_file(session.id, "push-notice"), json.dumps(marker, indent=2) + "\n")
     s = "" if count == 1 else "s"
     lines = [say.Line(f"{said[0]}\nThe record holds {count} capture{s} at this notice; capture the lead's yes after "
-                      "it (vela record add), commit it, then run vela close push --consent ^cNN.", plain=said[1])]
+                      "it (vela record add), then run vela close push --consent ^cNN.", plain=said[1])]
     result = say.Result(PUSH, exit=say.NEEDS_LEAD, lines=lines, data={"branch": session.branch, "reviewers": found},
                         needs_lead=[{"ask": "push", "question": said[1], "captures_at_notice": count,
                                      "answer_with": "--consent ^cNN"}])
@@ -295,7 +304,7 @@ def notice(root, vault, session):
 
 def consent_refusal(root, session, ref):
     """The first reason the yes doesn't qualify, or None; and the yes itself."""
-    record = records.from_text(session.id, session.record.path, session.text)
+    record = records.from_text(session.id, privaterecord.private_path(session.id), session.text)
     first = consents.a_yes(ref, record)
     if first is not None:
         return first, None
@@ -333,8 +342,11 @@ def send(root, vault, session, args):
                      f"{sent.command}",
                      plain=f"I couldn't send it: {trouble(sent.why)}. Shall I try again?")])
     head = vaultgit.git_out(root, "rev-parse", "HEAD")
+    from vela import cli
+    today, _ = cli.parse_today(args.today)
     pushed = {"version": VERSION, "branch": session.branch, "head": head, "consent": f"c{yes.n}",
-              "words": yes.quote, "link": f"[[{session.id}#^c{yes.n}]]", "answer": session.answer}
+              "date": today, "answer": session.answer,
+              "link": privaterecord.citation(session.id, session.part, int(yes.n))}
     wrote = [sessiongit.write_text(root, close_file(session.id, "push"), json.dumps(pushed, indent=2) + "\n")]
     plain = ("Sent. Now I'll add your answer to the challenge." if session.answer
              else "Sent. Now I'll open the review.")
@@ -377,11 +389,14 @@ def pushed_marker(root, session):
     return marker
 
 
+def stub_meta(root, session):
+    """The committed header of the session: where each part's fingerprint is kept."""
+    return privaterecord.stub_meta((root / privaterecord.stub_path(session.id)).read_text(encoding="utf-8"))
+
+
 def body_facts(root, vault, session, marker, before_texts, before, args):
     from vela import cli, ladder, questions, rules
     today, _ = cli.parse_today(args.today)
-    readiness = closegate.ready(vault, session.text, session.id,
-                                close_gate.observe(root, vault, session.record, session.text, today))
     findings = list(rules.check(vault, today))
     changed = set(before_texts)
     titles = {p.path: str(p.meta.get("title") or p.name) for p in vault.pages}
@@ -409,9 +424,12 @@ def body_facts(root, vault, session, marker, before_texts, before, args):
     summary = str(parse.split_frontmatter(session.text)[0].get("summary") or "")
     return prbody.Facts(
         summary=summary, prose=prose,
-        consent=prbody.consent_list(readiness.consent, prbody.push_consent(session.branch, marker.get("words", ""),
-                                                                           marker.get("link", ""))),
-        changed=prbody.what_changed(rows, vault), voice=prbody.voice_lines(voice, lambda p: titles.get(p, p)),
+        decisions=prbody.decision_lines(vault, session.id), push_line=prbody.push_words(marker.get("date", "")),
+        in_their_words=prbody.in_their_words(closereadback.valid_picks(
+            close_gate.read_picked(root, session.id), closegate.captures(session.text), apply.lead_of(root)), vault,
+            closegate.captures(session.text), apply.lead_of(root)),
+        fingerprint_note=prbody.fingerprint_notes(stub_meta(root, session), session.part),
+        changed=prbody.what_changed(rows, vault, session.id, session.part), voice=prbody.voice_lines(voice, lambda p: titles.get(p, p)),
         kept_on_claude=prbody.kept_on_claude(session.text, vault),
         not_read_back=prbody.not_read_back(decided, vault, prbody.present_people(session.text)),
         overrides=prbody.override_lines(added, vault),

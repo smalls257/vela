@@ -15,15 +15,17 @@ several): nothing was staged.
 The commit flags carry the close skill's own messages:
 - `--draft`: `draft: prose for <id>`, the drafted pages whole, so the reviewer's later edits show as a diff against it.
 - `--checkpoint`: `Checkpoint <id>`, because a merge refuses to run over uncommitted edits (`close sync-main` says when).
-- `--close`: `Close session <id>`, after the record says `status: closed`.
+- `--close`: `Close session <id>`, after the record says `status: closed`. With `--summary "<line>"` this command
+  does that itself: the summary goes into the private notes, the stub says closed, and this part's fingerprint is
+  written, then the commit. A challenge's answer closes this way, never by editing the files by hand.
 
 A reader copy (`.vela/workspace.json`, no `.git`) has no git, so nothing is run at all: the record is the reader's
 work, and it reaches the owner through a proposal.
 """
 import pathlib
 
-from vela import guard, parse, roles, say
-from vela.edge import stagegit, vaultgit
+from vela import closefinish, guard, parse, privaterecord, roles, say
+from vela.edge import sessiongit, stagegit, vaultgit
 
 MESSAGES = {"draft": "draft: prose for {id}", "checkpoint": "Checkpoint {id}", "close": "Close session {id}"}
 
@@ -40,6 +42,9 @@ def register_close(steps):
                        help="then commit as `Checkpoint <id>`, before a merge")
     which.add_argument("--close", dest="commit", action="store_const", const="close",
                        help="then commit as `Close session <id>`")
+    stage.add_argument("--summary", default="", metavar="LINE",
+                       help="with --close only: write the summary to the private notes, close the record and "
+                            "fingerprint this part first (the challenge skill's close; a full close uses `close finish`)")
     stage.add_argument("--paths-from-render", action="store_true",
                        help="first check that render has nothing left to rewrite, so the staged pages are its output")
     say.add_output_flags(stage)
@@ -69,14 +74,21 @@ def on_another_branch(root):
 
 
 def open_records(root):
-    """Ids of the records in sessions/ whose frontmatter says `status: open`, in name order.
+    """Ids of the stubs in sessions/ whose frontmatter says `status: open`, in name order, that belong to this
+    branch: a stub with no `branch` or one that names the branch we are on. The stubs are committed, so a branch
+    carries the open stubs of other sessions too; filing one of those would close another session's work. In a reader
+    copy there are no branches, so every open stub counts.
 
     Minimal on purpose: the working tree only. Task 6a's `session open` picker also reads `session/*` branches and
     shared answer branches; once it lands, this should call it instead of reading the folder."""
+    here = None if is_reader_copy(root) else sessiongit.current_branch(root)
     found = []
     for path in sorted((root / "sessions").glob("*.md")):
         meta, _, error = parse.split_frontmatter(path.read_text(encoding="utf-8"))
-        if error is None and str(meta.get("status", "")).strip() == "open":
+        if error is not None or str(meta.get("status", "")).strip() != "open":
+            continue
+        branch = str(meta.get("branch") or "").strip()
+        if here is None or not branch or branch == here:
             found.append(path.stem)
     return found
 
@@ -186,6 +198,8 @@ def cmd_close_stage(args, out):
     from vela import cli
     root = pathlib.Path(args.vault).resolve()
     mode = say.mode_of(args)
+    if args.summary and args.commit != "close":
+        raise cli.ToolError("close stage: --summary goes with --close, which is the commit that files the summary")
     result = say.Result("close stage")
     if is_reader_copy(root):
         result.lines.append(say.Line("vela close stage: this is a read copy, so nothing is staged or committed.",
@@ -205,12 +219,18 @@ def cmd_close_stage(args, out):
         raise cli.ToolError(str(exc)) from exc
     if ident is None:
         return cli_emit(result, args, out)
+    files = {}
+    if args.summary:
+        files, early = closed_files(args, root, ident)
+        if early is not None:
+            return cli_emit(early, args, out)
     if args.paths_from_render:
         stale, problems = stale_render(root)
         if stale or problems:
             result.exit = say.REFUSED
             result.refusals.append(render_refusal(stale, problems))
             return cli_emit(result, args, out)
+    before = write_closed(root, files) if files else {}
     try:
         changed = stagegit.changed_paths(root)
         plan = guard.plan(changed, vault_pages(changed), ident)
@@ -222,8 +242,11 @@ def cmd_close_stage(args, out):
             committed = True
         elif args.commit:
             commit_line = "nothing to commit: no allow-listed file changed"
-    except vaultgit.GitUnavailable as exc:
+    except (vaultgit.GitUnavailable, OSError) as exc:
+        put_back(root, before)
         raise cli.ToolError(f"close stage: {exc}") from exc
+    if before and not (committed and privaterecord.stub_path(ident) in plan.stage):
+        put_back(root, before)  # the close commit didn't take the closed stub, so nothing may keep saying closed
     result.data = {"session": ident, "staged": list(plan.stage),
                    "left": [{"path": p, "reason": why} for p, why in plan.left],
                    "never": [{"path": p, "rule": r.key, "reason": r.plain} for p, r in plan.never],
@@ -232,6 +255,40 @@ def cmd_close_stage(args, out):
     result.exit = say.REFUSED if (plan.left or plan.never) else say.DONE
     report(result, plan, commit_line, committed, mode)
     return cli_emit(result, args, out)
+
+
+def closed_files(args, root, ident):
+    """({path: new text}, None) for `--summary`: the notes with the summary, and the stub closed and fingerprinted for
+    this part. Nothing is written here. Else ({}, the Result that says why not)."""
+    try:
+        summary = closefinish.checked_summary(args.summary)
+        notes = sessiongit.private_text(root, ident)
+        if notes is None:
+            raise sessiongit.PrivateMissing(ident)
+        notes = privaterecord.with_summary(notes, summary)
+        stub = (root / privaterecord.stub_path(ident)).read_text(encoding="utf-8")
+        stub = privaterecord.with_part(closefinish.closed_stub(stub), privaterecord.part_of(notes),
+                                       privaterecord.fingerprint(notes))
+    except (closefinish.SummaryRefused, ValueError, OSError) as exc:  # PrivateMissing is a ValueError
+        return {}, say.Result("close stage", exit=say.FAILED, lines=[say.Line(f"vela close stage: {exc}", plain=str(exc))])
+    return {privaterecord.private_path(ident): notes, privaterecord.stub_path(ident): stub}, None
+
+
+def put_back(root, before):
+    """One way back after `--summary` wrote the closed stub and notes: both files as they were, the stub out of the
+    index, so a failed or partial close leaves no record that says closed without a commit that filed it."""
+    for rel, text in before.items():
+        sessiongit.write_text(root, rel, text)
+    vaultgit.run_git(root, "reset", "-q", "--", *[rel for rel in before if rel.startswith("sessions/") and
+                                                    not privaterecord.is_private(rel)])
+
+
+def write_closed(root, files):
+    """Write `files`; the earlier text of each, to put back if the stage or commit then fails."""
+    before = {rel: (root / rel).read_text(encoding="utf-8") for rel in files}
+    for rel, text in files.items():
+        sessiongit.write_text(root, rel, text)
+    return before
 
 
 def cli_emit(result, args, out):

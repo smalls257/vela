@@ -1,5 +1,5 @@
 """`vela close gate` (overhaul Tasks 10a and 10) against a real vault repo: a decision since the branch point needs the
-lead's quoted yes in the record, main must have been brought in, and `--consent-block` quotes the lead verbatim. Task 10
+lead's quoted yes in the record, main must have been brought in, and the PR body carries no quote. Task 10
 adds the rest of the one list: unmarked captures, check errors, ledger rows or overrides removed since the branch point,
 stray files, a stale render, the flow check per affected slice, and whether hooks ran."""
 import json
@@ -9,6 +9,7 @@ import subprocess
 from conftest import REPO, run
 from vela import closegate, say
 from sharing import git, make_vault, with_remote
+import session_files
 
 RECORD = "2026-10-20-grill-stock"
 STOCK = "05-building-blocks/stock-building-blocks.md"
@@ -25,7 +26,7 @@ def session(tmp_path, sync=True):
     vault = make_vault(tmp_path)
     with_remote(tmp_path, vault)
     git(vault, "switch", "-q", "-c", f"session/{RECORD}")
-    (vault / "sessions" / f"{RECORD}.md").write_text(record_text(), encoding="utf-8")
+    session_files.write_record(vault, RECORD, record_text())
     git(vault, "add", "sessions")
     git(vault, "commit", "-q", "-m", f"Open session {RECORD}")
     if sync:
@@ -43,7 +44,7 @@ YES_ROW = f"| CON-002 | fact | decided | [[{RECORD}#^c01]] |"
 def decide_stock(vault, captures=(), rows=(), extra=""):
     page = vault / STOCK
     page.write_text(page.read_text(encoding="utf-8").replace("- **State:** fact", DECIDED + extra, 1), encoding="utf-8")
-    (vault / "sessions" / f"{RECORD}.md").write_text(record_text(captures, rows), encoding="utf-8")
+    session_files.write_record(vault, RECORD, record_text(captures, rows))
     assert run("render", "--vault", str(vault))[0] == 0
 
 
@@ -94,22 +95,12 @@ def test_bare_ok_is_not_a_yes(tmp_path):
     assert code == 1 and "You said 'ok' on Stock level. Was that a yes to deciding Stock level?" in out
 
 
-def test_a_quoted_yes_is_ready_and_the_consent_block_quotes_it(tmp_path):
+def test_a_quoted_yes_is_ready(tmp_path):
     vault = session(tmp_path)
     decide_stock(vault, [YES], [YES_ROW])
     code, out = gate(vault, "--for-lead")
     assert code == 0 and "ready to finish" in out, out
-    code, out = gate(vault, "--consent-block")
-    assert code == 0
-    assert f'- Stock level (CON-002), fact to decided: "Yes, decide stock level as read." [[{RECORD}#^c01]]' in out
-
-
-def test_consent_block_quotes_the_lead_verbatim(tmp_path):
-    words = 'Yes | with "care", and decide it'
-    vault = session(tmp_path)
-    decide_stock(vault, [f"- [thought] (@priya) {words}{MARK} ^c01"], [YES_ROW])
-    _, out = gate(vault, "--consent-block")
-    assert "care" in out and "**Consent**" in out
+    assert gate(vault, "--consent-block")[0] == 2  # the flag is gone: the PR carries receipts, not words
 
 
 def test_override_bullet_lets_it_through_and_is_listed(tmp_path):
@@ -118,8 +109,7 @@ def test_override_bullet_lets_it_through_and_is_listed(tmp_path):
     decide_stock(vault, extra=bullet)
     code, out = gate(vault)
     assert code == 0, out
-    _, block = gate(vault, "--consent-block")
-    assert "by override" in block and "on the phone" in block
+    assert "ready" in gate(vault, "--for-lead")[1]
 
 
 def test_sync_not_run_blocks(tmp_path):
@@ -153,7 +143,7 @@ def session_with(tmp_path, before_branch):
     with_remote(tmp_path, vault)
     on_main(vault, *before_branch)
     git(vault, "switch", "-q", "-c", f"session/{RECORD}")
-    (vault / "sessions" / f"{RECORD}.md").write_text(record_text(), encoding="utf-8")
+    session_files.write_record(vault, RECORD, record_text())
     git(vault, "add", "sessions")
     git(vault, "commit", "-q", "-m", f"Open session {RECORD}")
     assert run("close", "sync-main", "--vault", str(vault), "--today", "2026-10-20")[0] == 0
@@ -180,7 +170,7 @@ def test_unmarked_capture_blocks(tmp_path):
     decide_stock(vault, [YES, "- [idea] (claude) ask the till team about returns ^c02"], [YES_ROW])
     code, out = gate(vault, "--for-lead")
     assert code == 1, out
-    assert "One thing you said isn't sorted yet: keep it, set it aside for later, or drop it?" in out
+    assert "One thing said in the session isn't sorted yet: keep it, set it aside for later, or drop it?" in out
     assert say.leak_in(out) is None
 
 
@@ -258,7 +248,7 @@ def test_flowcheck_line_per_affected_slice(tmp_path):
     git(vault, "add", "-A")
     git(vault, "commit", "-q", "-m", "the plan")
     git(vault, "switch", "-q", "-c", f"session/{RECORD}")
-    (vault / "sessions" / f"{RECORD}.md").write_text(record_text(), encoding="utf-8")
+    session_files.write_record(vault, RECORD, record_text())
     billing = vault / "05-building-blocks" / "billing-building-blocks.md"
     billing.write_text(billing.read_text(encoding="utf-8").replace("| declined |  | 402 |", "| declined |  | 403 |", 1),
                        encoding="utf-8")
@@ -296,7 +286,7 @@ def test_close_offers_only_ready_steps():
     close.register(parser.add_subparsers())
     top = next(a for a in parser._actions if isinstance(a, argparse._SubParsersAction))
     steps = next(a for a in top.choices["close"]._actions if isinstance(a, argparse._SubParsersAction)).choices
-    names = {"close_sync": "sync-main", "close_stage": "stage", "close_gate": "gate", "close_drafts": "drafts",
+    names = {"close_sync": "sync-main", "close_stage": "stage", "close_gate": "gate", "close_reconfirm": "reconfirm", "close_readback": "readback", "close_drafts": "drafts",
              "close_finish": "finish", "close_push": "push"}
     for name in close.STEPS:
         module = importlib.import_module(f"vela.commands.{name}")

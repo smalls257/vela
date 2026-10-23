@@ -5,7 +5,7 @@ Every rule runs on every page it can read. No rule stops the others.
 import datetime
 import re
 
-from vela import allocation, cases, deferrals, flows, handoffwarn, links, override, parse, pending, progress, questions, readability, readload, releases, render, schema, slices, sourcerows, trace, wording
+from vela import allocation, cases, deferrals, flows, handoffwarn, links, override, parse, pending, privaterecord, progress, questions, receipts, readability, readload, releases, render, schema, slices, sourcerows, trace, wording
 from vela.model import Finding, blocked_units, decided_goal_rows, goal_rows_at, meta_line
 
 
@@ -260,8 +260,15 @@ def link_rules(vault, today):
                 continue
             if link.anchor.startswith("^"):
                 if link.anchor[1:] not in target.block_ids:
-                    yield _f(page, link.line, "E202", f"Block reference #{link.anchor} matches no line in {target.name}.",
-                             f"Point it at a line in {target.name} that ends with {link.anchor}.")
+                    # Only when the block is missing: a record still committed whole keeps its anchors, a stub has none.
+                    if target.type == "session" and re.fullmatch(r"\^c\d+", link.anchor):
+                        yield _f(page, link.line, "E202", f"[[{target.name}#{link.anchor}]] points into a session's "
+                                 "notes, which stay on the lead's machine.",
+                                 f"Cite the capture as [[{target.name}]] c{link.anchor[2:]} (2.c{link.anchor[2:]} from "
+                                 "the second part).")
+                    else:
+                        yield _f(page, link.line, "E202", f"Block reference #{link.anchor} matches no line in "
+                                 f"{target.name}.", f"Point it at a line in {target.name} that ends with {link.anchor}.")
                 continue
             texts = [h.text for h in target.headings]
             if link.anchor in texts:
@@ -477,15 +484,12 @@ def deferral_rules(vault, today):
                      "Write it as an unknown with an owner and an ask-by date, link it from this paragraph, and let the Grill answer it.")
 
 
-WORDING_YES = re.compile(r"^\[\[(?P<record>[^\]#|]+)#\^c(?P<n>\d+)\]\]$")
-
-
 def wording_rules(vault, today):
     """E361. An imported page voiced (`split` or `voice`) without the lead's answer on record: whether a document's
-    prose is rewritten in the plan's voice is the lead's call, so the page links the capture of their words, a
-    person's and not a bare "ok", the same test close's gate puts a decision's yes to. Until then a page keeps the
-    documents' words (`keep`)."""
-    from vela import closegate
+    prose is rewritten in the plan's voice is the lead's call, so the page cites the capture of their words, as
+    `[[<session>]] c07`, and that session is a page in the plan. Whether the capture is a person's and not a bare "ok"
+    is `vela import wording`'s test, made on the lead's machine where the notes are: the notes never reach a clone,
+    so this check can only judge the form. Until then a page keeps the documents' words (`keep`)."""
     for page in vault.pages:
         if wording.WORDING_KEY not in page.meta:
             continue
@@ -497,11 +501,9 @@ def wording_rules(vault, today):
             continue
         if value == wording.KEEP:
             continue
-        link = WORDING_YES.match(str(page.meta.get(wording.WORDING_YES_KEY) or "").strip())
-        record = vault.page(link["record"]) if link else None
-        said = closegate.captures(record.text) if record is not None and record.type == "session" else {}
-        capture = next((c for n, c in said.items() if link and int(n) == int(link["n"])), None)
-        if capture is None or not capture.is_person or capture.is_bare_non_yes:
+        cited = privaterecord.parse_citation(str(page.meta.get(wording.WORDING_YES_KEY) or ""))
+        record = vault.page(cited[0]) if cited else None
+        if record is None or record.type != "session":
             yield _f(page, line, "E361", f"{page.id or page.name} is voiced ({value}) with no answer from the lead on "
                                          "record.",
                      "Ask the lead the voice question, record it with vela import wording, then vela import page; or "
@@ -1486,6 +1488,22 @@ def link_pipe_rules(vault, today):
                              "Write its label pipe as \\| inside a table, as in [[page#Heading\\|label]].")
 
 
+def session_note_rules(vault, today):
+    """W720: a session page that still holds its notes. The committed record is a stub with no body; a page that has
+    words is a record `vela records split` hasn't moved to its private file, and git would share it with every clone."""
+    for page in vault.pages:
+        if page.type != "session":
+            continue
+        _, body_line, error = parse.split_frontmatter(page.text)
+        if error is not None:
+            continue
+        lines = parse.lines_of(page.text)
+        first = next((n for n in range(body_line, len(lines) + 1) if lines[n - 1].strip()), None)
+        if first is not None:
+            yield _f(page, first, "W720", "This session record still holds its notes, so they're shared with everyone who clones the plan.",
+                     "Run vela records split.")
+
+
 RULES = (parse_errors, frontmatter_rules, duplicate_rules, link_rules, reference_rules, table_rules,
          history_rules, page_state_rules, stale_mention_rules, allocation_rules, release_rules, slice_rules, flow_sender_rules, flow_end_rules, flow_capability_rules, domain_rules, ask_rules, requirement_coverage_rules, contract_rules, case_table_rules, handoff_rules, deferral_rules, why_rules, wording_rules, requirement_rules, unknown_rules, risk_rules, subject_rules, question_rules, certainty_rules, stage_rules, concern_rules,
-         diagram_rules, block_rules, trace_rules, freshness_rules, link_field_rules, link_pipe_rules, reading_load_rules)
+         diagram_rules, block_rules, trace_rules, freshness_rules, link_field_rules, link_pipe_rules, reading_load_rules, session_note_rules, receipts.receipt_rules)

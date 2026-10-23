@@ -5,23 +5,5 @@ title: "Grill: kiosks and rollout"
 date: 2026-08-26
 modes: [grill]
 status: closed
-summary: The kiosk image cycle forces a stable API for six months. Set the channel order and the 4-week switch.
+captures_sha256: {1: "8693307487678c9ce4ede92b2fcd0efa64cceef8c0b77a5d9605e63c8ba2118e"}
 ---
-
-# 2026-08-26 Grill: kiosks and rollout
-
-This record was rebuilt from the session history when the vault moved to CONVENTIONS.md. Captures from before then were not kept.
-
-## Captures
-
-None kept.
-
-## Changes
-
-| ID | From | To | Source |
-|---|---|---|---|
-| ADR-0003 | proposed | decided | pre-v1 record |
-| CON-001 | assumption | decided | pre-v1 record |
-| UNK-004 | new | open | pre-v1 record |
-| R-02 | open | mitigated | pre-v1 record |
-| RUN-kiosks | assumption | decided | pre-v1 record |

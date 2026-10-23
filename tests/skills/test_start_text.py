@@ -263,14 +263,14 @@ def test_start_answers_a_challenge_on_its_own_branch():
     assert "ANSWER-A-CHALLENGE.md" in section("Answer a challenge")
     assert "`vela session start --mode answer --answer <PR number or the challenged ID> --for-lead`" in ANSWER
     assert "never starts on a guessed branch" in ANSWER
-    assert "never opening a new one" in ANSWER and "adds `grill` to the record's modes" in ANSWER
+    assert "never opening a new one" in ANSWER and "adds `grill` to the session's modes" in ANSWER
 
 
 def test_answer_a_challenge_lost_its_recipe_to_session_start():
     for recipe in ("gh pr list --search", "git switch <headRefName>", "Do not run `git switch -c`",
                    "`<date>-answer-<id-lowercased>`", "E316", "senior", "Grill"):
         assert recipe not in ANSWER, recipe
-    assert len(ANSWER.split()) < 200
+    assert len(ANSWER.split()) < 240  # the stub/notes split and the read-back words rule add two sentences
 
 
 def test_relaying_a_command_says_more_and_what_to_do_on_my_side():

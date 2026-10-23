@@ -820,6 +820,10 @@ def build_vault_from(arm_dir, start, persona):
     inbox = vault / ".inbox"
     # As vela upgrade would: a snapshot saved before the format changed starts with the plugin's own copy.
     shutil.copyfile(PLUGIN / "template" / "CONVENTIONS.md", vault / "CONVENTIONS.md")
+    # Snapshots hold whole records; the plugin under test keeps notes private, so the copy is split as a real plan
+    # would be (the lead's words stripped from committed pages, the .gitignore line written) before git sees it.
+    from vela.commands import private_records
+    private_records.split_folder(vault, "@sim-lead", datetime.date.today().isoformat())
     for doc in persona.get("docs") or []:
         inbox.mkdir(exist_ok=True)
         (inbox / doc["name"]).write_text(doc["text"].strip() + "\n", encoding="utf-8")

@@ -3,7 +3,8 @@ sources and the build stamp, and writes the result.
 
 The file needs no network: marked and mermaid are inlined and fonts are system
 fonts. Session records and voice files are left out, and links to them render
-as plain text.
+as plain text. A page that linked a session only to say when something happened keeps the date, in words
+(sessiondates.py); the reading copy names no session record.
 """
 import base64
 import hashlib
@@ -11,7 +12,7 @@ import html as html_lib
 import json
 import re
 
-from vela import override, readability, reading
+from vela import override, readability, reading, sessiondates
 from vela.parse import MARKER_TEXT, closes_fence
 
 EXCLUDED_FOLDERS = ("sessions/",)
@@ -180,14 +181,24 @@ def name_the_ids(markdown, names):
     return "\n".join(out)
 
 
-def page_data(page, names=None):
+def shown_meta(page, vault=None):
+    """The frontmatter as the copy shows it. With a vault, `sources:` drops any session record it names: the copy shows the plan, not its log."""
+    meta = {k: (v if isinstance(v, (str, list)) else str(v)) for k, v in page.meta.items()}
+    if vault is not None and isinstance(meta.get("sources"), list):
+        sessions = sessiondates.session_names(vault)
+        meta["sources"] = [s for s in meta["sources"] if s not in sessions]
+    return meta
+
+
+def page_data(page, names=None, vault=None):
     state = str(page.meta.get("state", ""))
-    body = reading.arrange(neutralize(body_of(page)))
+    text = body_of(page) if vault is None else sessiondates.without_sessions(vault, body_of(page), page)
+    body = reading.arrange(neutralize(text))
     return {
         "path": page.path,
         "name": page.name,
         "title": str(page.meta.get("title") or page.name),
-        "meta": {k: (v if isinstance(v, (str, list)) else str(v)) for k, v in page.meta.items()},
+        "meta": shown_meta(page, vault),
         "body": name_the_ids(body, names) if names is not None else body,
         "not_started": reading.not_started(body_of(page), page.type, state),
         "headings": [h.text for h in page.headings],
@@ -238,9 +249,9 @@ def build(vault, marked_js, mermaid_js, mermaid_safe_js, stamp):
         "title": str(vault.config.get("title", "")),
         "initiative": str(vault.config.get("initiative", "")),
         "start": START_PAGE,
-        "excluded": sorted(excluded_names(vault)),
+        "excluded": sorted(excluded_names(vault) - {n.lower() for n in sessiondates.session_names(vault)}),
         "stamp": stamp,
-        "pages": [page_data(p, names) for p in sorted(bundled(vault), key=lambda p: p.path)],
+        "pages": [page_data(p, names, vault) for p in sorted(bundled(vault), key=lambda p: p.path)],
     }
     payload = script_json(data)
     scripts = {"MARKED": script_safe(marked_js), "MERMAID": script_safe(mermaid_js), "APP": APP_JS.replace("__MARKER_TEXT__", MARKER_TEXT).replace("__MERMAID_SAFE__", mermaid_safe_js)}

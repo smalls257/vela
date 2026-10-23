@@ -302,7 +302,7 @@ const PlanDetails = (() => {
   }
   /* What a person owns besides the questions: the pages and items the plan gives them, each a link to its details. */
   function ownedBy(who) {
-    const o = D.owners[who], rest = o ? o.owns.filter((k) => ent(k) && !["unknown", "session"].includes(kindOf(k))) : [];
+    const o = D.owners[who], rest = o ? o.owns.filter((k) => ent(k) && kindOf(k) !== "unknown") : [];
     return rest.length ? sec("What they own", rest.length, bullets(rest.map((k) => link(k)))) : null;
   }
 

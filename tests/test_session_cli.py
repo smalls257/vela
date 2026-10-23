@@ -8,6 +8,8 @@ import sys
 
 from conftest import MINI, run
 from sharing import advance_remote, git, make_vault, with_remote
+import session_files
+from vela.privaterecord import stub_meta
 
 TODAY = "2026-10-14"
 NO_SEND = ("I can file the session here, but I can't send it. Open Claude Code in this folder and type /vela:close "
@@ -73,9 +75,9 @@ def test_start_on_main_stays_on_main_notes_it_and_says_a_review_needs_a_branch(t
     assert head(vault)[1] == "main"
     assert git(vault, "log", "-1", "--format=%s") == f"Open session {record_id}"
     assert git(vault, "rev-parse", "HEAD~1") == began
-    record = (vault / "sessions" / f"{record_id}.md").read_text(encoding="utf-8")
+    record = session_files.stub_text(vault, record_id)
     assert 'title: "Grill: desk agent calendar"' in record and "modes: [grill]" in record
-    assert "branch: main\n" in record and f"start_commit: {began}\n" in record
+    assert (stub_meta(record)["branch"], stub_meta(record)["start_commit"]) == ("main", began)
     state = json.loads((vault / ".vela" / "session.json").read_text(encoding="utf-8"))
     assert (state["id"], state["branch"]) == (record_id, "main")
     code, output = start(vault, "--mode", "grill", "--topic", "desk agent calendar", "--for-lead")
@@ -91,8 +93,8 @@ def test_start_on_a_feature_branch_stays_on_it_and_records_it(tmp_path, monkeypa
     assert code == 0, output
     assert "needs its own branch" not in output  # said only on the default branch
     assert head(vault)[1] == "waiting-for-review"
-    record = (vault / "sessions" / f"{TODAY}-consent.md").read_text(encoding="utf-8")
-    assert "branch: waiting-for-review\n" in record and f"start_commit: {began}\n" in record
+    record = session_files.stub_text(vault, f"{TODAY}-consent")
+    assert (stub_meta(record)["branch"], stub_meta(record)["start_commit"]) == ("waiting-for-review", began)
     assert git(vault, "rev-parse", "main") == began  # no pull, no switch, nothing committed to main
 
 
@@ -105,8 +107,8 @@ def test_new_branch_makes_a_session_branch_from_the_current_one(tmp_path, monkey
     assert "needs its own branch" not in output
     assert head(vault)[1] == f"session/{TODAY}-consent"
     assert git(vault, "rev-parse", "HEAD~1") == began
-    record = (vault / "sessions" / f"{TODAY}-consent.md").read_text(encoding="utf-8")
-    assert f"branch: session/{TODAY}-consent\n" in record and f"start_commit: {began}\n" in record
+    record = session_files.stub_text(vault, f"{TODAY}-consent")
+    assert (stub_meta(record)["branch"], stub_meta(record)["start_commit"]) == (f"session/{TODAY}-consent", began)
 
 
 def test_open_sessions_exit_3_and_list(tmp_path, monkeypatch):
@@ -221,9 +223,9 @@ def test_reader_copy_uses_no_git(tmp_path, monkeypatch):
 
 def challenge_branch(vault, branch, record_id):
     git(vault, "switch", "-q", "-c", branch)
-    (vault / "sessions" / f"{record_id}.md").write_text(
+    session_files.write_record(vault, record_id,
         f"---\nid: {record_id}\ntype: session\ntitle: \"Challenge: CON-001\"\ndate: 2026-10-10\nmodes: [challenge]\n"
-        "status: closed\nsummary: s.\n---\n\n# x\n\n## Captures\n\n## Changes\n", encoding="utf-8")
+        "status: closed\nsummary: s.\n---\n\n# x\n\n## Captures\n\n## Changes\n")
     git(vault, "add", "sessions")
     git(vault, "commit", "-q", "-m", f"Open session {record_id}")
     git(vault, "push", "-q", "origin", branch)
@@ -243,7 +245,7 @@ def test_answer_pr_title_must_end_with_exact_id(tmp_path, monkeypatch):
     record_id = f"{TODAY}-answer-con-001"
     assert head(vault)[1] == branch  # on the challenge's branch, no new one
     assert git(vault, "log", "-1", "--format=%s") == f"Open session {record_id}"
-    record = (vault / "sessions" / f"{record_id}.md").read_text(encoding="utf-8")
+    record = session_files.stub_text(vault, record_id)
     assert "modes: [answer]" in record and 'title: "Answer: CON-001"' in record
 
 
@@ -383,3 +385,27 @@ def test_turning_the_dashboard_branch_down_leaves_main_clean(tmp_path, monkeypat
     code, output = start(vault, "--mode", "grill", "--topic", "consent")
     assert code == 0, output
     assert (vault / "dashboard.html").read_text(encoding="utf-8") == "<p>first build</p>\n"  # a start pulls nothing
+
+
+def test_start_in_an_older_plan_adds_the_private_ignore_line_in_the_open_commit(tmp_path, monkeypatch):
+    """A plan made before private notes has no `sessions/private/` line in .gitignore: without it the notes show as
+    untracked files, and a hand `git add .` would commit them."""
+    vault = owner(tmp_path, monkeypatch)
+    (vault / ".gitignore").write_text("dashboard.html\n", encoding="utf-8")
+    git(vault, "commit", "-q", "-am", "an older plan")
+    code, output = start(vault, "--mode", "grill", "--topic", "consent", "--for-lead")
+    assert code == 0, output
+    assert (vault / ".gitignore").read_text(encoding="utf-8") == "dashboard.html\nsessions/private/\n"
+    assert git(vault, "show", "--name-only", "--format=%s", "HEAD").split("\n")[0] == f"Open session {TODAY}-consent"
+    assert ".gitignore" in git(vault, "show", "--name-only", "--format=", "HEAD").split("\n")
+    assert "private" not in git(vault, "status", "--porcelain")  # the notes are not an untracked file
+
+
+def test_start_in_a_plan_with_no_gitignore_creates_it(tmp_path, monkeypatch):
+    vault = owner(tmp_path, monkeypatch)
+    if (vault / ".gitignore").exists():
+        git(vault, "rm", "-q", ".gitignore")
+        git(vault, "commit", "-q", "-m", "no ignore file")
+    assert start(vault, "--mode", "grill", "--topic", "consent")[0] == 0
+    assert (vault / ".gitignore").read_text(encoding="utf-8") == "sessions/private/\n"
+    assert "private" not in git(vault, "status", "--porcelain")

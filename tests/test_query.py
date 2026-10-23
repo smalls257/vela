@@ -127,7 +127,7 @@ def test_refs_counts_plain_id_mentions_on_the_fixture():
     _, con = ask(fixture, "refs", "CON-001")
     pages = {r["page"] for r in con["refs"]}
     assert "13-epics/EPC-033-website-to-booking.md" in pages
-    assert any(r["page"].startswith("sessions/") and r["via"] == "mention" for r in con["refs"])
+    assert not any(r["page"].startswith("sessions/") for r in con["refs"]), "a session's words are not in the plan"
     assert ("05-building-blocks/booking-building-blocks.md", "mention") not in {(r["page"], r["via"]) for r in con["refs"]
                                                                                 if r["line"] == 1}
 
