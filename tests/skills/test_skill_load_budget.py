@@ -13,9 +13,9 @@ from conftest import REPO
 SKILLS = REPO / "plugin" / "skills"
 REFERENCES = REPO / "plugin" / "references"
 ALWAYS = ("START.md", "CONVERSATION-VOICE.md")
-SKILL_BUDGET = 2700  # the largest after the trim: close at 2,583 words
-LOAD_BUDGET = 6950  # the largest after the trim: boundary at 6,761 words
-SHARED_BUDGETS = {"START.md": 1950, "MODES.md": 1900, "CONVERSATION-VOICE.md": 720}
+SKILL_BUDGET = 1780  # the largest skill is challenge at 1,728 words (untouched by the second trim); was 2,700
+LOAD_BUDGET = 5040  # the largest load is challenge at 4,894 words; boundary is 4,764; was 6,950
+SHARED_BUDGETS = {"START.md": 1270, "MODES.md": 1290, "CONVERSATION-VOICE.md": 720}  # 1,232, 1,253 and 681 words; were 1,950 and 1,900
 
 
 def words(path):
