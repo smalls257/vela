@@ -16,15 +16,17 @@ def test_title_check_skips_team_handles_and_catches_people():
     people = mini_people(names={"maria lopez"})
     assert "till-team" not in people and "stock-team" in people  # @mini/till-team is a team; @stock-team is a handle
     assert titlecheck.named("Till options", people) == []
-    assert titlecheck.named("Lead pushback", people) == ["lead"]  # a part of @mini-lead
+    assert titlecheck.named("Stock team", people) == []  # a part of @stock-team is an ordinary word
     assert titlecheck.named("Lopez follow-up", people) == ["lopez"]  # a word of a display name
     assert titlecheck.named("Maria", people) == ["maria"]  # the lead's own handle
 
 
-def test_a_short_part_of_a_handle_is_not_a_person_but_a_whole_short_handle_is():
-    people = {"al-b", "jo"}
-    assert titlecheck.named("Al and the bank", people) == []
+def test_a_hyphen_part_of_a_handle_is_an_ordinary_word_unless_it_is_a_handle_itself():
+    people = {"agent-lead", "stock-team", "jo", "al"}
+    assert titlecheck.named("Desk agent calendar", people) == []
+    assert titlecheck.named("Stock level", people) == []
     assert titlecheck.named("Jo follow-up", people) == ["jo"]
+    assert titlecheck.named("Al and the bank", people) == ["al"]  # a whole handle, however short
 
 
 def test_origins_in_a_private_file_are_people_unless_they_are_roles_or_claude():

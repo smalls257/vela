@@ -14,7 +14,7 @@ TITLE_QUESTION = "The session's name is shared with the team. Can we call it by 
 HANDLES = re.compile(schema.HANDLE)
 CAPTURE_ORIGIN = re.compile(r"^- \[[\w-]+\] \((?P<origin>[^)]*)\) ", re.M)
 FROM = "claude, from "
-SHORT = 3  # a part of a handle or a display name shorter than this is too common a word to refuse a title over
+SHORT = 3  # a word of a display name shorter than this is too common to refuse a title over
 
 
 def handles_in(value):
@@ -51,15 +51,15 @@ def origins_in(private_text):
     return found
 
 
-def parts_of(person):
-    """The words of one known person worth matching on their own: the hyphen and underscore parts of a handle, the
-    words of a display name, each at least three letters."""
-    return {part for part in re.split(r"[\s_-]+", person) if len(part) >= SHORT}
+def name_words(person):
+    """The words of a display name worth matching on their own (at least three letters). A handle is not split: its
+    hyphen parts are ordinary words ("agent" in `@agent-lead`) and only the whole handle names a person."""
+    return {word for word in person.split() if len(word) >= SHORT} if " " in person else set()
 
 
 def named(title, people):
-    """The title's words that name a person: a whole handle, or a part of a handle or display name."""
+    """The title's words that name a person: a whole handle, or a word of a display name."""
     words = [word for word in re.split(r"[^a-z0-9]+", title.casefold()) if word]
     wholes = set(people)
-    parts = set().union(*(parts_of(person) for person in people)) if people else set()
-    return [word for word in dict.fromkeys(words) if word in wholes or (len(word) >= SHORT and word in parts)]
+    parts = set().union(*(name_words(person) for person in people)) if people else set()
+    return [word for word in dict.fromkeys(words) if word in wholes or word in parts]
