@@ -51,8 +51,8 @@ import re
 import tempfile
 from dataclasses import replace
 
-from vela import closegate, commands, parse, planscope, prbody, privaterecord, say, sessions
-from vela.commands import close_gate, whoami
+from vela import closegate, closereadback, commands, parse, planscope, prbody, privaterecord, say, sessions
+from vela.commands import apply, close_gate, whoami
 from vela.decisions import consent as consents
 from vela.decisions import record as records
 from vela.edge import flowstore, ghcli, hostprobe, sessiongit, vaultgit
@@ -425,7 +425,8 @@ def body_facts(root, vault, session, marker, before_texts, before, args):
     return prbody.Facts(
         summary=summary, prose=prose,
         decisions=prbody.decision_lines(vault, session.id), push_line=prbody.push_words(marker.get("date", "")),
-        in_their_words=prbody.in_their_words(close_gate.read_picked(root, session.id), vault),
+        in_their_words=prbody.in_their_words(closereadback.valid_picks(
+            close_gate.read_picked(root, session.id), closegate.captures(session.text), apply.lead_of(root)), vault),
         fingerprint_note=prbody.fingerprint_notes(stub_meta(root, session), session.part),
         changed=prbody.what_changed(rows, vault, session.id, session.part), voice=prbody.voice_lines(voice, lambda p: titles.get(p, p)),
         kept_on_claude=prbody.kept_on_claude(session.text, vault),

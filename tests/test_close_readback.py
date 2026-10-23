@@ -239,3 +239,18 @@ def test_a_hand_edited_quotes_file_cannot_add_words(tmp_path):
     assert quotes == ["kiosks can't run"]
     (folder / f"{RECORD}.quotes.json").write_text('{"quotes": 3}', encoding="utf-8")
     assert run("close", "gate", "--vault", str(vault), "--today", "2026-10-20")[0] == 2
+
+
+def test_a_picked_quote_the_notes_do_not_back_stops_the_send(tmp_path):
+    """Silent Fallback guard: a hand-added pick with no yes is refused at the gate, never quietly skipped."""
+    vault = closing_vault(tmp_path)
+    assert readback(vault, "--done")[0] == 0
+    folder = vault / ".vela" / "close"
+    folder.mkdir(parents=True, exist_ok=True)
+    (folder / f"{RECORD}.quotes.json").write_text(json.dumps({"quotes": [
+        {"number": 8, "words": "Fine by me.", "item": ""}]}), encoding="utf-8")
+    code, out = run("close", "gate", "--vault", str(vault), "--json", "--today", "2026-10-20")
+    problems = json.loads(out)["problems"]
+    assert [p for p in problems if p["kind"] == "receipt" and "Fine by me." in p["detail"]]
+    (folder / f"{RECORD}.quotes.json").write_text(json.dumps({"quotes": []}), encoding="utf-8")
+    assert "receipt" not in gate_kinds(vault)

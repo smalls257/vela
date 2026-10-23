@@ -629,7 +629,22 @@ def receipt_problems(vault, before, record_id, part, record_text, lead):
     return out
 
 
+PICK_UNBACKED = "A line picked for the pull request isn't backed by what you said, so I won't send it."
+
 READBACK_OWED = "I haven't read back the wording that goes on record in your name yet."
+
+
+def unbacked_picks(record_text, seen):
+    """Picked quotes the notes don't back (`closereadback.valid_picks` drops them). Refused rather than skipped: a
+    pick that vanishes quietly would look like a quote the lead approved. With no known lead the note in `notes_of`
+    says nothing was judged."""
+    from vela import closereadback
+    if seen.lead is None:
+        return []
+    kept = {id(p) for p in closereadback.valid_picks(seen.picked, captures(record_text), seen.lead)}
+    return [Problem(PICK_UNBACKED, f"^c{int(p['number']):02d}: \"{p['words']}\" has no quote-yes, or isn't in the capture",
+                    "Taking the line out of the picked quotes clears it; so does the person's own yes to being quoted.",
+                    kind=RECEIPT) for p in seen.picked if id(p) not in kept]
 
 
 def readback_problems(vault, record_id, part, record_text, seen):
@@ -687,6 +702,7 @@ def ready(vault, record_text, record_id, seen, part=1):
         problems.insert(0, Problem(seen.sync.plain, f"sync-main: {seen.sync.status or 'not run'}",
                                    "Running vela close sync-main clears it.", kind=SYNC, audience=seen.sync.audience))
     problems += receipt_problems(vault, seen.before, record_id, part, record_text, seen.lead)
+    problems += unbacked_picks(record_text, seen)
     problems += readback_problems(vault, record_id, part, record_text, seen)
     problems += unmarked_problem(record_text)
     problems += mark_target_problems(vault, record_text)
