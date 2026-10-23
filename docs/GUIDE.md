@@ -29,11 +29,19 @@ Vela doesn't send anything for you. People move the files, by email, Teams or On
 
 Three steps, in Claude Code:
 
-1. Add the marketplace: `/plugin marketplace add smalls257/vela`
+1. Add the marketplace: `/plugin marketplace add smalls257/vela#release`
 2. Install the plugin: `/plugin install vela@vela`
 3. Ask Claude to run `vela doctor`. It prints one line per item and ends with `vela doctor: ready.` when the machine has what vela needs. Anything optional that's missing says what it adds and the one command that gets it.
 
 The repo is private, so you need access to it on GitHub first, and git on your machine signed in to that account (`gh auth login` does it). There is nothing to pip install. Vela runs on Python 3.9 or later, which comes with a Mac's developer tools, and it brings its own copy of PyYAML.
+
+**Already installed from the full repo?** Switch to the lean branch yourself, in Claude Code. This is your own step; nothing does it for you:
+
+1. `/plugin marketplace remove vela` (this also removes the installed plugin)
+2. `/plugin marketplace add smalls257/vela#release`
+3. `/plugin install vela@vela`
+
+Your vaults are not touched. The `release` branch is generated from `main` and holds only the plugin, so the download is a fraction of the repo. Maintainers: `python3 tools/build_release_branch.py --ref <commit>`, then push `release` yourself.
 
 ### Claude Code CLI
 
