@@ -596,7 +596,7 @@ Run `vela check` from the vault root. It reads, never writes, and never stops at
 
 The table is generated from the codes `vela check` uses, so it cannot drift from them, and each finding's fix line says how to put it right. `vela upgrade` brings a vault's copy up to date.
 
-<!-- generated:check-codes sha=a2ae549c: do not edit, run vela render -->
+<!-- generated:check-codes sha=601feaf7: do not edit, run vela render -->
 | Code | Finding |
 |---|---|
 | E101 | page has no frontmatter |
@@ -736,6 +736,7 @@ The table is generated from the codes `vela check` uses, so it cannot drift from
 | W717 | CONVENTIONS.md is not the copy the plugin ships |
 | W718 | the initiative's title in .vela.yaml is still the template's placeholder |
 | W719 | git tracks one of vela's own working files under .vela/ |
+| W720 | a session's private notes are committed |
 | E801 | question ledger row is malformed |
 | E802 | ledger state lacks the evidence it needs |
 | E803 | ledger row names nothing the catalog owes |

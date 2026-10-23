@@ -1,11 +1,16 @@
-"""`vela records verify <id>`, `seal <id>` and `split`: the committed fingerprint of a session's private notes, and
-moving an older plan over to private notes.
+"""`vela records verify <id>`, `seal <id>`, `split` and `backup --to <place>`: the committed fingerprint of a
+session's private notes, moving an older plan over to private notes, and a copy of the notes outside the plan.
 
 The Violation these exist to prevent is a Black Box in the record: the notes never leave their machine, so the plan
 can't show whether the file on disk is the one the close fingerprinted. `verify` answers that for this machine's part
 and nothing else (`parts(meta)[part_of(private)]`); another machine's part is its own to check. `seal` is the repair
 for a part the close never fingerprinted (a session that ended without `close finish`): it fills this machine's own
 pending key, refuses to overwrite a different fingerprint (that would hide an edit), and commits only the stub.
+
+`backup` is the one sanctioned copy of the notes off this machine, to a place the lead picks. The notes live nowhere
+else, so a lost laptop would lose the plan's reasoning (a Silent Fallback of its own: nothing would say so until it
+mattered). It refuses a target inside the plan or its git repo before writing anything, since the copy would be
+committed, and it never overwrites: a taken name gets -2, -3.
 
 Exit codes: 0 the part matches (or was sealed, or was already); 1 it changed since, isn't fingerprinted yet (verify),
 or holds a different fingerprint (seal); 2 no private file here, no stub, or git failed.
@@ -20,13 +25,15 @@ import pathlib
 import shutil
 import tempfile
 
-from vela import commands, handoff, planscope, privaterecord, receipts, recordsplit, say, schema
-from vela.edge import idgit, sessiongit, vaultgit
+from vela import commands, handoff, planscope, privaterecord, publish, receipts, recordsplit, say, schema
+from vela.edge import idgit, plans, sessiongit, vaultgit
 
-VERIFY, SEAL, SPLIT = "records verify", "records seal", "records split"
+VERIFY, SEAL, SPLIT, BACKUP = "records verify", "records seal", "records split", "records backup"
 SPLIT_BRANCH = "records-split"
 SPLIT_COMMIT = "Split session records: the notes stay on this machine"
 REPUBLISH = "Once it's merged, I'll republish the read copy."
+INSIDE_THE_PLAN = "That folder is inside the plan, so the copy would be committed. Pick a folder outside it."
+NOTHING_TO_BACK_UP = "There are no session notes here to back up."
 
 
 def register(sub):
@@ -49,6 +56,12 @@ def register(sub):
     split.add_argument("--today", help="the date written (records_split, new sources), YYYY-MM-DD")
     say.add_output_flags(split)
     split.set_defaults(func=cmd_split)
+    backup = verbs.add_parser("backup", help="copy every session's notes to a folder or .zip outside the plan")
+    backup.add_argument("--to", required=True, help="a folder to copy into, or a .zip to write; it must be outside the plan")
+    backup.add_argument("--vault", default=".", help="vault root (default: current directory)")
+    backup.add_argument("--today", help="the date in the copy's name, YYYY-MM-DD (default: today)")
+    say.add_output_flags(backup)
+    backup.set_defaults(func=cmd_backup)
 
 
 def failed(command, text, plain=None):
@@ -365,3 +378,77 @@ def put_back(root, original, branch, planned):
 def failed_refused(command, text, data):
     return say.Result(command, exit=say.REFUSED, lines=[say.Line(f"vela records split: {text}", plain=text)],
                       data=data)
+
+
+def cmd_backup(args, out):
+    from vela import cli  # lazy: cli imports the command modules
+    root = pathlib.Path(args.vault).resolve()
+    try:
+        today = cli.parse_today(args.today)[0]
+        result = backup(root, pathlib.Path(args.to).expanduser(), today, cli.load_config(root))
+    except (cli.ToolError, OSError) as exc:
+        result = failed(BACKUP, str(exc))
+    return commands.emit(result, args, out)
+
+
+def refused(text):
+    return say.Result(BACKUP, exit=say.REFUSED, lines=[say.Line(f"vela records backup: {text}", plain=text)])
+
+
+def inside(target, folder):
+    return target == folder or folder in target.parents
+
+
+def backup(root, to, today, config):
+    """Copy `sessions/private/*.md` into `<to>/vela-sessions-<initiative>-<today>/`, or into a zip when `to` ends in
+    .zip. Nothing is written until the target is known to be outside the plan and its repo."""
+    target = to.resolve()
+    top = plans.repo_root(root)
+    if inside(target, root) or (top is not None and inside(target, top)):
+        return refused(INSIDE_THE_PLAN)
+    notes = {path.name: path.read_bytes() for path in sorted((root / privaterecord.PRIVATE_DIR).glob("*.md"))
+             if path.is_file() and not path.is_symlink()}
+    if not notes:
+        return refused(NOTHING_TO_BACK_UP)
+    name = f"vela-sessions-{publish.slug(str(config.get('title') or config['initiative']))}-{today}"
+    if target.suffix.lower() == ".zip":
+        placed = write_zip(target, name, notes)
+    else:
+        placed = write_folder(target, name, notes)
+    count = len(notes)
+    text = f"Copied {count} session note{'s' if count != 1 else ''} to {placed}."
+    return say.Result(BACKUP, lines=[say.Line(text)], data={"count": count, "to": str(placed)})
+
+
+def claimed(make):
+    """True when `make()` created its file or folder; False when the name was already taken. The creation is the claim,
+    so two backups at once cannot choose the same name."""
+    try:
+        make()
+    except FileExistsError:
+        return False
+    return True
+
+
+def write_folder(parent, name, notes):
+    """The new folder `parent/name`, or `name-2`, `name-3` when that is taken."""
+    parent.mkdir(parents=True, exist_ok=True)
+    for n in range(1, 10000):
+        folder = parent / (name if n == 1 else f"{name}-{n}")
+        if claimed(folder.mkdir):
+            for filename, data in notes.items():
+                (folder / filename).write_bytes(data)
+            return folder
+    raise OSError(f"every name from {name} to {name}-9999 is taken in {parent}")
+
+
+def write_zip(wanted, name, notes):
+    """The zip `wanted`, or `<stem>-2.zip`, `<stem>-3.zip` when that exists. Exclusive create, so it never overwrites."""
+    wanted.parent.mkdir(parents=True, exist_ok=True)
+    data = publish.zip_bytes(notes, name)
+    for n in range(1, 10000):
+        path = wanted if n == 1 else wanted.with_name(f"{wanted.stem}-{n}{wanted.suffix}")
+        if claimed(lambda: path.open("xb").close()):
+            path.write_bytes(data)
+            return path
+    raise OSError(f"every name from {wanted.stem} to {wanted.stem}-9999 is taken in {wanted.parent}")

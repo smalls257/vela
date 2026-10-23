@@ -36,7 +36,7 @@ def test_every_flag_propose_tells_claude_to_run_exists():
 def test_propose_never_invents_a_reason_or_sends_anything():
     text = skill("propose")
     for rule in ("no reason given", "Never invent a reason", "Never send, email, upload or share the proposal", "never run `git` or `gh`",
-                 "Never add that flag without their yes", "A skipped question, \"not sure\", or silence is fine"):
+                 "Never add that flag without their yes", "Never attach the session notes without a yes", "A skipped question, \"not sure\", or silence is fine"):
         assert rule in text, rule
     assert "vela role" in text and "you decide directly" in text and "--whys -" in text
 
@@ -50,7 +50,7 @@ def test_propose_names_only_commands_that_exist():
     parser = cli.build_parser()
     text = skill("propose")
     calls = re.findall(r"`vela ((?:propose|role)\b[^`]*)`", text)
-    calls += [line.split("scripts/run-vela ", 1)[1].split(" <<", 1)[0].replace("[--zip]", "--zip")
+    calls += [line.split("scripts/run-vela ", 1)[1].split(" <<", 1)[0].replace("[--zip]", "--zip").replace("[--with-record <session id>]", "--with-record <session id>")
               for line in text.splitlines() if "scripts/run-vela propose" in line]
     assert len(calls) >= 3, calls
     for call in calls:

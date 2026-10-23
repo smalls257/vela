@@ -24,7 +24,7 @@ import traceback
 import yaml
 
 from vela import allocation, capture, catalog, completeness, diagramcheck, doctor, drafts, search, export, freshness, handoff, handoffwarn, health, ids, ladder, model, onboardpath, opening, pending, pluginroot, proposal, reading, parse, progress, publish, query, questions, releases, render, replay, review, reviews, roles, rules, schema, secretscan, slices, sourcerows, terms, tickets, untrusted, viewer, voicecheck, voicescore
-from vela.edge import atomic, copies, machine, mermaidjs, replays, reviewgit, teamdocs, vaultgit
+from vela.edge import atomic, copies, machine, mermaidjs, replays, reviewgit, sessiongit, teamdocs, vaultgit
 from vela.edge import proposals as proposal_files
 from vela import commands, guard, privaterecord, say
 
@@ -262,10 +262,31 @@ def tracked_tool_file_findings(root):
                           f"sure .gitignore lists {TOOL_IGNORE}.")]
 
 
+def tracked_private_findings(root):
+    """W720 when git tracks a session's private notes (a forced add got past the ignore line and the guard). Vela's own
+    source repo commits its fixtures' notes on purpose and marks itself with `.vela-toolkit`, so it is skipped. A git
+    that cannot answer is said, not read as "nothing tracked"."""
+    from vela.commands import hook
+    if hook.toolkit_repo(root):
+        return []
+    try:
+        tracked = vaultgit.tracked_paths(root)
+    except vaultgit.GitUnavailable as exc:
+        return [model.Finding(".gitignore", 1, "W720", f"I couldn't ask git which files it tracks ({exc}), so I "
+                              "haven't checked that session notes stay out of it.",
+                              "Run vela check again where git works.")]
+    return [model.Finding(path, 1, "W720",
+                          "This session record still holds its notes, so they're shared with everyone who clones the plan.",
+                          f"Run git rm --cached -- {path} and commit that (the file stays on disk), and make sure "
+                          ".gitignore lists sessions/private/.")
+            for path in tracked if privaterecord.is_private(path)]
+
+
 def vault_file_findings(root):
     """The findings about the vault's own files, which are not pages: its conventions copy, its config, its manifests
     and the working files git should not track."""
     return (conventions_findings(root) + config_findings(root) + manifest_findings(root) + tracked_tool_file_findings(root)
+            + tracked_private_findings(root)
             + gap_acknowledgement_findings(root) + library_file_findings(root))
 
 
@@ -724,6 +745,17 @@ def heading_for(page, item_id):
     return item_id
 
 
+def stub_waits_on(path, text, item_id):
+    """True when `text` is a session stub that lists `item_id` as ready to decide. Only the committed header is read, so
+    a private file (which a reader's copy does not even carry into `changed`) can never name a session."""
+    if not path.startswith("sessions/") or privaterecord.is_private(path):
+        return False
+    try:
+        return item_id in privaterecord.listed(privaterecord.stub_meta(text), "ready")
+    except ValueError:
+        return False
+
+
 def new_pending(root, baseline_dir, changed):
     """{item ID: {heading, by, date, session}} for the pending-approval markers the reader added since the baseline."""
     now, was = load_vault(root), load_vault(baseline_dir)
@@ -734,8 +766,7 @@ def new_pending(root, baseline_dir, changed):
         if (entry.path, entry.item, entry.by, entry.date) in had:
             continue
         key = entry.item or entry.subject
-        session = next((pathlib.PurePosixPath(path).stem for path in sorted(changed) if path.startswith("sessions/")
-                        and key in changed[path]), "")
+        session = next((pathlib.PurePosixPath(path).stem for path in sorted(changed) if stub_waits_on(path, changed[path], key)), "")
         found[key] = {"heading": heading_for(pages[entry.path], key) if entry.item else key, "by": entry.by,
                       "date": entry.date, "session": session}
     return found
@@ -774,6 +805,22 @@ def text_with_home_hidden(files, home):
     """The text files with this person's home folder written as <home>; binary files are left as they are."""
     return {path: (proposal.hide_home(data.decode("utf-8"), home).encode("utf-8") if not drafts.is_binary(data) else data)
             for path, data in files.items()}
+
+
+SESSION_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
+
+
+def attached_record(root, record_id, home):
+    """The reader's private notes for `record_id` as {record.md: text}, or {} when they did not ask for them. The id is
+    a session id, never a path; a session with no notes on this machine stops the proposal rather than sending none."""
+    if not record_id:
+        return {}
+    if not SESSION_ID.fullmatch(record_id) or ".." in record_id:
+        raise ToolError(f"--with-record takes a session id (a file name in sessions/ without .md), not '{record_id}'. Nothing was written.")
+    notes = sessiongit.private_text(root, record_id)
+    if notes is None:
+        raise ToolError(f"{sessiongit.PrivateMissing(record_id)} Nothing was written.")
+    return {proposal_files.RECORD: proposal.hide_home(notes, home) if home else notes}
 
 
 def print_groups(groups, as_json, out):
@@ -841,16 +888,19 @@ def cmd_propose(args, out):
     if not note["author"]:
         raise ToolError("this workspace records no author name; re-open the copy with --author \"Your Name\".")
     forbidden = private_strings(root, workspace)
+    attached = attached_record(root, args.with_record, str(pathlib.Path.home()) if args.rewrite_home else "")
     parent = pathlib.Path(args.out_dir).expanduser().resolve() if args.out_dir else root.parent / "proposals"
     name = proposal_files.folder_name(today, args.title, parent)
     try:
-        target = proposal_files.write(parent, name, {proposal_files.NOTE: proposal.render_markdown(note), proposal_files.PATCH: built.patch},
+        target = proposal_files.write(parent, name, {proposal_files.NOTE: proposal.render_markdown(note), proposal_files.PATCH: built.patch, **attached},
                                       args.zip, lambda texts: proposal.privacy_hits(texts, forbidden))
     except proposal_files.ProposalIOError as exc:
         raise ToolError(str(exc)) from exc
     contact = (stamp.get("owner") or {}).get("contact") or "the owner"
     print(f"vela propose: wrote {target} ({len(built.files)} text files patched, {len(built.binaries)} binary listed, {len(waiting)} pending decision(s) first).", file=out)
     print(f"  Check on this copy: {proposal.check_phrase(note['check'])}." + (" The errors are listed first in the proposal; they did not stop it." if note["check"]["errors"] else ""), file=out)
+    if attached:
+        print(f"  Your session notes for {args.with_record} are attached as {proposal_files.RECORD}, because you asked.", file=out)
     print(f"  Send {'that file' if args.zip else 'that folder'} to {note['base']['owner']} ({contact}). Nothing was sent from here.", file=out)
     return 0
 
@@ -897,7 +947,7 @@ def review_state(parsed, note, refs, problems, facts):
     return {"title": note.title if note else "", "author": note.author if note else "", "base": parsed.base, "behind": facts["behind"],
             "branch": facts["branch"], "worktree": str(facts["worktree"]), "applied": facts["applied"], "commit": facts["commit"],
             "conflicts": facts["conflicts"], "check": facts["check"], "claim": list(note.claim) if note and note.claim else None,
-            "pending": facts["pending"], "problems": problems,
+            "pending": facts["pending"], "problems": problems, "record": facts["record"],
             "groups": [{"group": g.key, "pending": g.pending, "changes": [{"path": p, "hunk": h} for p, h in g.hunks]} for g in refs]}
 
 
@@ -932,6 +982,8 @@ def print_review(state, out):
             print(f"    {line}", file=out)
     for line in state.get("notes", []):
         print(f"  {line}", file=out)
+    if state["record"]:
+        print(f"  The reader attached their session notes ({proposal_files.RECORD}). I did not apply or commit them; read them in the proposal if you want to.", file=out)
     for problem in state["problems"]:
         print(f"  Note: {problem}", file=out)
     print("  Groups, pending decisions first:", file=out)
@@ -985,7 +1037,8 @@ def cmd_proposals_review(args, out):
     except vaultgit.GitUnavailable as exc:
         raise ToolError(f"git stopped the review: {exc}") from exc
     state = review_state(parsed, note, refs, problems, {"behind": behind, "branch": branch, "worktree": folder, "applied": clean, "commit": commit,
-                                                       "conflicts": conflicts, "check": check, "pending": pending_now})
+                                                       "conflicts": conflicts, "check": check, "pending": pending_now,
+                                                       "record": loaded.record})
     state["notes"] = notes
     if args.json:
         print(json.dumps(state, indent=2), file=out)
@@ -2937,6 +2990,7 @@ def build_parser():
     prop.add_argument("--whys", help="JSON of group -> the reader's reason, from a file or - for standard input; a group without one reads 'no reason given'")
     prop.add_argument("--zip", action="store_true", help="write one .zip instead of a folder")
     prop.add_argument("--out-dir", help="where proposals go (default: a proposals/ folder beside the workspace)")
+    prop.add_argument("--with-record", metavar="ID", help="also attach your private notes for this session as record.md (left out unless you ask)")
     prop.add_argument("--rewrite-home", action="store_true", help="write this machine's home folder as <home> in the proposal (your own files are not changed)")
     prop.add_argument("--today", help="the date to record, YYYY-MM-DD (default: system date)")
     prop.set_defaults(func=cmd_propose)

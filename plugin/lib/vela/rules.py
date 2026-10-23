@@ -1487,6 +1487,22 @@ def link_pipe_rules(vault, today):
                              "Write its label pipe as \\| inside a table, as in [[page#Heading\\|label]].")
 
 
+def session_note_rules(vault, today):
+    """W720: a session page that still holds its notes. The committed record is a stub with no body; a page that has
+    words is a record `vela records split` hasn't moved to its private file, and git would share it with every clone."""
+    for page in vault.pages:
+        if page.type != "session":
+            continue
+        _, body_line, error = parse.split_frontmatter(page.text)
+        if error is not None:
+            continue
+        lines = parse.lines_of(page.text)
+        first = next((n for n in range(body_line, len(lines) + 1) if lines[n - 1].strip()), None)
+        if first is not None:
+            yield _f(page, first, "W720", "This session record still holds its notes, so they're shared with everyone who clones the plan.",
+                     "Run vela records split.")
+
+
 RULES = (parse_errors, frontmatter_rules, duplicate_rules, link_rules, reference_rules, table_rules,
          history_rules, page_state_rules, stale_mention_rules, allocation_rules, release_rules, slice_rules, flow_sender_rules, flow_end_rules, flow_capability_rules, domain_rules, ask_rules, requirement_coverage_rules, contract_rules, case_table_rules, handoff_rules, deferral_rules, why_rules, wording_rules, requirement_rules, unknown_rules, risk_rules, subject_rules, question_rules, certainty_rules, stage_rules, concern_rules,
-         diagram_rules, block_rules, trace_rules, freshness_rules, link_field_rules, link_pipe_rules, reading_load_rules)
+         diagram_rules, block_rules, trace_rules, freshness_rules, link_field_rules, link_pipe_rules, reading_load_rules, session_note_rules)
