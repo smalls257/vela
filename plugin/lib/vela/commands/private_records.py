@@ -304,6 +304,12 @@ def apply_split(root, lead, today, branch_texts):
     if dirty:
         text = "This plan has changes that aren't committed, and the split edits many pages. Commit or set them aside first."
         return failed_refused(SPLIT, text, {"uncommitted": dirty})
+    if not lead:
+        return say.Result(SPLIT, exit=say.REFUSED, data={"lead": ""}, lines=[say.Line(
+            "vela records split: no handle is cached, so --apply would strip your own words too. Run vela whoami "
+            "first, so I keep your own words.",
+            plain="I don't know who you are yet, and splitting now would take out your own words too. I'll find "
+                  "out first, so I keep them.")])
     planned = recordsplit.plan(plan_files(root), lead, today, branch_texts)  # refuses before any branch is made
     if planned.left:
         text = (f"{plural(len(planned.left), 'line', 'lines')} I can't read, so I can't tell whether they hold "
