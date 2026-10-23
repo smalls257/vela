@@ -33,10 +33,11 @@ from vela import (allocation, attention, cli, completeness, gates, grills, hando
                      progress, reading, roles, say, schema, slices, terms, trace)
 from vela import search as vela_search
 from vela.edge import atomic
+from vela.flowcheck import readers
 from vela.parse import FENCE, closes_fence
 
 from . import (asks_data, assets_inline, capdeps, branches_data, breakdown_find, design_data, design_find, draft_data, flows_data, grills_data, icons_data, inside_data, library_data, needs_data, onboard_data,
-               pages_data, panel_data, plan_data, roles_data, serve, slices_data)
+               pages_data, panel_data, plan_data, roles_data, serve, slices_data, starts_data)
 from . import pins as pinning
 from .record import (HANDLE, LABELED_LINE, PROSE_LIMIT, Keys, dashboard_pages, inline_html,
                      plain, refs_in, title_of)
@@ -644,7 +645,10 @@ def extract(vault, root, today, pins_path=None, designs=None, seed=None, plans=N
     data["grills"] = grill_rows(vault, root, keys, today, [r["id"] for r in data["library"]["rows"]])
     data["needs"] = needs_data.extract(data, entities, [{"key": keys.page(a), "handed_off": str(a.meta.get("handed_off") or "")} for a in vault.apps], today)
     data["slicePlan"] = slices_data.extract(vault, keys, today, cli.spec_texts(pathlib.Path(root)), recorded)
-    data["branches"] = branches_data.extract(vault, keys, today, cli.spec_texts(pathlib.Path(root)))
+    specs = cli.spec_texts(pathlib.Path(root))
+    catalog = readers.read_catalog(vault, specs)  # the flow checker's read, once, for the branches and for where each flow starts
+    data["branches"] = branches_data.extract(vault, keys, today, specs, catalog)
+    starts_data.annotate(vault, keys, data["flows"], catalog, data["lanes"])
     data["containers"] = inside_data.containers(vault, keys)
     data["designs"] = inside_data.inside(vault, keys, designs or {})
     data["plans"] = plan_data.inside(vault, keys, plans or {}, data["designs"])

@@ -180,9 +180,16 @@ def limits(prepared, explored):
                        "(--journeys 3 tries three).")
     if program.timers:
         out.append("A timer is taken to fire in the end: an order of events in which a timer never fires is not explored.")
+    for fid, walked, left in program.unwalked_starts:
+        out.append(f"{fid} starts more than one way. The check walked only the first, \u201c{walked}\u201d, and not {_or_words(left)}.")
     if explored.skipped:
         out.append(f"Not explored, because the budget ran out first: {'; '.join(run_words(r) for r in explored.skipped)}.")
     return out
+
+
+def _or_words(labels):
+    quoted = [f"\u201c{l}\u201d" for l in labels]
+    return quoted[0] if len(quoted) == 1 else ", ".join(quoted[:-1]) + " or " + quoted[-1]
 
 
 def run_words(ids):

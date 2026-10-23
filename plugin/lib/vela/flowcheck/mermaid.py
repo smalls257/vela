@@ -9,6 +9,8 @@ Only these lines are read; any other line is an unreadable-line problem (F10, R0
     par [<words>] ... end                  right after an event line, a call an outside app makes, or a TIMER:
                                            the handler that runs when it arrives, or when the timer fires
     alt <case>[, <case>...] / else <case>[, <case>...] / end   branches on the call (or AWAIT) just before
+    alt <words> / else <words> / end       as the first statement: the flow's starts, one per option, named in words.
+                                           The check walks the first start only and says so (a Limit line).
     Note over X: SET <entity> <state>
     Note over X: END <outcome> [leaves <entity>=<state>[, ...]]
     Note over X: AWAIT EVT-nnn             block this thread until the event reaches X
@@ -89,8 +91,8 @@ def _token(text, n):
         if not found:
             continue
         if kind in ("alt", "else"):
-            keys = case_keys(found.group(1))
-            return FlowLine(n, kind, (keys,)) if keys else None
+            # keys is None for an option written in words: only an opening alt may (the parser says so anywhere else)
+            return FlowLine(n, kind, (case_keys(found.group(1)) or None, found.group(1)))
         if kind == "note":
             return _note(found.group(1), found.group(2), n)
         return FlowLine(n, kind, tuple(g if g is not None else "" for g in found.groups()))
@@ -123,6 +125,7 @@ class Branch:
     keys: tuple
     body: list
     answer: object = None  # the decorating answer line, when the branch opens with one
+    label: str = ""  # the option as written: the words of an opening alt's start
 
 
 @dataclass
@@ -141,6 +144,7 @@ class Node:
 class Tree:
     nodes: list
     participants: dict = field(default_factory=dict)  # name -> (title, line)
+    starts: list = field(default_factory=list)  # [Branch] of an opening alt written in words; `nodes` holds the first one's walk
 
 
 def actor_of(token):
@@ -165,6 +169,17 @@ class _Parser:
     def take(self):
         self.i += 1
         return self.tokens[self.i - 1]
+
+    def opening_alt(self):
+        """The branches of an alt written in words as the flow's first statement (after the participants), else []."""
+        while self.peek() is not None and self.peek().kind == "participant":
+            token = self.take()
+            self.participants.setdefault(token.parts[0], (token.parts[1] or token.parts[0], token.line))
+        token = self.peek()
+        if token is None or token.kind != "alt" or token.parts[0] is not None:
+            return []
+        self.take()
+        return self.alt_rest(token, words_allowed=True)
 
     def block(self, stop, opener=None):
         out = []
@@ -199,13 +214,21 @@ class _Parser:
             self.take()
         return body
 
-    def alt_rest(self, opener):
+    def words_only(self, token, allowed):
+        """An option written in words names a start, so it belongs to the opening alt alone: anywhere else it is the
+        unreadable line it always was."""
+        if token.parts[0] is None and not allowed:
+            self.problem(token.line, f"Unreadable line, outside the checked subset: {token.kind} {token.parts[1]}")
+
+    def alt_rest(self, opener, words_allowed=False):
         """Branches from an alt token already taken to its end."""
-        branches = [Branch(opener.line, opener.parts[0], [])]
+        branches = [Branch(opener.line, opener.parts[0] or (), [], label=opener.parts[1])]
+        self.words_only(opener, words_allowed)
         branches[0].body = self.block({"else", "end"}, opener)
         while self.peek() is not None and self.peek().kind == "else":
             token = self.take()
-            branch = Branch(token.line, token.parts[0], [])
+            self.words_only(token, words_allowed)
+            branch = Branch(token.line, token.parts[0] or (), [], label=token.parts[1])
             branch.body = self.block({"else", "end"}, opener)
             branches.append(branch)
         if self.peek() is not None and self.peek().kind == "end":
@@ -274,5 +297,8 @@ def _replies(nodes, provider, caller):
 
 def parse_tree(flow, problems):
     parser = _Parser(flow.lines, flow.path, flow.id, problems)
+    starts = parser.opening_alt()
     nodes = parser.block(set())
-    return Tree(nodes, parser.participants)
+    if starts:
+        nodes = starts[0].body + nodes  # the check walks the first start; the rest is the shared tail
+    return Tree(nodes, parser.participants, starts)

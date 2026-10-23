@@ -74,6 +74,7 @@ class Program:
     entities: dict  # slug -> Entity, the ones the slice touches
     contracts: dict
     awaited: set  # {(item, subscriber app key)}
+    unwalked_starts: list = field(default_factory=list)  # [(flow id, walked start, [starts left out])]: an opening alt's other options
 
 
 class Context:
@@ -111,6 +112,7 @@ class Builder:
         self.f12_seen = set()
         self.drawn_calls = set()  # (caller app key, contract id) for every call drawn in the slice's flows
         self.trees = {}
+        self.unwalked_starts = []
 
     # --- reporting ------------------------------------------------------------------------------------------------
 
@@ -140,6 +142,8 @@ class Builder:
             for p in problems:
                 self.report("F10", p.where, p.text, items=(fid,))
             self.trees[index] = (flow, tree)
+            if len(tree.starts) > 1:
+                self.unwalked_starts.append((fid, tree.starts[0].label, [b.label for b in tree.starts[1:]]))
             self.participants[index] = {name: self.cat.app_named(title) for name, (title, _) in tree.participants.items()}
         for index, (flow, tree) in sorted(self.trees.items()):
             for node in _walk(tree.nodes):
@@ -158,7 +162,7 @@ class Builder:
         self.add_invariant_entities()
         self.findings += properties.event_findings(self)
         return Program(self.code, self.flows, self.handlers, self.targets, self.timers, self.entities, self.contracts,
-                       self.awaited), self.findings
+                       self.awaited, self.unwalked_starts), self.findings
 
     def used_ids(self):
         ids = set(self.flow_ids)
