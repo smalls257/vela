@@ -1,5 +1,5 @@
 """`vela close gate` (overhaul Tasks 10a and 10) against a real vault repo: a decision since the branch point needs the
-lead's quoted yes in the record, main must have been brought in, and `--consent-block` quotes the lead verbatim. Task 10
+lead's quoted yes in the record, main must have been brought in, and the PR body carries no quote. Task 10
 adds the rest of the one list: unmarked captures, check errors, ledger rows or overrides removed since the branch point,
 stray files, a stale render, the flow check per affected slice, and whether hooks ran."""
 import json
@@ -95,22 +95,12 @@ def test_bare_ok_is_not_a_yes(tmp_path):
     assert code == 1 and "You said 'ok' on Stock level. Was that a yes to deciding Stock level?" in out
 
 
-def test_a_quoted_yes_is_ready_and_the_consent_block_quotes_it(tmp_path):
+def test_a_quoted_yes_is_ready(tmp_path):
     vault = session(tmp_path)
     decide_stock(vault, [YES], [YES_ROW])
     code, out = gate(vault, "--for-lead")
     assert code == 0 and "ready to finish" in out, out
-    code, out = gate(vault, "--consent-block")
-    assert code == 0
-    assert f'- Stock level (CON-002), fact to decided: "Yes, decide stock level as read." [[{RECORD}]] c01' in out
-
-
-def test_consent_block_quotes_the_lead_verbatim(tmp_path):
-    words = 'Yes | with "care", and decide it'
-    vault = session(tmp_path)
-    decide_stock(vault, [f"- [thought] (@priya) {words}{MARK} ^c01"], [YES_ROW])
-    _, out = gate(vault, "--consent-block")
-    assert "care" in out and "**Consent**" in out
+    assert gate(vault, "--consent-block")[0] == 2  # the flag is gone: the PR carries receipts, not words
 
 
 def test_override_bullet_lets_it_through_and_is_listed(tmp_path):
@@ -119,8 +109,7 @@ def test_override_bullet_lets_it_through_and_is_listed(tmp_path):
     decide_stock(vault, extra=bullet)
     code, out = gate(vault)
     assert code == 0, out
-    _, block = gate(vault, "--consent-block")
-    assert "by override" in block and "on the phone" in block
+    assert "ready" in gate(vault, "--for-lead")[1]
 
 
 def test_sync_not_run_blocks(tmp_path):
@@ -297,7 +286,7 @@ def test_close_offers_only_ready_steps():
     close.register(parser.add_subparsers())
     top = next(a for a in parser._actions if isinstance(a, argparse._SubParsersAction))
     steps = next(a for a in top.choices["close"]._actions if isinstance(a, argparse._SubParsersAction)).choices
-    names = {"close_sync": "sync-main", "close_stage": "stage", "close_gate": "gate", "close_readback": "readback", "close_drafts": "drafts",
+    names = {"close_sync": "sync-main", "close_stage": "stage", "close_gate": "gate", "close_reconfirm": "reconfirm", "close_readback": "readback", "close_drafts": "drafts",
              "close_finish": "finish", "close_push": "push"}
     for name in close.STEPS:
         module = importlib.import_module(f"vela.commands.{name}")

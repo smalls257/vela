@@ -12,9 +12,13 @@ skipped step left a list out with nothing saying it was skipped. Everything here
   titles it, not W705 lines), **Questions still open** (by the question's text, not W806 lines), **Kept on Claude's
   suggestion (check these)**, **Decisions the owner hasn't heard read back**, **Other pages that may still say the old
   value**, and the stage line "Ready to move on: ...".
-- **The Consent list**: every decision and override the gate judged, plus the push yes, each with the lead's exact
-  words and the capture link. It is a Sensor, not a proof (plan 4.3): the model writes every capture, so the reviewer
-  is the one who reads the words and judges them.
+- **Decisions, What changed, the push line and In their words.** The Violation these exist to prevent is a Leaky
+  Narrative of the record: the old Consent list pasted every capture's words where the whole team reads. Now
+  **Decisions** is each receipt as the pages hold it (wordless where the words rule says so), **What changed** is
+  each state move with the citation of the capture behind it, the push line is the day the lead said yes to
+  sending, and **In their words** is only the lines the lead kept at the read-back (`.vela/close/<id>.quotes.json`).
+  Nothing here reads a capture's text; a reviewer who wants a line asks the lead, who can paste their own with
+  `vela records show`. The notes are a Sensor for the lead, not a proof for the reviewer (plan 4.3).
 
 What stays the model's is the two or three sentences a reviewer reads first; `close pr --prose FILE` passes them in.
 A list that is empty is left out, except the ones a reviewer must see even when empty (Overrides, Questions still
@@ -27,7 +31,7 @@ reads what the session did, not the mode's internal display name ("Dump & Diverg
 import re
 from dataclasses import dataclass, field
 
-from vela import closegate, schema, sessions
+from vela import closegate, privaterecord, receipts, say, schema, sessions
 
 # Plain names for PR titles. A mode not listed keeps its own name, capitalized.
 MODE_TITLES = {"dump": "Brainstorm", "discover": "Discovery", "shape": "Options", "boundary": "App boundaries",
@@ -137,29 +141,62 @@ def _sentence(text):
     return text if text[-1:] in ".?!" else text + "."
 
 
-def what_changed(rows, vault):
-    """One line per `## Changes` row, by the item's name."""
-    return [f"- {vault.name_of(r.item)}: {r.before if r.before not in ('', '-') else 'new'} to {r.after}"
-            for r in rows if r.after]
+FINGERPRINT_PENDING = "Part {n}'s notes are on the other machine and aren't fingerprinted yet."
 
 
-def consent_list(consent, push=None):
-    return closegate.consent_block(list(consent) + ([push] if push is not None else []))
+def decision_lines(vault, record_id):
+    """Each receipt that cites this record, as the page holds it, by the item's name."""
+    out = []
+    for ident, items in sorted(vault.items.items()):
+        bullet = items[0].facts.get("Decision")
+        found = receipts.parse_decision(bullet.value) if bullet is not None else None
+        if found is not None and found.record == record_id:
+            out.append(f"- {vault.name_of(ident)}: {bullet.value.strip()}")
+    return out
 
 
-def push_consent(branch, words, link):
-    return closegate.Consent(branch, "Sending this for review", "pushed", words, link)
+def what_changed(rows, vault, record_id, part):
+    """One line per `## Changes` row: the item's name, the move, and the citation of the capture behind it."""
+    out = []
+    for r in rows:
+        if not r.after:
+            continue
+        line = f"- {vault.name_of(r.item)}: {r.before if r.before not in ('', '-') else 'new'} to {r.after}"
+        number = r.capture_number
+        out.append(f"{line}, {privaterecord.citation(record_id, part, int(number))}" if number else line)
+    return out
+
+
+def push_words(date):
+    return f"Sent with your yes on {say.date_words(date)}."
+
+
+def fingerprint_notes(stub_meta, part):
+    """One line for each other part of the notes that no machine has fingerprinted yet. This machine's own part is
+    fingerprinted by the close before it gets here."""
+    return [FINGERPRINT_PENDING.format(n=n) for n, held in sorted(privaterecord.parts(stub_meta).items())
+            if held == privaterecord.PENDING and n != part]
+
+
+def in_their_words(picked, vault):
+    """The lines the lead kept at the read-back, each by the item it concerns."""
+    out = []
+    for quote in picked:
+        item = str(quote.get("item") or "")
+        label = vault.name_of(item) if item else "Said in the session"
+        out.append(f'- {label}: "{quote["words"]}"')
+    return out
 
 
 def kept_on_claude(record_text, vault):
-    """Captures kept or promoted on Claude's own words (origin `claude...`), quoted: a reviewer checks these first."""
+    """Items kept or promoted on Claude's own words (origin `claude...`), by name only: a reviewer checks these
+    first, and what Claude said stays in the notes."""
     out = []
     for c in closegate.captures(record_text).values():
         if c.is_person or not c.mark.startswith("keep"):
             continue
         found = re.search(r"\|([^\]]+)\]\]", c.mark)
-        name = vault.name_of(found.group(1)) if found else "an item"
-        out.append(f'- {name}: "{c.words}" ({c.origin})')
+        out.append(f"- {vault.name_of(found.group(1)) if found else 'an item'}")
     return out
 
 
@@ -181,7 +218,7 @@ def not_read_back(decided, vault, present):
             owner = str(pages[0].meta.get("owner") or "") if pages else ""
         owned = handles(owner)
         if owned and not any(h.lower() in present for h in owned):
-            out.append(f"- {vault.name_of(ident)}: {' '.join('@' + h for h in owned)} hasn't heard it read back.")
+            out.append(f"- {vault.name_of(ident)}: its owner hasn't heard the wording read back.")
     return out
 
 
@@ -308,7 +345,10 @@ def check_line(findings, page_count):
 class Facts:
     """Everything the body says, gathered by the command. Lists are lines already in words."""
     summary: str
-    consent: list
+    decisions: list = field(default_factory=list)
+    push_line: str = ""
+    in_their_words: list = field(default_factory=list)
+    fingerprint_note: list = field(default_factory=list)
     changed: list = field(default_factory=list)
     voice: list = field(default_factory=list)
     kept_on_claude: list = field(default_factory=list)
@@ -327,8 +367,11 @@ class Facts:
 def body(f):
     """The PR body's Markdown."""
     lines = [(f.prose or f.summary).strip(), ""]
-    lines += f.consent + [""]
-    lines += section("What changed", f.changed, empty="nothing promoted")
+    lines += section("Decisions", f.decisions, empty="none")
+    lines += [""] + section("What changed", f.changed, empty="nothing promoted")
+    lines += [""] + ([f.push_line] if f.push_line else []) + f.fingerprint_note
+    block = section("In their words", f.in_their_words)
+    lines += [""] + block if block else []
     for heading, items, empty in (("Voice review", f.voice, "not run"),
                                   ("Kept on Claude's suggestion (check these)", f.kept_on_claude, None),
                                   ("Decisions the owner hasn't heard read back", f.not_read_back, None),

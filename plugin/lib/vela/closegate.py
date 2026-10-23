@@ -14,7 +14,8 @@ words behind every change into or out of `decided`:
 
 What this proves is limited, and said plainly (plan 4.3, a Sensor, not a Shield): the model writes every field these
 checks read, so the gate shows a missing or malformed yes; it cannot prove the lead said the words. That is why
-`consent_block` puts every quote in the PR body, where the reviewer reads the exact words behind each decision.
+the read-back puts every line that goes on record in the lead's name in front of the lead, and the PR carries receipts,
+not words.
 
 The lead may still go ahead without a quoted yes (the user can override any rule): an `**Override:**` bullet on the
 item naming `QUOTED_YES_RULE`, with their reason. The gate then lets the change through and lists the override, never
@@ -107,14 +108,14 @@ class Problem:
 
 
 # What holds a close up, in the order the lead hears it: one line per kind when there is more than one of it.
-CONSENT, RECEIPT, READBACK, UNMARKED, CHECK, REMOVED_ROW, STRAY, RENDER, SYNC = (
-    "consent", "receipt", "readback", "unmarked", "check", "removed", "stray", "render", "sync")
-KINDS = (SYNC, CONSENT, RECEIPT, READBACK, UNMARKED, CHECK, REMOVED_ROW, STRAY, RENDER)
+CONSENT, ELSEWHERE, RECEIPT, READBACK, UNMARKED, CHECK, REMOVED_ROW, STRAY, RENDER, SYNC = (
+    "consent", "elsewhere", "receipt", "readback", "unmarked", "check", "removed", "stray", "render", "sync")
+KINDS = (SYNC, CONSENT, RECEIPT, ELSEWHERE, READBACK, UNMARKED, CHECK, REMOVED_ROW, STRAY, RENDER)
 
 
 @dataclass(frozen=True)
 class Consent:
-    """One line of the PR body's Consent block: a decision and the lead's exact words, or an override and its reason."""
+    """One decision the gate judged, or one override and its reason, with the lead's words and the capture link. The gate's own data; the PR body never prints it."""
     item: str
     name: str
     change: str
@@ -192,8 +193,7 @@ def judge_change(change, rows, said, vault, record_name, part=1):
                              o.reason, f"{o.by} on {o.date}")
     # An item new this session may pass through a state on its way (an import writes a decision record as proposed,
     # then decides it with the lead's yes): its row's From is that state, not the branch point's "-".
-    row = next((r for r in rows if r.item == change.item and r.after == change.after
-                and (r.before in (change.before, "-", "") or change.before == "-")), None)
+    row = change_row(change, rows)
     if row is None:
         return Problem(f"You haven't said yes to {moving(change)} yet.",
                        f"{change.item}: {change.before} -> {change.after} has no ## Changes row", kind=CONSENT), None
@@ -213,6 +213,12 @@ def judge_change(change, rows, said, vault, record_name, part=1):
                        f"{change.item}: ^c{capture.n} says only '{capture.quote}'", kind=CONSENT), None
     return None, Consent(change.item, change.name, f"{change.before} to {change.after}", capture.quote,
                          privaterecord.citation(record_name, part, int(capture.n)))
+
+
+def change_row(change, rows):
+    """The Changes row that records `change`, or None."""
+    return next((r for r in rows if r.item == change.item and r.after == change.after
+                 and (r.before in (change.before, "-", "") or change.before == "-")), None)
 
 
 def moving(change, capital=False):
@@ -237,13 +243,6 @@ def judge(changes, record_text, record_name, vault, part=1):
         problems += [replace(problem, clear=CONSENT_CLEAR)] if problem else []
         consent += [line] if line else []
     return problems, consent
-
-
-def consent_block(consent):
-    """The PR body's **Consent** list: every decision with the lead's exact words and the capture link."""
-    if not consent:
-        return ["**Consent**", "", "- No item was decided or reopened in this session."]
-    return ["**Consent**", ""] + [f'- {c.name} ({c.item}), {c.change}: "{c.words}" {c.link}' for c in consent]
 
 
 # ------------------------------------------------------------------ Task 10: the rest of the one list
@@ -412,29 +411,106 @@ def _error_words(found, vault):
     return said + (f" (and {say.count_words(len(found) - 1)} more like it)" if len(found) > 1 else "")
 
 
-def removal_problems(before, after, rows, said):
+@dataclass(frozen=True)
+class Removal:
     """A ledger row or an override that was there at the branch point and is gone now, with no recorded yes to its
-    removal. Deleting the row or the override is the one edit that quiets a check without answering it, and deletion
-    is detectable, so it is refused here rather than asked about in prose."""
+    removal. `key` is the ledger copy, or the override's scope (an item or page ID); `name` is what the lead hears."""
+    key: str
+    name: str
+    problem: Problem
+    is_override: bool = False
+
+
+def unagreed_removals(before, after, rows, said):
+    """Every `Removal` the record holds no yes for. Deleting the row or the override is the one edit that quiets a
+    check without answering it, and deletion is detectable, so it is refused rather than asked about in prose."""
     out = []
     now = ledger_copies(after)
     for copy, title in sorted(ledger_copies(before).items()):
         if copy not in now and not removal_agreed(copy, rows, said):
-            out.append(Problem(f"A question was taken off {title} this session ({copy}). Was that on purpose?",
-                               f"ledger row {copy} removed since the branch point", kind=REMOVED_ROW, clear=
-                               "Putting the row back clears it, or the lead's own words for removing it, recorded in "
-                               "the session record."))
+            out.append(Removal(copy, f"a question taken off {title}", Problem(
+                f"A question was taken off {title} this session ({copy}). Was that on purpose?",
+                f"ledger row {copy} removed since the branch point", kind=REMOVED_ROW, clear=
+                "Putting the row back clears it, or the lead's own words for removing it, recorded in "
+                "the session record.")))
     kept = override_scopes(after)
     for key, (name, o) in sorted(override_scopes(before).items(), key=lambda pair: tuple(map(str, pair[0]))):
         scope = key[1] or key[0]
         if key not in kept and not removal_agreed(scope, rows, said):
-            out.append(Problem(f'The exception on {name} was taken out this session ("{o.reason}"). Was that on '
-                               "purpose?",
-                               f"override on {scope} ({', '.join(o.rules)} by {o.by} on {o.date}) removed since the "
-                               "branch point",
-                               "Putting it back clears it, or the lead's own words for removing it, recorded in the "
-                               "session record.", kind=REMOVED_ROW))
+            out.append(Removal(scope, f"an exception taken off {name}", Problem(
+                f'The exception on {name} was taken out this session ("{o.reason}"). Was that on purpose?',
+                f"override on {scope} ({', '.join(o.rules)} by {o.by} on {o.date}) removed since the "
+                "branch point",
+                "Putting it back clears it, or the lead's own words for removing it, recorded in the "
+                "session record.", kind=REMOVED_ROW), is_override=True))
     return out
+
+
+def removal_problems(before, after, rows, said):
+    return [r.problem for r in unagreed_removals(before, after, rows, said)]
+
+
+# ------------------------------------------------------------------ Task 12: what the other machine decided
+
+STILL_YES = "These were decided on the other machine: {names}. Still yes?"
+STILL_YES_CLEAR = ("The lead's yes in this part, recorded with vela close reconfirm --yes ^cNN and the IDs, clears it. "
+                   "A no leaves the item as it is, and the lead may reopen it.")
+LEDGER_ROW, OVERRIDE_ROW = "ledger row", "override"  # the From cell of a removal's Changes row
+
+
+@dataclass(frozen=True)
+class Away:
+    """One thing the other machine did that this part holds no yes for. `id` is what the Changes row names (an item or
+    page ID, a ledger copy, or an override's scope), `name` what the lead hears, `before` and `after` the row's From
+    and To. `is_removal` marks a ledger row or an override taken off."""
+    id: str
+    name: str
+    before: str
+    after: str
+    is_removal: bool = False
+
+
+def decision_bullets(vault, item):
+    """[(page, bullet)] for the item's (or the page's) `**Decision:**` line."""
+    found = vault.item(item)
+    if found is not None:
+        bullet = found.facts.get("Decision")
+        return [(found.page, bullet)] if bullet else []
+    pages = vault.by_id.get(item) or []
+    return [(pages[0], b) for b in pages[0].bullets if b.label == "Decision" and not b.item and not b.generated] if pages else []
+
+
+def cites_another_part(vault, item, record_id, part):
+    """Whether the item's receipt names this session's notes in a part other than this one."""
+    from vela import receipts
+    for _, bullet in decision_bullets(vault, item):
+        found = receipts.parse_decision(bullet.value)
+        if found is not None and found.record == record_id and found.ref is not None and found.ref.part != part:
+            return True
+    return False
+
+
+def away(vault, before, rows, said, record_id, part):
+    """The `Away` things in a later part (part 2 and up): each change into or out of decided with no Changes row here
+    whose receipt cites another part of this session, and every removal this part holds no yes for. Part 1 has no
+    other machine to ask, and a reader copy has no branch point to compare with."""
+    if part < 2 or before is None:
+        return []
+    out = [Away(c.item, vault.name_of(c.item), c.before, c.after)
+           for c in consent_changes(states(before), states(vault), vault)
+           if not overrides_for(vault, c.item) and change_row(c, rows) is None
+           and cites_another_part(vault, c.item, record_id, part)]
+    out += [Away(r.key, r.name, OVERRIDE_ROW if r.is_override else LEDGER_ROW, REMOVED, is_removal=True)
+            for r in unagreed_removals(before, vault, rows, said)]
+    return out
+
+
+def elsewhere_problem(asked):
+    """One grouped question for everything decided on the other machine: the lead hears names, `detail` the IDs."""
+    if not asked:
+        return []
+    return [Problem(STILL_YES.format(names=say.names_said([a.name for a in asked])),
+                    "decided elsewhere: " + ", ".join(a.id for a in asked), STILL_YES_CLEAR, kind=ELSEWHERE)]
 
 
 def stray_problem(stray):
@@ -603,7 +679,10 @@ def ready(vault, record_text, record_id, seen, part=1):
         changes = reader_changes(rows, after)
     else:
         changes = consent_changes(states(seen.before), after, vault)
+    asked = away(vault, seen.before, rows, said, record_id, part)
+    changes = [c for c in changes if c.item not in {a.id for a in asked}]
     problems, consent = judge(changes, record_text, record_id, vault, part)
+    problems += elsewhere_problem(asked)
     if seen.sync.blocks:
         problems.insert(0, Problem(seen.sync.plain, f"sync-main: {seen.sync.status or 'not run'}",
                                    "Running vela close sync-main clears it.", kind=SYNC, audience=seen.sync.audience))
@@ -613,7 +692,8 @@ def ready(vault, record_text, record_id, seen, part=1):
     problems += mark_target_problems(vault, record_text)
     problems += error_problems(seen.errors, vault)
     if seen.before is not None:
-        problems += removal_problems(seen.before, vault, rows, said)
+        problems += [r.problem for r in unagreed_removals(seen.before, vault, rows, said)
+                     if r.key not in {a.id for a in asked}]
     problems += stray_problem(seen.stray)
     problems += render_problem(seen.stale, seen.render_problems)
     return Readiness(tuple(problems), tuple(notes_of(seen)), tuple(consent))

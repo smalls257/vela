@@ -48,19 +48,19 @@ def test_bare_ok_is_not_a_yes():
         assert problems and "Was that a yes" in problems[0].plain, words
 
 
-def test_a_quoted_yes_passes_and_lands_in_the_consent_block():
+def test_a_quoted_yes_passes_and_is_judged_with_its_words():
     problems, consent = judged(['- [thought] (@lead) "Yes, decide it as read." says yes to consent records ^c04'],
                                [f"| CON-003 | assumption | decided | [[{RECORD}#^c04]] |"])
     assert not problems
-    block = closegate.consent_block(consent)
-    assert block[0] == "**Consent**"
-    assert f'- Consent records (CON-003), assumption to decided: "Yes, decide it as read." [[{RECORD}]] c04' in block
+    (line,) = consent
+    assert (line.name, line.change, line.words, line.link) == (
+        "Consent records", "assumption to decided", "Yes, decide it as read.", f"[[{RECORD}]] c04")
 
 
 def test_the_consent_link_names_the_part_the_yes_is_in():
     _, consent = judged(['- [thought] (@lead) "Yes, decide it as read." says yes to consent records ^c04'],
                         [f"| CON-003 | assumption | decided | [[{RECORD}#^c04]] |"], part=2)
-    assert closegate.consent_block(consent)[-1].endswith(f'"Yes, decide it as read." [[{RECORD}]] 2.c04')
+    assert consent[-1].link == f"[[{RECORD}]] 2.c04"
 
 
 def test_override_bullet_lets_it_through_and_is_listed():

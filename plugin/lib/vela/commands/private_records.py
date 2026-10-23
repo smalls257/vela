@@ -7,6 +7,11 @@ and nothing else (`parts(meta)[part_of(private)]`); another machine's part is it
 for a part the close never fingerprinted (a session that ended without `close finish`): it fills this machine's own
 pending key, refuses to overwrite a different fingerprint (that would hide an edit), and commits only the stub.
 
+`show <id> <ref>` prints one of the lead's own captured lines so they can paste it into a review thread when a reviewer
+asks. It is a courtesy, not proof: the fingerprint covers the whole part, so a pasted line can't be checked against it.
+It prints a lead-origin line of this machine's part only (someone else's words go out only with their own yes), and it
+never writes.
+
 `backup` is the one sanctioned copy of the notes off this machine, to a place the lead picks. The notes live nowhere
 else, so a lost laptop would lose the plan's reasoning (a Silent Fallback of its own: nothing would say so until it
 mattered). It refuses a target inside the plan or its git repo before writing anything, since the copy would be
@@ -25,14 +30,19 @@ import pathlib
 import shutil
 import tempfile
 
-from vela import commands, handoff, planscope, privaterecord, publish, receipts, recordsplit, say, schema
+from vela import closegate, commands, handoff, planscope, privaterecord, publish, receipts, recordsplit, say, schema
 from vela.edge import idgit, plans, sessiongit, vaultgit
 
-VERIFY, SEAL, SPLIT, BACKUP = "records verify", "records seal", "records split", "records backup"
+VERIFY, SEAL, SPLIT, BACKUP, SHOW = ("records verify", "records seal", "records split", "records backup",
+                                     "records show")
 SPLIT_BRANCH = "records-split"
 SPLIT_COMMIT = "Split session records: the notes stay on this machine"
 REPUBLISH = "Once it's merged, I'll republish the read copy."
 INSIDE_THE_PLAN = "That folder is inside the plan, so the copy would be committed. Pick a folder outside it."
+NOT_THEIRS = "Those are someone else's words, and they go out only with their own yes, so I won't paste them."
+OTHER_MACHINE = "That note is on the other machine."
+NOT_A_LINE = "I can't find that line in this session's notes."
+NO_LEAD = "I don't know your GitHub handle yet, so I can't tell which lines are yours. Run vela whoami first."
 NOTHING_TO_BACK_UP = "There are no session notes here to back up."
 
 
@@ -49,6 +59,12 @@ def register(sub):
         each.add_argument("--vault", default=".", help="vault root (default: current directory)")
         say.add_output_flags(each)
         each.set_defaults(func=func)
+    show = verbs.add_parser("show", help="print one of the lead's own captured lines, to paste into a review thread")
+    show.add_argument("id", metavar="ID", help="the session's id (its file name without .md)")
+    show.add_argument("ref", metavar="REF", help="the line: c07, or 2.c07 for part 2")
+    show.add_argument("--vault", default=".", help="vault root (default: current directory)")
+    say.add_output_flags(show)
+    show.set_defaults(func=cmd_show)
     split = verbs.add_parser("split", help="move an older plan's session records to private notes (dry run first)")
     split.add_argument("--vault", default=".", help="vault root (default: current directory)")
     split.add_argument("--apply", action="store_true",
@@ -116,6 +132,38 @@ def verify(root, record_id):
                           data={"id": record_id, "part": part, "matches": False})
     text = f"Part {part} matches what was committed on {committed_on(root, record_id, stub)}."
     return say.Result(VERIFY, lines=[say.Line(text)], data={"id": record_id, "part": part, "matches": True})
+
+
+def cmd_show(args, out):
+    root = pathlib.Path(args.vault).resolve()
+    result = show(root, args.id, args.ref)
+    return commands.emit(result, args, out)
+
+
+def refusal(text):
+    return say.Result(SHOW, exit=say.REFUSED, lines=[say.Line(f"vela records show: {text}", plain=text)])
+
+
+def show(root, record_id, ref_text):
+    """The lead's own words for one capture of this machine's part. Reads only; the lead is `vela whoami`'s handle."""
+    notes = sessiongit.private_text(root, record_id)
+    if notes is None:
+        return failed(SHOW, str(sessiongit.PrivateMissing(record_id)))
+    ref = privaterecord.parse_ref(ref_text)
+    if ref is None:
+        return refusal(NOT_A_LINE)
+    if ref.part != privaterecord.part_of(notes):
+        return refusal(OTHER_MACHINE)
+    found = closegate.captures(notes).get(f"{ref.n:02d}") or closegate.captures(notes).get(str(ref.n))
+    if found is None:
+        return refusal(NOT_A_LINE)
+    handle = sessiongit.read_handle(root)
+    if not handle:
+        return refusal(NO_LEAD)
+    lead = {name.casefold() for name in sessiongit.lead_names(root)} | {handle.lstrip("@").casefold()}
+    if found.origin.strip().lstrip("@").casefold() not in lead:
+        return refusal(NOT_THEIRS)
+    return say.Result(SHOW, lines=[say.Line(f'"{found.quote}"')], data={"id": record_id, "ref": ref.text})
 
 
 def cmd_seal(args, out):
