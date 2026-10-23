@@ -199,3 +199,17 @@ def test_for_lead_passes_the_leak_check(tmp_path):
             assert not pattern.search(out), (argv, kind, pattern.search(out).group(0))
     code, out = run("epics", "frontier", "--team", "@product-owner", "--vault", str(vault), "--for-lead")
     assert "Consent check" in out  # the contract by its name, never "(CON-003)"
+
+
+def test_lint_names_a_first_shape_epic_and_the_fix_that_keeps_its_ac_numbers(tmp_path):
+    vault = copy_of(tmp_path, HERON_DESK)
+    (vault / "13-epics" / "EPC-001-calendar.md").write_text(NUMBERED.read_text(encoding="utf-8"), encoding="utf-8")
+    code, out = run("epics", "lint", "--vault", str(vault), "EPC-001")
+    assert ("EPC-001 is in the first shape (numbered criteria under ## Epic acceptance criteria); run vela epics lint "
+            "--fix-shape EPC-001, which keeps each AC number.") in out
+    code, out = run("epics", "lint", "--vault", str(vault), "--fix-shape", "EPC-001")
+    assert code == 0, out
+    code, out = run("epics", "lint", "--vault", str(vault), "EPC-001")
+    assert "first shape" not in out
+    code, data = run("epics", "lint", "--vault", str(vault), "EPC-001", "--json")
+    assert json.loads(data)["first_shape"] == []

@@ -272,6 +272,13 @@ def _same(before, after):
     return key == [(c.n, c.struck, c.markers, c.trace, c.group) for c in after]
 
 
+def is_first_shape(text):
+    """True when the page keeps its criteria as numbered lines under `## Epic acceptance criteria`, the shape
+    `fix_shape` rewrites."""
+    return any(criteria.is_criteria_heading(s[2]) and s[2].strip().lower() != DONE_HEADING.lower()
+               for s in _sections(text.split("\n")))
+
+
 def fix_shape(path, text):
     """`text` with its first-shape criteria rewritten to the template, every AC number kept. Unchanged (with
     `changed=False`) when the page has no first-shape section."""
