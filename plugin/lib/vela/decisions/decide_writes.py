@@ -318,7 +318,8 @@ def history_bullets(item, view, record, target, decision=True):
     if item.get("dissent"):
         capture = record.capture(item["dissent"])
         words = capture.quote if consent.may_quote(capture, record, view.lead) else None
-        out.append(f"- **Dissent:** {receipts.dissent_value(speaker(capture, view.lead), today, words)}")
+        see = record.id if words else ""
+        out.append(f"- **Dissent:** {receipts.dissent_value(speaker(capture, view.lead), today, words, see=see)}")
     out += _override_bullets(item, view, record, target)
     if item.get("on_behalf_of"):
         out.append(f"- **Decided by:** {item['by']}, on behalf of {item['on_behalf_of']}")

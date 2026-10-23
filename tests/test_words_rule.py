@@ -46,7 +46,18 @@ def test_a_relayed_yes_is_the_leads_capture_and_does_not_count(tmp_path):
 
 def test_their_own_quote_yes_lets_a_dissent_speak(tmp_path):
     own = '- [quote-yes] (@raj) "Yes, quote me." ^c19'
-    assert '- **Dissent:** @raj, 2026-10-20: "This is too slow."' in bullets_of(vault(tmp_path, RAJ, own), dissent="^c18")
+    assert f'- **Dissent:** @raj, 2026-10-20: "This is too slow." (see [[{RECORD_ID}]])' in bullets_of(
+        vault(tmp_path, RAJ, own), dissent="^c18")
+
+
+def test_a_quoted_dissent_passes_the_receipt_check_after_decide(tmp_path):
+    """The writer and E315 agree: words in a Dissent say where they came from, so vela check has nothing to flag."""
+    root = vault(tmp_path, RAJ, '- [quote-yes] (@raj) "Yes, quote me." ^c19')
+    for path, text in filed(root, [item(dissent="^c18")]).items():
+        (root / path).write_text(text, encoding="utf-8")
+    code, out = run("check", "--vault", str(root), "--today", TODAY)
+    assert "too slow" in (root / STOCK).read_text(encoding="utf-8")
+    assert "E315" not in out, out
 
 
 def test_a_quote_yes_must_be_a_yes_from_a_person():
