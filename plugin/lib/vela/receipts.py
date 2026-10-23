@@ -137,11 +137,18 @@ def _decision_problem(page, bullet):
     return None
 
 
-def _dissent_problem(bullet):
+def _cites_only_sources(vault, words):
+    """Whether the words name where they came from by linking the sources page, and link nothing else."""
+    targets = re.findall(r"\[\[([^\]#|]+)", words)
+    pages = [vault.page(t) for t in targets]
+    return bool(pages) and all(p is not None and p.type == "sources" for p in pages)
+
+
+def _dissent_problem(vault, bullet):
     found = parse_dissent(bullet.value)
     if found is None:
         return "is not a Dissent. Write @who, <date>, with the words only when they said yes to being quoted."
-    if found.words and not found.see and "[[" not in found.words:  # words that cite their source say where from
+    if found.words and not found.see and not _cites_only_sources(vault, found.words):
         return ("quotes words without saying where they came from. Add (see [[<session>]]), or take the words out.")
     return None
 
@@ -162,7 +169,7 @@ def receipt_rules(vault, today):
             if bullet.label == "Decision":
                 problem = _decision_problem(page, bullet)
             else:
-                problem = _dissent_problem(bullet)
+                problem = _dissent_problem(vault, bullet)
             if problem:
                 yield Finding(page.path, bullet.line, "E315", f"The {bullet.label} line {problem}",
                               "Use the receipt form in CONVENTIONS (Page level).")

@@ -202,3 +202,17 @@ def test_a_mark_on_a_missing_page_and_on_a_missing_heading_read_differently():
     page = mark_problems("[[nowhere#CON-003 Consent records|CON-003]]")[0].plain
     heading = mark_problems("[[booking-building-blocks#CON-099 Gone|CON-099]]")[0].plain
     assert "can't find that page" in page and "under a heading that isn't there" in heading
+
+
+def test_dissent_words_pass_without_a_session_only_when_every_link_is_a_source():
+    sources = parse.parse_page("sources.md", "---\nid: sources\ntype: sources\ntitle: Sources\n---\n\n# Sources\n")
+    decision = f"- **Decision:** [[{RECORD}]] c07, @priya"
+
+    def codes(link):
+        line = f'- **Dissent:** @raj, 2026-10-22: "This is too slow." ([[{link}]])'
+        vault = model.build([booking(decision, line), sources, session_stub(RECORD, "2026-10-22")],
+                            {"records_split": "2026-10-22"})
+        return [f.code for f in receipts.receipt_rules(vault, "2026-10-22")]
+    assert codes("sources#SRC-012|the one-pager") == []
+    assert codes("booking-building-blocks") == ["E315"]
+    assert codes("nowhere") == ["E315"]
