@@ -8,9 +8,12 @@ to link to the moment a grill offers it. The prose is the model's to draft and t
 
 - Numbered `ADR-nnnn` past every open branch.
 - `state` is `proposed` until a grill decides it; a record for a page decided this session may be written `decided`
-  with `decision` naming the deciding session, which goes under `## History` as its `**Decision:**` bullet.
+  with `decision` naming the deciding session, which goes under `## History` as its `**Decision:**` bullet. That
+  bullet is a receipt (`receipts.decision_value`): it needs `capture`, the yes it came from, and carries that person's
+  words only when `consent.may_quote` lets them out. A bare `[[session]]` would be a Decision nobody can trace.
 """
-from vela.decisions import textedit
+from vela import privaterecord, receipts
+from vela.decisions import consent, decide_writes, textedit
 from vela.decisions.schema import Write
 
 FOLDER = "09-decisions"
@@ -20,9 +23,9 @@ STATES = ("proposed", "decided", "superseded", "rejected")
 FIELDS = {"title": "what was decided, as a short sentence",
           "owner": "the handle that owns the record: the lead's",
           "state": "proposed (default) or decided",
-          "decision": "for a decided record: the deciding grill session's ID",
+          "decision": "for a decided record: the deciding grill session's ID (needs capture, the yes it came from)",
           "decides": "the ID of the page or item it records the decision for (optional; linked under Decision)",
-          "capture": "the capture where the lead asked for or agreed to the record",
+          "capture": "the capture where the lead asked for or agreed to the record; a decided record's receipt cites it",
           "id": "leave null: vela numbers it past every open branch"}
 REQUIRED = ("title", "owner")
 EXAMPLE = {"title": "One booking app, not a shared library", "owner": "@priya", "decides": "APP-booking"}
@@ -37,6 +40,13 @@ def validate(item, vault, record):
         found.append(textedit.refusal("add-adr-decision", "A decided record needs the grill that decided it.",
                                       "Give decision: the grill session's ID.",
                                       override="leave state proposed until a grill decides it"))
+    if item.get("decision") and not item.get("capture"):
+        found.append(textedit.refusal("add-adr-capture", "I need the answer that decided it written down before I can "
+                                                         "cite it.",
+                                      "Give capture: the capture holding the yes that decided it.",
+                                      override="leave the record proposed until there is a yes on record"))
+    if item.get("decision") and item.get("capture"):
+        found += receipt_refusals(item, vault, record)
     if item.get("decides") and textedit.find(vault, str(item["decides"])) is None:
         found.append(textedit.refusal("add-adr-decides", "I can't find what that decision is about.",
                                       f"decides names {item['decides']}, which the vault doesn't hold."))
@@ -45,6 +55,30 @@ def validate(item, vault, record):
         if refusal is not None:
             found.append(refusal)
     return found
+
+
+def receipt_refusals(item, vault, record):
+    """The receipt names this session, the yes it came from and the lead: each must hold, or nothing is written."""
+    if str(item["decision"]) != record.id:
+        return [textedit.refusal("add-adr-session", "That decision was made in another session, so I can't cite a yes "
+                                                    "from this one.",
+                                 f"decision {item['decision']!r} is not the open session {record.id}; cite the yes "
+                                 "from the session that decided it, or record it there.",
+                                 override="leave the record proposed")]
+    if getattr(vault, "lead", None) is None:
+        return [decide_writes.lead_unknown()]
+    missing = textedit.capture_refusals(item, record)
+    yes = None if missing else consent.a_yes(item["capture"], record)
+    return missing + ([yes] if yes else [])
+
+
+def receipt(item, vault, record):
+    """The `**Decision:**` value: the session, the capture of the yes and who said it, with their words when they may
+    be quoted."""
+    capture = record.capture(item["capture"])
+    words = capture.quote if consent.may_quote(capture, record, getattr(vault, "lead", None)) else None
+    return receipts.decision_value(item["decision"], privaterecord.Ref(record.part, int(capture.n)),
+                                   decide_writes.speaker(capture, vault.lead), words)
 
 
 def apply(item, vault, record):
@@ -61,7 +95,7 @@ def apply(item, vault, record):
     lines += ["## Alternatives considered", "", "| Alternative | Why rejected |", "|---|---|", "",
               "## Consequences", "", "## History", ""]
     if item.get("decision"):
-        lines += [f"- **Decision:** [[{item['decision']}]]", ""]
+        lines += [f"- **Decision:** {receipt(item, vault, record)}", ""]
     writes = [Write(path, "\n".join(lines).rstrip("\n") + "\n")]
     index = textedit.page_path(vault, INDEX)
     if index is not None:

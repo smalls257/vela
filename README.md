@@ -8,11 +8,19 @@ To see why it works the way it does, from a vague idea to tickets, read [How vel
 
 Three steps, in Claude Code:
 
-1. Add the marketplace: `/plugin marketplace add smalls257/vela`
+1. Add the marketplace: `/plugin marketplace add smalls257/vela#release`
 2. Install the plugin: `/plugin install vela@vela`
 3. Ask Claude to run `vela doctor`. It prints one line per item and ends with `vela doctor: ready.` when the machine has what vela needs. Anything optional that's missing says what it adds and the one command that gets it.
 
 The repo is public (github.com/smalls257/vela), so installing needs no access grant. Git on the machine should be signed in to GitHub, which `gh auth login` does. There is nothing to pip install. Vela runs on Python 3.9 or later, which comes with a Mac's developer tools, and it brings its own copy of PyYAML.
+
+**Already installed from the full repo?** Switch to the lean branch yourself, in Claude Code. This is your own step; nothing does it for you:
+
+1. `/plugin marketplace remove vela` (this also removes the installed plugin)
+2. `/plugin marketplace add smalls257/vela#release`
+3. `/plugin install vela@vela`
+
+Your vaults are not touched. The `release` branch is generated from `main` and holds only the plugin, so the download is a fraction of the repo. Maintainers: `python3 tools/build_release_branch.py --ref <commit>`, then push `release` yourself.
 
 ## Start here tomorrow
 
@@ -79,10 +87,14 @@ v2 checks what you wrote. v3 also keeps track of what nobody has asked yet.
   ```
 
 - **Review checkpoints.** `/vela:dump` runs one after the pre-mortem, `/vela:discover` after the read-back, `/vela:shape` before the options, `/vela:boundary` once its app pages are written, and `/vela:grill` on the agenda. Each dispatches five `area-reviewer` subagents, one per focus area, each in a fresh context with only the written pages and its area's owed questions. That adds real time and tokens to every checkpoint, because five subagents read the vault each time. You see one ranked digest, not the reviewers, and you choose what to take now.
-- **`vela findings merge`** combines the five replies. It keeps the union, removes duplicates, drops any finding whose quote is not on the page it cites, and never votes. An area that failed says "did not run" with the reason, never "checked, none". The session writes the result into the record's `## Reviews` section: the coverage line, the dropped findings, and a table of the kept ones, `F1.1` and on. Words in `## Reviews` never count as a quote, so a reviewer cannot cite itself.
-- **Close writes the ledger and proposes catalog entries.** It writes a row for every question you took and every finding the merge kept, and types each party or stored value you said exists. Then it asks "Did any other gap turn up late, or by luck?" Each gap you name becomes a draft catalog entry, and the ones you approve go under `## Catalog proposals` in the session record. Close never edits the catalog itself.
+- **`vela findings merge`** combines the five replies. It keeps the union, removes duplicates, drops any finding whose quote is not on the page it cites, and never votes. An area that failed says "did not run" with the reason, never "checked, none". The session writes the result into its notes, under `## Reviews`: the coverage line, the dropped findings, and a table of the kept ones, `F1.1` and on. Words in `## Reviews` never count as a quote, so a reviewer cannot cite itself.
+- **Close writes the ledger and proposes catalog entries.** It writes a row for every question you took and every finding the merge kept, and types each party or stored value you said exists. Then it asks "Did any other gap turn up late, or by luck?" Each gap you name becomes a draft catalog entry, and the ones you approve go under `## Catalog proposals` in the session's notes. Close never edits the catalog itself.
 - **The gates.** `vela check --gate shape` warns W806 for each row still `assumed`. `--gate grill --item <ID>` warns W807 for each pending question that blocks the item. You may decide anyway, and the session's capture records that. `--gate epics` fails with E805 for each high-severity question still pending. To call the epics complete anyway, override the gate: write `- **Override:** E805 by @you on <date>: <why>` under `## Question ledger`, and each E805 prints as W805 instead. A plain `vela check` never fails because a question is unanswered: you set the pace.
 - **voicescore** is unchanged: the optional style hint at close, described under "Optional: voicescore" below.
+
+## Your session notes stay on your machine
+
+Everything said in a session is saved as notes in `sessions/private/`, on the computer you ran the session on. Git never sees them: the plan's `.gitignore` lists the folder, and the commit step refuses to stage it. What the team gets is a short header per session, and on each decision a receipt that says which session, which note and who said yes. Your words go on a page only after you've read them back at close and kept them; anyone else's go on only with their own yes to being quoted. Nothing backs the notes up, so copy them now and then with `vela records backup --to <folder>`. An older plan moves over with `vela records split`; it shows what it will change first.
 
 ## Your voice
 
@@ -139,7 +151,7 @@ A plan that is its own repo works exactly as before.
 | Path | What it is |
 |---|---|
 | `plugin/template/` | The files `vela new` copies to start a plan, including `CONVENTIONS.md`, the one written format |
-| `plugin/` | The `vela` CLI (`check`, `check-slice`, `check-diagrams`, `terms`, `new`, `plans`, `render`, `view`, `explore`, `status`, `next`, `tickets`, `capture`, `health`, `query`, `questions`, `findings`, `handoff`, `next-id`, `export`, `voicecheck`, `voicescore`, `ladder`, `style`, `upgrade`, `conventions`, `session`, `record`, `whoami`, `close`, `guard`, `apply`, `add`, `decide`, `marks`, `epics`, `releases`, `boundary`, `prose`, `hook`, `team`, `map`, `import`, `library`, `grill`, `onboard`, `reviewers`, `voice`, `role`, `publish`, `freshness`, `open`, `propose`, `proposals`, `where`, `doctor`), the question catalog in `catalog/questions.yaml`, the format the skills follow in `vault/CONVENTIONS.md`, the session skills (dump, discover, import, shape, requirements, boundary, allocate, releases, grill, epics, explore, close, ask, challenge, open, propose, proposals, where, voice-seed, house-voice), the `voice-reviewer` and `area-reviewer` agents, and START, MODES and REVIEW under `references/` |
+| `plugin/` | The `vela` CLI (`check`, `check-slice`, `check-diagrams`, `terms`, `new`, `plans`, `render`, `view`, `explore`, `status`, `next`, `tickets`, `capture`, `health`, `query`, `questions`, `findings`, `handoff`, `next-id`, `export`, `voicecheck`, `voicescore`, `ladder`, `style`, `upgrade`, `conventions`, `session`, `record`, `records`, `whoami`, `close`, `guard`, `apply`, `add`, `decide`, `marks`, `epics`, `releases`, `boundary`, `prose`, `hook`, `team`, `map`, `import`, `library`, `grill`, `onboard`, `reviewers`, `voice`, `role`, `publish`, `freshness`, `open`, `propose`, `proposals`, `where`, `doctor`), the question catalog in `catalog/questions.yaml`, the format the skills follow in `vault/CONVENTIONS.md`, the session skills (dump, discover, import, shape, requirements, boundary, allocate, releases, grill, epics, explore, close, ask, challenge, open, propose, proposals, where, voice-seed, house-voice), the `voice-reviewer` and `area-reviewer` agents, and START, MODES and REVIEW under `references/` |
 | `examples/unified-booking/` | A complete made-up vault: a ferry operator's Unified Booking initiative |
 | `integrations/` | Vault mode for `requirements-grill` and `tech-design-grill`, as patches |
 | `docs/` | Spec, design-session logs, research, plans |

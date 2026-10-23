@@ -12,6 +12,7 @@ is never drawn.
 import re
 
 from vela import attention, model, progress, schema
+from vela.sessiondates import session_date
 from .record import plain, refs_in
 
 HANDLE = re.compile(rf"@{schema.HANDLE_NAME}")
@@ -112,7 +113,7 @@ def raw_unless_date(value):
 
 
 def asks(vault, keys, as_of):
-    handles = sorted({h for page in vault.pages for h in HANDLE.findall(page.text)})
+    handles = sorted({h for page in vault.pages if page.type != "session" for h in HANDLE.findall(page.text)})
     out = []
     for u in vault.unknowns:
         blocks = u.fact("Blocks")
@@ -122,7 +123,7 @@ def asks(vault, keys, as_of):
             "askBy": date_only(u.fact("Ask by")), "askByRaw": raw_unless_date(u.fact("Ask by")),
             "opened": date_only(u.fact("Opened")),
             "holdsReason": plain(blocks) if (not blocks or NOTHING.match(blocks)) else "",
-            "outcome": plain(u.fact("Outcome")), "resolvedIn": plain(u.fact("Resolved in")),
+            "outcome": plain(u.fact("Outcome")),
             "light": unknown_light(u, as_of) if u.fact("State") == "open" else {"level": "dark", "urgency": 0},
         })
     return out
@@ -215,7 +216,7 @@ def adr_tree(adr, keys, count):
     where = {"key": keys.page(adr), "page": keys.page(adr), "pageTitle": str(adr.meta.get("title", adr.name)),
              "type": "decision", "item": "", "under": "", "state": str(adr.meta.get("state", "")),
              "text": section_text(adr, "Decision"), "decidedBy": [], "confirmedBy": [],
-             "decision": [plain(b.value) for b in adr.bullets if b.label == "Decision"], "overrides": 0,
+             "decidedOn": decided_on(adr, keys, [b for b in adr.bullets if b.label == "Decision"]), "overrides": 0,
              "owner": str(adr.meta.get("owner", "")), "status": section_text(adr, "Status")}
     return {"id": f"D{count + 1:02d}", "picked": {"label": str(adr.meta.get("title", adr.name)), "condition": ""},
             "rejected": rejected, "carriedBy": [where], "assumes": assumes, "fromTable": True,
@@ -227,6 +228,28 @@ def picked_line_before(page, line):
     heading and a list, as a strategy page whose decisions sit under `##` headings."""
     above = [b for b in page.bullets if b.label == "Picked option" and b.line < line and not b.generated]
     return plain(above[-1].value) if above else ""
+
+
+SLUG_DATE = re.compile(r"^(\d{4}-\d{2}-\d{2})-")
+
+
+def decided_on(page, keys, bullets):
+    """The dates a page's `Decision:` lines say it was decided, as YYYY-MM-DD ("" when a line gives none), one per line.
+    A line points at the session where it happened; the dashboard shows when, not which session (the owner's call), so the
+    date is read here and the session's name goes no further."""
+    out = []
+    for bullet in bullets:
+        found = ""
+        for link in bullet.links:
+            target = keys.vault.resolve(link, page)
+            if target is not None and target.type == "session":
+                found = session_date(target)
+                break
+        else:
+            slug = SLUG_DATE.match(plain(bullet.value))
+            found = slug.group(1) if slug else ""
+        out.append(found)
+    return out
 
 
 def decisions(vault, keys):
@@ -244,12 +267,12 @@ def decisions(vault, keys):
                      "text": (item.name + ". " + first_prose(item.page, item.line)) if item else page_opening(page),
                      "decidedBy": [plain(b.value) for b in bullets if b.label == "Decided by"],
                      "confirmedBy": [plain(b.value) for b in bullets if b.label == "Confirmed by"],
-                     "decision": [plain(b.value) for b in bullets if b.label == "Decision"],
+                     "decidedOn": decided_on(page, keys, [b for b in bullets if b.label == "Decision"]),
                      "overrides": len([b for b in bullets if b.label == "Override"]),
                      "owner": str(page.meta.get("owner", ""))}
             options = [b for b in bullets if b.label == "Options considered"]
             if not options:
-                if where["decision"]:
+                if where["decidedOn"]:
                     lone.append(where)
                 continue
             for b in options:

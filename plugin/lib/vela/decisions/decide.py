@@ -123,7 +123,7 @@ def field_refusals(item, module):
     return found
 
 
-def reopen_refusals(item, record, module, found):
+def reopen_refusals(item, view, record, module, found):
     out = []
     if module.REOPEN_TO is None:
         return [decide_writes.refusal("decide-reopen-not-here", f"{found.name} is the team's to move on from here, so "
@@ -140,7 +140,7 @@ def reopen_refusals(item, record, module, found):
                                                                  "words.",
                                             "Capture why the lead reopens it, then give it as --why.",
                                             override="none: a change of mind is recorded with its reason")]
-    why = consent.why_in_their_words(item["why"], record)
+    why = consent.why_in_their_words(item["why"], record, getattr(view, "lead", None))
     capture = record.capture(item["why"])
     why = why or consent.not_bare_non_yes(capture)
     return out + ([why] if why else [])
@@ -167,7 +167,7 @@ def validate(item, view, record):
         return [missing(item["id"])]
     found = field_refusals(item, module)
     if item.get("reopen"):
-        return found + reopen_refusals(item, record, module, target) + decide_writes.by_refusals(item)
+        return found + reopen_refusals(item, view, record, module, target) + decide_writes.by_refusals(item)
     if target.state == module.TO:
         return found + [decide_writes.refusal("decide-already", f"{target.name} is already {module.TO}.",
                                               f"Reopen it only if the lead wants to change it: vela decide --reopen "
@@ -175,7 +175,7 @@ def validate(item, view, record):
                                               override="none: reopening is the route, and it records the change")]
     found += stated_refusals(item, view)
     found += decide_writes.yes_refusals(item, record)
-    found += decide_writes.words_refusals(item, record)
+    found += decide_writes.words_refusals(item, view, record)
     found += decide_writes.override_refusals(item, view, record, target)
     found += decide_writes.gate_refusals(item, view, record, target)
     return found + list(module.refusals(item, view, record, target))
@@ -193,7 +193,8 @@ def apply(item, view, record):
     page = decide_writes.add_history(page, bullets, target)
     if hasattr(module, "extra"):
         page = module.extra(item, view, record, target, page)
-    rec = decide_writes.record_after(item, view, record, target, target.state, module.TO, item["yes"])
+    cite = item.get("yes") or item["overrides"][0]["reason"]  # an override of the quoted-yes rule cites its reason
+    rec = decide_writes.record_after(item, view, record, target, target.state, module.TO, cite)
     return decide_writes.writes(target, page, rec, view, record)
 
 

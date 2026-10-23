@@ -13,8 +13,6 @@ const Decisions = (() => {
   const STATE_SAY = { decided: "Decided, with the usual checks done", proposed: "Written down, not decided", pending: "Someone reading the plan decided this, and the owner hasn't reviewed it yet", overridden: "Decided without the usual checks, and nobody has confirmed it since. Confirm it in the next session." };
   const SORTS = [["state", "State"], ["name", "Name"], ["date", "Decided"], ["waits", "Open questions"]];
   const st = { sort: "state", flip: false, q: "", state: "", waiting: false, bare: false, mode: "log", open: "" };
-  const sessionTitle = (id) => (D.sessions[id] && D.sessions[id].title) || id;
-  const sessionDate = (id) => (D.sessions[id] && D.sessions[id].date) || (ISO.exec(id) || [""])[0];
   /* A handle as a person reads it, and a date in words: core.js's one rewrite. */
   const person = (text) => peopleWords(text);
   const longDate = (iso) => (isDate(iso) ? dayYear(iso) : "");
@@ -30,13 +28,13 @@ const Decisions = (() => {
     return { label, said: said && said.toLowerCase() !== label.toLowerCase() ? said : "", condition: (t.picked.condition || "").replace(/^on condition that\s*/i, "") };
   }
   function deciders(t) {
-    const by = new Set(), conf = new Set(), sessions = new Set(); let overrides = 0;
+    const by = new Set(), conf = new Set(), on = new Set(); let overrides = 0;
     for (const w of t.carriedBy) {
       w.decidedBy.forEach((x) => by.add(person(x))); w.confirmedBy.forEach((x) => conf.add(person(x)));
-      w.decision.forEach((x) => { const m = x.match(/^\d{4}-\d{2}-\d{2}-[a-z0-9-]+/); if (m) sessions.add(m[0]); });
+      w.decidedOn.forEach((x) => { if (x) on.add(x); });
       overrides += w.overrides || 0;
     }
-    return { by: [...by], conf: [...conf], sessions: [...sessions].sort(), overrides, owner: person(t.carriedBy.map((w) => w.owner).find(Boolean) || "") };
+    return { by: [...by], conf: [...conf], dates: [...on].sort(), overrides, owner: person(t.carriedBy.map((w) => w.owner).find(Boolean) || "") };
   }
   /* A reader's decision the owner has not reviewed: on the decision record, or on any page or item that carries it. */
   function pendingOf(t) {
@@ -49,7 +47,7 @@ const Decisions = (() => {
   function dateOf(t) {
     const fromStatus = ISO.exec(t.carriedBy[0].status || "");  // a decision record: "Accepted, 2026-08-12, in a Grill session"
     if (fromStatus) return fromStatus[0];
-    const dates = deciders(t).sessions.map(sessionDate).filter(Boolean).sort();
+    const dates = deciders(t).dates;
     return dates[dates.length - 1] || "";
   }
   function titleOfTree(t) { const w = t.carriedBy[0]; return w.type === "concern" && w.under ? `${w.pageTitle}, ${w.under}` : t.picked.label; }
@@ -174,7 +172,7 @@ const Decisions = (() => {
       h("button", { class: "icon-btn", "aria-label": "The decision before", disabled: idx > 0 ? null : true, onclick: () => select(list[idx - 1].id) }, "‹"),
       h("button", { class: "icon-btn", "aria-label": "The decision after", disabled: idx >= 0 && idx < list.length - 1 ? null : true, onclick: () => select(list[idx + 1].id) }, "›"),
       h("button", { class: "icon-btn dl-close", "aria-label": "Close the record", onclick: () => select("") }, "✕"));
-    const hist = [status, d.sessions.length ? h("ul", { class: "dl-hist" }, d.sessions.map((s) => h("li", {}, h("span", { class: "dl-tl-d" }, sessionDate(s) ? day(sessionDate(s)) : ""), ent(s) ? refChip(s) : sessionTitle(s)))) : null,
+    const hist = [status, d.dates.length ? h("ul", { class: "dl-hist" }, d.dates.map((x) => h("li", {}, h("span", { class: "dl-tl-d" }, day(x)), "Decided"))) : null,
       e.pending ? h("p", { class: "dl-p" }, pendingPill(e.pending), ` ${person(e.pending.by)} decided this on ${longDate(e.pending.date) || "a date not given"}; the owner hasn't reviewed it yet.`) : null,
       d.conf.length ? h("p", { class: "dl-p" }, `Confirmed by ${d.conf.join("; ")}.`) : h("p", { class: "dl-p" + (d.overrides ? " warn" : " muted") }, d.overrides ? `Nobody has confirmed it yet, and it skipped ${plural(d.overrides, "check")}. Confirm it in the next session.` : "Nobody has confirmed it yet.")];
     const trace = [t.adr ? t.adr.id : null, t.adr ? null : w.key].filter(Boolean);

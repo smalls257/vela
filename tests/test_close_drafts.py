@@ -7,6 +7,7 @@ from conftest import run
 from vela import say
 from vela.edge import vaultgit
 from sharing import git, make_vault
+import session_files
 
 RECORD = "2026-10-20-grill-stock"
 STOCK = "05-building-blocks/stock-building-blocks.md"
@@ -25,7 +26,7 @@ def record_text(modes="grill"):
 def session(tmp_path, modes="grill"):
     vault = make_vault(tmp_path)
     git(vault, "switch", "-q", "-c", f"session/{RECORD}")
-    (vault / "sessions" / f"{RECORD}.md").write_text(record_text(modes), encoding="utf-8")
+    session_files.write_record(vault, RECORD, record_text(modes))
     git(vault, "add", "sessions")
     git(vault, "commit", "-q", "-m", f"Open session {RECORD}")
     return vault

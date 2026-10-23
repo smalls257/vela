@@ -18,7 +18,7 @@ from vela import allocation, handoff, ladder, progress, readability, releases, s
 from vela import criteria as criteria_reader
 
 from . import slices_data
-from .record import chips_html, inline_html, plain
+from .record import chips_html, dashboard_pages, inline_html, plain
 
 LIST_MARK = re.compile(r"^[-*] |^\d+\. ")
 APP_STATUS_END = {"new": "new", "changed": "changes", "retired": "absent", "retire": "absent"}
@@ -130,7 +130,7 @@ def release_data(vault, keys):
 
 def table_rows(vault, keys, header):
     out = []
-    for page in vault.pages:
+    for page in dashboard_pages(vault):
         for table in page.tables:
             if table.generated or tuple(table.header)[:len(header)] != header:
                 continue
@@ -149,7 +149,7 @@ def goals(vault, keys):
 
 def constraints(vault, keys):
     out = []
-    for page in vault.pages:
+    for page in dashboard_pages(vault):
         for table in page.tables:
             if table.generated or tuple(table.header)[:2] != schema.CONSTRAINTS_HEADER:
                 continue

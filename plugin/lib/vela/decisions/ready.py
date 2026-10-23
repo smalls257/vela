@@ -21,27 +21,29 @@ already names the item and its state, so the yes is tied to the item mechanicall
 """
 import re
 
-from vela import say
+from vela import privaterecord, say
 from vela.decisions import consent, textedit
 
-HEADING = "Ready to decide"
+HEADING = privaterecord.READY_HEADING
 CANNOT_DECIDE = frozenset({"dump", "discover", "shape", "boundary", "requirements", "allocate", "releases"})
-LINE = re.compile(r"^- (?P<id>\S+): the lead said yes in (?P<session>\S+)(?: \((?P<yes>\^c\d+)\))?\s*$")
+LINE = privaterecord.READY_LINE
 YES_OPENERS = ("yes", "yeah", "yep", "yup", "agreed", "absolutely", "correct", "go ahead", "that's right",
                "thats right", "sounds good", "do it")
 KEPT_AT = "assumption"
 MODES = re.compile(r"^modes:\s*\[(?P<modes>[^\]]*)\]", re.M)
 
 
-def modes_of(record_text):
-    found = MODES.search(record_text)
+def modes_of(stub_text):
+    found = MODES.search(stub_text)
     return [m.strip() for m in found["modes"].split(",") if m.strip()] if found else []
 
 
-def can_decide(record_text):
+def can_decide(stub_text):
     """False when every mode of the session is one that never sets `decided`; a session with no modes, or any mode
     outside that list (grill, answer, epics inside a grill part), is left to the gate."""
-    modes = modes_of(record_text)
+    if not stub_text.strip():
+        raise ValueError("no session header to read the modes from; an empty one would let a shape session decide")
+    modes = modes_of(stub_text)
     return not modes or any(m not in CANNOT_DECIDE for m in modes)
 
 
@@ -67,15 +69,16 @@ def entries(record_text):
     return found
 
 
-def waiting(record_texts, is_decided):
-    """[{id, session}] across records, each item once, leaving out any `is_decided(id)` says is decided now."""
+def waiting(metas, is_decided):
+    """[{id, session}] across the records' frontmatter (`ready:` in each stub), each item once, leaving out any
+    `is_decided(id)` says is decided now. The session is the record's own id."""
     seen, found = set(), []
-    for text in record_texts:
-        for entry in entries(text):
-            if entry["id"] in seen or is_decided(entry["id"]):
+    for meta in metas:
+        for ident in privaterecord.listed(meta, "ready"):
+            if ident in seen or is_decided(ident):
                 continue
-            seen.add(entry["id"])
-            found.append({"id": entry["id"], "session": entry["session"]})
+            seen.add(ident)
+            found.append({"id": ident, "session": str(meta.get("id", ""))})
     return found
 
 
@@ -97,10 +100,10 @@ def leads_own_yes(capture, lead):
     return said and not capture.is_bare_non_yes and is_yes(capture.quote)
 
 
-def from_keep(record_text, record_id, capture, ident, state, lead):
+def from_keep(record_text, record_id, capture, ident, state, lead, stub_text):
     """The record with `ident` listed as ready to decide when this keep is the lead's plain yes on an item left at
-    `assumption` in a session that can't decide; else unchanged."""
-    if state != KEPT_AT or can_decide(record_text) or not leads_own_yes(capture, lead):
+    `assumption` in a session that can't decide (its modes are in `stub_text`); else unchanged."""
+    if state != KEPT_AT or can_decide(stub_text) or not leads_own_yes(capture, lead):
         return record_text
     return mark(record_text, ident, record_id, f"^c{capture.n}")
 

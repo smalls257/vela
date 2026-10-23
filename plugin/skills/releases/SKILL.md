@@ -66,7 +66,7 @@ On `04b-releases.md`, one section per release, in the order they ship:
 - A vault that already names its tracer on release one (`**Tracer:**`, `**Not in the tracer:**`) or a later release's `**Flows:**` keeps working; offer to move each to a slice page, and replace the bullets with `**Slices:**` once the lead agrees.
 - **Delivers** links the requirement's heading. **Criteria** is `all`, or the numbers of the criteria that hold, in the order of the requirement's bullets. **Note** says where the rest goes, such as "AC3 in release two", or is empty. A requirement may stand on several releases, each with different criteria; one placed on no release is not written.
 - Replace the page's "No release is planned yet" line with one opening paragraph: how many releases, the first date and what is undated.
-- Each release written gets a capture marked at once, `→ keep: [[04b-releases#<release heading>|<release name>]] (assumption)`, and a `## Changes` row, `| releases | - | assumption | [[<id>#^cNN]] |`: a release has no ID, so the row names the page.
+- Each release written gets a capture marked at once, `→ keep: [[04b-releases#<release heading>|<release name>]] (assumption)`, and a `## Changes` row in the session's notes, `| releases | - | assumption | [[<id>#^cNN]] |`: a release has no ID, so the row names the page.
 
 Then run `vela render` and `vela check`, fix every error (E340 and E341 mean a link or a criterion number is wrong, E394 a circle of After), fix what W392, W393 and W347 say about a slice, tell the lead which requirements are still on no release, by their plain names (what the W343 lines list; don't say the code), and commit a checkpoint with `vela close stage --checkpoint --for-lead`.
 

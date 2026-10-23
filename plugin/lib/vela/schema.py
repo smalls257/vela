@@ -73,8 +73,9 @@ PAGE_TYPES = {
         "states": None,
     },
     "session": {
-        "required": ("id", "type", "date", "modes", "status", "summary"),
-        "optional": ("title", "branch", "start_commit"),
+        "required": ("id", "type", "date", "modes", "status"),
+        "optional": ("title", "summary", "branch", "start_commit", "captures_sha256", "ready", "challenges",
+                     "harvest_declined", "title_override"),
         "states": None,
     },
     "sources": {
@@ -328,6 +329,9 @@ NEXT_MODES = ("probe", "discover", "shape", "requirements", "boundary", "allocat
 
 # ------------------------------------------------------------- finding codes
 
+# The rule an override names to go ahead without the lead's quoted yes; the gate, apply and the receipt check all read it.
+QUOTED_YES_RULE = '"a decision needs the lead\'s quoted yes"'
+
 CODES = {
     "E101": "page has no frontmatter",
     "E102": "frontmatter is not a valid YAML mapping",
@@ -356,6 +360,7 @@ CODES = {
     "E311": "consumers name no app",
     "E312": "an OpenAPI or AsyncAPI spec sits in specs/, not library/specs/",
     "E313": "library row names a stored file that is not in the vault",
+    "E315": "a Decision or Dissent line is not in the receipt form",
     "E316": "decided while an open unknown blocks it",
     "E317": "a requirements session cannot decide",
     "E318": "decided contract has no Tested by",
@@ -371,6 +376,7 @@ CODES = {
     "W717": "CONVENTIONS.md is not the copy the plugin ships",
     "W718": "the initiative's title in .vela.yaml is still the template's placeholder",
     "W719": "git tracks one of vela's own working files under .vela/",
+    "W720": "a session's private notes are committed",
     "W334": "prose calls an answered question open",
     "E340": "release row names no functional requirement",
     "E341": "release row names a criterion the requirement does not have",

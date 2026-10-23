@@ -58,11 +58,11 @@ def test_an_undisposed_high_question_fails_the_epics_gate_and_nothing_else(ub):
 
 
 def test_an_open_or_asked_high_row_fails_the_gate_at_its_own_line(ub):
-    edit(ub / LEDGER, PTN_02, "| Q-PTN-02@PTY-02 | asked | capture: [[2026-11-19-owed-questions#^c01]] | @hl-solution-lead | 2026-11-19 |\n")
+    edit(ub / LEDGER, PTN_02, "| Q-PTN-02@PTY-02 | asked | capture: [[2026-11-19-owed-questions]] c01 | @hl-solution-lead | 2026-11-19 |\n")
     code, out = gate(ub, "--gate", "epics")
     assert code == 1 and findings(out) == [("E805", LEDGER)]
     assert "question has been asked but not answered, so the epics can't be called finished:" in out and "(Q-PTN-02@PTY-02)" in out
-    edit(ub / LEDGER, "| Q-PTN-02@PTY-02 | asked | capture: [[2026-11-19-owed-questions#^c01]] | @hl-solution-lead | 2026-11-19 |\n",
+    edit(ub / LEDGER, "| Q-PTN-02@PTY-02 | asked | capture: [[2026-11-19-owed-questions]] c01 | @hl-solution-lead | 2026-11-19 |\n",
          "| Q-PTN-02@PTY-02 | open |  |  |  |\n")
     assert "question is still open, so the epics can't be called finished:" in gate(ub, "--gate", "epics")[1]
 

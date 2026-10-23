@@ -17,10 +17,10 @@ def vault(state="decided", override=""):
     return model.build([page], {})
 
 
-def judged(captures, rows, state="decided", override=""):
+def judged(captures, rows, state="decided", override="", part=1):
     v = vault(state, override)
     changes = closegate.consent_changes({"CON-003": "assumption", "APP-booking": "assumption"}, closegate.states(v), v)
-    return closegate.judge(changes, record(captures, rows), RECORD, v)
+    return closegate.judge(changes, record(captures, rows), RECORD, v, part)
 
 
 def test_hand_set_decided_with_no_changes_row_refused():
@@ -48,13 +48,19 @@ def test_bare_ok_is_not_a_yes():
         assert problems and "Was that a yes" in problems[0].plain, words
 
 
-def test_a_quoted_yes_passes_and_lands_in_the_consent_block():
+def test_a_quoted_yes_passes_and_is_judged_with_its_words():
     problems, consent = judged(['- [thought] (@lead) "Yes, decide it as read." says yes to consent records ^c04'],
                                [f"| CON-003 | assumption | decided | [[{RECORD}#^c04]] |"])
     assert not problems
-    block = closegate.consent_block(consent)
-    assert block[0] == "**Consent**"
-    assert f'- Consent records (CON-003), assumption to decided: "Yes, decide it as read." [[{RECORD}#^c04]]' in block
+    (line,) = consent
+    assert (line.name, line.change, line.words, line.link) == (
+        "Consent records", "assumption to decided", "Yes, decide it as read.", f"[[{RECORD}]] c04")
+
+
+def test_the_consent_link_names_the_part_the_yes_is_in():
+    _, consent = judged(['- [thought] (@lead) "Yes, decide it as read." says yes to consent records ^c04'],
+                        [f"| CON-003 | assumption | decided | [[{RECORD}#^c04]] |"], part=2)
+    assert consent[-1].link == f"[[{RECORD}]] 2.c04"
 
 
 def test_override_bullet_lets_it_through_and_is_listed():
@@ -125,7 +131,7 @@ def test_unmarked_capture_blocks():
     result = readied(captures=(unmarked, "- [idea] (claude) a second note ^c05"))
     assert not result.ready
     problem = next(p for p in result.problems if p.kind == closegate.UNMARKED)
-    assert problem.plain.startswith("Two things you said aren't sorted yet")
+    assert problem.plain.startswith("Two things said in the session aren't sorted yet")
     assert "^c04" in problem.detail and "^c05" in problem.detail and problem.clear
 
 

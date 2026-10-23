@@ -14,10 +14,13 @@ from vela.commands import decide
 
 PAGE = "06-runtime/apps/heron-runtime.md"
 ID = "RUN-heron"
+# A decision puts only the lead's own words (or those of someone who gave a quote-yes) on a committed page, so the
+# lead's handle is set before the first decide, as the grill skill does.
 WHY = '"Heron runs on the laptop because the pilot team won\'t send client files to a cloud service."'
 
 
 def run(ctx):
+    ctx.vela("whoami", "--set", "replay-lead")
     numbers = []
     for origin, tag, words in (("claude", "thought", "Read back: Heron's runtime runs on the pilot user's laptop, "
                                                      "reading only the folder they choose"),
@@ -36,9 +39,9 @@ def run(ctx):
     subject = ctx.git("log", "-1", "--format=%s").strip()
     assert subject == decide.MESSAGES["decided"].format(id=ID), subject
     shown = ctx.git("show", "--name-only", "--format=", "HEAD").split()
-    assert sorted(shown) == sorted([PAGE, f"sessions/{ctx.record_id}.md"]), shown
+    assert sorted(shown) == [PAGE], shown  # the notes are never committed
     page = (ctx.vault / PAGE).read_text(encoding="utf-8")
-    assert "\nstate: decided\n" in page and f"- **Decision:** [[{ctx.record_id}]]" in page, page[-800:]
+    assert "\nstate: decided\n" in page and f"- **Decision:** [[{ctx.record_id}]] c" in page, page[-800:]
     assert "- **Why:** Heron runs on the laptop because the pilot team won't send client files to a cloud service." \
         in page, page[-800:]
     record = ctx.outputs["record"].read_text(encoding="utf-8")

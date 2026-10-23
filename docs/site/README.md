@@ -10,3 +10,7 @@ What `https://smalls257.github.io/vela/` serves, from the `gh-pages` branch:
 - `dashboard.html`: the Heron example, built with `vela explore <heron vault> --out dashboard.html`.
 
 Publish by copying these into a `gh-pages` worktree, committing and pushing; the pre-push hook runs `tools/check_site.py` on that branch.
+
+## The release branch
+
+Installs come from the `release` branch, not `main`: `tools/build_release_branch.py --ref <commit>` adds one commit holding only `.claude-plugin/marketplace.json`, `plugin/` as committed at that ref, `LICENSE` and a short README, so an install or update downloads the plugin and not the tests, sim recordings and docs. It needs a version bump in `plugin/.claude-plugin/plugin.json` first and refuses the same version twice. Pushing `release` runs a release check in `.githooks/pre-push` (allowed paths, manifest, version rising, no file over 5 MB) instead of the gate. The tool never pushes.

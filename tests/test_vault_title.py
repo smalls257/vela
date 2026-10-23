@@ -3,6 +3,7 @@ vault still carries the title the template ships."""
 import shutil
 
 from conftest import REPO, edit, findings, run
+import session_files
 
 SESSION = "---\nid: 2026-01-10-first\ntype: session\ntitle: First\ndate: 2026-01-10\nmodes: [dump]\nstatus: open\nsummary: In progress.\n---\n\n# First\n"
 CONVENTIONS = ("plugin/template", "examples/unified-booking", "tests/stub-conventions")
@@ -12,7 +13,7 @@ def named(tmp_path, title, session=True):
     (tmp_path / ".vela.yaml").write_text(f"initiative: INI-001\ntitle: {title}\n", encoding="utf-8")
     if session:
         (tmp_path / "sessions").mkdir(exist_ok=True)
-        (tmp_path / "sessions" / "2026-01-10-first.md").write_text(SESSION, encoding="utf-8")
+        session_files.write_record(tmp_path, "2026-01-10-first", SESSION)
     return tmp_path
 
 
@@ -44,7 +45,7 @@ def test_the_placeholder_is_the_title_the_template_ships_and_the_template_warns_
     shutil.copytree(REPO / "plugin" / "template", vault)
     code, out = run("check", "--vault", str(vault), "--today", "2026-01-15")
     assert code == 0 and "W718" not in out  # a fresh copy is clean
-    (vault / "sessions" / "2026-01-10-first.md").write_text(SESSION, encoding="utf-8")
+    session_files.write_record(vault, "2026-01-10-first", SESSION)
     code, out = run("check", "--vault", str(vault), "--today", "2026-01-15")
     assert code == 0 and ".vela.yaml:3: W718" in out
     edit(vault / ".vela.yaml", "title: New initiative", "title: Heron")

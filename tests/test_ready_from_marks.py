@@ -14,6 +14,7 @@ import pytest
 from conftest import run
 from test_apply_cli import apply, decision_file
 from test_decide import RECORD, RECORD_ID, STOCK, TODAY, in_session_with_modes, make_vault
+import session_files
 
 YES = '- [thought] (@priya) "Yes, keep the existing read API." ^c01'
 
@@ -34,7 +35,7 @@ def keep(root, state="assumption", ident="CON-002", capture="^c01"):
 
 
 def record_text(root):
-    return (root / RECORD).read_text(encoding="utf-8")
+    return session_files.record_text(root, RECORD_ID)
 
 
 def waiting(root):

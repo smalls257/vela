@@ -20,7 +20,8 @@ this tree alone, because a number another open branch holds is the collision thi
 """
 import re
 
-from vela import ids, parse, say
+from vela import ids, parse, privaterecord, say
+from vela.decisions.record import number_of
 
 BR = "<br>"
 _NEWLINE = re.compile(r"\r\n|\r|\n")
@@ -167,7 +168,14 @@ def name_of(view, ident):
 
 
 def capture_link(record_id, ref):
+    """The link a `## Changes` row inside the private file cites a capture by. A committed page never uses it."""
     return f"[[{record_id}#^c{str(ref).lstrip('^c')}]]"
+
+
+def capture_ref(record, ref):
+    """How a committed page cites a capture: `[[<id>]] c07`, or `[[<id>]] 2.c07` from the second part. The notes stay
+    on the lead's machine, so a committed page can't carry an anchor into them."""
+    return privaterecord.citation(record.id, record.part, number_of(ref))
 
 
 # --- editing text ---------------------------------------------------------------------------------------------------
@@ -394,12 +402,36 @@ def new_id(item, view, prefix):
 
 
 def record_writes(record, view, new_text):
+    """The writes for a record's new text: the private notes, and the stub beside it when the lists it carries
+    (`ready`, `harvest_declined`) change, so the committed header never disagrees with the words under it."""
+    from vela import privaterecord
     from vela.decisions.schema import Write
-    return [Write(record.path, new_text)] if new_text != (view.text(record.path) or record.text) else []
+    if new_text == (view.text(record.path) or record.text):
+        return []
+    writes = [Write(record.path, new_text)]
+    stub = view.text(record.stub)
+    synced = privaterecord.synced_stub(stub, new_text) if stub is not None else None
+    if synced is not None and synced != stub:
+        writes.append(Write(record.stub, synced))
+    return writes
 
 
 def record_text(record, view):
     return view.text(record.path) or record.text
+
+
+def stub_text(record, view):
+    """The committed header of the record: where a session's modes are kept. A header that can't be read raises
+    StubUnreadable: with no modes, `ready.can_decide` would say a shape session may decide (a Silent Fallback)."""
+    text = view.text(record.stub)
+    if not text:
+        raise StubUnreadable(f"I can't read the session's header, {record.stub}, so I can't tell which modes this "
+                             "session is in. Nothing was decided.")
+    return text
+
+
+class StubUnreadable(ValueError):
+    pass
 
 
 def yaml_value(text):

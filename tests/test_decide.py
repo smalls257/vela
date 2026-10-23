@@ -5,22 +5,25 @@ Pending approval, the Changes row, the capture's mark, the agenda line, the comm
 The vault is the mini fixture with one item of each target kind added, so every kind is decided against the same pages.
 """
 import json
-import re
 import shutil
 import subprocess
+import types
 
 import pytest
 
 from conftest import MINI, edit, run
 from vela import cli, closegate, decisions, parse
-from vela.decisions import decide, record as records, textedit
-from vela.edge import apply as disk
+from vela.decisions import decide, textedit
+from vela.edge import apply as disk, sessiongit
 from vela.flowcheck import standing
+import session_files
 
 RECORD_ID = "2026-10-20-grill-stock"
-RECORD = f"sessions/{RECORD_ID}.md"
+RECORD = f"sessions/private/{RECORD_ID}.md"  # the notes: where a decision writes the Changes row and the mark
 TODAY = "2026-10-20"
+LEAD = ("priya", ())  # what textedit.attach gets from vela whoami: (handle, display names)
 WHY = 'Because the till | can\'t wait **long** for [[01-goals|the goal]]'
+DECISION_LINE = f'- **Decision:** [[{RECORD_ID}]] c02, @priya: "Yes, as read."'  # the lead's own yes, in their words
 CAPTURES = [
     '- [thought] (claude) Read back: the stock level contract, the count left for a product ID ^c01',
     '- [answer] (@priya) "Yes, as read." ^c02',
@@ -204,7 +207,9 @@ def make_vault(tmp_path, captures=CAPTURES, agenda=()):
     if agenda:
         lines += ["## Agenda", "", *agenda, ""]
     lines += ["## Captures", "", *captures, ""]
-    (root / RECORD).write_text("\n".join(lines) + "\n", encoding="utf-8")
+    session_files.write_record(root, RECORD_ID, "\n".join(lines) + "\n")
+    (root / sessiongit.HANDLE_FILE).parent.mkdir(exist_ok=True)
+    (root / sessiongit.HANDLE_FILE).write_text("priya\n", encoding="utf-8")  # what vela whoami keeps
     return root
 
 
@@ -214,13 +219,13 @@ def block_con_002(root):
 
 
 def opened(root):
-    found, problem = records.open_record([("", RECORD, (root / RECORD).read_text(encoding="utf-8"))])
+    found, problem = sessiongit.open_record(root)
     assert problem is None, problem
     return found
 
 
 def view(root, flows=None):
-    staged = textedit.attach(decisions.Staged(cli.load_vault(root), disk.reader(root)), TODAY, [])
+    staged = textedit.attach(decisions.Staged(cli.load_vault(root), disk.reader(root)), TODAY, [], lead=LEAD)
     staged.flows = flows
     return staged
 
@@ -289,7 +294,7 @@ def test_why_copied_verbatim(tmp_path):
     root = make_vault(tmp_path)
     writes = filed(root, [item(why="^c03")])
     bullets = history_of(writes[STOCK], "CON-002")
-    assert bullets[0] == f"- **Decision:** [[{RECORD_ID}]]"
+    assert bullets[0] == DECISION_LINE
     why = next(b for b in bullets if b.startswith("- **Why:** "))
     assert textedit.unescape(why[len("- **Why:** "):]) == WHY, why
     assert parse.BULLET.match(why), "the escaped words still read as one fact bullet"
@@ -323,7 +328,7 @@ def test_epic_needs_yes_per_criterion_group(tmp_path):
     both = one_group + [{"criteria": "AC3", "readback": "^c11", "yes": "^c12"}]
     writes = filed(root, [item("EPC-001", groups=both)])
     assert "\nstate: decided\n" in writes[EPIC]
-    assert history_of(writes[EPIC])[0] == f"- **Decision:** [[{RECORD_ID}]]"
+    assert history_of(writes[EPIC])[0] == DECISION_LINE
     assert f"| EPC-001 | draft | decided | [[{RECORD_ID}#^c02]] |" in writes[RECORD]
     _, early = plan(root, [item("EPC-001", groups=[{"criteria": "AC1-AC3", "readback": "^c11", "yes": "^c10"}])])
     assert "consent-yes-before-readback" in rules(early), "a group's yes comes after its own read-back"
@@ -368,7 +373,7 @@ def test_commit_message_grill_id_decided(tmp_path):
     assert git_log(root)[0] == "grill: CON-002 decided"
     shown = subprocess.run(["git", "show", "--name-only", "--format=", "HEAD"], cwd=root, check=True,
                            capture_output=True, text=True).stdout.split()
-    assert sorted(shown) == sorted([RECORD, STOCK]), "only the record and the changed page, by exact path"
+    assert sorted(shown) == [STOCK], "only the changed page, by exact path: the notes are never committed"
     assert json.loads(out)["commit"], out
 
 
@@ -411,7 +416,7 @@ def test_reopen_writes_changes_row(tmp_path):
     before = cli.load_vault(root)
     code, out = run("decide", "--reopen", "CON-001", "--why", "^c14", "--vault", str(root), "--today", TODAY, "--json")
     assert code == 0, out
-    record = (root / RECORD).read_text(encoding="utf-8")
+    record = session_files.record_text(root, RECORD_ID)
     assert f"| CON-001 | decided | assumption | [[{RECORD_ID}#^c14]] |" in record
     assert "- CON-001: GATE-3 confirmed yes, status open" in record
     assert "\n- **State:** assumption\n" in (root / SHOP).read_text(encoding="utf-8")
@@ -467,7 +472,8 @@ def test_dissent_decided_by_and_override_bullets(tmp_path):
     writes = filed(root, [item(dissent="^c05", on_behalf_of="@stock-team",
                                overrides=[{"rules": ["GATE-5"], "reason": "^c06"}])])
     bullets = history_of(writes[STOCK], "CON-002")
-    assert "- **Dissent:** @stock-team, 2026-10-20: The count can lag by a minute." in bullets
+    assert "- **Dissent:** @stock-team, 2026-10-20" in bullets
+    assert not any("lag by a minute" in b for b in bullets), "@stock-team gave no yes to being quoted"
     assert "- **Override:** GATE-5 by @priya on 2026-10-20: Go ahead; the owner answers by Friday." in bullets
     assert "- **Decided by:** @priya, on behalf of @stock-team" in bullets
     _, refusals = plan(root, [item(on_behalf_of="@stock-team")])
@@ -478,13 +484,13 @@ def test_fr_page_and_release_kinds(tmp_path):
     root = make_vault(tmp_path)
     fr = filed(root, [item("CAP-001.FR1")])
     assert "- **State:** decided" in fr[CAPABILITY].split("### CAP-001.FR1")[1].split("\n## ")[0]
-    assert f"- **Decision:** [[{RECORD_ID}]]" in history_of(fr[CAPABILITY], "CAP-001.FR1")
+    assert DECISION_LINE in history_of(fr[CAPABILITY], "CAP-001.FR1")
     page = filed(root, [item("solution-strategy")])
     assert "\nstate: decided\n" in page[STRATEGY] and history_of(page[STRATEGY])[0].startswith("- **Decision:**")
     release = filed(root, [item("Release one: pilot shop")])
     section = release[RELEASES].split("## Release one: pilot shop")[1].split("\n## ")[0]
     assert "- **State:** decided" in section
-    assert f"- **Decision:** [[{RECORD_ID}]]" in history_of(release[RELEASES])
+    assert DECISION_LINE in history_of(release[RELEASES])
 
 
 def test_a_flag_another_kind_takes_is_refused(tmp_path):
@@ -515,7 +521,7 @@ def test_the_decide_kind_files_through_vela_apply(tmp_path):
                     encoding="utf-8")
     code, out = run("apply", str(path), "--vault", str(root), "--today", TODAY, "--json")
     assert code == 0, out
-    assert f"| CON-002 | assumption | decided | [[{RECORD_ID}#^c02]] |" in (root / RECORD).read_text(encoding="utf-8")
+    assert f"| CON-002 | assumption | decided | [[{RECORD_ID}#^c02]] |" in session_files.record_text(root, RECORD_ID)
     assert run("apply", "--schema", "decide", "--json")[0] == 0
 
 
@@ -528,9 +534,7 @@ def test_dispatch_names_one_module_per_kind():
 
 # --- a yes in a session that can't decide is kept, not lost (full3: D4, D7, D8 had a lead yes and stayed assumptions)
 def in_session_with_modes(root, modes):
-    path = root / RECORD
-    text = re.sub(r"^modes: \[[^\]]*\]", f"modes: [{modes}]", path.read_text(encoding="utf-8"), flags=re.M)
-    path.write_text(text, encoding="utf-8")
+    session_files.set_modes(root, RECORD_ID, modes)
 
 
 def decide_con_002(root):
@@ -549,10 +553,10 @@ def test_decide_in_a_session_that_cannot_decide_refuses_and_marks_it_ready(tmp_p
     assert said["refusals"][0]["rule"] == "decide-not-in-this-session"
     assert "short grill" in said["refusals"][0]["plain"] and "Offer the lead a short grill" in said["refusals"][0]["fix"]
     assert (root / STOCK).read_text(encoding="utf-8") == before, "nothing was decided"
-    record = (root / RECORD).read_text(encoding="utf-8")
+    record = session_files.record_text(root, RECORD_ID)
     assert f"## Ready to decide\n\n- CON-002: the lead said yes in {RECORD_ID} (^c02)" in record
     assert decide_con_002(root)[0] == 1
-    assert (root / RECORD).read_text(encoding="utf-8").count("- CON-002: the lead said yes") == 1, "marked once"
+    assert session_files.record_text(root, RECORD_ID).count("- CON-002: the lead said yes") == 1, "marked once"
 
 
 @pytest.mark.parametrize("mode", ["grill", "answer, grill", "epics, grill", "shape, grill"])
@@ -562,7 +566,7 @@ def test_decide_still_works_in_a_session_with_a_grill_part(tmp_path, mode):
     git_init(root)
     code, output = decide_con_002(root)
     assert code == 0, output
-    assert "Ready to decide" not in (root / RECORD).read_text(encoding="utf-8")
+    assert "Ready to decide" not in session_files.record_text(root, RECORD_ID)
 
 
 def test_the_next_session_brief_lists_what_the_lead_already_said_yes_to(tmp_path):
@@ -580,3 +584,23 @@ def test_the_next_session_brief_lists_what_the_lead_already_said_yes_to(tmp_path
     code, output = run("session", "brief", "--vault", str(root), "--today", TODAY, "--json")
     assert json.loads(output)["ready_to_decide"] == [], "decided items drop off the list"
     assert ready.can_decide("modes: [dump]\n") is False and ready.can_decide("no front matter") is True
+
+
+
+def test_an_unreadable_stub_refuses_the_decision_instead_of_letting_a_shape_session_decide(tmp_path):
+    root = make_vault(tmp_path)
+    in_session_with_modes(root, "shape")
+    rec = sessiongit.open_record(root)[0]
+    gone = types.SimpleNamespace(text=lambda path: None)
+    with pytest.raises(textedit.StubUnreadable, match=f"sessions/{RECORD_ID}.md"):
+        textedit.stub_text(rec, gone)
+    # the command path: the stub is open when found and gone when the modes are read
+    real = textedit.stub_text
+    textedit.stub_text = lambda record, view: real(record, gone)
+    try:
+        before = (root / STOCK).read_text(encoding="utf-8")
+        code, output = decide_con_002(root)
+    finally:
+        textedit.stub_text = real
+    assert code == 2 and f"sessions/{RECORD_ID}.md" in output, output
+    assert (root / STOCK).read_text(encoding="utf-8") == before

@@ -59,14 +59,16 @@ and run it again"): the choice a lead must make is printed here, every time, so 
   dashboard then reads "New initiative").
 """
 import argparse
+import dataclasses
 import datetime
 import io
+import json
 import pathlib
 import re
 
-from vela import closestate, commands, guard, planscope, progress, records, say, sessions
+from vela import closestate, commands, guard, planscope, privaterecord, progress, records, recordsplit, say, sessions, titlecheck
 from vela.commands import close_sync
-from vela.edge import hostprobe, mergegit, sessiongit, vaultgit
+from vela.edge import ghcli, hostprobe, mergegit, sessiongit, vaultgit
 from vela.edge.vaultgit import GitUnavailable
 
 NAME = "session open"
@@ -266,6 +268,8 @@ def cmd_start(args, out):
     except GitUnavailable as exc:
         result = say.Result(START, exit=say.FAILED, lines=[
             say.Line(f"vela: {exc}", plain=f"Git failed while starting the session. {GIT_DETAIL}")])
+    except sessiongit.PrivateMissing as exc:
+        result = say.Result(START, exit=say.FAILED, lines=[say.Line(f"vela: {exc}", plain=str(exc))])
     except OSError as exc:  # atomic.WriteFailed among them
         result = say.Result(START, exit=say.FAILED, lines=[
             say.Line(f"vela: couldn't write: {exc}", plain="I couldn't write the session's files to disk, so I "
@@ -448,17 +452,81 @@ def resume(root, found, wanted, reader, lines, today, plain, host=None):
     if result.exit == say.DONE and not reader:
         result.wrote += bring_main_in(root, today, host or {}, result.lines, "copy of the session's branch")
     if result.exit == say.DONE:
-        text = (root / record.path).read_text(encoding="utf-8")
-        result.wrote.append(write_state(root, record.id, record.path, record.branch, list(record.modes), record.date,
-                                        max(records.numbers_in(text), default=0)))
-        result.data.update(id=record.id, path=record.path, branch=record.branch)
+        text = sessiongit.private_text(root, record.id)
+        part = privaterecord.part_of(text) if text is not None else claim_part(root, record, result.lines)
+        result.wrote.append(write_state(root, record.id, record.branch, list(record.modes), record.date, part,
+                                        max(records.numbers_in(text or ""), default=0)))
+        result.data.update(id=record.id, path=privaterecord.private_path(record.id), branch=record.branch)
     return result
 
 
-def write_state(root, record_id, path, branch, modes, started, last_capture=0):
-    """`.vela/session.json`: which record `record add` writes to, and the highest capture number it handed out."""
-    return sessiongit.write_state(root, {"id": record_id, "path": path, "branch": branch, "modes": modes,
-                                         "started": started, "last_capture": last_capture})
+CLAIM_TRIES = 3
+NOT_CLAIMED = ("I couldn't tell the other machine I'm taking notes here, so I haven't started. Check the connection "
+               "and say the word, and I'll try again.")
+
+
+def another_machine(part):
+    return (f"This session's notes are on the other machine and stay there. I'll keep new notes here as part {part}.")
+
+
+def claim_part(root, record, lines):
+    """Take the next part number for this machine, tell the other machines, and open its private file. Returns the
+    part. The claim is committed and pushed first because two machines that both wrote part 2 would fingerprint two
+    different files under one key (a Distributed Monolith in the record); a lost push takes the next number, and a
+    push that fails for any other reason stops the start, never an unclaimed part (Silent Fallback)."""
+    rel = privaterecord.stub_path(record.id)
+    for _ in range(CLAIM_TRIES):
+        stub = (root / rel).read_text(encoding="utf-8")
+        part = privaterecord.next_part(privaterecord.stub_meta(stub))
+        sessiongit.write_text(root, rel, privaterecord.with_part(stub, part, privaterecord.PENDING))
+        if not record.branch:  # a reader copy has no git: the claim stays in this folder
+            return opened_part(root, record, part, lines)
+        try:
+            sessiongit.commit(root, f"Take part {part} of {record.id}", [rel])
+        except GitUnavailable:
+            sessiongit.write_text(root, rel, stub)
+            raise
+        if not sessiongit.has_origin(root):
+            return opened_part(root, record, part, lines)
+        sent = ghcli.push(root, record.branch, track=False)
+        if sent.ok:
+            return opened_part(root, record, part, lines)
+        if not lost_race(sent.why):
+            dropped, said = sessiongit.drop_last_commit(root)  # a retry must claim this same number
+            kept = "" if dropped else f"; and the claim commit stays, because git refused to undo it: {said}"
+            raise failed(f"the claim of part {part} was not pushed: {sent.why}{kept}", NOT_CLAIMED, lines)
+        take_back_claim(root, record, lines)
+    raise failed(f"{CLAIM_TRIES} claims in a row lost the push", NOT_CLAIMED, lines)
+
+
+def lost_race(why):
+    return any(sign in why for sign in ("rejected", "non-fast-forward", "fetch first"))
+
+
+def take_back_claim(root, record, lines):
+    """Drop the claim that lost and bring in the one that won, so the next try numbers after it."""
+    ok, said = sessiongit.drop_last_commit(root)
+    fetched, said_fetch = sessiongit.fetch(root) if ok else (False, "")
+    moved, said_move = sessiongit.fast_forward(root, f"origin/{record.branch}") if fetched else (False, "")
+    if not (ok and fetched and moved):
+        raise failed(f"couldn't catch up with {record.branch} after a lost claim: {said or said_fetch or said_move}",
+                     NOT_CLAIMED, lines)
+
+
+def opened_part(root, record, part, lines):
+    sessiongit.write_text(root, privaterecord.private_path(record.id),
+                          privaterecord.new_private(record.id, record.title, record.date, part))
+    lines.append(say.Line(f"claimed part {part} of {record.id}", plain=another_machine(part)))
+    return part
+
+
+def write_state(root, record_id, branch, modes, started, part=1, last_capture=0):
+    """`.vela/session.json`: which notes `record add` writes to (`path`, the private file), the committed `stub` whose
+    status says whether the session is still open, the part this machine holds, and the highest capture number it
+    handed out."""
+    return sessiongit.write_state(root, {"id": record_id, "path": privaterecord.private_path(record_id),
+                                         "stub": privaterecord.stub_path(record_id), "part": part, "branch": branch,
+                                         "modes": modes, "started": started, "last_capture": last_capture})
 
 
 def problem_lines(problems):
@@ -474,6 +542,37 @@ def config_of(root):
         raise failed(f"vela: {exc}", f"The vault's settings file can't be read, so I haven't started: {exc}") from exc
 
 
+TITLE_ASKED = ".vela/title-asked.json"
+TITLE_AGAIN = " If you want it anyway, say the same name again and I'll keep it and note that you chose it."
+
+
+def check_title(root, topic, today):
+    """Stop, before anything is written, when the session's name is a person's (exit 3). The name is committed
+    with the stub, so it is the one place a private session would show who was in it. The lead may override the
+    check: the same name a second time is kept, and the day goes in the stub as `title_override`. Returns that day,
+    or "" when the name passed the check."""
+    if not topic:
+        return ""
+    from vela import cli
+    private = pathlib.Path(root) / privaterecord.PRIVATE_DIR
+    origins = set()
+    for path in sorted(private.glob("*.md")) if private.is_dir() else ():
+        origins |= titlecheck.origins_in(path.read_text(encoding="utf-8"))
+    known = titlecheck.people(cli.load_vault(root), sessiongit.read_handle(root), sessiongit.lead_names(root), origins)
+    found = titlecheck.named(topic, known)
+    if not found:
+        return ""
+    asked = sessiongit.read_json(root, TITLE_ASKED) or {}
+    if str(asked.get("topic", "")).casefold() == topic.strip().casefold():
+        return today
+    sessiongit.write_text(root, TITLE_ASKED, json.dumps({"topic": topic.strip()}) + "\n")
+    raise Stop(say.Result(START, exit=say.NEEDS_LEAD, needs_lead=[{
+        "ask": "session name", "question": titlecheck.TITLE_QUESTION}], lines=[say.Line(
+        f"vela: the session name '{topic}' has {', '.join(found)} in it, a person; nothing was written. "
+        "Run start again with the same --topic to override; the stub records title_override.",
+        plain=f"{titlecheck.TITLE_QUESTION} (I matched on {say.names_said(found)}.){TITLE_AGAIN}")]))
+
+
 def start_in_copy(root, args, today, modes, plain, said):
     """A reader copy: the record is written in place and nothing runs git (START, "Owner or reader")."""
     open_records, problems = sessions.find_open(sessiongit.folder_records(root))
@@ -483,14 +582,17 @@ def start_in_copy(root, args, today, modes, plain, said):
     if open_records and not args.new:
         asks, asked = open_choices(open_records, today, plain)
         raise Stop(say.Result(START, exit=say.NEEDS_LEAD, needs_lead=asks, lines=lines + asked))
+    override = check_title(root, args.topic, today)
     if args.title or sessions.is_unnamed(config_of(root)):
         lines.append(say.Line("read copy: naming the initiative is the owner's; .vela.yaml not changed.",
                               plain="The owner names the initiative, so I haven't changed its name here."))
     record_id = sessions.new_id(today, args.topic, lambda i: (root / "sessions" / f"{i}.md").exists())
-    rel = f"sessions/{record_id}.md"
-    wrote = [sessiongit.write_text(root, rel, sessions.record_text(record_id, sessions.title_for(modes, args.topic),
-                                                                    today, modes))]
-    wrote.append(write_state(root, record_id, rel, None, modes, today))
+    title = sessions.title_for(modes, args.topic)
+    rel = privaterecord.private_path(record_id)
+    wrote = [sessiongit.write_text(root, privaterecord.stub_path(record_id),
+                                   privaterecord.new_stub(record_id, title, today, modes, title_override=override)),
+             sessiongit.write_text(root, rel, privaterecord.new_private(record_id, title, today, 1))]
+    wrote.append(write_state(root, record_id, None, modes, today))
     lines.append(say.Line(f"started: {record_id} in this folder, modes: {', '.join(modes)}",
                           plain=f"I've opened the session: {plain(sessions.title_for(modes, args.topic))}."))
     return say.Result(START, lines=lines, wrote=wrote, data={"id": record_id, "path": rel, "branch": None,
@@ -635,6 +737,7 @@ def start_owner(root, args, today, modes, plain, said, host):
     lines = said + problem_lines(problems)
     if args.resume:
         return resume(root, open_records, args.resume, False, lines, today, plain, host)
+    override = check_title(root, "" if pr else args.topic, today)
     asks, asked = [], []
     if open_records and not args.new:
         asks, asked = open_choices(open_records, today, plain)
@@ -652,7 +755,8 @@ def start_owner(root, args, today, modes, plain, said, host):
         raise Stop(say.Result(START, exit=say.NEEDS_LEAD, needs_lead=asks, lines=lines + one_ask_at_a_time(asked)))
     lines += [review_needs_branch(current)] if current == sessiongit.default_branch(root) and not args.new_branch else []
     carried = sessions.carried(sessiongit.dirty_paths(root), [])
-    return open_record(root, args, today, modes, "", "" if args.new_branch else current, lines, carried, plain)
+    return open_record(root, args, today, modes, "", "" if args.new_branch else current, lines, carried, plain,
+                       title_override=override)
 
 
 def review_needs_branch(current):
@@ -713,7 +817,8 @@ def bring_main_in(root, today, host, lines, base_words):
                           needs_lead=synced.needs_lead))
 
 
-def open_record(root, args, today, modes, challenged, on_branch, lines, carried, plain=lambda text: text):
+def open_record(root, args, today, modes, challenged, on_branch, lines, carried, plain=lambda text: text,
+                title_override=""):
     """START step 5: the id, the branch (an answer stays on its challenge's), the record, `Open session <id>`, then
     the initiative's name when the lead gave one, and `.vela/session.json`."""
     scope = vaultgit.plan_scope(root)
@@ -729,11 +834,16 @@ def open_record(root, args, today, modes, challenged, on_branch, lines, carried,
         if not ok:
             raise failed(f"git switch -c {branch} failed: {said}",
                          f"I couldn't set the session up, so I haven't started. {GIT_DETAIL}", lines)
-    rel = f"sessions/{record_id}.md"
+    rel = privaterecord.stub_path(record_id)
     title = sessions.title_for(modes, args.topic, challenged)
     began = sessiongit.head_commit(root)
-    wrote = [sessiongit.write_text(root, rel, sessions.record_text(record_id, title, today, modes, branch, began))]
-    sessiongit.commit(root, f"Open session {record_id}", [rel])
+    challenges = [args.topic] if "challenge" in modes else []
+    wrote = [sessiongit.write_text(root, rel, privaterecord.new_stub(record_id, title, today, modes, branch, began,
+                                                                     challenges, title_override)),
+             sessiongit.write_text(root, privaterecord.private_path(record_id),
+                                   privaterecord.new_private(record_id, title, today, 1))]
+    committed = [rel] + keep_notes_out_of_git(root, wrote)
+    sessiongit.commit(root, f"Open session {record_id}", committed)  # the notes stay here; only the stub is committed
     where = ", and your answer goes onto the challenge itself" if challenged else ""
     lines.append(say.Line(f"started: {record_id} on {branch}, modes: {', '.join(modes)}",
                           plain=f"I've opened the session: {plain(title)}{where}."))
@@ -748,9 +858,22 @@ def open_record(root, args, today, modes, challenged, on_branch, lines, carried,
     elif args.unnamed:
         lines.append(say.Line("unnamed: the lead declined to name the initiative",
                               plain='The dashboard will read "New initiative" until you give it a name.'))
-    wrote.append(write_state(root, record_id, rel, branch, modes, today))
+    wrote.append(write_state(root, record_id, branch, modes, today))
     return say.Result(START, lines=lines, wrote=wrote, data={"id": record_id, "path": rel, "branch": branch,
                                                              "modes": modes, "reader": False})
+
+
+def keep_notes_out_of_git(root, wrote):
+    """A plan made before private notes lacks the `.gitignore` line for them until `records split` runs, so the first
+    session would leave its notes showing as new files for a hand `git add .` to commit. Adds the line (creating the file)
+    and returns the path to commit with the stub, else []."""
+    path = root / ".gitignore"
+    held = path.read_text(encoding="utf-8") if path.is_file() else ""
+    wanted = recordsplit.with_ignore_line(held)
+    if wanted == held:
+        return []
+    wrote.append(sessiongit.write_text(root, ".gitignore", wanted))
+    return [".gitignore"]
 
 
 # ------------------------------------------------------------------------------------------------- session branch
@@ -768,6 +891,8 @@ def cmd_branch(args, out):
     except GitUnavailable as exc:
         result = say.Result(BRANCH, exit=say.FAILED, lines=[
             say.Line(f"vela: {exc}", plain=f"Git failed while moving the session. {GIT_DETAIL}")])
+    except sessiongit.PrivateMissing as exc:
+        result = say.Result(BRANCH, exit=say.FAILED, lines=[say.Line(f"vela: {exc}", plain=str(exc))])
     return commands.emit(result, args, out, resolver)
 
 
@@ -785,6 +910,8 @@ def move_to_own_branch(root):
     current, default = sessiongit.current_branch(root), sessiongit.default_branch(root)
     found, _ = sessions.find_open(sessiongit.branch_records(root), scope)
     here = [r for r in found if r.branch == current]
+    if not here and current == default:  # finished on the default branch, never pushed: close push sent the lead here
+        here = finished_unpushed(root, default)
     if len(here) != 1:
         raise refuse_branch(f"vela session branch: {len(here)} open sessions on {current or 'no branch'}; need exactly one.",
                             "I can't tell which session to move, so I haven't moved anything.")
@@ -797,6 +924,9 @@ def move_to_own_branch(root):
         raise refuse_branch(f"vela session branch: {branch} already exists; nothing changed.",
                             "A branch for this session already exists, so I haven't moved anything.")
     text = (root / record.path).read_text(encoding="utf-8")
+    notes = sessiongit.private_text(root, record.id)
+    if notes is None:
+        raise sessiongit.PrivateMissing(record.id)
     began = sessions.start_commit_of(text)
     ok, said = sessiongit.create_branch(root, branch)
     if not ok:
@@ -804,12 +934,25 @@ def move_to_own_branch(root):
     rel = record.path
     sessiongit.write_text(root, rel, sessions.with_branch(text, branch))
     sessiongit.commit(root, f"Move session {record.id} to {branch}", [rel])
-    write_state(root, record.id, rel, branch, list(record.modes), record.date,
-                max(records.numbers_in((root / rel).read_text(encoding="utf-8")), default=0))
+    write_state(root, record.id, branch, list(record.modes), record.date, privaterecord.part_of(notes),
+                max(records.numbers_in(notes), default=0))
     lines = [say.Line(f"moved {record.id} from {default} to {branch}",
                       plain="The session has its own branch now, with everything we did on it.")]
     lines += main_back(root, default, began, branch)
     return say.Result(BRANCH, lines=lines, wrote=[rel], data={"id": record.id, "branch": branch, "from": default})
+
+
+def finished_unpushed(root, default):
+    """The sessions on the default branch that `close finish` closed and whose commits origin's default branch lacks:
+    what `close push` sends back to `session branch` once the open one is gone."""
+    upstream = f"refs/remotes/origin/{default}"
+    found = []
+    for ref, path, text in sessiongit.folder_records(root):
+        record, _ = sessions.read(ref, path, text)
+        if (record is not None and record.status == "closed" and privaterecord.stub_meta(text).get("branch") == default
+                and sessiongit.unshared_commits_touching(root, upstream, "HEAD", path)):
+            found.append(dataclasses.replace(record, branch=default))
+    return found
 
 
 def failed_branch(text, plain):
@@ -933,7 +1076,7 @@ def ready_to_decide(result, root, vault, today):
     from vela.decisions import decide, ready, textedit
     from vela.edge import apply as disk
     staged = textedit.attach(decisions.Staged(vault, disk.reader(root)), today, [])
-    found = ready.waiting([text for _, _, text in sessiongit.folder_records(root)],
+    found = ready.waiting([privaterecord.stub_meta(text) for _, _, text in sessiongit.folder_records(root)],
                           lambda ident: decide.already(staged, ident) is not None)
     for entry in found:
         entry["name"] = vault.name_of(entry["id"])

@@ -15,7 +15,7 @@ def test_a_clean_vault_with_links_and_an_icon_passes(mini):
                               "Jira: STOCK-4}\n---")
     edit(mini / STOCK, POLICY, POLICY + "- **Links:** [API spec](https://docs.example.com/stock/openapi.yaml), "
                                         "[Docs](https://docs.example.com/stock)\n")
-    (mini / ".vela.yaml").write_text("initiative: INI-900\ntitle: Mini shop\n"
+    (mini / ".vela.yaml").write_text("initiative: INI-900\ntitle: Mini shop\nrecords_split: 2026-10-22\n"
                                         "link_templates: {Jira: \"https://jira.example.com/browse/{key}\"}\n", encoding="utf-8")
     code, out = check(mini)
     assert code == 0, out
@@ -47,7 +47,7 @@ def test_an_item_links_bullet_needs_markdown_http_links(mini):
 
 
 def test_a_bad_template_is_reported_where_links_are_used(mini):
-    (mini / ".vela.yaml").write_text("initiative: INI-900\ntitle: Mini shop\nlink_templates: {Jira: \"https://jira.example.com/browse\"}\n",
+    (mini / ".vela.yaml").write_text("initiative: INI-900\ntitle: Mini shop\nrecords_split: 2026-10-22\nlink_templates: {Jira: \"https://jira.example.com/browse\"}\n",
                                         encoding="utf-8")
     assert findings(check(mini)[1]) == []  # nobody uses it, so nothing breaks
     edit(mini / STOCK, FRONT, "sources: [SRC-01]\nlinks: {Jira: STOCK-4}\n---")

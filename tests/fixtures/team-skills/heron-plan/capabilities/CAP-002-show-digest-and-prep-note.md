@@ -22,7 +22,7 @@ The business can have the Desktop agent show a person the 7:30 digest and the pr
 Each morning a person who has switched Heron on sees that day's digest on their own laptop. If the laptop was not available at 7:30, they see it the first time they are back at it that morning. A digest shown after 7:30 says that it is late.
 
 - **State:** assumption
-- **Source:** [[2026-10-12-heron-capability-requirements#^c14]]
+- **Source:** [[2026-10-12-heron-capability-requirements]] c14
 
 - A person who has switched Heron on sees that day's digest on their laptop at 7:30.
 - If the laptop is off or asleep at 7:30, the digest is shown the first time the person is back at the laptop that morning.
@@ -41,7 +41,7 @@ Each morning a person who has switched Heron on sees that day's digest on their 
 The person sees a prep note for a meeting on their own calendar ten minutes before it starts. If the note is ready late, they still see it until the meeting starts, marked late.
 
 - **State:** assumption
-- **Source:** [[2026-10-12-heron-capability-requirements#^c19]]
+- **Source:** [[2026-10-12-heron-capability-requirements]] c19
 
 - A prep note is shown ten minutes before the meeting starts, for a meeting on the person's own calendar.
 - A prep note that is ready after ten minutes before the meeting is shown as soon as it is ready, as long as the meeting has not started, and says it is late.

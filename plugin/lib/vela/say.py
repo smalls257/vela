@@ -31,7 +31,7 @@ DONE, REFUSED, FAILED, NEEDS_LEAD = 0, 1, 2, 3
 LEAD_PATTERNS = {
     "check code": re.compile(r"\b[EWT]\d{3}\b"),
     "gate": re.compile(r"\bGATE-\w+|--gate\b"),
-    "capture": re.compile(r"\^c\d+\b"),
+    "capture": re.compile(r"\^c\d+\b|\b\d+\.c\d+\b|\]\] c\d+\b"),
     "copy": re.compile(r"\bQ-[A-Z]{3}-\d{2,}(?:@[\w*.-]+)?"),
     "finding": re.compile(r"\bF\d+\.\d+\b"),
     "reviewer row": re.compile(r"\bR-[A-Z]{3}-\d{2,}\b"),
@@ -46,7 +46,7 @@ LEAD_PATTERNS = {
     "command": re.compile(r"\bvela (?:add|apply|boundary|capture|check(?:-diagrams|-slice)?|close|conventions|decide"
                           r"|doctor|epics|explore|export|findings|freshness|grill|guard|handoff|health|hook|import|ladder|library|map|marks"
                           r"|new|next(?:-id)?|onboard|open|plans|proposals|propose|prose|publish|query|questions|record|releases|render"
-                          r"|reviewers|role|session|status|style|team|terms|tickets|upgrade|view|voice(?:check|score)?"
+                          r"|records|reviewers|role|session|status|style|team|terms|tickets|upgrade|view|voice(?:check|score)?"
                           r"|where|whoami)\b"),
     "file path": re.compile(r"(?<![\w/])(?:\.{1,2}/|~/)?(?:[\w.-]+/)+[\w.-]+\.[A-Za-z]{1,5}\b"
                             r"|(?<![\w/])/(?:private|tmp|Users|home|var)/\S+"

@@ -20,6 +20,7 @@ design beside the vault (design_data.py reads it, inside_data.py checks it again
 the caller (cli.cmd_explore, or the tests' wrapper) reads the clock and does the printing.
 """
 import base64
+import dataclasses
 import hashlib
 import html
 import json
@@ -37,7 +38,7 @@ from vela.parse import FENCE, closes_fence
 from . import (asks_data, assets_inline, capdeps, branches_data, breakdown_find, design_data, design_find, draft_data, flows_data, grills_data, icons_data, inside_data, library_data, needs_data, onboard_data,
                pages_data, panel_data, plan_data, roles_data, serve, slices_data)
 from . import pins as pinning
-from .record import (HANDLE, LABELED_LINE, PROSE_LIMIT, Keys, inline_html,
+from .record import (HANDLE, LABELED_LINE, PROSE_LIMIT, Keys, dashboard_pages, inline_html,
                      plain, refs_in, title_of)
 
 HERE = pathlib.Path(__file__).resolve().parent
@@ -183,7 +184,7 @@ def opening(paras, keys, page):
         kept.append(para)
         size += len(para)
     cut = len(kept) < len(paras)
-    return ("".join(f"<p>{inline_html(p, keys, page)}</p>" for p in kept), " ".join(plain(p) for p in kept), cut)
+    return ("".join(f"<p>{inline_html(p, keys, page)}</p>" for p in kept), " ".join(plain(keys.without_sessions(p, page)) for p in kept), cut)
 
 
 def page_opening(page, keys):
@@ -211,7 +212,7 @@ def item_facts(item, keys):
             value = (override_said(bullet) if bullet.label == schema.OVERRIDE_LABEL
                      else people_said(bullet.value) if bullet.label in (*schema.OVERRIDE_LABELS, schema.PENDING_LABEL) else bullet.value)
             out.append({"label": bullet.label, "html": inline_html(value, keys, item.page),
-                        "text": plain(value), "refs": refs_in(bullet.value, keys, item.page)})
+                        "text": plain(keys.without_sessions(value, item.page)), "refs": refs_in(bullet.value, keys, item.page)})
     return out
 
 
@@ -254,7 +255,7 @@ def page_entity(page, keys, config=None):
         "path": page.path, "state": str(meta.get("state") or ""), "change": str(meta.get("change") or ""),
         "stage": str(meta.get("stage") or ""), "owner": owner, "ownerKey": owner_handle(owner),
         "prose": prose_html, "text": prose_text, "cut": cut,
-        "facts": [{"label": b.label, "html": inline_html(b.value, keys, page), "text": plain(b.value),
+        "facts": [{"label": b.label, "html": inline_html(b.value, keys, page), "text": plain(keys.without_sessions(b.value, page)),
                    "refs": refs_in(b.value, keys, page)} for b in page.bullets if not b.item and not b.generated],
         "links": link_rows(links.of_page(page, config or {})[0]), "pending": pending_row(pending.pending_for(page)),
     }
@@ -266,7 +267,7 @@ def pending_row(found):
 
 
 PAGE_KINDS = {"app-building-blocks": "app", "app-runtime": "runtime", "epic": "epic", "capability": "capability",
-              "flow": "flow", "decision": "decision", "concern": "concern", "session": "session", "slice": "slice",
+              "flow": "flow", "decision": "decision", "concern": "concern", "slice": "slice",
               "initiative-section": "section", "sources": "page", "index": "page"}
 
 
@@ -401,7 +402,7 @@ def unknowns(vault, keys):
 def overrides_awaiting(vault, keys):
     """Decisions made on someone's behalf that the owner has not yet confirmed, plus every override, by scope."""
     awaiting, recorded = [], []
-    for page in vault.pages:
+    for page in dashboard_pages(vault):
         scopes = []
         for bullet in page.bullets:
             if bullet.label in schema.OVERRIDE_LABELS and not bullet.generated and bullet.item not in scopes:
@@ -413,7 +414,7 @@ def overrides_awaiting(vault, keys):
                 awaiting.append({"key": key, "by": behalf.by, "owners": list(behalf.owners)})
             for o in override.valid_overrides(page, scope):
                 recorded.append({"key": key, "rules": list(o.rules), "skipped": [attention.skipped_check(r) for r in o.rules],
-                                 "by": o.by, "date": o.date, "reason": o.reason,
+                                 "by": o.by, "date": o.date, "reason": keys.without_sessions(o.reason, page),
                                  "confirmed": bool(behalf and behalf.confirmed_by)})
     return awaiting, recorded
 
@@ -494,6 +495,8 @@ def search_index(vault, keys):
     for page in pages:
         title = str(page.meta.get("title") or page.name)
         for section in vela_search.sections(page):
+            section = dataclasses.replace(section, opening=keys.without_sessions(section.opening, page),
+                                          text=keys.without_sessions(section.text, page))  # the page names no session, so a search finds none
             first = section.heading.split()[0] if section.heading.split() else ""
             item = vault.item(first.upper()) if first else None
             key = item.id if item is not None and item.page is page else keys.page(page)
@@ -518,7 +521,7 @@ def backlinks(vault, keys):
     out = {}
     for page in vault.pages:
         if page.type == "session":
-            continue  # sessions link everything they touched; they would drown the panel
+            continue  # a session record is not shown, and it would only drown the panel
         source = keys.page(page)
         for link in page.links:
             key = keys.link(link, page)
@@ -583,11 +586,13 @@ def extract(vault, root, today, pins_path=None, designs=None, seed=None, plans=N
     keys = Keys(vault)
     entities = {}
     for page in vault.pages:
-        if page.path.startswith("voice/"):
-            continue  # voice examples are writing samples, not plan content
+        if page.path.startswith("voice/") or page.type == "session":
+            continue  # voice examples are writing samples, not plan content; the dashboard shows the plan, not its session records
         entity = page_entity(page, keys, vault.config)
         entities[entity["key"]] = entity
     for found in vault.items.values():
+        if found[0].page.type == "session":
+            continue
         entity = item_entity(found[0], keys)
         entities[entity["key"]] = entity
     blocked = model.blockers(vault)
@@ -630,8 +635,6 @@ def extract(vault, root, today, pins_path=None, designs=None, seed=None, plans=N
     # Every count a view shows comes from here or from Queue.needsYou, never from a view's own filter (E60).
     data["counts"] = {"decisions": asks_data.settle_decisions(data["garden"], entities),
                       "openQuestions": sum(1 for u in data["asks"] if u["state"] == "open")}
-    data["sessions"] = {s.name: {"title": str(s.meta.get("title", s.name)), "date": str(s.meta.get("date", ""))}
-                        for s in vault.sessions}
     data["reader"] = pages_data.readers(vault, keys)
     data["library"] = library_data.extract(vault, keys)
     data["sections"] = pages_data.sections(vault, keys, bool(data["library"]["rows"]))

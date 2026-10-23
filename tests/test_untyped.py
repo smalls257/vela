@@ -9,6 +9,7 @@ import shutil
 import pytest
 
 from conftest import REPO, edit, findings, run
+import session_files
 
 FIXTURE = REPO / "examples" / "unified-booking"
 LEDGER = "11-unknowns-and-risks.md"
@@ -94,9 +95,9 @@ def test_prose_sessions_code_and_the_ledger_are_not_read(ub):
     edit(ub / LEDGER, REG_02, "")
     edit(ub / COST, "no work (@hl-solution-lead, review 2027-03-01): standard service footprint, no new licenses",
          "no work (@hl-solution-lead, review 2027-03-01): standard service footprint, no new `licenses`")
-    (ub / "sessions" / "2026-11-19-owed-questions.md").write_text(
-        (ub / "sessions" / "2026-11-19-owed-questions.md").read_text(encoding="utf-8")
-        + "| SV-99 | points | balances | vouchers |\n", encoding="utf-8")
+    session_files.write_record(ub, "2026-11-19-owed-questions",
+        session_files.record_text(ub, "2026-11-19-owed-questions")
+        + "| SV-99 | points | balances | vouchers |\n")
     out = checked(ub)[1]
     assert [f for f in findings(out) if f[0] == "W809"] == [], out
 

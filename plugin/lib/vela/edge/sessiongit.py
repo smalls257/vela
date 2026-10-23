@@ -12,6 +12,9 @@ The periphery for `sessions.py`, which decides. What is read, and why:
   calls. For a candidate on origin whose local branch also exists, the local copy is read too, so `sessions.py` can
   prefer it (the local branch may already say `closed`).
 
+The open session is its stub in `sessions/` plus the private notes in `sessions/private/` (`open_record`); a stub
+with no notes here raises `PrivateMissing`.
+
 A reader copy (a published folder: `.vela/workspace.json`, no `.git`) has no branches. It is recognized from the
 disk alone and its `sessions/*.md` are read in place; no git command runs there, so a machine with no git works, and a
 copy that sits inside some other repo never reads that repo's history.
@@ -21,15 +24,15 @@ turns a failure into "no session is open".
 
 Task 6b adds what `session start`, `session brief`, `record add` and `whoami` need from git, `gh` and the disk:
 fetching (with the short timeout freshness uses, so a dead network costs seconds), what the switch to main and the
-pull would change, branch and commit by exact path (through `stagegit`), the record's history (so a capture number
-used once is never reused), `gh` through the probe's runner (every call timed and never prompting), and
+pull would change, branch and commit by exact path (through `stagegit`), `gh` through the probe's runner (every call timed and never prompting), and
 `.vela/session.json` and `.vela/handle`, written through `atomic`. Paths are vault-relative everywhere, so a vault in
 a subfolder of its repo compares the same paths git reports.
 """
 import json
 import pathlib
 
-from vela import planscope, roles
+from vela import planscope, privaterecord, roles, sessions
+from vela.decisions import record as open_records
 from vela.edge import atomic, hostprobe, stagegit
 from vela.edge.vaultgit import FETCH_TIMEOUT, NO_PROMPT, GitUnavailable, git_out, plan_scope, run_git
 
@@ -52,6 +55,52 @@ def folder_records(root):
     folder = pathlib.Path(root) / "sessions"
     return [("", f"sessions/{path.name}", path.read_text(encoding="utf-8"))
             for path in sorted(folder.glob("*.md")) if path.is_file()]
+
+
+class PrivateMissing(ValueError):
+    """The stub says the session is open, and this machine has no private notes for it. The notes never leave the
+    machine that wrote them, so the lead is told, never handed an empty record to write into (a Silent Fallback)."""
+
+    def __init__(self, record_id):
+        self.record_id = record_id
+        self.path = privaterecord.private_path(record_id)  # for a log or --json; a line the lead hears names no file
+        super().__init__("This session's notes are not on this machine. They stay on the machine that wrote them.")
+
+
+def private_text(root, record_id):
+    """The private notes of a session, or None when this machine has none."""
+    try:
+        return (pathlib.Path(root) / privaterecord.private_path(record_id)).read_text(encoding="utf-8")
+    except FileNotFoundError:
+        return None
+
+
+def open_record(root):
+    """(OpenRecord, None) for the one open session, else (None, Opened) saying why not. The stub in `sessions/` says
+    which session is open; its words are read from the private file. Raises PrivateMissing when the stub is open and
+    the notes are not here."""
+    opened, problems = sessions.find_open(folder_records(root))
+    if len(opened) != 1:
+        return None, open_records.Opened(opened, problems)
+    record_id = opened[0].id
+    text = private_text(root, record_id)
+    if text is None:
+        raise PrivateMissing(record_id)
+    return open_records.from_text(record_id, privaterecord.private_path(record_id), text,
+                                  privaterecord.part_of(text)), None
+
+
+def write_notes(root, record, new_text):
+    """Write a record's new private text and, when the lists it carries (`ready`, `harvest_declined`) changed, the
+    stub beside it, so the committed header never disagrees with the words under it. The paths written."""
+    wrote = []
+    if new_text != record.text:
+        wrote.append(write_text(root, record.path, new_text))
+    stub = (pathlib.Path(root) / record.stub).read_text(encoding="utf-8")
+    synced = privaterecord.synced_stub(stub, new_text)
+    if synced != stub:
+        wrote.append(write_text(root, record.stub, synced))
+    return wrote
 
 
 def session_refs(root):
@@ -193,6 +242,12 @@ def commits_between(root, base, tip):
     return int(git_out(root, "rev-list", "--count", f"{base}..{tip}") or 0)
 
 
+def unshared_commits_touching(root, base, tip, path):
+    """How many commits on `tip` that `base` lacks change `path`. `base` missing (no origin copy) counts every one."""
+    span = f"{base}..{tip}" if ref_exists(root, base) else tip
+    return len(git_out(root, "rev-list", span, "--", path).split())
+
+
 def move_branch(root, branch, target):
     """(ok, git's words): point the local `branch` at `target`. Only for a branch that is not checked out."""
     code, out, err = run_git(root, "branch", "-f", branch, target)
@@ -204,15 +259,17 @@ def create_branch(root, branch):
     return code == 0, _words(err, out)
 
 
+def drop_last_commit(root):
+    """(ok, git's words): undo the newest commit and keep every file as it is on disk, for a claim that lost its push.
+    `--keep` refuses rather than overwrite changes the lead has in the working tree."""
+    code, out, err = run_git(root, "reset", "--keep", "HEAD~1")
+    return code == 0, _words(err, out)
+
+
 def commit(root, message, paths):
     """Stage exactly `paths` and commit them with `message`; the short hash. Raises GitUnavailable with git's words."""
     stagegit.stage(root, paths)
     return stagegit.commit(root, message, paths)
-
-
-def history_text(root, path):
-    """Every version of `path` git has, as one patch text: the numbers a record ever held."""
-    return git_out(root, "log", "-p", "--format=", "--", path, timeout=60)
 
 
 def gh(root, *args):

@@ -2,8 +2,8 @@
 Pure.
 
 A release is a `## <name>` section with no ID, so it is named by its heading, exactly as written. A Grill decides it by
-setting that section's `**State:**` to `decided` and adding `- **Decision:** [[<session>]]` directly under the page's
-`## History`; without that Decision check reports E303 on the release's heading. The Violation this kind's shape
+setting that section's `**State:**` to `decided` and adding the receipt, `- **Decision:** [[<session>]] c07, @who`
+(written by `decide_writes.history_bullets`), directly under the page's `## History`; without that Decision check reports E303 on the release's heading. The Violation this kind's shape
 prevents is a Leaky Narrative in the dispatcher: every other kind is found by an ID, and a release is not, so finding it
 by its heading lives here and nowhere else.
 

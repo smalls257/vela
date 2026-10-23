@@ -14,5 +14,6 @@ def run(ctx):
     code, out = ctx.vela(*asked, "--unnamed", "--for-lead")
     assert ctx.git("rev-parse", "--abbrev-ref", "HEAD").strip() == f"session/{ctx.record_id}", out
     assert "I've opened the session: Grill: desk agent calendar." in out and ctx.record_id not in out, out
-    ctx.outputs["record"] = ctx.vault / "sessions" / f"{ctx.record_id}.md"
+    ctx.outputs["record"] = ctx.vault / "sessions" / "private" / f"{ctx.record_id}.md"  # the notes
+    ctx.outputs["stub"] = ctx.vault / "sessions" / f"{ctx.record_id}.md"  # the committed header
     ctx.outputs["session start"] = out

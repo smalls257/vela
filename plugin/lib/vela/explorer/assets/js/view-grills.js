@@ -77,7 +77,7 @@ const Grills = (() => {
   function promptBody(r) {
     const parts = [];
     if (r.settles.length) parts.push(`It settles: ${listWords(r.settles.map((s) => settleLine(s).replace(/\.$/, "")), 3)}.`);
-    if (r.group === "said-yes") parts.push(`I said yes to this on ${dayYear(r.yes.date)}${r.yes.quote ? `: "${r.yes.quote}".` : "."} Read my words back and confirm them before you decide.`);
+    if (r.group === "said-yes") parts.push(`I said yes to this on ${dayYear(r.yes.date)}. Read my words back and confirm them before you decide.`);
     else if (r.group === "ready") parts.push("Nothing is in the way, so it's ready to decide.");
     else parts.push(`One thing is in the way: ${waitingSentence(r)} Start with a recap of that, then grill what is settled.`);
     if (r.holdsUp.length) parts.push(`It holds up ${listWords(holdsNames(r))}.`);
@@ -145,7 +145,6 @@ const Grills = (() => {
     const open = () => select(key);
     const body = [h("div", { class: "g-row" }, h("div", {}, h("div", { class: "g-t" }, r.name), h("div", { class: "g-m" }, contextLine(r))),
       h("span", { class: `g-pill ${tone}` }, pillText)), ownerLine(r)];
-    if (r.group === "said-yes" && r.yes.quote) body.push(h("blockquote", { class: "g-quote" }, `"${r.yes.quote}"`, h("span", { class: "g-by" }, ` · ${r.yes.who && isYou(r.yes.who) ? "you" : personName(r.yes.who)}, in ${r.yes.title}`)));
     if (r.group !== "one-away" && r.settles.length) body.push(h("div", { class: "g-need" }, h("b", {}, "Settles: "), settleSummary(r)));
     if (r.group === "one-away") body.push(h("div", { class: "g-need" }, h("b", { class: "g-wait" }, r.missing.question ? "Waiting on: " : "In the way: "), waitingSentence(r)));
     const chips = holdChips(r);
@@ -280,11 +279,11 @@ const Grills = (() => {
   const bulletList = (items) => h("ul", { class: "g-list" }, items.map((t) => h("li", {}, t)));
   function standsLines(r) {
     const out = [];
-    if (r.since && r.since.date) out.push(r.since.kept ? `${stateWord(r.state)} since ${dayYear(r.since.date)}, in the session "${r.since.title}"` : `First named on ${dayYear(r.since.date)}, in the session "${r.since.title}"`);
-    else out.push(`${stateWord(r.state)}. No session record names it.`);
+    if (r.since && r.since.date) out.push(r.since.kept ? `${stateWord(r.state)} since ${dayYear(r.since.date)}` : `First named on ${dayYear(r.since.date)}`);
+    else out.push(`${stateWord(r.state)}. Nobody has named it yet.`);
     if (r.sources.length) out.push(`Rests on ${plural(r.sources.length, "source")}: ${r.sources.map(titleOf).join(", ")}`);
     out.push(r.group === "one-away" ? `One thing is in the way: ${waitingSentence(r)}` : "No open question is in the way");
-    if (r.group === "said-yes") out.push(`You said yes on ${dayYear(r.yes.date)}, in the session "${r.yes.title}"`);
+    if (r.group === "said-yes") out.push(h("button", { class: "linkish", type: "button", "data-act": "open-receipt", onclick: () => openItem(r) }, `You said yes on ${dayYear(r.yes.date)}`));
     return out;
   }
   function chip(key) {
@@ -308,7 +307,6 @@ const Grills = (() => {
       h("button", { class: "linkish g-change", type: "button", title: "Copies a request for Claude, who sets it with a command", onclick: () => copy(changeOwnerPrompt(r), "the request") }, "(change)"))];
     return [head, h("div", { class: "p-body g-detail", "data-grill": r.id },
       r.settles.length ? Panel.section("What the grill settles", null, bulletList(r.settles.map(settleLine))) : Panel.section("What the grill settles", null, Panel.empty("Not recorded: nothing says yet what this settles.")),
-      r.group === "said-yes" && r.yes.quote ? Panel.section("What you said", null, h("blockquote", { class: "g-quote" }, `"${r.yes.quote}"`)) : null,
       Panel.section("Where it stands", null, bulletList(standsLines(r))),
       Panel.section("What it holds up", r.holdsUp.length || null, r.holdsUp.length ? h("div", { class: "g-panelchips" }, r.holdsUp.map(chip)) : Panel.empty("Nothing is recorded as waiting on it.")),
       Panel.section("Owner", null, bulletList(ownerRows)),

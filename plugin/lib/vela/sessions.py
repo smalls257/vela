@@ -254,16 +254,6 @@ def title_for(modes, topic, challenged=""):
     return f"{MODE_NAMES.get(modes[0], modes[0].capitalize())}: {topic.strip()}"
 
 
-def record_text(record_id, title, today, modes, branch="", start_commit=""):
-    """A new session record, in the form START step 5 gives. `branch` and `start_commit` say where the session began, so
-    a second session on a reused branch can tell its own changes from the first one's (`close drafts`)."""
-    quoted = title.replace("\\", "\\\\").replace('"', '\\"')
-    where = (f"branch: {branch}\n" if branch else "") + (f"start_commit: {start_commit}\n" if start_commit else "")
-    return (f"---\nid: {record_id}\ntype: session\ntitle: \"{quoted}\"\ndate: {today}\nmodes: [{', '.join(modes)}]\n"
-            f"status: open\nsummary: In progress.\n{where}---\n\n# {today} {title}\n\n## Captures\n\n## Changes\n\n"
-            "| ID | From | To | Source |\n|---|---|---|---|\n")
-
-
 def start_commit_of(text):
     """The commit the session began at, from its record's frontmatter, or "" for a record that doesn't say."""
     meta, _, error = parse.split_frontmatter(text)
@@ -271,11 +261,11 @@ def start_commit_of(text):
 
 
 def with_branch(text, branch):
-    """The record with its `branch:` line set to `branch`, added after `summary:` when it has none."""
+    """The stub with its `branch:` line set to `branch`, added after `status:` when it has none."""
     line = f"branch: {branch}"
     if re.search(r"^branch:.*$", text, re.M):
         return re.sub(r"^branch:.*$", lambda _: line, text, count=1, flags=re.M)
-    return re.sub(r"^(summary:.*)$", lambda m: m.group(1) + "\n" + line, text, count=1, flags=re.M)
+    return re.sub(r"^(status:.*)$", lambda m: m.group(1) + "\n" + line, text, count=1, flags=re.M)
 
 
 def last_closed(metas):

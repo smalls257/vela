@@ -14,7 +14,8 @@ words behind every change into or out of `decided`:
 
 What this proves is limited, and said plainly (plan 4.3, a Sensor, not a Shield): the model writes every field these
 checks read, so the gate shows a missing or malformed yes; it cannot prove the lead said the words. That is why
-`consent_block` puts every quote in the PR body, where the reviewer reads the exact words behind each decision.
+the read-back puts every line that goes on record in the lead's name in front of the lead, and the PR carries receipts,
+not words.
 
 The lead may still go ahead without a quoted yes (the user can override any rule): an `**Override:**` bullet on the
 item naming `QUOTED_YES_RULE`, with their reason. The gate then lets the change through and lists the override, never
@@ -27,12 +28,12 @@ bookkeeping, which close is meant to spare them.
 import re
 from dataclasses import dataclass, replace
 
-from vela import override, say, schema
-from vela.said import is_unverified
+from vela import override, privaterecord, say, schema
+from vela.schema import QUOTED_YES_RULE
+from vela.said import confirmed, is_unverified
 
 CONSENT_CLEAR = ("The lead's own yes, quoted in the session record with a Changes row citing it, clears it; so does "
                  "their override with a reason.")
-QUOTED_YES_RULE = '"a decision needs the lead\'s quoted yes"'
 BARE_NON_YES = ("", "ok", "okay", "sure", "next", "fine")
 CONSENT_STATE = "decided"
 
@@ -107,14 +108,14 @@ class Problem:
 
 
 # What holds a close up, in the order the lead hears it: one line per kind when there is more than one of it.
-CONSENT, UNMARKED, CHECK, REMOVED_ROW, STRAY, RENDER, SYNC = (
-    "consent", "unmarked", "check", "removed", "stray", "render", "sync")
-KINDS = (SYNC, CONSENT, UNMARKED, CHECK, REMOVED_ROW, STRAY, RENDER)
+CONSENT, ELSEWHERE, RECEIPT, READBACK, UNMARKED, CHECK, REMOVED_ROW, STRAY, RENDER, SYNC = (
+    "consent", "elsewhere", "receipt", "readback", "unmarked", "check", "removed", "stray", "render", "sync")
+KINDS = (SYNC, CONSENT, RECEIPT, ELSEWHERE, READBACK, UNMARKED, CHECK, REMOVED_ROW, STRAY, RENDER)
 
 
 @dataclass(frozen=True)
 class Consent:
-    """One line of the PR body's Consent block: a decision and the lead's exact words, or an override and its reason."""
+    """One decision the gate judged, or one override and its reason, with the lead's words and the capture link. The gate's own data; the PR body never prints it."""
     item: str
     name: str
     change: str
@@ -183,7 +184,7 @@ def overrides_for(vault, item):
     return [o for o in override.valid_overrides(*scope) if QUOTED_YES_RULE in o.rules]
 
 
-def judge_change(change, rows, said, vault, record_name):
+def judge_change(change, rows, said, vault, record_name, part=1):
     """(Problem or None, Consent or None) for one change into or out of decided."""
     allowed = overrides_for(vault, change.item)
     if allowed:
@@ -192,8 +193,7 @@ def judge_change(change, rows, said, vault, record_name):
                              o.reason, f"{o.by} on {o.date}")
     # An item new this session may pass through a state on its way (an import writes a decision record as proposed,
     # then decides it with the lead's yes): its row's From is that state, not the branch point's "-".
-    row = next((r for r in rows if r.item == change.item and r.after == change.after
-                and (r.before in (change.before, "-", "") or change.before == "-")), None)
+    row = change_row(change, rows)
     if row is None:
         return Problem(f"You haven't said yes to {moving(change)} yet.",
                        f"{change.item}: {change.before} -> {change.after} has no ## Changes row", kind=CONSENT), None
@@ -212,7 +212,13 @@ def judge_change(change, rows, said, vault, record_name):
         return Problem(f"You said '{capture.quote or 'ok'}' on {change.name}. Was that a yes to {moving(change)}?",
                        f"{change.item}: ^c{capture.n} says only '{capture.quote}'", kind=CONSENT), None
     return None, Consent(change.item, change.name, f"{change.before} to {change.after}", capture.quote,
-                         f"[[{record_name}#^c{capture.n}]]")
+                         privaterecord.citation(record_name, part, int(capture.n)))
+
+
+def change_row(change, rows):
+    """The Changes row that records `change`, or None."""
+    return next((r for r in rows if r.item == change.item and r.after == change.after
+                 and (r.before in (change.before, "-", "") or change.before == "-")), None)
 
 
 def moving(change, capital=False):
@@ -227,23 +233,16 @@ def reader_changes(rows, after):
             if CONSENT_STATE in (r.before, r.after) and r.item in after]
 
 
-def judge(changes, record_text, record_name, vault):
+def judge(changes, record_text, record_name, vault, part=1):
     """(problems, consent lines) for the given changes against one session record."""
     rows, said = change_rows(record_text), captures(record_text)
     problems, consent = [], []
     for change in changes:
         named = StateChange(change.item, vault.name_of(change.item), change.before, change.after)
-        problem, line = judge_change(named, rows, said, vault, record_name)
+        problem, line = judge_change(named, rows, said, vault, record_name, part)
         problems += [replace(problem, clear=CONSENT_CLEAR)] if problem else []
         consent += [line] if line else []
     return problems, consent
-
-
-def consent_block(consent):
-    """The PR body's **Consent** list: every decision with the lead's exact words and the capture link."""
-    if not consent:
-        return ["**Consent**", "", "- No item was decided or reopened in this session."]
-    return ["**Consent**", ""] + [f'- {c.name} ({c.item}), {c.change}: "{c.words}" {c.link}' for c in consent]
 
 
 # ------------------------------------------------------------------ Task 10: the rest of the one list
@@ -260,7 +259,8 @@ class Seen:
     choice. `stray` is every changed path the close's allow-list would leave out; `stale` the pages render would still
     rewrite (`render_problems` when render can't run at all). `flow` is ((default line, lead line), ...), one per slice
     this session's changes reach, and `flow_note` says why there are none when the check couldn't run. `host` is
-    `.vela/host.json` as read, or None."""
+    `.vela/host.json` as read, or None. `lead` is `(handle, display names)` from `vela whoami`, or None when no handle
+    is kept: then the receipt check's lead clause cannot run, and `vela check`'s form check is all that judges them."""
     today: str
     sync: object  # closestate.Verdict
     before: object = None
@@ -273,6 +273,9 @@ class Seen:
     hooks_ran: bool = False
     host: dict = None
     reader: bool = False
+    lead: object = None
+    readback: object = None  # the digest `.vela/close/<id>.readback.json` holds, or None when the lead has not read back
+    picked: tuple = ()  # the quotes the lead picked (`.vela/close/<id>.quotes.json`), for the read-back
 
 
 @dataclass(frozen=True)
@@ -348,9 +351,9 @@ def unmarked_problem(record_text):
         return []
     n = len(left)
     first = _first_words(left[0].words)
-    said = (f"One thing you said isn't sorted yet: keep it, set it aside for later, or drop it? It was: '{first}'."
+    said = (f"One thing said in the session isn't sorted yet: keep it, set it aside for later, or drop it? It was: '{first}'."
             if n == 1 else
-            f"{say.count_words(n, capital=True)} things you said aren't sorted yet: each needs a keep, a set aside "
+            f"{say.count_words(n, capital=True)} things said in the session aren't sorted yet: each needs a keep, a set aside "
             f"for later or a drop. The first was: '{first}'.")
     return [Problem(said, "unmarked: " + ", ".join(f"^c{c.n}" for c in left),
                     "Marking each one keep, park or drop clears it.", kind=UNMARKED)]
@@ -408,29 +411,107 @@ def _error_words(found, vault):
     return said + (f" (and {say.count_words(len(found) - 1)} more like it)" if len(found) > 1 else "")
 
 
-def removal_problems(before, after, rows, said):
+@dataclass(frozen=True)
+class Removal:
     """A ledger row or an override that was there at the branch point and is gone now, with no recorded yes to its
-    removal. Deleting the row or the override is the one edit that quiets a check without answering it, and deletion
-    is detectable, so it is refused here rather than asked about in prose."""
+    removal. `key` is the ledger copy, or the override's scope (an item or page ID); `name` is what the lead hears."""
+    key: str
+    name: str
+    problem: Problem
+    is_override: bool = False
+
+
+def unagreed_removals(before, after, rows, said):
+    """Every `Removal` the record holds no yes for. Deleting the row or the override is the one edit that quiets a
+    check without answering it, and deletion is detectable, so it is refused rather than asked about in prose."""
     out = []
     now = ledger_copies(after)
     for copy, title in sorted(ledger_copies(before).items()):
         if copy not in now and not removal_agreed(copy, rows, said):
-            out.append(Problem(f"A question was taken off {title} this session ({copy}). Was that on purpose?",
-                               f"ledger row {copy} removed since the branch point", kind=REMOVED_ROW, clear=
-                               "Putting the row back clears it, or the lead's own words for removing it, recorded in "
-                               "the session record."))
+            out.append(Removal(copy, f"a question taken off {title}", Problem(
+                f"A question was taken off {title} this session ({copy}). Was that on purpose?",
+                f"ledger row {copy} removed since the branch point", kind=REMOVED_ROW, clear=
+                "Putting the row back clears it, or the lead's own words for removing it, recorded in "
+                "the session record.")))
     kept = override_scopes(after)
     for key, (name, o) in sorted(override_scopes(before).items(), key=lambda pair: tuple(map(str, pair[0]))):
         scope = key[1] or key[0]
         if key not in kept and not removal_agreed(scope, rows, said):
-            out.append(Problem(f'The exception on {name} was taken out this session ("{o.reason}"). Was that on '
-                               "purpose?",
-                               f"override on {scope} ({', '.join(o.rules)} by {o.by} on {o.date}) removed since the "
-                               "branch point",
-                               "Putting it back clears it, or the lead's own words for removing it, recorded in the "
-                               "session record.", kind=REMOVED_ROW))
+            out.append(Removal(scope, f"an exception taken off {name}", Problem(
+                f'The exception on {name} was taken out this session ("{o.reason}"). Was that on purpose?',
+                f"override on {scope} ({', '.join(o.rules)} by {o.by} on {o.date}) removed since the "
+                "branch point",
+                "Putting it back clears it, or the lead's own words for removing it, recorded in the "
+                "session record.", kind=REMOVED_ROW), is_override=True))
     return out
+
+
+def removal_problems(before, after, rows, said):
+    return [r.problem for r in unagreed_removals(before, after, rows, said)]
+
+
+# ------------------------------------------------------------------ Task 12: what the other machine decided
+
+STILL_YES = "These were decided on the other machine: {names}. Still yes?"
+STILL_YES_CLEAR = ("The lead's yes in this part, recorded with vela close reconfirm --yes ^cNN and the IDs, clears it. "
+                   "A no leaves the item as it is, and the lead may reopen it.")
+LEDGER_ROW, OVERRIDE_ROW = "ledger row", "override"  # the From cell of a removal's Changes row
+
+
+@dataclass(frozen=True)
+class Away:
+    """One thing the other machine did that this part holds no yes for. `id` is what the Changes row names (an item or
+    page ID, a ledger copy, or an override's scope), `name` what the lead hears, `before` and `after` the row's From
+    and To. `is_removal` marks a ledger row or an override taken off."""
+    id: str
+    name: str
+    before: str
+    after: str
+    is_removal: bool = False
+
+
+def decision_bullets(vault, item):
+    """[(page, bullet)] for the item's (or the page's) `**Decision:**` line."""
+    found = vault.item(item)
+    if found is not None:
+        bullet = found.facts.get("Decision")
+        return [(found.page, bullet)] if bullet else []
+    pages = vault.by_id.get(item) or []
+    return [(pages[0], b) for b in pages[0].bullets if b.label == "Decision" and not b.item and not b.generated] if pages else []
+
+
+def cites_another_part(vault, item, record_id, part):
+    """Whether the item's receipt names this session's notes in a part other than this one."""
+    from vela import receipts
+    for _, bullet in decision_bullets(vault, item):
+        found = receipts.parse_decision(bullet.value)
+        if found is not None and found.record == record_id and found.ref is not None and found.ref.part != part:
+            return True
+    return False
+
+
+def away(vault, before, rows, said, record_id, part):
+    """The `Away` things: each change into or out of decided with no Changes row here whose receipt cites another part
+    of this session, and (part 2 and up) every removal this part holds no yes for. Any part can close last, so part 1 is asked too
+    (a receipt that cites part 1 itself is not away); a reader copy has no branch point to compare with."""
+    if before is None:
+        return []
+    out = [Away(c.item, vault.name_of(c.item), c.before, c.after)
+           for c in consent_changes(states(before), states(vault), vault)
+           if not overrides_for(vault, c.item) and change_row(c, rows) is None
+           and cites_another_part(vault, c.item, record_id, part)]
+    if part >= 2:  # a removal carries no receipt to cite, so only a later part can tell it was the other machine's
+        out += [Away(r.key, r.name, OVERRIDE_ROW if r.is_override else LEDGER_ROW, REMOVED, is_removal=True)
+                for r in unagreed_removals(before, vault, rows, said)]
+    return out
+
+
+def elsewhere_problem(asked):
+    """One grouped question for everything decided on the other machine: the lead hears names, `detail` the IDs."""
+    if not asked:
+        return []
+    return [Problem(STILL_YES.format(names=say.names_said([a.name for a in asked])),
+                    "decided elsewhere: " + ", ".join(a.id for a in asked), STILL_YES_CLEAR, kind=ELSEWHERE)]
 
 
 def stray_problem(stray):
@@ -455,6 +536,9 @@ def render_problem(stale, render_problems):
     return []
 
 
+NO_HANDLE = "I don't know your handle, so I haven't judged whose words are in the receipts."
+
+
 def notes_of(seen):
     """What the lead hears that doesn't stop the close. The hooks line is informational on purpose: every rule a hook
     holds is also held by the command it guards, so a missing hook costs earlier feedback, never correctness (plan 1,
@@ -466,6 +550,8 @@ def notes_of(seen):
     if seen.reader:
         notes.append(Problem("This is your copy, so I can't tell whether anything was deleted this session.",
                              "reader copy: no merge-base"))
+    if seen.lead is None:
+        notes.append(Problem(NO_HANDLE, "no whoami handle: the receipt lead clause and the picked quotes were not judged"))
     notes += [Problem(lead, line) for line, lead in seen.flow]
     if seen.flow_note:
         notes.append(Problem(seen.flow_note, seen.flow_note))
@@ -480,7 +566,132 @@ def notes_of(seen):
     return notes
 
 
-def ready(vault, record_text, record_id, seen):
+# ------------------------------------------------------------------ the receipts this session wrote
+
+NO_WORDS = "The decision on {name} has none of your words on record yet."
+UNQUOTED = "{name}'s decision quotes someone who hasn't said yes to being quoted."
+
+
+def _speaker_is_lead(who, lead):
+    from vela.decisions import consent
+    handle, names = lead
+    return consent.same_handle(who, handle) or who.strip().casefold() in {n.casefold() for n in names}
+
+
+def _may_quote(record, who, lead):
+    """Whether `who`'s words may be on a committed page: they said something in this session and either they are the
+    lead or they gave their own quote-yes (`consent.may_quote`)."""
+    from vela.decisions import consent
+    return any(consent.may_quote(c, record, lead) for c in record.captures.values()
+               if consent.same_handle(c.origin, who))
+
+
+def _new_bullets(vault, before):
+    """(page, bullet) for every Decision and Dissent bullet this session added or reworded since `before`."""
+    for page in vault.pages:
+        old = before.page(page.name)
+        was = {(b.label, b.value) for b in old.bullets} if old is not None else set()
+        for bullet in page.bullets:
+            if bullet.label in ("Decision", "Dissent") and not bullet.generated and (bullet.label, bullet.value) not in was:
+                yield page, bullet
+
+
+def _scope_name(vault, page, bullet):
+    return vault.name_of(bullet.item) if bullet.item else str(page.meta.get("title") or page.name)
+
+
+def receipt_problems(vault, before, record_id, part, record_text, lead):
+    """The lead clause of E315, which `vela check` cannot judge because it does not know who the lead is. For the
+    receipts on pages changed since `before` that cite this record and this part: a receipt whose who is the lead needs
+    the lead's words; a receipt or Dissent that quotes someone else needs that person's own `quote-yes` in this
+    session. A relayed yes has the lead as its origin, so it never counts for anyone else. With no known lead nothing
+    is judged here."""
+    from vela import receipts
+    if lead is None or before is None:
+        return []
+    from vela.decisions import record as session_record
+    held, out = session_record.from_text(record_id, "", record_text, part), []
+    for page, bullet in _new_bullets(vault, before):
+        name = _scope_name(vault, page, bullet)
+        where = f"{bullet.item or page.id} at {page.path}:{bullet.line}"
+        if bullet.label == "Decision":
+            found = receipts.parse_decision(bullet.value)
+            if found is None or found.record != record_id or found.ref is None or found.ref.part != part or not found.who:
+                continue
+            words, who = found.words, found.who
+        else:
+            found = receipts.parse_dissent(bullet.value)
+            if found is None or found.see != record_id or not found.words:
+                continue
+            words, who = found.words, found.who
+        if _speaker_is_lead(who, lead):
+            if bullet.label == "Decision" and not words:
+                out.append(Problem(NO_WORDS.format(name=name), f"{where}: the receipt names {who} and holds no words",
+                                   "Quoting the lead's own words in the receipt clears it.", kind=RECEIPT))
+        elif words and not _may_quote(held, who, lead):
+            out.append(Problem(UNQUOTED.format(name=name), f"{where}: {who}'s words, with no quote-yes from {who}",
+                               f"Asking {who}, in the session, whether they may be quoted clears it; so does taking "
+                               "their words out of the line.", kind=RECEIPT))
+    return out
+
+
+PICK_UNBACKED = "A line picked for the pull request isn't backed by what you said, so I won't send it."
+
+READBACK_OWED = "I haven't read back the wording that goes on record in your name yet."
+
+
+def unbacked_picks(record_text, seen):
+    """Picked quotes the notes don't back (`closereadback.valid_picks` drops them). Refused rather than skipped: a
+    pick that vanishes quietly would look like a quote the lead approved. With no known lead the note in `notes_of`
+    says nothing was judged."""
+    from vela import closereadback
+    if seen.lead is None:
+        return []
+    kept = {id(p) for p in closereadback.valid_picks(seen.picked, captures(record_text), seen.lead)}
+    return [Problem(PICK_UNBACKED, f"^c{int(p['number']):02d}: \"{p['words']}\" has no quote-yes, or isn't in the capture",
+                    "Taking the line out of the picked quotes clears it; so does the person's own yes to being quoted.",
+                    kind=RECEIPT) for p in seen.picked if id(p) not in kept]
+
+
+def readback_problems(vault, record_id, part, record_text, seen):
+    """The lead has not read back the sentences that go on record in their name, or one changed after they did. Silent
+    until there is a sentence to read: a session that put no words on a page owes no read-back."""
+    from vela import closereadback
+    found = closereadback.sentences(vault, record_id, part, record_text, seen.lead, seen.picked)
+    if not found or closereadback.digest(found) == seen.readback:
+        return []
+    return [Problem(READBACK_OWED, f"{len(found)} sentence(s) to read back; `vela close readback` lists them, "
+                    "`--done` records the lead's yes",
+                    "Reading the sentences back to the lead, then vela close readback --done, clears it.",
+                    kind=READBACK)]
+
+
+def mark_target_problems(vault, record_text):
+    """A capture marked `keep: [[page#heading|ID]]` whose page or heading is not in the plan. `vela check` cannot
+    read the notes, so the gate is where a mark that points nowhere is stopped."""
+    from vela import markrules
+    out = []
+    for capture in captures(record_text).values():
+        mark = markrules.parse_mark(capture.mark)
+        for target in (mark.targets if mark else ()):
+            page = vault.page(target.page)
+            if page is None:
+                plain = f"Something you said was kept on {target.page}, and I can't find that page."
+            elif not _heading_in(vault, page, target.heading):
+                plain = f"Something you said was kept on {vault.name_of(page.id) if page.id else target.page}, under a heading that isn't there."
+            else:
+                continue
+            out.append(Problem(plain, f"^c{capture.n} keeps into [[{target.page}#{target.heading}|{target.id}]], which is not in the plan",
+                               "Pointing the mark at a page and heading that exist clears it.", kind=CHECK))
+    return out
+
+
+def _heading_in(vault, page, heading):
+    row = vault.row_ids.get(heading)
+    return heading in [h.text for h in page.headings] or (row is not None and row[0] is page)
+
+
+def ready(vault, record_text, record_id, seen, part=1):
     """The whole gate, pure: a Readiness for one session record against what `seen` holds. `close gate` prints it and
     `close finish` refuses on it. The order is the order the lead fixes things in: main, decisions, filing, the tree."""
     rows, said = change_rows(record_text), captures(record_text)
@@ -489,14 +700,22 @@ def ready(vault, record_text, record_id, seen):
         changes = reader_changes(rows, after)
     else:
         changes = consent_changes(states(seen.before), after, vault)
-    problems, consent = judge(changes, record_text, record_id, vault)
+    asked = away(vault, seen.before, rows, said, record_id, part)
+    changes = [c for c in changes if c.item not in {a.id for a in asked}]
+    problems, consent = judge(changes, record_text, record_id, vault, part)
+    problems += elsewhere_problem(asked)
     if seen.sync.blocks:
         problems.insert(0, Problem(seen.sync.plain, f"sync-main: {seen.sync.status or 'not run'}",
                                    "Running vela close sync-main clears it.", kind=SYNC, audience=seen.sync.audience))
+    problems += receipt_problems(vault, seen.before, record_id, part, record_text, seen.lead)
+    problems += unbacked_picks(record_text, seen)
+    problems += readback_problems(vault, record_id, part, record_text, seen)
     problems += unmarked_problem(record_text)
+    problems += mark_target_problems(vault, record_text)
     problems += error_problems(seen.errors, vault)
     if seen.before is not None:
-        problems += removal_problems(seen.before, vault, rows, said)
+        problems += [r.problem for r in unagreed_removals(seen.before, vault, rows, said)
+                     if r.key not in {a.id for a in asked}]
     problems += stray_problem(seen.stray)
     problems += render_problem(seen.stale, seen.render_problems)
     return Readiness(tuple(problems), tuple(notes_of(seen)), tuple(consent))

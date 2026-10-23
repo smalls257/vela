@@ -106,7 +106,7 @@ def test_an_open_row_needs_no_by_or_date(ub):
 # ------------------------------------------------------------------ E802: evidence per state
 
 @pytest.mark.parametrize("old, new, said", [
-    ("| asked | capture: [[2026-11-19-owed-questions#^c01]] |", "| asked | capture: by email |", "asked needs capture"),
+    ("| asked | capture: [[2026-11-19-owed-questions]] c01 |", "| asked | capture: by email |", "asked needs capture"),
     ("| answered | item: [[customer-identity-building-blocks#CON-005 Customer lookup\\|CON-005]]; source: SRC-07; answer: Booking becomes a new user of customer data, through the Customer lookup contract CON-005 |",
      "| answered | item: [[customer-identity-building-blocks#CON-005 Customer lookup\\|CON-005]]; answer: Booking becomes a new user of customer data, through the Customer lookup contract CON-005 |", "answered needs source"),
     ("| answered | item: [[customer-identity-building-blocks#CON-005 Customer lookup\\|CON-005]]; source: SRC-07; answer: Booking becomes a new user of customer data, through the Customer lookup contract CON-005 |",

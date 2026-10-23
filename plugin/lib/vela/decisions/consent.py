@@ -18,7 +18,10 @@ Each check returns None or a `say.Refusal` whose `plain` is the 4.3 table's sent
   back agreed to something else.
 - `group_small_enough`: one yes covers at most seven items. Past that the lead can't hold the read-back in mind, so the
   yes doesn't say what was agreed to.
-- `why_in_their_words`: a reason is copied verbatim into the page, so it must be the lead's (a person origin).
+- `why_in_their_words`: a reason is copied verbatim into the page, so it must be a person's, and a committed page
+  carries only the lead's own words or those of someone who gave their own `quote-yes` in this session (`may_quote`).
+- `quote_yes`: a person's own yes to being quoted, a capture tagged `quote-yes` whose origin is that person. A relayed
+  one ("Raj said it's fine") has the lead as origin, so it never lets Raj's words out.
 - `from_the_lead`: a push yes is the lead's own, its origin their `vela whoami` handle. Not just any person: an
   operator's account email or a reviewer's name standing in for the lead is reported as such, and nothing is sent.
 - `after_send_notice`: a push yes comes after `close push` printed what it will send; the caller passes the record's
@@ -29,10 +32,15 @@ Each check returns None or a `say.Refusal` whose `plain` is the 4.3 table's sent
 The lead can go ahead without any of these (they may override any rule): each refusal's `override` names the route,
 an override citing their reason, which then goes on record and into the Consent block, never hidden.
 """
+import re
+
 from vela import closegate, say
-from vela.said import is_unverified
+from vela.said import confirmed, is_unverified
 from vela.decisions.schema import quote_hash
 
+# "Yes, but don't quote me" opens with a yes and takes it back; a negation anywhere after the opener is not a yes.
+NEGATION = re.compile(r"\b(?:don[’']?t|do not|not|no|never|won[’']?t|wouldn[’']?t|shouldn[’']?t|can[’']?t|cannot)\b", re.I)
+QUOTE_YES_TAG = "quote-yes"  # the tag of a capture where a person says, in their own words, that they may be quoted
 GROUP_LIMIT = 7  # the most items one read-back may name for one yes
 OVERRIDE_YES = (f'an override of {closegate.QUOTED_YES_RULE} on the item, its reason citing the capture with the '
                 "lead's words for going ahead, then vela apply again")
@@ -131,17 +139,52 @@ def group_sizes(items, field="readback"):
     return sizes
 
 
-def why_in_their_words(ref, record):
+def quote_yes(record, origin):
+    """The person's own yes to being quoted: a capture tagged `quote-yes`, from that same origin, a verified person,
+    not a bare "ok", opening with a yes. None when there is none. The tag is the model's to write, so this is a Sensor
+    like the rest of this module: it makes a missing yes visible, and the reviewer judges the words."""
+    from vela.decisions import ready  # ready imports this module, so the import waits until it is called
+    for capture in record.captures.values():
+        if (capture.tag == QUOTE_YES_TAG and same_handle(capture.origin, origin) and capture.is_person
+                and not capture.unverified and not capture.is_bare_non_yes and ready.is_yes(capture.quote)
+                and not NEGATION.search(capture.quote)):
+            return capture
+    return None
+
+
+NOT_CONFIRMED = ("They said yes to being quoted, but these words aren't confirmed as theirs yet, so I won't use them "
+                 "until they are.")
+NOT_CONFIRMED_FIX = " (Once they say they typed them, vela record confirm takes the mark off.)"
+
+
+def agreed_but_unconfirmed(capture, record):
+    """True when the person gave a quote-yes but this capture of theirs is still marked unverified: the refusal to quote
+    it is about whose words these are, not about whether they agreed to be quoted."""
+    return capture.unverified and quote_yes(record, confirmed(capture.origin)) is not None
+
+
+def may_quote(capture, record, lead):
+    """True when this capture's words may be written on a committed page: the lead's own, or a person's who gave
+    their quote yes. `lead` is `(handle, names)`, None when unknown, which lets no one's words out."""
+    if lead is None or not capture.is_person:
+        return False
+    handle, names = lead
+    return from_the_lead(capture, handle, names) is None or quote_yes(record, capture.origin) is not None
+
+
+def why_in_their_words(ref, record, lead):
     missing = exists(ref, record)
     if missing is not None:
         return missing
     capture = record.capture(ref)
-    if capture.is_person:
+    if capture.is_person and may_quote(capture, record, lead):
         return None
     return _refusal("consent-why-not-theirs", "Why this one, in your words?",
-                    f"Ask the lead why, in their words, and capture that (^c{capture.n} is Claude's, origin "
-                    f"{capture.origin!r}).", override="leave the reason out (the item is filed with no why), or an "
-                                                      "override citing the lead's words for going ahead")
+                    f"Ask the lead why, in their words, and capture that (^c{capture.n} is not the lead's words, and "
+                    f"{capture.origin!r} gave no quote-yes). Someone else's reason goes on a page only after they "
+                    "say, in this session, that they may be quoted.",
+                    override="leave the reason out (the item is filed with no why), or an "
+                             "override citing the lead's words for going ahead")
 
 
 def after_send_notice(yes, notice_count):

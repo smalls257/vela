@@ -28,7 +28,7 @@ The hunches below are the earlier material from the two ends of the argument and
 
 - **Decision:** [[2026-10-12-privacy-m365-on-device]]
 - **Why:** The cloud-written digest was rejected because it rules out a February 2, 2027 pilot unless the CISO changes their line, and the calendar-first prep note because it drops the 7:30 morning digest.
-- **Dissent:** @product-owner, 2026-10-05: "a cloud service writes the summaries with a hosted language model, because the on-device model is poor and the digest should follow the person across devices" ([[sources#SRC-012|the one-pager]]); not present at the decision, recorded by @sim-lead on 2026-10-12
+- **Dissent:** @product-owner, 2026-10-05
 - **Override:** "Boundary only on a decided direction" by @sim-lead on 2026-10-12: "text call in parallel works"
 - **Override:** "Reopen a decided item at any time" by @sim-lead on 2026-10-12: the product owner can reopen this if the answer on whether Consent and identity sees what the agent read flips, but not before the lock
 - **Options considered:** Laptop-only morning note (picked); Cloud-written digest: rejected, it rules out a February 2, 2027 pilot unless the CISO changes their line; Calendar-first prep note: rejected, it drops the 7:30 morning digest.

@@ -29,7 +29,7 @@ import importlib
 import pathlib
 import re
 
-from vela import commands, say, voiceplan
+from vela import commands, privaterecord, say, voiceplan
 from vela.decisions import consent, record as records
 from vela.edge import atomic, sessiongit, voicegit
 from vela.edge.vaultgit import GitUnavailable
@@ -259,7 +259,10 @@ def save_result(args, root):
 
 def open_record(root, command):
     """(OpenRecord, None), or (None, the Result): the yeses are read from the one open session record."""
-    rec, opened = records.open_record(sessiongit.folder_records(root))
+    try:
+        rec, opened = sessiongit.open_record(root)
+    except sessiongit.PrivateMissing as exc:
+        return None, failed(command, f"vela voice: {exc}", str(exc))
     if rec is not None:
         return rec, None
     if opened.several:
@@ -392,7 +395,7 @@ def collect(root, found, prs):
     if len(prs) >= voicegit.PR_LIMIT:
         lines.append(say.Line(f"{len(prs)} merged PRs came back, so older PRs were not checked."))
     voicegit.clear_harvest(root)
-    declined = voiceplan.declined(voicegit.record_texts(root))
+    declined = voiceplan.declined(voicegit.record_metas(root))
     for pr in prs:
         number = int(pr["number"])
         for offer in pr_offers(root, number, failures):
@@ -495,16 +498,16 @@ def decline_result(root, pr, page, digest):
     if problem is not None:
         return problem
     line = voiceplan.decline_line(pr, page, digest)
-    if (pr, page, digest) in voiceplan.declined([record.text]):
+    if (pr, page, digest) in voiceplan.declined([privaterecord.lists_of(record.text)]):
         return say.Result(command, lines=[say.Line(f"already declined: {line}", "That one was already declined.")])
     text = voiceplan.with_decline(record.text, line)
     if text is None:
         return refused(command, "voice-no-captures", "The session record has no captures section to write it under.",
                        f"Add a `## Captures` heading to {record.path}, then decline again.")
     try:
-        atomic.write_atomic(root / record.path, text)
+        wrote = sessiongit.write_notes(root, record, text)
     except atomic.WriteFailed as exc:
         return failed(command, f"vela voice: the disk refused {record.path}: {exc}", "The disk refused the record.")
     return say.Result(command, lines=[say.Line(f"wrote under ## Captures in {record.path}: {line}",
                                                "I've noted that you declined it, so it won't come up again.")],
-                      wrote=[record.path])
+                      wrote=wrote)

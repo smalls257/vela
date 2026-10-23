@@ -5,7 +5,7 @@ Every value here comes from vela's own parser (vela.parse, vela.reading)."""
 import html
 import re
 
-from vela import readability, reading
+from vela import readability, reading, sessiondates
 from vela.parse import WIKILINK, parse_link
 
 HANDLE = re.compile(r"@[A-Za-z0-9][\w./-]*")
@@ -34,9 +34,10 @@ class Keys:
         return self.page_key[page.path]
 
     def link(self, link, from_page):
-        """The key a wikilink points at: an item when its anchor names one on that page, else the page."""
+        """The key a wikilink points at: an item when its anchor names one on that page, else the page.
+        None for a link to a session record: the dashboard does not show sessions, so nothing opens there."""
         target = self.vault.resolve(link, from_page)
-        if target is None:
+        if target is None or target.type == "session":
             return None
         first = link.anchor.split()[0].upper() if link.anchor.split() else ""
         item = self.vault.item(first) if first else None
@@ -44,10 +45,18 @@ class Keys:
             return item.id
         return self.page(target)
 
+    def without_sessions(self, text, from_page):
+        """`text` with each link to a session record said as that session's date (sessiondates.py)."""
+        return sessiondates.without_sessions(self.vault, text, from_page)
 
     def key_of(self, entry):
         """The key an ID's name points at: the item for an item ID, else the page that holds it."""
         return entry.id if self.vault.item(entry.id) is not None else self.page(entry.page)
+
+
+def dashboard_pages(vault):
+    """The pages the dashboard reads from. A session record stays in the vault and out of the dashboard (the owner's call)."""
+    return [p for p in vault.pages if p.type != "session"]
 
 
 def link_label(vault, link, from_page):
@@ -71,7 +80,7 @@ def inline_html(text, keys, page, where=LISTED):
     """Markdown inline text to safe HTML: wikilinks become clickable references, the rest is escaped. `where` says what
     surrounds the text: running PROSE shows a question's state only when it is worth flagging (an "open" pill mid-sentence
     is noise, since open is what a linked question is by default); a LISTED item or table cell shows every state."""
-    text = BLOCK_REF.sub("", text)
+    text = keys.without_sessions(BLOCK_REF.sub("", text), page)
     parts, refs, web_links = [], [], []
 
     def hold_web_link(match):

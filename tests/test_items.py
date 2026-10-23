@@ -1,4 +1,5 @@
 from conftest import check, edit, findings
+import session_files
 
 SHOP = "05-building-blocks/shop-building-blocks.md"
 STOCK = "05-building-blocks/stock-building-blocks.md"
@@ -130,7 +131,7 @@ def test_decided_without_decision_bullet(mini):
 
 
 def test_decided_by_a_session_that_is_not_a_grill(mini):
-    edit(mini / "sessions/2026-01-10-shop-api.md", "modes: [grill]", "modes: [shape]")
+    session_files.edit_stub(mini, "2026-01-10-shop-api", "modes: [grill]", "modes: [shape]")
     _, out = check(mini)
     assert [c for c, _ in codes(out)] == ["E303", "E303", "E303"]
 
@@ -244,7 +245,7 @@ def test_decision_linking_a_page_that_is_not_a_session(mini):
 
 
 def test_grill_session_with_numeric_modes(mini):
-    edit(mini / "sessions/2026-01-10-shop-api.md", "modes: [grill]", "modes: 5")
+    session_files.edit_stub(mini, "2026-01-10-shop-api", "modes: [grill]", "modes: 5")
     code, out = check(mini)
     assert code == 1, out
     got = codes(out)
@@ -253,7 +254,7 @@ def test_grill_session_with_numeric_modes(mini):
 
 
 def test_an_epics_session_that_includes_grill_still_decides_and_passes(mini):
-    edit(mini / "sessions/2026-01-10-shop-api.md", "modes: [grill]", "modes: [epics, shape, grill]")
+    session_files.edit_stub(mini, "2026-01-10-shop-api", "modes: [grill]", "modes: [epics, shape, grill]")
     _, out = check(mini)
     assert codes(out) == []
 

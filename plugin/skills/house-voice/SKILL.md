@@ -34,7 +34,7 @@ These keep the exact words they were written in. Do not restyle them:
 
 ## Prose that is already merged
 
-Merged prose belongs to the people who edited it. When a session changes a fact in a merged paragraph, change only that fact and the fewest words grammar needs. If the change makes the paragraph wrong as a whole, rewrite it, but first run `vela prose replace --page 05-building-blocks/till.md --line 12` with the page and any line of the paragraph: it copies the old paragraph byte for byte into the session record under `## Replaced prose`, with the page and the date, so whoever wrote it can find it. Never copy it by hand. Say so under **Prose drafted** in the pull request body. A page never carries two openings, and never a note to a reader about which paragraph to delete: those are editing notes, and a page with one ships as a draft.
+Merged prose belongs to the people who edited it. When a session changes a fact in a merged paragraph, change only that fact and the fewest words grammar needs. If the change makes the paragraph wrong as a whole, rewrite it, but first run `vela prose replace --page 05-building-blocks/till.md --line 12` with the page and any line of the paragraph: it copies the old paragraph byte for byte into the session's notes under `## Replaced prose`, with the page and the date, so whoever wrote it can find it. Never copy it by hand. Say so under **Prose drafted** in the pull request body. A page never carries two openings, and never a note to a reader about which paragraph to delete: those are editing notes, and a page with one ships as a draft.
 
 ## The default voice
 

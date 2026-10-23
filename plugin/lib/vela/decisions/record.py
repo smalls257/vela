@@ -1,17 +1,17 @@
 """The open session record a decision file is applied against, and its captures (overhaul Task 4). Pure.
 
 The consent checks read only what the record holds, so this is the one place a decision kind gets it from: the open
-record is found by `vela.sessions` (the rules for which record is open live there, not here), and its captures are
+stub is found by `vela.sessions` (the rules for which record is open live there, not here), `edge/sessiongit.open_record`
+reads the private notes behind it, and the captures are
 parsed by `vela.closegate.captures`, the same parser the close gate judges with, so `apply` and the gate can never
 disagree about what a capture says. Numbering new captures is `vela record add`'s work, not this module's.
 
-Records arrive as `(ref, path, text)`, the way `edge/sessiongit.folder_records` reads them from the working tree; no
-disk, git or clock here.
+`path` is the private file's path; `stub` is the committed header beside it. No disk, git or clock here.
 """
 import re
 from dataclasses import dataclass
 
-from vela import closegate, sessions
+from vela import closegate, privaterecord
 
 _REF = re.compile(r"^\^?c?(\d+)$")
 
@@ -22,6 +22,12 @@ class OpenRecord:
     path: str  # relative to the vault root
     text: str
     captures: dict  # {int number: closegate.Capture}
+    part: int = 1  # which part of the session's notes this machine holds (privaterecord)
+
+    @property
+    def stub(self):
+        """The committed header whose lists and status follow this record's notes."""
+        return privaterecord.stub_path(self.id)
 
     def capture(self, ref):
         """The capture `ref` names (`^c31`, `c31`, `31`, `^c07`), or None when the record holds no such capture."""
@@ -38,17 +44,8 @@ def number_of(ref):
     return int(found.group(1)) if found else None
 
 
-def from_text(record_id, path, text):
-    return OpenRecord(record_id, path, text, {int(n): c for n, c in closegate.captures(text).items()})
-
-
-def open_record(found):
-    """(OpenRecord, None) for the one open record among `found`, else (None, Opened) saying why not."""
-    records, problems = sessions.find_open(found)
-    if len(records) != 1:
-        return None, Opened(records, problems)
-    texts = {path: text for _, path, text in found}
-    return from_text(records[0].id, records[0].path, texts[records[0].path]), None
+def from_text(record_id, path, text, part=1):
+    return OpenRecord(record_id, path, text, {int(n): c for n, c in closegate.captures(text).items()}, part)
 
 
 @dataclass(frozen=True)

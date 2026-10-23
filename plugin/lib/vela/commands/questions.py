@@ -18,7 +18,7 @@ command tail (the October 14 voice audit, rows 174 and 175).
 import json
 import pathlib
 
-from vela import questions, reviewprep, say
+from vela import privaterecord, questions, reviewprep, say
 from vela.edge import sessiongit
 
 
@@ -60,11 +60,11 @@ def cmd_questions(args, out):
     if args.area is not None and args.area not in vault.catalog.area_codes:
         raise cli.ToolError(f"--area {args.area} is not an area of catalog v{vault.catalog.version}. "
                             f"Use one of: {', '.join(vault.catalog.area_codes)}.")
-    rel = f"sessions/{args.session}.md"
+    rel = privaterecord.private_path(args.session)
     path = root / rel
     if not path.is_file():
-        raise cli.ToolError(f"--session {args.session}: there is no record {rel}. Give the session's id, its record's "
-                            "file name without .md.")
+        raise cli.ToolError(f"--session {args.session}: there are no session notes {rel} on this machine. Give the "
+                            "session's id, its record's file name without .md.")
     text = path.read_text(encoding="utf-8")
     answer = questions.digest(vault, args.area, args.subject)
     every = [c for g in answer["groups"] for c in g["copies"]]

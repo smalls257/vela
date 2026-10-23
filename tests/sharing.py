@@ -71,8 +71,8 @@ HOSTILE = "a reader's cap is a <b>must</b> & never a may, </script><img src=x on
 
 def commit_snapshot(tmp_path, name="src"):
     """The trading-coach snapshot committed in its own repo (it carries .vela.yaml, so it can be published)."""
-    root = tmp_path / name
-    shutil.copytree(SNAPSHOT, root)
+    import session_files
+    root = session_files.split_copy(SNAPSHOT, tmp_path / name)
     git(tmp_path, "init", "-q", "-b", "main", str(root))
     git(root, "config", "user.name", "Priya Nair")
     git(root, "config", "user.email", "priya@example.com")

@@ -15,6 +15,7 @@ from dataclasses import dataclass
 from vela import proposal, publish, untrusted
 
 NOTE, PATCH, ANSWER = "proposal.md", "changes.patch", "answer.md"
+RECORD = "record.md"  # the reader's own session notes, attached only when they asked (propose --with-record)
 
 
 class ProposalIOError(Exception):
@@ -89,6 +90,7 @@ class Loaded:
     patch: bytes
     note: str  # proposal.md's text, "" when the source was a bare patch
     answer_to: pathlib.Path  # where answer.md goes for this source
+    record: bool = False  # the reader attached their session notes (record.md); the owner reads them, nothing applies them
 
 
 def _read_plain_file(path):
@@ -109,10 +111,11 @@ def _from_zip(source):
                 publish.check_name(name)
             patch = next((n for n in names if n.split("/")[-1] == PATCH and len(n.split("/")) <= 2), None)
             note = next((n for n in names if n.split("/")[-1] == NOTE and len(n.split("/")) <= 2), None)
+            record = any(n.split("/")[-1] == RECORD and len(n.split("/")) <= 2 for n in names)
             if patch is None:
                 raise ProposalIOError(f"{source} holds no {PATCH}, so it is not a proposal.")
             return Loaded(archive.read(patch), archive.read(note).decode("utf-8", "replace") if note else "",
-                          source.with_name(f"{source.stem}-{ANSWER}"))
+                          source.with_name(f"{source.stem}-{ANSWER}"), record)
     except zipfile.BadZipFile as exc:
         raise ProposalIOError(f"{source} is not a readable zip: {exc}") from exc
     except publish.PublishError as exc:
@@ -132,7 +135,8 @@ def read(source):
             if not patch.is_file():
                 raise ProposalIOError(f"{source} holds no {PATCH}, so it is not a proposal.")
             note = source / NOTE
-            return Loaded(_read_plain_file(patch), _read_plain_file(note).decode("utf-8", "replace") if note.is_file() else "", source / ANSWER)
+            return Loaded(_read_plain_file(patch), _read_plain_file(note).decode("utf-8", "replace") if note.is_file() else "", source / ANSWER,
+                          (source / RECORD).is_file())
         if zipfile.is_zipfile(source):
             return _from_zip(source)
         return Loaded(_read_plain_file(source), "", source.with_name(ANSWER))

@@ -18,6 +18,8 @@ so `.Inbox/` is `.inbox/`), matching the template's `.gitignore`:
 
 - `.inbox/` holds company material, meeting notes and transcripts, that only the vault's owner may send. Committing it
   puts it on every clone and in every pull request, and no later commit takes it back out of the history.
+- `sessions/private/` holds the lead's session notes, every word said in a session. They stay on the machine that
+  wrote them; the committed record in `sessions/<id>.md` is only a header.
 - `voice/local/` holds the owner's private voice examples: kept on this machine by the owner's choice when they were
   saved.
 - `voice/corpus/` is reading material the voice is learned from, often other people's writing; it never leaves the
@@ -32,8 +34,8 @@ Staged by a close (the allow-list):
   `cli.page_kind` decides). `vela render` only ever rewrites vault pages, so render's files are always inside this
   rule; `close stage --paths-from-render` adds the proof that they are render's latest output, which is why a page
   left out of the commit used to fail CI's render check.
-- **The open session record** `sessions/<id>.md`. Another session's record is left out: a close files one session,
-  and a change to another record is someone else's work.
+- **The open session's stub** `sessions/<id>.md` (the header; the notes are never staged). Another session's
+  record is left out: a close files one session, and a change to another record is someone else's work.
 - **Harvested voice examples** under `voice/examples/`, which the owner agreed to share when they were saved, and
   **`voice/VOICE.md`**, the owner's own rules in their words (voice-seed writes it with them; every session reads it
   first). Leaving it out would leave voice-seed nowhere to commit it but a hand-typed stage, which the Claude Code
@@ -55,6 +57,8 @@ Left out on purpose, though they belong to the vault:
 """
 import posixpath
 from dataclasses import dataclass
+
+from vela import privaterecord
 
 PINS = ".vela/explorer-pins.json"
 SETTINGS = (".vela.yaml", "sources.md", "voice/VOICE.md")
@@ -78,7 +82,10 @@ VOICE_CORPUS = Rule("voice-corpus", "The writing the voice learns from stays on 
                     "Nothing to do; never stage `voice/corpus/`.")
 TOOL_STATE = Rule("tool-state", "Vela's own working files stay on this machine; I've left them out.",
                   "Nothing to do; only `.vela/explorer-pins.json` is shared from `.vela/`.")
-RULES = (INBOX, VOICE_LOCAL, VOICE_CORPUS, TOOL_STATE)
+SESSION_PRIVATE = Rule("session-private", "Your session notes stay on this machine; I've left them out.",
+                       "Never stage `sessions/private/`. It shows as a change only when .gitignore lacks the line "
+                       "`sessions/private/`: run `vela records split`, which writes that line.")
+RULES = (INBOX, VOICE_LOCAL, VOICE_CORPUS, TOOL_STATE, SESSION_PRIVATE)
 
 # Why an allowed-looking file is still left out. Every other leftover gets OTHER.
 HANDOFF = "a handoff manifest is committed on its own, after the close commit, so it names a commit that holds it"
@@ -110,6 +117,8 @@ def never_rule(path):
     parts = folded.split("/")
     if ".inbox" in parts[:-1]:  # `.inbox/` in .gitignore has no leading slash, so it matches at any depth
         return INBOX
+    if privaterecord.is_private(folded):
+        return SESSION_PRIVATE
     if folded.startswith("voice/local/"):
         return VOICE_LOCAL
     if folded.startswith("voice/corpus/"):

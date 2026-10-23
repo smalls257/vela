@@ -29,11 +29,19 @@ Vela doesn't send anything for you. People move the files, by email, Teams or On
 
 Three steps, in Claude Code:
 
-1. Add the marketplace: `/plugin marketplace add smalls257/vela`
+1. Add the marketplace: `/plugin marketplace add smalls257/vela#release`
 2. Install the plugin: `/plugin install vela@vela`
 3. Ask Claude to run `vela doctor`. It prints one line per item and ends with `vela doctor: ready.` when the machine has what vela needs. Anything optional that's missing says what it adds and the one command that gets it.
 
 The repo is private, so you need access to it on GitHub first, and git on your machine signed in to that account (`gh auth login` does it). There is nothing to pip install. Vela runs on Python 3.9 or later, which comes with a Mac's developer tools, and it brings its own copy of PyYAML.
+
+**Already installed from the full repo?** Switch to the lean branch yourself, in Claude Code. This is your own step; nothing does it for you:
+
+1. `/plugin marketplace remove vela` (this also removes the installed plugin)
+2. `/plugin marketplace add smalls257/vela#release`
+3. `/plugin install vela@vela`
+
+Your vaults are not touched. The `release` branch is generated from `main` and holds only the plugin, so the download is a fraction of the repo. Maintainers: `python3 tools/build_release_branch.py --ref <commit>`, then push `release` yourself.
 
 ### Claude Code CLI
 
@@ -190,6 +198,18 @@ The dashboard is up to date: dashboard.html
 ```
 
 A failed dashboard build never undoes the close, and `/vela:import` and `/vela:open` end the same way.
+
+### Your session notes: where they live, receipts, backup, moving over
+
+What you say in a session is saved as notes in `sessions/private/<session>.md`, in your plan's folder, on the computer you were using. They are never committed or pushed. The team sees a header per session (`sessions/<session>.md`: the title, the date, the mode, the branch and a fingerprint of the notes) and nothing you said.
+
+Each decision on a page carries a receipt: `[[2026-10-22-booking-api]] c07, @maria: "Yes, one booking API for the web and the kiosks."` It names the session, the note and who said yes. The words after the colon are yours only if you kept them. Close reads back every sentence that goes on record in your name, and you keep it, reword it or cut it. Someone else's words are on the page only if they said, in the session, that they may be quoted; otherwise the receipt names them and stops. If a reviewer asks to see your yes, `vela records show <session> c07` prints one of your own notes to paste into the thread. It won't print anyone else's.
+
+The fingerprint shows the notes on your disk are the ones close saw. `vela records verify <session>` checks it, and `vela records seal <session>` fills it in if a session ended without close. It can't show that someone really said yes.
+
+If you carry on a session on another computer, that computer has the header and no notes. Claude tells you so and keeps new notes there as part 2. At close it asks once about what the first computer decided: "Still yes?" Your notes don't travel, so copy them yourself when you want them somewhere else: `vela records backup --to <a folder or a .zip outside the plan>`. A lost disk loses them, and nothing else holds them.
+
+A plan from before this change has its old records committed. `vela records split` shows what it would move and what words it would take off the pages, then does it on a branch of its own after your yes. It doesn't remove old records from git history, published read copies or old pull request pages; only rewriting history does that.
 
 ### Material you already have
 
@@ -361,7 +381,7 @@ Your access decides your role, never a title or a config file. `vela role` print
 | Has | the vault's git work tree and can commit | a published copy with `.vela/workspace.json` and no `.git` |
 | Decisions | final | marked pending approval until an owner clears them |
 | Sessions, ask, find, explore, import | yes | yes, as drafts |
-| Close | commit, push, PR | saves the session record only |
+| Close | commit, push, PR | saves the session notes in the folder only |
 | Propose | no (you decide directly) | yes |
 | Review proposals | yes | no |
 | Handoff, publish, `vela upgrade`, `/vela:challenge` | yes | no |
