@@ -1,0 +1,122 @@
+/* ------------------------------------------------ the decision log (view-decisions.js)
+   A working table in the room's own surfaces: hairlines, the room's ink, and a pill for state. Color carries the
+   attention levels only (caution for proposed, the override tint for overridden, the pending ring for pending), and
+   every state also says its word. */
+.dl-wrap { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 0 24px 12px; container: dls / inline-size; overflow: auto; }
+.dl-barhost { flex: none; }
+.dl-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 2px 0 8px; font-size: 12.5px; }
+.dl-bar .spacer { flex: 1; }
+.dl-bar .seg { flex-wrap: wrap; max-width: 100%; }
+.dl-find { height: 32px; box-sizing: border-box; width: 260px; max-width: 100%; border: 1px solid var(--rule-3); border-radius: 8px; background: var(--room-2); color: var(--ink); padding: 0 10px; font: inherit; font-size: 13px; }
+.dl-find:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+.dl-n { margin-left: 6px; color: var(--ink-4); font-variant-numeric: tabular-nums; }
+.seg button[aria-pressed="true"] .dl-n { color: inherit; opacity: .7; }
+.seg button:disabled .dl-n { opacity: .6; }
+.dl-sort { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-3); }
+.dl-sort select { height: 30px; border: 1px solid var(--rule-3); border-radius: 8px; background: var(--room-2); color: var(--ink); padding: 0 8px; font: inherit; font-size: 12.5px; }
+.chip.on { background: var(--deck-3); color: var(--ink); }
+.dl-count { flex: none; margin: 0 0 8px; font-size: 12.5px; color: var(--ink-3); }
+.dl-stage { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; }
+.dl-stage.has-open { grid-template-columns: minmax(0, 1fr) minmax(340px, 29rem); }
+.dl-listwrap { min-width: 0; min-height: 0; overflow: auto; container-type: inline-size; container-name: dll; scrollbar-width: thin; border: 1px solid var(--rule); border-radius: 10px; background: var(--room-2); }
+.dl-left { min-width: 0; }
+/* the log: a table of rows, five columns while there is room, a card per decision when there is not */
+.dl-log { min-width: 0; }
+.dl-head, .dl-row { display: grid; grid-template-columns: 8.5rem minmax(0, 1.35fr) minmax(0, 1.45fr) 9.5rem minmax(0, 1fr); gap: 0 16px; align-items: start; padding: 0 16px; }
+.dl-head { position: sticky; top: 0; z-index: 1; background: var(--room-2); border-bottom: 1px solid var(--rule-3); }
+.dl-th { all: unset; box-sizing: border-box; cursor: pointer; padding: 9px 0; font-size: 11.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; }
+.dl-th.plain { cursor: default; }
+.dl-th:not(.plain):hover, .dl-th.on { color: var(--ink); }
+.dl-th:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.dl-row { padding-top: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--rule); cursor: pointer; border-left: 2px solid transparent; margin-left: -2px; }
+.dl-row:hover { background: var(--deck); }
+.dl-row.on { background: var(--deck-2); border-left-color: var(--focus); }
+.dl-row:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+.dl-c { min-width: 0; font-size: 13px; color: var(--ink-2); line-height: 1.4; display: flex; flex-direction: column; gap: 3px; }
+.dl-name { font-size: 14px; font-weight: 600; color: var(--ink); line-height: 1.3; }
+.dl-chosen { color: var(--ink-2); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.dl-in { font-size: 12px; color: var(--ink-4); }
+.dl-rej { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
+.dl-rej li { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--ink-3); font-size: 12.5px; }
+.dl-rej li b { font-weight: 600; color: var(--ink-2); }
+.dl-rej .dl-x { display: inline-block; width: 1.3em; color: var(--ink-4); }
+.dl-rej .dl-more { color: var(--ink-4); padding-left: 1.3em; }
+.dl-waits { display: inline-flex; align-items: center; gap: 7px; }
+.dl-state .pill { align-self: flex-start; }
+.pill.dl-proposed { background: color-mix(in srgb, var(--caution) 16%, transparent); color: var(--caution-text); }
+.pill.dl-overridden { background: color-mix(in srgb, var(--override) 12%, transparent); color: var(--override-text); box-shadow: inset 0 0 0 1px var(--override-edge); }
+.dl-none { padding: 28px 20px; color: var(--ink-3); }
+/* a narrow list (the record is open beside it, or the window is small): one card per decision */
+@container dll (max-width: 700px) {
+  .dl-head { display: flex; flex-wrap: wrap; gap: 0 14px; }
+  .dl-th.plain { display: none; }
+  .dl-row { grid-template-columns: minmax(0, 1fr); gap: 5px; }
+  .dl-c[data-label="State"] { order: 0; }
+  .dl-c[data-label="Decision"] { order: 1; }
+  .dl-c[data-label="Turned down"] { order: 2; }
+  .dl-c[data-label="Decided"] { order: 3; flex-direction: row; flex-wrap: wrap; gap: 0 10px; }
+  .dl-c[data-label="Affects and waits"] { order: 4; }
+}
+/* the decision record */
+.dl-detail { min-width: 0; min-height: 0; overflow: auto; scrollbar-width: thin; border: 1px solid var(--rule); border-radius: 10px; background: var(--room-2); padding: 12px 20px 22px; }
+.dl-nav { display: flex; align-items: center; gap: 4px; margin-bottom: 8px; }
+.dl-nav .spacer { flex: 1; }
+.icon-btn { all: unset; box-sizing: border-box; cursor: pointer; min-width: 28px; height: 28px; display: inline-grid; place-items: center; border-radius: 7px; color: var(--ink-3); font-size: 16px; }
+.icon-btn:hover:not(:disabled) { background: var(--deck); color: var(--ink); }
+.icon-btn:disabled { opacity: .35; cursor: default; }
+.icon-btn:focus-visible { outline: 2px solid var(--focus); }
+.dl-back { display: none; }
+.dl-kicker { margin: 0; font-size: 11.5px; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; }
+.dl-detail h2 { margin: 4px 0 8px; font-size: 22px; line-height: 1.25; font-weight: 600; letter-spacing: -.005em; color: var(--ink); }
+.dl-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; font-size: 13px; color: var(--ink-2); }
+.dl-sec { margin-top: 20px; }
+.dl-sec h3 { margin: 0 0 8px; padding-top: 10px; border-top: 1px solid var(--rule); font-size: 11.5px; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; }
+.dl-p { margin: 0 0 8px; font: 15px/1.55 var(--serif); color: var(--ink-2); }
+.dl-p.warn { color: var(--caution-text); font-family: var(--ui); font-size: 13px; }
+.dl-p.muted { font-family: var(--ui); font-size: 13px; }
+.dl-prose { font-size: 15px; }
+.dl-prose h1, .dl-prose h2 { display: none; }
+.dl-options { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.dl-options li { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 10px; padding: 10px 12px; border: 1px solid var(--rule); border-radius: 8px; background: var(--room); }
+.dl-options li.chosen { border-color: var(--rule-3); background: var(--deck); box-shadow: inset 3px 0 0 var(--focus); }
+.dl-options b { font-size: 14px; color: var(--ink); }
+.dl-options p { margin: 3px 0 0; font-size: 13px; line-height: 1.45; color: var(--ink-3); }
+.dl-options .chosen p { color: var(--ink-2); }
+.dl-mark { font-size: 15px; line-height: 1.3; color: var(--ink-4); text-align: center; }
+.dl-options .chosen .dl-mark { color: var(--ink); font-weight: 700; }
+.dl-tag { display: inline-block; max-width: 100%; margin-left: 8px; font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: var(--ink-3); }
+.dl-fx-row { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: flex-start; margin-top: 10px; }
+.dl-fx-row > :first-child { flex: 0 0 7.5rem; }
+.dl-fx-row > :last-child:not(:first-child) { flex: 1 1 9rem; min-width: 0; }
+.dl-l { font-size: 12.5px; color: var(--ink-3); padding-top: 3px; }
+.dl-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.dl-hist { list-style: none; margin: 8px 0; padding: 0; display: grid; gap: 4px; font-size: 13px; color: var(--ink-2); }
+.dl-hist li { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.dl-tl-d { color: var(--ink-3); font-variant-numeric: tabular-nums; min-width: 4.2em; font-size: 12.5px; }
+.dl-trace { margin: 22px 0 0; font-size: 11.5px; color: var(--ink-4); }
+.dl-trace code { font: 11.5px var(--mono); margin-right: 8px; color: var(--ink-3); }
+/* the timeline: months down a rail, one line per decision */
+.dl-time { padding: 6px 16px 14px; }
+.dl-month h3 { margin: 14px 0 4px; font-size: 11.5px; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; }
+.dl-month ol { list-style: none; margin: 0; padding: 0 0 0 7px; border-left: 1px solid var(--rule-3); }
+.dl-tl { all: unset; box-sizing: border-box; display: grid; grid-template-columns: 14px 4.2em minmax(0, 1fr) auto; gap: 8px; align-items: baseline; width: 100%; padding: 6px 8px 6px 0; margin-left: -7px; cursor: pointer; font-size: 13px; color: var(--ink-2); border-radius: 6px; }
+.dl-tl b { font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dl-tl:hover { background: var(--deck); }
+.dl-tl.on { background: var(--deck-2); }
+.dl-tl:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+.dl-tl-s { font-size: 11.5px; color: var(--ink-3); }
+.dl-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--ink-3); align-self: center; justify-self: center; box-shadow: 0 0 0 3px var(--room-2); }
+.dl-dot.dl-decided { background: var(--ink-2); }
+.dl-dot.dl-proposed { background: var(--caution); }
+.dl-dot.dl-overridden { background: var(--override); box-shadow: 0 0 0 3px var(--room-2), inset 0 0 0 1.5px var(--override-edge); }
+.dl-dot.dl-pending { background: transparent; border: 2px solid var(--pending); }
+/* a main column too narrow for the list and the record side by side: the record takes the room, with a way back */
+@container dls (max-width: 760px) {
+  .dl-stage.has-open { grid-template-columns: minmax(0, 1fr); flex: none; }
+  .dl-stage.has-open .dl-detail { overflow: visible; }
+  .dl-wrap:has(.dl-stage.has-open) .dl-barhost, .dl-wrap:has(.dl-stage.has-open) .dl-count { display: none; }
+  .dl-stage.has-open .dl-listwrap { display: none; }
+  .dl-back { display: inline-block; }
+  .dl-close { display: none; }
+}
+.dl-options li > *, .dl-options li b { min-width: 0; overflow-wrap: anywhere; }

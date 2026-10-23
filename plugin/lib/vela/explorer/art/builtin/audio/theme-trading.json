@@ -1,0 +1,287 @@
+{
+ "slot": "theme.trading",
+ "about": "Trading: warm Rhodes chords, a harp glissando and a shimmering pad. Eb major, 76 bpm. Calm water, a steady hand: the trusted broker.",
+ "bpm": 76,
+ "length_beats": 10,
+ "fx": {
+  "reverb": {
+   "seconds": 3.4,
+   "decay": 2.4,
+   "mix": 0.38
+  },
+  "delay": {
+   "beats": 0.75,
+   "feedback": 0.25,
+   "mix": 0.15
+  }
+ },
+ "voices": {
+  "rhodes": {
+   "wave": "sine",
+   "partials": [
+    [
+     1,
+     1
+    ],
+    [
+     2,
+     0.18
+    ],
+    [
+     7,
+     0.05
+    ]
+   ],
+   "tilt": 2,
+   "trem": {
+    "hz": 4.2,
+    "depth": 0.18
+   },
+   "env": {
+    "a": 0.01,
+    "d": 2.2,
+    "s": 0.2,
+    "r": 1.0
+   },
+   "gain": 0.22,
+   "send": {
+    "reverb": 0.6,
+    "delay": 0.3
+   }
+  },
+  "harp": {
+   "wave": "triangle",
+   "partials": [
+    [
+     1,
+     1
+    ],
+    [
+     2,
+     0.25
+    ],
+    [
+     3,
+     0.08
+    ]
+   ],
+   "tilt": 2,
+   "env": {
+    "a": 0.003,
+    "d": 1.4,
+    "s": 0,
+    "r": 0.8
+   },
+   "gain": 0.14,
+   "send": {
+    "reverb": 1.0
+   }
+  },
+  "pad": {
+   "wave": "sawtooth",
+   "partials": [
+    [
+     1,
+     1
+    ],
+    [
+     1.005,
+     0.8
+    ]
+   ],
+   "env": {
+    "a": 1.6,
+    "d": 1.0,
+    "s": 0.8,
+    "r": 2.0
+   },
+   "filter": {
+    "type": "lowpass",
+    "hz": 900,
+    "q": 0.4
+   },
+   "lfo": {
+    "hz": 0.18,
+    "depth": 350
+   },
+   "gain": 0.05,
+   "send": {
+    "reverb": 1.0
+   }
+  }
+ },
+ "notes": [
+  [
+   0,
+   [
+    "Eb3",
+    "G3",
+    "Bb3",
+    "D4"
+   ],
+   4,
+   0.8,
+   "rhodes"
+  ],
+  [
+   0,
+   [
+    "Eb3",
+    "Bb3",
+    "G4"
+   ],
+   10,
+   0.7,
+   "pad"
+  ],
+  [
+   4,
+   [
+    "Ab3",
+    "C4",
+    "Eb4",
+    "G4"
+   ],
+   3,
+   0.75,
+   "rhodes"
+  ],
+  [
+   7,
+   [
+    "Bb2",
+    "F3",
+    "Ab3",
+    "D4"
+   ],
+   1,
+   0.7,
+   "rhodes"
+  ],
+  [
+   8,
+   [
+    "Eb3",
+    "G3",
+    "Bb3",
+    "Eb4"
+   ],
+   2,
+   0.8,
+   "rhodes"
+  ],
+  [
+   1.5,
+   "Bb4",
+   1,
+   0.6,
+   "rhodes"
+  ],
+  [
+   2,
+   "G5",
+   1.5,
+   0.55,
+   "rhodes"
+  ],
+  [
+   5.5,
+   "C5",
+   1,
+   0.55,
+   "rhodes"
+  ],
+  [
+   6,
+   "Bb4",
+   1,
+   0.5,
+   "rhodes"
+  ],
+  [
+   3.0,
+   "Eb4",
+   1.5,
+   0.45,
+   "harp"
+  ],
+  [
+   3.09,
+   "G4",
+   1.5,
+   0.49,
+   "harp"
+  ],
+  [
+   3.18,
+   "Bb4",
+   1.5,
+   0.53,
+   "harp"
+  ],
+  [
+   3.27,
+   "D5",
+   1.5,
+   0.5700000000000001,
+   "harp"
+  ],
+  [
+   3.36,
+   "Eb5",
+   1.5,
+   0.61,
+   "harp"
+  ],
+  [
+   3.45,
+   "G5",
+   1.5,
+   0.65,
+   "harp"
+  ],
+  [
+   3.54,
+   "Bb5",
+   1.5,
+   0.69,
+   "harp"
+  ],
+  [
+   3.63,
+   "D6",
+   1.5,
+   0.73,
+   "harp"
+  ],
+  [
+   8.0,
+   "Bb5",
+   2,
+   0.5,
+   "harp"
+  ],
+  [
+   8.1,
+   "G5",
+   2,
+   0.5,
+   "harp"
+  ],
+  [
+   8.2,
+   "Eb5",
+   2,
+   0.5,
+   "harp"
+  ],
+  [
+   8.3,
+   "Bb4",
+   2,
+   0.5,
+   "harp"
+  ]
+ ],
+ "format": "web-audio-recipe/1"
+}

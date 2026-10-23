@@ -1,0 +1,296 @@
+"""`vela close stage`: stage a close's files from the allow-list, by exact path, and optionally commit them.
+
+Why it is a command and not a skill sentence: "never `git add -A`" sat in the close skill four times and still could
+not stop a model that typed `git add .`. A deny-list of spellings misses the next spelling (Paper Tiger), so the
+allow-list in `guard.py` decides what a close stages and this command is the only thing that stages it. A file outside
+the list is named and left out, never swept in quietly: a stray change in a close commit is how the owner's scratch
+notes, or the inbox, reach a pull request.
+
+Exit codes: 0 staged (and committed, with a commit flag); 1 something changed that the allow-list leaves out or
+forbids, named in the output. The allowed files are still staged and committed, because a stray file is the lead's
+to deal with, not a reason to lose the session's work; the commit holds the allowed paths only (`--only`), so a left-out
+file cannot ride along even if something else staged it. 2 git failed; 3 the session is not clear (none open, or
+several): nothing was staged.
+
+The commit flags carry the close skill's own messages:
+- `--draft`: `draft: prose for <id>`, the drafted pages whole, so the reviewer's later edits show as a diff against it.
+- `--checkpoint`: `Checkpoint <id>`, because a merge refuses to run over uncommitted edits (`close sync-main` says when).
+- `--close`: `Close session <id>`, after the record says `status: closed`. With `--summary "<line>"` this command
+  does that itself: the summary goes into the private notes, the stub says closed, and this part's fingerprint is
+  written, then the commit. A challenge's answer closes this way, never by editing the files by hand.
+
+A reader copy (`.vela/workspace.json`, no `.git`) has no git, so nothing is run at all: the record is the reader's
+work, and it reaches the owner through a proposal.
+"""
+import pathlib
+
+from vela import closefinish, guard, parse, privaterecord, roles, say
+from vela.edge import sessiongit, stagegit, vaultgit
+
+MESSAGES = {"draft": "draft: prose for {id}", "checkpoint": "Checkpoint {id}", "close": "Close session {id}"}
+
+
+def register_close(steps):
+    stage = steps.add_parser("stage", help="stage this session's files by exact path from the allow-list; anything "
+                                           "else that changed is named and left out")
+    stage.add_argument("--vault", default=".", help="vault root (default: current directory)")
+    stage.add_argument("--session", help="the session id; default: the one record in sessions/ that says status: open")
+    which = stage.add_mutually_exclusive_group()
+    which.add_argument("--draft", dest="commit", action="store_const", const="draft",
+                       help="then commit as `draft: prose for <id>`")
+    which.add_argument("--checkpoint", dest="commit", action="store_const", const="checkpoint",
+                       help="then commit as `Checkpoint <id>`, before a merge")
+    which.add_argument("--close", dest="commit", action="store_const", const="close",
+                       help="then commit as `Close session <id>`")
+    stage.add_argument("--summary", default="", metavar="LINE",
+                       help="with --close only: write the summary to the private notes, close the record and "
+                            "fingerprint this part first (the challenge skill's close; a full close uses `close finish`)")
+    stage.add_argument("--paths-from-render", action="store_true",
+                       help="first check that render has nothing left to rewrite, so the staged pages are its output")
+    say.add_output_flags(stage)
+    stage.set_defaults(func=cmd_close_stage)
+
+
+def is_reader_copy(root):
+    """Decided from the disk alone, by the same rule `roles` applies, so a reader copy runs no git at all."""
+    facts = roles.Facts(git_here=(root / ".git").exists(), has_workspace=(root / ".vela" / "workspace.json").is_file())
+    return facts.has_workspace and not facts.git_here and roles.decide(facts).role == roles.READER
+
+
+def on_another_branch(root):
+    """For a plan that shares its repo: the way back (words for the model) when HEAD is not the branch `session.json` says
+    this session is on, else "". A plan that is its own repo is not asked, as before."""
+    from vela.edge import sessiongit
+    if not vaultgit.plan_scope(root):
+        return ""
+    try:
+        state = sessiongit.read_json(root, sessiongit.STATE_FILE) or {}
+    except ValueError as exc:
+        return f"{exc}; I can't tell which branch the session is on."
+    want, now = str(state.get("branch") or ""), sessiongit.current_branch(root)
+    if want and now != want:
+        return f"HEAD is on {now or 'no branch'}, but the session is on {want}: switch to {want} (vela session open --switch)."
+    return ""
+
+
+def open_records(root):
+    """Ids of the stubs in sessions/ whose frontmatter says `status: open`, in name order, that belong to this
+    branch: a stub with no `branch` or one that names the branch we are on. The stubs are committed, so a branch
+    carries the open stubs of other sessions too; filing one of those would close another session's work. In a reader
+    copy there are no branches, so every open stub counts.
+
+    Minimal on purpose: the working tree only. Task 6a's `session open` picker also reads `session/*` branches and
+    shared answer branches; once it lands, this should call it instead of reading the folder."""
+    here = None if is_reader_copy(root) else sessiongit.current_branch(root)
+    found = []
+    for path in sorted((root / "sessions").glob("*.md")):
+        meta, _, error = parse.split_frontmatter(path.read_text(encoding="utf-8"))
+        if error is not None or str(meta.get("status", "")).strip() != "open":
+            continue
+        branch = str(meta.get("branch") or "").strip()
+        if here is None or not branch or branch == here:
+            found.append(path.stem)
+    return found
+
+
+def session_id(args, root, result):
+    """The session to file, or None after filling `result` with the exit-3 choice."""
+    if args.session:
+        if "/" in args.session or "\\" in args.session or args.session.endswith(".md"):
+            raise ValueError(f"--session takes the id alone (the record's file name without .md), not {args.session!r}")
+        return args.session
+    records = open_records(root)
+    if len(records) == 1:
+        return records[0]
+    result.exit = say.NEEDS_LEAD
+    if records:
+        result.needs_lead = records
+        result.lines.append(say.Line(f"vela close stage: {len(records)} records are open: {', '.join(records)}. "
+                                     "Run again with --session <id>. Nothing was staged.",
+                                     "More than one session is open here, so I need to know which one to file."))
+    else:
+        result.needs_lead = ["--session <id>"]
+        result.lines.append(say.Line("vela close stage: no record in sessions/ says status: open. Run again with "
+                                     "--session <id>. Nothing was staged.",
+                                     "I couldn't find an open session here, so I haven't staged anything."))
+    return None
+
+
+def stale_render(root):
+    """Pages render would still rewrite, or the count of problems that stop render. Loaded through cli, the shell."""
+    from vela import cli, render
+    texts, _, _, refusals = render.render_vault(cli.load_vault(root))
+    if refusals:
+        return [], len(refusals)
+    stale = [path for path, text in sorted(texts.items())
+             if (root / path).read_text(encoding="utf-8").replace("\r\n", "\n").lstrip("﻿") != text]
+    return stale, 0
+
+
+def render_refusal(stale, problems):
+    if problems:
+        detail = f"render cannot run: {problems} problems (run vela render to see them)"
+    else:
+        detail = "render would still rewrite " + ", ".join(stale)
+    return say.Refusal("render-current", "Some generated tables are out of date, so I haven't staged anything yet.",
+                       f"Run vela render, then close stage again. ({detail})", audience=say.MODEL)
+
+
+def vault_pages(paths):
+    from vela import cli
+    return {p for p in paths if p.endswith(".md") and cli.page_kind(p) == "page"}
+
+
+def lead_name(path):
+    """A path the lead may hear: as it is, unless it holds something the lead check forbids (`ADR-0004-x.md`)."""
+    if say.leak_in(path) is None:
+        return path
+    folder = path.rsplit("/", 1)[0] if "/" in path else ""
+    return f"a file in {folder}" if folder and say.leak_in(folder) is None else "one more file"
+
+
+def lead_summary(plan, committed):
+    rest = [p for p in plan.stage if not p.startswith((guard.SESSIONS, guard.EXAMPLES))]
+    pages = sum(1 for p in rest if p.endswith(".md"))
+    parts = [f"{say.count_words(pages)} changed page{'s' if pages != 1 else ''}"] if pages else []
+    if len(rest) > pages:
+        others = len(rest) - pages
+        parts.append(f"{say.count_words(others)} settings file{'s' if others != 1 else ''}")
+    if any(p.startswith(guard.SESSIONS) for p in plan.stage):
+        parts.append("the session record")
+    examples = sum(1 for p in plan.stage if p.startswith(guard.EXAMPLES))
+    if examples:
+        parts.append(f"{say.count_words(examples)} voice example{'s' if examples != 1 else ''}")
+    if not parts:
+        return "Nothing this session changed needed saving."
+    said = say.names_said(parts)
+    if committed:
+        return f"I've saved {said}."
+    one = len(plan.stage) == 1  # "the session record is", "two changed pages are"
+    return f"{said[0].upper()}{said[1:]} {'is' if one else 'are'} ready to save."
+
+
+def report(result, plan, commit_line, committed, mode):
+    for rule in guard.rules_hit(plan.never):
+        paths = [p for p, r in plan.never if r.key == rule.key]
+        # vela's own working files staying put is normal, not news to the lead (voice audit row 150)
+        audience = say.MODEL if rule.key == guard.TOOL_STATE.key else say.LEAD
+        result.refusals.append(say.Refusal(rule.key, rule.plain, f"{rule.fix} Left out: {', '.join(paths)}.",
+                                           audience=audience))
+    if mode == "for-lead":
+        result.lines.append(say.Line("", lead_summary(plan, committed)))
+        if plan.left:
+            names = [lead_name(p) for p, _ in plan.left]
+            many = len(names) != 1
+            result.lines.append(say.Line("", f"{say.names_said(names)} changed too, but "
+                                             f"{'they aren' if many else 'it isn'}'t part of this session, so I've "
+                                             f"left {'them' if many else 'it'} out."))
+        return
+    result.lines.append(say.Line(f"vela close stage: staged {len(plan.stage)}, left out {len(plan.left)}, "
+                                 f"never staged {len(plan.never)}."))
+    result.lines += [say.Line(f"  staged: {p}") for p in plan.stage]
+    result.lines += [say.Line(f"  left out: {p} ({why})") for p, why in plan.left]
+    if commit_line:
+        result.lines.append(say.Line(commit_line))
+
+
+def cmd_close_stage(args, out):
+    from vela import cli
+    root = pathlib.Path(args.vault).resolve()
+    mode = say.mode_of(args)
+    if args.summary and args.commit != "close":
+        raise cli.ToolError("close stage: --summary goes with --close, which is the commit that files the summary")
+    result = say.Result("close stage")
+    if is_reader_copy(root):
+        result.lines.append(say.Line("vela close stage: this is a read copy, so nothing is staged or committed.",
+                                     "This is your copy, so nothing is staged or committed here."))
+        return cli_emit(result, args, out)
+    wrong = on_another_branch(root)
+    if wrong:
+        result.exit = say.REFUSED
+        result.refusals.append(say.Refusal(
+            "wrong-branch", "The repository has moved to another branch since this session started, so I haven't saved "
+            "anything: it would land on the wrong branch.", wrong, "", recommend="I'd switch back to the session's branch first.",
+            waiver=""))
+        return cli_emit(result, args, out)
+    try:
+        ident = session_id(args, root, result)
+    except ValueError as exc:
+        raise cli.ToolError(str(exc)) from exc
+    if ident is None:
+        return cli_emit(result, args, out)
+    files = {}
+    if args.summary:
+        files, early = closed_files(args, root, ident)
+        if early is not None:
+            return cli_emit(early, args, out)
+    if args.paths_from_render:
+        stale, problems = stale_render(root)
+        if stale or problems:
+            result.exit = say.REFUSED
+            result.refusals.append(render_refusal(stale, problems))
+            return cli_emit(result, args, out)
+    before = write_closed(root, files) if files else {}
+    try:
+        changed = stagegit.changed_paths(root)
+        plan = guard.plan(changed, vault_pages(changed), ident)
+        stagegit.stage(root, list(plan.stage))
+        commit_line, committed = "", False
+        if args.commit and plan.stage:
+            message = MESSAGES[args.commit].format(id=ident)
+            commit_line = f"committed {stagegit.commit(root, message, list(plan.stage))}: {message}"
+            committed = True
+        elif args.commit:
+            commit_line = "nothing to commit: no allow-listed file changed"
+    except (vaultgit.GitUnavailable, OSError) as exc:
+        put_back(root, before)
+        raise cli.ToolError(f"close stage: {exc}") from exc
+    if before and not (committed and privaterecord.stub_path(ident) in plan.stage):
+        put_back(root, before)  # the close commit didn't take the closed stub, so nothing may keep saying closed
+    result.data = {"session": ident, "staged": list(plan.stage),
+                   "left": [{"path": p, "reason": why} for p, why in plan.left],
+                   "never": [{"path": p, "rule": r.key, "reason": r.plain} for p, r in plan.never],
+                   "commit": commit_line or None}
+    result.wrote = list(plan.stage)
+    result.exit = say.REFUSED if (plan.left or plan.never) else say.DONE
+    report(result, plan, commit_line, committed, mode)
+    return cli_emit(result, args, out)
+
+
+def closed_files(args, root, ident):
+    """({path: new text}, None) for `--summary`: the notes with the summary, and the stub closed and fingerprinted for
+    this part. Nothing is written here. Else ({}, the Result that says why not)."""
+    try:
+        summary = closefinish.checked_summary(args.summary)
+        notes = sessiongit.private_text(root, ident)
+        if notes is None:
+            raise sessiongit.PrivateMissing(ident)
+        notes = privaterecord.with_summary(notes, summary)
+        stub = (root / privaterecord.stub_path(ident)).read_text(encoding="utf-8")
+        stub = privaterecord.with_part(closefinish.closed_stub(stub), privaterecord.part_of(notes),
+                                       privaterecord.fingerprint(notes))
+    except (closefinish.SummaryRefused, ValueError, OSError) as exc:  # PrivateMissing is a ValueError
+        return {}, say.Result("close stage", exit=say.FAILED, lines=[say.Line(f"vela close stage: {exc}", plain=str(exc))])
+    return {privaterecord.private_path(ident): notes, privaterecord.stub_path(ident): stub}, None
+
+
+def put_back(root, before):
+    """One way back after `--summary` wrote the closed stub and notes: both files as they were, the stub out of the
+    index, so a failed or partial close leaves no record that says closed without a commit that filed it."""
+    for rel, text in before.items():
+        sessiongit.write_text(root, rel, text)
+    vaultgit.run_git(root, "reset", "-q", "--", *[rel for rel in before if rel.startswith("sessions/") and
+                                                    not privaterecord.is_private(rel)])
+
+
+def write_closed(root, files):
+    """Write `files`; the earlier text of each, to put back if the stage or commit then fails."""
+    before = {rel: (root / rel).read_text(encoding="utf-8") for rel in files}
+    for rel, text in files.items():
+        sessiongit.write_text(root, rel, text)
+    return before
+
+
+def cli_emit(result, args, out):
+    from vela import commands
+    return commands.emit(result, args, out)

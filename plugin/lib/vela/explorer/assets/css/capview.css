@@ -1,0 +1,73 @@
+/* ------------------------------------------------ capabilities: cards, focus, matrix (capview.js) */
+.cv-toggle { display: flex; gap: 6px; flex-wrap: wrap; }
+.cv-scroll { padding: 0 24px 24px; }
+.cv-controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 4px 0 10px; }
+.cv-legend { display: inline-flex; gap: 12px; flex-wrap: wrap; margin-left: 8px; font-size: 12px; color: var(--ink-3); }
+.cv-sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -2px; margin-right: 5px; }
+.cv-note, .cv-wide { margin: 4px 0 10px; }
+.cv-group { margin-bottom: 18px; }
+.cv-h { margin: 14px 0 8px; font-size: 11.5px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-3); }
+.cv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 12px; }
+.cv-card { all: unset; box-sizing: border-box; display: flex; flex-direction: column; gap: 6px; cursor: pointer; background: var(--deck); border: 1px solid var(--rule-3); border-left: 6px solid var(--k, var(--ink-4));
+  border-radius: 10px; padding: 11px 12px; color: var(--ink-2); font-size: 12.5px; }
+.cv-card:hover { background: var(--deck-2); }
+.cv-card:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.cv-card.on, .cv-card.picked { box-shadow: 0 0 0 2px var(--focus); }
+.cv-title { display: block; color: var(--ink); font-size: 14.5px; font-weight: 600; line-height: 1.3; overflow-wrap: anywhere; }
+.cv-row { display: flex; gap: 6px; flex-wrap: wrap; align-items: baseline; }
+.cv-row i { font-style: normal; color: var(--ink-3); }
+.cv-said { color: var(--ink-3); }
+.cv-app { border: 1px solid var(--rule-3); border-radius: 999px; padding: 0 8px; font-size: 11.5px; background: var(--room-2); color: var(--ink-2); overflow-wrap: anywhere; }
+.cv-bar { flex-basis: 100%; height: 5px; border-radius: 3px; background: var(--rule); overflow: hidden; }
+.cv-bar span { display: block; height: 100%; background: var(--mix-decided); }
+
+.cv-gap { width: 10px; }
+.cv-deps { padding-top: 5px; border-top: 1px solid var(--rule); }
+
+.cv-focus-wrap { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 0 22px 14px; gap: 6px; }
+.cv-focus-note { flex: none; }
+.cv-board { flex: 1; min-height: 320px; position: relative; background: var(--board); border: 1px solid var(--rule); border-radius: 10px; overflow: hidden; }
+.cv-lone { display: grid; place-items: center; color: var(--ink-2); font-size: 14px; text-align: center; padding: 20px; }
+.cv-svg { display: block; }
+.cv-col-h { fill: var(--ink-3); font-size: 11.5px; font-weight: 600; letter-spacing: .07em; }
+.cv-link { fill: none; stroke: var(--ink-3); stroke-width: 2; }
+.cv-head { fill: var(--ink-3); }
+.cv-node, .cv-edge, .cv-more { cursor: pointer; }
+.cv-node rect { fill: var(--deck); stroke: var(--rule-3); stroke-width: 1.5; }
+.cv-node:hover rect { fill: var(--deck-2); }
+.cv-node.sel rect { stroke: var(--focus); stroke-width: 3; }
+.cv-node.both rect { stroke: var(--caution); stroke-dasharray: 6 3; }
+.cv-node.picked rect, .cv-edge.picked rect { stroke: var(--focus); stroke-width: 3; }
+.cv-name { fill: var(--ink); font-weight: 600; }
+.cv-meta, .cv-more-t { fill: var(--ink-3); }
+.cv-edge rect { fill: var(--room-2); stroke: var(--rule-3); stroke-width: 1.5; }
+.cv-edge:hover rect, .cv-edge:focus rect { fill: var(--deck-3); stroke: var(--ink-2); }
+.cv-chip-t { fill: var(--ink-2); }
+.cv-chip-n { fill: var(--ink-3); }
+.cv-more rect { fill: none; stroke: var(--rule-3); stroke-dasharray: 4 3; }
+.cv-node:focus-visible rect, .cv-edge:focus-visible rect, .cv-more:focus-visible rect { stroke: var(--focus); stroke-width: 3; }
+.cv-node:focus, .cv-edge:focus, .cv-more:focus { outline: none; }
+
+.cv-mx-wrap { overflow: auto; }
+.cv-mx { border-collapse: separate; border-spacing: 3px; }
+.cv-mx th { font-weight: 500; font-size: 12px; text-align: left; background: var(--room); }
+.cv-mx th.row { position: sticky; left: 0; z-index: 1; min-width: 180px; max-width: 240px; padding-right: 8px; }
+.cv-mx-wrap { padding-right: 160px; }  /* room for the last column's slanted label */
+.cv-mx th.col { height: 200px; width: 44px; min-width: 44px; vertical-align: bottom; position: relative; padding: 0; }
+/* labels slant up and to the right at 45 degrees from the bottom of their column, the usual matrix header */
+.cv-mx th.col { overflow: visible; background: transparent; }  /* a column's background would paint over the label slanting across it */
+.cv-mx th.col button { z-index: 1; }
+.cv-mx th.col button { position: absolute; left: 22px; bottom: 6px; transform-origin: 0 100%; transform: rotate(-45deg);
+  white-space: nowrap !important; width: max-content; max-width: none; text-align: left; padding: 0; }
+.cv-mx th.on button { color: var(--focus); font-weight: 700; }
+.cv-mx th button { font: inherit; }
+.cv-cell { box-sizing: border-box; width: 44px; height: 38px; border-radius: 6px; border: 1px solid var(--rule); background: var(--room-2); display: grid; place-items: center; font: inherit; color: var(--ink); position: relative; }
+button.cv-cell { cursor: pointer; }
+.cv-cell.d { background: var(--deck-3); border-color: var(--ink-3); font-weight: 700; }
+.cv-cell.d.both { box-shadow: inset 0 0 0 2px var(--caution); }
+.cv-both-mark { position: absolute; right: 3px; bottom: 0; font-size: 10px; color: var(--caution-text); }
+.cv-cell.x { background: repeating-linear-gradient(45deg, var(--room-2), var(--room-2) 4px, var(--deck) 4px, var(--deck) 8px); }
+.cv-cell.hl { outline: 1px solid var(--link); }
+.cv-cell.picked, .cv-mx th.picked button { outline: 2px solid var(--focus); }
+button.cv-cell:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+.cv-deplist li { margin: 4px 0; }

@@ -1,0 +1,110 @@
+/* ------------------------------------------------ themes: the room's palette, picked in the top bar (theme.js)
+   Console is base.css's :root. Each theme here sets every palette property base.css lists, and the lamps keep
+   their five meanings in every room: red overdue, amber needs you, blue never examined, white overridden, unlit
+   settled. On a light ground amber and white cannot stand on color alone, so --lamp-edge rings every lamp and
+   --override-edge rings the white one (test_build.py checks the contrast of each). */
+:root[data-theme="graphite"] {
+  /* palette */
+  --room: #121212; --room-2: #181818; --deck: #202020; --deck-2: #272727; --deck-3: #333333;
+  --rule: #353535; --rule-2: #35353500; --rule-3: #5a5a5a;
+  --ink: #ffffff; --ink-2: #dedede; --ink-3: #b0b0b0; --ink-4: #858585;
+  --warning: #ff5a48; --caution: #ffb21e; --unexamined: #52c8ff; --override: #f2f1e8; --unlit: #383838;
+  --warning-ink: #2a0703; --caution-ink: #2b1a00; --unexamined-ink: #04202e; --override-ink: #1d1d18; --unlit-ink: #c4c4c4;
+  --pending: #b79cff; --pending-ink: #150c33; --pending-text: #cdbcff;
+  --diff-add: #86e0a8; --diff-del: #ffa093;
+  --override-edge: transparent; --lamp-edge: transparent;
+  --warning-text: #ffa093; --caution-text: #ffd27a; --unexamined-text: #9adfff; --override-text: #f2f1e8; --note-text: #e6c27a;
+  --focus: #ffffff; --link: #a8c8ff; --heuristic-ink: #d0c2ff; --rule-note: #c9bdf0;
+  --paper: #f2e8c9; --paper-ink: #23232b; --pen: #1f3f94;
+  --board: #1a1a1a; --board-light: rgba(255,255,255,.04); --glass: rgba(24,24,24,.94); --shade: rgba(0,0,0,.6);
+  --face-hi: #3a3a3a; --face-lo: #262626; --face-drop: #0b0b0b; --face-edge: #050505;
+  --node-name: #cfcfcf; --node-sub: #9c9c9c; --zone-text: #a0a0a0; --mini-dark: #4a4a4a;
+  --duct: #000000; --duct-hi: rgba(255,255,255,.12); --track: #555555; --siding: #666666;
+  --cell-empty: #1c1c1c; --cell-upper: #241e18; --cell-upper-edge: #4a3f33; --cell-mark: rgba(255,255,255,.45);
+  --rl-face: #262626; --rl-edge: #4a4a4a; --rl-name: #f0f0f0; --rl-sub: #a8a8a8; --rl-party: #1d1d1d;
+  --bay: #2a2a2a; --bay-edge: #383838; --rack: #141414;
+  --mix-inkling: #9a6060; --mix-assumption: #c0922f; --mix-fact: #5a90d0; --mix-decided: #dedede;
+  --lines: #f06aa8, #5b9bff, #36c98a, #a58cff, #b6d35a, #e28a5c; --line-gray: #8a8a8a;
+  --lanes: #6f9bff, #44d39f, #cf8ff2, #b5d86a, #9a8cff, #f08fc0, #d9c39a, #5fc2b4, #8fb8e8, #e8a3ff;
+  --scheme: dark;
+  /* end of palette */
+}
+
+:root[data-theme="daylight"] {
+  /* palette */
+  --room: #f5f6f3; --room-2: #eceee9; --deck: #ffffff; --deck-2: #f7f8f6; --deck-3: #e2e7e8;
+  --rule: #d5dbdc; --rule-2: #d5dbdc00; --rule-3: #aeb9be;
+  --ink: #141c20; --ink-2: #34434a; --ink-3: #56666d; --ink-4: #75848a;
+  --warning: #d1301f; --caution: #f2a20c; --unexamined: #0f74b8; --override: #ffffff; --unlit: #dde2e4;
+  --warning-ink: #ffffff; --caution-ink: #2b1a00; --unexamined-ink: #ffffff; --override-ink: #1d1d18; --unlit-ink: #46545a;
+  --pending: #6d3fd1; --pending-ink: #ffffff; --pending-text: #5b2fb8;
+  --diff-add: #14683a; --diff-del: #a8281c;
+  --override-edge: #3d3d33; --lamp-edge: #4b585e;
+  --warning-text: #b42318; --caution-text: #8a5300; --unexamined-text: #0b5f99; --override-text: #3d3d33; --note-text: #8a5300;
+  --focus: #0d1317; --link: #1f56c4; --heuristic-ink: #5b3fb0; --rule-note: #5b3fb0;
+  --paper: #f2e8c9; --paper-ink: #23232b; --pen: #1f3f94;
+  --board: #e8ecec; --board-light: rgba(255,255,255,.55); --glass: rgba(255,255,255,.95); --shade: rgba(20,30,35,.2);
+  --face-hi: #ffffff; --face-lo: #eef1f2; --face-drop: rgba(20,30,35,.14); --face-edge: #6f7d83;
+  --node-name: #26343a; --node-sub: #5a696f; --zone-text: #5f6e74; --mini-dark: #c5cdd0;
+  --duct: #8a969b; --duct-hi: rgba(255,255,255,.7); --track: #a9b4b8; --siding: #96a2a7;
+  --cell-empty: #eef1f1; --cell-upper: #f7efe4; --cell-upper-edge: #d9c4a6; --cell-mark: rgba(0,0,0,.35);
+  --rl-face: #ffffff; --rl-edge: #aab5ba; --rl-name: #1e2a30; --rl-sub: #5f6e74; --rl-party: #f1f3f2;
+  --bay: #dfe4e5; --bay-edge: #c9d0d2; --rack: #d3d9da;
+  --mix-inkling: #b46a6a; --mix-assumption: #c08a1e; --mix-fact: #2f6db3; --mix-decided: #56666d;
+  --lines: #d0347e, #2f6fe0, #11905d, #7254d6, #6b8a12, #c25d27; --line-gray: #8a979c;
+  --lanes: #2f64d8, #12895f, #9a4fc4, #5f7f12, #5b4fd0, #c2457f, #8c6a2a, #1f8a7c, #3d6fa8, #a34fc9;
+  --scheme: light;
+  /* end of palette */
+}
+/* Daylight is for screen-sharing and print: no glow (it reads as smudge on white), and every lamp keeps an edge. */
+:root[data-theme="daylight"] .lamp:not(.resolved), :root[data-theme="daylight"] button.cell:not(.override),
+:root[data-theme="daylight"] .master.on, :root[data-theme="daylight"] .cap.lit, :root[data-theme="daylight"] .cell-sw:not(.upper-sw) { box-shadow: inset 0 0 0 1px var(--lamp-edge); }
+:root[data-theme="daylight"] .cockpit .halo { display: none; }
+
+:root[data-theme="vaporwave"] {
+  /* palette */
+  --room: #1b0e33; --room-2: #211040; --deck: #2a1550; --deck-2: #32195c; --deck-3: #3e2070;
+  --rule: #4a2a7a; --rule-2: #4a2a7a00; --rule-3: #6a44a8;
+  --ink: #fdf0ff; --ink-2: #e6c9f5; --ink-3: #b892d6; --ink-4: #8c6aae;
+  --warning: #ff4f3f; --caution: #ffc21f; --unexamined: #36cfff; --override: #ffffff; --unlit: #3a2558;
+  --warning-ink: #2a0703; --caution-ink: #2b1a00; --unexamined-ink: #04202e; --override-ink: #1d1d18; --unlit-ink: #c7acdf;
+  --pending: #6bffd0; --pending-ink: #06241b; --pending-text: #9affdf;
+  --diff-add: #8affc4; --diff-del: #ff9fbd;
+  --override-edge: transparent; --lamp-edge: transparent;
+  --warning-text: #ff9c8f; --caution-text: #ffd77a; --unexamined-text: #9be3ff; --override-text: #ffffff; --note-text: #ffb3e6;
+  --focus: #ffffff; --link: #ff9de6; --heuristic-ink: #c9b8ff; --rule-note: #f5b8ff;
+  --paper: #f2e8c9; --paper-ink: #23232b; --pen: #1f3f94;
+  --board: #1e0b38; --board-light: rgba(255,92,205,.07); --glass: rgba(33,16,64,.92); --shade: rgba(10,0,20,.65);
+  --face-hi: #3d2660; --face-lo: #26163f; --face-drop: #12061f; --face-edge: #0d0418;
+  --node-name: #d6b9ee; --node-sub: #a283c4; --zone-text: #b48ad6; --mini-dark: #5a3f80;
+  --duct: #0c0418; --duct-hi: rgba(255,120,220,.16); --track: #5b3d85; --siding: #6e4f99;
+  --cell-empty: #22113d; --cell-upper: #2e1238; --cell-upper-edge: #5a2a63; --cell-mark: rgba(255,255,255,.45);
+  --rl-face: #2c1750; --rl-edge: #5a3c8a; --rl-name: #f1dcff; --rl-sub: #a888c8; --rl-party: #22113d;
+  --bay: #2c1650; --bay-edge: #3e2070; --rack: #160a2a;
+  --mix-inkling: #b0607a; --mix-assumption: #c99a3c; --mix-fact: #5f8ee0; --mix-decided: #e6c9f5;
+  --lines: #ff71ce, #b967ff, #05ffa1, #7d8cff, #c6ff6b, #ff8fe0; --line-gray: #8f7aa8;
+  --lanes: #ff71ce, #05ffa1, #b967ff, #c6ff6b, #7d8cff, #ff8fe0, #e0c3ff, #5fe0c0, #a0b4ff, #f0a0ff;
+  --scheme: dark;
+  /* end of palette */
+  --ui: "Futura", "Century Gothic", "Trebuchet MS", "Avenir Next", sans-serif;
+  --serif: "Baskerville", "Baskerville Old Face", "Iowan Old Style", Georgia, serif;
+  --mono: "Courier New", "Andale Mono", ui-monospace, monospace;
+}
+/* The sunset and the grid stay behind the data: a low sun, a floor grid under the lower third, never over a lamp.
+   The grid scrolls slowly with effects on; Plain (plain.css) and reduced motion stop it. Pink and violet carry the
+   chrome; cyan is left to the "never examined" lamp. */
+:root[data-theme="vaporwave"] .top { background: linear-gradient(90deg, #211040, #2c0f45 60%, #3a1150); border-bottom: 1px solid #ff71ce66; }
+:root[data-theme="vaporwave"] .view-head h1 { letter-spacing: .02em; text-shadow: 2px 2px 0 #ff71ce55, -1px -1px 0 #b967ff55; }
+:root[data-theme="vaporwave"] .board { isolation: isolate;
+  background: radial-gradient(circle at 50% 96%, rgba(255,150,110,.075) 0 90px, transparent 92px),
+    linear-gradient(180deg, #1e0b38 0%, #26103f 52%, #3d1253 80%, #571a5a 100%); }
+:root[data-theme="vaporwave"] .board::before { content: ""; position: absolute; left: -20%; right: -20%; bottom: 0; height: 34%; z-index: -1; pointer-events: none;
+  background: repeating-linear-gradient(90deg, rgba(255,113,206,.16) 0 1px, transparent 1px 72px), repeating-linear-gradient(0deg, rgba(255,113,206,.16) 0 1px, transparent 1px 36px);
+  transform: perspective(320px) rotateX(58deg); transform-origin: 50% 100%;
+  -webkit-mask-image: linear-gradient(to top, #000 10%, transparent); mask-image: linear-gradient(to top, #000 10%, transparent);
+  animation: vw-floor 9s linear infinite; }
+@keyframes vw-floor { to { background-position: 0 0, 0 36px; } }
+:root[data-theme="vaporwave"] .board-matrix::before, :root[data-theme="vaporwave"] .board-releases::before { display: none; }
+:root[data-theme="vaporwave"] #side { background: linear-gradient(180deg, var(--room-2), #2a0f44); }
+
+/* ------------------------------------------------ the picker, beside Effects */

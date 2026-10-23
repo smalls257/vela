@@ -1,0 +1,23 @@
+# Words and phrases that read as machine-written when they pile up (Kobak et al. 2025; GOV.UK style guide).
+#
+# Read by `vela style` after the fact and by the voice reviewer. The drafter never reads this file: naming a word in
+# a prompt raises its odds (design session 16, 16-D2). One entry per line; a line starting with # is a comment.
+# A word matches with its endings (s, es, d, ed, ing); a phrase matches as written.
+# Revise the list when the next study moves it, here and nowhere else.
+delve
+underscore
+showcase
+intricate
+meticulous
+pivotal
+crucial
+comprehensive
+robust
+seamless
+leverage
+streamline
+ensure
+facilitate
+going forward
+it's worth noting
+in order to

@@ -1,0 +1,91 @@
+{
+ "provider": "builtin",
+ "about": "Hand-authored, needs nothing: SVG emblems in one flat navy-and-amber family, SVG-filter textures, SMIL-animated SVG loops, Web Audio recipes played by resolve.js.",
+ "slots": {
+  "emblem.learning": {
+   "form": "svg",
+   "file": "emblems/learning.svg"
+  },
+  "emblem.news": {
+   "form": "svg",
+   "file": "emblems/news.svg"
+  },
+  "emblem.trading": {
+   "form": "svg",
+   "file": "emblems/trading.svg"
+  },
+  "emblem.pricing": {
+   "form": "svg",
+   "file": "emblems/pricing.svg"
+  },
+  "texture.transit-paper": {
+   "form": "svg",
+   "file": "textures/transit-paper.svg"
+  },
+  "texture.garden": {
+   "form": "svg",
+   "file": "textures/garden.svg"
+  },
+  "texture.cockpit": {
+   "form": "svg",
+   "file": "textures/cockpit.svg"
+  },
+  "texture.strip-board": {
+   "form": "svg",
+   "file": "textures/strip-board.svg"
+  },
+  "loop.title-card": {
+   "form": "svg",
+   "file": "loops/title-card.svg"
+  },
+  "loop.timelapse": {
+   "form": "svg",
+   "file": "loops/timelapse.svg"
+  },
+  "loop.cockpit": {
+   "form": "svg",
+   "file": "loops/cockpit.svg"
+  },
+  "theme.learning": {
+   "form": "recipe",
+   "file": "audio/theme-learning.json"
+  },
+  "theme.news": {
+   "form": "recipe",
+   "file": "audio/theme-news.json"
+  },
+  "theme.trading": {
+   "form": "recipe",
+   "file": "audio/theme-trading.json"
+  },
+  "theme.pricing": {
+   "form": "recipe",
+   "file": "audio/theme-pricing.json"
+  },
+  "chime.decided": {
+   "form": "recipe",
+   "file": "audio/chime-decided.json"
+  },
+  "bed.timelapse": {
+   "form": "recipe",
+   "file": "audio/bed-timelapse.json",
+   "loop": true
+  },
+  "emblem-on-dark.learning": {
+   "form": "svg",
+   "file": "emblems/learning.svg"
+  },
+  "emblem-on-dark.news": {
+   "form": "svg",
+   "file": "emblems/news.svg"
+  },
+  "emblem-on-dark.trading": {
+   "form": "svg",
+   "file": "emblems/trading.svg"
+  },
+  "emblem-on-dark.pricing": {
+   "form": "svg",
+   "file": "emblems/pricing.svg"
+  }
+ }
+}

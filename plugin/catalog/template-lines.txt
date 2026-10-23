@@ -1,0 +1,20 @@
+What this initiative cannot change.
+Every capability this initiative changes. Each capability page holds what provides it today and after.
+What each app carries of each functional requirement.
+No release is planned yet. Each release will be a section here that lists the functional requirements it delivers, so that what the system looks like after each release can be worked out from them.
+One page per app: what it does, its main parts, and the contracts (agreed interfaces) it offers other apps. Each contract sits on the page of the app that provides it.
+Each flow is one journey across the apps, step by step. Each app also has a page on how it behaves at run time and when something fails.
+One row per app, one column per topic every app must cover, such as security or cost.
+Running cost, licenses and shared budgets such as mainframe processing.
+What each app stores, which app is the record, and what moves during the change.
+What is measured, so a failure shows up without a debugger or a release.
+Who is on call, and the runbooks for the failures that hurt customers.
+Which team owns each app and each piece of new work.
+The order apps cut over, and how each one rolls back.
+Who can call what, and what data each boundary carries.
+Who tests each contract from each side, the end-to-end suites, and the test data. This is the main page for QA.
+Each decision big enough to need its own page gets one here: what was decided, the options turned down, and why. Smaller decisions are recorded on the pages they affect.
+One paragraph per term: the term in bold, then what it means in this initiative.
+Each epic is one team's block of work, with the checks that say when it is done.
+Every document, spec, design and link the plan rests on or builders need. Files the owner agreed to keep live in `library/`.
+Every document a fact rests on. Facts cite the ID. Raw files go in `.inbox/`, which git ignores.

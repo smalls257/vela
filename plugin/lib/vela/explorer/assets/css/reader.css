@@ -1,0 +1,47 @@
+/* ------------------------------------------------ the vault's own pages, read here */
+.reader { font: 15px/1.6 var(--serif); color: var(--ink-2); }
+.reader .r-text > :first-child { margin-top: 0; }
+.reader h1 { font: 600 22px/1.25 var(--ui); color: var(--ink); margin: 0 0 10px; }
+.reader h2 { font: 600 16.5px/1.3 var(--ui); color: var(--ink); margin: 22px 0 8px; padding-top: 10px; border-top: 1px solid var(--rule); }
+.reader h3 { font: 600 14.5px/1.3 var(--ui); color: var(--ink); margin: 16px 0 6px; }
+.reader h4 { font: 600 13px/1.3 var(--ui); color: var(--ink-2); margin: 12px 0 4px; }
+.reader p { margin: 0 0 10px; }
+.reader ul, .reader ol { margin: 0 0 10px; padding-left: 22px; }
+.reader li { margin: 2px 0; }
+.reader strong { color: var(--ink); font-weight: 600; }
+.reader a.ref { color: var(--link); border-bottom: 1px dotted color-mix(in srgb, var(--link) 45%, transparent); }
+.reader a.ref:hover { text-decoration: none; border-bottom-style: solid; }
+a.ext { color: var(--link); text-decoration: underline; text-underline-offset: 2px; }
+.reader a.ref-id { font-family: var(--mono); font-size: .86em; }
+.reader blockquote { margin: 0 0 10px; padding: 4px 12px; border-left: 3px solid var(--rule-3); color: var(--ink-3); }
+.reader pre { font: 12px/1.45 var(--mono); background: var(--room); border: 1px solid var(--rule); border-radius: 8px; padding: 10px; overflow: auto; color: var(--ink-3); }
+.reader sup { font: 11px var(--ui); }
+.reader hr { border: 0; border-top: 1px solid var(--rule); margin: 16px 0; }
+.reader details { margin: 8px 0 12px; }
+.reader details > summary { font: 600 12.5px var(--ui); color: var(--ink-3); cursor: pointer; padding: 4px 0; }
+.reader details.r-diagram > summary { font-weight: 400; }
+.r-table { overflow: auto; margin: 0 0 12px; border: 1px solid var(--rule); border-radius: 8px; }
+.r-table table { border-collapse: collapse; width: 100%; font: 12.5px/1.45 var(--ui); }
+.r-table th { text-align: left; font-weight: 600; color: var(--ink-3); background: var(--room); padding: 6px 9px; border-bottom: 1px solid var(--rule-3); white-space: nowrap; }
+.r-table td { padding: 6px 9px; border-bottom: 1px solid var(--rule); vertical-align: top; color: var(--ink-2); }
+.r-table tr:last-child td { border-bottom: 0; }
+.r-toc { font: 12.5px var(--ui); margin: 0 0 14px; padding: 8px 10px; background: var(--deck); border-radius: 8px; display: flex; flex-wrap: wrap; gap: 2px 4px; align-items: center; }
+.r-toc-h { color: var(--ink-4); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; margin-right: 6px; }
+.r-toc-link { all: unset; cursor: pointer; color: var(--ink-2); padding: 1px 6px; border-radius: 5px; }
+.r-toc-link:hover { background: var(--deck-3); color: var(--ink); }
+.r-here { background: color-mix(in srgb, var(--ink) 6%, transparent); border-radius: 4px; transition: background 1.2s; }
+#panel .reader { font-size: 14.5px; }
+#panel .reader h1 { display: none; }
+/* full width: the text takes the room and the aside keeps a fixed column; 120ch stops lines running unreadably long
+   on a very wide screen. A 66ch measure left about half the main area empty, which read as a page that did not fit. */
+.doc-scroll { padding: 4px 24px 40px; display: grid; grid-template-columns: minmax(0, 120ch) minmax(240px, 320px); gap: 28px; align-items: start; }
+/* a page with no aside gives its column to the text */
+.doc-scroll:not(:has(> .doc-aside)) { grid-template-columns: minmax(0, 120ch); }
+.reader.wide { display: grid; grid-template-columns: 1fr; }
+.reader.wide .r-toc { position: sticky; top: 0; z-index: 1; }
+.doc-aside { background: var(--room-2); border: 1px solid var(--rule); border-radius: 10px; padding: 12px 14px; font-size: 13px; position: sticky; top: 0; }
+.doc-aside h3 { margin: 0 0 8px; font-size: 11.5px; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-3); }
+.reader.wide h1:first-child, .reader.wide .r-text > h1:first-child { display: none; }
+.doc-aside .rc-row { grid-template-columns: 1fr; gap: 2px; margin-top: 8px; }
+.doc-aside .rc-l { text-transform: capitalize; }
+.doc-aside .ref-chip { font-size: 12px; }

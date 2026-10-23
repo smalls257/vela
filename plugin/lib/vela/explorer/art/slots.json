@@ -1,0 +1,254 @@
+{
+ "about": "Asset slot contract. Pages ask for a slot id through resolve.js and never name a file or a provider. Emblem and theme slots are keyed by the icon kind the build picks for a box (icons_data.py), never by an app's name, so the art fits any vault. Every slot must be filled by the builtin provider; other providers may fill any subset. 'accepts' lists the forms a provider may supply, in the resolver's preference order. Assets carry identity and atmosphere only: no diagram, label or data is ever baked into an asset.",
+ "slots": [
+  {
+   "id": "emblem.learning",
+   "kind": "image",
+   "accepts": [
+    "svg",
+    "png"
+   ],
+   "size": "1024x1024 (svg: any)",
+   "aspect": "1:1",
+   "background": "transparent or plain light",
+   "for": "Icon for a box whose icon kind is learning (a course, a tutor, a teaching service): map stations, strip headers, sequence-diagram lifelines"
+  },
+  {
+   "id": "emblem.news",
+   "kind": "image",
+   "accepts": [
+    "svg",
+    "png"
+   ],
+   "size": "1024x1024 (svg: any)",
+   "aspect": "1:1",
+   "background": "transparent or plain light",
+   "for": "Icon for a box whose icon kind is news (articles, a feed, editorial content)"
+  },
+  {
+   "id": "emblem.trading",
+   "kind": "image",
+   "accepts": [
+    "svg",
+    "png"
+   ],
+   "size": "1024x1024 (svg: any)",
+   "aspect": "1:1",
+   "background": "transparent or plain light",
+   "for": "Icon for a box whose icon kind is trading (a broker, a market, an exchange)"
+  },
+  {
+   "id": "emblem.pricing",
+   "kind": "image",
+   "accepts": [
+    "svg",
+    "png"
+   ],
+   "size": "1024x1024 (svg: any)",
+   "aspect": "1:1",
+   "background": "transparent or plain light",
+   "for": "Icon for a box whose icon kind is pricing (prices, quotes, fares, tariffs)"
+  },
+  {
+   "id": "texture.transit-paper",
+   "kind": "image",
+   "accepts": [
+    "svg",
+    "png"
+   ],
+   "size": "1536x864",
+   "aspect": "16:9",
+   "contrast": "low; dark text must read on it",
+   "for": "Aged map paper under the Tube-style transit map"
+  },
+  {
+   "id": "texture.garden",
+   "kind": "image",
+   "accepts": [
+    "svg",
+    "png"
+   ],
+   "size": "1536x864",
+   "aspect": "16:9",
+   "contrast": "low; calm empty center",
+   "for": "Soft botanical backdrop for the decision garden"
+  },
+  {
+   "id": "texture.cockpit",
+   "kind": "image",
+   "accepts": [
+    "svg",
+    "png"
+   ],
+   "size": "1536x864",
+   "aspect": "16:9",
+   "contrast": "very dark and even; light text and glows sit on it",
+   "for": "Matte instrument-panel surface for the dark-cockpit pulse map"
+  },
+  {
+   "id": "texture.strip-board",
+   "kind": "image",
+   "accepts": [
+    "svg",
+    "png"
+   ],
+   "size": "1536x864",
+   "aspect": "16:9",
+   "contrast": "muted; strips are drawn by the page on top",
+   "for": "Strip-board bay behind the air-traffic-control ask strips"
+  },
+  {
+   "id": "loop.title-card",
+   "kind": "loop",
+   "accepts": [
+    "mp4",
+    "webm",
+    "svg"
+   ],
+   "size": "848x480 or larger",
+   "aspect": "16:9",
+   "duration": "3-5 s, loops",
+   "for": "Title card behind flow-clip titles: light traveling along lines at night"
+  },
+  {
+   "id": "loop.timelapse",
+   "kind": "loop",
+   "accepts": [
+    "mp4",
+    "webm",
+    "svg"
+   ],
+   "size": "848x480 or larger",
+   "aspect": "16:9",
+   "duration": "3-5 s, loops",
+   "for": "Opening card for the initiative time-lapse and decision garden: a seed growing into a branch"
+  },
+  {
+   "id": "loop.cockpit",
+   "kind": "loop",
+   "accepts": [
+    "mp4",
+    "webm",
+    "svg"
+   ],
+   "size": "848x480 or larger",
+   "aspect": "16:9",
+   "duration": "3-5 s, loops; may carry sound",
+   "for": "Opening card for the dark-cockpit map"
+  },
+  {
+   "id": "theme.learning",
+   "kind": "audio",
+   "accepts": [
+    "mp3",
+    "wav",
+    "recipe"
+   ],
+   "duration": "5-10 s",
+   "for": "Leitmotif for the learning kind; plays when a box of that kind enters a flow or its station is focused"
+  },
+  {
+   "id": "theme.news",
+   "kind": "audio",
+   "accepts": [
+    "mp3",
+    "wav",
+    "recipe"
+   ],
+   "duration": "5-10 s",
+   "for": "Leitmotif for the news kind"
+  },
+  {
+   "id": "theme.trading",
+   "kind": "audio",
+   "accepts": [
+    "mp3",
+    "wav",
+    "recipe"
+   ],
+   "duration": "5-10 s",
+   "for": "Leitmotif for the trading kind"
+  },
+  {
+   "id": "theme.pricing",
+   "kind": "audio",
+   "accepts": [
+    "mp3",
+    "wav",
+    "recipe"
+   ],
+   "duration": "5-10 s",
+   "for": "Leitmotif for the pricing kind"
+  },
+  {
+   "id": "chime.decided",
+   "kind": "audio",
+   "accepts": [
+    "recipe",
+    "mp3",
+    "wav"
+   ],
+   "duration": "1-4 s",
+   "for": "Soft confirmation when an ask is decided or a decision is planted"
+  },
+  {
+   "id": "bed.timelapse",
+   "kind": "audio",
+   "accepts": [
+    "mp3",
+    "wav",
+    "recipe"
+   ],
+   "duration": "30-60 s, loops",
+   "for": "Calm ambient bed under the initiative time-lapse"
+  },
+  {
+   "id": "emblem-on-dark.learning",
+   "kind": "image",
+   "accepts": [
+    "svg",
+    "png"
+   ],
+   "size": "1024x1024 (svg: any)",
+   "aspect": "1:1",
+   "background": "plain very dark, matching a dark interface",
+   "for": "Icon for the learning kind on a dark interface, such as the explorer; falls back to emblem.learning"
+  },
+  {
+   "id": "emblem-on-dark.news",
+   "kind": "image",
+   "accepts": [
+    "svg",
+    "png"
+   ],
+   "size": "1024x1024 (svg: any)",
+   "aspect": "1:1",
+   "background": "plain very dark, matching a dark interface",
+   "for": "Icon for the news kind on a dark interface, such as the explorer; falls back to emblem.news"
+  },
+  {
+   "id": "emblem-on-dark.trading",
+   "kind": "image",
+   "accepts": [
+    "svg",
+    "png"
+   ],
+   "size": "1024x1024 (svg: any)",
+   "aspect": "1:1",
+   "background": "plain very dark, matching a dark interface",
+   "for": "Icon for the trading kind on a dark interface, such as the explorer; falls back to emblem.trading"
+  },
+  {
+   "id": "emblem-on-dark.pricing",
+   "kind": "image",
+   "accepts": [
+    "svg",
+    "png"
+   ],
+   "size": "1024x1024 (svg: any)",
+   "aspect": "1:1",
+   "background": "plain very dark, matching a dark interface",
+   "for": "Icon for the pricing kind on a dark interface, such as the explorer; falls back to emblem.pricing"
+  }
+ ]
+}

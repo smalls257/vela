@@ -1,0 +1,29 @@
+/* ------------------------------------------------ Needs you, at the top of every role overview (needs.js)
+   One amber-edged block, a line per thing the viewer must act on, hairlines between. The amber is the caution lamp's
+   own color, because these are the things waiting on a person. Every color is a theme variable. */
+.needs-you { margin: 0 0 14px; padding: 12px 14px; border: 1px solid color-mix(in srgb, var(--caution) 45%, var(--rule)); border-radius: 12px; background: linear-gradient(180deg, var(--deck-2), var(--room-2)); scroll-margin-top: 8px; }
+.needs-you:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.needs-you.empty { border-color: var(--rule); background: var(--room-2); }
+.ny-hd { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 4px; }
+.ny-hd b { font-size: 15px; }
+.ny-hd span { font-size: 12.5px; color: var(--ink-3); }
+.ny-quiet { font-size: 13.5px; color: var(--ink-2); line-height: 1.5; }
+.ny-line { all: unset; box-sizing: border-box; width: 100%; display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 10px; align-items: start; padding: 9px 6px; border-top: 1px solid var(--rule); cursor: pointer; }
+.ny-hd + .ny-line { border-top: 0; }
+.ny-line:hover { background: var(--deck); border-radius: 8px; }
+.ny-line:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; border-radius: 8px; }
+.ny-ico { width: 22px; height: 22px; border-radius: 6px; display: grid; place-items: center; font-size: 12px; font-weight: 700; color: var(--caution-ink); background: var(--caution); }
+.ny-ico.g { background: var(--diff-add); }
+.ny-ico.r { background: var(--unexamined); color: var(--unexamined-ink); }
+.ny-ico.n { background: var(--pending); color: var(--pending-ink); }
+.ny-main { min-width: 0; }
+.ny-t { display: block; font-size: 14px; font-weight: 600; color: var(--ink); line-height: 1.35; }
+.ny-m { display: block; margin-top: 1px; font-size: 12.5px; color: var(--ink-3); line-height: 1.4; }
+.ny-when { font-size: 12.5px; white-space: nowrap; border: 1px solid var(--rule); border-radius: 999px; padding: 1px 9px; color: var(--ink-2); }
+.ny-when.late { color: var(--warning-text); border-color: color-mix(in srgb, var(--warning) 55%, var(--rule)); }
+.ny-when.soon { color: var(--caution-text); border-color: color-mix(in srgb, var(--caution) 55%, var(--rule)); }
+.ny-more, .ny-join { display: block; margin-top: 6px; font-size: 13px; }
+.for-you-badge { all: unset; cursor: pointer; height: 36px; border-radius: 6px; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 0 12px; font-size: 13px; font-weight: 600; line-height: 1.1; background: var(--caution); color: var(--caution-ink); border: 1.5px solid var(--face-edge); box-shadow: 0 0 12px -2px color-mix(in srgb, var(--caution) 50%, transparent), inset 0 0 6px rgba(255,255,255,.3); }
+.for-you-badge b { font-size: 16px; font-variant-numeric: tabular-nums; }
+.for-you-badge:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+html.plain .for-you-badge { box-shadow: inset 0 0 0 1px rgba(0,0,0,.25); }

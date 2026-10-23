@@ -1,0 +1,59 @@
+/* ------------------------------------------------ menus on the diagram (menus.js)
+   The bar on the top of a diagram, and the lists that open from it. The lists are solid (no glass), so they read over
+   any diagram; every color is a theme variable, so every theme and Plain gets its own. Nothing here needs a sideways scroll. */
+.dia { display: flex; flex-direction: column; flex: 1; min-height: 0; min-width: 0; position: relative; }
+.dia > .board, .dia > .matrix-stage, .dia > .rel-body, .dia > .sl-body, .dia > .board-wrap, .dia > .stage { flex: 1; min-height: 0; }
+/* above every view's own layers (the matrix's frozen corner is at 200): a menu opened from this bar is never drawn under the chart */
+.dia-bar { position: relative; z-index: 250; flex: none; display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; padding: 6px 24px; background: var(--room); border-top: 1px solid var(--rule); }
+.dia-l, .dia-r { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-width: 0; }
+.dia-r { margin-left: auto; justify-content: flex-end; }
+.dia-mid { flex: 1 1 14rem; min-width: 0; display: flex; gap: 10px; align-items: baseline; overflow: hidden; order: 2; }
+.dia-hint { font-size: 12px; color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dia .countline { flex: none; padding-top: 6px; }
+.dmenu { position: relative; }
+.dmenu-btn { display: inline-flex; align-items: center; gap: 7px; min-height: 32px; border: 1px solid var(--rule-3); background: var(--room-2); color: var(--ink); border-radius: 8px; padding: 4px 10px; cursor: pointer; font-size: 13px; white-space: nowrap; max-width: 100%; }
+.dmenu-btn:hover, .dmenu-btn[aria-expanded="true"] { background: var(--deck-3); }
+.dmenu-btn small { font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); }
+.dmenu-btn b { font-weight: 500; overflow: hidden; text-overflow: ellipsis; }
+.dmenu-btn .caret { color: var(--ink-3); font-size: 11px; }
+.dmenu-btn.icon { min-width: 32px; padding: 0 6px; justify-content: center; }
+.dmenu-btn[aria-pressed="true"] { background: var(--ink); color: var(--room); border-color: var(--ink); }
+.dmenu-btn[aria-disabled="true"] { opacity: .6; }
+.dmenu-btn.primary { background: var(--ink); color: var(--room); border-color: var(--ink); font-weight: 600; }
+.dmenu-btn.primary:hover { background: color-mix(in srgb, var(--ink) 80%, var(--focus)); }
+.dmenu-btn svg { width: 15px; height: 15px; }
+.dmenu-btn .dbtn-ico { width: 18px; height: 18px; flex: none; }
+.dmenu-pop { position: absolute; top: calc(100% + 4px); z-index: 40; width: max-content; min-width: 190px; max-width: min(330px, calc(100vw - 32px)); max-height: max(160px, min(70vh, 460px, calc(100vh - 230px))); overflow-y: auto;
+  background: var(--room-2); color: var(--ink); border: 1px solid var(--rule-3); border-radius: 10px; padding: 6px; font-size: 13px; box-shadow: 0 10px 30px rgba(0, 0, 0, .45); }
+.dmenu-pop[hidden] { display: none; }
+.dmenu-pop.wide { min-width: min(520px, calc(100vw - 32px)); max-width: min(620px, calc(100vw - 32px)); padding: 4px 12px; }
+.dmenu-pop .legend.in-pop { border: 0; padding: 0; background: transparent; }
+.dmenu-pop .legend.in-pop > summary { display: none; }
+.dmenu-pop .legend.in-pop .lg-items { padding: 8px 0; grid-template-columns: 1fr; }
+.dmenu-pop.left { left: 0; }
+.dmenu-pop.right { right: 0; }
+.dmenu-item { all: unset; box-sizing: border-box; display: block; width: 100%; padding: 7px 10px 7px 28px; border-radius: 6px; cursor: pointer; position: relative; color: var(--ink); }
+a.dmenu-item { text-decoration: none; }
+.dmenu-item:hover, .dmenu-item:focus-visible { background: var(--deck-3); }
+.dmenu-item:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+.dmenu-item small { display: block; color: var(--ink-3); font-size: 12px; line-height: 1.35; margin-top: 1px; }
+.dmenu-item[aria-checked="true"] { background: var(--deck); }
+.dmenu-item[aria-checked="true"]::before { content: ""; position: absolute; left: 10px; top: 12px; width: 6px; height: 6px; border-radius: 50%; background: var(--ink); }
+.dmenu-item[role="menuitemcheckbox"][aria-checked="true"]::before { border-radius: 1px; }
+.dmenu-item[aria-disabled="true"] { opacity: .5; cursor: default; }
+.dmenu-h { color: var(--ink-3); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; padding: 6px 10px 2px; }
+.dmenu-node { padding: 4px 10px 8px; font-size: 12.5px; color: var(--ink-2); max-width: 44ch; }
+.dmenu-node p { margin: 0 0 6px; }
+.dmenu-sep { height: 1px; background: var(--rule); margin: 5px 4px; }
+.lede-link { color: var(--link); margin-left: 6px; white-space: nowrap; }
+/* the panel beside the page already has Read full page; the link in the header is for a window where it is closed */
+body:not(.panel-hidden) .lede-link { display: none; }
+@media (max-width: 900px) {
+  .dia-bar { padding: 6px 12px; }
+  .dia-mid { flex-basis: 100%; order: 3; }
+  .dmenu-btn small { display: none; }
+}
+/* a flow's diagram keeps room for its canvas: the bar, then at least what the stage needs */
+.dia:has(> .stage) { flex: 1 0 auto; }
+.dia-notes p { margin: 0 0 6px; }
+.dia-notes p:last-child { margin-bottom: 0; }

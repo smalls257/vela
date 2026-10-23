@@ -1,0 +1,10 @@
+.inbox/
+voice/corpus/
+voice/local/
+.obsidian/workspace*.json
+.obsidian/cache
+__pycache__/
+*.pyc
+.vela/*
+!.vela/explorer-pins.json
+sessions/private/

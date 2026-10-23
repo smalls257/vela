@@ -1,0 +1,71 @@
+{
+  "description": "Earlier feedback in Claude Code, never the gate: the CLI refuses each of these itself, which holds where hooks don't fire. UserPromptSubmit logs what the person typed, so `vela record add` can tell their words from the model's. SessionStart and the probe canary are markers, so `vela where --probe` can tell whether hooks run here. Bash: deny staging by hand (only vela stages), ask before a push or a PR. Edit/Write: deny a hand-moved state or an edit inside a generated block; afterwards, a quick check of the edited page.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/scripts/run-vela\" hook session-start",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/scripts/run-vela\" hook said",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "d=\"${CLAUDE_PROJECT_DIR:-.}\"; j=$(cat); case \"$j\" in *'where --probe'*) for p in \"$d\" \"$d\"/*/ \"$d\"/*/*/; do p=\"${p%/}\"; if [ -e \"$p/.vela.yaml\" ] || [ -d \"$p/.vela\" ]; then mkdir -p \"$p/.vela\" && printf '%s\\n' \"$j\" > \"$p/.vela/hook-canary\"; fi; done;; esac; exit 0",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/scripts/run-vela\" hook bash",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/scripts/run-vela\" hook edit",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/scripts/run-vela\" hook post-edit",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,12 @@
+#!/bin/sh
+# Runs scripts/vela with the first Python 3.9 or later on the PATH. Every hook and skill calls vela through here, so
+# the interpreter's name lives in one place: a Mac or Linux box usually has `python3`, Windows installs `python` and
+# `py`, and Windows' own `python3` is often a store shortcut that prints a hint and exits. Each candidate has to run.
+here=${0%/*}
+for py in python3 python py; do
+  if "$py" -c 'import sys; sys.exit(sys.version_info < (3, 9))' >/dev/null 2>&1; then
+    exec "$py" "$here/vela" "$@"
+  fi
+done
+echo "vela: no Python 3.9 or later found as python3, python or py on the PATH. Install Python from python.org (on a Mac: brew install python@3.12)." >&2
+exit 2

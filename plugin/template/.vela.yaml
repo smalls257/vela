@@ -1,0 +1,4 @@
+initiative: INI-001
+# The first session asks for a short name and replaces this title; vela check warns (W718) until it does.
+title: New initiative
+stale_after_days: 60

@@ -1,0 +1,71 @@
+/* ------------------------------------------------ getting up to speed (onboard.js): the path on the left, the module on the right */
+.onb { flex: 1; min-height: 0; min-width: 0; display: flex; flex-direction: column; padding: 14px 22px 16px; overflow-y: auto; container-type: inline-size; }
+.onb-body { display: grid; grid-template-columns: minmax(220px, 300px) minmax(0, 1fr); gap: 18px; align-items: start; min-width: 0; }
+.onb-path { background: var(--room-2); border: 1px solid var(--rule); border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.onb-path h2 { margin: 0; font-size: 15px; font-weight: 600; }
+.onb-path p { margin: 0; }
+.onb-bar { height: 6px; background: var(--deck-3); border-radius: 4px; overflow: hidden; }
+.onb-bar i { display: block; height: 100%; background: var(--mix-fact); border-radius: 4px; }
+.onb-mods { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.onb-mod { all: unset; box-sizing: border-box; width: 100%; cursor: pointer; display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 8px; align-items: start; padding: 8px 10px; border: 1px solid var(--rule-3); border-radius: 10px; font-size: 13px; color: var(--ink); }
+.onb-mod:hover { background: var(--deck-3); }
+.onb-mod.on { border-color: var(--focus); background: var(--deck-2); }
+.onb-mod:focus-visible { outline: 2px solid var(--focus); }
+.onb-n { width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--ink-3); display: grid; place-items: center; font-size: 12px; color: var(--ink-2); }
+.onb-mod.done .onb-n { background: var(--mix-fact); border-color: var(--mix-fact); color: var(--room); }
+.onb-mt { min-width: 0; overflow-wrap: anywhere; }
+.onb-mt small, .onb-min { display: block; color: var(--ink-3); font-size: 12px; }
+.onb-lead { margin-top: 4px; padding: 10px; border: 1px dashed var(--rule-3); border-radius: 10px; color: var(--ink-2); font-size: 13px; overflow-wrap: anywhere; }
+.onb-lead b { color: var(--ink); }
+.onb-stage { min-width: 0; }
+.onb-stage h2 { margin: 0; font-size: 20px; font-weight: 600; overflow-wrap: anywhere; }
+.onb-stage .lede { margin: 4px 0 14px; color: var(--ink-3); }
+.onb-grid { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.onb-view { background: var(--room-2); border: 1px solid var(--rule); border-radius: 12px; min-width: 0; display: flex; flex-direction: column; }
+.onb-view .dia { flex: none; }
+.onb-view .dia-bar { border-top: 0; border-radius: 12px 12px 0 0; padding: 6px 10px; }
+.ob-scroll { padding: 10px 12px 12px; min-width: 0; }
+.ob-items { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.ob-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; align-items: stretch; }
+.ob-item, .ob-node { all: unset; box-sizing: border-box; cursor: pointer; display: grid; gap: 2px 8px; padding: 8px 10px; border: 1px solid var(--rule-3); border-radius: 8px; background: var(--room); color: var(--ink); font-size: 13.5px; min-width: 0; }
+.ob-item { grid-template-columns: minmax(0, 1fr) auto; }
+.ob-item small, .ob-node small { grid-column: 1 / -1; color: var(--ink-3); font-size: 12px; overflow-wrap: anywhere; }
+.ob-item:hover, .ob-node:hover { background: var(--deck-3); }
+.ob-item:focus-visible, .ob-node:focus-visible, .onb-view a:focus-visible, .ob-link:focus-visible { outline: 2px solid var(--focus); }
+.ob-t { overflow-wrap: anywhere; min-width: 0; }
+.ob-pill { justify-self: end; align-self: start; }
+.ob-pill.ok { background: color-mix(in srgb, var(--mix-fact) 22%, transparent); color: var(--ink); }
+.ob-pill.open { background: color-mix(in srgb, var(--caution) 16%, transparent); color: var(--caution-text); }
+.ob-pill.late { background: color-mix(in srgb, var(--warning) 18%, transparent); color: var(--warning-text); }
+.ob-open { align-self: center; padding: 4px 8px; border: 1px solid var(--rule-3); border-radius: 8px; color: var(--link); text-decoration: none; font-size: 13px; }
+.ob-open:hover { background: var(--deck-3); }
+.ob-board { display: flex; flex-wrap: wrap; gap: 8px; align-items: stretch; }
+.ob-cell { display: flex; gap: 4px; max-width: 100%; min-width: 0; flex: 0 1 220px; }
+.ob-node { flex: 1; border-width: 2px; grid-template-columns: minmax(0, 1fr); }
+.ob-node.ok { border-color: var(--mix-fact); }
+.ob-node.open { border-color: var(--caution); }
+.ob-node.late { border-color: var(--warning); }
+.ob-node .ob-pill { justify-self: start; }
+.ob-board.ordered .ob-cell { flex-basis: 240px; }
+.ob-arrow { align-self: center; color: var(--ink-3); font-size: 18px; }
+.ob-more { margin: 8px 0 0; }
+.onb-explain { background: var(--room-2); border: 1px solid var(--rule); border-radius: 12px; padding: 14px 16px; min-width: 0; overflow-wrap: anywhere; }
+.onb-explain h3 { margin: 0 0 6px; font-size: 15px; font-weight: 600; }
+.onb-explain p { margin: 0 0 10px; color: var(--ink-2); line-height: 1.5; }
+.onb-explain .ob-gist { color: var(--ink); }
+.onb-explain .ob-term { font-size: 13px; color: var(--ink-3); border-left: 2px solid var(--rule-3); padding-left: 8px; }
+.ob-links { display: flex; flex-direction: column; gap: 6px; margin: 10px 0; }
+.ob-link { color: var(--link); text-decoration: none; border: 1px solid var(--rule-3); border-radius: 8px; padding: 7px 10px; font-size: 14px; }
+.ob-link::before { content: "\2197\00a0"; }
+.ob-link:hover { background: var(--deck-3); }
+.ob-try { border: 1px solid var(--rule-3); border-radius: 10px; padding: 10px 12px; margin: 10px 0; font-size: 13.5px; color: var(--ink-2); }
+.ob-try b { color: var(--ink); }
+.ob-depth { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 10px 0; }
+.ob-depth button { border: 1px solid var(--rule-3); background: var(--room); color: var(--ink-2); border-radius: 999px; padding: 3px 10px; cursor: pointer; font-size: 12.5px; }
+.ob-depth button[aria-checked="true"] { background: var(--ink); color: var(--room); border-color: var(--ink); }
+.onb-nav { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; margin-top: 12px; }
+.onb-nav .btn { max-width: 100%; white-space: normal; text-align: left; overflow-wrap: anywhere; }
+.onb-nav .btn.go { background: var(--ink); color: var(--room); }
+/* by the room the page has, not the window: the sidebar and the panel take their share of it */
+@container (max-width: 1000px) { .onb-grid { grid-template-columns: minmax(0, 1fr); } }
+@container (max-width: 640px) { .onb-body { grid-template-columns: minmax(0, 1fr); } }

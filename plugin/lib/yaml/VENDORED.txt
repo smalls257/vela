@@ -1,0 +1,5 @@
+PyYAML 6.0.3, vendored unmodified from the PyPI sdist
+https://files.pythonhosted.org/packages/source/p/pyyaml/pyyaml-6.0.3.tar.gz
+sha256 d76623373421df22fb4cf8817020cbb7ef15c725b9d5e45f17e189bfc384190f
+lib/yaml/ from that archive, plus its LICENSE (MIT). No C extension: yaml/_yaml is absent, so the pure-Python
+loader runs everywhere. To upgrade, replace this folder from a new sdist and change PINNED_YAML in vela/doctor.py.
