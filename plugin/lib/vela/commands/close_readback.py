@@ -167,8 +167,11 @@ def reword(args, root, vault, record, listing, picked, lead):
             return _write_quote(root, record, picked, sentence, args.words)
         page = pathlib.Path(root) / sentence.page
         new = closereadback.reword(page.read_text(encoding="utf-8"), sentence, args.words, approved, cited)
-    except ValueError as exc:
-        return _refused(f"{exc}", "Those words aren't ones you said, and you haven't said yes to them. What should it say?")
+    except ValueError:
+        return say.Result(NAME, exit=say.REFUSED, refusals=[say.Refusal(
+            "readback-words-not-yours", "Those words aren't yours yet. Shall I read the new wording back to you?",
+            "Read the new wording to the lead, capture their yes in their words, and run again with --approved ^cNN.", override="none: a page sentence in the lead's name carries only words they said or "
+                                         "said yes to")])
     wrote = sessiongit.write_text(root, sentence.page, new)
     return _done([wrote], f"close readback: reworded the {sentence.line} line for {sentence.item}.",
                  "Changed. I'll read it back to you again.")
