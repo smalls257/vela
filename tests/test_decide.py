@@ -282,6 +282,9 @@ def test_gate4_fail_refused_without_override(tmp_path):
     said = next(r for r in refusals if r.rule == "GATE-4")
     assert "How old may the stock count be" in said.plain and "UNK-003" not in said.plain
     assert "GATE-4" in said.override and "until" in said.override, "the route carries a suggested end date"
+    assert said.override.startswith("vela decide CON-002 ... --override GATE-4 --reason-from ^cR --until 20"), \
+        said.override
+    assert "- **Override:**" not in said.override, "the refusal names the flags, never the bullet to write by hand"
     overridden = filed(root, [item(overrides=[{"rules": ["GATE-4"], "reason": "^c06", "until": "2026-11-01"}])])
     bullets = history_of(overridden[STOCK], "CON-002")
     assert "- **Override:** GATE-4 by @priya on 2026-10-20 until 2026-11-01: Go ahead; the owner answers by Friday." \

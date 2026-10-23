@@ -41,6 +41,7 @@ record's text or None; `flows` is {slice key or flow ID: standing.Standing} for 
 shell from the checker's record. A flow or slice with no standing given is "not checked", never ready.
 """
 import re
+import shlex
 from dataclasses import dataclass
 
 from vela import cases, closegate, model, override, progress, questions, say, schema, slices
@@ -88,7 +89,7 @@ class Verdict:
     overridden: tuple = ()  # Override.as_dict() of each override that let a rule through
     owed: tuple = ()  # copy IDs still owed on the item, not answered in the record
     questions: tuple = ()  # the owed copies' questions, in the same order
-    route: str = ""  # the Override bullet that would decide it anyway, "" when ready or when nothing can
+    route: str = ""  # the `vela decide` flags that would decide it anyway, "" when ready or when nothing can
 
     @property
     def fix(self):
@@ -165,13 +166,15 @@ def _ended(fix, ended):
 
 
 def route(vault, item_id, rules, today):
-    """The Override bullet that decides the item anyway, with a suggested end for a standing rule (offered, never
-    written: the lead picks the date)."""
+    """The `vela decide` flags that decide the item anyway, with a suggested end for a standing rule (offered, never
+    written: the lead picks the date). Flags, not the Override bullet's grammar: a model that reads the bullet writes
+    it by hand, and only `vela decide` and `vela apply` record an override with its receipts."""
     names = [ROUTE_NAMES[r] for r in rules if r in ROUTE_NAMES]
     if not names:
         return ""
-    until = f" until {override.suggest_until(item_id, vault, today)}" if any(map(override.is_standing, names)) else ""
-    return f"- **Override:** {', '.join(names)} by @<handle> on {today}{until}: <the lead's reason>"
+    until = f" --until {override.suggest_until(item_id, vault, today)}" if any(map(override.is_standing, names)) else ""
+    flags = " ".join(f"--override {shlex.quote(name)}" for name in names)
+    return f"vela decide {item_id} ... {flags} --reason-from ^cR{until}"
 
 
 # ------------------------------------------------------------------ the conditions
