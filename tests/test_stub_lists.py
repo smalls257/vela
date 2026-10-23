@@ -22,10 +22,10 @@ def test_a_kept_yes_lands_in_the_ready_list(tmp_path):
     root = make_decide_vault(tmp_path)
     in_session_with_modes(root, "shape")
     assert decide_con_002(root)[0] == 1
-    meta = privaterecord.stub_meta(session_files.record_text(root, RECORD_ID))
+    meta = privaterecord.stub_meta(session_files.stub_text(root, RECORD_ID))
     assert privaterecord.listed(meta, "ready") == ("CON-002",)
     decide_con_002(root)
-    meta = privaterecord.stub_meta(session_files.record_text(root, RECORD_ID))
+    meta = privaterecord.stub_meta(session_files.stub_text(root, RECORD_ID))
     assert privaterecord.listed(meta, "ready") == ("CON-002",), "listed once however often the yes is repeated"
 
 
@@ -33,13 +33,15 @@ def test_session_brief_reads_the_ready_list_from_the_header(tmp_path):
     root = make_decide_vault(tmp_path)
     in_session_with_modes(root, "shape")
     decide_con_002(root)
-    text = session_files.record_text(root, RECORD_ID)
-    body_only = text.replace("ready: [\"CON-002\"]\n", "")
-    assert body_only != text and "- CON-002: the lead said yes" in body_only
-    session_files.write_record(root, RECORD_ID, body_only)
+    stub = root / "sessions" / f"{RECORD_ID}.md"
+    text = stub.read_text(encoding="utf-8")
+    header_only = text.replace("ready: [\"CON-002\"]\n", "")
+    assert header_only != text
+    assert "- CON-002: the lead said yes" in session_files.record_text(root, RECORD_ID), "the notes keep their line"
+    stub.write_text(header_only, encoding="utf-8")
     code, output = run("session", "brief", "--vault", str(root), "--today", GRILLS_TODAY, "--json")
-    assert json.loads(output)["ready_to_decide"] == [], "the body line alone no longer counts"
-    session_files.write_record(root, RECORD_ID, text)
+    assert json.loads(output)["ready_to_decide"] == [], "the line in the notes alone no longer counts"
+    stub.write_text(text, encoding="utf-8")
     code, output = run("session", "brief", "--vault", str(root), "--today", GRILLS_TODAY, "--json")
     assert [(e["id"], e["session"]) for e in json.loads(output)["ready_to_decide"]] == [("CON-002", RECORD_ID)]
 
@@ -56,14 +58,14 @@ def test_a_challenge_session_lists_its_item_at_start(tmp_path, monkeypatch):
     vault = owner(tmp_path, monkeypatch)
     code, output = start(vault, "--mode", "challenge", "--topic", "CON-001")
     assert code == 0, output
-    meta = privaterecord.stub_meta(session_files.record_text(vault, f"{TODAY}-con-001"))
+    meta = privaterecord.stub_meta(session_files.stub_text(vault, f"{TODAY}-con-001"))
     assert privaterecord.listed(meta, "challenges") == ("CON-001",)
 
 
 def test_a_session_that_is_not_a_challenge_lists_none(tmp_path, monkeypatch):
     vault = owner(tmp_path, monkeypatch)
     assert start(vault, "--mode", "grill", "--topic", "stock")[0] == 0
-    meta = privaterecord.stub_meta(session_files.record_text(vault, f"{TODAY}-stock"))
+    meta = privaterecord.stub_meta(session_files.stub_text(vault, f"{TODAY}-stock"))
     assert privaterecord.listed(meta, "challenges") == ()
 
 
@@ -74,7 +76,7 @@ def test_a_decline_travels_in_the_list(harvest):  # noqa: F811
     assert code == 0, out
     found = voiceplan.declined(voicegit.record_metas(root))
     assert (7, PAGE, candidate["hash"]) in found
-    meta = privaterecord.stub_meta(session_files.record_text(root, SESSION))
+    meta = privaterecord.stub_meta(session_files.stub_text(root, SESSION))
     assert privaterecord.listed(meta, "harvest_declined") == (f"PR 7 {PAGE} {candidate['hash']}",)
 
 

@@ -23,7 +23,7 @@ work, and it reaches the owner through a proposal.
 import pathlib
 
 from vela import guard, parse, roles, say
-from vela.edge import stagegit, vaultgit
+from vela.edge import sessiongit, stagegit, vaultgit
 
 MESSAGES = {"draft": "draft: prose for {id}", "checkpoint": "Checkpoint {id}", "close": "Close session {id}"}
 
@@ -69,14 +69,21 @@ def on_another_branch(root):
 
 
 def open_records(root):
-    """Ids of the records in sessions/ whose frontmatter says `status: open`, in name order.
+    """Ids of the stubs in sessions/ whose frontmatter says `status: open`, in name order, that belong to this
+    branch: a stub with no `branch` or one that names the branch we are on. The stubs are committed, so a branch
+    carries the open stubs of other sessions too; filing one of those would close another session's work. In a reader
+    copy there are no branches, so every open stub counts.
 
     Minimal on purpose: the working tree only. Task 6a's `session open` picker also reads `session/*` branches and
     shared answer branches; once it lands, this should call it instead of reading the folder."""
+    here = None if is_reader_copy(root) else sessiongit.current_branch(root)
     found = []
     for path in sorted((root / "sessions").glob("*.md")):
         meta, _, error = parse.split_frontmatter(path.read_text(encoding="utf-8"))
-        if error is None and str(meta.get("status", "")).strip() == "open":
+        if error is not None or str(meta.get("status", "")).strip() != "open":
+            continue
+        branch = str(meta.get("branch") or "").strip()
+        if here is None or not branch or branch == here:
             found.append(path.stem)
     return found
 

@@ -13,7 +13,7 @@ import session_files
 
 LEDGER = "11-unknowns-and-risks.md"
 RECORD_ID = f"{TODAY}-consent"
-RECORD = f"sessions/{RECORD_ID}.md"
+RECORD = f"sessions/private/{RECORD_ID}.md"  # the notes: what a reviewer reads and the checkpoint is written to
 
 
 def started(tmp_path, monkeypatch):
@@ -44,9 +44,9 @@ def test_skipped_area_reported_with_reason(tmp_path, monkeypatch):
     assert sorted(packets(answer)) == ["DAT", "FIN", "OPS", "REG"]
     assert not (vault / ".vela" / "review" / "1" / "PTN.md").exists()
     assert answer["merge"].endswith(" --areas FIN,DAT,REG,OPS --skipped PTN")
-    # numbered, then committed: the record is on the branch under the checkpoint's own message
-    assert git(vault, "log", "-1", "--format=%s") == f"Checkpoint {TODAY}-consent"
-    assert git(vault, "status", "--porcelain", "--", RECORD) == "" and answer["commit"]
+    # the notes are never committed, and nothing else changed, so there is no checkpoint commit
+    assert git(vault, "log", "-1", "--format=%s") == f"Open session {TODAY}-consent"
+    assert git(vault, "ls-files", "sessions/private") == "" and answer["commit"] is None
     assert prepare(vault, "--checkpoint", "again", "--focus", "01-goals.md")[1]["commit"] is None, \
         "nothing new written, nothing committed"
 
@@ -92,7 +92,7 @@ def test_rerun_numbers_checkpoint_n_plus_1(tmp_path, monkeypatch):
     assert sorted(packets(answer)) == ["FIN", "REG"] and answer["skipped"] == []
     assert answer["merge"].startswith(f"vela findings merge .vela/findings/{TODAY}-consent/2 --changed ")
     assert answer["merge"].endswith(" --areas FIN,REG")
-    assert git(vault, "log", "-1", "--format=%s") == f"Checkpoint {TODAY}-consent"
+    assert git(vault, "log", "-1", "--format=%s") == f"Open session {TODAY}-consent"
 
 
 def test_rerun_of_a_checkpoint_the_record_lacks_is_refused(tmp_path, monkeypatch):
@@ -140,8 +140,11 @@ def test_reader_copy_runs_no_git_and_commits_nothing(tmp_path, monkeypatch):
     (copy / ".vela").mkdir()
     (copy / ".vela" / "workspace.json").write_text('{"role": "reader"}', encoding="utf-8")
     shutil.copytree(MINI, copy / ".vela" / "baseline")
-    from vela import sessions
-    session_files.write_record(copy, RECORD_ID, sessions.record_text(f"{TODAY}-consent", "Dump & Diverge: consent", TODAY, ["dump"]))
+    from vela import privaterecord
+    title = "Dump & Diverge: consent"
+    (copy / "sessions" / f"{RECORD_ID}.md").write_text(privaterecord.new_stub(RECORD_ID, title, TODAY, ["dump"]),
+                                                       encoding="utf-8")
+    session_files.write_private(copy, RECORD_ID, privaterecord.new_private(RECORD_ID, title, TODAY, 1))
     git_log = shim(tmp_path, monkeypatch, "git")
     code, answer = prepare(copy, "--checkpoint", "after the pre-mortem", "--focus", "01-goals.md")
     assert code == 0, answer

@@ -253,6 +253,8 @@ def cmd_start(args, out):
     except GitUnavailable as exc:
         result = say.Result(START, exit=say.FAILED, lines=[
             say.Line(f"vela: {exc}", plain=f"Git failed while starting the session. {GIT_DETAIL}")])
+    except sessiongit.PrivateMissing as exc:
+        result = say.Result(START, exit=say.FAILED, lines=[say.Line(f"vela: {exc}", plain=str(exc))])
     except OSError as exc:  # atomic.WriteFailed among them
         result = say.Result(START, exit=say.FAILED, lines=[
             say.Line(f"vela: couldn't write: {exc}", plain="I couldn't write the session's files to disk, so I "
@@ -432,17 +434,22 @@ def resume(root, found, wanted, reader, lines, today, plain, host=None):
     if result.exit == say.DONE and not reader:
         result.wrote += bring_main_in(root, today, host or {}, result.lines, "copy of the session's branch")
     if result.exit == say.DONE:
-        text = (root / record.path).read_text(encoding="utf-8")
-        result.wrote.append(write_state(root, record.id, record.path, record.branch, list(record.modes), record.date,
-                                        max(records.numbers_in(text), default=0)))
-        result.data.update(id=record.id, path=record.path, branch=record.branch)
+        text = sessiongit.private_text(root, record.id)
+        if text is None:  # until a session's notes can be fetched from another machine, this one can't resume it
+            raise sessiongit.PrivateMissing(record.id)
+        result.wrote.append(write_state(root, record.id, record.branch, list(record.modes), record.date,
+                                        privaterecord.part_of(text), max(records.numbers_in(text), default=0)))
+        result.data.update(id=record.id, path=privaterecord.private_path(record.id), branch=record.branch)
     return result
 
 
-def write_state(root, record_id, path, branch, modes, started, last_capture=0):
-    """`.vela/session.json`: which record `record add` writes to, and the highest capture number it handed out."""
-    return sessiongit.write_state(root, {"id": record_id, "path": path, "branch": branch, "modes": modes,
-                                         "started": started, "last_capture": last_capture})
+def write_state(root, record_id, branch, modes, started, part=1, last_capture=0):
+    """`.vela/session.json`: which notes `record add` writes to (`path`, the private file), the committed `stub` whose
+    status says whether the session is still open, the part this machine holds, and the highest capture number it
+    handed out."""
+    return sessiongit.write_state(root, {"id": record_id, "path": privaterecord.private_path(record_id),
+                                         "stub": privaterecord.stub_path(record_id), "part": part, "branch": branch,
+                                         "modes": modes, "started": started, "last_capture": last_capture})
 
 
 def problem_lines(problems):
@@ -471,10 +478,12 @@ def start_in_copy(root, args, today, modes, plain, said):
         lines.append(say.Line("read copy: naming the initiative is the owner's; .vela.yaml not changed.",
                               plain="The owner names the initiative, so I haven't changed its name here."))
     record_id = sessions.new_id(today, args.topic, lambda i: (root / "sessions" / f"{i}.md").exists())
-    rel = f"sessions/{record_id}.md"
-    wrote = [sessiongit.write_text(root, rel, sessions.record_text(record_id, sessions.title_for(modes, args.topic),
-                                                                    today, modes))]
-    wrote.append(write_state(root, record_id, rel, None, modes, today))
+    title = sessions.title_for(modes, args.topic)
+    rel = privaterecord.private_path(record_id)
+    wrote = [sessiongit.write_text(root, privaterecord.stub_path(record_id),
+                                   privaterecord.new_stub(record_id, title, today, modes)),
+             sessiongit.write_text(root, rel, privaterecord.new_private(record_id, title, today, 1))]
+    wrote.append(write_state(root, record_id, None, modes, today))
     lines.append(say.Line(f"started: {record_id} in this folder, modes: {', '.join(modes)}",
                           plain=f"I've opened the session: {plain(sessions.title_for(modes, args.topic))}."))
     return say.Result(START, lines=lines, wrote=wrote, data={"id": record_id, "path": rel, "branch": None,
@@ -713,14 +722,15 @@ def open_record(root, args, today, modes, challenged, on_branch, lines, carried,
         if not ok:
             raise failed(f"git switch -c {branch} failed: {said}",
                          f"I couldn't set the session up, so I haven't started. {GIT_DETAIL}", lines)
-    rel = f"sessions/{record_id}.md"
+    rel = privaterecord.stub_path(record_id)
     title = sessions.title_for(modes, args.topic, challenged)
     began = sessiongit.head_commit(root)
-    text = sessions.record_text(record_id, title, today, modes, branch, began)
-    if "challenge" in modes:
-        text = privaterecord.with_lists(text, {"challenges": [args.topic]})
-    wrote = [sessiongit.write_text(root, rel, text)]
-    sessiongit.commit(root, f"Open session {record_id}", [rel])
+    challenges = [args.topic] if "challenge" in modes else []
+    wrote = [sessiongit.write_text(root, rel, privaterecord.new_stub(record_id, title, today, modes, branch, began,
+                                                                     challenges)),
+             sessiongit.write_text(root, privaterecord.private_path(record_id),
+                                   privaterecord.new_private(record_id, title, today, 1))]
+    sessiongit.commit(root, f"Open session {record_id}", [rel])  # the notes stay here; only the stub is committed
     where = ", and your answer goes onto the challenge itself" if challenged else ""
     lines.append(say.Line(f"started: {record_id} on {branch}, modes: {', '.join(modes)}",
                           plain=f"I've opened the session: {plain(title)}{where}."))
@@ -735,7 +745,7 @@ def open_record(root, args, today, modes, challenged, on_branch, lines, carried,
     elif args.unnamed:
         lines.append(say.Line("unnamed: the lead declined to name the initiative",
                               plain='The dashboard will read "New initiative" until you give it a name.'))
-    wrote.append(write_state(root, record_id, rel, branch, modes, today))
+    wrote.append(write_state(root, record_id, branch, modes, today))
     return say.Result(START, lines=lines, wrote=wrote, data={"id": record_id, "path": rel, "branch": branch,
                                                              "modes": modes, "reader": False})
 
@@ -755,6 +765,8 @@ def cmd_branch(args, out):
     except GitUnavailable as exc:
         result = say.Result(BRANCH, exit=say.FAILED, lines=[
             say.Line(f"vela: {exc}", plain=f"Git failed while moving the session. {GIT_DETAIL}")])
+    except sessiongit.PrivateMissing as exc:
+        result = say.Result(BRANCH, exit=say.FAILED, lines=[say.Line(f"vela: {exc}", plain=str(exc))])
     return commands.emit(result, args, out, resolver)
 
 
@@ -784,6 +796,9 @@ def move_to_own_branch(root):
         raise refuse_branch(f"vela session branch: {branch} already exists; nothing changed.",
                             "A branch for this session already exists, so I haven't moved anything.")
     text = (root / record.path).read_text(encoding="utf-8")
+    notes = sessiongit.private_text(root, record.id)
+    if notes is None:
+        raise sessiongit.PrivateMissing(record.id)
     began = sessions.start_commit_of(text)
     ok, said = sessiongit.create_branch(root, branch)
     if not ok:
@@ -791,8 +806,8 @@ def move_to_own_branch(root):
     rel = record.path
     sessiongit.write_text(root, rel, sessions.with_branch(text, branch))
     sessiongit.commit(root, f"Move session {record.id} to {branch}", [rel])
-    write_state(root, record.id, rel, branch, list(record.modes), record.date,
-                max(records.numbers_in((root / rel).read_text(encoding="utf-8")), default=0))
+    write_state(root, record.id, branch, list(record.modes), record.date, privaterecord.part_of(notes),
+                max(records.numbers_in(notes), default=0))
     lines = [say.Line(f"moved {record.id} from {default} to {branch}",
                       plain="The session has its own branch now, with everything we did on it.")]
     lines += main_back(root, default, began, branch)

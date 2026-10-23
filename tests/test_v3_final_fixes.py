@@ -49,7 +49,7 @@ summary: in progress
 def vault_with_record(tmp_path):
     vault = tmp_path / "ub"
     shutil.copytree(FIXTURE, vault)
-    session_files.write_record(vault, "2026-11-20-points-dump", RECORD)
+    session_files.write_whole_record(vault, "2026-11-20-points-dump", RECORD)  # findings merge reads the session as a page
     return vault
 
 

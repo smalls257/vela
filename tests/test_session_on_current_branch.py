@@ -8,6 +8,7 @@ from sharing import git, make_vault, with_remote
 from test_close_drafts import STOCK, decide_stock, drafts_json, resolve_till_rig
 from test_session_cli import TODAY, no_gh, start
 import session_files
+from vela import privaterecord
 
 
 def commit_all(vault, message):
@@ -16,7 +17,7 @@ def commit_all(vault, message):
 
 
 def close_record(vault, record_id):
-    session_files.edit_record(vault, record_id, "status: open", "status: closed")
+    session_files.edit_stub(vault, record_id, "status: open", "status: closed")
     commit_all(vault, f"Close session {record_id}")
 
 
@@ -60,7 +61,7 @@ def test_close_push_on_the_default_branch_offers_a_branch_and_session_branch_mov
     assert git(vault, "branch", "--show-current") == branch
     assert git(vault, "rev-parse", "main") == began  # main holds nothing of the session
     assert git(vault, "log", "--format=%s", began + ".." + branch).split("\n")[0] == f"Move session {TODAY}-stock to {branch}"
-    assert f"branch: {branch}\n" in session_files.record_text(vault, f"{TODAY}-stock")
+    assert privaterecord.stub_meta(session_files.stub_text(vault, f"{TODAY}-stock"))["branch"] == branch
     code, out = run("session", "open", "--vault", str(vault), "--json")
     assert code == 0 and json.loads(out)["open"][0]["branch"] == branch
     code, out = run("session", "branch", "--vault", str(vault))

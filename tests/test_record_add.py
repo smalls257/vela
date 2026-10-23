@@ -48,16 +48,14 @@ def test_capture_numbers_never_reused_after_delete(tmp_path, monkeypatch):
     assert add(vault, "--origin", "claude", "--tag", "idea", "four") == (0, "^c04\n")
 
 
-def test_a_number_only_git_remembers_is_not_reused(tmp_path, monkeypatch):
-    """Another machine, no `.vela/session.json`: the record's history still knows ^c05 was used."""
+def test_the_notes_are_never_in_git_so_the_file_and_the_state_hold_every_number(tmp_path, monkeypatch):
+    """The private file is untracked, so there is no history to remember a deleted number: the file's own text does,
+    and `.vela/session.json` for a line that was removed."""
     vault = started(tmp_path, monkeypatch)
-    body = session_files.record_text(vault, RECORD_ID)
-    session_files.write_record(vault, RECORD_ID, body.replace("## Captures\n\n", "## Captures\n\n- [idea] (claude) five ^c05\n", 1))
-    git(vault, "commit", "-q", "-am", f"Checkpoint {TODAY}-consent")
-    session_files.write_record(vault, RECORD_ID, body)
-    git(vault, "commit", "-q", "-am", f"Checkpoint {TODAY}-consent")
+    session_files.edit_record(vault, RECORD_ID, "## Captures\n\n", "## Captures\n\n- [idea] (claude) five ^c05\n")
     (vault / ".vela" / "session.json").unlink()
     assert add(vault, "--origin", "claude", "--tag", "idea", "six") == (0, "^c06\n")
+    assert git(vault, "log", "--format=%s", "--", f"sessions/private/{RECORD_ID}.md") == ""
 
 
 def test_mark_written_at_once(tmp_path, monkeypatch):

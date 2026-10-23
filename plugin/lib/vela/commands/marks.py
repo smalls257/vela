@@ -31,7 +31,7 @@ import json
 import pathlib
 
 from vela import commands, ledger, markrules, parse, say
-from vela.decisions import record as records, schema
+from vela.decisions import schema
 from vela.edge import atomic, sessiongit
 
 NAME = "marks plan"
@@ -80,7 +80,9 @@ def failed(text, plain):
 def find_record(root):
     """(OpenRecord, None), or (None, the Result to print instead). Read from the working tree, so no git runs."""
     try:
-        rec, opened = records.open_record(sessiongit.folder_records(root))
+        rec, opened = sessiongit.open_record(root)
+    except sessiongit.PrivateMissing as exc:
+        return None, failed(str(exc), str(exc))
     except (OSError, UnicodeDecodeError) as exc:
         return None, failed(f"can't read the session records: {exc}", "I couldn't read the session records.")
     if rec is not None:

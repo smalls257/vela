@@ -17,12 +17,12 @@ def read(*parts):
 def test_answer_is_a_session_mode_the_check_knows(mini):
     assert "answer" in schema.SESSION_MODES
     assert "`challenge`, `answer`." in read("plugin", "template", "CONVENTIONS.md")
-    session_files.edit_record(mini, SESSION_ID, "modes: [grill]", "modes: [answer, grill]")
+    session_files.edit_stub(mini, SESSION_ID, "modes: [grill]", "modes: [answer, grill]")
     assert findings(check(mini)[1]) == []
 
 
 def test_an_answer_session_without_a_grill_cannot_decide(mini):
-    session_files.edit_record(mini, SESSION_ID, "modes: [grill]", "modes: [answer]")
+    session_files.edit_stub(mini, SESSION_ID, "modes: [grill]", "modes: [answer]")
     assert "E303" in {code for code, _ in findings(check(mini)[1])}
 
 

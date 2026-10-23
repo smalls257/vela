@@ -16,8 +16,10 @@ def test_guard_path_verdicts(tmp_path):
     never = {".inbox/call.md": "inbox", "notes/.inbox/call.md": "inbox", ".Inbox/Call.md": "inbox",
              "voice/local/mine.md": "voice-local", "voice/corpus/essay.txt": "voice-corpus",
              "Voice/Corpus/essay.txt": "voice-corpus", ".vela/session.json": "tool-state",
-             "./.vela/workspace.json": "tool-state", "a/../.inbox/x.md": "inbox"}
-    allowed = (".vela/explorer-pins.json", "voice/examples/decision/one.md", "01-goals.md", "sources.md",
+             "./.vela/workspace.json": "tool-state", "a/../.inbox/x.md": "inbox",
+             "sessions/private/2026-10-14-x.md": "session-private", "Sessions/Private/x.md": "session-private",
+             "plan/sessions/private/x.md": "session-private"}
+    allowed = ("sessions/2026-10-14-x.md", "sessions/privately.md", ".vela/explorer-pins.json", "voice/examples/decision/one.md", "01-goals.md", "sources.md",
                ".vela.yaml", "inbox/not-hidden.md", "voice/localish.md", "README.md")
     for path, key in never.items():
         code, out = run("guard", "path", path, "--vault", str(tmp_path), "--json")
@@ -38,6 +40,14 @@ def test_the_plan_sorts_each_path_once_and_never_rules_win():
     assert [p for p, _ in plan.never] == [".inbox/a.md"]
     assert dict(plan.left) == {"sessions/s0.md": guard.OTHER_SESSION, "handoffs/APP-x.md": guard.HANDOFF,
                                "dashboard.html": guard.DASHBOARD, "scratch.txt": guard.OTHER}
+
+
+def test_the_private_notes_are_never_staged_even_beside_their_stub():
+    changed = ["sessions/s1.md", "sessions/private/s1.md"]
+    plan = guard.plan(changed, set(), "s1")
+    assert plan.stage == ("sessions/s1.md",)
+    assert plan.never == (("sessions/private/s1.md", guard.SESSION_PRIVATE),)
+    assert guard.SESSION_PRIVATE in guard.RULES
 
 
 def git(root, *args, env=None):

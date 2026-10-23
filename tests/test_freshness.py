@@ -81,14 +81,14 @@ def test_no_closed_session_for_30_days_warns_once(mini):
 
 
 def test_an_open_session_does_not_count_as_closed(mini):
-    session_files.edit_record(mini, "2026-01-10-shop-api", "status: closed", "status: open")
+    session_files.edit_stub(mini, "2026-01-10-shop-api", "status: closed", "status: open")
     _, out = check(mini, today="2026-02-06")
     assert "The last session closed on 2026-01-05, 32 days ago." in out
 
 
 def test_a_vault_with_no_closed_session_is_not_judged(mini):
     for path in (mini / "sessions").glob("*.md"):
-        session_files.edit_record(mini, path.stem, "status: closed", "status: open")
+        session_files.edit_stub(mini, path.stem, "status: closed", "status: open")
     assert "W711" not in check(mini, today="2027-01-01")[1]
 
 

@@ -5,7 +5,6 @@ Pending approval, the Changes row, the capture's mark, the agenda line, the comm
 The vault is the mini fixture with one item of each target kind added, so every kind is decided against the same pages.
 """
 import json
-import re
 import shutil
 import subprocess
 
@@ -13,13 +12,13 @@ import pytest
 
 from conftest import MINI, edit, run
 from vela import cli, closegate, decisions, parse
-from vela.decisions import decide, record as records, textedit
-from vela.edge import apply as disk
+from vela.decisions import decide, textedit
+from vela.edge import apply as disk, sessiongit
 from vela.flowcheck import standing
 import session_files
 
 RECORD_ID = "2026-10-20-grill-stock"
-RECORD = f"sessions/{RECORD_ID}.md"
+RECORD = f"sessions/private/{RECORD_ID}.md"  # the notes: where a decision writes the Changes row and the mark
 TODAY = "2026-10-20"
 WHY = 'Because the till | can\'t wait **long** for [[01-goals|the goal]]'
 CAPTURES = [
@@ -215,7 +214,7 @@ def block_con_002(root):
 
 
 def opened(root):
-    found, problem = records.open_record([("", RECORD, session_files.record_text(root, RECORD_ID))])
+    found, problem = sessiongit.open_record(root)
     assert problem is None, problem
     return found
 
@@ -369,7 +368,7 @@ def test_commit_message_grill_id_decided(tmp_path):
     assert git_log(root)[0] == "grill: CON-002 decided"
     shown = subprocess.run(["git", "show", "--name-only", "--format=", "HEAD"], cwd=root, check=True,
                            capture_output=True, text=True).stdout.split()
-    assert sorted(shown) == sorted([RECORD, STOCK]), "only the record and the changed page, by exact path"
+    assert sorted(shown) == [STOCK], "only the changed page, by exact path: the notes are never committed"
     assert json.loads(out)["commit"], out
 
 
@@ -529,8 +528,7 @@ def test_dispatch_names_one_module_per_kind():
 
 # --- a yes in a session that can't decide is kept, not lost (full3: D4, D7, D8 had a lead yes and stayed assumptions)
 def in_session_with_modes(root, modes):
-    text = re.sub(r"^modes: \[[^\]]*\]", f"modes: [{modes}]", session_files.record_text(root, RECORD_ID), flags=re.M)
-    session_files.write_record(root, RECORD_ID, text)
+    session_files.set_modes(root, RECORD_ID, modes)
 
 
 def decide_con_002(root):

@@ -147,7 +147,7 @@ def run(args, out):
     # A decision numbers nothing, so no branch is read for IDs; the view still carries the (empty) list `attach` gives.
     staged = textedit.attach(decisions.Staged(vault, disk.reader(root)), today, [])
     _, target = decide.locate(staged, ident)
-    if not (args.reopen or args.stated_in) and target is not None and not ready.can_decide(record.text):
+    if not (args.reopen or args.stated_in) and target is not None and not ready.can_decide(textedit.stub_text(record, staged)):
         return commands.emit(cannot_decide_here(root, record, ident, args), args, out, resolver)
     if target is not None and target.gate:
         keys = gates.flow_keys(vault, target.gate)
@@ -165,8 +165,7 @@ def cannot_decide_here(root, record, ident, args):
     """A yes in a shape, boundary, releases (...) session is kept, not lost: the item is listed as ready to decide in
     this record, `vela session brief` shows it to the next grill, and the model is told to offer the lead one now."""
     marked = ready.mark(record.text, ident, record.id, (args.yes or "").strip() or None)
-    text = privaterecord.synced_stub(marked, marked)
-    wrote = [sessiongit.write_text(root, record.path, text)] if text != record.text else []
+    wrote = sessiongit.write_notes(root, record, marked)
     return say.Result(NAME, exit=say.REFUSED, wrote=wrote, data={"id": ident, "ready_to_decide": True},
                       refusals=[textedit.refusal(
                           "decide-not-in-this-session",
@@ -218,7 +217,7 @@ def file_item(item, root, staged, record, reader):
         if item.get("stated_in") and not item.get("reopen"):
             message = STATED_MESSAGE.format(id=item["id"], source=item["stated_in"])
         try:
-            commit = stagegit.commit(root, message, written)
+            commit = stagegit.commit(root, message, [p for p in written if not privaterecord.is_private(p)])
         except GitUnavailable as exc:
             return failed(f"wrote {', '.join(written)} but the commit failed: {exc}",
                           "I wrote it down, but couldn't commit it; the changes are on disk.")

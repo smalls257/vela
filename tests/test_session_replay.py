@@ -23,7 +23,7 @@ import sys
 import types
 
 from conftest import REPO, FINDING
-from vela import closefinish, closegate, ledger, parse, say, schema
+from vela import closefinish, closegate, ledger, parse, privaterecord, say, schema
 from vela.commands import close_stage, decide, voice_settle
 import session_files
 
@@ -69,6 +69,7 @@ def build(tmp_path):
     git(tmp_path, "init", "-q", "-b", "main", str(vault))
     git(vault, "config", "user.name", "Replay Lead")
     git(vault, "config", "user.email", "replay-lead@example.invalid")
+    session_files.ignore_private(vault)  # the snapshot predates the line the template's .gitignore now carries
     git(vault, "add", "-A")
     git(vault, "commit", "-q", "-m", "Vault from snapshot heron-desk/after-full-1")
     git(tmp_path, "init", "-q", "--bare", "-b", "main", str(origin))
@@ -122,10 +123,10 @@ def check_errors(ctx):
     return errors(output)
 
 
-def record_problems(text):
-    """Lines of the record that do not read in today's grammar."""
+def record_problems(stub, text):
+    """Lines of the record that do not read in today's grammar: the stub's header, then the notes' sections."""
     problems, section = [], None
-    meta = parse.split_frontmatter(text)[0]
+    meta = parse.split_frontmatter(stub)[0]
     if meta.get("type") != "session" or meta.get("status") not in ("open", "closed"):
         problems.append(f"frontmatter: {meta}")
     found = closegate.captures(text)
@@ -165,7 +166,10 @@ def test_a_session_replays_end_to_end_on_todays_commands(tmp_path):
     assert not new_errors, f"the steps {ran} left errors vela check did not report before: {sorted(new_errors)}"
 
     assert (vault / "sessions" / f"{RECORD_ID}.md").is_file(), "no step wrote the session record"
-    problems = record_problems(session_files.record_text(vault, RECORD_ID))
+    problems = record_problems(session_files.stub_text(vault, RECORD_ID), session_files.record_text(vault, RECORD_ID))
+    assert "Heron reads" in parse.split_frontmatter(session_files.record_text(vault, RECORD_ID))[0]["summary"]
+    assert (vault / "sessions" / "private" / f"{RECORD_ID}.md").is_file() and \
+        not ctx.git("ls-files", "sessions/private").strip(), "the notes were never committed"
     assert not problems, "the record does not read in today's grammar:\n" + "\n".join(problems)
 
     subjects = ctx.git("log", "--format=%s", f"{start}..HEAD").splitlines()
@@ -187,9 +191,14 @@ def test_the_grammar_checks_catch_a_bad_record_and_a_bad_commit():
     good = ("---\nid: x\ntype: session\ndate: 2026-10-14\nmodes: [grill]\nstatus: open\nsummary: s.\n---\n\n# x\n\n"
             "## Captures\n\n- [decision] (@lead) \"Yes.\" → keep: [[p#CON-001 X|CON-001]] (decided) ^c01\n\n"
             "## Changes\n\n| ID | From | To | Source |\n|---|---|---|---|\n| CON-001 | assumption | decided | [[x#^c01]] |\n")
-    assert record_problems(good) == []
-    assert record_problems(good.replace("(decided) ^c01", "(settled) ^c01"))
-    assert record_problems(good.replace("[[x#^c01]]", "[[x#^c09]]"))
-    assert record_problems(good.replace("| CON-001 | assumption | decided | [[x#^c01]] |", "| CON-001 | decided |"))
+    def problems(text):
+        split = privaterecord.split_record(text)
+        return record_problems(split.stub, split.private)
+
+    assert problems(good) == []
+    assert problems(good.replace("(decided) ^c01", "(settled) ^c01"))
+    assert problems(good.replace("[[x#^c01]]", "[[x#^c09]]"))
+    assert problems(good.replace("| CON-001 | assumption | decided | [[x#^c01]] |", "| CON-001 | decided |"))
+    assert problems(good.replace("status: open", "status: half"))
     assert not any(g.match("Close the session") for g in COMMIT_GRAMMAR)
     assert any(g.match(f"Close session {RECORD_ID}") for g in COMMIT_GRAMMAR)

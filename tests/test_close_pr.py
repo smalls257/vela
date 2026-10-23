@@ -64,7 +64,7 @@ def calls(log):
 def pushed(tmp_path, **kwargs):
     vault, bare = sent_session(tmp_path, **kwargs)
     assert push(vault)[0] == 3
-    number = add_yes(vault, record_id=kwargs.get("record_id", RECORD))
+    number = add_yes(vault)
     code, out = push(vault, "--consent", number)
     assert code == 0, out
     return vault, bare
@@ -198,7 +198,7 @@ def test_answer_session_pushes_challenge_branch_and_comments(tmp_path, monkeypat
     before = git(bare, "rev-parse", CHALLENGE_BRANCH)
     code, out = push(vault)
     assert code == 3 and f"`{CHALLENGE_BRANCH}`" in out and "comment on the challenge's pull request" in out, out
-    number = add_yes(vault, record_id=ANSWER)
+    number = add_yes(vault)
     code, out = push(vault, "--consent", number)
     assert code == 0, out
     assert git(bare, "rev-parse", CHALLENGE_BRANCH) == git(vault, "rev-parse", "HEAD") != before

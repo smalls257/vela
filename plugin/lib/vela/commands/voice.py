@@ -259,7 +259,10 @@ def save_result(args, root):
 
 def open_record(root, command):
     """(OpenRecord, None), or (None, the Result): the yeses are read from the one open session record."""
-    rec, opened = records.open_record(sessiongit.folder_records(root))
+    try:
+        rec, opened = sessiongit.open_record(root)
+    except sessiongit.PrivateMissing as exc:
+        return None, failed(command, f"vela voice: {exc}", str(exc))
     if rec is not None:
         return rec, None
     if opened.several:
@@ -495,17 +498,16 @@ def decline_result(root, pr, page, digest):
     if problem is not None:
         return problem
     line = voiceplan.decline_line(pr, page, digest)
-    if (pr, page, digest) in voiceplan.declined([privaterecord.stub_meta(record.text)]):
+    if (pr, page, digest) in voiceplan.declined([privaterecord.lists_of(record.text)]):
         return say.Result(command, lines=[say.Line(f"already declined: {line}", "That one was already declined.")])
     text = voiceplan.with_decline(record.text, line)
-    text = None if text is None else privaterecord.synced_stub(text, text)
     if text is None:
         return refused(command, "voice-no-captures", "The session record has no captures section to write it under.",
                        f"Add a `## Captures` heading to {record.path}, then decline again.")
     try:
-        atomic.write_atomic(root / record.path, text)
+        wrote = sessiongit.write_notes(root, record, text)
     except atomic.WriteFailed as exc:
         return failed(command, f"vela voice: the disk refused {record.path}: {exc}", "The disk refused the record.")
     return say.Result(command, lines=[say.Line(f"wrote under ## Captures in {record.path}: {line}",
                                                "I've noted that you declined it, so it won't come up again.")],
-                      wrote=[record.path])
+                      wrote=wrote)

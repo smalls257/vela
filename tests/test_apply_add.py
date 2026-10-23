@@ -8,12 +8,12 @@ import pytest
 
 from conftest import MINI, run
 from vela import cli, decisions, parse, schema
-from vela.decisions import add, add_unknown, record as records, textedit
-from vela.edge import apply as disk
+from vela.decisions import add, add_unknown, textedit
+from vela.edge import apply as disk, sessiongit
 import session_files
 
 RECORD_ID = "2026-10-20-grill-stock"
-RECORD = f"sessions/{RECORD_ID}.md"
+RECORD = f"sessions/private/{RECORD_ID}.md"
 TODAY = "2026-10-20"
 CAPTURES = ['- [unknown] (@priya) "Who owns the till test rig?" ^c01',
             '- [thought] (@priya) "The shop must open on 2026-11-02." ^c02',
@@ -39,7 +39,7 @@ def write(root, path, text):
 
 
 def opened(root):
-    found, problem = records.open_record([("", RECORD, session_files.record_text(root, RECORD_ID))])
+    found, problem = sessiongit.open_record(root)
     assert problem is None, problem
     return found
 

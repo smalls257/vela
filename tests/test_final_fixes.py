@@ -79,7 +79,7 @@ def test_template_ignores_pycache():
 # 4. an impossible date is a finding, not exit 2
 
 def test_impossible_date_is_e102_not_a_crash(mini):
-    session_files.edit_record(mini, SESSION_ID, "date: 2026-01-10\n", "date: 2026-13-01\n")
+    session_files.edit_stub(mini, SESSION_ID, "date: 2026-01-10\n", "date: 2026-13-01\n")
     code, out = check(mini)
     assert code == 1
     assert ("E102", SESSION) in findings(out)
@@ -146,7 +146,7 @@ def test_decided_fr_linking_a_grill_passes(mini):
 
 
 def test_decided_fr_linking_a_requirements_session_is_e317(mini):
-    session_files.edit_record(mini, SESSION_ID, "modes: [grill]", "modes: [requirements]")
+    session_files.edit_stub(mini, SESSION_ID, "modes: [grill]", "modes: [requirements]")
     add_cap(mini, CAP_PAGE.replace("- **State:** assumption", "- **State:** decided\n- **Decision:** [[2026-01-10-shop-api]]"))
     _, out = check(mini)
     assert ("E317", CAP) in codes(out)

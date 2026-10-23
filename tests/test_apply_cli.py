@@ -11,6 +11,7 @@ import pytest
 
 from conftest import MINI, run
 from vela import say
+from vela.edge import sessiongit
 from vela.decisions import consent, schema
 import session_files
 
@@ -127,9 +128,7 @@ def test_reapply_is_noop(tmp_path, note_kind):
 
 def test_capture_text_changed_since_draft_refused(tmp_path, note_kind):
     root = vault_with_record(tmp_path)
-    from vela.decisions import record
-    rec, _ = record.open_record([("", f"sessions/{RECORD_ID}.md",
-                                  session_files.record_text(root, RECORD_ID))])
+    rec, _ = sessiongit.open_record(root)
     path = decision_file(root, [schema.seal(good(), rec, ["^c31"])])
     session_files.edit_record(root, RECORD_ID, "file both as read", "file only stock")
     before = snapshot(root)

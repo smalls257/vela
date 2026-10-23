@@ -26,7 +26,7 @@ import yaml
 from vela import allocation, capture, catalog, completeness, diagramcheck, doctor, drafts, search, export, freshness, handoff, handoffwarn, health, ids, ladder, model, onboardpath, opening, pending, pluginroot, proposal, reading, parse, progress, publish, query, questions, releases, render, replay, review, reviews, roles, rules, schema, secretscan, slices, sourcerows, terms, tickets, untrusted, viewer, voicecheck, voicescore
 from vela.edge import atomic, copies, machine, mermaidjs, replays, reviewgit, teamdocs, vaultgit
 from vela.edge import proposals as proposal_files
-from vela import commands, guard, say
+from vela import commands, guard, privaterecord, say
 
 ASSETS = pathlib.Path(__file__).resolve().parent / "assets"
 CATALOG = pathlib.Path(__file__).resolve().parent.parent.parent / "catalog" / "questions.yaml"
@@ -113,7 +113,7 @@ def page_kind(rel):
     """"page", "other" (Markdown the vault skips, such as README.md) or "ignored" for a vault-relative path ending
     .md: the one rule vault_files and the flow check's view of an earlier version share."""
     parts = pathlib.PurePosixPath(rel).parts
-    if any(p.startswith(".") for p in parts[:-1]) or replay.is_mine_file(rel):
+    if any(p.startswith(".") for p in parts[:-1]) or replay.is_mine_file(rel) or privaterecord.is_private(rel):
         return "ignored"
     if (len(parts) == 1 and parts[0] in schema.SKIP_FILES) or parts[0] in schema.SKIP_DIRS:
         return "other"

@@ -33,15 +33,15 @@ KEPT_AT = "assumption"
 MODES = re.compile(r"^modes:\s*\[(?P<modes>[^\]]*)\]", re.M)
 
 
-def modes_of(record_text):
-    found = MODES.search(record_text)
+def modes_of(stub_text):
+    found = MODES.search(stub_text)
     return [m.strip() for m in found["modes"].split(",") if m.strip()] if found else []
 
 
-def can_decide(record_text):
+def can_decide(stub_text):
     """False when every mode of the session is one that never sets `decided`; a session with no modes, or any mode
     outside that list (grill, answer, epics inside a grill part), is left to the gate."""
-    modes = modes_of(record_text)
+    modes = modes_of(stub_text)
     return not modes or any(m not in CANNOT_DECIDE for m in modes)
 
 
@@ -98,10 +98,10 @@ def leads_own_yes(capture, lead):
     return said and not capture.is_bare_non_yes and is_yes(capture.quote)
 
 
-def from_keep(record_text, record_id, capture, ident, state, lead):
+def from_keep(record_text, record_id, capture, ident, state, lead, stub_text):
     """The record with `ident` listed as ready to decide when this keep is the lead's plain yes on an item left at
-    `assumption` in a session that can't decide; else unchanged."""
-    if state != KEPT_AT or can_decide(record_text) or not leads_own_yes(capture, lead):
+    `assumption` in a session that can't decide (its modes are in `stub_text`); else unchanged."""
+    if state != KEPT_AT or can_decide(stub_text) or not leads_own_yes(capture, lead):
         return record_text
     return mark(record_text, ident, record_id, f"^c{capture.n}")
 

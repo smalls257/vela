@@ -27,8 +27,8 @@ def test_app_page_frontmatter(mini, old, new, code):
 
 def test_session_mode_and_date(mini):
     record_id = "2026-01-05-till-needs"
-    session_files.edit_record(mini, record_id, "modes: [requirements]", "modes: [requirements, chat]")
-    session_files.edit_record(mini, record_id, "date: 2026-01-05", "date: 2026-01-04")
+    session_files.edit_stub(mini, record_id, "modes: [requirements]", "modes: [requirements, chat]")
+    session_files.edit_stub(mini, record_id, "date: 2026-01-05", "date: 2026-01-04")
     _, out = check(mini)
     assert sorted(findings(out)) == [("E105", "sessions/2026-01-05-till-needs.md"), ("E107", "sessions/2026-01-05-till-needs.md")]
 
@@ -74,7 +74,7 @@ def test_type_that_is_a_list_is_a_finding_not_a_crash(mini):
 
 def test_modes_that_is_a_number_is_one_list_finding(mini):
     record_id = "2026-01-05-till-needs"
-    session_files.edit_record(mini, record_id, "modes: [requirements]", "modes: 5")
+    session_files.edit_stub(mini, record_id, "modes: [requirements]", "modes: 5")
     code, out = check(mini)
     assert code == 1, out
     assert findings(out) == [("E105", "sessions/2026-01-05-till-needs.md")]
@@ -82,7 +82,7 @@ def test_modes_that_is_a_number_is_one_list_finding(mini):
 
 def test_modes_that_is_a_string_is_one_list_finding(mini):
     record_id = "2026-01-05-till-needs"
-    session_files.edit_record(mini, record_id, "modes: [requirements]", "modes: grill")
+    session_files.edit_stub(mini, record_id, "modes: [requirements]", "modes: grill")
     code, out = check(mini)
     assert code == 1, out
     assert findings(out) == [("E105", "sessions/2026-01-05-till-needs.md")]

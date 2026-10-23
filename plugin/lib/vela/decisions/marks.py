@@ -185,5 +185,5 @@ def apply(item, vault, record):
     if item["mark"] == "keep":
         for ident in ids_of(item):
             text = ready.from_keep(text, record.id, record.capture(item["capture"]), ident, item["state"],
-                                   getattr(vault, "lead", None))
+                                   getattr(vault, "lead", None), textedit.stub_text(record, vault))
     return textedit.record_writes(record, vault, text)

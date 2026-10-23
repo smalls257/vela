@@ -67,7 +67,8 @@ def sent_session(tmp_path, stock_owner=None, handle="lead", record_id=RECORD, br
     (vault / ".vela").mkdir(exist_ok=True)
     if handle:
         (vault / ".vela" / "handle").write_text(handle + "\n", encoding="utf-8")
-    state = {"id": record_id, "path": f"sessions/{record_id}.md", "branch": branch, "modes": modes.split(", "),
+    state = {"id": record_id, "path": f"sessions/private/{record_id}.md", "stub": f"sessions/{record_id}.md",
+             "part": 1, "branch": branch, "modes": modes.split(", "),
              "started": TODAY, "last_capture": 1}
     (vault / ".vela" / "session.json").write_text(json.dumps(state), encoding="utf-8")
     return vault, bare
@@ -77,15 +78,13 @@ def push(vault, *flags):
     return run("close", "push", "--vault", str(vault), "--today", TODAY, *flags)
 
 
-def add_yes(vault, words="Yes, send it.", origin="@lead", commit=True, record_id=RECORD):
-    """The lead's answer to the send notice, captured with `vela record add`, then committed."""
+def add_yes(vault, words="Yes, send it.", origin="@lead"):
+    """The lead's answer to the send notice, captured with `vela record add`. It lands in the private notes, which
+    are never committed, so there is nothing to commit afterwards."""
     saidlog.append(vault, "test-session", "2026-10-14T09:00:00Z", words)  # typed, as the hook logs it
     code, out = run("record", "add", "--vault", str(vault), "--origin", origin, "--tag", "decision", "--mark",
                     SEND_MARK, words)
     assert code == 0, out
-    if commit:
-        git(vault, "add", "sessions")
-        git(vault, "commit", "-q", "-m", f"Checkpoint {record_id}")
     return out.strip()
 
 
@@ -170,12 +169,13 @@ def test_consent_after_notice_pushes(tmp_path):
     assert pushed["branch"] == BRANCH and pushed["consent"] == number.lstrip("^")
 
 
-def test_uncommitted_yes_refused(tmp_path):
+def test_an_uncommitted_change_stops_the_push_but_the_private_yes_does_not(tmp_path):
     vault, bare = sent_session(tmp_path)
     assert push(vault)[0] == 3
-    number = add_yes(vault, commit=False)
+    number = add_yes(vault)
+    (vault / STOCK).write_text((vault / STOCK).read_text(encoding="utf-8") + "\nA late edit.\n", encoding="utf-8")
     code, out = push(vault, "--consent", number)
-    assert code == 1 and "isn't committed" in out, out
+    assert code == 1 and "aren't committed yet" in out, out
     assert not remote_has(bare, BRANCH)
 
 

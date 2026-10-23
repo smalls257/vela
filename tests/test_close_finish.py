@@ -65,7 +65,9 @@ def files_in(vault, ref):
 
 
 def record_meta(vault):
-    return parse.split_frontmatter(session_files.record_text(vault, RECORD))[0]
+    """The committed stub's header with the private notes' own keys (the summary) laid over it."""
+    notes = parse.split_frontmatter(session_files.record_text(vault, RECORD))[0]
+    return {**privaterecord.stub_meta(session_files.stub_text(vault, RECORD)), **notes}
 
 
 def manifest_already_accepted(vault):
@@ -226,11 +228,13 @@ def test_the_steps_run_in_one_order():
                                                                            closefinish.DASHBOARD_BUILD]
 
 
-def test_with_closed_keeps_the_body_and_quotes_the_summary():
-    text = closefinish.with_closed(record_text(), 'Said "yes": to stock')
-    meta = parse.split_frontmatter(text)[0]
-    assert meta["status"] == "closed" and meta["summary"] == 'Said "yes": to stock'
-    assert text.split("---", 2)[2] == record_text().split("---", 2)[2]
+def test_closing_sets_the_stub_status_and_quotes_the_summary_in_the_notes():
+    split = privaterecord.split_record(record_text())
+    stub = closefinish.closed_stub(split.stub)
+    assert privaterecord.stub_meta(stub)["status"] == "closed" and "summary" not in privaterecord.stub_meta(stub)
+    notes = privaterecord.with_summary(split.private, 'Said "yes": to stock')
+    assert parse.split_frontmatter(notes)[0]["summary"] == 'Said "yes": to stock'
+    assert notes.split("---", 2)[2] == split.private.split("---", 2)[2]
 
 
 def test_close_tells_the_lead_which_yeses_wait_for_a_short_grill(tmp_path):
@@ -242,8 +246,9 @@ def test_close_tells_the_lead_which_yeses_wait_for_a_short_grill(tmp_path):
     session_files.edit_record(
         vault, RECORD, "## Captures",
         f"## Ready to decide\n\n- CON-002: the lead said yes in {RECORD} (^c01)\n\n## Captures")
-    text = session_files.record_text(vault, RECORD)
-    session_files.write_record(vault, RECORD, privaterecord.synced_stub(text, text))
+    stub = vault / "sessions" / f"{RECORD}.md"
+    stub.write_text(privaterecord.synced_stub(stub.read_text(encoding="utf-8"),
+                                              session_files.record_text(vault, RECORD)), encoding="utf-8")
     assert run("render", "--vault", str(vault))[0] == 0
     code, out = finish(vault, "--for-lead")
     assert code == 0, out

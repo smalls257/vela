@@ -132,6 +132,11 @@ def with_part(stub_text, part, value):
     return _assemble(_set(meta, "captures_sha256", held), body)
 
 
+def with_status(stub_text, status):
+    meta, body = _read(stub_text)
+    return _assemble({**meta, "status": status}, body)
+
+
 def listed(meta, key):
     return tuple(str(item) for item in (meta.get(key) or ()))
 

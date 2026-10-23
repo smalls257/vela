@@ -75,7 +75,7 @@ def test_a_reviews_section_in_the_documented_form_passes_check(tmp_path):
 | F1.1 | FIN | normal | new | Who tells the loyalty scheme \\| and when? | "because points are earned at reservation" in [[04a-capability-delta]] |
 
 ## Changes""")
-    session_files.write_record(vault, "2026-11-19-owed-questions", text)
+    session_files.write_whole_record(vault, "2026-11-19-owed-questions", text)  # E202 reads the page's anchors
     code, out = check(vault, "2026-11-20")
     assert code == 0 and findings(out) == [], out
 
@@ -483,6 +483,7 @@ def test_a_close_run_by_its_rules_on_a_dump_then_a_shape_passes_check(tmp_path):
 
     _close(vault, "2026-11-20-credit-dump", DUMP_SAID)
     run("render", "--vault", str(vault))
+    session_files.expose_notes(vault, "2026-11-20-credit-dump")  # E202 reads the page's anchors
     code, out = check(vault, TODAY)
     assert code == 0 and findings(out) == [], out
     scope = (vault / "03-context-and-scope.md").read_text(encoding="utf-8")
@@ -504,6 +505,7 @@ def test_a_close_run_by_its_rules_on_a_dump_then_a_shape_passes_check(tmp_path):
     session_files.write_record(vault, "2026-11-20-credit-expiry", SHAPE_RECORD)
     _close(vault, "2026-11-20-credit-expiry", SHAPE_SAID)
     run("render", "--vault", str(vault))
+    session_files.expose_notes(vault, "2026-11-20-credit-expiry")  # E202 reads the page's anchors
     code, out = check(vault, TODAY)
     assert code == 0 and findings(out) == [], out
 
@@ -531,4 +533,5 @@ def test_a_close_run_by_its_rules_on_a_dump_then_a_shape_passes_check(tmp_path):
         vault, "2026-11-20-credit-dump",
         "[[11-unknowns-and-risks#UNK-010 How we deal with a travel insurer|UNK-010]] (open)",
         "[[03-context-and-scope#PTY-03 Travel insurer|PTY-03]] (subject)")
+    session_files.expose_notes(vault, "2026-11-20-credit-dump")
     assert ("E202", "sessions/2026-11-20-credit-dump.md") in findings(check(vault, TODAY)[1])

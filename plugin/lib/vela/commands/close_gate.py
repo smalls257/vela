@@ -58,10 +58,13 @@ def register_close(steps):
 
 
 def open_record(root):
-    """(record, text) of the one open record in this working tree, or a Result to return instead."""
+    """(stub record, private text) of the one open session in this working tree, or a Result to return instead."""
     found, problems = sessions.find_open(sessiongit.folder_records(root))
     if len(found) == 1:
-        text = (root / found[0].path).read_text(encoding="utf-8")
+        text = sessiongit.private_text(root, found[0].id)
+        if text is None:
+            missing = str(sessiongit.PrivateMissing(found[0].id))
+            return None, "", say.Result("close gate", exit=say.FAILED, lines=[say.Line(missing, plain=missing)])
         return found[0], text, None
     if not found:
         said = "No session is open, so there is nothing to finish."

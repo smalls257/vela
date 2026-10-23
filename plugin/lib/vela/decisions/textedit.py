@@ -394,16 +394,27 @@ def new_id(item, view, prefix):
 
 
 def record_writes(record, view, new_text):
-    """The write for a record's new text, with its frontmatter lists (`ready`, `harvest_declined`) brought in step
-    with the body, so the committed header never disagrees with the words under it."""
+    """The writes for a record's new text: the private notes, and the stub beside it when the lists it carries
+    (`ready`, `harvest_declined`) change, so the committed header never disagrees with the words under it."""
     from vela import privaterecord
     from vela.decisions.schema import Write
-    new_text = privaterecord.synced_stub(new_text, new_text)
-    return [Write(record.path, new_text)] if new_text != (view.text(record.path) or record.text) else []
+    if new_text == (view.text(record.path) or record.text):
+        return []
+    writes = [Write(record.path, new_text)]
+    stub = view.text(record.stub)
+    synced = privaterecord.synced_stub(stub, new_text) if stub is not None else None
+    if synced is not None and synced != stub:
+        writes.append(Write(record.stub, synced))
+    return writes
 
 
 def record_text(record, view):
     return view.text(record.path) or record.text
+
+
+def stub_text(record, view):
+    """The committed header of the record: where a session's modes are kept."""
+    return view.text(record.stub) or ""
 
 
 def yaml_value(text):

@@ -6,7 +6,7 @@ import types
 
 import pytest
 
-from vela import decisions, say
+from vela import decisions, privaterecord, say
 from vela.decisions import consent, record, schema
 
 RECORD_ID = "2026-10-20-grill-stock"
@@ -19,9 +19,8 @@ def record_text(*captures):
 
 
 def opened(*captures):
-    found, problem = record.open_record([("", f"sessions/{RECORD_ID}.md", record_text(*captures))])
-    assert problem is None, problem
-    return found
+    split = privaterecord.split_record(record_text(*captures))
+    return record.from_text(RECORD_ID, privaterecord.private_path(RECORD_ID), split.private)
 
 
 READBACK = "- [readback] (claude) I read back: stock level is decided as the count left ^c30"

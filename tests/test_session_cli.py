@@ -9,6 +9,7 @@ import sys
 from conftest import MINI, run
 from sharing import advance_remote, git, make_vault, with_remote
 import session_files
+from vela.privaterecord import stub_meta
 
 TODAY = "2026-10-14"
 NO_SEND = ("I can file the session here, but I can't send it. Open Claude Code in this folder and type /vela:close "
@@ -74,9 +75,9 @@ def test_start_on_main_stays_on_main_notes_it_and_says_a_review_needs_a_branch(t
     assert head(vault)[1] == "main"
     assert git(vault, "log", "-1", "--format=%s") == f"Open session {record_id}"
     assert git(vault, "rev-parse", "HEAD~1") == began
-    record = session_files.record_text(vault, record_id)
+    record = session_files.stub_text(vault, record_id)
     assert 'title: "Grill: desk agent calendar"' in record and "modes: [grill]" in record
-    assert "branch: main\n" in record and f"start_commit: {began}\n" in record
+    assert (stub_meta(record)["branch"], stub_meta(record)["start_commit"]) == ("main", began)
     state = json.loads((vault / ".vela" / "session.json").read_text(encoding="utf-8"))
     assert (state["id"], state["branch"]) == (record_id, "main")
     code, output = start(vault, "--mode", "grill", "--topic", "desk agent calendar", "--for-lead")
@@ -92,8 +93,8 @@ def test_start_on_a_feature_branch_stays_on_it_and_records_it(tmp_path, monkeypa
     assert code == 0, output
     assert "needs its own branch" not in output  # said only on the default branch
     assert head(vault)[1] == "waiting-for-review"
-    record = session_files.record_text(vault, f"{TODAY}-consent")
-    assert "branch: waiting-for-review\n" in record and f"start_commit: {began}\n" in record
+    record = session_files.stub_text(vault, f"{TODAY}-consent")
+    assert (stub_meta(record)["branch"], stub_meta(record)["start_commit"]) == ("waiting-for-review", began)
     assert git(vault, "rev-parse", "main") == began  # no pull, no switch, nothing committed to main
 
 
@@ -106,8 +107,8 @@ def test_new_branch_makes_a_session_branch_from_the_current_one(tmp_path, monkey
     assert "needs its own branch" not in output
     assert head(vault)[1] == f"session/{TODAY}-consent"
     assert git(vault, "rev-parse", "HEAD~1") == began
-    record = session_files.record_text(vault, f"{TODAY}-consent")
-    assert f"branch: session/{TODAY}-consent\n" in record and f"start_commit: {began}\n" in record
+    record = session_files.stub_text(vault, f"{TODAY}-consent")
+    assert (stub_meta(record)["branch"], stub_meta(record)["start_commit"]) == (f"session/{TODAY}-consent", began)
 
 
 def test_open_sessions_exit_3_and_list(tmp_path, monkeypatch):
@@ -244,7 +245,7 @@ def test_answer_pr_title_must_end_with_exact_id(tmp_path, monkeypatch):
     record_id = f"{TODAY}-answer-con-001"
     assert head(vault)[1] == branch  # on the challenge's branch, no new one
     assert git(vault, "log", "-1", "--format=%s") == f"Open session {record_id}"
-    record = session_files.record_text(vault, record_id)
+    record = session_files.stub_text(vault, record_id)
     assert "modes: [answer]" in record and 'title: "Answer: CON-001"' in record
 
 

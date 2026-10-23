@@ -74,7 +74,7 @@ def test_inbox_voice_local_corpus_never_staged(vault):
     code, out = stage(vault, "--json")
     assert code == 1, out
     data = json.loads(out)
-    assert {n["rule"] for n in data["never"]} == {"inbox", "voice-local", "voice-corpus", "tool-state"}
+    assert {n["rule"] for n in data["never"]} == {"inbox", "voice-local", "voice-corpus", "tool-state", "session-private"}
     assert staged(vault) == ["01-goals.md", f"sessions/{SESSION}.md"]
     code, out = stage(vault, "--for-lead")
     assert "The meeting notes in the inbox stay on this machine; I've left them out." in out.splitlines()

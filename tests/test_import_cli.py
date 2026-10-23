@@ -68,6 +68,12 @@ def started(tmp_path, monkeypatch, captures=()):
     return vault
 
 
+def as_a_page(vault):
+    """E361 still reads the lead's answer from the session record as a vault page, so these tests lay the notes' body
+    under the stub's header. The check moves off page bodies with the receipts rule."""
+    session_files.expose_notes(vault, RECORD_ID)
+
+
 def saved(vault):
     return json.loads((vault / QUEUE).read_text(encoding="utf-8"))
 
@@ -263,6 +269,7 @@ def test_wording_needs_the_leads_own_answer_and_page_applies_it(tmp_path, monkey
     assert code == 0 and PAGE in json.loads(output)["wrote"]
     meta = (vault / PAGE).read_text(encoding="utf-8")
     assert "source-wording: split" in meta and f'source-wording-yes: "[[{RECORD_ID}#^c05]]"' in meta
+    as_a_page(vault)
     assert "E361" not in check_codes(vault)
 
 
@@ -287,6 +294,7 @@ def test_one_sources_keep_is_never_voiced_because_anothers_was(tmp_path, monkeyp
 def test_a_voiced_page_with_no_answer_on_record_fails_the_check(tmp_path, monkeypatch):
     """No voiced rewrite without the lead's recorded answer: a page set to split or voice by hand is E361."""
     vault = started(tmp_path, monkeypatch, CAPTURES)
+    as_a_page(vault)
     voiced = KEPT_PAGE.replace("sources: [SRC-02]\n", "sources: [SRC-02]\nsource-wording: voice\n")
     (vault / PAGE).write_text(voiced, encoding="utf-8")
     assert "E361" in check_codes(vault)

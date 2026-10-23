@@ -26,7 +26,7 @@ or a page can't be read or written; 3 several open sessions here (pick with `--r
 import pathlib
 import re
 
-from vela import closegate, commands, importqueue, say
+from vela import closegate, commands, importqueue, privaterecord, say
 from vela.commands import map as topic
 from vela.edge import sessiongit
 
@@ -195,7 +195,7 @@ def cmd_show(args, out):
 
 
 def record_captures(root, session):
-    path = pathlib.Path(root) / "sessions" / f"{session}.md"
+    path = pathlib.Path(root) / privaterecord.private_path(session)
     return closegate.captures(path.read_text(encoding="utf-8")) if path.is_file() else {}
 
 

@@ -62,6 +62,7 @@ def assert_lead_voice(out, heard):
 def copy_of(tmp_path, source, name):
     target = tmp_path / name
     shutil.copytree(source, target)
+    session_files.split_whole_records(target)
     return target
 
 

@@ -5,6 +5,7 @@ import json
 
 from conftest import run
 import session_files
+from vela import privaterecord
 
 MARKER = "<!-- generated:unknowns sha=00000000: do not edit, run vela render -->"
 
@@ -49,6 +50,8 @@ RECORD = "\n".join([
     "",
 ])
 
+NOTES = privaterecord.split_record(RECORD).private  # what the private file holds: the words, under a short header
+
 FIRST = ("The till sells **everything** the shop stocks, through [[CON-001|the sale API]].  \n"
          "It opens at nine.\t\n")
 
@@ -69,8 +72,8 @@ def test_replace_copies_verbatim(tmp_path):
     code, output = replace(tmp_path, 10)
     assert code == 0, output
     text = session_files.record_text(tmp_path, RECORD_ID)
-    assert text.startswith(RECORD)
-    added = text[len(RECORD):]
+    assert text.startswith(NOTES)
+    added = text[len(NOTES):]
     assert added == ("\n## Replaced prose\n\nFrom 05-building-blocks/till.md, 2026-10-14:\n\n" + FIRST)
     assert FIRST in session_files.record_text(tmp_path, RECORD_ID)  # bytes equal: `**`, the wikilink, both trailing spaces
     assert (tmp_path / "05-building-blocks" / "till.md").read_bytes() == PAGE.encode("utf-8")  # the page is untouched
@@ -81,7 +84,7 @@ def test_no_paragraph_at_line_exits_1(tmp_path):
     for line in (8, 7, 2, 99):  # blank, a heading, the frontmatter, past the end
         code, output = replace(tmp_path, line)
         assert code == 1, (line, output)
-    assert session_files.record_text(tmp_path, RECORD_ID) == RECORD
+    assert session_files.record_text(tmp_path, RECORD_ID) == NOTES
 
 
 def test_line_inside_generated_block_refused(tmp_path):
@@ -90,7 +93,7 @@ def test_line_inside_generated_block_refused(tmp_path):
         code, output = replace(tmp_path, line, "--json")
         assert code == 1, output
         assert json.loads(output)["refusals"][0]["rule"] == "generated block"
-    assert session_files.record_text(tmp_path, RECORD_ID) == RECORD
+    assert session_files.record_text(tmp_path, RECORD_ID) == NOTES
 
 
 def test_second_replace_appends(tmp_path):
@@ -99,7 +102,7 @@ def test_second_replace_appends(tmp_path):
     assert replace(tmp_path, 9)[0] == 0
     assert replace(tmp_path, 18)[0] == 0
     text = session_files.record_text(tmp_path, RECORD_ID)
-    assert text.startswith(RECORD + "\n## Replaced prose\n\n" + earlier)  # what was there stays byte for byte
+    assert text.startswith(NOTES + "\n## Replaced prose\n\n" + earlier)  # what was there stays byte for byte
     order = [text.index(earlier), text.index(FIRST), text.index("Second paragraph, plain.\n"), text.index("## Changes")]
     assert order == sorted(order)  # each new entry goes at the end of the section, before the next heading
     assert text.endswith("Second paragraph, plain.\n\n## Changes\n\nNone yet.\n")
@@ -121,7 +124,7 @@ def test_no_open_record_exits_1_and_several_exit_3(tmp_path):
     code, output = replace(tmp_path, 9, "--json")
     assert code == 3, output
     assert [c["id"] for c in json.loads(output)["needs_lead"]] == ["2026-10-14-other", "2026-10-14-till-grill"]
-    assert session_files.record_text(tmp_path, RECORD_ID) == RECORD
+    assert session_files.record_text(tmp_path, RECORD_ID) == NOTES
     code, output = replace(tmp_path, 9, "--record", "2026-10-14-till-grill")
     assert code == 0, output
 

@@ -51,7 +51,7 @@ import re
 import tempfile
 from dataclasses import replace
 
-from vela import closegate, commands, parse, planscope, prbody, say, sessions
+from vela import closegate, commands, parse, planscope, prbody, privaterecord, say, sessions
 from vela.commands import close_gate, whoami
 from vela.decisions import consent as consents
 from vela.decisions import record as records
@@ -132,9 +132,12 @@ def find_session(root, command):
     except ValueError as exc:
         raise failed(command, f"vela {command}: {exc}", f"I couldn't read which session this is: {exc}") from exc
     record, text = None, ""
-    if state.get("path") and (root / str(state["path"])).is_file():
-        text = (root / str(state["path"])).read_text(encoding="utf-8")
-        record, _ = sessions.read("", str(state["path"]), text)
+    if state.get("stub") and (root / str(state["stub"])).is_file():
+        record, _ = sessions.read("", str(state["stub"]), (root / str(state["stub"])).read_text(encoding="utf-8"))
+        text = sessiongit.private_text(root, record.id) if record is not None else ""
+        if text is None:
+            missing = str(sessiongit.PrivateMissing(record.id))
+            raise failed(command, f"vela {command}: {missing}", missing)
     if record is None:
         found, text, early = close_gate.open_record(root)
         if early is not None:
@@ -272,7 +275,7 @@ def trouble(why):
 
 def notice(root, vault, session):
     """The send notice and exit 3. The marker holds the capture count the yes must be numbered above."""
-    count = records.from_text(session.id, session.record.path, session.text).count
+    count = records.from_text(session.id, privaterecord.private_path(session.id), session.text).count
     found, _ = reviewer_handles(root, vault, changes(root), PUSH)
     if session.answer:
         said = (f"I'll push `{session.branch}` and add a comment on the challenge's pull request.",
@@ -286,7 +289,7 @@ def notice(root, vault, session):
     sessiongit.write_text(root, close_file(session.id, "push-notice"), json.dumps(marker, indent=2) + "\n")
     s = "" if count == 1 else "s"
     lines = [say.Line(f"{said[0]}\nThe record holds {count} capture{s} at this notice; capture the lead's yes after "
-                      "it (vela record add), commit it, then run vela close push --consent ^cNN.", plain=said[1])]
+                      "it (vela record add), then run vela close push --consent ^cNN.", plain=said[1])]
     result = say.Result(PUSH, exit=say.NEEDS_LEAD, lines=lines, data={"branch": session.branch, "reviewers": found},
                         needs_lead=[{"ask": "push", "question": said[1], "captures_at_notice": count,
                                      "answer_with": "--consent ^cNN"}])
@@ -295,7 +298,7 @@ def notice(root, vault, session):
 
 def consent_refusal(root, session, ref):
     """The first reason the yes doesn't qualify, or None; and the yes itself."""
-    record = records.from_text(session.id, session.record.path, session.text)
+    record = records.from_text(session.id, privaterecord.private_path(session.id), session.text)
     first = consents.a_yes(ref, record)
     if first is not None:
         return first, None
