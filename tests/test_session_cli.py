@@ -230,6 +230,14 @@ def test_reader_copy_uses_no_git(tmp_path, monkeypatch):
     assert not gh_log.exists(), "a reader copy ran gh"
 
 
+def test_a_reader_copy_says_it_is_a_copy_in_the_start_output_so_the_skill_need_not(tmp_path, monkeypatch):
+    copy = reader_copy(tmp_path)
+    shim(tmp_path, monkeypatch, "git")
+    code, output = start(copy, "--mode", "discover", "--topic", "reading the sources", "--for-lead")
+    assert code == 0, output
+    assert "your work stays in this folder and nothing goes to the shared plan until you send a proposal" in output
+
+
 def challenge_branch(vault, branch, record_id):
     git(vault, "switch", "-q", "-c", branch)
     session_files.write_record(vault, record_id,

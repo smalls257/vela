@@ -28,9 +28,12 @@ def test_modes_lists_every_session_mode_row():
     assert "| `epics` | `draft` epic pages" not in MODES and "stub: boundary" not in MODES
 
 
-def test_modes_names_the_design_session():
-    team = section("Team-side sessions")
-    assert "`/vela:design --app APP-x`" in team and "`docs/tech-design/<slug>.md`" in team
+def test_modes_no_longer_names_the_design_session():
+    # rule deletion: the design skill holds its own rules and no mode session reads MODES for it
+    assert "## Team-side sessions" not in MODES and "`/vela:design --app APP-x`" not in MODES
+    design = (PLUGIN / "skills" / "design" / "SKILL.md").read_text(encoding="utf-8")
+    assert "A design opens no session" in design and "`docs/tech-design/<slug>.md`" in design
+    assert "Shell that runs on a Mac and on Linux" not in design, "START no longer has that section"
 
 
 def test_modes_says_epics_runs_render_too():
@@ -40,7 +43,7 @@ def test_modes_says_epics_runs_render_too():
 
 def test_modes_is_leaner_than_it_was():
     # The eval cases grade the "Claude must not" column, so the table stays word for word; the mechanics around it went.
-    assert len(MODES.split()) <= 1900  # 2,301 before the trim; 1,838 after
+    assert len(MODES.split()) <= 1290  # 2,301 before the first trim; 1,838 after it; 1,253 after the second
 
 
 def test_modes_says_the_user_may_override_any_rule():
@@ -62,9 +65,9 @@ def test_modes_asks_once_what_the_lead_might_not_know_they_need():
 
 
 def test_modes_says_where_to_start():
-    start = section("Where to start")
-    assert "`vela next` names the one app and mode" in start and "`vela status` shows every app's stage" in start
-    assert "never a decision" in start
+    assert "## Where to start" not in MODES  # rule deletion: `vela session brief` names the next step
+    start = (PLUGIN / "references" / "START.md").read_text(encoding="utf-8")
+    assert "offer the brief's next step as a suggestion, never a decision" in start
 
 
 def test_modes_writes_assumptions_with_options_considered():

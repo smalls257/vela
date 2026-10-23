@@ -108,7 +108,7 @@ def test_start_keeps_bringing_main_in_and_freshness():
     one = section("1. Start the session")
     assert "never call the plan up to date when the shared copy was out of reach" in one
     assert "doesn't switch branches or pull `main`" in one and "`vela close sync-main`" in one
-    assert "`vela freshness --for-lead`" in section("Owner or reader")
+    assert "`vela freshness --for-lead`" in one and "offer to bring `main` in" in one
 
 
 def test_start_never_mentions_a_probe_skill_because_next_says_what_to_do():
@@ -144,13 +144,17 @@ def test_start_says_where_a_resumed_grill_carries_on():
 
 def test_start_says_a_reader_runs_no_git_in_a_few_lines():
     reader = section("Owner or reader")
-    assert "This is a read copy, so I will not use git" in reader
-    assert len(reader.split()) < 110
+    assert "run no `git` or `gh` yourself" in reader
+    assert len(reader.split()) < 60
+    # rule deletion: `vela session start` says it is a read copy (commands.session.READ_COPY; tests/test_session_cli.py)
+    assert "This is a read copy, so I will not use git" not in START
     assert "- **Pending approval:** @<their handle>, <today>" not in START  # decide writes it in a reader copy
 
 
 def test_the_handle_comes_from_whoami():
-    assert "`vela whoami`" in START
+    # rule deletion: `vela record add` defaults the origin to the handle `vela whoami` holds (record.lead_origin;
+    # tests/test_record_add.py), so START no longer names the command
+    assert "`vela whoami`" not in START
     assert "gh api user -q .login" not in START and ".vela/handle" not in START  # rule deletion: whoami does it
     assert ".vela/*" in (REPO / "plugin" / "template" / ".gitignore").read_text(encoding="utf-8")
 
@@ -178,8 +182,11 @@ def test_start_says_states_and_spelling_in_words():
 
 
 def test_start_holds_conversation_rule_seven():
-    plain = section("Plain names and a page a person can hold")
-    assert "Answer first, then about four things at most" in plain and '"there are six more; want them?"' in plain
+    voice = text("references/CONVERSATION-VOICE.md")
+    assert "Answer first, then ask the lead to judge about four things at most" in voice
+    assert '"there are six more; want them?"' in voice
+    # rule deletion: the rule lives in one place, and `say.LEAD_LIMIT` caps what a command prints
+    assert "Answer first, then about four things at most" not in START
 
 
 def test_the_group_yes_is_defined_once_here():
