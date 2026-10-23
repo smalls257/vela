@@ -2,7 +2,7 @@
 
 Silent Fallback: a flow with two ways in used to read as one list, and a guess at the starts would read as a fact. These
 tests hold the three cases (an opening alt, no alt, one way in), that a guess says it is one, and the checker's side: an
-opening alt written in words is not an unreadable line, and the check says it walked one start only.
+opening alt written in words is not an unreadable line, and the check walks every start.
 """
 import json
 import pathlib
@@ -141,6 +141,14 @@ def test_words_for_an_option_anywhere_but_the_opening_stay_unreadable(tmp_path):
 def starts_vault(tmp_path, diagram_edit=None):
     vault = tmp_path / "v"
     shutil.copytree(REPO / "examples" / "unified-booking", vault)
+    # the contracts the starts call say whether they can time out, so each start's calls are compiled and explored, not refused
+    for name, contracts in (("booking", ("### CON-001 Booking API", "### CON-002 Booking state changed")), ("pricing", ("### CON-003 Quote a fare",))):
+        blocks = vault / "05-building-blocks" / f"{name}-building-blocks.md"
+        text = blocks.read_text(encoding="utf-8")
+        for contract in contracts:
+            if contract in text and "**Can time out:**" not in text.split(contract, 1)[1].split("\n### ", 1)[0]:
+                text = text.replace(contract, contract + "\n\n- **Can time out:** no", 1)
+        blocks.write_text(text, encoding="utf-8")
     add_flows(vault, ["FLO-010-book-two-ways.md"])
     page = vault / "06-runtime" / "flows" / "FLO-010-book-two-ways.md"
     if diagram_edit:
@@ -166,8 +174,14 @@ def test_every_start_runs_to_the_shared_steps_and_the_trace_names_the_start(tmp_
     fork = next(i for i in program.code if i.kind == "fork")
     assert fork.data["labels"] == ["A customer books on the website", "A customer calls in"]
     assert len(set(fork.data["targets"])) == 2
+    # each start's own call is compiled, and the fork really branches: two different targets, each reaching its own call
+    calls = [program.code[t].kind for t in fork.data["targets"]]
+    assert fork.data["targets"][0] != fork.data["targets"][1] and calls == ["call", "call"], calls
     result = flowcheck.check_catalog(catalog, "FLO-010", TODAY)
-    assert not [f for f in result.findings if f.code == "F10" and "FLO-010" in f.items and "Unreadable" in f.summary]
+    # a finding in EACH start's own call: the second start is explored too, not only named
+    said = {f.summary.split(":")[1].split(" does not")[0].strip() for f in result.findings if f.code == "F1"}
+    assert {"Public website", "Call center desktop"} <= said, [f.summary[:90] for f in result.findings]
+    assert result.states > 2 and not [f for f in result.findings if f.code == "F10" and "Unreadable" in f.summary]
 
 
 def test_a_given_before_the_opening_alt_still_names_the_starts(tmp_path):
@@ -214,3 +228,47 @@ def test_a_shared_step_over_a_start_s_contract_is_not_a_third_start(tmp_path):
     flow = flow_data(vault, tmp_path)
     assert [o["steps"] for o in flow["starts"]["options"]] == [[1, 2], [3, 4]]
     assert flow["starts"]["merge"]["step"] == 5 and flow["steps"][-1]["start"] == ""
+
+
+def test_a_timer_a_start_arms_is_the_timer_the_shared_steps_await():
+    from test_flowcheck import FIXTURES, TODAY as T, files_of
+    files = files_of("17-lost-event-with-timer")
+    path = next(k for k in files if k.startswith("06-runtime/flows/"))
+    files[path] = """---
+id: FLO-008
+type: flow
+title: An order waits for its invoice
+state: assumption
+---
+
+# An order waits for its invoice
+
+```mermaid
+sequenceDiagram
+participant S as Shop
+participant B as Billing
+alt A shopper orders
+    Note over S: SET order waiting
+    Note over S: TIMER invoice_wait 2d
+else A clerk orders
+    Note over S: SET order waiting
+end
+S-)B: EVT-008 order placed
+par Billing handles order placed
+    B-)S: EVT-009 invoice ready
+    Note over B: END handled
+end
+Note over S: AWAIT EVT-009
+alt received
+    Note over S: SET order invoiced
+    Note over S: END invoiced
+else invoice_wait
+    Note over S: SET order expired
+    Note over S: END expired
+end
+```
+"""
+    from vela import flowcheck
+    result = flowcheck.check_slice(files, "FLO-008", T)
+    # the await builds with the timer the first start armed, so nothing is refused for a timer that was never started
+    assert not [f for f in result.findings if f.code == "F10"], [(f.code, f.summary) for f in result.findings]

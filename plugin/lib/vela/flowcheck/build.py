@@ -293,7 +293,9 @@ class Builder:
         gotos = []
         for branch in tree.starts:
             self.code[at].data["targets"].append(len(self.code))
-            self.seq(branch.body, ctx.child())
+            inner = ctx.child()
+            self.seq(branch.body, inner)
+            ctx.last_timer = inner.last_timer if inner.last_timer is not None else ctx.last_timer  # a timer a start armed is the one the shared steps await
             gotos.append(self.emit(Ins("goto", self.where(flow, branch.line), index)))
         for g in gotos:
             self.code[g].data["target"] = len(self.code)
