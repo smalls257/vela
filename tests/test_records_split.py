@@ -416,3 +416,18 @@ def test_a_reviewer_row_quoting_a_session_is_listed_without_its_words_and_stops_
                       encoding="utf-8")
     assert [i for i in json.loads(run("records", "split", "--vault", str(vault), "--today", "2026-10-22",
                                       "--json")[1])["left"]] == [], "requoted from a page, nothing is left"
+
+
+def test_a_participants_ledger_words_become_a_pointer_and_the_leads_stay():
+    files = whole_files()
+    row = ("| Q-OPS-02@INI-900 | assumed | belief: the kiosks stay offline; load-bearing: yes; signpost: a kiosk "
+           "reports in | @raj | 2026-01-10 |")
+    mine = row.replace("Q-OPS-02", "Q-OPS-03").replace("@raj", "@mini-lead")
+    files[UNKNOWNS] = files[UNKNOWNS].rstrip("\n") + f"\n{row}\n{mine}\n"
+    report = recordsplit.plan(files, "@mini-lead", "2026-10-22")
+    rows = {line.split("|")[1].strip(): line for line in report.writes[UNKNOWNS].split("\n") if line.startswith("| Q-OPS")}
+    assert "belief: see SRC-" in rows["Q-OPS-02@INI-900"] and "signpost: see SRC-" in rows["Q-OPS-02@INI-900"]
+    assert "kiosks" not in rows["Q-OPS-02@INI-900"] and "load-bearing: yes" in rows["Q-OPS-02@INI-900"]
+    assert "belief: the kiosks stay offline" in rows["Q-OPS-03@INI-900"]  # the lead's own words stay
+    assert any(s.what == recordsplit.LEDGER_WORDS and s.words == "the kiosks stay offline" for s in report.stripped)
+    assert "first-hand: @raj" in report.writes["sources.md"]

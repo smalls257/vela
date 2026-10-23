@@ -321,7 +321,8 @@ def split_data(report):
 
 STRIP_WORDS = {recordsplit.DISSENT: "what someone disagreed with, keeping their name and the date",
                recordsplit.RECEIPT: "the words quoted from someone else, keeping who said yes",
-               recordsplit.ANSWERED_QUOTE: "the quote from a session, and point that answer at a first-hand source"}
+               recordsplit.ANSWERED_QUOTE: "the quote from a session, and point that answer at a first-hand source",
+               recordsplit.LEDGER_WORDS: "someone's words in a question row, and point the row at their first-hand source"}
 
 
 def page_name(path):

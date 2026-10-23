@@ -20,7 +20,7 @@ import datetime
 import re
 from dataclasses import dataclass, field
 
-from vela import ids, ledger, parse, privaterecord, receipts, sourcerows
+from vela import firsthand, ids, ledger, parse, privaterecord, receipts
 from vela.decisions import textedit
 
 HISTORY_TELL = (
@@ -33,6 +33,9 @@ IGNORE_LINE = f"{privaterecord.PRIVATE_DIR}/"
 SOURCES_FILE = "sources.md"
 DISSENT, RECEIPT, ANSWERED_QUOTE = "dissent", "receipt", "answered quote"
 REVIEWER_QUOTE = "reviewer quote"
+LEDGER_WORDS = "ledger words"
+_HELD_KEYS = ("answer", "belief", "signpost", "reason")
+_POINTER = re.compile(r"^see SRC-\d+$")
 
 _RECORD_PATH = re.compile(r"^sessions/[^/]+\.md$")
 _WORDS_LINE = re.compile(r"^(?P<head>\s*- \*\*(?P<label>Decision|Dissent):\*\* )(?P<value>.*?)(?P<tail>\s*)$")
@@ -206,30 +209,11 @@ class _FirstHand:
             text = self._with_row(text, ident, handle)
         return text
 
-    def _table(self, text=None):
-        lines = (self.text if text is None else text).split("\n")
-        index = textedit.find_table(lines, sourcerows.CORE)
-        if index is None:
-            raise ValueError("sources.md has no register table (ID | Title | Owner | Date | Kind ...), so the "
-                             "first-hand source that replaces an answered quote has nowhere to go.")
-        return lines, index, parse.split_row(lines[index])
-
     def _existing(self, handle):
-        lines, index, header = self._table()
-        for line in lines[index + 2:]:
-            if not line.lstrip().startswith("|"):
-                break
-            row = sourcerows.read(header, parse.split_row(line))
-            if row.kind == "exists" and row.location.casefold() == f"first-hand: {handle}".casefold():
-                return row.id
-        return None
+        return firsthand.row_id(self.text, handle)
 
     def _with_row(self, text, ident, handle):
-        _, _, header = self._table(text)
-        values = {"ID": ident, "Title": f"First-hand knowledge of {receipts.handle_ref(handle)[1:]}", "Owner": handle,
-                  "Date": self.today, "Kind": "exists", "Location": f"first-hand: {handle}"}
-        row = textedit.row(*[values.get(name, "") for name in header])
-        return textedit.add_row(text, sourcerows.CORE, row)
+        return firsthand.with_row(text, ident, handle, self.today)
 
 
 def _page_stripped(path, text, lead, session_ids, first_hand):
@@ -249,6 +233,7 @@ def _page_stripped(path, text, lead, session_ids, first_hand):
             left.append(Left(path, number, REVIEWER_QUOTE))
         elif in_ledger and _LEDGER_ROW.match(line):
             line = _strip_answered_quote(path, number, line, session_ids, first_hand, stripped)
+            line = _strip_held_words(path, number, line, lead, first_hand, stripped)
         out.append(line)
     return "\n".join(out), stripped, left
 
@@ -268,6 +253,29 @@ def _strip_answered_quote(path, number, line, session_ids, first_hand, stripped)
     ident = first_hand.row_for(receipts.handle_ref(cells[3]), cells[0])
     stripped.append(Stripped(path, number, ANSWERED_QUOTE, found["words"]))
     return line[:found.start()] + f"{found['key']}{ident}" + line[found.end():]
+
+
+def _strip_held_words(path, number, line, lead, first_hand, stripped):
+    """A copy row's answer, belief, signpost or reason is a person's words. Unless the row's By is the lead, the words
+    come out and `see SRC-nn` (that person's first-hand row) takes their place. A row with no By names no one whose
+    words these are, and stays as it is."""
+    cells = parse.split_row(line)
+    if len(cells) != len(ledger.HEADER) or cells[1] not in ("answered", "assumed", "not-applicable") or not cells[3]:
+        return line
+    if _may_keep(cells[3], lead):
+        return line
+    pairs, problems = ledger.split_evidence(cells[2])
+    if problems or not any(k in _HELD_KEYS and not _POINTER.match(v) for k, v in pairs):
+        return line
+    ident = first_hand.row_for(receipts.handle_ref(cells[3]), cells[0])
+    kept = []
+    for key, value in pairs:
+        if key in _HELD_KEYS and not _POINTER.match(value):
+            stripped.append(Stripped(path, number, LEDGER_WORDS, value.strip('"')))
+            value = f"see {ident}"
+        kept.append(f"{key}: {value}")
+    evidence = "; ".join(kept)
+    return line.replace(cells[2], evidence, 1)
 
 
 # ---- the plan ----------------------------------------------------------------------------------------------------

@@ -174,3 +174,8 @@ def test_a_speaker_who_is_not_a_handle_is_refused_with_a_plain_fix(tmp_path):
     _, refused = plan(vault(tmp_path / "b", other_yes), [item(yes="^c16")])
     assert "decide-speaker-not-handle" in rules(refused)
     assert not plan(vault(tmp_path / "c", RAJ), [item(dissent="^c18")])[1]
+
+
+def test_the_unverified_mark_is_not_part_of_who_said_it(tmp_path):
+    unverified = '- [worry] (@raj, unverified) "This is too slow." ^c18'
+    assert "- **Dissent:** @raj, 2026-10-20" in bullets_of(vault(tmp_path, unverified), dissent="^c18")

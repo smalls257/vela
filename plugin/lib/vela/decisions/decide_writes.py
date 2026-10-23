@@ -34,7 +34,7 @@ Why each write, and why it is code's:
 import re
 from dataclasses import dataclass
 
-from vela import gates, override as overrides, privaterecord, receipts, say, schema as vault_schema
+from vela import gates, override as overrides, privaterecord, receipts, said, say, schema as vault_schema
 from vela.decisions import agenda, consent, override as override_kind, schema, textedit
 
 HANDLE = re.compile(rf"^{vault_schema.HANDLE}$")
@@ -311,10 +311,11 @@ def _override_bullets(item, view, record, target):
 
 def speaker(capture, lead):
     """Who a committed line names: the lead's `whoami` handle when the capture is the lead's (its origin may be a
-    display name, never to become `@Jo`), else the capture's origin."""
+    display name, never to become `@Jo`), else the capture's origin without its `unverified` mark (the gate asks the
+    lead to confirm that capture; the line names who said it, never the mark)."""
     if lead is not None and consent.from_the_lead(capture, lead[0], lead[1]) is None:
         return receipts.handle_ref(lead[0])
-    return capture.origin.strip()
+    return said.confirmed(capture.origin)
 
 
 def receipt(item, view, record):
