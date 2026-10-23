@@ -367,6 +367,7 @@ def test_the_dry_run_never_asks_gh_or_writes_the_handle(tmp_path, monkeypatch):
 def test_apply_refuses_when_no_handle_is_cached_so_the_leads_words_are_kept(tmp_path):
     vault = full_records_vault(tmp_path)
     (vault / ".vela" / "handle").unlink()
+    git(vault, "commit", "-qam", "no cached handle")
     before = tree_bytes(vault)
     code, out = run("records", "split", "--apply", "--vault", str(vault), "--today", "2026-10-22")
     assert code == 1 and "Run vela whoami first, so I keep your own words" in out
