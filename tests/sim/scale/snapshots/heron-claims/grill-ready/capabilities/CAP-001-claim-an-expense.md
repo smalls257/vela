@@ -22,7 +22,7 @@ A member of staff who spent their own money on firm business gets it back: they 
 A person hands in each receipt as a photo taken in the app, attached to the claim line it backs.
 
 - **State:** assumption
-- **Source:** [[2026-10-12-claim-requirements#^c01]]
+- **Source:** [[2026-10-12-claim-requirements]] c01
 - **Options considered:** Photograph it in the app (picked); Forward an email receipt: rejected, most receipts are paper and two ways in double the support.
 
 - A claim line without a receipt photo cannot be sent for approval, unless the person marks it as a lost receipt and says why.
@@ -33,7 +33,7 @@ A person hands in each receipt as a photo taken in the app, attached to the clai
 A person claims mileage by typing the miles and the purpose of the journey.
 
 - **State:** assumption
-- **Source:** [[2026-10-12-claim-requirements#^c02]]
+- **Source:** [[2026-10-12-claim-requirements]] c02
 - **Options considered:** The person types the miles and the purpose (picked); A route calculator works out the miles: rejected, a second service to buy for a few hundred claims a month.
 
 - The claim shows the rate per mile used and the total.
@@ -44,7 +44,7 @@ A person claims mileage by typing the miles and the purpose of the journey.
 A person claims each line in the currency they paid in, and the claim converts it at the rate on their card statement.
 
 - **State:** assumption
-- **Source:** [[2026-10-12-claim-requirements#^c03]]
+- **Source:** [[2026-10-12-claim-requirements]] c03
 - **Options considered:** The currency they paid in, converted at the card rate (picked); They convert it themselves: rejected, people get conversions wrong and the statement is the evidence.
 
 - The claim shows both the amount paid and the converted amount.
@@ -55,7 +55,7 @@ A person claims each line in the currency they paid in, and the claim converts i
 Each claim goes to the person's line manager to approve.
 
 - **State:** assumption
-- **Source:** [[2026-10-12-claim-requirements#^c04]]
+- **Source:** [[2026-10-12-claim-requirements]] c04
 - **Options considered:** The person's line manager (picked); The cost center's owner: rejected, the owner often does not know whether the trip happened.
 
 - A manager cannot approve their own claim; it goes to their own manager.
@@ -66,7 +66,7 @@ Each claim goes to the person's line manager to approve.
 A claim over 500 pounds needs a second approval by Finance Operations after the manager's.
 
 - **State:** assumption
-- **Source:** [[2026-10-12-claim-requirements#^c05]]
+- **Source:** [[2026-10-12-claim-requirements]] c05
 - **Options considered:** A second approval by Finance (picked); It is blocked until the person splits it: rejected, splitting a large claim is a workaround, not a control.
 
 - The threshold is the claim's total in pounds after conversion.
@@ -77,7 +77,7 @@ A claim over 500 pounds needs a second approval by Finance Operations after the 
 A claim line more than 60 days old is sent with a warning, and one more than 90 days old is refused.
 
 - **State:** assumption
-- **Source:** [[2026-10-12-claim-requirements#^c06]]
+- **Source:** [[2026-10-12-claim-requirements]] c06
 - **Options considered:** A warning at 60 days, refused at 90 (picked); Refused at 90 days with no warning: rejected, the warning saves the argument.
 
 - The age is counted from the date on the receipt.
@@ -88,7 +88,7 @@ A claim line more than 60 days old is sent with a warning, and one more than 90 
 An approver who finds a claim wrong sends it back to the person with a comment saying what to fix.
 
 - **State:** assumption
-- **Source:** [[2026-10-12-claim-requirements#^c07]]
+- **Source:** [[2026-10-12-claim-requirements]] c07
 - **Options considered:** Send it back with a comment (picked); Reject it outright: rejected, most wrong claims are a missing receipt, not a refusal.
 
 - A claim sent back keeps every line the approver did not question.
@@ -99,7 +99,7 @@ An approver who finds a claim wrong sends it back to the person with a comment s
 A person sees where each of their claims is, and gets a message each time it moves.
 
 - **State:** assumption
-- **Source:** [[2026-10-12-claim-requirements#^c08]]
+- **Source:** [[2026-10-12-claim-requirements]] c08
 - **Options considered:** Its status at each step, with a message when it changes (picked); A status page they check themselves: rejected, most calls to Finance today ask where a claim is.
 
 - The steps are: sent, with the manager, with Finance, approved, paid, or sent back.
@@ -110,7 +110,7 @@ A person sees where each of their claims is, and gets a message each time it mov
 A person who stays away overnight in the UK claims a flat daily meal allowance with no receipt.
 
 - **State:** assumption
-- **Source:** [[2026-10-12-claim-requirements#^c09]]
+- **Source:** [[2026-10-12-claim-requirements]] c09
 - **Options considered:** A flat daily rate with no receipt (picked); Actual meals with receipts: rejected, the partners agreed the flat rate last spring.
 
 - The allowance is claimed per night away, with the place stayed.
@@ -121,7 +121,7 @@ A person who stays away overnight in the UK claims a flat daily meal allowance w
 An approved claim is paid into the person's bank account within five working days of approval.
 
 - **State:** assumption
-- **Source:** [[2026-10-12-claim-requirements#^c10]]
+- **Source:** [[2026-10-12-claim-requirements]] c10
 - **Options considered:** Within five working days of approval (picked); In the next monthly run: rejected, it breaks the CFO's mandate.
 
 - The person sees the date it was paid.
@@ -132,7 +132,7 @@ An approved claim is paid into the person's bank account within five working day
 A person can split a claim line across two or more cost centers, by percentage.
 
 - **State:** assumption
-- **Source:** [[2026-10-12-claim-requirements#^c11]]
+- **Source:** [[2026-10-12-claim-requirements]] c11
 - **Options considered:** Yes, by percentage (picked); No, one claim, one cost center: rejected, client work often spans two practices.
 
 - The percentages add up to a hundred before the line can be sent.

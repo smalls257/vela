@@ -115,6 +115,11 @@ class Session:
         return self.record.id
 
     @property
+    def part(self):
+        """Which part of the session's notes this machine holds: the part a committed citation names."""
+        return privaterecord.part_of(self.text)
+
+    @property
     def answer(self):
         return "answer" in self.record.modes
 
@@ -250,7 +255,8 @@ def unready(root, vault, session, args):
     from vela import cli
     today, _ = cli.parse_today(args.today)
     readiness = closegate.ready(vault, session.text, session.id,
-                                close_gate.observe(root, vault, session.record, session.text, today))
+                                close_gate.observe(root, vault, session.record, session.text, today),
+                                session.part)
     if readiness.ready:
         return None
     lines = close_gate.problem_lines(readiness, say.Resolver(vault))
@@ -337,7 +343,7 @@ def send(root, vault, session, args):
                      plain=f"I couldn't send it: {trouble(sent.why)}. Shall I try again?")])
     head = vaultgit.git_out(root, "rev-parse", "HEAD")
     pushed = {"version": VERSION, "branch": session.branch, "head": head, "consent": f"c{yes.n}",
-              "words": yes.quote, "link": f"[[{session.id}#^c{yes.n}]]", "answer": session.answer}
+              "words": yes.quote, "link": privaterecord.citation(session.id, session.part, int(yes.n)), "answer": session.answer}
     wrote = [sessiongit.write_text(root, close_file(session.id, "push"), json.dumps(pushed, indent=2) + "\n")]
     plain = ("Sent. Now I'll add your answer to the challenge." if session.answer
              else "Sent. Now I'll open the review.")
@@ -384,7 +390,8 @@ def body_facts(root, vault, session, marker, before_texts, before, args):
     from vela import cli, ladder, questions, rules
     today, _ = cli.parse_today(args.today)
     readiness = closegate.ready(vault, session.text, session.id,
-                                close_gate.observe(root, vault, session.record, session.text, today))
+                                close_gate.observe(root, vault, session.record, session.text, today),
+                                session.part)
     findings = list(rules.check(vault, today))
     changed = set(before_texts)
     titles = {p.path: str(p.meta.get("title") or p.name) for p in vault.pages}

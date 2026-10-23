@@ -4,16 +4,5 @@ type: session
 date: 2026-01-05
 modes: [requirements]
 status: closed
-summary: Wrote what the till needs from the shop, as assumptions.
+captures_sha256: {1: "96c8bf4219c46f4e04cd56de7cc43bce4c368a2d6d0f8bdfe6b96af276cad795"}
 ---
-
-# 2026-01-05 Requirements: till needs
-
-## Captures
-
-- [idea] (@mini-lead) The till sends the whole basket at once. → park ^c01
-
-## Changes
-
-| ID | From | To | Source |
-|---|---|---|---|

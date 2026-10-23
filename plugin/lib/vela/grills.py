@@ -20,7 +20,7 @@ the shell reads the flow checker's record only for those). It reads no disk and 
 import re
 from dataclasses import dataclass
 
-from vela import gates, grillowners, progress, say, schema, slices, trace
+from vela import gates, grillowners, privaterecord, progress, say, schema, slices, trace
 from vela.decisions import ready
 
 SAID_YES, READY, ONE_AWAY = "said-yes", "ready", "one-away"
@@ -59,8 +59,8 @@ class Grill:
 # ------------------------------------------------------------------ what is waiting on a yes
 
 def _session_info(vault):
-    """{session name: (date, title, text)} for every session record, so a yes can be dated."""
-    return {s.name: (str(s.meta.get("date", "")), str(s.meta.get("title", s.name)), s.text) for s in vault.sessions}
+    """{session name: (date, title, stub header)} for every session record, so a yes can be dated."""
+    return {s.name: (str(s.meta.get("date", "")), str(s.meta.get("title", s.name)), s.meta) for s in vault.sessions}
 
 
 def _state(vault, ident):
@@ -143,15 +143,14 @@ def _opening(text):
 
 
 def since(vault, ident, state, sessions):
-    """The first session that kept the item at its present state, else the first that names it; {} when none does."""
-    _, page = _unit(vault, ident)
-    named = re.compile(rf"\b{re.escape(ident)}\b" + (rf"|\[\[{re.escape(page.name)}[#|\]]" if page is not None and not vault.item(ident) else ""))
-    kept = re.compile(rf"(?:\|{re.escape(ident)}\]\]|\[\[{re.escape(page.name if page is not None else ident)}#[^\]]*\]\])\s*\({re.escape(state)}\)") if state else None
+    """The first session whose stub lists the item as ready to decide (a kept yes), else the first whose stub lists
+    it as a challenge; {} when none does. The words of a session are on the lead's machine, so the stubs' lists are
+    all a clone can read; `state` is the item's present state, and a yes only waits while the item is at assumption."""
     first = None
-    for name, (date, title, text) in sorted(sessions.items()):
-        if kept is not None and kept.search(text):
+    for name, (date, title, meta) in sorted(sessions.items()):
+        if state == ready.KEPT_AT and ident in privaterecord.listed(meta, "ready"):
             return {"date": date, "session": name, "title": title, "kept": True}
-        if first is None and named.search(text):
+        if first is None and ident in (privaterecord.listed(meta, "ready") + privaterecord.listed(meta, "challenges")):
             first = {"date": date, "session": name, "title": title, "kept": False}
     return first or {}
 

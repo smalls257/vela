@@ -184,7 +184,7 @@ def finish_session(root, today, summary, args, out):
     vault = cli.load_vault(root)
     resolver = say.Resolver(vault)
     seen = close_gate.observe(root, vault, record, text, today)
-    readiness = closegate.ready(vault, text, record.id, seen)
+    readiness = closegate.ready(vault, text, record.id, seen, privaterecord.part_of(text))
     if not readiness.ready:
         return emit(not_ready(readiness, resolver), args, out, resolver)
     try:

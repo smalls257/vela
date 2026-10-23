@@ -25,9 +25,16 @@ def test_anchor_to_a_missing_heading(mini):
 
 
 def test_block_reference_must_exist(mini):
-    session_files.edit_record(mini, "2026-01-10-shop-api", "[[2026-01-10-shop-api#^c01]]", "[[2026-01-10-shop-api#^c02]]")
+    edit(mini / UNK, "[[shop-building-blocks#CON-001 Sale API|CON-001]]", "[[01-goals#^nothing]]")
     _, out = check(mini)
-    assert findings(out) == [("E202", "sessions/2026-01-10-shop-api.md")]
+    assert findings(out) == [("E202", UNK)]
+
+
+def test_a_link_into_a_sessions_notes_is_refused_and_says_the_reference_form(mini):
+    edit(mini / UNK, "[[shop-building-blocks#CON-001 Sale API|CON-001]]", "[[2026-01-10-shop-api#^c01]]")
+    code, out = check(mini)
+    assert findings(out) == [("E202", UNK)]
+    assert "[[2026-01-10-shop-api]] c01" in out and "stay on the lead's machine" in out
 
 
 def test_same_page_anchor(mini):

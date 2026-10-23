@@ -42,7 +42,7 @@ import pathlib
 import re
 import time
 
-from vela import closegate, closestate, model, parse, say, sessions
+from vela import closegate, closestate, model, parse, privaterecord, say, sessions
 from vela.edge import flowstore, hostprobe, mergegit, sessiongit, stagegit, vaultgit
 
 
@@ -244,7 +244,8 @@ def judge_session(args, out):
         return commands.emit(early, args, out)
     today, _ = cli.parse_today(args.today)
     vault = cli.load_vault(root)
-    readiness = closegate.ready(vault, text, record.id, observe(root, vault, record, text, today))
+    readiness = closegate.ready(vault, text, record.id, observe(root, vault, record, text, today),
+                               privaterecord.part_of(text))
     if args.consent_block:
         print("\n".join(closegate.consent_block(readiness.consent)), file=out)
         return 0

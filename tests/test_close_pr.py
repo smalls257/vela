@@ -137,8 +137,8 @@ def test_consent_quotes_listed_in_body(tmp_path, monkeypatch):
     assert pr(vault)[0] == 0
     body = created(log)[0]["body"]
     consent = body.split("**Consent**", 1)[1].split("\n\n**", 1)[0]
-    assert f'Stock level (CON-002), fact to decided: "{YES_WORDS}" [[{RECORD}#^c01]]' in consent
-    assert '"Yes, send it."' in consent and f"[[{RECORD}#^c02]]" in consent
+    assert f'Stock level (CON-002), fact to decided: "{YES_WORDS}" [[{RECORD}]] c01' in consent
+    assert '"Yes, send it."' in consent and f"[[{RECORD}]] c02" in consent
 
 
 def test_pending_pr_number_written(tmp_path, monkeypatch):

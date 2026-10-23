@@ -27,7 +27,7 @@ bookkeeping, which close is meant to spare them.
 import re
 from dataclasses import dataclass, replace
 
-from vela import override, say, schema
+from vela import override, privaterecord, say, schema
 from vela.said import is_unverified
 
 CONSENT_CLEAR = ("The lead's own yes, quoted in the session record with a Changes row citing it, clears it; so does "
@@ -183,7 +183,7 @@ def overrides_for(vault, item):
     return [o for o in override.valid_overrides(*scope) if QUOTED_YES_RULE in o.rules]
 
 
-def judge_change(change, rows, said, vault, record_name):
+def judge_change(change, rows, said, vault, record_name, part=1):
     """(Problem or None, Consent or None) for one change into or out of decided."""
     allowed = overrides_for(vault, change.item)
     if allowed:
@@ -212,7 +212,7 @@ def judge_change(change, rows, said, vault, record_name):
         return Problem(f"You said '{capture.quote or 'ok'}' on {change.name}. Was that a yes to {moving(change)}?",
                        f"{change.item}: ^c{capture.n} says only '{capture.quote}'", kind=CONSENT), None
     return None, Consent(change.item, change.name, f"{change.before} to {change.after}", capture.quote,
-                         f"[[{record_name}#^c{capture.n}]]")
+                         privaterecord.citation(record_name, part, int(capture.n)))
 
 
 def moving(change, capital=False):
@@ -227,13 +227,13 @@ def reader_changes(rows, after):
             if CONSENT_STATE in (r.before, r.after) and r.item in after]
 
 
-def judge(changes, record_text, record_name, vault):
+def judge(changes, record_text, record_name, vault, part=1):
     """(problems, consent lines) for the given changes against one session record."""
     rows, said = change_rows(record_text), captures(record_text)
     problems, consent = [], []
     for change in changes:
         named = StateChange(change.item, vault.name_of(change.item), change.before, change.after)
-        problem, line = judge_change(named, rows, said, vault, record_name)
+        problem, line = judge_change(named, rows, said, vault, record_name, part)
         problems += [replace(problem, clear=CONSENT_CLEAR)] if problem else []
         consent += [line] if line else []
     return problems, consent
@@ -480,7 +480,7 @@ def notes_of(seen):
     return notes
 
 
-def ready(vault, record_text, record_id, seen):
+def ready(vault, record_text, record_id, seen, part=1):
     """The whole gate, pure: a Readiness for one session record against what `seen` holds. `close gate` prints it and
     `close finish` refuses on it. The order is the order the lead fixes things in: main, decisions, filing, the tree."""
     rows, said = change_rows(record_text), captures(record_text)
@@ -489,7 +489,7 @@ def ready(vault, record_text, record_id, seen):
         changes = reader_changes(rows, after)
     else:
         changes = consent_changes(states(seen.before), after, vault)
-    problems, consent = judge(changes, record_text, record_id, vault)
+    problems, consent = judge(changes, record_text, record_id, vault, part)
     if seen.sync.blocks:
         problems.insert(0, Problem(seen.sync.plain, f"sync-main: {seen.sync.status or 'not run'}",
                                    "Running vela close sync-main clears it.", kind=SYNC, audience=seen.sync.audience))

@@ -1,5 +1,5 @@
-"""The v3 final fix wave. Each test pins a rule whose loss would be silent: a quote laundered through a
-record's own `## Reviews`, a yes that never reaches the ledger, an `asked` question hidden from the
+"""The v3 final fix wave. Each test pins a rule whose loss would be silent: a quote taken from a session record
+(its notes stay on the lead's machine, so no quote can be checked against them), a yes that never reaches the ledger, an `asked` question hidden from the
 views that list what holds the gates, or a warning the lead never hears about."""
 import json
 import shutil
@@ -49,7 +49,7 @@ summary: in progress
 def vault_with_record(tmp_path):
     vault = tmp_path / "ub"
     shutil.copytree(FIXTURE, vault)
-    session_files.write_whole_record(vault, "2026-11-20-points-dump", RECORD)  # findings merge reads the session as a page
+    session_files.write_record(vault, "2026-11-20-points-dump", RECORD)
     return vault
 
 
@@ -57,7 +57,7 @@ def text(rel):
     return (PLUGIN / rel).read_text(encoding="utf-8")
 
 
-# ------------------------------------------------------------------ 1. no quote is laundered through ## Reviews
+# ------------------------------------------------------------------ 1. no quote is taken from a session record
 
 def merge_one(tmp_path, vault, quote, area="REG"):
     folder = tmp_path / "f"
@@ -70,21 +70,18 @@ def merge_one(tmp_path, vault, quote, area="REG"):
     return json.loads(out)
 
 
-def test_a_rerun_drops_a_quote_the_first_merge_dropped_even_though_the_record_now_holds_it(tmp_path):
+WHY_NOT = "stay on the lead's machine"
+
+
+def test_a_quote_cited_to_a_session_is_refused_whatever_its_notes_hold(tmp_path):
     vault = vault_with_record(tmp_path)
-    result = merge_one(tmp_path, vault, DROPPED)
-    assert result["kept"] == []
-    assert result["dropped"][0]["reason"] == (f'its quote "{DROPPED}" is not in the written text of '
-                                              "[[2026-11-20-points-dump]]")
+    for words in (DROPPED, "customers keep their loyalty points across both brands"):
+        result = merge_one(tmp_path, vault, words)
+        assert result["kept"] == []
+        assert WHY_NOT in result["dropped"][0]["reason"], result["dropped"]
 
 
-def test_a_capture_on_the_same_record_is_still_quotable(tmp_path):
-    vault = vault_with_record(tmp_path)
-    result = merge_one(tmp_path, vault, "customers keep their loyalty points across both brands")
-    assert result["dropped"] == [] and len(result["kept"]) == 1
-
-
-def test_a_ledger_row_cannot_quote_the_reviews_table_or_the_dropped_line(tmp_path):
+def test_a_ledger_row_cannot_quote_a_session(tmp_path):
     vault = vault_with_record(tmp_path)
     ledger = vault / "11-unknowns-and-risks.md"
     rows = [
@@ -97,8 +94,8 @@ def test_a_ledger_row_cannot_quote_the_reviews_table_or_the_dropped_line(tmp_pat
     run("render", "--vault", str(vault))
     code, out = check(vault, "2026-11-20")
     e802 = [l for l in out.splitlines() if " E802 " in l]
-    assert any("R-FIN-02" in l and "is not in the written text" in l for l in e802), out
-    assert any("R-REG-02" in l and "is not in the written text" in l for l in e802), out
+    assert any("R-FIN-02" in l and WHY_NOT in l for l in e802), out
+    assert any("R-REG-02" in l and WHY_NOT in l for l in e802), out
 
 
 def test_an_open_row_with_bad_evidence_is_not_told_to_set_itself_open(tmp_path):
@@ -125,7 +122,7 @@ def ub(tmp_path):
 def ask_reviewer(vault):
     """Turn the fixture's open reviewer question into an asked one, as a lead who asked it would."""
     edit(vault / "11-unknowns-and-risks.md", "| R-FIN-01 | open | question:",
-         "| R-FIN-01 | asked | capture: [[2026-11-19-owed-questions#^c01]]; question:")
+         "| R-FIN-01 | asked | capture: [[2026-11-19-owed-questions]] c01; question:")
 
 
 def test_open_lists_an_asked_copy_and_an_asked_reviewer_question(tmp_path):

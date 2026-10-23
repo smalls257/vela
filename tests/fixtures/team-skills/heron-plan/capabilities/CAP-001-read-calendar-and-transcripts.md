@@ -22,7 +22,7 @@ The business can have the Desktop agent read a person's own calendar entries and
 Where a meeting has a Teams transcript that Heron is allowed to read, Heron reads it for a person who was in that meeting. Where there is none, Heron has the calendar entry only, and the person is told when a note is thin for that reason.
 
 - **State:** assumption
-- **Source:** [[2026-10-12-heron-capability-requirements#^c03]]
+- **Source:** [[2026-10-12-heron-capability-requirements]] c03
 
 - Heron reads a transcript only if the organizer turned transcripts on and the tenant administrators have approved reading them.
   - Trace: CST-008, UNK-059
@@ -36,7 +36,7 @@ Where a meeting has a Teams transcript that Heron is allowed to read, Heron read
 Heron reads the signed-in person's own calendar entries for the day, and for each meeting the title, time and attendees that the entry holds.
 
 - **State:** assumption
-- **Source:** [[2026-10-12-heron-capability-requirements#^c05]]
+- **Source:** [[2026-10-12-heron-capability-requirements]] c05
 
 - Heron reads only the signed-in person's own calendar.
 - Heron reads each entry's title, time and attendees.

@@ -183,7 +183,9 @@ def apply(item, vault, record):
         return add_unknown.apply(unknown, vault, record)  # writes the unknown and marks the capture
     text = textedit.write_mark(textedit.record_text(record, vault), item["capture"], mark_text(item, vault, record))
     if item["mark"] == "keep":
+        # the header is read only for a keep that could be a ready-to-decide yes (from_keep ignores the rest)
+        stub = textedit.stub_text(record, vault) if item["state"] == ready.KEPT_AT else ""
         for ident in ids_of(item):
             text = ready.from_keep(text, record.id, record.capture(item["capture"]), ident, item["state"],
-                                   getattr(vault, "lead", None), textedit.stub_text(record, vault))
+                                   getattr(vault, "lead", None), stub)
     return textedit.record_writes(record, vault, text)

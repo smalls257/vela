@@ -369,7 +369,7 @@ def evidence(item, vault, record, old):
     state = item["state"]
     pairs = []
     if state == "asked":
-        pairs.append(("capture", textedit.capture_link(record.id, item["capture"])))
+        pairs.append(("capture", textedit.capture_ref(record, item["capture"])))
     elif state == "answered":
         pairs += [("item", textedit.link(vault, str(item["item"]), cell_link=True)),
                   ("answer", free_text(words(record, item.get("answer") or item["capture"]))),

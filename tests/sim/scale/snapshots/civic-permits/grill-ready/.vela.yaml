@@ -1,3 +1,4 @@
 initiative: INI-001
 title: PermitPath
 stale_after_days: 60
+records_split: 2026-10-22

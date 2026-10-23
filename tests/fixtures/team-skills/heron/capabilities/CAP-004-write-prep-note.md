@@ -22,7 +22,7 @@ The business can have the Summarizer write a short prep note for one meeting fro
 For a meeting on their own calendar, a person who has switched Heron on gets a short prep note written from that meeting's calendar entry, ready ten minutes before it starts.
 
 - **State:** assumption
-- **Source:** [[2026-10-12-heron-capability-requirements#^c35]]
+- **Source:** [[2026-10-12-heron-capability-requirements]] c35
 
 - The prep note draws only on that meeting's calendar entry.
   - Trace: UNK-067

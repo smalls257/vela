@@ -61,7 +61,7 @@ def apply(item, vault, record):
     lines = ["---", f"id: {ident}", "type: slice", f"title: {textedit.yaml_value(title)}", "authored: authored", "---",
              "", f"# {title}", ""]
     lines += [f"- **{label}:** {value(field, item, vault)}" for field, label in BULLETS if item.get(field)]
-    source = f", from [[{record.id}#^c{str(item['capture']).lstrip('^c')}]]" if item.get("capture") else ""
+    source = f", from {textedit.capture_ref(record, item['capture'])}" if item.get("capture") else ""
     lines += ["", "## Not in this slice", "", "## History", "",
               f"- {textedit.today(vault)}: written in [[{record.id}]]{source}"]
     rec = textedit.record_text(record, vault)

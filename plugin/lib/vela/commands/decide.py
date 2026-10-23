@@ -208,6 +208,8 @@ def file_item(item, root, staged, record, reader):
         filed = decisions.applied_text(decision, writes, decisions.record_after(record, staged))
         path.parent.mkdir(parents=True, exist_ok=True)
         written = disk.write_all(root, writes, {path: filed})
+    except textedit.StubUnreadable as exc:
+        return failed(str(exc), str(exc))
     except disk.OutsideVault as exc:
         return refused([say.Refusal("apply-outside-vault", "That would have changed a file outside the vault, so I "
                                                            "decided nothing.", f"{exc}.",

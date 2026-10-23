@@ -262,6 +262,15 @@ def set_frontmatter(text, values):
     return "\n".join(lines)
 
 
+def wording_citation(root, session, yes):
+    """The lead's yes as a committed page cites it, `[[<session>]] c07` (`2.c07` from the second part). The part is
+    read from this machine's notes, which the yes was checked against."""
+    notes = sessiongit.private_text(root, session)
+    if notes is None:
+        raise importqueue.QueueRefused(str(sessiongit.PrivateMissing(session)))
+    return privaterecord.citation(session, privaterecord.part_of(notes), int(capture_number(yes)))
+
+
 def cmd_page(args, out):
     def change(state, where):
         root, session = where
@@ -274,7 +283,7 @@ def cmd_page(args, out):
             raise importqueue.QueueRefused("give every source the page draws on (--source SRC-nn), each in the register"
                                            + (f"; {', '.join(missing)} isn't" if missing else ""))
         choice, yes = importqueue.wording_for(state, args.source)
-        link = f"[[{session}#{yes}]]" if yes else None
+        link = wording_citation(root, session, yes) if yes else None
         text = path.read_text(encoding="utf-8")
         after = set_frontmatter(text, {WORDING_KEY: choice, WORDING_YES_KEY: link})
         wrote = [sessiongit.write_text(root, rel, after)] if after != text else []

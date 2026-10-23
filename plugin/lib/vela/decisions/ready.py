@@ -41,6 +41,8 @@ def modes_of(stub_text):
 def can_decide(stub_text):
     """False when every mode of the session is one that never sets `decided`; a session with no modes, or any mode
     outside that list (grill, answer, epics inside a grill part), is left to the gate."""
+    if not stub_text.strip():
+        raise ValueError("no session header to read the modes from; an empty one would let a shape session decide")
     modes = modes_of(stub_text)
     return not modes or any(m not in CANNOT_DECIDE for m in modes)
 

@@ -9,6 +9,7 @@ import shutil
 import pytest
 from conftest import REPO, check, findings, run
 
+import session_files
 from vela import cli, parse, query, readability, reading, viewer
 from vela.explorer.pages_data import page_reader
 from vela.explorer.record import Keys, chips_html, inline_html
@@ -173,7 +174,7 @@ def test_criteria_under_subheadings_still_count_as_the_epics_criteria(mini):
 
 def vault_with(tmp_path, epic):
     vault = tmp_path / "heron"
-    shutil.copytree(HERON, vault)
+    session_files.split_copy(HERON, vault)
     if epic is not None:
         shutil.copy(epic, vault / EPIC_PATH)
     return vault

@@ -59,7 +59,7 @@ def apply(item, vault, record):
     ident = f"{capability}.FR{number}"
     state = item.get("state") or "assumption"
     lines = [f"### {ident} {item['name'].strip()}", "", textedit.inline(item["need"]), "", f"- **State:** {state}",
-             f"- **Source:** {textedit.capture_link(record.id, item['capture'])}"]
+             f"- **Source:** {textedit.capture_ref(record, item['capture'])}"]
     traces = list(item.get("traces") or [])
     if item.get("criteria"):
         lines.append("")

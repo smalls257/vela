@@ -10,6 +10,7 @@ import shutil
 import pytest
 from conftest import REPO, check, findings, run
 
+import session_files
 from vela import cli, criteria, export, parse, readability, trace
 from vela.explorer import design_data, roles_data
 
@@ -29,7 +30,7 @@ def text_page(body):
 
 def vault_with(tmp_path, epic):
     vault = tmp_path / "heron"
-    shutil.copytree(HERON, vault)
+    session_files.split_copy(HERON, vault)
     shutil.copy(epic, vault / EPIC_PATH)
     run("render", "--vault", str(vault))
     return vault

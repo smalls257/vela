@@ -102,7 +102,7 @@ def test_a_quoted_yes_is_ready_and_the_consent_block_quotes_it(tmp_path):
     assert code == 0 and "ready to finish" in out, out
     code, out = gate(vault, "--consent-block")
     assert code == 0
-    assert f'- Stock level (CON-002), fact to decided: "Yes, decide stock level as read." [[{RECORD}#^c01]]' in out
+    assert f'- Stock level (CON-002), fact to decided: "Yes, decide stock level as read." [[{RECORD}]] c01' in out
 
 
 def test_consent_block_quotes_the_lead_verbatim(tmp_path):

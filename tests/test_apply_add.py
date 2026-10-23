@@ -256,7 +256,7 @@ def test_fr_numbered_after_the_highest(tmp_path):
                                   "criteria": ["The receipt shows one VAT line."]}])
     page = writes["capabilities/CAP-001-sell.md"]
     assert "### CAP-001.FR4 Print a receipt\n\nA shopper leaves with a receipt.\n\n- **State:** assumption\n" \
-           "- **Source:** [[2026-10-20-grill-stock#^c03]]\n\n- The receipt shows one VAT line.\n" in page
+           "- **Source:** [[2026-10-20-grill-stock]] c03\n\n- The receipt shows one VAT line.\n" in page
 
 
 def test_unknown_field_for_a_type_refused(tmp_path):

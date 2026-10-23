@@ -20,7 +20,8 @@ this tree alone, because a number another open branch holds is the collision thi
 """
 import re
 
-from vela import ids, parse, say
+from vela import ids, parse, privaterecord, say
+from vela.decisions.record import number_of
 
 BR = "<br>"
 _NEWLINE = re.compile(r"\r\n|\r|\n")
@@ -167,7 +168,14 @@ def name_of(view, ident):
 
 
 def capture_link(record_id, ref):
+    """The link a `## Changes` row inside the private file cites a capture by. A committed page never uses it."""
     return f"[[{record_id}#^c{str(ref).lstrip('^c')}]]"
+
+
+def capture_ref(record, ref):
+    """How a committed page cites a capture: `[[<id>]] c07`, or `[[<id>]] 2.c07` from the second part. The notes stay
+    on the lead's machine, so a committed page can't carry an anchor into them."""
+    return privaterecord.citation(record.id, record.part, number_of(ref))
 
 
 # --- editing text ---------------------------------------------------------------------------------------------------

@@ -55,10 +55,8 @@ def validate(item, vault, record):
 def apply(item, vault, record):
     ident = textedit.new_id(item, vault, "CST")
     path = textedit.page_path(vault, PAGE)
-    source = item.get("source") or (f"[[{record.id}#^c{str(item['capture']).lstrip('^c')}\\|the lead's account]]"
-                                    if item.get("capture") else "")
-    line = textedit.row(ident, textedit.cell(words(item, record)), textedit.cell(source) if item.get("source")
-                        else source, textedit.cell(item["forces"]))
+    source = item.get("source") or (textedit.capture_ref(record, item["capture"]) if item.get("capture") else "")
+    line = textedit.row(ident, textedit.cell(words(item, record)), textedit.cell(source), textedit.cell(item["forces"]))
     page = textedit.add_row(vault.text(path), HEADER, line)
     text = textedit.record_text(record, vault)
     heading = textedit.heading_above(page, HEADER)

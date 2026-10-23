@@ -49,7 +49,7 @@ def test_start_refuses_a_title_that_names_a_person(tmp_path, monkeypatch):
 def test_a_person_a_private_file_quotes_cannot_be_the_title(tmp_path, monkeypatch):
     vault = owner(tmp_path, monkeypatch)
     private = vault / "sessions" / "private"
-    private.mkdir(parents=True)
+    private.mkdir(parents=True, exist_ok=True)
     (private / "2026-10-01-older.md").write_text("- [said] (Dana Okafor) words ^c1\n", encoding="utf-8")
     code, out = start(vault, "--mode", "grill", "--topic", "Okafor concerns", "--for-lead")
     assert code == 3 and titlecheck.TITLE_QUESTION in out and "I matched on okafor" in out

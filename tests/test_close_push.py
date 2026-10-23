@@ -167,6 +167,7 @@ def test_consent_after_notice_pushes(tmp_path):
     assert say.leak_in(out) is None
     pushed = json.loads((vault / ".vela" / "close" / f"{RECORD}.push.json").read_text(encoding="utf-8"))
     assert pushed["branch"] == BRANCH and pushed["consent"] == number.lstrip("^")
+    assert pushed["link"] == f"[[{RECORD}]] {number.lstrip('^')}", "a committed reference, never an anchor into the notes"
 
 
 def test_an_uncommitted_change_stops_the_push_but_the_private_yes_does_not(tmp_path):

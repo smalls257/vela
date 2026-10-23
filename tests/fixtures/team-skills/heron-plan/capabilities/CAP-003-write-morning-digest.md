@@ -22,7 +22,7 @@ The business can have the Summarizer write each person's 7:30 digest from the da
 Each working morning, a person who has switched Heron on gets a digest written from their own calendar entries and any existing Teams transcripts. On a day with no meetings the digest says so.
 
 - **State:** assumption
-- **Source:** [[2026-10-12-heron-capability-requirements#^c27]]
+- **Source:** [[2026-10-12-heron-capability-requirements]] c27
 
 - The digest draws only on that person's own calendar entries and the transcripts Heron is allowed to read.
   - Trace: CAP-001.FR1
@@ -36,7 +36,7 @@ Each working morning, a person who has switched Heron on gets a digest written f
 A digest names a person only if they were in the meeting. It leaves out any remark about anyone's mood, tone or performance.
 
 - **State:** assumption
-- **Source:** [[2026-10-12-heron-capability-requirements#^c32]]
+- **Source:** [[2026-10-12-heron-capability-requirements]] c32
 
 - A person who was only mentioned in a meeting, not in it, is not named.
   - Trace: CST-004

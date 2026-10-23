@@ -8,7 +8,7 @@ carries its questions with it. The same vault always gives the same copies in th
 import re
 from dataclasses import dataclass
 
-from vela import catalog, ledger, schema
+from vela import catalog, ledger, privaterecord, schema
 from vela.model import Finding, meta_line
 from vela.parse import CODE_SPAN, WIKILINK, links_in, split_frontmatter
 
@@ -380,36 +380,27 @@ def normal_text(text):
     return " ".join(re.sub(r"[*_`]", "", text).lower().split())
 
 
-REVIEWS_HEADING = "Reviews"
-
-
-def _section_span(page, heading):
-    """The 1-based line range (first, last) of the first `## <heading>` section, or None."""
-    start = next((h.line for h in page.headings if h.level == 2 and h.text == heading), 0)
-    if not start:
-        return None
-    later = [h.line for h in page.headings if h.level == 2 and h.line > start]
-    return start, (min(later) - 1 if later else len(page.text.split("\n")))
-
-
 def quotable_text(page):
     """The hand-written body of a page: no frontmatter, no generated block, no HTML comment. On the ledger
-    page the ledger section is left out, so a row cannot be evidenced by itself. On a session record the
-    `## Reviews` section is left out: it holds the reviewers' own words and the quotes a merge already
-    dropped, so neither can come back as evidence through a re-run or a ledger row."""
+    page the ledger section is left out, so a row cannot be evidenced by itself."""
     lines = page.text.split("\n")
     _, body_start, _ = split_frontmatter(page.text)
     skip = set(range(1, max(body_start, 1)))
     for block in page.blocks:
         skip.update(range(block.start, block.end + 1))
     spans = [ledger.section_lines(page)] if page.id == ledger.PAGE_ID else []
-    if page.type == "session":
-        spans.append(_section_span(page, REVIEWS_HEADING))
     for span in spans:
         if span:
             skip.update(range(span[0], span[1] + 1))
     kept = "\n".join(line for n, line in enumerate(lines, start=1) if n not in skip)
     return _HTML_COMMENT.sub(" ", kept)
+
+
+def _holds_its_words(page):
+    """True for a session record still committed whole (a plan not yet moved by `vela records split`): its words are in
+    the plan, so a quote of them can be checked. A stub has a header and no body, and its words are on one machine."""
+    _, body_start, _ = split_frontmatter(page.text)
+    return bool("\n".join(page.text.split("\n")[max(body_start, 1) - 1:]).strip())
 
 
 def quote_problem(vault, value, label):
@@ -423,6 +414,9 @@ def quote_problem(vault, value, label):
     page = vault.page(name)
     if page is None:
         return f"{label} cites [[{name}]], which is not a page in this vault"
+    if page.type == "session" and not _holds_its_words(page):
+        return (f"{label} quotes a session record, and a session's notes stay on the lead's machine; cite a source, "
+                "or the item that holds the answer")
     words = normal_text(match["text"])
     if len(words.split()) < MIN_QUOTE_WORDS:
         return f'{label} "{match["text"]}" has fewer than {MIN_QUOTE_WORDS} words, too few to show where it came from'
@@ -500,6 +494,13 @@ def _unknown_problems(vault, row):
     return need
 
 
+def _names_a_session(vault, value):
+    """True when `value` is a capture reference, `[[<session>]] c07`, and that session is a page in the plan."""
+    cited = privaterecord.parse_citation(str(value or ""))
+    page = vault.page(cited[0]) if cited else None
+    return page is not None and page.type == "session"
+
+
 def _evidence_problems(vault, row):
     """What the row's state needs and its evidence lacks, as phrases."""
     need = []
@@ -508,8 +509,8 @@ def _evidence_problems(vault, row):
     for key, _ in row.evidence:
         if key not in allowed:
             need.append(f"{key}: does not belong on a row that is {state}")
-    if state == "asked" and not any(l.anchor.startswith("^c") for l in _links(row.get("capture"), row)):
-        need.append("asked needs capture: a link to the capture where it was asked, such as [[<session>#^c07]]")
+    if state == "asked" and not _names_a_session(vault, row.get("capture")):
+        need.append("asked needs capture: the capture where it was asked, such as [[<session>]] c07")
     if state == "answered":
         if not _links(row.get("item"), row):
             need.append("answered needs item: a link to the item that holds the answer")

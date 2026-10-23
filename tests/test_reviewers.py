@@ -75,7 +75,7 @@ def test_a_reviews_section_in_the_documented_form_passes_check(tmp_path):
 | F1.1 | FIN | normal | new | Who tells the loyalty scheme \\| and when? | "because points are earned at reservation" in [[04a-capability-delta]] |
 
 ## Changes""")
-    session_files.write_whole_record(vault, "2026-11-19-owed-questions", text)  # E202 reads the page's anchors
+    session_files.write_private(vault, "2026-11-19-owed-questions", text)
     code, out = check(vault, "2026-11-20")
     assert code == 0 and findings(out) == [], out
 
@@ -430,7 +430,7 @@ summary: Options for when travel credit expires.
 |---|---|---|---|---|---|
 | F1.1 | FIN | normal | Q-FIN-05@SV-02 | What happens to the credit at expiry? | "credit expires 12 months after the canceled crossing" in [[2026-11-20-credit-expiry]] |
 | F1.2 | FIN | normal | Q-FIN-06@SV-02 | Who sets the rate if credit converts? | "finance carries it until it is used" in [[2026-11-20-credit-expiry]] |
-| F1.3 | FIN | high | new | Does a refund to card cancel the credit, and who records it? | "keep the fare as travel credit" in [[2026-11-20-credit-dump]] |
+| F1.3 | FIN | high | new | Does a refund to card cancel the credit, and who records it? | "which keeps each credit against its booking reference" in [[03-context-and-scope]] |
 
 ## Changes
 
@@ -483,7 +483,6 @@ def test_a_close_run_by_its_rules_on_a_dump_then_a_shape_passes_check(tmp_path):
 
     _close(vault, "2026-11-20-credit-dump", DUMP_SAID)
     run("render", "--vault", str(vault))
-    session_files.expose_notes(vault, "2026-11-20-credit-dump")  # E202 reads the page's anchors
     code, out = check(vault, TODAY)
     assert code == 0 and findings(out) == [], out
     scope = (vault / "03-context-and-scope.md").read_text(encoding="utf-8")
@@ -505,7 +504,6 @@ def test_a_close_run_by_its_rules_on_a_dump_then_a_shape_passes_check(tmp_path):
     session_files.write_record(vault, "2026-11-20-credit-expiry", SHAPE_RECORD)
     _close(vault, "2026-11-20-credit-expiry", SHAPE_SAID)
     run("render", "--vault", str(vault))
-    session_files.expose_notes(vault, "2026-11-20-credit-expiry")  # E202 reads the page's anchors
     code, out = check(vault, TODAY)
     assert code == 0 and findings(out) == [], out
 
@@ -527,11 +525,3 @@ def test_a_close_run_by_its_rules_on_a_dump_then_a_shape_passes_check(tmp_path):
     assert any(" W806 " in l and "Q-FIN-05@SV-02" in l for l in out.splitlines()), out
     gate = run("check", "--gate", "epics", "--vault", str(vault), "--today", TODAY)[1]
     assert not any(" E805 Q-FIN-01@" in l or " E805 Q-DAT-01@" in l for l in gate.splitlines()), gate
-
-    # The rule the untyped party's mark exists for: a keep to the heading it never got is E202.
-    session_files.edit_record(
-        vault, "2026-11-20-credit-dump",
-        "[[11-unknowns-and-risks#UNK-010 How we deal with a travel insurer|UNK-010]] (open)",
-        "[[03-context-and-scope#PTY-03 Travel insurer|PTY-03]] (subject)")
-    session_files.expose_notes(vault, "2026-11-20-credit-dump")
-    assert ("E202", "sessions/2026-11-20-credit-dump.md") in findings(check(vault, TODAY)[1])

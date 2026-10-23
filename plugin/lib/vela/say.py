@@ -31,7 +31,7 @@ DONE, REFUSED, FAILED, NEEDS_LEAD = 0, 1, 2, 3
 LEAD_PATTERNS = {
     "check code": re.compile(r"\b[EWT]\d{3}\b"),
     "gate": re.compile(r"\bGATE-\w+|--gate\b"),
-    "capture": re.compile(r"\^c\d+\b"),
+    "capture": re.compile(r"\^c\d+\b|\b\d+\.c\d+\b|\]\] c\d+\b"),
     "copy": re.compile(r"\bQ-[A-Z]{3}-\d{2,}(?:@[\w*.-]+)?"),
     "finding": re.compile(r"\bF\d+\.\d+\b"),
     "reviewer row": re.compile(r"\bR-[A-Z]{3}-\d{2,}\b"),

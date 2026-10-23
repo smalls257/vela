@@ -29,9 +29,25 @@ def tree_bytes(root):
             if p.is_file() and ".git" not in p.relative_to(root).parts}
 
 
+def whole_records(vault):
+    """Put every split record of a copied fixture back as one whole committed file, the shape of a plan made before
+    private notes: the stub's header (less the part fingerprints) and the notes' summary and body."""
+    for stub in sorted((vault / "sessions").glob("*.md")):
+        notes = vault / privaterecord.private_path(stub.stem)
+        header, body = privaterecord._read(notes.read_text(encoding="utf-8"))
+        kept = [line for line in stub.read_text(encoding="utf-8").split("\n")
+                if not line.startswith("captures_sha256:") and line != "---"]
+        whole = "---\n" + "\n".join(line for line in kept if line) + f"\nsummary: {json.dumps(header['summary'])}\n---\n" + body
+        stub.write_text(whole, encoding="utf-8")
+        notes.unlink()
+    if (vault / "sessions" / "private").is_dir():
+        (vault / "sessions" / "private").rmdir()
+
+
 def full_records_vault(tmp_path):
     """The mini vault in git: whole records, a Dissent with words on CON-001, an asked and an answered ledger row."""
     vault = make_vault(tmp_path)
+    whole_records(vault)
     page = vault / SHOP
     page.write_text(page.read_text(encoding="utf-8").replace(
         "- **Why:** The till needs one place to ask for a sale.\n\n| Case",
@@ -158,9 +174,15 @@ def test_an_answered_quote_with_no_by_stops_the_split():
 
 def whole_files():
     """The pure planner's input: every committed text of the full-records vault, by path."""
+    import shutil
+    import tempfile
     from conftest import MINI
-    files = {p.relative_to(MINI).as_posix(): p.read_text(encoding="utf-8") for p in sorted(MINI.rglob("*"))
-             if p.is_file() and p.suffix in (".md", ".yaml") or p.name == ".gitignore"}
+    with tempfile.TemporaryDirectory() as folder:
+        copy = pathlib.Path(folder) / "mini"
+        shutil.copytree(MINI, copy)
+        whole_records(copy)
+        files = {p.relative_to(copy).as_posix(): p.read_text(encoding="utf-8") for p in sorted(copy.rglob("*"))
+                 if p.is_file() and p.suffix in (".md", ".yaml") or p.name == ".gitignore"}
     files[SHOP] = files[SHOP].replace("- **Why:** The till needs one place to ask for a sale.\n\n| Case",
                                       "- **Why:** The till needs one place to ask for a sale.\n"
                                       "- **Dissent:** @raj, 2026-01-10: too slow\n\n| Case")

@@ -65,7 +65,7 @@ def git(vault, *args):
 
 def build(tmp_path):
     vault, origin, bin_dir = tmp_path / "vault", tmp_path / "origin.git", tmp_path / "bin"
-    shutil.copytree(SNAPSHOT, vault, ignore=shutil.ignore_patterns(".git"))
+    session_files.split_copy(SNAPSHOT, vault)
     git(tmp_path, "init", "-q", "-b", "main", str(vault))
     git(vault, "config", "user.name", "Replay Lead")
     git(vault, "config", "user.email", "replay-lead@example.invalid")

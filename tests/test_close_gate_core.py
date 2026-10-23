@@ -17,10 +17,10 @@ def vault(state="decided", override=""):
     return model.build([page], {})
 
 
-def judged(captures, rows, state="decided", override=""):
+def judged(captures, rows, state="decided", override="", part=1):
     v = vault(state, override)
     changes = closegate.consent_changes({"CON-003": "assumption", "APP-booking": "assumption"}, closegate.states(v), v)
-    return closegate.judge(changes, record(captures, rows), RECORD, v)
+    return closegate.judge(changes, record(captures, rows), RECORD, v, part)
 
 
 def test_hand_set_decided_with_no_changes_row_refused():
@@ -54,7 +54,13 @@ def test_a_quoted_yes_passes_and_lands_in_the_consent_block():
     assert not problems
     block = closegate.consent_block(consent)
     assert block[0] == "**Consent**"
-    assert f'- Consent records (CON-003), assumption to decided: "Yes, decide it as read." [[{RECORD}#^c04]]' in block
+    assert f'- Consent records (CON-003), assumption to decided: "Yes, decide it as read." [[{RECORD}]] c04' in block
+
+
+def test_the_consent_link_names_the_part_the_yes_is_in():
+    _, consent = judged(['- [thought] (@lead) "Yes, decide it as read." says yes to consent records ^c04'],
+                        [f"| CON-003 | assumption | decided | [[{RECORD}#^c04]] |"], part=2)
+    assert closegate.consent_block(consent)[-1].endswith(f'"Yes, decide it as read." [[{RECORD}]] 2.c04')
 
 
 def test_override_bullet_lets_it_through_and_is_listed():
