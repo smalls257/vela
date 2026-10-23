@@ -6,11 +6,11 @@ argument-hint: "[the decided item, or an app]"
 
 # Boundary
 
-Turn a decided direction into apps a team lead can take. Until an app page exists, epics and handoff have nothing to work on. Boundary never decides. Every page this session writes is an `assumption`, never `decided`, and a concern cell is never `addressed`: only a grill decides one.
+Turn a decided direction into apps a team lead can take. Until an app page exists, epics and handoff have nothing to work on. Boundary never decides: every page this session writes is an `assumption`, and a concern cell is never `addressed`. Only a grill decides one.
 
 Vela is `sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela` (`START.md`, "Where vela runs from"). Read a page format one section at a time with `vela conventions "<section>"`: "Frontmatter", "Fact bullets" for contracts, "Fact tables" for containers, "Concern cells and waivers", "Areas and stages" for the ladder. Relay each `--for-lead` output's plain lines; reason over `--json`. When a command turns an item down, relay its reason and do what it says. When a command can't express what the lead wants, say so and stop.
 
-**How you talk to the lead.** Answer first, then at most about four things to judge, one question at a time, each with a recommendation that holds under pushback (`CONVERSATION-VOICE.md`, rule 7). Name things, in your own sentences as well as in what a command prints: an ID only where the lead has to act on it. States in words: "just an idea" (`inkling`), "not decided yet" (`assumption`), "confirmed" (`fact`); "the plan", not the vault. Names in American spelling, capitalized ones too ("Route Optimizer", not "Route Optimiser"): the spelling check skips capitalized words. A read-back by name:
+**How you talk to the lead.** Name things in your own sentences as well as in what a command prints, and say states in words: "just an idea" (`inkling`), "not decided yet" (`assumption`), "confirmed" (`fact`). Spell names in American English, capitalized ones too ("Route Optimizer", not "Route Optimiser"): the spelling check skips capitalized words. A read-back by name:
 
 > Not this: "APP-dock-service provides CON-003 to APP-fleet-console, at assumption; UNK-051 blocks it."
 >
@@ -41,11 +41,11 @@ Offer 2 or 3 ways to cut the direction into apps, never one and never more than 
 
 Test each cut against the functional requirements: write the cuts to `.vela/cuts.json` in the shape `vela boundary cover --help` prints, run `vela boundary cover --cut .vela/cuts.json --for-lead`, and relay which requirements each cut carries whole, splits across apps (each split needs a contract) or leaves with no app. The count is the command's; the trade-offs are yours to say, a line per cut. If the plan has no functional requirements yet, say so and offer `/vela:requirements` first.
 
-Capture each cut as a `[thought] (claude)` line (`vela record add`) and say which you prefer and why. Capture the user's reaction to each, the pick, and each rejected cut with its reason. If they reject them all, capture why and offer new cuts. Write the pick with `vela add cut --for-lead`, its apps and the cuts that lost with their reasons (`vela add cut --help`); it marks the pick's capture `→ keep: [[05-building-blocks#<the picked cut>|cut]] (assumption)`.
+Capture each cut as a `[thought] (claude)` line (`vela record add`) and say which you prefer and why. Capture the user's reaction to each, the pick, and each rejected cut with its reason. If they reject them all, capture why and offer new cuts. Write the pick with `vela add cut --for-lead`, its apps and the cuts that lost with their reasons (`vela add cut --help`).
 
 Then ask for the domains once, for every app together: what do the lead's people call the area of the business each app sits in (Channels, Payments and Learning, say), and are any two apps really one area? Offer names from `03-context-and-scope.md`, the glossary and the domains other pages already use, so spellings converge; never invent an area your people don't use. A confirmed name goes on the app's stub, and on a capability page when the user names one for it. An app given no area keeps none, recorded as an override, never blocked.
 
-Then stub every new or changed app of the cut, so every later link has a page to point at: `vela add app-stub --for-lead` with its name, slug, change, owner, domain and the pick's capture (`vela add app-stub --help`). `vela next` sends a stub back to Boundary, so an app this session doesn't reach is never lost. Checkpoint as section 4 says.
+Then stub every new or changed app of the cut, so every later link has a page to point at: `vela add app-stub --for-lead` with its name, slug, change, owner, domain and the pick's capture (`vela add app-stub --help`). Checkpoint as section 4 says.
 
 ## 3. Read back one boundary sheet per app
 
@@ -76,13 +76,13 @@ Label every line with what it rests on: a source, a decided item and the grill t
 
 ## 4. Write the confirmed lines
 
-After each sheet, write what was confirmed. `${CLAUDE_PLUGIN_ROOT}/skills/boundary/PAGES.md` says what each page holds. Commands write the templated parts, number each new ID and mark its capture:
+After each sheet, write what was confirmed. `${CLAUDE_PLUGIN_ROOT}/skills/boundary/PAGES.md` says what each page holds.
 
-- Each contract the app provides: `vela add contract --for-lead`, with its provider, name, what goes each way, consumers, change policy and capture (`vela add contract --help`). It writes the required bullets on the provider's page and won't write `decided`. Add the case table the lead confirmed under it.
-- Each open question: `vela add unknown --for-lead`, with its owner, who to ask, what it blocks and its capture, in the same checkpoint as the line that links it.
-- The rest you write by hand as PAGES says: the stub becomes the app page, then its containers, runtime page, concern cells, capabilities and flows. Mark each capture with `vela apply` on a `marks` file (`vela apply --schema marks`), `→ keep: [[<page>#<heading>|<ID>]] (assumption)`. No command writes the `## Changes` row for an app page or a runtime page yet, so add each to the session's notes, `| <ID> | <from> | <to> | [[<id>#^cNN]] |` (inside the notes a capture keeps its `#^cNN` form). Containers and concern cells have no ID; they go in their app's capture. These marks are an exception to leaving marks until close, and close leaves them alone.
+- `vela add contract --for-lead` for each contract the app provides (`vela add contract --help` lists the fields), then the case table the lead confirmed under it.
+- `vela add unknown --for-lead` for each open question, in the same checkpoint as the line that links it.
+- The rest by hand as PAGES says: the stub becomes the app page, then its containers, runtime page, concern cells, capabilities and flows. Mark each capture with `vela apply` on a `marks` file (`vela apply --schema marks`), `→ keep: [[<page>#<heading>|<ID>]] (assumption)`. No command writes the `## Changes` row for an app page or a runtime page yet, so add each to the session's notes, `| <ID> | <from> | <to> | [[<id>#^cNN]] |` (inside the notes a capture keeps its `#^cNN` form). Containers and concern cells have no ID; they go in their app's capture. These marks are an exception to leaving marks until close, and close leaves them alone.
 
-The checkpoint: `vela render`, then `vela check --for-lead`, fixing every error the new pages cause, then `vela close stage --checkpoint --for-lead`, which commits by exact path.
+The checkpoint: `vela render`, then `vela check --for-lead`, fixing every error the new pages cause, then `vela close stage --checkpoint --for-lead`.
 
 Draft the paragraph each filed item owes now, as `START.md` says under "Draft the paragraph when the item is filed", and show it with the filed line.
 
@@ -91,7 +91,5 @@ Draft the paragraph each filed item owes now, as `START.md` says under "Draft th
 Once every sheet is written, run the review checkpoint in `${CLAUDE_PLUGIN_ROOT}/references/REVIEW.md`, with the checkpoint "after the pages are written" and the new app, contract and runtime pages as its focus: `vela reviewers prepare --checkpoint "after the pages are written" --focus <those pages> --for-lead`. Each new app and contract is now a subject the catalog owes questions about: run `vela questions --subject <ID>` for each and show the copies it owes. Show the digest and capture what they take, as REVIEW says.
 
 ## 6. Finish
-
-When the lead says a plain yes to a pick, run `vela decide` on it: if it answers that this session can't decide and marks the item ready to decide, offer the lead a short grill on it now, as it says.
 
 When the lead says they are done, close as `${CLAUDE_PLUGIN_ROOT}/references/START.md` says under "Closing a session". The next step is a grill on each app's page and its contracts; say the line the lead types by the app's name, such as `/vela:grill Desktop agent`.
