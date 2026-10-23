@@ -23,8 +23,10 @@ import argparse
 import datetime
 import pathlib
 import re
+import shutil
 import subprocess
 import sys
+import tempfile
 
 HERE = pathlib.Path(__file__).resolve().parent
 REPO = HERE.parent.parent
@@ -237,11 +239,43 @@ def failed(lines):
     return any(line.startswith("- FAIL") for line in lines)
 
 
+PLUGINS_ENTRY = re.compile(r"^plugins:\n- (\S+)\n", re.M)
+SCAFFOLD_CALL = '"$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../scaffold.py"'
+
+
+def staged_case(case, arm, root):
+    """The case's folder copied inside a copy of the plugin it names, so `plugin eval` loads that plugin. Claude Code
+    2.1.305 and later load a case's plugin only from inside the case's enclosing plugin; the cases name it by a relative
+    path out of tests/evals, which it refuses. The scaffold call is made absolute, since the copy moved the case."""
+    source = HERE / arm / case
+    text = (source / "case.yaml").read_text(encoding="utf-8")
+    entry = PLUGINS_ENTRY.search(text)
+    if entry is None:
+        raise EvalError(f"{source / 'case.yaml'} names no plugin on one line under plugins:")
+    plugin = (source / entry.group(1)).resolve()
+    home = pathlib.Path(root) / plugin.name
+    shutil.copytree(plugin, home, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+    staged = home / "evals" / case
+    shutil.copytree(source, staged)
+    (staged / "case.yaml").write_text(PLUGINS_ENTRY.sub("plugins:\n- ../..\n", text, count=1), encoding="utf-8")
+    fixture = staged / "fixture.sh"
+    if fixture.is_file():
+        script = fixture.read_text(encoding="utf-8")
+        if SCAFFOLD_CALL not in script:
+            raise EvalError(f"{source / 'fixture.sh'} doesn't call ../../scaffold.py the way staged_case expects")
+        fixture.write_text(script.replace(SCAFFOLD_CALL, f'"{HERE / "scaffold.py"}"'), encoding="utf-8")
+    return staged / "case.yaml"
+
+
 def run_arm(case, arm, args, out_dir):
     """(Markdown lines, whether any grade FAILed). Raises EvalError when the run cannot be graded."""
-    case_yaml = HERE / arm / case / "case.yaml"
-    if not case_yaml.is_file():
-        raise EvalError(f"{case_yaml} is missing")
+    if not (HERE / arm / case / "case.yaml").is_file():
+        raise EvalError(f"{HERE / arm / case / 'case.yaml'} is missing")
+    with tempfile.TemporaryDirectory(prefix="vela-eval-") as root:
+        return run_staged_arm(case, arm, args, out_dir, staged_case(case, arm, root))
+
+
+def run_staged_arm(case, arm, args, out_dir, case_yaml):
     log_path = out_dir / f"{case}-{arm}.log"
     argv = ["claude", "plugin", "eval", str(case_yaml), "--no-publish", "--keep-temp", "--scaffold", "--trust-plugin",
             "--ablation", "none", "--threshold", "1", "--runs", str(args.runs), "--max-cost-usd", str(args.max_cost_usd),
