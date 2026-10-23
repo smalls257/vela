@@ -7,8 +7,9 @@ read-back. `vela records show` is the lead's own way to paste one of their own l
 import json
 
 from conftest import run
+from sharing import git
 from test_close_pr import created, fake_gh, pr, pushed
-from test_close_push import RECORD, YES_WORDS, add_yes
+from test_close_push import RECORD, YES_WORDS, add_yes, push, sent_session
 from vela import prbody, privaterecord
 
 OTHER_WORDS = "We have to keep the old API until March."
@@ -89,3 +90,48 @@ def test_show_pastes_only_the_leads_words(tmp_path):
     code, out = run("records", "show", RECORD, "2.c01", "--vault", str(vault))
     assert code == 1 and "That note is on the other machine." in out
     assert tree_bytes(vault) == before
+
+
+def test_a_page_level_receipt_is_listed_by_the_pages_name(tmp_path):
+    from vela import cli
+    vault, _ = pushed(tmp_path)
+    page = vault / "05-building-blocks" / "stock-building-blocks.md"
+    page.write_text(page.read_text(encoding="utf-8").replace(
+        "\n## Contracts", f"\n- **Decision:** [[{RECORD}]] c01, @lead\n\n## Contracts", 1), encoding="utf-8")
+    loaded = cli.load_vault(vault)
+    lines = prbody.decision_lines(loaded, RECORD)
+    assert f"- Stock level: [[{RECORD}]]" in lines
+    assert f"- Stock: [[{RECORD}]] c01, @lead" in lines
+
+
+def test_a_worded_lead_receipt_appears_as_written_and_no_other_capture_text(tmp_path, monkeypatch):
+    log = fake_gh(tmp_path, monkeypatch)
+    vault, _ = sent_session(tmp_path)
+    page = vault / "05-building-blocks" / "stock-building-blocks.md"
+    page.write_text(page.read_text(encoding="utf-8").replace(
+        f"- **Decision:** [[{RECORD}]]\n", f'- **Decision:** [[{RECORD}]] c01, @lead: "{YES_WORDS}"\n', 1), encoding="utf-8")
+    git(vault, "add", "05-building-blocks/stock-building-blocks.md")
+    git(vault, "commit", "-q", "-m", "Word the receipt")
+    assert run("close", "readback", "--done", "--vault", str(vault))[0] == 0
+    assert push(vault)[0] == 3
+    assert push(vault, "--consent", add_yes(vault))[0] == 0
+    assert pr(vault)[0] == 0
+    body = created(log)[0]["body"]
+    assert f'- Stock level: [[{RECORD}]] c01, @lead: "{YES_WORDS}"' in body
+    assert body.count(YES_WORDS) == 1 and "Yes, send it." not in body
+
+
+def test_the_push_line_and_the_note_are_set_apart_and_nothing_stray():
+    note = ["Part 1's notes are on the other machine and aren't fingerprinted yet."]
+    both = prbody.body(prbody.Facts(summary="s", push_line="Sent.", fingerprint_note=note))
+    assert "Sent.\n\n" + note[0] in both
+    neither = prbody.body(prbody.Facts(summary="s"))
+    assert "\n\n\n" not in neither
+
+
+def test_show_says_plainly_when_the_notes_cannot_be_read(tmp_path):
+    from test_close_push import sent_session
+    vault, _ = sent_session(tmp_path)
+    (vault / privaterecord.private_path(RECORD)).write_bytes(b"\xff\xfe\x00bad")
+    code, out = run("records", "show", RECORD, "c01", "--vault", str(vault))
+    assert code == 2 and "Traceback" not in out

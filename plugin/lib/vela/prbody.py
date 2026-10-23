@@ -145,13 +145,13 @@ FINGERPRINT_PENDING = "Part {n}'s notes are on the other machine and aren't fing
 
 
 def decision_lines(vault, record_id):
-    """Each receipt that cites this record, as the page holds it, by the item's name."""
+    """Each receipt that cites this record, as the page holds it, by the item's (or the page's) name."""
     out = []
-    for ident, items in sorted(vault.items.items()):
-        bullet = items[0].facts.get("Decision")
-        found = receipts.parse_decision(bullet.value) if bullet is not None else None
-        if found is not None and found.record == record_id:
-            out.append(f"- {vault.name_of(ident)}: {bullet.value.strip()}")
+    for ident in sorted(set(vault.items) | set(vault.by_id)):
+        for _, bullet in closegate.decision_bullets(vault, ident):
+            found = receipts.parse_decision(bullet.value)
+            if found is not None and found.record == record_id:
+                out.append(f"- {vault.name_of(ident)}: {bullet.value.strip()}")
     return out
 
 
@@ -369,7 +369,8 @@ def body(f):
     lines = [(f.prose or f.summary).strip(), ""]
     lines += section("Decisions", f.decisions, empty="none")
     lines += [""] + section("What changed", f.changed, empty="nothing promoted")
-    lines += [""] + ([f.push_line] if f.push_line else []) + f.fingerprint_note
+    for part in ([f.push_line] if f.push_line else [], f.fingerprint_note):
+        lines += [""] + part if part else []
     block = section("In their words", f.in_their_words)
     lines += [""] + block if block else []
     for heading, items, empty in (("Voice review", f.voice, "not run"),

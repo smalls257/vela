@@ -136,7 +136,10 @@ def verify(root, record_id):
 
 def cmd_show(args, out):
     root = pathlib.Path(args.vault).resolve()
-    result = show(root, args.id, args.ref)
+    try:
+        result = show(root, args.id, args.ref)
+    except (ValueError, OSError) as exc:
+        result = failed(SHOW, str(exc), "I couldn't read that session's notes.")
     return commands.emit(result, args, out)
 
 
