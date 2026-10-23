@@ -57,7 +57,7 @@ Write pages in the format `vela conventions "<section>"` gives, committing after
 - A gap stays a gap; general knowledge is no source.
 - Write a hand-over step as `Sender -> Receiver: ...`, with linked apps or registered parties. Before closing, settle E351, W354 and W374 from `vela check` with the lead: link plain-text apps; an outside actor becomes a party (`vela add subject --subject-type PTY`) only on their yes.
 
-Keep an `## Import ledger` in the session record, one line per source, `processed` or `pending`, so a later import resumes.
+Keep an `## Import ledger` in the session's notes, one line per source, `processed` or `pending`, so a later import resumes.
 
 ## Done only when
 

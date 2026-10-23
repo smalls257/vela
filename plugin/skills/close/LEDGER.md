@@ -14,7 +14,7 @@ A grill's "decided with ... open" note records a decision, not an answer: write 
 
 ### A question the catalog missed
 
-Only when the lead said so in so many words; never ask whether a gap turned up late. Draft one YAML block under `## Catalog proposals` in the session record:
+Only when the lead said so in so many words; never ask whether a gap turned up late. Draft one YAML block under `## Catalog proposals` in the session's notes:
 
 ```yaml
 - id: Q-<AREA>-nn  # the next free number in that area

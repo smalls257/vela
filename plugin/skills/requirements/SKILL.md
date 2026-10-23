@@ -36,7 +36,7 @@ Write each requirement with `vela add fr --capability CAP-nnn --name "<short nam
 A guest who cancels in time gets their money back, and sees where the refund stands until it lands.
 
 - **State:** assumption
-- **Source:** [[2027-01-12-requirements-refunds#^c07]]
+- **Source:** [[2027-01-12-requirements-refunds]] c07
 
 - A guest who cancels up to 48 hours before arrival sees a pending refund for the full price at once.
 - A guest who cancels later sees the price they will not get back before they confirm.
@@ -45,7 +45,7 @@ A guest who cancels in time gets their money back, and sees where the refund sta
 
 A criterion is a sentence in plain words. When it rests on another item, an unknown or a contract, say that item by its name in the sentence and pass its ID in `--traces`, which writes the `- Trace:` line beneath it. The Trace line is not a criterion, so release criteria skip it. A requirement with more than about seven criteria is two requirements: propose the split before writing it.
 
-When the lead drops a requirement, never strike its heading through: that breaks every link to it. Run `vela query refs <ID>`, take the requirement out of every row that names it (allocation, release, app page) in the same checkpoint, then delete the requirement, and keep the reason in the session record as a `→ drop` capture. Then run `vela render` and `vela check`, fix every error, and commit a checkpoint with `vela close stage --checkpoint --for-lead`.
+When the lead drops a requirement, never strike its heading through: that breaks every link to it. Run `vela query refs <ID>`, take the requirement out of every row that names it (allocation, release, app page) in the same checkpoint, then delete the requirement, and keep the reason in the session's notes as a `→ drop` capture. Then run `vela render` and `vela check`, fix every error, and commit a checkpoint with `vela close stage --checkpoint --for-lead`.
 
 ## 4. Review, then finish
 

@@ -18,7 +18,7 @@ The commands do the mechanics: numbering, Trace lines, the boundary test, the ga
 
 ## 1. Start
 
-Run the steps in `${CLAUDE_PLUGIN_ROOT}/references/START.md` with modes `epics`, `shape` and `grill`. The record has `modes: [epics, shape, grill]` and the title `Epics: <team>`. Read the Epics, Shape and Grill rows of `${CLAUDE_PLUGIN_ROOT}/references/MODES.md`. If the plan has no remote or `gh` fails, START says so and the session goes on.
+Run the steps in `${CLAUDE_PLUGIN_ROOT}/references/START.md` with modes `epics`, `shape` and `grill`. The session has `modes: [epics, shape, grill]` and the title `Epics: <team>`. Read the Epics, Shape and Grill rows of `${CLAUDE_PLUGIN_ROOT}/references/MODES.md`. If the plan has no remote or `gh` fails, START says so and the session goes on.
 
 ## 2. Read the frontier
 

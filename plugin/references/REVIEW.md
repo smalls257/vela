@@ -4,11 +4,11 @@ A review checkpoint finds the questions the plan owes and nobody has asked. Code
 
 ## 1 and 2. Prepare the checkpoint
 
-Make sure everything said so far is in the session record as captures: a reviewer sees only what is written. Then run `vela reviewers prepare --checkpoint "<the checkpoint and its focus>" --focus <the pages its focus touches>`. Give only the pages the focus touches; every reviewer reads them, and each page is paid for again on each of its turns. It numbers the checkpoint from the record, commits the record and the changed pages, writes one packet per area to review into `.vela/review/<n>/<AREA>.md` with that area's owed questions beside it, clears the findings folder, lists each area it skipped with the reason, and prints the heading and the merge command for later. In a reader copy it commits nothing and says so. While the reviewers run, say the one line `--for-lead` gives ("Checking this against five angles, about a minute.", naming any angle left out) and nothing more until the digest is ready.
+Make sure everything said so far is in the session's notes as captures: a reviewer sees only what is written. Then run `vela reviewers prepare --checkpoint "<the checkpoint and its focus>" --focus <the pages its focus touches>`. Give only the pages the focus touches; every reviewer reads them, and each page is paid for again on each of its turns. It numbers the checkpoint from the notes, commits the stub and the changed pages (never the notes), writes one packet per area to review into `.vela/review/<n>/<AREA>.md` with that area's owed questions beside it, clears the findings folder, lists each area it skipped with the reason, and prints the heading and the merge command for later. In a reader copy it commits nothing and says so. While the reviewers run, say the one line `--for-lead` gives ("Checking this against five angles, about a minute.", naming any angle left out) and nothing more until the digest is ready.
 
 ## 3. One reviewer per area
 
-Run `git status --porcelain` and keep its output as the baseline (in a reader copy, `shasum` each page and the record instead).
+Run `git status --porcelain` and keep its output as the baseline (in a reader copy, `shasum` each page and the notes instead).
 
 Dispatch the `vela:area-reviewer` subagent with the Agent tool, once per packet, in one message so they run side by side: all five in one message when no area is skipped. Set the Agent tool's `model` to `sonnet` on every dispatch, as the agent's own `model: sonnet` says. A focused read-only check against a short list of pages doesn't need the session's model, and five at once cost five times as much. Give each one only its packet's text, word for word. Never send a placeholder, a `<...>` template or another area's packet.
 
@@ -22,7 +22,7 @@ Then run `git status --porcelain` again and compare it with the baseline. If a t
 
 Run the merge command `reviewers prepare` printed: `vela findings merge .vela/findings/<session id>/<n> --changed <paths>`, with `--areas` and `--skipped` when it named them. A new question about a page this session didn't change is dropped: it was owed when that page was written, and raising it again every session is what makes a digest grow faster than a lead can answer it. The merge keeps the union, folds the same question from several areas into one finding, and drops every finding whose quote isn't on the page it cites. A finding may address an owed copy, an open reviewer question by its `R-` id, or `new`. Exit 1 means an area didn't run or a finding was dropped, and the output says which. Exit 2 means the tool failed: record the checkpoint with every area as `did not run (merge failed: <error>)` and no table rows.
 
-Write the result into the session record, under `## Reviews` after `## Captures`, with the heading `reviewers prepare` printed. Add `## Reviews` if the record has none.
+Write the result into the session's notes, `sessions/private/<session id>.md`, under `## Reviews` after `## Captures`, with the heading `reviewers prepare` printed. Add `## Reviews` if the notes have none. Reviews stay private: they hold the reviewers' own words about what the lead said, so they are never committed.
 
 ```
 ### <n>. <checkpoint>, <today>
@@ -37,20 +37,20 @@ Write the result into the session record, under `## Reviews` after `## Captures`
 | F<n>.2 | DAT, PTN, REG | high | new | <the question> | "<the quote>" in [[<page file name without .md>]] |
 ```
 
-Number the kept findings `F<n>.1`, `F<n>.2` and so on, in the merge's order. The Area cell lists every area the merge gives the finding, first one first. The **Merged** line takes each entry under `duplicates:` whose question differs from the finding it joined, so every area's own words stay on the record. Escape a `|` inside a cell as `\|`. In the quote cell, replace each inner straight `"` with `”`, as the merge does when it checks the quote.
+Number the kept findings `F<n>.1`, `F<n>.2` and so on, in the merge's order. The Area cell lists every area the merge gives the finding, first one first. The **Merged** line takes each entry under `duplicates:` whose question differs from the finding it joined, so every area's own words stay in the notes. Escape a `|` inside a cell as `\|`. In the quote cell, replace each inner straight `"` with `”`, as the merge does when it checks the quote.
 
-Give the coverage in one sentence ("All five angles found something", or "Four angles ran; the regulation angle didn't, because its reviewer failed"). An area that did not run is never reported as clean, and a skipped area is never reported as checked: name it in that sentence and offer to run it. The per-area detail goes in the record and the pull request body, not the conversation.
+Give the coverage in one sentence ("All five angles found something", or "Four angles ran; the regulation angle didn't, because its reviewer failed"). An area that did not run is never reported as clean, and a skipped area is never reported as checked: name it in that sentence and offer to run it. The per-area detail goes in the notes, not the conversation.
 
 **Re-running areas.** Running some areas again, or one a checkpoint skipped, is a new checkpoint: `vela reviewers prepare --checkpoint "<checkpoint>" --focus <pages> --rerun 1 --areas FIN,REG` re-runs two areas of checkpoint 1. Its findings are numbered from the next checkpoint's number, so earlier finding IDs never change.
 
 ## 5. The digest
 
-Run `vela questions --digest --session <session id> --for-lead`. It gives the next three lines for this session's lead, high and blocking first, never one already shown or taken this session, and writes what it showed into the record. Nothing is dropped: every line stays in `vela questions --open` and in the ledger.
+Run `vela questions --digest --session <session id> --for-lead`. It gives the next three lines for this session's lead, high and blocking first, never one already shown or taken this session, and writes what it showed into the notes. Nothing is dropped: every line stays in `vela questions --open` and in the ledger.
 
 What the lead is shown is small, so they can answer it.
 
 - **Once per session, at a pause.** A mode may run its checkpoint more than once; each result goes in `## Reviews`. But the lead sees one digest per session, at the natural pause after a topic or at the end, never in the middle of their own line of thought. Shape is the exception: its checkpoint comes before the options, and its findings go with the options as "what must be true" (the Shape skill says how); what's left goes in the one digest.
-- **At most three questions.** Say each as one plain sentence with one question mark, as a colleague would across a desk, naming the thing and the person who would know, with your recommended answer. No copy ID, finding ID, area code, severity or command in what the lead hears; those go in the record.
+- **At most three questions.** Say each as one plain sentence with one question mark, as a colleague would across a desk, naming the thing and the person who would know, with your recommended answer. No copy ID, finding ID, area code, severity or command in what the lead hears; those go in the notes.
 - **Never twice, never ruled out.** The command keeps count, so a question shown once this session isn't shown again, and one the lead answered or ruled out isn't asked.
 - **The rest, in one line, by what they're about.** "Six more are about cost and four about who sees client data; want the next three?" On "more", run it again.
 

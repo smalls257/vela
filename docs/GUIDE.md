@@ -191,6 +191,18 @@ The dashboard is up to date: dashboard.html
 
 A failed dashboard build never undoes the close, and `/vela:import` and `/vela:open` end the same way.
 
+### Your session notes: where they live, receipts, backup, moving over
+
+What you say in a session is saved as notes in `sessions/private/<session>.md`, in your plan's folder, on the computer you were using. They are never committed or pushed. The team sees a header per session (`sessions/<session>.md`: the title, the date, the mode, the branch and a fingerprint of the notes) and nothing you said.
+
+Each decision on a page carries a receipt: `[[2026-10-22-booking-api]] c07, @maria: "Yes, one booking API for the web and the kiosks."` It names the session, the note and who said yes. The words after the colon are yours only if you kept them. Close reads back every sentence that goes on record in your name, and you keep it, reword it or cut it. Someone else's words are on the page only if they said, in the session, that they may be quoted; otherwise the receipt names them and stops. If a reviewer asks to see your yes, `vela records show <session> c07` prints one of your own notes to paste into the thread. It won't print anyone else's.
+
+The fingerprint shows the notes on your disk are the ones close saw. `vela records verify <session>` checks it, and `vela records seal <session>` fills it in if a session ended without close. It can't show that someone really said yes.
+
+If you carry on a session on another computer, that computer has the header and no notes. Claude tells you so and keeps new notes there as part 2. At close it asks once about what the first computer decided: "Still yes?" Your notes don't travel, so copy them yourself when you want them somewhere else: `vela records backup --to <a folder or a .zip outside the plan>`. A lost disk loses them, and nothing else holds them.
+
+A plan from before this change has its old records committed. `vela records split` shows what it would move and what words it would take off the pages, then does it on a branch of its own after your yes. It doesn't remove old records from git history, published read copies or old pull request pages; only rewriting history does that.
+
 ### Material you already have
 
 `/vela:import <where it lives>` turns existing folders, decks, spreadsheets, code or wiki exports into pages. It registers every source in `sources.md` and shows you an import map before it writes anything. Each line it writes carries its source, and every clash between sources becomes a question with an owner and a date. Large piles go in batches, and you run it again to resume.
@@ -361,7 +373,7 @@ Your access decides your role, never a title or a config file. `vela role` print
 | Has | the vault's git work tree and can commit | a published copy with `.vela/workspace.json` and no `.git` |
 | Decisions | final | marked pending approval until an owner clears them |
 | Sessions, ask, find, explore, import | yes | yes, as drafts |
-| Close | commit, push, PR | saves the session record only |
+| Close | commit, push, PR | saves the session notes in the folder only |
 | Propose | no (you decide directly) | yes |
 | Review proposals | yes | no |
 | Handoff, publish, `vela upgrade`, `/vela:challenge` | yes | no |

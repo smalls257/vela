@@ -18,7 +18,7 @@ Each mode skill holds only what is particular to it. This table is what every mo
 
 ## Team skills
 
-These two run in the team's clone after a design is complete. Neither is a session mode, and neither writes a session record.
+These two run in the team's clone after a design is complete. Neither is a session mode, and neither writes a session.
 
 - **Breakdown** (`/vela:breakdown`) ends when the plan is complete or complete-with-gaps, or the person stops. Claude starts the first story from the team's piece of the tracer flow, quotes each story's criteria word for word from the vault, and says for each story whether it fits before the next release date, or that it cannot tell and why. It does not invent a criterion, plan around a person the design or the vault does not name, or split, merge or reorder agreed stories without a yes.
 - **Tickets** (`/vela:tickets`) ends when the output file is written and the summary said. Claude checks the plan against the vault before writing anything, asks which output the person wants, and stops after the summary. It creates or changes nothing in an outside system without an explicit yes.
@@ -36,7 +36,7 @@ These two run in the team's clone after a design is complete. Neither is a sessi
 | `requirements` | capability pages it needs; requirements on them at `assumption`, each with a checkpoint commit; unknowns | prose |
 | `allocate` | rows in each app's `## Requirements allocated` table at `assumption`, and any missing contract it proposed, with a checkpoint commit; unknowns | prose |
 | `releases` | `04b-releases.md`: each release's heading, Target, State and rows at `assumption`, with a checkpoint commit; unknowns | prose |
-| `challenge` | the unknown and the `**Dissent:**` line, then its own PR | nothing: a challenge closes its own record |
+| `challenge` | the unknown and the `**Dissent:**` line, then its own PR | nothing: a challenge closes its own session |
 | `answer` | what its grill decides, or the item set back, on the challenge's branch | a push to that branch and a comment on the challenge PR, never a new PR |
 
 When the lead says a plain yes to a pick in a session that can't decide (`dump`, `discover`, `shape`, `boundary`, `requirements`, `allocate`, `releases`), run `vela decide` on it anyway: it answers that this session can't decide, marks the item ready to decide, and says to offer the lead a short grill on it now. Do as it says; never leave the yes as an assumption nobody sees again.
@@ -45,7 +45,7 @@ No mode writes inside a generated block. `vela render` fills them. Close runs it
 
 ## Team-side sessions
 
-Once an app is handed off, its team designs it. `/vela:design --app APP-x` runs from the vault root with the app's team lead, opens no session record and writes no vault page: it writes `docs/tech-design/<slug>.md`, its ADRs under `docs/adr/` and `CONTEXT.md` on its own branch, and opens a pull request at the end. A gap it finds in the plan goes back through `/vela:challenge`.
+Once an app is handed off, its team designs it. `/vela:design --app APP-x` runs from the vault root with the app's team lead, opens no session and writes no vault page: it writes `docs/tech-design/<slug>.md`, its ADRs under `docs/adr/` and `CONTEXT.md` on its own branch, and opens a pull request at the end. A gap it finds in the plan goes back through `/vela:challenge`.
 
 ## Where to start
 

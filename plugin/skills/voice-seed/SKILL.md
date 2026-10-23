@@ -14,7 +14,7 @@ The argument values are the type names the commands take. Say them in words: `di
 
 Run steps 0 and 1 of `${CLAUDE_PLUGIN_ROOT}/references/START.md` (how to talk: `voice/VOICE.md` when it exists, then `CONVERSATION-VOICE.md`; then the state of the clone). Run `vela whoami --json`: its handle, with an `@` in front, is the owner and every sample's author. On exit 3, ask its question once and run `vela whoami --set <handle>`.
 
-Vela saves a passage only against the owner's yeses written in an open session record. Run `vela session open --switch --for-lead`. With several open, ask which and run it again with `--id <id>`. With none, say: "Saving a sample needs an open session to write your yeses into, and none is open. Start the session you were going to run next, then type `/vela:voice-seed` in it." Stop there.
+Vela saves a passage only against the owner's yeses written in an open session's notes. Run `vela session open --switch --for-lead`. With several open, ask which and run it again with `--id <id>`. With none, say: "Saving a sample needs an open session to write your yeses into, and none is open. Start the session you were going to run next, then type `/vela:voice-seed` in it." Stop there.
 
 ## 2. Where the samples go
 
@@ -75,12 +75,12 @@ The owner's second sample of a type retires the built-in ones in that folder. A 
 
 If nothing committed changed, say: "Local only: no branch, commit or PR." Stop here.
 
-Otherwise the samples ride the open session's branch: run `vela close stage --checkpoint --for-lead`, which stages `voice/examples/` and `voice/VOICE.md` by exact path with the session record, leaves `voice/local/` out, and commits. Never stage or commit by hand. The push and the pull request go with that session's close, which says what it will send and waits for the owner's yes; tell the owner so. For its PR body, name each committed sample added with its type and `from`, each retired, and each type that kept its seed. Name local examples only as a count, never their text or `from`. Never say a PR exists unless `gh` printed its URL.
+Otherwise the samples ride the open session's branch: run `vela close stage --checkpoint --for-lead`, which stages `voice/examples/` and `voice/VOICE.md` by exact path with the session's stub, leaves `voice/local/` out, and commits. Never stage or commit by hand. The push and the pull request go with that session's close, which says what it will send and waits for the owner's yes; tell the owner so. For its PR body, name each committed sample added with its type and `from`, each retired, and each type that kept its seed. Name local examples only as a count, never their text or `from`. Never say a PR exists unless `gh` printed its URL.
 
 ## Never
 
 - Never rewrite, shorten, correct or paraphrase the owner's words.
 - Never store a passage the owner did not write. Never commit one they did not clear for the repository.
 - Never write under `voice/corpus/`. It is gitignored reading material, not examples.
-- Never edit a file outside `voice/examples/`, `voice/local/`, `voice/VOICE.md` and the session record.
+- Never edit a file outside `voice/examples/`, `voice/local/`, `voice/VOICE.md` and the session's notes.
 - Never invent a rule for `voice/VOICE.md`. Its lines are the owner's words.
