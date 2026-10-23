@@ -9,12 +9,15 @@ const Flows = (() => {
   const contractSays = (id) => `${CONTRACT[id].state ? stateWord(CONTRACT[id].state) : "Nobody has given it a state yet"}, and ${LIGHT_SAYS[levelOf(id)] || LIGHT[levelOf(id)].word.toLowerCase()}`;
   const TRAVEL = 0.8;
   const st = { key: D.flows.length ? D.flows[0].key : null, cur: -1, speed: 1 };
-  let player = null, presenter = null, recording = false;
+  /* The number a step goes by in the record: a folded run goes by its first. */
+  const firstNumber = (step) => (step.run ? step.run[0].n : step.n);
+  let player = null, presenter = null, recording = false, nodeList = null, legend = null;
 
   function makePlayer(canvas, opts) {
     const ctx = canvas.getContext("2d");
     const p = { canvas, ctx, cur: opts.cur ?? -1, entered: performance.now(), playing: false, hits: [], w: 0, h: 0, present: !!opts.present, key: opts.key };
     const flow = () => FlowKit.flowOf(p.key);
+    p.curN = flow().steps[p.cur] ? firstNumber(flow().steps[p.cur]) : null;
     const size = () => {
       const r = canvas.getBoundingClientRect(), dpr = Math.min(2, devicePixelRatio || 1);
       canvas.width = Math.round(r.width * dpr); canvas.height = Math.round(r.height * dpr);
@@ -22,8 +25,10 @@ const Flows = (() => {
     };
     new ResizeObserver(size).observe(canvas);
     size();
-    p.frame = (now) => {
-      if (!canvas.isConnected) return;
+    /* One frame, drawn now (the loop below calls it once a frame; a check can call it to see what a change draws). */
+    p.draw = (now) => {
+      const box = canvas.getBoundingClientRect();
+      if (box.width !== p.w || box.height !== p.h) size();  // the canvas grew to hold its rows: draw into the size it has
       if (p.w && p.h) {
         const f = flow(), k = clamp(p.w / (p.present ? 960 : 1040), 0.8, p.present ? 1.6 : 1.2);
         // The host (the stage, or present mode's scroller) is the room the diagram has; a flow whose words need more makes the canvas taller and the host scrolls.
@@ -35,20 +40,42 @@ const Flows = (() => {
         const pick = App.trail[App.trail.length - 1] || null;  // what the panel shows: back and Escape move it, so the glow follows it
         const hl = p.present || !pick ? null : litBy(pick);
         // Plain: every message is drawn where it lands, nothing travels; the step timing still drives Play.
-        p.hits = FlowKit.drawScene(ctx, G, { cur, tau: FX.on ? tau : 99, clock: now / 1000, D: TRAVEL, highlight: hl });
+        // the names stay at the top of the room when the diagram is taller than it and the host has scrolled
+        const scroll = opts.host ? Math.max(0, opts.host.getBoundingClientRect().top - canvas.getBoundingClientRect().top) : 0;
+        p.hits = FlowKit.drawScene(ctx, G, { cur, tau: FX.on ? tau : 99, clock: now / 1000, D: TRAVEL, highlight: hl, scroll, hoverLane: p.hover });
         if (p.playing && p.cur >= 0) {
           const step = f.steps[p.cur];
           if (tau > FlowKit.travelTime(step, TRAVEL) + (p.present ? 3.0 : 3.4)) {
-            if (p.cur < f.steps.length - 1) p.go(p.cur + 1); else p.pause();
+            const was = p.cur;
+            if (p.cur < f.steps.length - 1) p.go(p.cur + 1);
+            if (p.cur === was) p.pause();  // nothing after it to play (the rest belong to the start not picked)
           }
         }
       }
+    };
+    p.frame = (now) => {
+      if (!canvas.isConnected) return;
+      p.draw(now);
       requestAnimationFrame(p.frame);
     };
-    p.go = (i) => {
-      const n = flow().steps.length;
-      p.cur = clamp(i, -1, n - 1);
+    /* The step to play; with one start picked, Next and Previous go past the other start's steps (a step asked for by number, exact, is shown). */
+    p.go = (i, o) => {
+      const steps = flow().steps, n = steps.length;
+      let to = clamp(i, -1, n - 1);
+      if (!(o && o.exact) && to >= 0 && to !== p.cur) {
+        const dir = to > p.cur ? 1 : -1;
+        while (to >= 0 && to < n && FlowView.dimmedStep(p.key, steps[to])) to += dir;
+        if (to < 0 || to >= n) to = p.cur;
+      }
+      p.cur = to;
+      p.curN = steps[to] ? firstNumber(steps[to]) : null;
       p.entered = performance.now();
+      opts.onStep && opts.onStep(p);
+    };
+    /* The folds or the start changed under the player: stay on the same step (the one that now holds it) without replaying it. */
+    p.reflow = () => {
+      const steps = flow().steps, at = p.curN == null ? -1 : steps.findIndex((x) => (x.run || [x]).some((y) => y.n === p.curN));
+      p.cur = at;
       opts.onStep && opts.onStep(p);
     };
     p.play = () => { p.playing = true; if (p.cur === -1 || p.cur === flow().steps.length - 1) p.go(0); else p.go(p.cur); opts.onPlay && opts.onPlay(p); };
@@ -56,25 +83,34 @@ const Flows = (() => {
     p.toggle = () => (p.playing ? p.pause() : p.play());
     const hitAt = (e) => {
       const r = canvas.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
-      const order = { unknown: 0, ref: 1, contract: 2, step: 3, row: 4, lane: 5 };
+      const order = { unknown: 0, hide: 0, fold: 0, starttag: 0, ghost: 0, ref: 1, contract: 2, step: 3, row: 4, lane: 5 };
       return p.hits.filter((t) => x >= t.x && x <= t.x + t.w && y >= t.y && y <= t.y + t.h).sort((a, b) => order[a.type] - order[b.type])[0];
     };
     canvas.addEventListener("mousemove", (e) => {
       const t = hitAt(e);
       canvas.style.cursor = t ? "pointer" : "default";
+      p.hover = t && (t.type === "lane" || t.type === "hide" || t.type === "fold") ? t.id : null;
       if (t && t.type === "unknown") { const q = ASK[t.id]; showTip(e, `<b>${esc(E[t.id] ? E[t.id].title : t.id)}</b>${esc(q.state === "open" ? q.question : "Answered: " + (q.outcome || q.question))}`); }
       else if (t && t.type === "lane") showTip(e, `<b>${esc(FlowKit.laneName(t.id))}</b>${FlowKit.touchedLanes(FlowKit.flowOf(p.key)).has(t.id) ? "in this flow" : "not in this flow"}`);
       else if (t && t.type === "contract") showTip(e, `<b>${esc(CONTRACT[t.id].title)}</b>${esc(contractSays(t.id))}`);
+      else if (t && t.type === "fold") { const g = FlowView.hostsOf(p.key)[t.id] || [], on = FlowView.choices(p.key).folded.has(t.id); showTip(e, `<b>${esc(g.map(titleOf).join(" and "))}</b>${on ? "folded into " + esc(titleOf(t.id)) + "; press to unfold" : "press to fold into " + esc(titleOf(t.id))}`); }
+      else if (t && t.type === "hide") showTip(e, `<b>Hide ${esc(titleOf(t.id))}</b>it stays as a narrow column you can show again`);
+      else if (t && t.type === "ghost") showTip(e, `<b>${esc(titleOf(t.id))}</b>hidden; press to show it`);
+      else if (t && t.type === "starttag") { const f = FlowKit.flowOf(p.key); const o = f.starts.options.filter((x) => t.ids.includes(x.id)); showTip(e, `<b>The flow can start here</b>${esc(o.map((x) => x.label).join("; "))}${f.starts.guessed ? ". A guess: the page doesn't say who sends." : ""}`); }
       else hideTip();
     });
-    canvas.addEventListener("mouseleave", hideTip);
+    canvas.addEventListener("mouseleave", () => { p.hover = null; hideTip(); });
     canvas.addEventListener("click", (e) => {
       const t = hitAt(e);
       if (!t) { if (!p.present) DetailsPanel.clear(); return; }  // empty space goes back to the flow's summary
       if (t.type === "unknown" || t.type === "contract") { if (!p.present) DetailsPanel.show(t.id, { reset: true }); else opts.onPick && opts.onPick(t); }
       else if (t.type === "ref") { p.key = t.id; p.go(-1); opts.onFlow && opts.onFlow(p); }
       else if (t.type === "lane") { if (!p.present) DetailsPanel.show(t.id, { reset: true }); }
-      else if (t.si !== undefined) { p.pause(); p.go(t.si); if (!p.present) DetailsPanel.show(PlanDetails.stepKey(p.key, t.si), { reset: true }); }
+      else if (t.type === "fold") FlowView.toggleFold(p.key, t.id);
+      else if (t.type === "hide") FlowView.hide(p.key, t.id);
+      else if (t.type === "ghost") FlowView.show(p.key, t.id);
+      else if (t.type === "starttag") FlowView.setStart(p.key, FlowView.startPicked(p.key) === t.ids[0] ? "all" : t.ids[0]);
+      else if (t.si !== undefined) { p.pause(); p.go(t.si, { exact: true }); if (!p.present) DetailsPanel.show(PlanDetails.stepKey(p.key, t.si), { reset: true }); }
     });
     requestAnimationFrame(p.frame);
     return p;
@@ -92,7 +128,7 @@ const Flows = (() => {
     const stage = h("div", { class: "stage" });
     const canvas = h("canvas", { class: "stage-canvas", role: "img", "aria-label": `Sequence of ${f.title}` });
     stage.append(canvas);
-    const key = Legend.open("flow", { root: () => $(".stage"), probes: FlowKit.flowProbes(() => st.key) });
+    const key = legend = Legend.open("flow", { root: () => $(".stage"), probes: FlowKit.flowProbes(() => st.key) });
     FlowKit.census(f).forEach((id) => key.saw(id));
     // Present is the diagram's one button; Rehearse, Save as video and the sentence about the flow's error cases are in its menu
     const sum = Branches.summary(st.key);
@@ -100,11 +136,11 @@ const Flows = (() => {
       { id: "rehearse", label: "Rehearse this flow", say: "Quiz yourself: rebuild the flow from memory, then reveal it", run: () => Rehearse.open(st.key) },
       { id: "clip", label: "Save as video", say: clipNote(), attrs: { id: "clip-btn" }, run: saveClip },
       sum ? { separator: true } : null, sum ? { node: sum } : null];
-    const diagram = Menus.frame({ barClass: "flows-head", left: [picker, branch], right: [Menus.keyButton(key), present_, Nav.moreMenu(moreFlow)],
+    const diagram = Menus.frame({ barClass: "flows-head", left: [picker, branch, startsPicker(), simplifyButton()], right: [Menus.keyButton(key), present_, Nav.moreMenu(moreFlow)],
       say: [tag ? h("span", { class: "tracer-place" }, tag, ` ${Releases.tracerPlaceWords(pl)}`) : null, h("span", { class: "dia-hint", id: "clip-status", role: "status", "aria-live": "polite" })] }, stage);
     main.append(diagram);
     if (HASH.has("picker")) picker.open();  // #flows&picker opens the list on arrival, for screenshots
-    const nodeList = flowNodes(st.key, () => player);
+    nodeList = flowNodes(st.key, () => player);
     const caption = h("section", { class: "caption", id: "caption", "aria-live": "polite" });
     const transport = h("footer", { class: "transport", id: "transport" });
     main.append(...[Branches.findings(st.key)].filter(Boolean), nodeList, caption, transport);
@@ -113,24 +149,85 @@ const Flows = (() => {
       onFlow: (p) => select(p.key, -1) });
     paintCaption(); buildTransport(); paintTransport();
   }
+  /* ------------------------------------------------------------ starts and folding (flowview.js)
+     "Starts from" picks which way in the diagram follows; Simplify folds every lane that only talks to one other. Both sit in
+     the header row, are real controls (radio buttons and a toggle), and are painted again in place when a choice changes,
+     so the diagram keeps its scroll. */
+  function startsPicker() {
+    const f = FlowKit.flowOf(st.key);
+    if (!f.starts) return null;
+    const on = FlowView.startPicked(st.key), opts = [{ id: "all", words: "Either" }, ...f.starts.options.map((o) => ({ id: o.id, words: o.label, color: FlowKit.laneColor(o.lane) }))];
+    const box = h("div", { class: "starts", role: "radiogroup", "aria-label": "Where the flow starts", "data-starts": st.key },
+      h("span", { class: "starts-lbl" }, "Starts from"),
+      opts.map((o, i) => [i === 2 ? h("span", { class: "starts-or" }, "or") : null,
+        h("button", { type: "button", role: "radio", class: "starts-opt", "aria-checked": String(on === o.id), tabindex: on === o.id ? 0 : -1, "data-start": o.id, title: o.words,
+          onclick: () => FlowView.setStart(st.key, o.id),
+          onkeydown: (e) => {
+            if (e.key !== "ArrowRight" && e.key !== "ArrowLeft" && e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+            e.preventDefault();
+            const at = opts.findIndex((x) => x.id === on), next = opts[(at + (e.key === "ArrowRight" || e.key === "ArrowDown" ? 1 : opts.length - 1)) % opts.length];
+            FlowView.setStart(st.key, next.id);
+            const b = $(`[data-starts] [data-start="${next.id}"]`); if (b) b.focus();
+          } }, o.color ? h("i", { class: "starts-dot", style: `background:${o.color}` }) : null, o.words)]),
+      f.starts.guessed ? h("span", { class: "starts-guess heuristic", title: "The page doesn't say who sends some of these steps, so which lanes start the flow is a guess." }, "a guess") : null);
+    return box;
+  }
+  function simplifyButton() {
+    const hosts = Object.keys(FlowView.hostsOf(st.key));
+    if (!hosts.length) return null;
+    const on = FlowView.simplified(st.key), n = FlowView.foldedLanes(st.key).length;
+    return h("button", { class: "dmenu-btn simplify-btn", id: "simplify-btn", type: "button", "aria-pressed": String(on), title: "Fold the lanes that only talk to one other lane into it (F)",
+      onclick: () => FlowView.simplify(st.key) }, svgIcon("fold"), h("span", {}, on ? `Simplified \u00b7 ${n} folded` : "Simplify"));
+  }
+  /* A choice changed (a click on the canvas, the header, the list or the F key): paint the controls and the text again, in place. */
+  function repaintView() {
+    if (!player || !player.canvas.isConnected) return;
+    for (const old of $$("[data-starts]")) { const next = startsPicker(); if (next) old.replaceWith(next); }
+    const sb = $("#simplify-btn"); if (sb) { const next = simplifyButton(); if (next) sb.replaceWith(next); }
+    player.reflow(); paintCaption(); buildTransport(); paintTransport();
+    if (legend) { legend.seen.clear(); FlowKit.census(FlowKit.flowOf(st.key)).forEach((id) => legend.saw(id)); legend.paint(); }  // the key follows what the stage now draws
+    if (nodeList && nodeList.isConnected) { const next = flowNodes(st.key, () => player); next.open = nodeList.open; nodeList.replaceWith(next); nodeList = next; }
+    if (presenter && $("#overlay").classList.contains("present")) presenter.reflow();
+    Minimap.refresh();
+  }
+  FlowView.watch(repaintView);
+  document.addEventListener("keydown", (e) => {
+    if (e.key.toLowerCase() !== "f" || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.target.closest && e.target.closest("input,textarea,select,[contenteditable]")) return;
+    if (App.view !== "flows" || !$("#overlay").hidden || !st.key) return;
+    e.preventDefault(); FlowView.simplify(st.key);
+  });
   /* The canvas is pixels, so a keyboard cannot reach what is drawn on it. This list is the same nodes as buttons: every
      lane, step, contract and open question the canvas draws, each opening the panel as a click on the canvas does. */
   function flowNodes(flowKey, playerOf) {
-    const f = FlowKit.flowOf(flowKey);
+    const f = FlowKit.flowOf(flowKey, { plain: true });  // every lane and contract, whatever is folded or hidden on the stage
     const lanes = [...FlowKit.touchedLanes(f)].sort((a, b) => LANE_INDEX[a] - LANE_INDEX[b]);
+    const hosts = FlowView.hostsOf(flowKey), folded = FlowView.choices(flowKey).folded;
+    // a lane's name opens the panel; next to it, the same two choices the canvas has (fold what talks only to it, hide it), as buttons
+    const laneRow = (k) => {
+      const hidden = FlowView.isHidden(flowKey, k), members = hosts[k];
+      const hideBtn = h("button", { class: "flow-node fn-act", type: "button", "aria-pressed": String(hidden), "aria-label": `${hidden ? "Show" : "Hide"} ${titleOf(k)}`,
+        onclick: () => (hidden ? FlowView.show(flowKey, k) : FlowView.hide(flowKey, k)) }, hidden ? "Show" : "Hide");
+      const foldBtn = members ? h("button", { class: "flow-node fn-act", type: "button", "aria-pressed": String(folded.has(k)),
+        "aria-label": `${folded.has(k) ? "Unfold" : "Fold"} ${members.map(titleOf).join(" and ")} ${folded.has(k) ? "from" : "into"} ${titleOf(k)}`,
+        onclick: () => FlowView.toggleFold(flowKey, k) }, folded.has(k) ? `Unfold ${members.length}` : `Fold ${members.length}`) : null;
+      const name = btn({ text: titleOf(k), label: titleOf(k), key: k });
+      name.addEventListener("keydown", (e) => { if (e.key === "Delete" || e.key === "Backspace") { e.preventDefault(); FlowView.hide(flowKey, k); } });
+      return h("span", { class: "fn-lane" }, name, foldBtn, hideBtn);
+    };
     const contracts = [...new Set(f.steps.flatMap((x) => x.contracts))].filter((c) => CONTRACT[c]);
     const pins = [...new Set(f.steps.flatMap((x) => x.unknowns.map((u) => u.id)))].filter((u) => ent(u));
     const btn = (spec) => Nodes.wire(h("button", { class: "flow-node", type: "button" }, spec.text), spec);
     const group = (title, kids) => (kids.length ? h("div", { class: "fn-group" }, h("b", {}, title), kids) : null);
     return h("details", { class: "flow-nodes", "data-flow-nodes": flowKey },
       h("summary", {}, "The flow as a list"),
-      group("Apps and outside services", lanes.filter((k) => ent(k)).map((k) => btn({ text: titleOf(k), label: titleOf(k), key: k }))),
+      group("Apps and outside services", lanes.filter((k) => ent(k)).map(laneRow)),
       group("Contracts", contracts.map((c) => btn({ text: CONTRACT[c].title, label: `${CONTRACT[c].title} (${c})`, key: c }))),
       group("Open questions", pins.map((u) => btn({ text: titleOf(u), label: `${titleOf(u)} (${u})`, key: u }))));
   }
   function svgIcon(kind) {
     const paths = { present: '<rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/>', download: '<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>',
-      rehearse: '<path d="M4 7h6M14 7h6M4 17h10M18 17h2"/><circle cx="12" cy="7" r="2"/><circle cx="16" cy="17" r="2"/>' };
+      rehearse: '<path d="M4 7h6M14 7h6M4 17h10M18 17h2"/><circle cx="12" cy="7" r="2"/><circle cx="16" cy="17" r="2"/>', fold: '<path d="M4 7h16M7 12h10M10 17h4"/>' };
     const el = s("svg", { viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": 1.8 });
     el.innerHTML = paths[kind];
     return el;
@@ -143,11 +240,22 @@ const Flows = (() => {
     if (st.cur === -1) {
       const e = E[st.key];
       box.append(h("div", { class: "cap-where" }, h("span", {}, `${e.state ? stateWord(e.state) : "Nobody has given this flow a state yet"} \u00b7 ${plural(f.steps.length, "step")}`), h("span", { class: "muted" }, "Press space to play, or pick a step")),
-        h("div", { class: "cap-title" }, e.title), ...[inferredLine()].filter(Boolean));  // native append prints a null as "null"
+        h("div", { class: "cap-title" }, e.title), ...[startsLine(f), inferredLine()].filter(Boolean));  // native append prints a null as "null"
       return;
     }
     const stp = f.steps[st.cur];
     const facts = h("ul", { class: "cap-facts" });
+    // A folded step is several: each is read out under its own number.
+    for (const x of stp.run || [stp]) {
+      if (stp.run) facts.append(h("li", { class: "cap-sub" }, h("i", { class: "lane-dot named" }), h("span", {}, h("b", {}, `Step ${x.n}`), " ", h("span", { html: x.html }))));
+      stepFacts(x, facts);
+    }
+    box.append(h("div", { class: "cap-where" }, h("span", {}, h("b", {}, `Step ${FlowKit.stepNo(stp)}`), ` of ${f.steps.length}`, " ",
+      h("button", { class: "linkish", type: "button", "data-step-details": "", onclick: () => DetailsPanel.show(PlanDetails.stepKey(st.key, st.cur), { reset: true }) }, "Details for this step")), h("span", { class: "muted" }, E[st.key].title)),
+      stp.run ? h("div", { class: "cap-text" }, `${upFirst(stp.via.join(" and "))} folded into ${titleOf(stp.self)}: ${stp.say}.`) : h("div", { class: "cap-text", html: stp.html }), facts, ...[startsLine(f, stp), inferredLine()].filter(Boolean));  // native append prints a null as "null"
+  }
+  /* The facts under one step: who sends over which contract, its open questions, what the step names besides. */
+  function stepFacts(stp, facts) {
     // One line per contract and sender: a contract sent to three consumers is one fact, not three.
     const groups = [];
     for (const m of stp.messages) {
@@ -177,9 +285,14 @@ const Flows = (() => {
     }
     const ends = stepEnds(stp), named = stp.named.filter((k) => !ends.has(k));
     if (named.length) facts.append(h("li", {}, h("i", { class: "lane-dot named" }), h("span", { class: "heuristic" }, "Also mentioned in the step: ", named.map((k) => refChip(k)))));
-    box.append(h("div", { class: "cap-where" }, h("span", {}, h("b", {}, `Step ${stp.n}`), ` of ${f.steps.length}`, " ",
-      h("button", { class: "linkish", type: "button", "data-step-details": "", onclick: () => DetailsPanel.show(PlanDetails.stepKey(st.key, st.cur), { reset: true }) }, "Details for this step")), h("span", { class: "muted" }, E[st.key].title)),
-      h("div", { class: "cap-text", html: stp.html }), facts, ...[inferredLine()].filter(Boolean));  // native append prints a null as "null"
+  }
+  /* Where the flow starts, in a sentence: under the overview, and under a step that belongs to one start. A guess says so. */
+  function startsLine(f, stp) {
+    if (!f.starts) return null;
+    const names = f.starts.options.map((o) => o.label), own = stp && stp.start ? f.starts.options.find((o) => o.id === stp.start) : null;
+    const words = stp ? (own ? `This step is only in the start "${own.label}".` : "Every start shares this step.")
+      : `This flow starts ${names.length === 2 ? "two ways" : names.length + " ways"}: ${names.map((n) => `"${n}"`).join(" or ")}. Pick one under Starts from to follow it alone.`;
+    return h("div", { class: "cap-starts" + (f.starts.guessed ? " heuristic" : ""), "data-starts-line": "" }, words + (f.starts.guessed ? " (A guess: the page doesn't say who sends some of these steps.)" : ""));
   }
   function buildTransport() {
     const tr = $("#transport"); if (!tr) return;
@@ -192,7 +305,8 @@ const Flows = (() => {
     const scrub = h("div", { class: "scrub", id: "scrub", role: "slider", tabindex: 0, "aria-label": "Step", "aria-valuemin": 1, "aria-valuemax": n }, h("div", { class: "rail" }), h("div", { class: "fill", id: "scrub-fill" }));
     f.steps.forEach((stp, i) => {
       const first = stp.messages[0];
-      const t = h("div", { class: "tick", style: `left:${pct(i, n)};color:${first ? FlowKit.laneColor(first.from) : stp.self ? FlowKit.laneColor(stp.self) : Theme.c("ink-3")}`, title: `Step ${stp.n}: ${stp.short}` });
+      const t = h("div", { class: "tick", style: `left:${pct(i, n)};color:${first ? FlowKit.laneColor(first.from) : stp.self ? FlowKit.laneColor(stp.self) : Theme.c("ink-3")}`, title: `Step ${FlowKit.stepNo(stp)}: ${stp.short}` });
+      t.classList.toggle("dim", FlowView.dimmedStep(st.key, stp));
       stp.unknowns.forEach((p) => { if (ASK[p.id]) t.append(h("i", { class: "q " + unknownLevel(p.id) })); });
       scrub.append(t);
     });
@@ -222,13 +336,13 @@ const Flows = (() => {
     if (App.view !== "flows") { showView("flows"); }
     else if (changed || !player || !player.canvas.isConnected) rerender();
     else { player.pause(); player.go(st.cur); }
-    history.replaceState(null, "", `#flows&open=${encodeURIComponent(key)}${st.cur >= 0 ? `&step=${st.cur + 1}` : ""}${Branches.hashPart(key)}`);
+    history.replaceState(null, "", `#flows&open=${encodeURIComponent(key)}${st.cur >= 0 ? `&step=${st.cur + 1}` : ""}${Branches.hashPart(key)}${FlowView.hashPart(key)}`);
   }
   function clipNote() { const fmt = FlowKit.clipFormat(); return fmt ? "Saves this flow as a video you can drop into slides" : "Recording a video doesn't work in this browser; try Chrome"; }
   async function saveClip() {
     await (document.fonts ? document.fonts.ready : Promise.resolve());
     if (recording) return;
-    const f = FlowKit.flowOf(st.key), status = () => $("#clip-status");
+    const f = FlowKit.flowOf(st.key, { plain: true }), status = () => $("#clip-status");  // the whole flow, never what is folded or hidden on the stage
     if (!FlowKit.clipFormat()) { toast("This browser can't record video. Try Chrome."); return; }
     recording = true;
     try {
@@ -267,20 +381,20 @@ const Flows = (() => {
     root.append(h("div", { class: "present-top" }, h("div", {}, h("div", { class: "pt-kicker" }, `${e.id} · ${D.title}`), h("h1", {}, e.title))), scroller, cap, bar);
     const paint = (p) => {
       const f = FlowKit.flowOf(p.key), stp = f.steps[p.cur];
-      $("#pc-n").textContent = stp ? `Step ${stp.n} of ${f.steps.length}` : `${plural(f.steps.length, "step")}. Press space to play.`;
+      $("#pc-n").textContent = stp ? `Step ${FlowKit.stepNo(stp)} of ${f.steps.length}` : `${plural(f.steps.length, "step")}. Press space to play.`;
       $("#pc-c").textContent = stp ? FlowKit.captionOf(stp) : f.title;
       $("#pr-dots").innerHTML = "";
-      f.steps.forEach((x, i) => $("#pr-dots").append(h("button", { class: i === p.cur ? "on" : i < p.cur ? "done" : "", title: `Step ${x.n}`, onclick: () => { p.pause(); p.go(i); } })));
+      f.steps.forEach((x, i) => $("#pr-dots").append(h("button", { class: (i === p.cur ? "on" : i < p.cur ? "done" : "") + (FlowView.dimmedStep(p.key, x) ? " dim" : ""), title: `Step ${FlowKit.stepNo(x)}`, onclick: () => { p.pause(); p.go(i, { exact: true }); } })));
       const btn = $("#pr-play");
       btn.innerHTML = p.playing ? '<svg viewBox="0 0 24 24"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z" fill="currentColor"/></svg>' : '<svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></svg>';
-      root.dataset.step = stp ? stp.n : "";
+      root.dataset.step = stp ? FlowKit.stepNo(stp) : "";
     };
     presenter = makePlayer(canvas, { host: scroller, key, cur: -1, present: true, onStep: paint, onPlay: paint, onFlow: paint, onPick: (t) => toast(`Press Esc to leave, then open ${titleOf(keyForId(t.id) || t.id)}`) });
     presenter.go(step ?? 0);
     paint(presenter);
     let idle = 0;
     root.onmousemove = () => { root.classList.remove("idle"); clearTimeout(idle); idle = setTimeout(() => root.classList.add("idle"), 2400); };
-    history.replaceState(null, "", `#present=${encodeURIComponent(key)}&step=${(step ?? 0) + 1}`);
+    history.replaceState(null, "", `#present=${encodeURIComponent(key)}&step=${(step ?? 0) + 1}${FlowView.hashPart(key)}`);
   }
   function closePresent() {
     const root = $("#overlay");
@@ -335,7 +449,7 @@ const Flows = (() => {
     if (next !== top) DetailsPanel.show(next, { reset: true });
   }
   function flowSummary() {
-    const f = flowOf(), e = E[st.key];
+    const f = FlowKit.flowOf(st.key, { plain: true }), e = E[st.key];  // the whole flow, whatever is folded on the stage
     const lanes = [...FlowKit.touchedLanes(f)].sort((a, b) => LANE_INDEX[a] - LANE_INDEX[b]).filter((k) => ent(k));
     const contracts = [...new Set(f.steps.flatMap((x) => x.contracts))].filter((c) => CONTRACT[c]);
     const ids = PlanDetails.relatedQuestions(st.key), way = Branches.say(st.key);
@@ -353,14 +467,14 @@ const Flows = (() => {
     const p = PlanDetails.parseStep(key), f = FlowKit.flowOf(p.flow), s = f.steps[p.i];
     if (!s) return [h("div", { class: "p-empty" }, "That step isn't in the flow shown any more. Pick it again.")];
     const groups = [];
-    for (const m of s.messages) {
+    for (const m of (s.run || [s]).flatMap((x) => x.messages)) {  // a folded step: every message of the steps folded into it
       const g = groups.find((x) => x.contract === m.contract && x.from === m.from && x.kind === m.kind);
       if (g) g.to.push(m.to); else groups.push({ ...m, to: [m.to] });
     }
     const senders = groups.map((m) => h("li", {}, h("i", { class: "lane-dot", style: `background:${FlowKit.laneColor(m.from)}` }), " ", PlanDetails.link(m.from), " to ", ...PlanDetails.joined(m.to.map((k) => PlanDetails.link(k))),
       ...(m.contract ? [" over ", PlanDetails.link(m.contract)] : [", no contract named"]), m.kind === "request" ? ", and the answer comes back." : ".", m.direction === "inferred" ? h("div", { class: "heuristic" }, "The page doesn't say who sends this; the contract's provider is shown.") : null));
     if (!groups.length && s.unrecorded) senders.push(h("li", {}, "More than one app or party is named, and the page doesn't say who sends to whom."));
-    if (!groups.length && s.self) senders.push(h("li", {}, "Inside ", PlanDetails.link(s.self), "; no other app is involved."));
+    if (!groups.length && s.self && !s.run) senders.push(h("li", {}, "Inside ", PlanDetails.link(s.self), "; no other app is involved."));
     const contracts = [...new Set(s.contracts)].filter((c) => CONTRACT[c]), branches = (D.branches || {})[p.flow];
     const ways = (c) => {
       const w = (D.contractAnswers || {})[c] || [];
@@ -369,7 +483,7 @@ const Flows = (() => {
     };
     const wrong = contracts.flatMap((c) => (branches && branches.state === "drawn" ? branches.groups.filter((g) => g.item === c).flatMap((g) => g.options) : []));
     const ids = PlanDetails.relatedQuestions(key);
-    return [PlanDetails.head(`Step ${s.n} of ${f.steps.length}`, s.short, h("span", { class: "pill" }, E[p.flow].title)),
+    return [PlanDetails.head(`Step ${FlowKit.stepNo(s)} of ${f.steps.length}`, s.short, h("span", { class: "pill" }, E[p.flow].title)),
       h("div", { class: "p-body" },
         PlanDetails.sec("Who sends", null, senders.length ? h("ul", { class: "mini-list" }, senders) : PlanDetails.quiet("Not recorded: the step names no sender.")),
         PlanDetails.sec(contracts.length > 1 ? "The contracts it uses" : "The contract it uses", null, contracts.length

@@ -434,6 +434,7 @@ const flowsFor = (key) => (FLOW_TOUCH[key] || []).slice().sort((a, b) => cmp(a.f
 function stepEnds(st) {
   const ends = new Set();
   for (const m of st.messages) { ends.add(m.from); ends.add(m.to); }
+  for (const x of st.run || []) for (const m of x.messages) { ends.add(m.from); ends.add(m.to); }  // a folded step: the lanes folded into its host
   if (st.self) ends.add(st.self);
   for (const c of st.contracts) { const con = CONTRACT[c]; if (con) { ends.add(con.provider); con.consumers.forEach((k) => ends.add(k)); } }
   st.linked.forEach((k) => ends.add(RUNTIME_TO_APP[k] || k));
@@ -449,6 +450,7 @@ function firstStepTouching(f, key) {
 function laneEnds(st) {
   const ends = new Set();
   for (const m of st.messages) { ends.add(m.from); ends.add(m.to); }
+  for (const x of st.run || []) for (const m of x.messages) { ends.add(m.from); ends.add(m.to); }
   if (st.self) ends.add(st.self);
   return ends;
 }

@@ -166,7 +166,7 @@ const PlanDetails = (() => {
   const owns = (k) => isStep(k) || !!whoOf(k) || !!CONTRACT[k] || isQuestion(k) || isOutside(k) || isGap(k) || !!APPS[k] || isRelease(k);
   const label = (k) => {
     if (whoOf(k)) return personLabel(whoOf(k));
-    if (isStep(k)) { const p = parseStep(k), s = FlowKit.flowOf(p.flow).steps[p.i]; return s ? `Step ${s.n}: ${s.short}` : "A step"; }
+    if (isStep(k)) { const p = parseStep(k), s = FlowKit.flowOf(p.flow).steps[p.i]; return s ? `Step ${FlowKit.stepNo(s)}: ${s.short}` : "A step"; }
     return titleOf(k);
   };
 

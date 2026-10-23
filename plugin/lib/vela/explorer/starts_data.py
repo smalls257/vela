@@ -36,9 +36,10 @@ def annotate(vault, keys, flows, catalog, lanes):
     participant that is an outside party (not an app) still finds its lane by name."""
     pages = {keys.page(p): p for p in vault.of_type("flow")}
     by_name = {l["name"].lower(): l["id"] for l in lanes}
+    names = {l["id"]: l["name"] for l in lanes}
     for flow in flows:
         page = pages.get(flow["key"])
-        found = from_diagram(vault, keys, catalog, page, flow, by_name) or guess(flow["steps"])
+        found = from_diagram(vault, keys, catalog, page, flow, by_name) or guess(flow["steps"], names)
         flow["starts"] = found
         owners = {n: o["id"] for o in (found or {"options": []})["options"] for n in o["steps"]}
         for step in flow["steps"]:
@@ -131,7 +132,7 @@ def senders_of(step):
     return ({step["self"]} if step["self"] else set()), set(), False
 
 
-def guess(steps):
+def guess(steps, names=None):
     """The mockup rule: a lane that acts before anything sends to it is a start; the starts are the lanes whose own steps
     reach one shared lane before any step is shared. None unless at least two do."""
     acted, reached, acts = {}, {}, []
@@ -161,7 +162,7 @@ def guess(steps):
         owner.get(step["n"]) == lane and merge_lane in acts[i][1] for i, step in enumerate(steps))]
     if len(starts) < 2:
         return NO_STARTS
-    options = [{"label": lane, "calls": [], "lane": lane} for lane in starts]
+    options = [{"label": (names or {}).get(lane, lane), "calls": [], "lane": lane} for lane in starts]
     tied = {n: starts.index(lane) for n, lane in owner.items() if lane in starts}
     used = [step for step in steps if step["n"] in tied]
     found = record(steps, tied, list(range(len(starts))), options, source="guess", merge_lane=merge_lane)

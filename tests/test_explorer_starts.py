@@ -54,7 +54,7 @@ def test_with_no_alt_the_starts_are_the_lanes_that_send_before_anything_sends_to
     _, flows = built
     starts = flows["FLO-011"]["starts"]
     assert starts["source"] == "guess"
-    assert [(o["label"], o["lane"], o["steps"]) for o in starts["options"]] == [(WEB, WEB, [1, 2]), (DESK, DESK, [3, 4])]
+    assert [(o["label"], o["lane"], o["steps"]) for o in starts["options"]] == [("Public website", WEB, [1, 2]), ("Call center desktop", DESK, [3, 4])]
     assert starts["merge"] == {"step": 5, "lane": BOOKING}
     assert starts["guessed"] is False  # every arrow on the page is stated, so the rule rests on what the page says
     assert owners(flows["FLO-011"]) == owners(flows["FLO-010"])
