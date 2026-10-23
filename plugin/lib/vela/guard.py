@@ -83,7 +83,8 @@ VOICE_CORPUS = Rule("voice-corpus", "The writing the voice learns from stays on 
 TOOL_STATE = Rule("tool-state", "Vela's own working files stay on this machine; I've left them out.",
                   "Nothing to do; only `.vela/explorer-pins.json` is shared from `.vela/`.")
 SESSION_PRIVATE = Rule("session-private", "Your session notes stay on this machine; I've left them out.",
-                       "Nothing to do; never stage `sessions/private/`.")
+                       "Never stage `sessions/private/`. It shows as a change only when .gitignore lacks the line "
+                       "`sessions/private/`: run `vela records split`, which writes that line.")
 RULES = (INBOX, VOICE_LOCAL, VOICE_CORPUS, TOOL_STATE, SESSION_PRIVATE)
 
 # Why an allowed-looking file is still left out. Every other leftover gets OTHER.

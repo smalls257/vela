@@ -10,7 +10,7 @@ One vault holds one initiative. Pages are numbered by arc42 section.
 |---|---|
 | `README.md` | Home page: layout, reading paths, setup checklist |
 | `CLAUDE.md` | How Claude answers questions from this vault. A person writes it. |
-| `.vela.yaml` | `initiative` (`INI-nnn`), `title`, `stale_after_days` (default 60), and optionally `link_templates` (see Links out of the vault), `designs` (see Team design docs), `owner_contact` (who a published copy's readers write to), `roles` (who holds which role, see Onboarding), `grills` (who runs a grill and who is asked to join, see Grills waiting) and `role: reader` (see Roles and published copies) |
+| `.vela.yaml` | `initiative` (`INI-nnn`), `title`, `stale_after_days` (default 60), and optionally `link_templates` (see Links out of the vault), `designs` (see Team design docs), `owner_contact` (who a published copy's readers write to), `roles` (who holds which role, see Onboarding), `grills` (who runs a grill and who is asked to join, see Grills waiting) and `role: reader` (see Roles and published copies), and `records_split` (the date `vela records split` moved the session records to private notes; receipts that link a stub dated earlier are exempt from the words rule) |
 | `01-goals.md` | Goals table, and the `where-it-stands` and `progress-map` blocks |
 | `02-constraints.md` | Constraints table, `CST-n` |
 | `03-context-and-scope.md` | Systems today and after; apps in and out of scope |

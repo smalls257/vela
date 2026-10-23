@@ -45,9 +45,15 @@ def load_config(root):
     path = root / ".vela.yaml"
     if not path.is_file():
         raise ToolError(f"{root} has no .vela.yaml, so it is not a vault. Run vela from the vault root or pass --vault.")
+    text = path.read_text(encoding="utf-8")
     try:
-        config = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        config = yaml.safe_load(text) or {}
     except yaml.YAMLError as exc:
+        raise ToolError(f".vela.yaml is not valid YAML: {exc}") from exc
+    except ValueError as exc:  # an unquoted date that is not a day, such as 2026-13-40
+        given = re.search(r"^records_split:\s*(.*?)\s*$", text, re.M)
+        if given:
+            raise ToolError(records_split_problem(given[1])) from exc
         raise ToolError(f".vela.yaml is not valid YAML: {exc}") from exc
     if not isinstance(config, dict) or not schema.INITIATIVE_RE.match(str(config.get("initiative", ""))):
         raise ToolError(".vela.yaml needs 'initiative: INI-nnn' and 'title: ...'.")
@@ -56,7 +62,22 @@ def load_config(root):
     days = config.get("stale_after_days", schema.STALE_AFTER_DAYS)
     if isinstance(days, bool) or not isinstance(days, int) or days < 1:
         raise ToolError(f".vela.yaml has stale_after_days: {days!r}. Write a whole number of days, such as 60.")
+    if "records_split" in config:
+        config["records_split"] = records_split_date(config["records_split"])
     return config
+
+
+def records_split_date(value):
+    """The `records_split` date as 'YYYY-MM-DD'. YAML reads an unquoted date as a date, a quoted one as text; either
+    must be a real day, because E323 exempts receipts that link stubs dated earlier than it."""
+    text = value.isoformat() if isinstance(value, datetime.date) else str(value)
+    if not rules.is_date(text):
+        raise ToolError(records_split_problem(repr(value)))
+    return text
+
+
+def records_split_problem(given):
+    return f".vela.yaml has records_split: {given}. Write the date the records were split, such as 2026-10-22."
 
 
 def load_catalog(path=None):
