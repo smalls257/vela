@@ -53,7 +53,7 @@ import json
 import pathlib
 import re
 
-from vela import closestate, commands, guard, planscope, privaterecord, progress, records, say, sessions, titlecheck
+from vela import closestate, commands, guard, planscope, privaterecord, progress, records, recordsplit, say, sessions, titlecheck
 from vela.commands import close_sync
 from vela.edge import ghcli, hostprobe, mergegit, sessiongit, vaultgit
 from vela.edge.vaultgit import GitUnavailable
@@ -826,7 +826,8 @@ def open_record(root, args, today, modes, challenged, on_branch, lines, carried,
                                                                      challenges, title_override)),
              sessiongit.write_text(root, privaterecord.private_path(record_id),
                                    privaterecord.new_private(record_id, title, today, 1))]
-    sessiongit.commit(root, f"Open session {record_id}", [rel])  # the notes stay here; only the stub is committed
+    committed = [rel] + keep_notes_out_of_git(root, wrote)
+    sessiongit.commit(root, f"Open session {record_id}", committed)  # the notes stay here; only the stub is committed
     where = ", and your answer goes onto the challenge itself" if challenged else ""
     lines.append(say.Line(f"started: {record_id} on {branch}, modes: {', '.join(modes)}",
                           plain=f"I've opened the session: {plain(title)}{where}."))
@@ -844,6 +845,19 @@ def open_record(root, args, today, modes, challenged, on_branch, lines, carried,
     wrote.append(write_state(root, record_id, branch, modes, today))
     return say.Result(START, lines=lines, wrote=wrote, data={"id": record_id, "path": rel, "branch": branch,
                                                              "modes": modes, "reader": False})
+
+
+def keep_notes_out_of_git(root, wrote):
+    """A plan made before private notes lacks the `.gitignore` line for them until `records split` runs, so the first
+    session would leave its notes showing as new files for a hand `git add .` to commit. Adds the line (creating the file)
+    and returns the path to commit with the stub, else []."""
+    path = root / ".gitignore"
+    held = path.read_text(encoding="utf-8") if path.is_file() else ""
+    wanted = recordsplit.with_ignore_line(held)
+    if wanted == held:
+        return []
+    wrote.append(sessiongit.write_text(root, ".gitignore", wanted))
+    return [".gitignore"]
 
 
 # ------------------------------------------------------------------------------------------------- session branch

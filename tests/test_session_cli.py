@@ -385,3 +385,27 @@ def test_turning_the_dashboard_branch_down_leaves_main_clean(tmp_path, monkeypat
     code, output = start(vault, "--mode", "grill", "--topic", "consent")
     assert code == 0, output
     assert (vault / "dashboard.html").read_text(encoding="utf-8") == "<p>first build</p>\n"  # a start pulls nothing
+
+
+def test_start_in_an_older_plan_adds_the_private_ignore_line_in_the_open_commit(tmp_path, monkeypatch):
+    """A plan made before private notes has no `sessions/private/` line in .gitignore: without it the notes show as
+    untracked files, and a hand `git add .` would commit them."""
+    vault = owner(tmp_path, monkeypatch)
+    (vault / ".gitignore").write_text("dashboard.html\n", encoding="utf-8")
+    git(vault, "commit", "-q", "-am", "an older plan")
+    code, output = start(vault, "--mode", "grill", "--topic", "consent", "--for-lead")
+    assert code == 0, output
+    assert (vault / ".gitignore").read_text(encoding="utf-8") == "dashboard.html\nsessions/private/\n"
+    assert git(vault, "show", "--name-only", "--format=%s", "HEAD").split("\n")[0] == f"Open session {TODAY}-consent"
+    assert ".gitignore" in git(vault, "show", "--name-only", "--format=", "HEAD").split("\n")
+    assert "private" not in git(vault, "status", "--porcelain")  # the notes are not an untracked file
+
+
+def test_start_in_a_plan_with_no_gitignore_creates_it(tmp_path, monkeypatch):
+    vault = owner(tmp_path, monkeypatch)
+    if (vault / ".gitignore").exists():
+        git(vault, "rm", "-q", ".gitignore")
+        git(vault, "commit", "-q", "-m", "no ignore file")
+    assert start(vault, "--mode", "grill", "--topic", "consent")[0] == 0
+    assert (vault / ".gitignore").read_text(encoding="utf-8") == "sessions/private/\n"
+    assert "private" not in git(vault, "status", "--porcelain")
