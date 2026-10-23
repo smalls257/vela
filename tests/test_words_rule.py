@@ -109,3 +109,45 @@ def test_a_decided_adr_cites_the_yes_it_came_from(tmp_path):
     assert '- **Decision:** [[%s]] c03, @priya: "Yes, as read."' % RECORD_ID in page
     _, refused = adds.plan(root, "add", [{k: v for k, v in item.items() if k != "capture"}])
     assert "add-adr-capture" in [r.rule for r in refused]
+
+
+def adr(**more):
+    return {"type": "adr", "title": "One booking app", "owner": "@priya", "state": "decided", "decision": RECORD_ID,
+            "capture": "^c03", **more}
+
+
+def adr_rules(root, item, lead=("priya", ())):
+    import test_apply_add as adds
+    staged = adds.staged_view(root)
+    staged.lead = lead
+    _, refused = decisions.plan(decisions.Decision("add", RECORD_ID, [item], {}), staged, adds.opened(root))
+    return [r.rule for r in refused], refused
+
+
+def test_an_adr_receipt_is_refused_for_another_session_a_non_yes_or_an_unknown_lead(tmp_path):
+    import test_apply_add as adds
+    root = adds.make_vault(tmp_path, captures=adds.CAPTURES + ['- [answer] (claude) "Yes" ^c04',
+                                                              '- [answer] (@priya) "ok" ^c05'])
+    assert "add-adr-session" in adr_rules(root, adr(decision="2026-01-01-other"))[0]
+    assert "consent-not-a-person" in adr_rules(root, adr(capture="^c04"))[0]
+    assert "consent-bare-non-yes" in adr_rules(root, adr(capture="^c05"))[0]
+    assert "decide-lead-unknown" in adr_rules(root, adr(), lead=None)[0]
+    assert adr_rules(root, adr())[0] == []
+
+
+def test_a_yes_that_takes_the_quote_back_does_not_count():
+    for words in ("Yes, but don't quote me", "Yes, do not publish this", "Yes, never in writing", "Yes, but not word for word"):
+        rec = parsed([f'- [quote-yes] (@cto-ana) "{words}" ^c16'])
+        assert consent.quote_yes(rec, "@cto-ana") is None, words
+    assert consent.quote_yes(parsed(['- [quote-yes] (@cto-ana) "Yes, quote me on that." ^c16']), "@cto-ana")
+
+
+def test_the_leads_display_name_never_becomes_their_handle_on_record(tmp_path):
+    named = '- [answer] (Priya Shah) "Yes, one till API." ^c16'
+    root = vault(tmp_path, named)
+    staged = view(root)
+    staged.lead = ("priya", ("priya shah",))
+    writes, refused = decisions.plan(decisions.Decision("decide", RECORD_ID, [item(yes="^c16")], {}), staged, opened(root))
+    assert not refused, refused
+    page = {w.path: w.text for w in writes}[STOCK]
+    assert '[[%s]] c16, @priya: "Yes, one till API."' % RECORD_ID in page and "@Priya" not in page

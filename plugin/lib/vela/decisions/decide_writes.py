@@ -290,6 +290,14 @@ def _override_bullets(item, view, record, target):
     return out
 
 
+def speaker(capture, lead):
+    """Who a committed line names: the lead's `whoami` handle when the capture is the lead's (its origin may be a
+    display name, never to become `@Priya`), else the capture's origin."""
+    if lead is not None and consent.from_the_lead(capture, lead[0], lead[1]) is None:
+        return receipts.handle_ref(lead[0])
+    return capture.origin.strip()
+
+
 def receipt(item, view, record):
     """The value after `- **Decision:**`: the cited yes's session, capture and speaker, with their words when they may
     be quoted; the bare link for a decision made on an override of the quoted-yes rule."""
@@ -297,8 +305,8 @@ def receipt(item, view, record):
         return receipts.decision_value(record.id, None)
     capture = record.capture(item["yes"])
     words = capture.quote if consent.may_quote(capture, record, view.lead) else None
-    return receipts.decision_value(record.id, privaterecord.Ref(record.part, int(capture.n)), capture.origin.strip(),
-                                   words, item.get("stated_in"))
+    return receipts.decision_value(record.id, privaterecord.Ref(record.part, int(capture.n)),
+                                   speaker(capture, view.lead), words, item.get("stated_in"))
 
 
 def history_bullets(item, view, record, target, decision=True):
@@ -310,7 +318,7 @@ def history_bullets(item, view, record, target, decision=True):
     if item.get("dissent"):
         capture = record.capture(item["dissent"])
         words = capture.quote if consent.may_quote(capture, record, view.lead) else None
-        out.append(f"- **Dissent:** {receipts.dissent_value(capture.origin.strip(), today, words)}")
+        out.append(f"- **Dissent:** {receipts.dissent_value(speaker(capture, view.lead), today, words)}")
     out += _override_bullets(item, view, record, target)
     if item.get("on_behalf_of"):
         out.append(f"- **Decided by:** {item['by']}, on behalf of {item['on_behalf_of']}")

@@ -32,10 +32,14 @@ Each check returns None or a `say.Refusal` whose `plain` is the 4.3 table's sent
 The lead can go ahead without any of these (they may override any rule): each refusal's `override` names the route,
 an override citing their reason, which then goes on record and into the Consent block, never hidden.
 """
+import re
+
 from vela import closegate, say
 from vela.said import is_unverified
 from vela.decisions.schema import quote_hash
 
+# "Yes, but don't quote me" opens with a yes and takes it back; a negation anywhere after the opener is not a yes.
+NEGATION = re.compile(r"\b(?:don'?t|do not|not|no|never|won'?t|wouldn'?t|shouldn'?t|can'?t|cannot)\b", re.I)
 QUOTE_YES_TAG = "quote-yes"  # the tag of a capture where a person says, in their own words, that they may be quoted
 GROUP_LIMIT = 7  # the most items one read-back may name for one yes
 OVERRIDE_YES = (f'an override of {closegate.QUOTED_YES_RULE} on the item, its reason citing the capture with the '
@@ -142,7 +146,8 @@ def quote_yes(record, origin):
     from vela.decisions import ready  # ready imports this module, so the import waits until it is called
     for capture in record.captures.values():
         if (capture.tag == QUOTE_YES_TAG and same_handle(capture.origin, origin) and capture.is_person
-                and not capture.unverified and not capture.is_bare_non_yes and ready.is_yes(capture.quote)):
+                and not capture.unverified and not capture.is_bare_non_yes and ready.is_yes(capture.quote)
+                and not NEGATION.search(capture.quote)):
             return capture
     return None
 
