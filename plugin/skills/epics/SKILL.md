@@ -8,7 +8,7 @@ argument-hint: "<team handle or APP-id, or 'every team'>"
 
 Turn the app's handoff list into epics a team can build from. Only the grill part of this session (a grill as `vela terms` defines it) sets an epic to `decided`.
 
-`vela` is `sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela` (`START.md`, "Where vela runs from"). The epic page is in `vela conventions "Epics and traceability"`. Relay `--for-lead` lines and reason over `--json`; a refusal names its fix, so do that or ask the lead what it needs. The cuts, the criteria's wording, the read-backs and the questions are yours. When a command can't express what the lead wants, say so and stop; never fall back to doing its steps by hand.
+`vela` is `sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela` (`START.md`, "Where vela runs from"). The epic page is in `vela conventions "Epics and traceability"`. Relay `--for-lead` lines and reason over `--json`; a command that stops names its fix, so do that or ask the lead what it needs. The cuts, the criteria's wording, the read-backs and the questions are yours. When a command can't express what the lead wants, say so and stop; never fall back to doing its steps by hand.
 
 **Say names, not IDs,** in your own sentences as well as relayed ones. An ID appears only where the lead must act on it, such as a tracker key. Not "EPC-002 has AC1 to AC5 on CON-001; AC6 waits on UNK-026", but "The chosen-folder epic has five checks on the calendar entries; the sixth waits on whether the entry carries the organization."
 

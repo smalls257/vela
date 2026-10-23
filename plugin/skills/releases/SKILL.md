@@ -8,7 +8,7 @@ argument-hint: "[a release name or date, or none for the whole plan]"
 
 Say in what order the plan gets built, and when people see it. A release is a milestone: a date somebody outside the team will see, the slices that should be on by then, and the requirements, or only some of their checks, that must hold that day. Nothing waits for a release. What this session writes is `assumption` (to the lead, "not decided yet") until a grill decides it, and a slice has no status until a grill plans it.
 
-`vela` is `sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela` (`START.md`, "Where vela runs from"). The release format is `vela conventions "Releases"`. Say a command's `--for-lead` lines in your words and reason over its `--json`; a refusal names its fix, so do that or ask the lead what it needs. When a command can't express what the lead wants, say so and stop.
+`vela` is `sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela` (`START.md`, "Where vela runs from"). The release format is `vela conventions "Releases"`. Say a command's `--for-lead` lines in your words and reason over its `--json`; a command that stops names its fix, so do that or ask the lead what it needs. When a command can't express what the lead wants, say so and stop.
 
 ## 1. Start
 

@@ -12,7 +12,7 @@ Before your first command and your first question, read `voice/VOICE.md` if the 
 
 Close files the session and sends it for review. The steps, in order: find the session (1), mark the captures (2), write the items (3), draft what is missing or stale (4), check who still says yes, then read back what goes on record in the lead's name (5), bring in main and check (6), finish and send (7), open the pull request (8), the dashboard (9). Commands do the filing; you do the talking. Never report a step as done when it failed.
 
-Vela is `sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela` (`START.md`, "Where vela runs from"). Use `--for-lead` when you'll tell the lead the result and `--json` when you need to reason over it, and say it in your own words: names, not codes or IDs. A refusal names its fix: do that, or ask the lead what it needs. Never pass raw git or `gh` error text on: say in one sentence that it didn't work and what you'll do. A failure you fix isn't news. When a command can't express what the lead wants, say so and stop; never fall back to doing its steps by hand.
+Vela is `sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela` (`START.md`, "Where vela runs from"). Use `--for-lead` when you'll tell the lead the result and `--json` when you need to reason over it, and say it in your own words: names, not codes or IDs. A command that stops names its fix: do that, or ask the lead what it needs. Never pass raw git or `gh` error text on: say in one sentence that it didn't work and what you'll do. A failure you fix isn't news. When a command can't express what the lead wants, say so and stop; never fall back to doing its steps by hand.
 
 ## Starting a close
 
@@ -106,7 +106,7 @@ Then send, in this order: the yes must come after the notice and before the reco
 
 ## 8. Open the pull request
 
-Write the two or three sentences a reviewer reads first to `.vela/close/prose.md`, as `${CLAUDE_PLUGIN_ROOT}/skills/close/PR-BODY.md` says. Then run `vela close pr --prose .vela/close/prose.md --for-lead`. It builds the rest of the body; for an answer session it comments on the challenge's pull request instead. Show the URL it prints; if it refuses, say the one sentence it gives. Never say a PR exists unless `gh` printed its URL.
+Write the two or three sentences a reviewer reads first to `.vela/close/prose.md`, as `${CLAUDE_PLUGIN_ROOT}/skills/close/PR-BODY.md` says. Then run `vela close pr --prose .vela/close/prose.md --for-lead`. It builds the rest of the body; for an answer session it comments on the challenge's pull request instead. Show the URL it prints; if it stops, say the one sentence it gives. Never say a PR exists unless `gh` printed its URL.
 
 ## What you tell the lead at the end
 

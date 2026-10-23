@@ -8,7 +8,7 @@ argument-hint: "<item IDs or page names to decide>"
 
 A grill is the only session that makes an item `decided` (`vela terms` defines the word; say it once, the first time). It takes the items that are ready, or that the lead decides anyway, one question at a time, and files each decision as its branch closes.
 
-`vela` is `sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela`. Relay `--for-lead` lines in your own voice and reason over `--json`; a refusal names its fix, so do that or ask the lead. When a command can't express what the lead wants, say so and stop; never fall back to writing the page by hand. A kind with no command of its own is filed as `.vela/decisions/<session>/<n>-<kind>.json` (`vela apply --schema <kind>` gives the fields) with `vela apply <file> --for-lead`.
+`vela` is `sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela`. Relay `--for-lead` lines in your own voice and reason over `--json`; a command that stops names its fix, so do that or ask the lead. When a command can't express what the lead wants, say so and stop; never fall back to writing the page by hand. A kind with no command of its own is filed as `.vela/decisions/<session>/<n>-<kind>.json` (`vela apply --schema <kind>` gives the fields) with `vela apply <file> --for-lead`.
 
 ## 1. The questions
 
@@ -77,7 +77,7 @@ File each decision as its branch closes, before the next question.
 - Ask why, once, naming the item: "Why this one, in your words?" Capture the answer as said. "As you suggested" gets one more question: what in it persuaded them. A declined reason is captured as given.
 - For a contract, ask where the provider stands (present, async with channel and date, asked in the PR, or "not consulted: <reason>") and capture it. If anyone disagrees, capture their words; the item can still be decided.
 - When the yes came from someone who isn't the lead, or someone disagrees, ask that person once, in plain words, whether their own words may go on the plan: "May I put your words on the plan, or should I just say that you agreed? Say yes in your own words if I may." Capture the answer with them as origin: `vela record add --origin <their handle> --tag quote-yes "<their words>"`. A yes the lead passes on for them doesn't count, and a no or no answer is fine: the plan then says who agreed or disagreed, and when, without their words. Never ask twice. The lead's own words need no such question; they pick them at close.
-- Run `vela decide <ID> --readback ^cN --yes ^cM --why ^cK --for-lead` (`--help` lists the flags for a contract, a dissent, an override, an absent owner). Relay its line; if it refuses, do what its fix says or ask the lead the one thing it needs.
+- Run `vela decide <ID> --readback ^cN --yes ^cM --why ^cK --for-lead` (`--help` lists the flags for a contract, a dissent, an override, an absent owner). Relay its line; if it stops, do what its fix says or ask the lead the one thing it needs.
 
 `decide` also takes a functional requirement, a release by its heading, a slice, an epic, and an app's allocated requirement as `CAP-nnn.FRn@APP-<slug>`, which you read back by name with the app's agenda.
 

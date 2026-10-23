@@ -8,7 +8,7 @@ argument-hint: "<item ID> <what is wrong>"
 
 A team lead who accepted an app at handoff can still find a boundary or a contract wrong; so can an owner whose item someone decided on their behalf (`**Decided by:** @x, on behalf of @owner`; agreeing, they add `- **Confirmed by:** @owner on <date>` instead). The challenge records the dispute without settling it: the item keeps its state and text, and an open question the team lead owns blocks it.
 
-`vela` is `sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela`. A refusal names its fix, so do that or ask the team lead. When a command can't express what the team lead wants, say so and stop.
+`vela` is `sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela`. A command that stops names its fix, so do that or ask the team lead. When a command can't express what the team lead wants, say so and stop.
 
 ## 1. Start
 
