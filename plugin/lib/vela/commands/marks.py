@@ -1,4 +1,4 @@
-"""`vela marks plan [--vault V] [--today D] [--json|--for-lead]`: close section 2's default marks (overhaul Task 14).
+"""`vela marks plan [--vault V] [--today D] [--json|--for-lead]`: close's "Find the session and mark the captures": the default marks (overhaul Task 14).
 
 "Filing is the tool's work, not the lead's." The rules live in `vela.markrules`, one table row each with its reason;
 this module only reads what they need and writes the drafts. It drafts `.vela/decisions/<session>/<seq>-marks.json`

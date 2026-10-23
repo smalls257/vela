@@ -1,5 +1,5 @@
-"""The `decide` apply kind: one decision filed, sent to the module of its target kind (overhaul Task 16, plan 4.3; grill
-section 4). Pure.
+"""The `decide` apply kind: one decision filed, sent to the module of its target kind (overhaul Task 16, plan 4.3; grill's
+"File each decision as its branch closes"). Pure.
 
 **A dispatcher, and only that** (review S1, Shield). Grill section 4 is nine writes per decision; the seven every target
 shares live in `decide_writes`, and what is a target's own (where its state lives, what else it needs before it is

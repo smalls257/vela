@@ -1,5 +1,5 @@
 """`add constraint`: something the initiative cannot change (a date, a budget, a law, a contract term, a system it
-must keep), as a row on `02-constraints.md` (close section 2):
+must keep), as a row on `02-constraints.md` (close's "Write the items and the prose"):
 
     | CST-n | <the constraint> | <where it comes from, as a link on the words> | <what it forces> |
 

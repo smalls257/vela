@@ -1,4 +1,4 @@
-"""`vela decide <page id>`: a page decided, its `state:` frontmatter (grill section 4). Pure.
+"""`vela decide <page id>`: a page decided, its `state:` frontmatter (grill's "File each decision as its branch closes"). Pure.
 
 The page kind is the fallback for any page with an `id` and a `state:` that no more specific kind claims (the strategy,
 an app page, an initiative section). The Violation its shape prevents is a God Method in the dispatcher: an epic and a

@@ -1,6 +1,6 @@
 """What `vela check --fix W326` changes: each flagged page's frontmatter `state`, set to what W326 says.
 
-Why this is code and not prose (close section 6, overhaul Task 21b): a goals page whose every goal is decided, or a
+Why this is code and not prose (close's "Check, then finish and send", overhaul Task 21b): a goals page whose every goal is decided, or a
 constraints page whose every row cites its source, still reads unsettled to every reader and to `vela status` until its
 own `state` follows. There is one right answer, so the model never hand-edits a state line (Shield: the rule and its
 fix live in one place, and Task 24's hook can deny a typed state line without blocking the close).

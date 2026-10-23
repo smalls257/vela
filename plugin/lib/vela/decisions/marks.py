@@ -1,4 +1,4 @@
-"""The `marks` apply kind: each capture's mark written into its line (close section 3, "Write the marks"). Pure. The
+"""The `marks` apply kind: each capture's mark written into its line (close's "Find the session and mark the captures"). Pure. The
 items are the ones `vela marks plan` drafts (Task 14, `vela.markrules`), with the model's and the lead's answers
 filled in.
 

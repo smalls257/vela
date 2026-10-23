@@ -1,5 +1,5 @@
 """The `defer` apply kind: an owed question handed to whoever can answer it, as a new open unknown that blocks it
-(epics section 7's E805 route "defer it to an owner"; close section 2's "left for a grill"). Pure.
+(the E805 route in epics' "Check the gate" "defer it to an owner"; "left for a grill" in close's "Write the items and the prose"). Pure.
 
 The Violation this exists to prevent is a Silent Fallback at process level: "we'll come back to it" with nobody
 chasing it. A deferral is only honest while an open question with an owner and an ask-by date carries it, so a

@@ -1,4 +1,4 @@
-"""`vela decide "<release name>"`: a release decided, on `04b-releases.md` (grill section 4; CONVENTIONS "Releases").
+"""`vela decide "<release name>"`: a release decided, on `04b-releases.md` (grill's "File each decision as its branch closes"; CONVENTIONS "Releases").
 Pure.
 
 A release is a `## <name>` section with no ID, so it is named by its heading, exactly as written. A Grill decides it by

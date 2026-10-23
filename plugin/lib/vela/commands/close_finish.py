@@ -1,5 +1,5 @@
 """`vela close finish --summary "..." [--replace]` and `vela close dashboard [--branch]` (overhaul Task 11): file the
-session in the one order close sections 7 and 9 name, and rebuild the dashboard with no session open.
+session in the one order close's "Check, then finish and send" and "No session open" name, and rebuild the dashboard with no session open.
 
 The Violation this module's shape prevents is a God Method rebuilt inside the CLI: finishing a close touches the gate,
 the allow-list staging, the handoff manifest and the explorer, and porting those mechanics here would give each of
@@ -15,7 +15,7 @@ isn't ready (run `vela close gate`), or no session is open; 2 the tool failed (g
 already filed is said); 3 needs the lead, nothing written: several sessions are open, or a handoff record exists and
 replacing it needs `--replace` and the app's team's own yes in the record.
 
-`close dashboard` is the no-session path of close section 9: it rebuilds `dashboard.html` and never commits to main.
+`close dashboard` is the no-session path of close's "No session open": it rebuilds `dashboard.html` and never commits to main.
 With no session open in an owner's copy and the page changed, it exits 3 offering a `dashboard/<date>` branch; nothing
 is committed or pushed (the rebuilt page is the lead's view on this machine, not a change to the plan, so it is not in
 `wrote`). `--branch` takes that offer: it creates `dashboard/<date>` from here and commits only `dashboard.html` on it
@@ -31,7 +31,7 @@ import pathlib
 from vela import closefinish, closegate, explorereport, handoffpreview, handoffwarn, planscope, privaterecord, say, schema, sessions
 from vela.edge import atomic, mergegit, sessiongit, stagegit, vaultgit
 
-# The explore report lines the lead hears after the dashboard line (close section 9): what the build went on without.
+# The explore report lines the lead hears after the dashboard line (close's "No session open"): what the build went on without.
 RELAYED_KINDS = ("warning", "no design", "gitignore")
 # The lead's answer to `close dashboard`'s branch offer (no answer yet: None, and the offer is made).
 BRANCH, PUT_BACK = "branch", "put-back"

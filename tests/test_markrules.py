@@ -1,4 +1,4 @@
-"""`vela marks plan` (overhaul Task 14): close section 2's default marks as one table in `vela.markrules`, and the
+"""`vela marks plan` (overhaul Task 14): close's "Find the session and mark the captures": the default marks as one table in `vela.markrules`, and the
 command that drafts the `marks` (and `ledger`) decision files from it.
 
 One test per rule, table-driven, so a rule deleted from the table fails a named case. The rule's reason lives in the
@@ -46,7 +46,7 @@ def only_item(plan):
     return plan.items[0]
 
 
-# One row per close section 2 rule: (case, capture line, context overrides, expected fields of the drafted item).
+# One row per default-mark rule: (case, capture line, context overrides, expected fields of the drafted item).
 RULES = [
     ("wild-park", '- [wild] (@sam) "What if the desk ran itself?" ^c01', {},
      {"rule": "wild-park", "mark": "park", "needs_lead": False}),

@@ -1,5 +1,4 @@
-"""`add adr`: a decision record's skeleton, `09-decisions/ADR-nnnn-<slug>.md`, linked from `09-decisions.md` (close
-section 4, grill section 4).
+"""`add adr`: a decision record's skeleton, `09-decisions/ADR-nnnn-<slug>.md`, linked from `09-decisions.md` (close's "Write the items and the prose", grill's "File each decision as its branch closes").
 
 The skeleton is code and the content is judgment: this writes the frontmatter (`type: decision`, `authored: authored`),
 the four sections close fills (`## Context`, `## Decision`, `## Alternatives considered` with its

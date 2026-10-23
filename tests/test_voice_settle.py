@@ -1,7 +1,7 @@
 """`vela voice settle` (overhaul Task 19): close/VOICE-REVIEW.md's git dance, done by the command.
 
 Each test names the rule it holds. The vault is the template, committed, with a `draft: prose for <id>` commit holding
-two drafted paragraphs; the rewrites are written into the working tree the way close section 4 writes them.
+two drafted paragraphs; the rewrites are written into the working tree the way close's "Write the items and the prose" writes them.
 """
 import hashlib
 import json

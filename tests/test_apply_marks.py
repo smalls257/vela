@@ -1,4 +1,4 @@
-"""The `marks` apply kind (overhaul Task 15): close section 3's "write the marks" as code. A mark goes into its capture
+"""The `marks` apply kind (overhaul Task 15): close's "Find the session and mark the captures": "write the marks" as code. A mark goes into its capture
 line before the block ID, a leftover is filed only on the lead's own answer, and a fact never comes from a plan."""
 import json
 

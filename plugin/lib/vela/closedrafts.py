@@ -1,11 +1,11 @@
 """Which paragraphs a session owes before it closes: the checklist behind `vela close drafts` (overhaul Task 21a). Pure.
 
-The Violation this exists to prevent is a Black Box in close section 4. That section was a long list the model walked
+The Violation this exists to prevent is a Black Box in close's "Write the items and the prose". That section was a long list the model walked
 by memory (changed pages, `query refs` for every resolved or decided ID, Strategy paragraphs, decision records, the
 glossary), so nobody could see which paragraph it skipped. Finding the paragraphs is mechanical; writing them isn't
 (Filter). So this module finds them, each with the reason it is owed, and the skill drafts every one it is handed.
 
-Sources, each with the reason close section 4 gives for it:
+Sources, each with the reason close's "Write the items and the prose" gives for it:
 
 - **Opening** of every page this session changed, leaving out `sessions/` and `sources.md`: the opening says what is
   true now, and the session may have made it untrue. A page whose only change is inside generated blocks owes
@@ -33,7 +33,7 @@ each entry says which, and for stale what moved.
 
 Alongside the paragraphs:
 
-- **Read-back** (close section 5): each item that became `decided`, so its final wording is shown to its owner.
+- **Read-back** (close's "Still yes, then the read-back"): each item that became `decided`, so its final wording is shown to its owner.
 - **Lists over seven** (plan 2.13): a page section holding more than about seven items or bullets reads as a wall;
   the skill puts the few that matter first and the rest under `## Also open (n)`. Choosing the few stays the skill's.
 - **Split facts** (house-voice "Size"): past about 20 paragraphs one PR is hard to review, so the lead is asked
@@ -48,7 +48,7 @@ from dataclasses import dataclass, field
 from vela import closegate, drafts, model, parse, query, wording
 
 DECIDED, RESOLVED = "decided", "resolved"
-LONG_LIST = 7  # "more than about seven" (close section 4)
+LONG_LIST = 7  # "more than about seven" (close's "Write the items and the prose")
 SPLIT_AT = 20  # "more than about 20 prose paragraphs" (house-voice "Size")
 SKIP_PATHS = ("sources.md",)
 SKIP_FOLDERS = ("sessions/",)
@@ -515,7 +515,7 @@ def settle(entries, history, after):
 
 
 def owed(before, after, changes, modes=(), history=None):
-    """Everything close section 4 and 5 need from the facts: `before` and `after` are vault models, `changes` is
+    """Everything close's "Write the items and the prose" and "Still yes, then the read-back" need from the facts: `before` and `after` are vault models, `changes` is
     {page path: text before, or None when new} for every page that differs, `modes` the session record's modes.
     `history.written(page, heading, names)` returns a function path -> the page's text as it stood when that paragraph was
     last written this session, or None when it was not written; None for `history` means nothing was written."""

@@ -1,4 +1,4 @@
-"""`vela decide` and the `decide` apply kind (overhaul Task 16): grill section 4's nine writes per decision, made by code.
+"""`vela decide` and the `decide` apply kind (overhaul Task 16): grill's "File each decision as its branch closes"'s nine writes per decision, made by code.
 
 Each test is a rule the grill skill's prose held before (state, Decision, Why verbatim, Dissent, Override, Decided by,
 Pending approval, the Changes row, the capture's mark, the agenda line, the commit); a deleted rule fails here by name.
