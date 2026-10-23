@@ -200,7 +200,26 @@ def words_refusals(item, view, record):
                                                               "disagrees, not mine.",
                                  f"Capture the dissent in the dissenter's words with them as origin (^c{capture.n} is "
                                  f"Claude's, origin {capture.origin!r}).", override="leave the dissent out"))
-    return found
+    return found + speaker_refusals(item, record, lead)
+
+
+def speaker_refusals(item, record, lead):
+    """A yes or dissent from someone whose origin is a display name ("Raj Patel") can't go on a page as `@who`: E315
+    would fail it later, when the fix is no longer at hand. Stop here, with the capture to fix."""
+    out = []
+    for name in ("yes", "dissent"):
+        ref = item.get(name)
+        if not ref or consent.exists(ref, record) is not None:
+            continue
+        capture = record.capture(ref)
+        who = speaker(capture, lead)
+        if capture.is_person and not receipts.is_handle(who):
+            out.append(refusal("decide-speaker-not-handle", f"I don't have a handle for {who}, so I can't name them "
+                                                            "on the record.",
+                               f"Re-capture ^c{capture.n} with their handle (like @raj) as origin, or ask them for it, "
+                               "then decide again.", override="leave the dissent out" if name == "dissent" else
+                               "none: the receipt has to name who said yes"))
+    return out
 
 
 def override_items(item, target):

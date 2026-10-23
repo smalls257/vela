@@ -53,6 +53,11 @@ class Dissent:
     see: str  # the record the words were taken from, or ""
 
 
+def is_handle(text):
+    """Whether `text` is a handle as a committed line writes one (`maria`, `@maria`, `@org/team`), not a display name."""
+    return re.fullmatch(_HANDLE, (text or "").strip()) is not None
+
+
 def handle_ref(handle):
     """`@maria` for `maria` or `@maria`; "" stays "". Every writer of a handle on a committed line goes through this,
     because whoami gives a bare login and a capture's origin may carry the @."""

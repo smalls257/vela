@@ -162,3 +162,15 @@ def test_the_leads_display_name_never_becomes_their_handle_on_record(tmp_path):
     assert not refused, refused
     page = {w.path: w.text for w in writes}[STOCK]
     assert '[[%s]] c16, @priya: "Yes, one till API."' % RECORD_ID in page and "@Priya" not in page
+
+
+def test_a_speaker_who_is_not_a_handle_is_refused_with_a_plain_fix(tmp_path):
+    """"Raj Patel" would become "@Raj Patel" and fail E315 later; stop at decide, where the fix is cheap."""
+    named = '- [worry] (Raj Patel) "This is too slow." ^c18'
+    _, refused = plan(vault(tmp_path / "a", named), [item(dissent="^c18")])
+    assert "decide-speaker-not-handle" in rules(refused)
+    assert "handle" in refused[0].plain and "^c18" in refused[0].fix
+    other_yes = '- [answer] (Ana Silva) "Yes, one booking API." ^c16'
+    _, refused = plan(vault(tmp_path / "b", other_yes), [item(yes="^c16")])
+    assert "decide-speaker-not-handle" in rules(refused)
+    assert not plan(vault(tmp_path / "c", RAJ), [item(dissent="^c18")])[1]
