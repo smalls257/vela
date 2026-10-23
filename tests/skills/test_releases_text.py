@@ -54,8 +54,8 @@ def test_the_format_the_skill_writes_round_trips_through_releases_py(tmp_path):
 def test_the_skill_names_the_exact_header_and_the_codes_it_must_pass():
     assert "| Delivers | Criteria | Note |" in SKILL
     assert releases.HEADER == ("Delivers", "Criteria", "Note")
-    for code in ("E344", "E340", "E341", "W343"):
-        assert code in SKILL
+    for code in ("E344", "E340", "E341", "W343", "E394", "W392", "W393", "W347", "W349"):
+        assert code not in SKILL  # each check's own message names its fix (rule deletion)
 
 
 def test_next_offers_releases_once_allocation_is_carried_and_no_release_exists(tmp_path):
@@ -135,7 +135,7 @@ def test_the_releases_example_matches_the_plans_bullet_format():
     text = read("skills/releases/SKILL.md")
     block = text.split("```", 2)[1]
     assert block.index("**State:**") < block.index("**Slices:** SLC-001") < block.index("| Delivers")
-    assert "`**Tracer:**`, `**Not in the tracer:**`" in text  # a vault still on the releases page keeps working
+    assert "**Tracer:**" not in text and "**Not in the tracer:**" not in text  # no vault is on the old releases-page tracer
     assert '`vela conventions "Slices"` gives' in text
 
 
@@ -220,10 +220,32 @@ def test_releases_reads_criteria_back_by_their_words_and_says_grill_lower_case()
 def test_releases_says_what_to_do_with_the_ready_to_decide_hand_off():
     from conftest import REPO
     text = (REPO / "plugin/skills/releases/SKILL.md").read_text(encoding="utf-8")
-    assert "run `vela decide` on it" in text and "ready to decide, offer the lead a short grill" in text
+    # rule deletion: MODES.md and `vela decide` itself (decide-not-in-this-session) say it; the copy here is gone
+    assert "run `vela decide` on it" not in text and "ready to decide, offer the lead a short grill" not in text
 
 
 def test_releases_drafts_the_paragraph_of_each_item_it_files_now():
     body = (REPO / "plugin" / "skills" / "releases" / "SKILL.md").read_text(encoding="utf-8")
     assert "Draft" in body and "paragraph" in body and "START.md" in body
     assert "Draft the paragraph when the item is filed" in body or "Draft each filed item's paragraph now" in body
+
+
+# ---- trim, stage 2 and 3 (lane D): what a command enforces or prints is not said here again
+
+def test_releases_leaves_what_the_commands_enforce_to_them():
+    assert "It numbers the page, writes its bullets" not in SKILL
+    assert "Only a grill decides, unless the lead overrides it" not in SKILL
+    assert "A stale copy is how a releases session says nothing is allocated" not in SKILL
+    assert "A bad date fails" not in SKILL and "W349 notes it" not in SKILL
+
+
+def test_a_stale_branch_decision_still_names_its_fix():
+    """The skill no longer pre-explains `vela decide` outside a grill; the command's refusal must carry the offer."""
+    from vela.commands import decide
+    import inspect
+    source = inspect.getsource(decide.cannot_decide_here)
+    assert "Offer the lead a short grill on it now" in source and "Nothing was decided" in source
+
+
+def test_releases_stays_under_its_word_cap():
+    assert len(SKILL.split()) <= 1820  # 2,041 before the trim; 1,767 after
