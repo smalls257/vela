@@ -14,13 +14,15 @@ import posixpath
 import re
 import zipfile
 
+from vela import privaterecord
+
 STAMP_PATH = ".vela/published.json"
 STAMP_FORMAT = 1
 # The built explorer, at the vault root so a colleague finds it in git or OneDrive without building anything. A view of the
 # pages, not a page: a publish rebuilds it from the published content, and a reader's drafts never count it as a change.
 DASHBOARD_PATH = "dashboard.html"
-# Generated output, a person's private voice material, and the vendored plugin (the reader's own plugin runs).
-EXCLUDED = (".git/", ".vela/", "voice/local/", ".claude/skills/vela/", DASHBOARD_PATH)
+# Generated output, session notes, a person's private voice material, and the vendored plugin (the reader's own plugin runs).
+EXCLUDED = (".git/", ".vela/", "voice/local/", "sessions/private/", ".claude/skills/vela/", DASHBOARD_PATH)
 # The files a team commits that sit under EXCLUDED: the pinned layout (the vault .gitignore un-ignores it), so a reader's map is
 # laid out like the owner's, and the dashboard. Still "excluded" as far as a reader's drafts go: neither is a page, so comparing
 # a workspace with its baseline skips them.
@@ -37,7 +39,9 @@ class PublishError(Exception):
 
 
 def is_excluded(path):
-    return any(path == prefix.rstrip("/") or path.startswith(prefix) for prefix in EXCLUDED)
+    """True for what a read copy leaves out. A session's private notes are judged by `privaterecord.is_private`, which
+    matches at any depth and in any case, so a nested plan folder or a capital letter cannot carry them out."""
+    return privaterecord.is_private(path) or any(path == prefix.rstrip("/") or path.startswith(prefix) for prefix in EXCLUDED)
 
 
 def is_junk(path):
