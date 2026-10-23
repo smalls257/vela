@@ -6,13 +6,9 @@ argument-hint: "<item IDs or page names to decide>"
 
 # The grill
 
-Contents: 1 questions; acceptance; 2 start; 3 the gate; handing over; 4 write each decision; 5 a new unknown; ends; never.
-
 A grill is the only session that makes an item `decided` (`vela terms` defines the word; say it once, the first time). It takes the items that are ready, or that the lead decides anyway, one question at a time, and files each decision as its branch closes.
 
-Vela is `sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela` (`START.md`, "Where vela runs from", covers a host that leaves the variable unexpanded). Read a format section with `vela conventions "<section>"`, never the whole file.
-
-The conversation is yours; the writing is the CLI's. Relay `--for-lead` lines in your own voice and reason over `--json`. When a command can't express what the lead wants, say so and stop; never fall back to writing the page by hand. A kind with no command of its own is filed as `.vela/decisions/<session>/<n>-<kind>.json`, `{"version": 1, "kind": "<kind>", "session": "<id>", "items": [...]}` (`vela apply --schema <kind>` gives the fields), with `vela apply <file> --for-lead`.
+`vela` is `sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela`. Relay `--for-lead` lines in your own voice and reason over `--json`; a refusal names its fix, so do that or ask the lead. When a command can't express what the lead wants, say so and stop; never fall back to writing the page by hand. A kind with no command of its own is filed as `.vela/decisions/<session>/<n>-<kind>.json` (`vela apply --schema <kind>` gives the fields) with `vela apply <file> --for-lead`.
 
 ## 1. The questions
 
@@ -40,7 +36,7 @@ A state said to the lead is a word: just an idea, not decided yet, proposed, dec
 
 Silence, "ok", "next", "sure" with nothing else, or a change of subject do not count as acceptance. Before you close a branch, ask for an explicit yes or for an alternative. Before you write `decided`, read the final wording back and get a yes; for several items that close together, one read-back of about five and one yes to them is enough (`START.md` defines a yes).
 
-Capture each answer, and your read-back, with `vela record add --origin <who> --tag thought "<words>"`; it prints the number section 4 hands to `vela decide`. The user's own words take their name as origin; your recommendation accepted as it stands is `claude, from <name>`; your read-back is `claude`.
+Capture each answer, and your read-back, with `vela record add --origin <who> --tag thought "<words>"`. The user's own words take their name as origin; your recommendation accepted as it stands is `claude, from <name>`; your read-back is `claude`.
 
 ## 2. Start
 
@@ -50,23 +46,23 @@ Run the steps in `${CLAUDE_PLUGIN_ROOT}/references/START.md` with mode `grill`. 
 
 **Lead with a ready item.** On turn 1 run `vela check --gate grill --all --for-lead`: one call, every item still waiting, ready ones first, each with what it needs. Open with a ready one as a proposal: "I'd decide <item> as <answer>, because <reason>. OK?" Recaps and reading come after that, or only if needed. If nothing is ready, say so in one line and ask the question that would make the nearest item ready. When an answer settles an item that isn't ready, offer to decide it anyway in that same turn, with its read-back: "That settles <item>. It isn't ready because <reason>. Decide it anyway?" Never file a settling answer as a note without that offer.
 
-If the lead names a challenge to answer, by its PR number or the challenged item, START will take its "Answer a challenge" path, on the challenge's own branch, with `modes: [answer, grill]`; read the Answer row of `MODES.md` too. The agenda holds the challenge's unknown and the challenged item. Resolve the unknown with the team lead as its owner, with the `resolve` kind. If the answer changes the item, set it back first with `vela decide --reopen <ID> --why ^cN`, then decide it again through the gate below.
+If the lead names a challenge to answer, by its PR number or the challenged item, START will take its "Answer a challenge" path; read the Answer row of `MODES.md` too. The agenda holds the challenge's unknown and the challenged item. Resolve the unknown with the team lead as its owner, with the `resolve` kind. If the answer changes the item, set it back first with `vela decide --reopen <ID> --why ^cN`, then decide it again through the gate below.
 
 ## 3. The gate, per item
 
-Run `vela check-slice --changed --for-lead` first. A finding on the item's slice blocks it unless the lead overrides it with a reason and an end date, which you record under the slice page's `## Overrides`. 'Not fully checked' blocks it too, and no override covers that. (`vela conventions "Flow check"` shows the override line.)
+Run `vela check-slice --changed --for-lead` first. A finding on the item's slice blocks it unless the lead overrides it with a reason and an end date, which you record under the slice page's `## Overrides`; 'not fully checked' takes no override (`vela conventions "Flow check"` shows the line).
 
-Then run `vela check --gate grill --item <ID> --for-lead`, repeating `--item` per item (an ID not in the plan exits 2). Per item it says ready, or not ready with the plain reason and the one thing that would make it ready, and lists the owed questions that block it, skipping any the record already answers. Relay it in two or three sentences, never as a table or a gate name: "The strategy page is ready. The three apps and their contracts aren't, because nobody knows yet when the registration request goes in and who builds consent and identity."
+Then run `vela check --gate grill --item <ID> --for-lead`, repeating `--item` per item. Relay it in two or three sentences, never as a table or a gate name: "The strategy page is ready. The three apps and their contracts aren't, because nobody knows yet when the registration request goes in and who builds consent and identity."
 
 Left to you: a concern cell passes when the lead states what the initiative does for the app under it (`vela conventions "Concern cells and waivers"`); one they call `unchanged` or `n/a` is written as they say. For a missing case table, say it plainly ("Nobody has written down what Stock says back when the item is unknown") and offer to write it here, one case at a time with your recommendation, or to go back to Boundary (`vela conventions "Fact bullets"`).
 
-Run the review checkpoint in `${CLAUDE_PLUGIN_ROOT}/references/REVIEW.md` "on the agenda" after the first decision or a natural pause, never on turn 1, and route its questions and the owed ones through REVIEW's digest (at most three questions at a time). An owed question is to ask, not a gate. If the lead decides with one still open, capture "decided with <copy IDs> open (W807)" with the lead as origin: that capture is the record.
+Run the review checkpoint in `${CLAUDE_PLUGIN_ROOT}/references/REVIEW.md` "on the agenda" after the first decision or a natural pause, never on turn 1, and route its questions and the owed ones through REVIEW's digest. An owed question is to ask, not a gate. If the lead decides with one still open, capture "decided with <copy IDs> open (W807)" with the lead as origin: that capture is the record.
 
 **The agenda.** Show it with the open questions under each item and get an explicit yes. Capture the agenda as you show it, then the yes; a yes right after the agenda is accepted in that turn, so never ask for it again. File the agenda with the `agenda` kind; `decide` and `add unknown` keep it current, and START's resume reads it. Each item's owner says yes in person, or their async answer is captured with them as origin, channel and date; otherwise offer to reschedule, collect it first, or decide on their behalf.
 
 **Not ready.** One sentence ("The Summarizer can't be decided yet: nobody has said how slow is too slow, and the product owner isn't here") and the one thing that would make it ready. For a blocking unknown, ask whether the lead knows the answer now (`MODES.md`, "Unknowns"). It stays off the agenda until the lead chooses. Never draft an ask, an email or a chase for the user to send.
 
-**Deciding it anyway.** The lead may override anything (`START.md`). Offer "Decide it anyway (I'll note that the open question was skipped)", ask the reason once and capture it. Never refuse, and never ask twice. The rest of the grill runs as normal, read-back and yes included, and the override is filed with the decision in section 4. If the lead decides for an owner who isn't here, say how that ends. Tell the user the owner confirms later: "Ines can confirm it later by adding a 'Confirmed by' line to the page, or challenge it with /vela:challenge if she disagrees."
+**Deciding it anyway.** The lead may override anything (`START.md`). Offer "Decide it anyway (I'll note that the open question was skipped)", ask the reason once and capture it. Never refuse, and never ask twice. The rest of the grill runs as normal, read-back and yes included. If the lead decides for an owner who isn't here, say how that ends. Tell the user the owner confirms later: "Ines can confirm it later by adding a 'Confirmed by' line to the page, or challenge it with /vela:challenge if she disagrees."
 
 If no item passes and the user overrides none after you offered it for each item their answers settled, do not start the grill: make no change to any page, say why, and offer Shape or stopping. If the lead takes neither, end as `MODES.md` says under "Unknowns".
 
@@ -76,31 +72,25 @@ When the lead grills an app's handoff, or `vela ladder` shows an app's pages rea
 
 ## 4. Write each decision as its branch closes
 
-When an item's branch closes, file it at once, before the next question.
+File each decision as its branch closes, before the next question.
 
-1. Ask why, once, naming the item: "Why this one, in your words?" Capture the answer as said. If they say "as you suggested", ask what in it persuaded them. A declined reason is captured as given, and the check keeps warning, which is the honest record.
-2. For a contract, ask where the provider stands and capture it: present, async with channel and date, asked in the PR, or "not consulted: <reason>" (`decide` won't file a contract without one). If anyone disagrees, capture their words; the item can still be decided.
-3. When the yes came from someone who isn't the lead, or someone disagrees, ask that person once, in plain words, whether their own words may go on the plan: "May I put your words on the plan, or should I just say that you agreed? Say yes in your own words if I may." Capture the answer with them as origin: `vela record add --origin <their handle> --tag quote-yes "<their words>"`. A yes the lead passes on for them doesn't count, and a no or no answer is fine: the plan then says who agreed or disagreed, and when, without their words. Never ask twice. The lead's own words need no such question; they pick them at close.
-4. Run `vela decide <ID> --readback ^cN --yes ^cM --why ^cK --for-lead`, adding `--provider ^cP` for a contract, `--dissent ^cJ` for a disagreement, and `--override <rule> --reason-from ^cR --until <date>` (with `--on-behalf @<owner>` for an absent owner) for anything the lead decided anyway. It runs the gate again, writes everything the decision needs (the reason word for word, the marker in a reader copy that the owner sees it before it counts), and commits. Relay its line.
-5. Exit 3: it is already decided. Say so, and offer `vela decide --reopen <ID> --why ^cN` only if the lead wants to change their mind; that records the change of mind in the Changes table. Exit 1: relay the reasons and ask about the one that matters.
+- Ask why, once, naming the item: "Why this one, in your words?" Capture the answer as said. "As you suggested" gets one more question: what in it persuaded them. A declined reason is captured as given.
+- For a contract, ask where the provider stands (present, async with channel and date, asked in the PR, or "not consulted: <reason>") and capture it. If anyone disagrees, capture their words; the item can still be decided.
+- When the yes came from someone who isn't the lead, or someone disagrees, ask that person once, in plain words, whether their own words may go on the plan: "May I put your words on the plan, or should I just say that you agreed? Say yes in your own words if I may." Capture the answer with them as origin: `vela record add --origin <their handle> --tag quote-yes "<their words>"`. A yes the lead passes on for them doesn't count, and a no or no answer is fine: the plan then says who agreed or disagreed, and when, without their words. Never ask twice. The lead's own words need no such question; they pick them at close.
+- Run `vela decide <ID> --readback ^cN --yes ^cM --why ^cK --for-lead` (`--help` lists the flags for a contract, a dissent, an override, an absent owner). Relay its line; if it refuses, do what its fix says or ask the lead the one thing it needs.
 
-The same command takes a functional requirement, a release by its heading, a slice (it goes to `planned`, not decided; the later statuses are the teams', as `vela conventions "Slices"` says), an epic, and an app's allocated requirement as `CAP-nnn.FRn@APP-<slug>`, which you read back by name with the app's agenda.
+`decide` also takes a functional requirement, a release by its heading, a slice, an epic, and an app's allocated requirement as `CAP-nnn.FRn@APP-<slug>`, which you read back by name with the app's agenda.
 
-If the decision shapes the whole design (the strategy, an app, a flow), also offer a decision record: say it is optional, and on a yes run `vela add adr --title "<what was decided>" --decides <ID> --capture ^cN`. Close fills it in.
+When the decision shapes the whole design (the strategy, an app, a flow), offer a decision record, optional: on a yes run `vela add adr --title "<what was decided>" --decides <ID> --capture ^cN`.
 
 Draft the paragraph each filed item owes now, as `START.md` says under "Draft the paragraph when the item is filed", and show it with the filed line.
 
 ## 5. A new unknown mid-grill
 
-If a question turns up that nobody present can answer, run `vela add unknown --name "<short name>" --capture ^cN --owner <handle> --blocks <ID> --for-lead` (repeat `--blocks` for each item it holds up). It takes the items it blocks off the agenda and says which; relay that, offer to decide them anyway, commit the unknown at once with `vela close stage --checkpoint`, and go on with the rest.
+If a question turns up that nobody present can answer, run `vela add unknown --name "<short name>" --capture ^cN --owner <handle> --blocks <ID> --for-lead` (repeat `--blocks` for each item it holds up). Relay which items it takes off the agenda, offer to decide them anyway, commit the unknown at once with `vela close stage --checkpoint`, and go on with the rest.
 
 If it blocks an item already decided, say plainly that the decision stands in doubt until the question is answered, and capture a follow-up note on it.
 
 ## Ends when
 
 The agenda is empty or the user stops. When the lead says they are done, close as `${CLAUDE_PLUGIN_ROOT}/references/START.md` says under "Closing a session".
-
-## Never
-
-- Never batch decisions to the end: each is filed as its branch closes.
-- Never write `fact` from what someone said in the grill without a source.

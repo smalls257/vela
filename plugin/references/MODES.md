@@ -1,6 +1,6 @@
 # Modes
 
-Each mode skill holds only what is particular to it. This table is what every mode shares: when it ends, what Claude must do, and what it must not. When a mode ends, or the lead says they are done, `START.md` says under "Closing a session" how close starts: on the lead's word, never on its own. The eval cases grade the last column. Each "must not" is a default. The user may override any of them, as `START.md` says under "The user may override any rule".
+Each mode skill holds only what is particular to it. This table is what every mode shares: when it ends, what Claude must do, and what it must not. When a mode ends, or the lead says they are done, `START.md` says under "Closing a session" how close starts: on the lead's word, never on its own. Each "must not" is a default. The user may override any of them, as `START.md` says under "The user may override any rule".
 
 | Mode | Ends when | Claude must | Claude must not |
 |---|---|---|---|
@@ -23,25 +23,9 @@ These two run in the team's clone after a design is complete. Neither is a sessi
 - **Breakdown** (`/vela:breakdown`) ends when the plan is complete or complete-with-gaps, or the person stops. Claude starts the first story from the team's piece of the tracer flow, quotes each story's criteria word for word from the vault, and says for each story whether it fits before the next release date, or that it cannot tell and why. It does not invent a criterion, plan around a person the design or the vault does not name, or split, merge or reorder agreed stories without a yes.
 - **Tickets** (`/vela:tickets`) ends when the output file is written and the summary said. Claude checks the plan against the vault before writing anything, asks which output the person wants, and stops after the summary. It creates or changes nothing in an outside system without an explicit yes.
 
-## Who writes what, and when
+When the lead says a plain yes to a pick in a session that can't decide (`dump`, `discover`, `shape`, `boundary`, `requirements`, `allocate`, `releases`), run `vela decide` on it anyway: it marks the item ready to decide and says what to offer. Do as it says.
 
-| Mode | During the session | At close |
-|---|---|---|
-| `dump` | captures only, and the `## Reviews` of its checkpoint | promoted items at `inkling`, unknowns with owner, question ledger rows |
-| `discover` | `sources.md` rows; facts after each correction round, with sources, and the parties and stored value they name | prose, question ledger rows |
-| `shape` | captures only, and the `## Reviews` of its checkpoint | `assumption` items with `**Options considered:**`, question ledger rows |
-| `boundary` | a stub page for each app of the picked cut, marked `stub: boundary` in its frontmatter, with no concern row (no row already means nobody has looked); then, after each sheet's yeses, the app page, its containers and contracts, its runtime page, its capability and flow pages, its concern cells and the unknowns they link, at `assumption`, with a checkpoint commit | prose, question ledger rows |
-| `grill` | each decided item as its branch closes, with a checkpoint commit | prose, read-back, question ledger rows, decision records for decided pages, glossary terms |
-| `epics` | `draft` epic pages, bullets and criteria only; `decided` only inside its grill part | epic description paragraphs |
-| `requirements` | capability pages it needs; requirements on them at `assumption`, each with a checkpoint commit; unknowns | prose |
-| `allocate` | rows in each app's `## Requirements allocated` table at `assumption`, and any missing contract it proposed, with a checkpoint commit; unknowns | prose |
-| `releases` | `04b-releases.md`: each release's heading, Target, State and rows at `assumption`, with a checkpoint commit; unknowns | prose |
-| `challenge` | the unknown and the `**Dissent:**` line, then its own PR | nothing: a challenge closes its own session |
-| `answer` | what its grill decides, or the item set back, on the challenge's branch | a push to that branch and a comment on the challenge PR, never a new PR |
-
-When the lead says a plain yes to a pick in a session that can't decide (`dump`, `discover`, `shape`, `boundary`, `requirements`, `allocate`, `releases`), run `vela decide` on it anyway: it answers that this session can't decide, marks the item ready to decide, and says to offer the lead a short grill on it now. Do as it says; never leave the yes as an assumption nobody sees again.
-
-No mode writes inside a generated block. `vela render` fills them. Close runs it, and so does `epics`, mid-session, to read its frontier. Whoever runs it stages every file it reports, by exact path.
+No mode writes inside a generated block. Close runs `vela render`, and so does `epics` mid-session.
 
 ## Team-side sessions
 
@@ -53,9 +37,9 @@ Once an app is handed off, its team designs it. `/vela:design --app APP-x` runs 
 
 ## Unknowns
 
-Any question nobody present can answer becomes an unknown: write it with `vela add unknown`, which numbers it and links what it holds up. It never picks an ask-by date. The owner is the lead who chases it. When the lead can't answer a line, ask who would actually know, in your own words; if that isn't the owner, it goes on `--ask` as a handle or a role spelled out ("the data protection officer", not "DPO"). Boundary, Requirements, Allocate, Releases and Epics each do this.
+Any question nobody present can answer becomes an unknown: write it with `vela add unknown`. The owner is the lead who chases it. When the lead can't answer a line, ask who would actually know, in your own words; if that isn't the owner, it goes on `--ask` as a handle or a role spelled out ("the data protection officer", not "DPO"). Boundary, Requirements, Allocate, Releases and Epics each do this.
 
-- **Propose who and by when, then ask.** The same goes for an override's end date and any owner the lead didn't name. When the lead isn't sure who would know or by when it needs an answer, propose one of each and ask, with the reason for the date, in the conversation voice: a role, and a date with why ("I'd ask the operations manager before March 1, because the pilot starts two weeks later. OK?"). Capture the lead's answer. File `--ask-by` only with that capture behind it (`--capture`): the lead's own date, or their yes to yours. `vela add unknown` won't file a date the lead's words don't back, and it never picks one, so with no date agreed the entry has no `Ask by` line and the page says nobody has set one. Say so plainly and move on. `--owner` stays the lead's own handle, which the command fills in; never name anyone else there. If they stay unsure about who would know, leave `--ask` off, so the page names nobody to ask yet.
+- **Propose who and by when, then ask.** The same goes for an override's end date and any owner the lead didn't name. When the lead isn't sure who would know or by when it needs an answer, propose one of each and ask, with the reason for the date, in the conversation voice: a role, and a date with why ("I'd ask the operations manager before March 1, because the pilot starts two weeks later. OK?"). Capture the lead's answer, and file `--ask-by` only with that capture behind it (`--capture`): the lead's own date, or their yes to yours. With no date agreed, leave it off, say so plainly and move on. `--owner` is the lead's own handle; never name anyone else there. If they stay unsure about who would know, leave `--ask` off.
 - **Ask the lead first.** Before an unknown waits on anyone else, ask the lead whether they know the answer now, and how they know it. A first-hand answer gets its own row in `sources.md` and is captured with its source. A document they can name goes to Discover.
 - **Ask what they might not know they need.** In Discover, Shape and a grill, once before the session ends, ask three things in plain words, in your own phrasing: who has to agree or be consulted before this goes live (employee representatives, legal, security, data protection, a client or partner whose contract it touches); what someone who has launched something like this would check that we haven't; and who outside the room is affected and hasn't been named. Each answer is a capture; each "honestly not sure" becomes an unknown. You may use what you know of the domain to ask, never to answer, and say the knowledge is yours ("as far as I know"). "In many cities a dock on the pavement needs a street-works permit, not only a nod from the council. Has anyone checked which these need?" is a question; "the council must issue a permit" written on a page is not.
 - **The page keeps its shape.** `11-unknowns-and-risks.md` is a list page (`house-voice`, "Pages that are mostly a list"): each line is the plain name, who is asked and by when, and what it holds up. A new unknown joins its group; the opening isn't extended to mention it.
@@ -67,4 +51,4 @@ When two sources or two people disagree, write an unknown that names both. Don't
 
 ## Owed questions
 
-What a session must ask comes from code: `vela questions` lists what the question catalog owes, and a review checkpoint (`REVIEW.md`) adds what one focused reviewer per area finds. Dump runs one after its pre-mortem, Discover after its read-back, Shape before it shows its options, Requirements once a capability's requirements are written, Boundary once its app pages are written, Allocate once its rows are written, and a grill on its agenda. No question is dropped and none is owed a quota: the lead is shown at most three at a time, once per session, and the rest stay open in the ledger. Between checkpoints, ask whatever the work needs.
+What a session must ask comes from code: `vela questions` lists what the question catalog owes, and a review checkpoint (`REVIEW.md`) adds what one focused reviewer per area finds. Dump runs one after its pre-mortem, Discover after its read-back, Shape before it shows its options, Requirements once a capability's requirements are written, Boundary once its app pages are written, Allocate once its rows are written, and a grill on its agenda. No question is owed a quota. Between checkpoints, ask whatever the work needs.

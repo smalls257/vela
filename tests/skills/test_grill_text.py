@@ -7,7 +7,7 @@ rule-deletion asserts below keep each moved rule from coming back as a second co
 """
 import re
 
-from conftest import REPO, skill_text, assert_offered_then_asked
+from conftest import REPO, run, skill_text, assert_offered_then_asked
 
 
 def read(*parts):
@@ -91,7 +91,7 @@ def test_grill_files_the_agenda_through_its_kind():
 def test_grill_says_how_a_decision_file_is_filed():
     grill = read("plugin/skills/grill/SKILL.md")
     assert "`vela apply --schema <kind>`" in grill and "`vela apply <file> --for-lead`" in grill
-    assert '"version": 1' in grill
+    assert '"version": 1' not in grill  # the decision file's shape is `vela apply`'s, not the skill's
 
 
 # --- From tests/test_handoff_warnings.py: At handoff the lead, and through the manifest the team lead, hear what is not
@@ -99,9 +99,13 @@ def test_grill_says_how_a_decision_file_is_filed():
 
 
 def test_the_grill_read_back_tells_the_lead_what_is_not_settled():
+    import inspect
+    from vela import handoffpreview
     handoff = text("skills/grill/HANDOFF.md")
-    assert "still a draft or not decided yet" in handoff and "no case table" in handoff
-    assert "draft or assumption" not in handoff
+    # the command prints the list (a draft, a missing case table, an undesigned provider); the skill only says to say it
+    assert "still a draft or not decided yet" in inspect.getsource(handoffpreview) and "no case" in inspect.getsource(handoffpreview)
+    assert "still a draft or not decided yet" not in handoff and "no case table" not in handoff
+    assert "epics and other apps' gaps are never on it" not in handoff
 
 
 # --- From tests/test_ladder.py: the handoff, read back from `vela handoff preview`.
@@ -136,7 +140,12 @@ def test_grill_offers_the_override_and_still_runs_the_rest_of_the_grill():
     assert "Decide it anyway (I'll note that the open question was skipped)" in grill
     assert "ask the reason once" in grill and "Never refuse, and never ask twice." in grill
     assert "The rest of the grill runs as normal" in grill and "read-back" in grill
-    assert "--override <rule> --reason-from ^cR --until <date>" in grill and "--on-behalf @<owner>" in grill
+    assert "--override <rule> --reason-from ^cR --until <date>" not in grill and "--on-behalf @<owner>" not in grill
+    assert "the override is filed with the decision in section 4" not in grill
+    from vela import cli
+    helped = cli.build_parser()._subparsers._group_actions[0].choices["decide"].format_help()
+    for flag in ("--override RULE", "--reason-from ^cR", "--until YYYY-MM-DD", "--on-behalf @owner", "--dissent ^cJ", "--provider ^cP"):
+        assert flag in helped, flag  # `decide --help` lists the flags the skill no longer spells out
     for gone in ("- **Decided by:** @<user's handle>, on behalf of @<owner>", "This is how GATE-5 passes",
                  "W316 instead of E316", "`- **Override:** GATE-n by @<user's handle> on <today>"):
         assert gone not in grill, gone  # decide writes the override bullets
@@ -160,7 +169,7 @@ def test_grill_refuses_a_handoff_in_a_reader_copy_naming_the_owner():
 def test_grill_leaves_the_pending_marker_to_decide():
     grill = text("skills/grill/SKILL.md")
     assert "- **Pending approval:** @<handle>, <today>" not in grill
-    assert "in a reader copy that the owner sees it before it counts" in grill
+    assert "in a reader copy that the owner sees it before it counts" not in grill  # decide writes it
 
 
 # --- From tests/test_reviewers.py: The review checkpoint and the gate's owed questions before the agenda.
@@ -176,8 +185,9 @@ def test_grill_reads_the_blocking_questions_and_runs_the_checkpoint_on_the_agend
 def test_grill_records_a_decision_over_an_open_blocking_question():
     grill = text("skills/grill/SKILL.md")
     assert "sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela" in grill
-    assert "repeating `--item`" in grill and "exits 2" in grill
-    assert "at most three questions" in grill and "decided with <copy IDs> open (W807)" in grill
+    assert "repeating `--item`" in grill and "decided with <copy IDs> open (W807)" in grill
+    for gone in ("exits 2", "at most three questions", "Per item it says ready, or not ready", "skipping any the record already answers"):
+        assert gone not in grill, gone  # the gate's output and REVIEW's digest say these
     assert "can be stale" not in grill  # the gate skips owed questions the record answers
 
 
@@ -231,8 +241,8 @@ def test_grill_holds_the_loop_and_files_each_decision_at_once():
     assert "claude, from <name>" in grill
     assert "Keep your recommendation when the user pushes back without a reason." in grill
     assert "Never answer your own question." in grill
-    assert "Never batch decisions to the end" in grill
-    assert "When an item's branch closes, file it at once, before the next question." in grill
+    assert "File each decision as its branch closes, before the next question." in grill
+    assert "Never batch decisions to the end" not in grill and "## Never" not in grill  # the line above says it
 
 
 def test_grill_defines_acceptance_and_the_owner_rule():
@@ -241,7 +251,10 @@ def test_grill_defines_acceptance_and_the_owner_rule():
     assert "read the final wording back and get a yes" in grill
     assert "says yes in person" in grill and "explicit yes" in grill
     assert "ask where the provider stands" in grill
-    assert "it is already decided. Say so" in grill and "change of mind in the Changes table" in grill
+    # rule deletion: `vela decide` prints the already-decided answer and the reopen choice
+    for gone in ("it is already decided. Say so", "change of mind in the Changes table", "Exit 3", "Exit 1",
+                 "It runs the gate again, writes everything the decision needs"):
+        assert gone not in grill, gone
 
 
 def test_grill_never_drafts_an_ask():
@@ -301,8 +314,8 @@ def test_questions_section_is_first():
 
 def test_flow_check_line_carried_as_written():
     line = ("Run `vela check-slice --changed --for-lead` first. A finding on the item's slice blocks it unless the lead overrides "
-            "it with a reason and an end date, which you record under the slice page's `## Overrides`. 'Not fully "
-            "checked' blocks it too, and no override covers that.")
+            "it with a reason and an end date, which you record under the slice page's `## Overrides`; 'not fully "
+            "checked' takes no override")
     grill = text("skills/grill/SKILL.md")
     assert line in grill
     assert "not ready while `vela check-slice` reports a finding on it" not in grill
@@ -347,9 +360,25 @@ def test_the_nine_write_bullets_are_gone():
         assert gone not in grill, gone
 
 
-def test_the_never_list_is_two_lines():
-    never = text("skills/grill/SKILL.md").split("## Never\n", 1)[1]
-    assert len([line for line in never.splitlines() if line.startswith("- ")]) == 2
+def test_the_never_list_is_gone():
+    grill = text("skills/grill/SKILL.md")
+    assert "## Never" not in grill
+    # E304 holds a fact without a source; the clause naming "rules that used to be listed here" was a Fossil Comment
+    assert "Never write `fact`" not in grill and "used to be listed here" not in grill
+
+
+def test_decide_says_it_is_already_decided_and_offers_the_reopen():
+    from types import SimpleNamespace
+    from vela.commands import decide
+    result = decide.already_result(SimpleNamespace(id="CON-001", name="The booking API", state="decided"))
+    said = result.lines[0].plain
+    assert "is already decided. Shall I reopen it? Reopening records the change of mind." in said
+    assert any(c["command"] == "vela decide --reopen CON-001 --why <the lead's reason>" for c in result.needs_lead)
+
+
+def test_grill_is_leaner_than_it_was():
+    assert len(text("skills/grill/SKILL.md").split()) <= 2100  # 2,342 before the trim; 2,040 after
+    assert len(text("skills/grill/HANDOFF.md").split()) <= 380  # 415 before; 364 after
 
 
 def test_grill_reads_back_by_name_and_keeps_ids_out_of_its_own_wording():
