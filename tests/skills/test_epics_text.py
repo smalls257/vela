@@ -177,25 +177,26 @@ def test_epics_skill_reads_the_gaps_and_runs_the_gate():
     assert "`vela epics frontier --team <@team> --for-lead`" in epics
     assert "2 or 3 ways to cut" in epics and "exactly one owning team" in epics
     assert "4 to 7 criteria" in epics and "## Done when" in epics
-    assert "`[testing]`" in epics
-    assert "offer `/vela:requirements` on that `CAP-nnn`, then `/vela:allocate`" in epics and "Never write the requirement into the epic." in epics
+    assert "`[testing]`" not in epics  # rule deletion: the concern marker is `add epic --concern`'s (decisions/add_epic.py)
+    assert "offer `/vela:requirements` on it, then `/vela:allocate`" in epics and "Never write the requirement into the epic." in epics
     assert "Set an epic to `decided` only when the solution lead confirms" in epics
     assert "in groups of about five" in epics
     assert "while a criterion lacks a yes it files nothing" not in epics and "Exit 3 means already decided" not in epics  # decide_epic says it
     assert "every criterion has a yes, its own or its group's" in epics
-    assert "It does not mean they are decided" in epics and "check --gate epics --app <APP-id>" in epics
+    assert "passing means structurally complete, not decided" in epics and "check --gate epics --app <APP-id>" in epics
     assert "list each epic still at `draft`" in epics
     assert "`vela epics lint <EPC-id> --for-lead`" in epics and "rewrite the criterion at the boundary" in epics
     assert "writes the number and the Trace line" not in epics and "More than 7 means the epic should be split" not in epics
-    assert "A cut giving an epic more than about seven criteria is a cut to split" in epics  # section 3 owns the split
-    assert "`modes: [epics, shape, grill]` and the title `Epics: <team>`" in epics
+    assert "A cut that gives an epic more than about seven criteria is one to split" in epics  # section 3 owns the split
+    assert "modes `epics`, `shape` and `grill`" in epics
     assert "check --gate epics" in epics
-    assert "Never say an app's epics are complete while one remains." in epics
+    assert "Never say an app's epics are complete while one remains" in epics
 
 
 def test_epics_skill_frontmatter_instruction_names_the_epics_mode():
     epics = text("skills/epics/SKILL.md")
-    assert "`modes: [epics, shape, grill]`" in epics and "`modes: [shape, grill]`" not in epics
+    assert "modes `epics`, `shape` and `grill`" in epics and "`modes: [shape, grill]`" not in epics
+    assert "`modes: [epics, shape, grill]`" not in epics  # rule deletion: `session start --mode` takes the three modes
 
 
 # tech-design-grill vault mode (V1-18): read the slice, link back by ID and commit, never copy vault text.
@@ -240,7 +241,10 @@ def test_epics_never_makes_the_tracer_a_gate():
 
 def test_epics_says_e805_holds_asked_questions_too():
     epics = text("skills/epics/SKILL.md")
-    assert "nobody has disposed, or that was asked and still waits for its answer" in epics
+    # rule deletion: the E805 message says a question that was asked and not answered holds the gate (questions.STANDING_WORDS)
+    assert "nobody has disposed, or that was asked and still waits for its answer" not in epics
+    from vela import questions
+    assert questions.STANDING_WORDS["asked"] == "has been asked but not answered"
 
 
 # --- Task 22d (overhaul plan 2.3): the mechanics moved into commands; the skill names them and keeps the judgment.
@@ -260,7 +264,10 @@ def test_epics_leaves_the_boundary_test_to_lint():
     epics = EPICS.read_text(encoding="utf-8")
     assert "Before you propose a criterion, run the boundary test" not in epics
     assert not re.search(r"^1\. Its `- Trace:` line", epics, re.M) and "Redis or Kafka" not in epics
-    assert "`vela epics lint --fix-shape <EPC-id>`" in epics
+    # rule deletion (NEW-10): `vela epics lint` names a first-shape epic and the --fix-shape that keeps its AC numbers
+    assert "`vela epics lint --fix-shape <EPC-id>`" not in epics
+    from vela.commands import epics as epics_command
+    assert "run vela epics lint --fix-shape {epc}, which keeps each AC number" in epics_command.FIRST_SHAPE
 
 
 def test_epics_offers_the_e805_routes_once_without_a_rerun_warning():
@@ -335,4 +342,4 @@ def test_epics_leaves_what_the_commands_enforce_to_them():
 
 
 def test_epics_stays_under_its_word_cap():
-    assert len(EPICS.read_text(encoding="utf-8").split()) <= 1860  # 2,021 before the trim; 1,806 after
+    assert len(EPICS.read_text(encoding="utf-8").split()) <= 1440  # 2,021 before the first trim; 1,806 after it; 1,394 after the second
