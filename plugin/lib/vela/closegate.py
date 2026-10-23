@@ -28,11 +28,11 @@ import re
 from dataclasses import dataclass, replace
 
 from vela import override, privaterecord, say, schema
+from vela.schema import QUOTED_YES_RULE
 from vela.said import is_unverified
 
 CONSENT_CLEAR = ("The lead's own yes, quoted in the session record with a Changes row citing it, clears it; so does "
                  "their override with a reason.")
-QUOTED_YES_RULE = '"a decision needs the lead\'s quoted yes"'
 BARE_NON_YES = ("", "ok", "okay", "sure", "next", "fine")
 CONSENT_STATE = "decided"
 
@@ -494,10 +494,12 @@ def _speaker_is_lead(who, lead):
     return consent.same_handle(who, handle) or who.strip().casefold() in {n.casefold() for n in names}
 
 
-def _has_quote_yes(said, who):
-    from types import SimpleNamespace
+def _may_quote(record, who, lead):
+    """Whether `who`'s words may be on a committed page: they said something in this session and either they are the
+    lead or they gave their own quote-yes (`consent.may_quote`)."""
     from vela.decisions import consent
-    return consent.quote_yes(SimpleNamespace(captures=said), who) is not None
+    return any(consent.may_quote(c, record, lead) for c in record.captures.values()
+               if consent.same_handle(c.origin, who))
 
 
 def _new_bullets(vault, before):
@@ -523,7 +525,8 @@ def receipt_problems(vault, before, record_id, part, record_text, lead):
     from vela import receipts
     if lead is None or before is None:
         return []
-    said, out = captures(record_text), []
+    from vela.decisions import record as session_record
+    held, out = session_record.from_text(record_id, "", record_text, part), []
     for page, bullet in _new_bullets(vault, before):
         name = _scope_name(vault, page, bullet)
         where = f"{bullet.item or page.id} at {page.path}:{bullet.line}"
@@ -541,7 +544,7 @@ def receipt_problems(vault, before, record_id, part, record_text, lead):
             if bullet.label == "Decision" and not words:
                 out.append(Problem(NO_WORDS.format(name=name), f"{where}: the receipt names {who} and holds no words",
                                    "Quoting the lead's own words in the receipt clears it.", kind=RECEIPT))
-        elif words and not _has_quote_yes(said, who):
+        elif words and not _may_quote(held, who, lead):
             out.append(Problem(UNQUOTED.format(name=name), f"{where}: {who}'s words, with no quote-yes from {who}",
                                f"Asking {who}, in the session, whether they may be quoted clears it; so does taking "
                                "their words out of the line.", kind=RECEIPT))
@@ -557,10 +560,14 @@ def mark_target_problems(vault, record_text):
         mark = markrules.parse_mark(capture.mark)
         for target in (mark.targets if mark else ()):
             page = vault.page(target.page)
-            if page is None or not _heading_in(vault, page, target.heading):
-                out.append(Problem(f"Something you said was kept on a page I can't find a place for: {target.page}.",
-                                   f"^c{capture.n} keeps into [[{target.page}#{target.heading}|{target.id}]], which is not in the plan",
-                                   "Pointing the mark at a page and heading that exist clears it.", kind=CHECK))
+            if page is None:
+                plain = f"Something you said was kept on {target.page}, and I can't find that page."
+            elif not _heading_in(vault, page, target.heading):
+                plain = f"Something you said was kept on {vault.name_of(page.id) if page.id else target.page}, under a heading that isn't there."
+            else:
+                continue
+            out.append(Problem(plain, f"^c{capture.n} keeps into [[{target.page}#{target.heading}|{target.id}]], which is not in the plan",
+                               "Pointing the mark at a page and heading that exist clears it.", kind=CHECK))
     return out
 
 

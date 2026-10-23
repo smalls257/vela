@@ -18,7 +18,8 @@ before the quotes were required (`@raj, 2026-01-10: too slow`) still parses.
 import re
 from dataclasses import dataclass
 
-from vela import closegate, override, privaterecord, questions
+from vela import override, privaterecord, questions
+from vela.schema import QUOTED_YES_RULE
 from vela.decisions import textedit
 from vela.model import Finding
 
@@ -108,22 +109,22 @@ def parse_dissent(value):
 
 
 def _predates_receipts(vault, bullet):
-    """Whether the bullet links a record from before receipts were required, so its line is left as it was: a stub
-    dated earlier than `records_split`, or a record still committed whole (a plan that has not split; W720 nags it).
-    A stub with no `records_split` key is not exempt."""
+    """Whether the bullet links a record from before receipts were required, so its line is left as it was. Once
+    `records_split` is set, that is a record dated earlier than it, stub or whole. A plan that never split has no such
+    date, so a record still committed whole counts (W720 nags it) and a stub does not."""
     if not bullet.links:
         return False
     record = vault.page(bullet.links[0].target)
     if record is None or record.type != "session":
         return False
-    if questions.holds_its_words(record):
-        return True
     split = vault.config.get("records_split")
-    return bool(split) and bool(record.meta.get("date")) and str(record.meta["date"]) < str(split)
+    if not split:
+        return questions.holds_its_words(record)
+    return bool(record.meta.get("date")) and str(record.meta["date"]) < str(split)
 
 
 def _bare_link_is_overridden(page, bullet):
-    return any(closegate.QUOTED_YES_RULE in o.rules for o in override.valid_overrides(page, bullet.item))
+    return any(QUOTED_YES_RULE in o.rules for o in override.valid_overrides(page, bullet.item))
 
 
 def _decision_problem(page, bullet):
@@ -132,7 +133,16 @@ def _decision_problem(page, bullet):
         return ("is not a receipt. Write [[<session>]] c07, @who, naming the session, the capture and who said yes.")
     if (receipt.ref is None or not receipt.who) and not _bare_link_is_overridden(page, bullet):
         return ("has no capture or no one who said yes. Write [[<session>]] c07, @who, or record an override of "
-                f"{closegate.QUOTED_YES_RULE}.")
+                f"{QUOTED_YES_RULE}.")
+    return None
+
+
+def _dissent_problem(bullet):
+    found = parse_dissent(bullet.value)
+    if found is None:
+        return "is not a Dissent. Write @who, <date>, with the words only when they said yes to being quoted."
+    if found.words and not found.see and "[[" not in found.words:  # words that cite their source say where from
+        return ("quotes words without saying where they came from. Add (see [[<session>]]), or take the words out.")
     return None
 
 
@@ -152,8 +162,7 @@ def receipt_rules(vault, today):
             if bullet.label == "Decision":
                 problem = _decision_problem(page, bullet)
             else:
-                problem = None if parse_dissent(bullet.value) else (
-                    "is not a Dissent. Write @who, <date>, with the words only when they said yes to being quoted.")
+                problem = _dissent_problem(bullet)
             if problem:
                 yield Finding(page.path, bullet.line, "E315", f"The {bullet.label} line {problem}",
                               "Use the receipt form in CONVENTIONS (Page level).")

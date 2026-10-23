@@ -178,3 +178,27 @@ def test_a_record_still_committed_whole_predates_receipts():
         "---", "", "## Captures", "", '- [answer] (@priya) "Yes." ^c01', ""]))
     vault = model.build([booking(f"- **Decision:** [[{OLD}]]"), whole], {})
     assert not list(receipts.receipt_rules(vault, "2026-10-22"))
+
+
+def test_a_dissent_with_words_must_say_which_session_they_came_from():
+    decision = f"- **Decision:** [[{RECORD}]] c07, @priya"
+    assert "E315" in codes_with(decision, '- **Dissent:** @raj, 2026-10-22: "This is too slow."')
+    assert not codes_with(decision, f'- **Dissent:** @raj, 2026-10-22: "This is too slow." (see [[{RECORD}]])')
+
+
+def test_once_records_split_is_set_a_whole_record_dated_after_it_is_not_exempt():
+    def whole(date):
+        return parse.parse_page(f"sessions/{OLD}.md", "\n".join([
+            "---", f"id: {OLD}", "type: session", f"title: {OLD}", f"date: {date}", "modes: [grill]", "status: closed",
+            "---", "", "## Captures", "", '- [answer] (@priya) "Yes." ^c01', ""]))
+
+    def found(date):
+        vault = model.build([booking(f"- **Decision:** [[{OLD}]]"), whole(date)], {"records_split": "2026-10-22"})
+        return [f.code for f in receipts.receipt_rules(vault, "2026-10-22")]
+    assert found("2026-10-21") == [] and found("2026-10-22") == ["E315"]
+
+
+def test_a_mark_on_a_missing_page_and_on_a_missing_heading_read_differently():
+    page = mark_problems("[[nowhere#CON-003 Consent records|CON-003]]")[0].plain
+    heading = mark_problems("[[booking-building-blocks#CON-099 Gone|CON-099]]")[0].plain
+    assert "can't find that page" in page and "under a heading that isn't there" in heading

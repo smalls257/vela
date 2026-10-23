@@ -329,6 +329,9 @@ NEXT_MODES = ("probe", "discover", "shape", "requirements", "boundary", "allocat
 
 # ------------------------------------------------------------- finding codes
 
+# The rule an override names to go ahead without the lead's quoted yes; the gate, apply and the receipt check all read it.
+QUOTED_YES_RULE = '"a decision needs the lead\'s quoted yes"'
+
 CODES = {
     "E101": "page has no frontmatter",
     "E102": "frontmatter is not a valid YAML mapping",
