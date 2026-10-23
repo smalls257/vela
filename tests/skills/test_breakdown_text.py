@@ -148,3 +148,15 @@ def test_breakdown_names_only_commands_that_exist():
     assert len(found) >= 5, found
     for line, written, argv in found:
         assert is_a_mention(parser, argv) or parse_error(parser, argv) is None, (line, written)
+
+
+# ---- trim, stage 2 (lane D): what `vela tickets check` reports is not listed here again
+
+def test_breakdown_leaves_what_tickets_check_reports_to_the_command():
+    body = text(BREAKDOWN / "SKILL.md")
+    assert "It finds a target no story covers" not in body
+    assert "tickets check --vault ." in body
+
+
+def test_breakdown_stays_under_its_word_cap():
+    assert len(text(BREAKDOWN / "SKILL.md").split()) <= 1750  # 1,717 before the trim; 1,694 after
