@@ -64,6 +64,15 @@ def head(vault):
     return git(vault, "rev-parse", "HEAD"), git(vault, "rev-parse", "--abbrev-ref", "HEAD")
 
 
+def test_the_model_line_on_main_names_session_branch_not_a_flag_that_cannot_move_an_open_session(tmp_path, monkeypatch):
+    vault = owner(tmp_path, monkeypatch)
+    with_remote(tmp_path, vault)
+    code, output = start(vault, "--mode", "grill", "--topic", "desk agent calendar")
+    assert code == 0, output
+    assert "with the lead's yes, run vela session branch (the session is open now)" in output
+    assert "session start --new-branch" not in output
+
+
 def test_start_on_main_stays_on_main_notes_it_and_says_a_review_needs_a_branch(tmp_path, monkeypatch):
     vault = owner(tmp_path, monkeypatch)
     with_remote(tmp_path, vault)

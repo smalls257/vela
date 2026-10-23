@@ -761,7 +761,8 @@ def start_owner(root, args, today, modes, plain, said, host):
 
 def review_needs_branch(current):
     """Said once, when a session starts on the default branch: close can't open a pull request from it."""
-    return say.Line(f"on {current}: a review needs a branch; `session start --new-branch` makes one",
+    return say.Line(f"on {current}: a review needs its own branch; with the lead's yes, run vela session branch "
+                    "(the session is open now)",
                     plain=f"We're on {current}, and a review needs its own branch. If you want one for this session, "
                           "say so and I'll make it; otherwise the work stays here.")
 
