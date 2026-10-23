@@ -250,3 +250,11 @@ def test_a_sentence_naming_a_resolved_item_is_done_until_the_item_changes_again(
     edit(vault, UNKNOWNS, "- **Outcome:** Yes, the old till.", "- **Outcome:** No, a new till is needed.")
     stale = [p for p in owed_at(drafts_json(vault), TESTING) if p["kind"] == "ref"]
     assert stale and stale[0]["status"] == "stale" and "Till test rig changed" in stale[0]["why"], stale
+
+
+def test_the_decision_record_owed_names_the_command_not_a_file_to_write_by_hand():
+    from vela import closedrafts
+    why = closedrafts.WHY["adr"]
+    assert "start its decision record with vela add adr --state decided --decision <session id>" in why
+    assert "--decides <ID>" in why and "then draft its sections" in why
+    assert "ADR-nnnn" not in why, "a path to hand-write is what the line used to say"

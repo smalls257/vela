@@ -72,8 +72,9 @@ WHY = {
     "ref": "it mentions {names}, which this session {verbs}; say what is true now",
     "strategy": "this session changed the concern's cells; the Strategy paragraph must still match them",
     "item": "this session wrote or changed the item; open it with a sentence before its bullets",
-    "adr": "this session decided the page and it shapes the whole design; write its decision record "
-           "(09-decisions/ADR-nnnn-<slug>.md) and link it from 09-decisions/09-decisions.md",
+    "adr": "this session decided the page and it shapes the whole design: start its decision record with vela add "
+           "adr --state decided --decision <session id> --capture <the lead's yes, ^cNN> --decides <ID> --title "
+           "\"<what was decided>\", then draft its sections",
     "epic": "an epics session owes {what}",
 }
 
