@@ -826,7 +826,6 @@ def stats(vault, area=None):
 
 # ------------------------------------------------------------------ the gates
 
-DISPOSE = "Answer it, rule it out with a reason, or log it as an open question with an owner, or as an assumption."
 # A ledger state in a sentence. The state names are the ledger's own column values; a reader sees what they mean.
 STANDING_WORDS = {"open": "is still open", "asked": "has been asked but not answered", "assumed": "is answered by an assumption",
                   "answered": "is answered", "not-applicable": "is ruled out", "unknown": "is logged as an open question"}
@@ -871,14 +870,14 @@ def epics_gate(vault):
         message = f"A high-priority question {_standing(d)}, so the epics can't be called finished: {d.copy.entry.question} ({d.copy.id})"
         yield Finding(path, d.row.line if d.row else heading, "E805",
                       f"{message} {gap}".strip() if d.row is None else message,
-                      f"{adding}{DISPOSE} {schema.E805_OVERRIDE_HINT}")
+                      f"{adding}{schema.E805_OVERRIDE_HINT}")
     for row in reviewer_rows(vault):
         if row.get("severity") == "high" and reviewer_pending(vault, row):
             said = (STANDING_WORDS.get(row.state, f"is {row.state}") if row_valid(vault, row)
                     else f"has a ledger row that can't be read ({row.state})")
             yield Finding(path, row.line, "E805", f"A high-priority reviewer question {said}, so the epics can't be called finished: "
                           f"{row.get('question')} ({row.copy})",
-                          f"{DISPOSE} {schema.E805_OVERRIDE_HINT}")
+                          schema.E805_OVERRIDE_HINT)
 
 
 def load_bearing_assumptions(vault):

@@ -211,3 +211,11 @@ def test_a_grill_item_no_question_can_block_is_said_not_passed_quietly(ub):
     code, out = gate(ub, "--gate", "grill", "--item", "PTY-01")
     assert code == 0
     assert "None of the standard questions applies to" in out and "(PTY-01)" in out
+
+
+def test_the_e805_fix_names_commands_never_a_hand_written_override_bullet(ub):
+    edit(ub / LEDGER, "; severity: normal |", "; severity: high |")
+    out = gate(ub, "--gate", "epics")[1]
+    assert "defer it to someone with a date (vela apply, kind defer)" in out
+    assert "override it (vela apply, kind override, rule E805 on the unknowns page, with a reason and an end date)" in out
+    assert "- **Override:**" not in out

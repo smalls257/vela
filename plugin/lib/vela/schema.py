@@ -259,9 +259,10 @@ STANDING_QUOTED = ('"case table"',)
 SUGGEST_UNTIL_DAYS = 30
 # Error -> the warning it becomes when an Override on the same item names it.
 # The sentence an E805 fix ends with. An overridden E805 prints as W805 without it, so the way to end an
-# override never suggests writing another one.
-E805_OVERRIDE_HINT = ("To finish the epics anyway, record an exception under the Question ledger heading: "
-                      "- **Override:** E805 by @handle on YYYY-MM-DD until YYYY-MM-DD: <why>.")
+# override never suggests making another one. It names commands, never the Override bullet's grammar.
+E805_OVERRIDE_HINT = ("Answer it now (vela questions --open --digest, capture the answer; close writes the row), defer it "
+                      "to someone with a date (vela apply, kind defer), or override it (vela apply, kind override, "
+                      "rule E805 on the unknowns page, with a reason and an end date).")
 OVERRIDE_CODES = {"E303": "W303", "E304": "W304", "E316": "W316", "E317": "W317", "E318": "W318", "E805": "W805"}
 # Codes only a gate reports. An override of one is judged idle (W323) only when its gate ran, so the
 # override that lets an epics gate pass never warns on the plain check of every PR.
