@@ -4,9 +4,11 @@ Every node comes from an entity: an app page, an external provider named in a
 contract's **Provider:** bullet, or a capability page. Every edge is a contract,
 drawn from its provider to each consumer. Nothing is drawn by hand.
 
-A diagram never holds more than the flowchart budget. `fit` keeps the nodes that
-matter most and returns the rest, and the block that called it lists them in a
-table under the diagram, so no node is ever dropped without a trace.
+A diagram never holds more than the flowchart budget. `fit` keeps the most
+connected nodes (the app a page is about always stays; ties go by style, then key)
+and returns the rest. A graph diagram then draws the left-out nodes as one dashed
+"others" box that names them, with its edges rolled up per kept node, and the block
+lists every left-out node in a table under the diagram, so nothing is dropped without a trace.
 """
 import hashlib
 import re
@@ -24,6 +26,7 @@ STYLES = {
     "unchanged": "fill:#eef1f5,stroke:#7a8494,color:#19212d",
     "retired": "fill:#f6e0de,stroke:#b3261e,color:#3a0d0a,stroke-dasharray:4 3",
     "external": "fill:#ffffff,stroke:#7a8494,color:#19212d,stroke-dasharray:2 2",
+    "others": "fill:#ffffff,stroke:#2448b8,color:#19212d,stroke-dasharray:6 3",
 }
 APP_STYLE = {"new": "new", "changed": "changed", "integrated": "unchanged", "unchanged": "unchanged", "retired": "retired"}
 CAPABILITY_STYLE = {"new": "new", "extend": "changed", "replace": "changed", "narrow": "changed",
@@ -31,6 +34,8 @@ CAPABILITY_STYLE = {"new": "new", "extend": "changed", "replace": "changed", "na
 # Lower ranks are drawn first when a diagram is over budget.
 RANK = {"focus": 0, "new": 1, "changed": 1, "app": 2, "unchanged": 2, "retired": 3, "external": 4}
 NO_DOMAIN = "No domain"
+OTHERS_KEY = "others_box"
+OTHERS_NAMES_SHOWN = 8  # names listed inside the others box; the rest are counted and left to the table under the diagram
 
 
 @dataclass(frozen=True)
@@ -230,19 +235,69 @@ def capability_groups(vault):
     return [(d, groups[d]) for d in order]
 
 
-def fit(graph, budget, reserved=0):
-    """(drawn graph, nodes left out). Keeps the lowest-ranked nodes, then the lowest keys.
+def connections(graph):
+    """{node key: how many contracts (edges) touch it in the full graph}."""
+    count = {n.key: 0 for n in graph.nodes}
+    for edge in graph.edges:
+        for key in {edge.source, edge.target}:
+            if key in count:
+                count[key] += 1
+    return count
 
+
+def fit(graph, budget, reserved=0):
+    """(drawn graph, nodes left out). Keeps the focus app, then the most connected nodes.
+
+    Ties go to the lower style rank, then the lower key, so the result is the same every time.
     `reserved` is how many elements the caller adds itself, such as subgraphs.
     """
     room = max(budget - reserved, 0)
     if len(graph.nodes) <= room:
         return graph, ()
-    ranked = sorted(graph.nodes, key=lambda n: (RANK.get(n.style, 9), n.key))
+    links = connections(graph)
+    ranked = sorted(graph.nodes, key=lambda n: (n.style != "focus", -links[n.key], RANK.get(n.style, 9), n.key))
     kept = {n.key for n in ranked[:room]}
     drawn = Graph(tuple(n for n in graph.nodes if n.key in kept),
                   tuple(e for e in graph.edges if e.source in kept and e.target in kept), graph.skipped)
     return drawn, tuple(n for n in ranked[room:])
+
+
+def others_label(left_out):
+    names = [safe_label(page_title(n.page) if n.page is not None else n.ref, n.key) for n in sorted(left_out, key=lambda n: n.key)]
+    shown = names[:OTHERS_NAMES_SHOWN]
+    if len(names) > len(shown):
+        shown.append(f"and {len(names) - len(shown)} more, listed below")
+    return "<br/>".join([f"{len(names)} others"] + shown)
+
+
+def rolled_up(labels):
+    """One arrow label for the contracts between a kept node and the others box."""
+    return next(iter(labels)) if len(labels) == 1 else f"{len(labels)} contracts"
+
+
+def others_edges(graph, drawn, left_out):
+    """One edge per kept node and direction between it and the others box, provider to consumer."""
+    gone = {n.key for n in left_out}
+    kept = {n.key for n in drawn.nodes}
+    into, out_of = {}, {}
+    for e in graph.edges:
+        if e.source in kept and e.target in gone:
+            into.setdefault(e.source, set()).add(e.label)
+        elif e.source in gone and e.target in kept:
+            out_of.setdefault(e.target, set()).add(e.label)
+    return ([Edge(k, OTHERS_KEY, rolled_up(into[k])) for k in sorted(into)]
+            + [Edge(OTHERS_KEY, k, rolled_up(out_of[k])) for k in sorted(out_of)])
+
+
+def fit_with_others(graph, budget, reserved=0):
+    """(graph to draw, nodes left out). Left-out nodes become one "others" box that takes one slot of the budget."""
+    if len(graph.nodes) <= max(budget - reserved, 0):
+        return graph, ()
+    kept, left_out = fit(graph, budget, reserved + 1)
+    box = Node(OTHERS_KEY, others_label(left_out), "others", "others", None)
+    nodes = tuple(sorted(kept.nodes + (box,), key=lambda n: n.key))
+    edges = tuple(sorted(kept.edges + tuple(others_edges(graph, kept, left_out)), key=lambda e: (e.label, e.source, e.target)))
+    return Graph(nodes, edges, graph.skipped), left_out
 
 
 def flowchart(graph, direction="LR", groups=()):
@@ -273,6 +328,7 @@ STYLE_WORDS = {
     "unchanged": "gray: stays as it is",
     "retired": "red, dashed: retired by this initiative",
     "external": "white, dashed: outside this initiative (another company or system)",
+    "others": "blue, dashed outline: the boxes left out to keep this readable, named inside it",
 }
 
 

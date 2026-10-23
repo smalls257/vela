@@ -32,10 +32,10 @@ def app_page(name, change="changed", body=""):
             f"owner: \"@t\"\nauthored: authored\nchange: {change}\n{stage}---\n\n# {name}\n\n{body}")
 
 
-def contract(cid, consumers, provider=""):
+def contract(cid, consumers, provider="", name="Thing"):
     links = ", ".join(f"[[{c}-building-blocks|{c}]]" for c in consumers) or "none"
     extra = f"- **Provider:** {provider}\n" if provider else ""
-    return (f"### {cid} Thing\n\n{extra}- **Crosses the boundary:** x\n- **Consumers:** {links}\n"
+    return (f"### {cid} {name}\n\n{extra}- **Crosses the boundary:** x\n- **Consumers:** {links}\n"
             "- **Change policy:** versioned.\n- **Change:** new\n- **State:** assumption\n\n")
 
 
@@ -123,12 +123,14 @@ def test_over_budget_draws_twenty_and_lists_every_other_node():
     text = render.context_map(vault, None)
     [lines] = mermaid_lines(text)
     assert flowchart_elements(lines) == schema.FLOWCHART_BUDGET
-    assert f"**Not drawn, to keep the diagram readable (at most {schema.FLOWCHART_BUDGET} boxes):** 6" in text
+    assert f"**Not drawn, to keep the diagram readable (at most {schema.FLOWCHART_BUDGET} boxes, keeping the most connected):** 7" in text
     assert "| Not drawn | Contracts |" in text
     for i in range(25):
         name = f"a{i:02d}"
         assert f"n_APP_{name}[" in text or f"[[{name}-building-blocks\\|" in text, f"{name} was dropped"
     assert "| [[a24-building-blocks\\|A24]] | Thing from Hub to A24 |" in text
+    assert '  others_box["7 others<br/>A18<br/>A19<br/>A20<br/>A21<br/>A22<br/>A23<br/>A24"]' in lines
+    assert '  n_APP_hub -->|"Thing"| others_box' in lines
     assert '  n_APP_hub["Hub (new)"]' in lines  # the new app is drawn before unchanged ones
 
 
@@ -281,7 +283,7 @@ def test_app_context_over_budget_lists_what_it_left_out():
     text = render.app_context(vault, vault.page("hub-building-blocks"))
     [lines] = mermaid_lines(text)
     assert flowchart_elements(lines) == schema.FLOWCHART_BUDGET
-    assert f"**Not drawn, to keep the diagram readable (at most {schema.FLOWCHART_BUDGET} boxes):** 6" in text
+    assert f"**Not drawn, to keep the diagram readable (at most {schema.FLOWCHART_BUDGET} boxes, keeping the most connected):** 7" in text
     assert '  n_APP_hub["Hub (new)"]' in lines and "  class n_APP_hub focus" in lines
     for i in range(25):
         name = f"a{i:02d}"
@@ -298,3 +300,73 @@ def test_hostile_external_names_cannot_break_the_tables():
     table = text.split("| Not drawn | Contracts |", 1)[1]
     assert "[[x" not in table and "y]]" not in table
     assert all(line.count("|") - line.count("\\|") == 3 for line in table.split("\n") if line.startswith("| ["))
+
+
+# The cut keeps the most connected boxes, folds the rest into one "others" box, and never loses the focus app.
+
+def ranked_vault(leaf_names):
+    """Zeta provides one contract to five apps; Alpha provides one to a single app; the leaves have none of their own."""
+    pages = {"05-building-blocks/zeta-building-blocks.md":
+             app_page("zeta", "unchanged", contract("CON-001", ["m0", "m1", "m2", "m3", "m4"], name="Feed")),
+             "05-building-blocks/alpha-building-blocks.md": app_page("alpha", "unchanged", contract("CON-002", ["m0"], name="Ping"))}
+    for name in ["m0", "m1", "m2", "m3", "m4", *leaf_names]:
+        pages[f"05-building-blocks/{name}-building-blocks.md"] = app_page(name, "unchanged")
+    return vault_of(pages)
+
+
+def test_an_unconnected_app_is_cut_before_any_connected_one():
+    graph = diagrams.context_graph(ranked_vault(["a_loose", "b_loose"]))
+    drawn, left_out = diagrams.fit(graph, 7)
+    assert {n.ref for n in left_out} == {"APP-a_loose", "APP-b_loose"}
+    assert "APP-zeta" in {n.ref for n in drawn.nodes} and "APP-alpha" in {n.ref for n in drawn.nodes}
+
+
+def test_the_hub_is_kept_before_a_one_contract_app_when_only_two_fit():
+    drawn, left_out = diagrams.fit(diagrams.context_graph(ranked_vault([])), 2)
+    assert [n.ref for n in drawn.nodes] == ["APP-m0", "APP-zeta"]  # m0 has two contracts, zeta five; alpha has one
+    assert "APP-alpha" in {n.ref for n in left_out}
+
+
+def test_the_focus_app_stays_even_with_the_fewest_connections():
+    vault = ranked_vault([])
+    graph = diagrams.app_graph(vault, vault.page("m1-building-blocks"))
+    drawn, _ = diagrams.fit(graph, 1)
+    assert [n.style for n in drawn.nodes] == ["focus"]
+    wide = diagrams.app_graph(vault, vault.page("zeta-building-blocks"))
+    drawn, left_out = diagrams.fit(wide, 3)
+    assert "focus" in {n.style for n in drawn.nodes} and len(left_out) == 3
+
+
+def test_the_others_box_exists_only_when_something_is_left_out():
+    small = render.context_map(vault_of(SHOP), None)
+    assert "others_box" not in small and "Not drawn" not in small
+    assert "others_box" in render.context_map(big_vault(25), None)
+
+
+def test_the_others_box_edges_are_rolled_up_and_keep_provider_to_consumer_direction():
+    leaves = [f"a{i:02d}" for i in range(30)]
+    pages = {"05-building-blocks/hub-building-blocks.md": app_page("hub", "new", contract("CON-001", leaves, name="Feed")
+                                                                  + contract("CON-002", leaves, name="Audit")),
+             "05-building-blocks/zlate-building-blocks.md": app_page("zlate", "unchanged", contract("CON-003", ["hub"], name="Report"))}
+    for name in leaves:
+        pages[f"05-building-blocks/{name}-building-blocks.md"] = app_page(name, "unchanged")
+    [lines] = mermaid_lines(render.context_map(vault_of(pages), None))
+    edges = [l for l in lines if "others_box" in l and "-->" in l]
+    assert sorted(edges) == ['  n_APP_hub -->|"2 contracts"| others_box', '  others_box -->|"Report"| n_APP_hub']
+    assert flowchart_elements(lines) == schema.FLOWCHART_BUDGET
+
+
+def test_a_long_others_list_stops_at_a_cap_and_points_to_the_table():
+    [lines] = mermaid_lines(render.context_map(big_vault(40), None))
+    [box] = [l for l in lines if l.startswith("  others_box[")]
+    assert box.count("<br/>") == diagrams.OTHERS_NAMES_SHOWN + 1
+    assert box.endswith('and 14 more, listed below"]')
+
+
+def test_the_cut_is_deterministic():
+    assert render.context_map(big_vault(30), None) == render.context_map(big_vault(30), None)
+    assert render.system_context(big_vault(30), None) == render.system_context(big_vault(30), None)
+
+
+def test_the_others_box_is_in_the_key():
+    assert "dashed outline: the boxes left out" in render.context_map(big_vault(25), None)
