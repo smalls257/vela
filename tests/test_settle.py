@@ -76,6 +76,45 @@ def test_later_needs_the_yes_and_is_not_a_settle(tmp_path):
     assert decide(root, "--later", "--yes", "^c02", "--readback", "^c01")[0] == 1
 
 
+def rules_of(out):
+    return [r["rule"] for r in json.loads(out)["refusals"]]
+
+
+def test_later_refuses_an_item_the_vault_does_not_hold(tmp_path):
+    root = make_vault(tmp_path)
+    in_session_with_modes(root, "shape")
+    before = session_files.record_text(root, RECORD_ID)
+    code, out = run("decide", "NOPE-999", "--later", "--yes", "^c02", "--vault", str(root), "--today", TODAY, "--json")
+    assert code == 1 and rules_of(out) == ["decide-missing"]
+    assert session_files.record_text(root, RECORD_ID) == before
+
+
+def test_later_keeps_only_a_plain_yes_the_lead_typed(tmp_path):
+    root = make_vault(tmp_path)
+    in_session_with_modes(root, "shape")
+    before = session_files.record_text(root, RECORD_ID)
+    code, out = decide(root, "--later", "--yes", "^c99")  # no such capture
+    assert code == 1 and rules_of(out) == ["consent-capture-missing"]
+    code, out = decide(root, "--later", "--yes", "^c04")  # a bare "ok"
+    assert code == 1 and rules_of(out) == ["consent-bare-non-yes"]
+    code, out = decide(root, "--later", "--yes", "^c01")  # Claude's read-back
+    assert code == 1 and rules_of(out) == ["consent-not-a-person"]
+    assert session_files.record_text(root, RECORD_ID) == before
+
+
+def test_later_says_it_writes_no_reasons_or_options_and_does_not_drop_them_silently(tmp_path):
+    root = make_vault(tmp_path)
+    in_session_with_modes(root, "shape")
+    before = session_files.record_text(root, RECORD_ID)
+    for flags in (["--picked", "A=^c01", "--rejected", "B=^c02"], ["--why", "^c03"], ["--dissent", "^c03"]):
+        code, out = decide(root, "--later", "--yes", "^c02", *flags)
+        assert code == 1 and rules_of(out) == ["decide-later-writes-nothing"], flags
+    code, out = run("decide", "--reopen", "CON-002", "--later", "--yes", "^c02", "--vault", str(root), "--today", TODAY,
+                    "--json")
+    assert code == 1 and rules_of(out) == ["decide-later-writes-nothing"]
+    assert session_files.record_text(root, RECORD_ID) == before
+
+
 def test_settling_later_drops_it_off_the_list(tmp_path):
     root = make_vault(tmp_path)
     in_session_with_modes(root, "shape")

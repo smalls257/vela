@@ -48,7 +48,7 @@ import pathlib
 from vela import commands, decisions, gates, privaterecord, receipts, say, sessions
 from vela import override as overrides
 from vela.commands import apply as apply_command, whoami
-from vela.decisions import decide, ready, schema, textedit
+from vela.decisions import consent, decide, ready, schema, textedit
 from vela.edge import apply as disk
 from vela.edge import atomic, sessiongit, stagegit
 from vela.edge.vaultgit import GitUnavailable
@@ -170,7 +170,7 @@ def run(args, out):
     staged = textedit.attach(decisions.Staged(vault, disk.reader(root)), today, [], lead=apply_command.lead_of(root))
     _, target = decide.locate(staged, ident)
     if args.later:
-        return commands.emit(keep_for_later(root, record, ident, args.yes, args.readback), args, out, resolver)
+        return commands.emit(keep_for_later(root, record, staged, args), args, out, resolver)
     if target is not None and target.gate:
         keys = gates.flow_keys(vault, target.gate)
         staged.flows = cli.recorded_standings(root, vault, keys, today)[0] if keys else {}
@@ -183,26 +183,63 @@ def run(args, out):
     return commands.emit(result, args, out, resolver)
 
 
-def keep_for_later(root, record, ident, yes, readback=None):
+def keep_for_later(root, record, staged, args):
     """`--later --yes ^cM`: the lead's yes is kept under Ready to decide and nothing is decided. A declined offer to
     settle is still on record (a Silent Fallback of consent otherwise). No gate, no page, no commit: the notes and the
-    stub only."""
-    if not (yes or "").strip():
-        return refused([textedit.refusal(
-            "decide-later-needs-yes", "I need the lead's yes before I can keep this for later.",
-            "give --yes: the capture holding the lead's yes to the pick", audience=say.MODEL,
-            override="none: without the lead's yes there is nothing to keep")])
-    if readback:
-        return refused([textedit.refusal(
-            "decide-later-with-readback", "I can't both keep this for later and settle it.",
-            "a read-back means the lead is settling, so drop --later", audience=say.MODEL,
-            override="none: drop --later to settle, or --readback to keep it for later")])
-    marked = ready.mark(record.text, ident, record.id, yes.strip())
+    stub only. What it cannot write is refused, never dropped: a Silent Fallback of the lead's reasons otherwise."""
+    ident = args.reopen or args.id
+    early = later_refusals(args, record, staged, ident)
+    if early is not None:
+        return early
+    marked = ready.mark(record.text, ident, record.id, args.yes.strip())
     wrote = sessiongit.write_notes(root, record, marked)
     return say.Result(NAME, wrote=wrote, data={"id": ident, "ready_to_decide": True},
                       lines=[say.Line(f"{ident} kept as ready to decide in {record.id}",
                                       plain="I've kept it as not decided yet. It's on the list of things you said yes "
                                             "to, for when you're sure.")])
+
+
+def later_refusals(args, record, staged, ident):
+    """The Result refusing `--later`, or None when the item exists, is open, and the yes is the lead's own."""
+    if not (args.yes or "").strip():
+        return refused([textedit.refusal(
+            "decide-later-needs-yes", "I need the lead's yes before I can keep this for later.",
+            "give --yes: the capture holding the lead's yes to the pick", audience=say.MODEL,
+            override="none: without the lead's yes there is nothing to keep")])
+    if args.readback:
+        return refused([textedit.refusal(
+            "decide-later-with-readback", "I can't both keep this for later and settle it.",
+            "a read-back means the lead is settling, so drop --later", audience=say.MODEL,
+            override="none: drop --later to settle, or --readback to keep it for later")])
+    unwritten = [flag for flag, given in (("--picked", args.picked), ("--rejected", args.rejected), ("--why", args.why),
+                                          ("--dissent", args.dissent), ("--reopen", args.reopen)) if given]
+    if unwritten:
+        return refused([textedit.refusal(
+            "decide-later-writes-nothing", "Keeping this for later writes down only your yes, not the reasons or the "
+                                           "options, so I haven't kept anything.",
+            f"--later writes none of {', '.join(unwritten)}; file the pick and its reasons first (settle it), or drop "
+            "those flags and keep only the yes", audience=say.MODEL,
+            override="none: drop the flags, or settle it with a read-back")])
+    module, target = decide.locate(staged, ident)
+    if target is None:
+        return refused([decide.missing(ident)])
+    done = decide.already(staged, ident)
+    if done is not None:
+        return already_result(done)
+    return yes_refusal_for_later(args.yes, record, staged.lead)
+
+
+def yes_refusal_for_later(ref, record, lead):
+    """The refusal when `ref` isn't the lead's own plain yes (the test the Ready-to-decide listing applies), else None."""
+    found = consent.a_yes(ref, record)
+    if found is not None:
+        return refused([found])
+    if ready.leads_own_yes(record.capture(ref), lead):
+        return None
+    return refused([textedit.refusal(
+        "decide-later-not-the-leads-yes", "That isn't a plain yes from you, so I haven't kept it as one.",
+        f"{ref} is not the lead's own plain yes (a bare \"ok\", Claude's words, or someone else's does not list an "
+        "item as ready to decide)", audience=say.MODEL, override="none: ask the lead for a plain yes")])
 
 
 def commit_mode(stub_text):
