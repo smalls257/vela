@@ -23,7 +23,7 @@ import traceback
 
 import yaml
 
-from vela import allocation, capture, catalog, completeness, diagramcheck, doctor, drafts, search, export, freshness, handoff, handoffwarn, health, ids, ladder, model, onboardpath, opening, pending, pluginroot, proposal, reading, parse, progress, publish, query, questions, releases, render, replay, review, reviews, roles, rules, schema, secretscan, slices, sourcerows, terms, tickets, untrusted, viewer, voicecheck, voicescore
+from vela import allocation, capture, catalog, completeness, diagramcheck, doctor, drafts, search, export, freshness, handoff, handoffwarn, health, ids, ladder, model, onboardpath, opening, pending, pluginroot, proposal, reading, parse, progress, publish, query, questions, releases, render, replay, review, reviews, roles, rules, schema, secretscan, sizing, slices, sourcerows, terms, tickets, untrusted, viewer, voicecheck, voicescore
 from vela.edge import atomic, copies, machine, mermaidjs, replays, reviewgit, sessiongit, teamdocs, vaultgit
 from vela.edge import proposals as proposal_files
 from vela import commands, guard, privaterecord, say
@@ -64,6 +64,10 @@ def load_config(root):
         raise ToolError(f".vela.yaml has stale_after_days: {days!r}. Write a whole number of days, such as 60.")
     if "records_split" in config:
         config["records_split"] = records_split_date(config["records_split"])
+    try:
+        sizing.read_choice(config)
+    except ValueError as exc:
+        raise ToolError(f".vela.yaml has size: ...: {exc}. Run vela size set <band> --because ^cN, or vela size clear.") from exc
     return config
 
 

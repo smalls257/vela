@@ -464,7 +464,7 @@ Every mermaid block on a page and in any Markdown file under `docs/` (the team's
 
 A session is two files with the same name. The stub, `sessions/YYYY-MM-DD-<topic>.md`, is committed and has a header and no body. The notes, `sessions/private/YYYY-MM-DD-<topic>.md`, hold every word that was said and stay on the lead's machine. The plan's `.gitignore` lists `sessions/private/`, `vela records split` adds the line to a plan that lacks it, and `vela check` warns W720 when notes are committed anyway.
 
-**The stub** has `id`, `type`, `date`, `modes`, `status` (`open` or `closed`) and `title` in its frontmatter, with `branch`, `start_commit`, `captures_sha256` and the three lists `ready`, `challenges` and `harvest_declined`. The lists hold item IDs, page names and hashes, never words. The title is the topic, with no one's name in it: `vela session start` checks its words against the handles the plan knows (page and item owners, grill owners and joins in `.vela.yaml`, the lead's `vela whoami` handle and display names, and the people in this machine's notes), matches whole handles and display-name words only, skips team handles, and asks for a reword. The lead may keep the name anyway: saying the same name a second time goes ahead, and the stub records the day as `title_override`.
+**The stub** has `id`, `type`, `date`, `modes`, `status` (`open` or `closed`) and `title` in its frontmatter, with `branch`, `start_commit`, `captures_sha256`, `size` and `size_kept` (see Size) and the three lists `ready`, `challenges` and `harvest_declined`. The lists hold item IDs, page names and hashes, never words. The title is the topic, with no one's name in it: `vela session start` checks its words against the handles the plan knows (page and item owners, grill owners and joins in `.vela.yaml`, the lead's `vela whoami` handle and display names, and the people in this machine's notes), matches whole handles and display-name words only, skips team handles, and asks for a reword. The lead may keep the name anyway: saying the same name a second time goes ahead, and the stub records the day as `title_override`.
 
 **The notes** have `part` and `summary` in their frontmatter. The body has `## Captures` and `## Changes`. A session that ran a review checkpoint also has `## Reviews` after `## Captures`: per checkpoint, a `### <n>. <checkpoint>, <date>` heading, a `- **Coverage:**` line copied from `vela findings merge`, a `- **Dropped:**` line, and a table `| Finding | Area | Severity | Copy | Question | Quote |` with one row per kept finding, `F<n>.1` and on. Reviews stay in the notes: a checkpoint commits the stub only. The notes may also hold `## Agenda`, `## Ready to decide` and `## Catalog proposals`, a YAML block of new catalog entries the user approved.
 
@@ -564,7 +564,7 @@ For each app the first rule that matches picks the mode. `vela next` takes the a
 | 2 | Boundary | the app page is a Boundary stub: its frontmatter says `stub: boundary` and it has no containers table |
 | 2 | Discover | the app page lists no `sources` |
 | 3 | Discover | the app is `integrated` or `unchanged`, and one of its items no open unknown blocks is at `inkling` or `assumption`: what exists needs a source to reach `fact` |
-| 3 | Shape | one of its items is at `inkling`, or at `assumption` with no `**Options considered:**` |
+| 3 | Shape, or below medium a grill that asks one question (see Size) | one of its items is at `inkling`, or at `assumption` with no `**Options considered:**` |
 | 4 | Discover | an item has options recorded, but the app's `stage` is before `target`, so it fails GATE-1 |
 | 5 | Grill | an item at `assumption` has options recorded and no open unknown blocks it |
 | 6 | Probe | an open unknown blocks one of its items |
@@ -573,6 +573,41 @@ For each app the first rule that matches picks the mode. `vela next` takes the a
 | 9 | none | nothing is open |
 
 Requirements cut across apps, so two steps are the initiative's, not any app's, and `vela next` names them ahead of every app rule but rule 1: `initiative, allocate CAP-nnn` while a functional requirement at `assumption`, `fact` or `decided` has no row carrying it, and, before the first epic, `initiative, requirements CAP-nnn` while a changing capability has no functional requirements. While no app page exists, `vela next` suggests `initiative, requirements` once `04-solution-strategy.md` is `decided` and no capability has functional requirements, then `initiative, boundary`, and `initiative, dump` before the strategy is decided.
+
+## Size
+
+vela measures how big the plan is from what it already holds, in one place, and every step that varies with size asks that one place. Three signals each read small, medium or large, and the highest one wins:
+
+| Signal | Small | Medium | Large | Why |
+|---|---|---|---|---|
+| Apps (new or changed) | up to 2 | 3 to 5 | 6 or more | Two apps are one conversation, one team each; from three, the hand-offs between apps need their own sessions; from six, the dashboard needs domains to stay readable. |
+| Capabilities (changing) | up to 2 | 3 to 5 | 6 or more | Up to two fit on one boundary sheet; from three, their requirements need their own session; from six, dividing them among apps does too. |
+| Releases | 1 | 2 | 3 or more | One release is one date, asked in a grill; a second needs a releases session to order them; from three, slices carry the order. |
+
+Parties and provider contracts never move the band. They bring their own catalog questions at every size, and letting the same fact also move the band would make two mechanisms disagree.
+
+**The band does not drop on its own.** Each session stub records `size` (the band the plan read, with counts and no names, such as `small; apps 2, capabilities 1, releases 1`), and the plan keeps the highest it has recorded. A plan that shrinks stays at its higher reading until the lead sets the size. The lead's choice lives in `.vela.yaml` as `size: {band, because, date}`, with `because` a committed capture reference such as `[[2026-10-02-grill-a]] c14`. `vela size` shows the size, the counts and the reasons. `vela size set <band> --because ^cN` records a choice and asks for the capture first if there is none; it never refuses the choice. `vela size clear` goes back to the measured shape. `vela size announce` says the size line if it is due. The line is said once, by whichever step reads it first: session start, `vela next --for-lead`, `vela check --for-lead`, `vela add` or close. It names apps, capabilities and releases, never people, and is recorded on the open stub (`size`, and `size_kept` when the lead kept a size below the shape) so it is not said twice. A plan that grows mid-session gets the bigger band at once.
+
+**What the size changes.** Eight things start at a band:
+
+| Need | Starts at | What a smaller plan does instead |
+|---|---|---|
+| Reading-load notes shown | medium | Wording notes wait until asked. |
+| Options before a grill | medium | One question settles one option (below). |
+| A review after each mode | large | One review checkpoint a session, covering what changed. |
+| Voice review always | medium | A fresh reader reads drafts only from five paragraphs. |
+| A domain on each app | large | W352 does not fire. |
+| A requirements session | medium | Requirements ride on the Boundary sheet. |
+| An allocate session | medium | Shares ride on the Boundary sheet. |
+| A releases session | medium | The date is asked in the grill. |
+
+Nothing that can ship a wrong decision changes with size. The direction gate, the grill gates, every error, the read-back at close, the quote-yes for someone else's words and the send notice are the same at every size.
+
+**Weights.** Every finding code has one weight. `decision` is said at every size. `polish` is reading load (wording and look); it is not said in `--for-lead` or at close, but is counted in one line and always listed in plain `vela check` and CI. `auto` is fixed by close when it can fix it, and said when it can't; `vela check --fix auto` runs every such fix. `scale:<need>` fires only from that need's band; W352 is the one. No error is ever polish or auto. Plain `vela check` is the same at every size except for W352.
+
+**One option below medium.** Below medium, a grill that finds no options recorded asks one question instead of sending the lead to Shape. The lead's answer is recorded with `vela decide <ID> --options-none ^cN`, as `- **Options considered:** only this one: <the lead's words> ([[<record>]] cNN)`, with the words only when the person said they may be quoted. At large it still points to Shape. The lead may use `--options-none` at any size.
+
+**Review and completeness.** The review checkpoint runs once a session below large; a second one in the same session lists every area as skipped, and `--rerun N --areas` still runs any area. Completeness leaves out an unwritten releases page or slices page while the size needs no Releases session.
 
 ## Keeping the vault fresh
 
@@ -1063,7 +1098,7 @@ Findings, each with the step it sits on, a trace in plain words, the owners of t
 
 ## Domains
 
-An app page may say which domain it belongs to, as `domain: <name>` in its frontmatter, such as `domain: Channels`. Views of the system group apps by it, so a map of twenty apps opens as a handful of domains. Boundary asks for it once, for all the apps of the cut together, offering the domains already in the vault first so spellings converge. An app with no domain is shown under "No domain". `vela check` warns (W352) when some app has a domain and, in an initiative of 6 or more apps, another has none, and (W353) when two domains differ only by case or a trailing s.
+An app page may say which domain it belongs to, as `domain: <name>` in its frontmatter, such as `domain: Channels`. Views of the system group apps by it, so a map of twenty apps opens as a handful of domains. Boundary asks for it once, for all the apps of the cut together, offering the domains already in the vault first so spellings converge. An app with no domain is shown under "No domain". `vela check` warns (W352) when some app has a domain and, in a large initiative (see Size), another has none, and (W353) when two domains differ only by case or a trailing s.
 
 An app page may also name the picture views draw for it, as `icon: <word>`, one short lower-case word such as `icon: payments`. Without it a view picks one from the app's title, domain and opening words. Anything else is E105.
 
