@@ -19,7 +19,6 @@ import subprocess
 import sys
 import tempfile
 import time
-import traceback
 
 import yaml
 
@@ -27,6 +26,9 @@ from vela import allocation, capture, catalog, completeness, diagramcheck, docto
 from vela.edge import atomic, copies, machine, mermaidjs, replays, reviewgit, sessiongit, teamdocs, vaultgit
 from vela.edge import proposals as proposal_files
 from vela import commands, guard, privaterecord, say
+from vela.errors import ToolError
+from vela.edge.vaultfiles import vault_files
+from vela.vaultpaths import page_kind
 
 ASSETS = pathlib.Path(__file__).resolve().parent / "assets"
 CATALOG = pathlib.Path(__file__).resolve().parent.parent.parent / "catalog" / "questions.yaml"
@@ -35,10 +37,6 @@ TEMPLATE_LINES = pathlib.Path(__file__).resolve().parent.parent.parent / "catalo
 # Lines older templates wrote and the current one no longer does, such as the file-name patterns the index pages
 # opened with. A vault made from that template still opens with them, so W368 has to keep knowing they were template text.
 TEMPLATE_LINES_RETIRED = TEMPLATE_LINES.with_name("template-lines-retired.txt")
-
-
-class ToolError(Exception):
-    """The tool cannot run: bad arguments, no vault config, unreadable files."""
 
 
 def load_config(root):
@@ -111,34 +109,6 @@ def load_template_lines(path=None):
                             "one. Restore it from the toolkit repo.") from exc
         lines += [line for line in text.split("\n") if line.strip() and line not in lines]
     return lines
-
-
-def vault_files(root):
-    """(pages to parse, basenames of other Markdown files) under the vault root."""
-    pages, others = [], []
-    for path in sorted(root.rglob("*.md")):
-        rel = path.relative_to(root)
-        kind = page_kind(rel.as_posix())
-        if kind == "ignored":
-            continue
-        if path.is_symlink():
-            raise ToolError(str(untrusted.link_refusal(rel.as_posix())))
-        if kind == "other":
-            others.append(path.stem)
-            continue
-        pages.append(path)
-    return pages, others
-
-
-def page_kind(rel):
-    """"page", "other" (Markdown the vault skips, such as README.md) or "ignored" for a vault-relative path ending
-    .md: the one rule vault_files and the flow check's view of an earlier version share."""
-    parts = pathlib.PurePosixPath(rel).parts
-    if any(p.startswith(".") for p in parts[:-1]) or replay.is_mine_file(rel) or privaterecord.is_private(rel):
-        return "ignored"
-    if (len(parts) == 1 and parts[0] in schema.SKIP_FILES) or parts[0] in schema.SKIP_DIRS:
-        return "other"
-    return "page"
 
 
 def load_vault(root):
@@ -3173,15 +3143,4 @@ def main(argv=None, out=None):
     if extras:
         print(unrecognized_message(args, extras), file=out)
         return 2
-    try:
-        return args.func(args, out)
-    except ToolError as exc:
-        print(f"vela: {exc}", file=out)
-        return 2
-    except say.LeadLeak as exc:  # a leak fails loudly at its source, never reaches the lead as a quiet code
-        print(str(exc), file=out)
-        return 2
-    except Exception as exc:  # the tool failed; never report this as a vault finding
-        print(f"vela: internal error: {exc!r}. This is a bug in vela, not in the vault.", file=out)
-        traceback.print_exc(file=out)
-        return 2
+    return commands.run(args, out)
