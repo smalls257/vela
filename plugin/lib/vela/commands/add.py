@@ -122,6 +122,9 @@ def run(args, out):
     except cli.ToolError as exc:
         return commands.emit(failed(str(exc), "I couldn't read the vault, so I added nothing."), args, out)
     result = file_new(root, today, vault, item_from(args, root))
+    if args.add_type == "app-stub" and result.exit == say.DONE:
+        from vela.commands import size
+        result.lines += size.announce(root, cli.load_vault(root))  # a new app may be the one that grows the plan
     return commands.emit(result, args, out, say.Resolver(vault))
 
 

@@ -51,7 +51,7 @@ def show(vault):
     sized = sizing.of(vault)
     text = f"vela size: {sized.band} (measured {sized.measured}; {sized.counts_text()})"
     plain = f"This is a {sized.band} plan: {counts_words(sized)}."
-    if sized.recorded and sizing.higher(sized.measured, sized.recorded) != sized.measured:
+    if sized.ratcheted():
         text += f"; an earlier session read it {sized.recorded}"
     if sized.chosen:
         text += f"; set by the lead on {sized.chosen.date}, {sized.chosen.because}"

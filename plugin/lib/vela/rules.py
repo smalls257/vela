@@ -5,7 +5,7 @@ Every rule runs on every page it can read. No rule stops the others.
 import datetime
 import re
 
-from vela import allocation, cases, deferrals, flows, handoffwarn, links, override, parse, pending, privaterecord, progress, questions, receipts, readability, readload, releases, render, schema, slices, sourcerows, trace, wording
+from vela import allocation, cases, deferrals, flows, handoffwarn, links, override, parse, pending, privaterecord, progress, questions, receipts, readability, readload, releases, render, schema, sizing, slices, sourcerows, trace, wording
 from vela.model import Finding, blocked_units, decided_goal_rows, goal_rows_at, meta_line
 
 
@@ -1089,12 +1089,12 @@ def flow_capability_rules(vault, today):
 
 
 def domain_rules(vault, today):
-    """W352 and W353. Once any app names a domain, a large initiative's other apps should; two spellings of one
+    """W352 and W353. Once any app names a domain, a large plan's (sizing) other apps should; two spellings of one
     domain split the Group: Domain view in two."""
     named = [p for p in vault.apps + vault.of_type("capability") if isinstance(p.meta.get("domain"), str) and p.meta["domain"].strip()]
     if not named:
         return
-    if len(vault.apps) >= schema.DOMAIN_MIN_APPS and any(p in named for p in vault.apps):
+    if sizing.of(vault).needs(sizing.Need.DOMAIN_FIELD) and any(p in named for p in vault.apps):
         for app in vault.apps:
             if app not in named:
                 yield _f(app, 1, "W352", f"{app.id} has no domain, but other apps in this {len(vault.apps)}-app initiative do.",

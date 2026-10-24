@@ -23,7 +23,7 @@ import traceback
 
 import yaml
 
-from vela import allocation, capture, catalog, completeness, diagramcheck, doctor, drafts, search, export, freshness, handoff, handoffwarn, health, ids, ladder, model, onboardpath, opening, pending, pluginroot, proposal, reading, parse, progress, publish, query, questions, releases, render, replay, review, reviews, roles, rules, schema, secretscan, sizing, slices, sourcerows, terms, tickets, untrusted, viewer, voicecheck, voicescore
+from vela import allocation, capture, catalog, completeness, diagramcheck, doctor, drafts, search, export, freshness, handoff, handoffwarn, health, ids, ladder, leadview, model, onboardpath, opening, pending, pluginroot, proposal, reading, parse, progress, publish, query, questions, releases, render, replay, review, reviews, roles, rules, schema, secretscan, sizing, slices, sourcerows, terms, tickets, untrusted, viewer, voicecheck, voicescore
 from vela.edge import atomic, copies, machine, mermaidjs, replays, reviewgit, sessiongit, teamdocs, vaultgit
 from vela.edge import proposals as proposal_files
 from vela import commands, guard, privaterecord, say
@@ -1201,7 +1201,10 @@ def cmd_check(args, out):
     errors = sum(1 for f in findings if f.is_error)
     warnings = len(findings) - errors
     if getattr(args, "for_lead", False):
-        return check_for_lead(vault, findings, errors, out, more=getattr(args, "more", False))
+        from vela.commands import size
+        return check_for_lead(vault, findings, errors, out, more=getattr(args, "more", False),
+                              listing="wording" if getattr(args, "wording", False) else "said",
+                              announced=size.announce(root, vault))
     elapsed = time.perf_counter() - started
     print(f"vela check: {errors} errors, {warnings} warnings in {len(vault.pages)} pages, judged as of {today} ({origin}). "
           f"Took {elapsed:.2f} s." + (f" {GATE_WORDS[args.gate]}" if args.gate else "")
@@ -1218,19 +1221,40 @@ def cmd_check(args, out):
     return 1 if errors else 0
 
 
-def check_for_lead(vault, findings, errors, out, more=False):
+def check_for_lead(vault, findings, errors, out, more=False, listing="said", announced=()):
     """`check --for-lead`: the count first, then each finding as the lead would hear it, what must be fixed before what
     is worth a look, by page title and with no code, ID or fix line. The fix lines are for the model; the lead hears
-    what is wrong. `say` keeps it to about four and raises on a leak."""
+    what is wrong. What the lead hears follows each finding's weight (`leadview.split`): a decision is always said;
+    wording notes wait, counted, below the size that shows them; close's own fixes are counted. Nothing is hidden:
+    plain `vela check` lists every finding, and each quiet group is named in one line with the way to ask for it.
+    `listing="wording"` lists only the wording notes. `say` keeps it to about four and raises on a leak."""
     resolver = say.Resolver(vault)
-    lines = []
-    for finding in sorted(findings, key=lambda f: not f.is_error):
+    wording = listing == "wording"
+    if wording:
+        notes = [f for f in findings if schema.WEIGHT.get(f.code) == "polish"]
+        view = leadview.LeadView(tuple(notes), (), ())
+    else:
+        view = leadview.split(vault, findings, sizing.of(vault))
+    lines = list(announced)
+    for finding in view.said:
         page = vault.page(pathlib.PurePosixPath(finding.path).stem)
         where = resolver.page_title(page.name) if page is not None else None
         lines.append(say.Line(f"{where or finding.path}: {finding.message}",
                               plain=f"{where or file_words(finding.path)}: {finding.message}"))
-    result = say.Result("check --for-lead", exit=1 if errors else 0, lines=lines,
-                        answer=check_lead_header(errors, len(findings) - errors, len(vault.pages)))
+    said_errors = sum(1 for f in view.said if f.is_error)
+    answer = (check_wording_header(len(view.said), len(vault.pages)) if wording
+              else check_lead_header(said_errors, len(view.said) - said_errors, len(vault.pages)))
+    quiet = []
+    if view.wording:
+        n = len(view.wording)
+        quiet.append(f"There {'is' if n == 1 else 'are'} also {say.count_words(n)} wording note{'' if n == 1 else 's'} "
+                     f"on the pages; want {'it' if n == 1 else 'them'}?")
+        lines.append(say.Line(f"{n} wording notes kept quiet at this size: vela check --for-lead --wording lists them", audience=say.MODEL))
+    if view.fixed:
+        n = len(view.fixed)
+        quiet.append(f"I'll fix {say.count_words(n)} more myself when we close.")
+        lines.append(say.Line(f"{n} findings close fixes itself (vela check --fix auto does it now)", audience=say.MODEL))
+    result = say.Result("check --for-lead", exit=1 if errors else 0, lines=lines, answer=answer, closing=" ".join(quiet))
     return commands.emit(result, argparse.Namespace(for_lead=True, more=more), out, resolver)
 
 
@@ -1239,6 +1263,12 @@ def file_words(path):
     if path == ".vela.yaml":
         return "The plan's settings"
     return path if say.leak_in(path) is None else "A file in the plan"
+
+
+def check_wording_header(notes, pages):
+    if not notes:
+        return f"No wording notes on the {pages} pages."
+    return f"{notes} wording note{'' if notes == 1 else 's'} across the {pages} pages."
 
 
 def check_lead_header(errors, warnings, pages):
@@ -2845,10 +2875,14 @@ def next_through_say(args, out):
     found = [line[len("vela next: "):] if line.startswith("vela next: ") else line.strip()
              for line in printed.getvalue().splitlines() if line.strip()]
     said = [_AS_OF.sub("", line).strip() for line in found]
+    root = pathlib.Path(args.vault).resolve()
+    vault = load_vault(root)
+    from vela.commands import size
     result = say.Result("next", exit=code, answer=f"Next I'd suggest this: {said[0]}" if said else "",
                         lines=[say.Line(f"vela next: {line}", plain=f"Also: {words}" if n else "")
-                               for n, (line, words) in enumerate(zip(found, said))], data={"next": found})
-    return commands.emit(result, args, out, say.Resolver(load_vault(pathlib.Path(args.vault).resolve())))
+                               for n, (line, words) in enumerate(zip(found, said))] + size.announce(root, vault),
+                        data={"next": found})
+    return commands.emit(result, args, out, say.Resolver(vault))
 
 
 def find_plan(root):

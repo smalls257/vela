@@ -92,7 +92,9 @@ sources: [SRC-01]
 
 def suggestion(options):
     page = parse_page("05-building-blocks/shop-building-blocks.md", APP.format(options=options))
-    [row] = progress.grid(build([page], {"initiative": "INI-900", "title": "Mini"}), "2026-01-15")
+    # pins the medium path: a shape session leaves options, then the grill; a small plan asks its one question in the grill
+    medium = {"band": "medium", "because": "[[2026-01-01-grill-a]] c1", "date": "2026-01-01"}
+    [row] = progress.grid(build([page], {"initiative": "INI-900", "title": "Mini", "size": medium}), "2026-01-15")
     return row.mode, row.subject
 
 

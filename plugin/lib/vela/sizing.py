@@ -90,6 +90,10 @@ class Sizing:
     def needs(self, need):
         return _rank(self.band) >= _rank(schema.NEEDS[need.value][0])
 
+    def ratcheted(self):
+        """True when an earlier session read the plan bigger than its pages do now."""
+        return self.shape != self.measured
+
     def counts_text(self):
         return ", ".join(f"{s.name} {s.count}" for s in self.signals)
 

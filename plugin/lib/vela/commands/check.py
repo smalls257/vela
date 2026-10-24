@@ -22,8 +22,10 @@ failed.
 """
 import pathlib
 
-from vela import gates, plainwords, roles, rules, say, schema, sessions, w326fix
+from vela import gates, plainwords, roles, rules, say, schema, sessions, w326fix, w358fix
 from vela.edge import atomic
+
+AUTO = "AUTO"  # --fix auto runs every fixer in one pass
 
 
 def register(sub):
@@ -41,8 +43,11 @@ def register(sub):
     check.add_argument("--app", help="with --gate epics: check only this app and the things on its handoff list (give its ID, "
                                      "like APP-booking); other apps, and the check that every requirement has an app, are skipped")
     check.add_argument("--fix", metavar="CODE",
-                       help="W326 only: set each page's state as W326 says (a page whose rows have all moved on reads "
-                            "as unsettled until its own state follows) and print what changed; any other code is refused")
+                       help="W326, W358 or auto (both): W326 sets each page's state as it says (a page whose rows have all "
+                            "moved on reads as unsettled until its own state follows); W358 writes the plan's one "
+                            "capability onto each flow that names none; prints what changed. Any other code is refused")
+    check.add_argument("--wording", action="store_true",
+                       help="with --for-lead: only the wording notes, which a small plan keeps quiet until asked")
     group = check.add_mutually_exclusive_group()
     group.add_argument("--json", action="store_true",
                        help="with --gate grill --item: each item's verdict as JSON (id, ready, reasons, fix, override, "
@@ -62,9 +67,11 @@ def run(args, out):
     if args.all:
         everything(args)
     grill_items = args.gate == "grill" and bool(args.item)
+    if args.wording and not args.for_lead:
+        raise cli.ToolError("--wording lists the wording notes as the lead hears them, so it goes with --for-lead.")
     if args.json and not grill_items:
-        raise cli.ToolError("--json prints the grill verdicts (or, with --fix W326, what changed), so it goes with "
-                            "--gate grill --item <ID> or --fix W326.")
+        raise cli.ToolError("--json prints the grill verdicts (or, with --fix, what changed), so it goes with "
+                            "--gate grill --item <ID> or --fix W326, W358 or auto.")
     if grill_items and say.mode_of(args) != "default":
         return verdicts(args, out)
     return cli.cmd_check(args, out)
@@ -99,6 +106,7 @@ def open_record_text(root):
 
 def verdicts(args, out):
     from vela import cli, commands
+    from vela.commands import size
     root = pathlib.Path(args.vault).resolve()
     today, _ = cli.parse_today(args.today)
     vault = cli.load_vault(root)
@@ -110,7 +118,9 @@ def verdicts(args, out):
     found = [gates.verdict(vault, record, item, today, flows=flows) for item in items]
     notes = [n for n in (note, warning and f"The flow check's record could not be read, so flows read as not checked "
                                            f"({warning}).") if n]
-    return commands.emit(gates.report(vault, found, notes), args, out, say.Resolver(vault))
+    report = gates.report(vault, found, notes)
+    report.lines += size.announce(root, vault)  # a plan that grew since the last line gets its bigger band at once
+    return commands.emit(report, args, out, say.Resolver(vault))
 
 
 # ------------------------------------------------------------------------------------------------ --fix W326
@@ -120,33 +130,44 @@ def fix(args, out):
     refused = fix_refusal(args)
     if refused is not None:
         return commands.emit(refused, args, out, say.Resolver())
+    code = args.fix.strip().upper()
     root = pathlib.Path(args.vault).resolve()
     today, _ = cli.parse_today(args.today)
     vault = cli.load_vault(root)
     resolver = say.Resolver(vault)
     before = rules.check(vault, today)
+    texts = {page.path: page.text for page in vault.pages}
     try:
-        changes = w326fix.plan(before, {page.path: (page.id, page.text) for page in vault.pages})
-        files = w326fix.rewrite(changes, {page.path: page.text for page in vault.pages})
+        changes, files = [], {}
+        if code in (w326fix.FIXABLE[0], AUTO):
+            found = w326fix.plan(before, {page.path: (page.id, page.text) for page in vault.pages})
+            changes += found
+            files.update(w326fix.rewrite(found, texts))
+        if code in (w358fix.FIXABLE[0], AUTO):
+            found = w358fix.plan(vault)
+            changes += found
+            files.update(w358fix.rewrite(found, {**texts, **files}))
     except w326fix.FixDrift as exc:
         raise cli.ToolError(str(exc)) from exc
-    except w326fix.NoStateLine as exc:
-        raise cli.ToolError(f"check --fix W326: {exc}; set it by hand. Nothing was changed.") from exc
+    except (w326fix.NoStateLine, ValueError) as exc:
+        raise cli.ToolError(f"check --fix {code}: {exc}; set it by hand. Nothing was changed.") from exc
     result = say.Result("check --fix", data={"changed": [c.as_json() for c in changes], "left": []})
     if not changes:
-        result.lines = [say.Line("vela check --fix W326: nothing to change; every page's state already follows its rows.",
-                                 "Every page's status already matches what's on it, so I haven't changed anything.")]
+        result.lines = [say.Line(f"vela check --fix {code}: nothing to change.",
+                                 "Every page's status already matches what's on it, so I haven't changed anything."
+                                 if code == w326fix.FIXABLE[0] else "There was nothing I could fix by myself, so I "
+                                 "haven't changed anything.")]
         return commands.emit(result, args, out, resolver)
     try:
         atomic.write_all_atomic({root / path: text for path, text in files.items()})
     except atomic.WriteFailed as exc:
         written = ", ".join(str(p) for p in exc.written) or "none"
-        print(f"vela check --fix W326: could not write: {exc}. Written: {written}.", file=out)
+        print(f"vela check --fix {code}: could not write: {exc}. Written: {written}.", file=out)
         return say.FAILED
-    result.wrote = [c.path for c in changes]
+    result.wrote = list(files)
     count = f"{len(changes)} page{'' if len(changes) == 1 else 's'}"
     said = f"{say.count_words(len(changes))} page{'' if len(changes) == 1 else 's'}"
-    result.lines = [say.Line(f"vela check --fix W326: set the state of {count}.", f"I updated the status of {said}.")]
+    result.lines = [say.Line(f"vela check --fix {code}: changed {count}.", f"I updated {said}.")]
     result.lines += [changed_line(c, resolver) for c in changes]
     left = left_on(root, today, before, result.wrote)
     result.data["left"] = [{"path": f.path, "line": f.line, "code": f.code, "message": f.message} for f in left]
@@ -168,25 +189,29 @@ def fix_refusal(args):
     """A Result refusing this `--fix`, or None. Only W326 has one right answer; and --fix inside a gate or with items
     would leave unclear which check it answered."""
     code = args.fix.strip().upper()
-    if code not in w326fix.FIXABLE:
+    if code not in w326fix.FIXABLE + w358fix.FIXABLE + (AUTO,):
         result = say.Result("check --fix", exit=say.REFUSED, data={"code": args.fix})
         result.refusals.append(say.Refusal(
-            "fix", "I can only fix one kind of problem by myself: a page whose status hasn't caught up with what's on "
-                   "it.",  # voice audit row 222
-            f"--fix takes W326 only; fix {args.fix} by hand as its Fix line says.",
+            "fix", "I can only fix two kinds of problem by myself: a page whose status hasn't caught up with what's on "
+                   "it, and a journey that names no capability when the plan has just one.",  # voice audit row 222
+            f"--fix takes W326, W358 or auto; fix {args.fix} by hand as its Fix line says.",
             "Edit the page by hand; nothing here stops that.", waiver=""))  # no rule to set aside, only a limit
         return result
     if args.gate or args.item or args.app:
         result = say.Result("check --fix", exit=say.REFUSED, data={"code": code})
         result.refusals.append(say.Refusal(
             "fix", "Setting page states runs on its own, not inside another check.",
-            "Run `vela check --fix W326` with no --gate, --item or --app, then the gate you wanted.",
+            f"Run `vela check --fix {code}` with no --gate, --item or --app, then the gate you wanted.",
             "Run the two commands one after the other."))
         return result
     return None
 
 
 def changed_line(change, resolver):
+    if isinstance(change, w358fix.Change):
+        title = resolver.name(change.page)
+        return say.Line(f"{change.path}: {change.after} ({change.why})",
+                        f"{title} now says which capability it serves, the plan's only one.")
     title = resolver.page_title(pathlib.PurePosixPath(change.path).stem) or resolver.name(change.page)
     # voice audit row 214: not "rows", and the state said in words ("assumption" is "not decided yet")
     before, after = plainwords.state_word(change.before), plainwords.state_word(change.after)
