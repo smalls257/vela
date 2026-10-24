@@ -5,6 +5,8 @@ from vela.model import build
 from vela.parse import parse_page
 
 CONFIG = {"initiative": "INI-900", "title": "Mini shop"}
+# The medium path: options are written down in a Shape session before a grill. A small plan asks one question in a grill.
+MEDIUM = {**CONFIG, "size": {"band": "medium", "because": "[[2026-01-01-grill-a]] c1", "date": "2026-01-01"}}
 NEW_BLOCK = "<!-- generated:progress-map sha=00000000: do not edit, run vela render -->\n<!-- /generated:progress-map -->\n"
 
 
@@ -38,8 +40,8 @@ def epic(eid, app, state="decided"):
             f"authored: mixed\napps: [APP-{app}]\ndelivers: [CON-001]\n---\n\n# {eid}\n")
 
 
-def vault_of(*pages):
-    return build([parse_page(path, text) for path, text in pages], CONFIG)
+def vault_of(*pages, config=CONFIG):
+    return build([parse_page(path, text) for path, text in pages], config)
 
 
 def only(vault, app_id, as_of="2026-01-15"):
@@ -61,9 +63,9 @@ def test_an_overdue_unknown_comes_first():
 
 
 def test_an_item_with_no_options_means_shape():
-    row = only(vault_of(app_page("shop")), "APP-shop")
+    row = only(vault_of(app_page("shop"), config=MEDIUM), "APP-shop")  # pins the medium path
     assert (row.rule, row.mode, row.subject) == (3, "shape", "APP-shop")
-    assert only(vault_of(app_page("shop", state="inkling")), "APP-shop").reason == "Shop (APP-shop) is only an early idea so far and has no options written down."
+    assert only(vault_of(app_page("shop", state="inkling"), config=MEDIUM), "APP-shop").reason == "Shop (APP-shop) is only an early idea so far and has no options written down."
 
 
 def test_options_recorded_before_target_means_discover_for_gate_one():
@@ -126,7 +128,7 @@ def test_mix_counts_the_page_runtime_page_and_contracts():
     shop = app_page("shop", state="decided", body=contract("CON-001", "till") + contract("CON-002", "till", "fact"))
     runtime = ("06-runtime/apps/shop-runtime.md", "---\nid: RUN-shop\ntype: app-runtime\ntitle: Shop runtime\n"
                "state: inkling\nowner: \"@t\"\nauthored: authored\n---\n\n# Shop runtime\n")
-    row = only(vault_of(shop, runtime), "APP-shop")
+    row = only(vault_of(shop, runtime, config=MEDIUM), "APP-shop")  # pins the medium path
     assert row.mix == (1, 0, 1, 2)
     assert (row.mode, row.subject) == ("shape", "RUN-shop")
 

@@ -8,7 +8,7 @@ import datetime
 import re
 from dataclasses import dataclass
 
-from vela import ladder, model, override, schema, trace
+from vela import ladder, model, override, schema, sizing, trace
 
 OPENED_DATE = re.compile(r"^(\d{4}-\d{2}-\d{2})\b")
 SETTLED = ("decided", "fact")
@@ -145,7 +145,10 @@ def suggest(vault, app, as_of, blocked):
             return 3, "discover", unit.id, (f"{named(unit.id)} {handoffwarn_phrase(unit.state)}, and {app_name} isn't being changed, so it "
                                             f"needs a source that shows it as fact.")
         if laddered and (unit.state == "inkling" or (unit.state == "assumption" and not unit.options)):
-            return 3, "shape", unit.id, f"{named(unit.id)} {handoffwarn_phrase(unit.state)} and has no options written down."
+            if sizing.of(vault).needs(sizing.Need.OPTIONS_BEFORE_GRILL):
+                return 3, "shape", unit.id, f"{named(unit.id)} {handoffwarn_phrase(unit.state)} and has no options written down."
+            return 3, "grill", unit.id, (f"{named(unit.id)} {handoffwarn_phrase(unit.state)}, and nobody has said yet whether anything "
+                                         "else was on the table; one question in a grill settles that.")
     ready = [u for u in mine if u.state == "assumption" and u.options and u.id not in blocked]
     if ready and not in_grill_stage(vault, app):
         stage = ladder.stage(vault, app) or "no stage"

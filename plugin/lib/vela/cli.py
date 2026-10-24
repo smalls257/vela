@@ -2722,11 +2722,17 @@ def initiative_step(vault, row):
     partly filled vault is not nagged again and again."""
     if row is not None and row.rule <= 1:
         return None
+    sized = sizing.of(vault)
     loose = allocation.unallocated(vault)
-    if loose:
+    if loose and sized.needs(sizing.Need.ALLOCATE_SESSION):
         return (f"for the whole plan: decide which app owns {vault.named(loose[0].id)}, with /vela:allocate. "
                 f"It {handoffwarn.state_phrase(loose[0].fact('State'))} and no app has taken it, so no team owns it yet.")
-    if allocation.due(vault) and not releases.releases(vault) and not vault.of_type("epic"):
+    if loose:
+        return (f"for the whole plan: say which app owns {vault.named(loose[0].id)}, on that app's boundary sheet (/vela:boundary). "
+                f"It {handoffwarn.state_phrase(loose[0].fact('State'))} and no app has taken it, so no team owns it yet.")
+    # Below medium the release's date is one question in an app's grill, so this step stays quiet and the frontier wins.
+    if (allocation.due(vault) and not releases.releases(vault) and not vault.of_type("epic")
+            and sized.needs(sizing.Need.RELEASES_SESSION)):
         return ("for the whole plan: date the releases, with /vela:releases. Every requirement has an app, but no release "
                 "says when anyone gets any of it, so date them before the epics are written.")
     have = {r.id.split(".")[0] for r in allocation.requirements(vault)}
@@ -2734,8 +2740,11 @@ def initiative_step(vault, row):
             if c.meta.get("change") in schema.ENUMS["change@capability"] and c.meta.get("change") != "unchanged"
             and c.id not in have]
     if bare and (not vault.of_type("epic") or not have):
-        return (f"for the whole plan: write the requirements for {vault.named(bare[0].id)}, with /vela:requirements. "
-                f"The capability is {bare[0].meta['change']} and has no requirements yet, so there's nothing to divide among the apps for it.")
+        words = f"The capability is {bare[0].meta['change']} and has no requirements yet, so there's nothing to divide among the apps for it."
+        if sized.needs(sizing.Need.REQUIREMENTS_SESSION):
+            return f"for the whole plan: write the requirements for {vault.named(bare[0].id)}, with /vela:requirements. {words}"
+        return (f"for the whole plan: write the requirements for {vault.named(bare[0].id)} on the boundary sheet, with "
+                f"/vela:boundary. {words}")
     return None
 
 
@@ -2743,12 +2752,21 @@ def first_step(vault):
     """What to do while no app page exists. Once a Grill has decided the solution strategy, the direction is set
     and only a Boundary session turns it into apps; before that, the work is still finding out and shaping."""
     strategy = vault.page("04-solution-strategy")
-    if strategy is not None and strategy.meta.get("state") == "decided" and not allocation.requirements(vault):
+    sized = sizing.of(vault)
+    decided = strategy is not None and strategy.meta.get("state") == "decided"
+    if decided and not allocation.requirements(vault):
+        if not sized.needs(sizing.Need.REQUIREMENTS_SESSION):
+            return ("for the whole plan: run a boundary session, with /vela:boundary. The solution strategy is decided, so "
+                    "split the work into apps; the requirements and each app's share go on the boundary sheet.")
         return ("for the whole plan: write the requirements, with /vela:requirements. The solution strategy is decided "
                 "and no capability has requirements yet, so write them before the boundary session splits the work into apps.")
-    if strategy is not None and strategy.meta.get("state") == "decided":
+    if decided:
         return ("for the whole plan: run a boundary session, with /vela:boundary. The solution strategy is decided and "
                 "no app page exists yet, so split the work into apps.")
+    sources = strategy.meta.get("sources") if strategy is not None else None
+    if isinstance(sources, list) and sources and not sized.needs(sizing.Need.OPTIONS_BEFORE_GRILL):
+        return ("for the whole plan: grill the solution strategy, with /vela:grill 04-solution-strategy. Boundary waits "
+                "until the direction is decided; one question about other options is enough at this size.")
     return ("for the whole plan: no app page exists yet, so start by getting everything known written down "
             "(/vela:dump, a brainstorm), or by reading the existing sources (/vela:discover).")
 
