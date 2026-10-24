@@ -23,10 +23,10 @@ import time
 import yaml
 
 from vela import allocation, capture, catalog, completeness, diagramcheck, doctor, drafts, search, export, freshness, handoff, handoffwarn, health, ids, ladder, model, onboardpath, opening, pending, pluginroot, proposal, reading, parse, progress, publish, query, questions, releases, render, replay, review, reviews, roles, rules, schema, secretscan, slices, sourcerows, terms, tickets, untrusted, viewer, voicecheck, voicescore
-from vela.edge import atomic, copies, machine, mermaidjs, replays, reviewgit, sessiongit, teamdocs, vaultgit
+from vela.edge import atomic, copies, githubcopy, machine, mermaidjs, replays, reviewgit, sessiongit, teamdocs, vaultgit
 from vela.edge import proposals as proposal_files
-from vela import commands, guard, privaterecord, say
-from vela.errors import ToolError
+from vela import commands, githubsource, guard, privaterecord, say
+from vela.errors import Refusal, ToolError
 from vela.edge.vaultfiles import vault_files
 from vela.vaultpaths import page_kind
 
@@ -418,18 +418,14 @@ def cmd_publish(args, out):
         commit, short = vaultgit.head(root)
         dirty_files = vaultgit.uncommitted(root)
         git_name, git_email = vaultgit.user_identity(root)
-        files = publish.selected(files)
-        secret_notes = check_secrets(files, args.allow_secrets)
-        if ".vela.yaml" not in files:
-            raise ToolError("HEAD has no .vela.yaml, so there is no initiative to publish. Commit it first.")
-        files[publish.DASHBOARD_PATH] = publish_dashboard(files, {"date": vaultgit.commit_date(root, "HEAD") or today, "commit": short}, today)
-        config = load_config_text(files[".vela.yaml"])
-        owner = publish.owner_contact(config, git_name, git_email, args.owner_name or "", args.owner_contact or "")
-        counts = check_counts(files, today)
-        stamp = publish.build_stamp(config, commit, short, today, bool(dirty_files), owner, counts, files)
-        stamped = publish.with_stamp(files, stamp)
+        stamped, stamp, secret_notes, counts = published_copy(
+            files, commit, short, today,
+            lambda config: publish.owner_contact(config, git_name, git_email, args.owner_name or "", args.owner_contact or ""),
+            mode=PUBLISH_ALLOWING_SECRETS if args.allow_secrets else PUBLISH, uncommitted=len(dirty_files),
+            built_date=vaultgit.commit_date(root, "HEAD"))
+        owner = stamp["owner"]
         if target.suffix.lower() == ".zip":
-            copies.write_zip(publish.zip_bytes(stamped, publish.copy_name(config["title"], short),
+            copies.write_zip(publish.zip_bytes(stamped, publish.copy_name(stamp["title"], short),
                                                {p for p in executable if executable[p] and p in stamped}), target)
         else:
             copies.write_folder(stamped, target, {p for p in executable if executable[p] and p in stamped})
@@ -451,6 +447,36 @@ def cmd_publish(args, out):
     return 0
 
 
+# How `published_copy` is asked to work: one mode value, never a pile of switches at each call site.
+PUBLISH, PUBLISH_ALLOWING_SECRETS, FROM_GITHUB = "publish", "publish-allowing-secrets", "from-github"
+
+
+def published_copy(files, commit, short, today, owner_of, mode=PUBLISH, uncommitted=0, from_="", built_date=""):
+    """(stamped files, stamp, secret notes, (errors, warnings)): the publish steps on a committed tree. `vela publish`
+    and a GitHub open both call it, so a copy from GitHub is made by the same code, with the same exclusions, as a
+    copy the owner sends (Distributed Monolith ruled out). `owner_of(config)` gives the stamp's owner; `uncommitted` is
+    how many files the owner's work tree holds beyond what was committed. FROM_GITHUB skips building the page: a GitHub
+    open builds it once, in the reader's own workspace, not twice."""
+    files = publish.selected(files)
+    secret_notes = check_secrets(files, mode == PUBLISH_ALLOWING_SECRETS)
+    if ".vela.yaml" not in files:
+        raise ToolError("HEAD has no .vela.yaml, so there is no initiative to publish. Commit it first.")
+    if mode != FROM_GITHUB:
+        files[publish.DASHBOARD_PATH] = publish_dashboard(files, {"date": built_date or today, "commit": short}, today)
+    config = load_config_text(files[".vela.yaml"])
+    counts = check_counts(files, today)
+    stamp = publish.build_stamp(config, commit, short, today, bool(uncommitted), owner_of(config), counts, files, from_)
+    return publish.with_stamp(files, stamp), stamp, secret_notes, counts
+
+
+class SecretsRefused(ToolError):
+    """The pages look like they hold a credential; `hits` say where, for whoever may tell the owner."""
+
+    def __init__(self, hits):
+        super().__init__(secretscan.refusal(hits))
+        self.hits = hits
+
+
 def check_secrets(files, allowed):
     """Refuse a publish whose pages look like they hold a credential; with --allow-secrets, go on and say what was let through."""
     texts = {path: data.decode("utf-8", "replace") for path, data in files.items() if path != publish.DASHBOARD_PATH and not drafts.is_binary(data)}
@@ -458,7 +484,7 @@ def check_secrets(files, allowed):
     if not hits:
         return []
     if not allowed:
-        raise ToolError(secretscan.refusal(hits))
+        raise SecretsRefused(hits)
     return [f"--allow-secrets: published with {len(hits)} possible secret(s) in it ({hits[0].path} line {hits[0].line} and others); the copy carries them to every reader."]
 
 
@@ -506,6 +532,13 @@ def reader_freshness(root, checked_at):
         return freshness.Report("reader", freshness.UNKNOWN, checked_at, f"{exc}",
                                 lead="I can't read the note of where this copy came from, so I can't tell whether a "
                                      "newer one is out.")
+    repo = githubsource.parse(workspace.get("source_path") or "")
+    if repo is not None:  # opened from a GitHub link: ask GitHub, never a folder
+        try:
+            return freshness.github_report(workspace, githubcopy.remote_head(repo, vaultgit.FETCH_TIMEOUT), "", checked_at)
+        except githubcopy.CloneFailed as exc:
+            print(f"vela freshness: git said: {exc.detail}", file=sys.stderr)
+            return freshness.github_report(workspace, "", githubsource.message(exc.kind, githubsource.SOMEONE), checked_at)
     stamp, unreachable, unreadable = None, "", ""
     try:
         stamp = copies.read_source_stamp(workspace.get("source_path") or "")
@@ -607,20 +640,66 @@ def workspace_folder(slug, into, env, in_cowork):
     return folder
 
 
+def read_source_copy(args):
+    """(files, stamp, source name, source path) of what the person named: a GitHub link, a published folder or a zip."""
+    repo = githubsource.parse(args.source)
+    if repo is not None:
+        files, stamp = copy_from_github(repo, args.today)
+        return files, stamp, repo.url, repo.url
+    files, stamp = copies.read_published(args.source)
+    return files, stamp, pathlib.Path(args.source).name, os.path.abspath(os.path.expanduser(args.source))
+
+
+def copy_from_github(repo, today_flag):
+    """(files, stamp) of the plan as last committed on GitHub, made by the same publish steps a folder or zip goes
+    through. A failure is said in one plain sentence (git's own words go to stderr) and nothing ever opens an older
+    copy instead (Silent Fallback ruled out)."""
+    if not githubcopy.has_git():
+        raise Refusal(githubsource.message(githubsource.NO_GIT, githubsource.SOMEONE))
+    today, _ = parse_today(today_flag)
+    with tempfile.TemporaryDirectory() as scratch:
+        clone = pathlib.Path(scratch) / "plan"
+        try:
+            githubcopy.clone(repo, clone)
+        except githubcopy.CloneFailed as exc:
+            print(f"vela open: git said: {exc.detail}", file=sys.stderr)
+            raise Refusal(githubsource.message(exc.kind, githubsource.SOMEONE)) from exc
+        try:
+            files, _, _ = vaultgit.committed_files(clone)
+            commit, short = vaultgit.head(clone)
+            if ".vela.yaml" not in files:
+                raise Refusal("That GitHub repository doesn't hold a vela plan.")
+            config = load_config_text(files[".vela.yaml"])
+            owner = githubsource.owner_of(config, repo)
+            who = owner["name"] if config.get("owner_contact") else repo.owner
+            try:
+                stamped, stamp, _, _ = published_copy(files, commit, short, today, lambda _config: owner, mode=FROM_GITHUB,
+                                                      from_=f"GitHub {repo.label}")
+            except SecretsRefused as exc:
+                print(f"vela open: {exc}", file=sys.stderr)
+                raise Refusal(f"The plan on GitHub holds text that looks like a password or key, so I didn't open it. "
+                                f"Tell {who}; they can fix it, or send the plan as a file.") from exc
+        except vaultgit.GitUnavailable as exc:
+            print(f"vela open: git said: {exc}", file=sys.stderr)
+            raise Refusal(githubsource.message(githubsource.NO_ACCESS, githubsource.SOMEONE)) from exc
+        except publish.PublishError as exc:
+            raise ToolError(str(exc)) from exc
+    return stamped, stamp
+
+
 def cmd_open(args, out):
     env = os.environ
     try:
-        files, stamp = copies.read_published(args.source)
+        files, stamp, source_name, source_path = read_source_copy(args)
         opening.verify_tree(files, stamp)
         admitted, left_out = opening.admit(files)
         in_cowork = bool(env.get("VELA_COWORK") or env.get("CLAUDE_COWORK"))
         folder = workspace_folder(publish.slug(stamp["title"]), args.into, env, in_cowork)
         existing = copies.read_existing_workspace(folder)
         today, _ = parse_today(args.today)
-        source_path = os.path.abspath(os.path.expanduser(args.source))
         if existing is not None:
-            return reopen_workspace(folder, existing, (admitted, stamp), (pathlib.Path(args.source).name, source_path), (args.author, args.newer), today, out)
-        record = opening.workspace_record(stamp, pathlib.Path(args.source).name, source_path,
+            return reopen_workspace(folder, existing, (admitted, stamp), (source_name, source_path), (args.author, args.newer), today, out)
+        record = opening.workspace_record(stamp, source_name, source_path,
                                           today, reader_author(args.author, pathlib.Path.cwd()),
                                           str(VELA_PROGRAM))
         copies.write_workspace(folder, admitted, record)
@@ -2951,8 +3030,8 @@ def build_parser():
     say.add_output_flags(fresh)
     fresh.add_argument("--timeout", type=int, default=vaultgit.FETCH_TIMEOUT, help="seconds an owner's git fetch may take (default 8)")
     fresh.set_defaults(func=cmd_freshness)
-    opn = sub.add_parser("open", help="make a private reader workspace from a published folder or zip; the source is never written")
-    opn.add_argument("source", help="the published folder or .zip")
+    opn = sub.add_parser("open", help="make a private reader workspace from a published folder, a zip or a GitHub link; the source is never written")
+    opn.add_argument("source", help="the published folder, the .zip, or the plan's GitHub link")
     opn.add_argument("--into", help="the workspace folder (default: $VELA_WORKSPACES/<slug>, else ~/VelaWorkspaces/<slug>); folders OneDrive, SharePoint, Dropbox, iCloud Drive, Google Drive or Box sync are refused")
     opn.add_argument("--author", help="your name for the drafts (default: git user.name)")
     opn.add_argument("--today", help="the date to record, YYYY-MM-DD (default: system date)")

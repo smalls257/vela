@@ -105,7 +105,8 @@ def opened_message(stamp, folder):
     owner = stamp.get("owner", {})
     who = owner.get("name") or owner.get("contact") or "the owner"
     check = stamp.get("check", {})
-    lines = [f"Opened {stamp['title']} at {stamp['short']}, published {stamp['date']} by {who}. "
+    where = f" from {stamp['from']}" if stamp.get("from") else ""
+    lines = [f"Opened {stamp['title']}{where} at {stamp['short']}, published {stamp['date']} by {who}. "
              f"Check at publish: {check.get('errors', '?')} errors, {check.get('warnings', '?')} warnings.",
              f"  Your private copy is {folder}."]
     if stamp.get("dirty"):
