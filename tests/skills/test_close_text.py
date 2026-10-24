@@ -530,7 +530,7 @@ def test_close_drafts_prose_through_house_voice():
     four = csec(2)
     assert "through `${CLAUDE_PLUGIN_ROOT}/skills/house-voice/SKILL.md`" in four
     assert "vela close drafts --json" in four and "vela close stage --draft" in four
-    assert "`vela style` on each drafted page" in four and "until it prints nothing" in four
+    assert "`vela style` on each drafted page" in four and "fix its mechanical findings once" in four
     # rule deletion: house-voice owns merged prose (`vela prose replace`) and closedrafts.WHY["adr"] names `vela add adr`
     assert "vela prose replace --page" not in four and "vela add adr --state decided" not in four
     assert "vela add adr --state decided" in closedrafts.WHY["adr"]

@@ -20,7 +20,7 @@ Run `vela session start --mode grill --topic "<two to four words from the lead>"
 
 On resume, say in one line where you stopped; a grill carries on from the first `open` item in the notes' `## Agenda`. Never claim to know what notes kept on another machine say.
 
-Then run `vela session brief --for-lead`. Offer each review comment as a capture, one at a time, the commenter as origin, word for word. For each overdue question, ask whether the lead knows the answer now; never draft an ask for the user to send. With no stated purpose, offer the brief's next step as a suggestion, never a decision. Say how much there is and how far you expect to get; at about two thirds, ask whether to push on or close. One plan per session.
+Say the size line it prints, once. If the lead says the plan is bigger or smaller than it looks, capture their words and run `vela size set small --because ^cN` (or `medium`, `large`); never refuse. Then run `vela session brief --for-lead`. Offer each review comment as a capture, one at a time, the commenter as origin, word for word. For each overdue question, ask whether the lead knows the answer now; never draft an ask for the user to send. With no stated purpose, offer the brief's next step as a suggestion, never a decision. Say how much there is and how far you expect to get; at about two thirds, ask whether to push on or close. One plan per session.
 
 ## Owner or reader
 

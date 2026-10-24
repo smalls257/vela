@@ -22,6 +22,8 @@ Read the picked option on `04-solution-strategy.md` and what it links, the conte
 
 ## 2. Find the seams, then offer the cuts
 
+Once, before drawing the apps, run `vela questions --existence --for-lead`, read it as one turn, and capture each of the six answers on its own line.
+
 Before any cut, ask how the product comes apart, in the lead's own words, a question or two at a time: the question a business analyst asks before drawing a context diagram. What will someone stand up, own, release or switch off on its own? Don't let the shape's wording (a report, a reminder, "one helper") answer it for them. Ask:
 
 - "Which parts run on a person's own device, which run somewhere shared that your people operate, and which does an administrator or support person open?"
@@ -31,7 +33,7 @@ Before any cut, ask how the product comes apart, in the lead's own words, a ques
 
 Every part they name ends up in the cuts, as an app or as "not an app" with its reason; a part only the sources name you offer as `(claude)`, with the source. Offer consent and identity as an app of their own whenever a source shows a different owner, lifecycle or approval. A lead who says it is one thing gets the single-app cut first; never force a split they reject.
 
-Offer 2 or 3 ways to cut the direction into apps, never one and never more than three. Each names every app it touches and what happens to it, in words (new, changed, connected to as it is, left alone, retired); which app owns each job and which job no app owns yet; what it makes easy and hard (an extra service to run, a link held in two places, a team with no owner); and what each claim rests on. Test each cut against the functional requirements with `vela boundary cover --cut .vela/cuts.json --for-lead` (`--help` gives the file) and relay what each carries whole, splits or leaves with no app; the trade-offs are yours. Say which cut you prefer and why, capture each cut, the reactions, the pick and each rejected cut's reason, and write the pick with `vela add cut --for-lead`. If they reject them all, capture why and offer new cuts.
+Offer the cut the lead described and, only when there is a real alternative, one more. Each names every app it touches and what happens to it, in words (new, changed, connected to as it is, left alone, retired); which app owns each job and which job no app owns yet; what it makes easy and hard (an extra service to run, a link held in two places, a team with no owner); and what each claim rests on. Test each cut against the functional requirements with `vela boundary cover --cut .vela/cuts.json --for-lead` (`--help` gives the file) and relay what each carries whole, splits or leaves with no app; the trade-offs are yours. Say which cut you prefer and why, capture each cut, the reactions, the pick and each rejected cut's reason, and write the pick with `vela add cut --for-lead`. If they reject them all, capture why and offer new cuts.
 
 Then ask once, for every app together, what the lead's people call the area of the business each sits in, and whether any two are really one area. Offer names the plan already uses, so spellings converge; never invent one. An app given no area keeps none, as an override. Stub every new or changed app with `vela add app-stub --for-lead`, with the domain they named and the pick's capture.
 
@@ -54,7 +56,7 @@ Take the stubs one at a time. Show each sheet as a numbered list:
 
 **A case table for each contract in item 4**: every way the provider can answer. Draft the rows from what the contract, the sources and the failure lines already say, each `(claude)`, and invent nothing they don't support. Ask one question per open case, with your recommendation: "When the stock check can't find the item, what does Stock say back? Recommended: Stock says the item is unknown and names it, so Shop can tell the customer why." Ask the same way whether it can time out, how often the caller retries, and what proves the caller's identity. A row with no yes is left out; a contract with no table is said as "Nobody has written down every answer Order identity can give yet", never filled with a guess. After writing a case table, run `vela check-slice --changed --for-lead`, say which slices it checked and why, and settle each finding with its owners as a case row, a branch or an open question.
 
-Label every line with what it rests on: a source, a decided item, the lead's own words, or `(claude)`. Read the sheet back in two groups, items 1 to 3 and 4 to 10; a correction needs its own yes. A line nobody can answer becomes an open question (`MODES.md`, "Unknowns").
+Label every line with what it rests on: a source, a decided item, the lead's own words, or `(claude)`. Read the sheet back in two groups, items 1 to 3 and 4 to 10; a correction needs its own yes. When `vela next` sent you here for the requirements and shares, write them on the sheet and read them back with it. A line nobody can answer becomes an open question (`MODES.md`, "Unknowns").
 
 ## 4. Write the confirmed lines
 
