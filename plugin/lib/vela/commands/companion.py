@@ -15,19 +15,26 @@ import datetime
 import json
 import pathlib
 
-from vela import companiondesign, companionrender, companionsession
-from vela.edge import companionstore, plans
+from vela import companiondesign, companionexplain, companionplan, companionrender, companionseen, companionsession, errors
+from vela.edge import companionstore, plans, vaultfiles
 
 NO_SESSION = "No session is open in this folder."
 
 
 def register(sub):
     top = sub.add_parser("companion", help="the panels beside a chat: what this session decided, and what a question needs")
-    verbs = top.add_subparsers(dest="companion_command", metavar="{session,prepare}")
+    verbs = top.add_subparsers(dest="companion_command", metavar="{session,explain,prepare}")
     verbs.required = True
     session = verbs.add_parser("session", help="what this session is about, what it decided, what's open and what's next")
     common(session)
     session.set_defaults(func=cmd_session)
+    explain = verbs.add_parser("explain", help="a question about the plan, answered from vela's own numbers, with what the plan doesn't know")
+    explain.add_argument("--view", required=True, choices=companionexplain.VIEWS, help="which view answers it")
+    explain.add_argument("--about", default="", help="the flow or page it is about, by name (with --view flow or page)")
+    explain.add_argument("--as", dest="as_handle", default="", metavar="@HANDLE", help="who is asking, when vela can't tell")
+    explain.add_argument("--last", action="store_true", help="print the last answer written, unchanged")
+    common(explain)
+    explain.set_defaults(func=cmd_explain)
     prepare = verbs.add_parser("prepare", help="make the plan digest the explain views read, without drawing the dashboard")
     prepare.add_argument("--vault", default=".", help="vault root (default: current directory)")
     prepare.add_argument("--today", help="today's date, YYYY-MM-DD (default: the system date)")
@@ -173,3 +180,84 @@ def cmd_prepare(args, out):
     prepare(root, today)
     print(f"Prepared the plan's data in {time.perf_counter() - started:.1f} s.", file=out)
     return 0
+
+
+def current_digest(root, today):
+    """(digest, warnings): the stored digest when it still matches the plan; otherwise prepared again, and said. It never
+    serves an old digest as current, which would put stale numbers in the chat."""
+    import time
+    why = ""
+    try:
+        digest = companionstore.plan_digest(root)
+    except errors.ToolError:
+        digest, why = None, "the stored one couldn't be read"
+    if digest is not None and digest.get("version") == companionplan.VERSION \
+            and digest.get("fingerprint") == vaultfiles.fingerprint(root):
+        return digest, []
+    started = time.perf_counter()
+    prepare(root, today)
+    took = f"{time.perf_counter() - started:.1f} s"
+    reason = why or ("there was none yet" if digest is None else "the plan had changed")
+    return companionstore.plan_digest(root), [f"Prepared the plan's data again in {took}; {reason}."]
+
+
+def explain_files():
+    base = companionstore.FOLDER
+    return {"json": f"{base}/explain.json", "md": f"{base}/explain.md", "html": f"{base}/explain.html"}
+
+
+def since_of(root, digest, today, warnings):
+    """The "Since ..." line, and the rolled record written back. A record that can't be read starts over, and says so."""
+    try:
+        held = companionstore.seen(root)
+    except errors.ToolError as exc:
+        held = {}
+        warnings.append(f"{exc} I started the comparison again.")
+    rolled = companionseen.roll(held, companionseen.snapshot(digest, today))
+    if rolled != held:
+        companionstore.write_seen(root, rolled)
+    return companionseen.since_line(rolled.get("previous"), rolled["current"])
+
+
+def cmd_explain(args, out):
+    root = root_of(args)
+    today = clock(args)[0]
+    if args.last:
+        last = companionstore.folder(root) / "explain.json"
+        if not last.is_file():
+            print("Nothing has been explained yet.", file=out)
+            return 1
+        print(last.read_text(encoding="utf-8"), end="", file=out)
+        return 0
+    digest, warnings = current_digest(root, today)
+    handle, role = companionstore.viewer(root)
+    viewer = companionexplain.Viewer(("@" + args.as_handle.lstrip("@")) if args.as_handle else handle, role)
+    since = since_of(root, digest, today, warnings)
+    try:
+        data = companionexplain.explain(digest, args.view, args.about, viewer, since, today)
+    except companionexplain.Unknown as exc:
+        return said_unknown(args, out, exc)
+    except companionexplain.NeedsViewer:
+        return said_needs_viewer(args, out)
+    data["files"] = explain_files()
+    data["warnings"] += warnings
+    return finish(args, out, root, data, 0)
+
+
+def said_unknown(args, out, exc):
+    if args.json:
+        print(json.dumps({"message": str(exc), "matches": exc.matches}, indent=1, ensure_ascii=False), file=out)
+    else:
+        print(str(exc), file=out)
+        for name in exc.matches:
+            print(f"  {name}", file=out)
+    return 1
+
+
+def said_needs_viewer(args, out):
+    ask = {"ask": "handle", "question": companionexplain.NEEDS_WHO, "answer_with": "--as @handle"}
+    if args.json:
+        print(json.dumps({"needs_lead": [ask], "message": companionexplain.NEEDS_WHO}, indent=1), file=out)
+    else:
+        print(companionexplain.NEEDS_WHO, file=out)
+    return 3

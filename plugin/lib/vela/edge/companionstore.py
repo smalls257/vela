@@ -163,11 +163,24 @@ def write_forms(root, kind, data, md, html, html_out=None, published=False):
     if html_out:
         files[pathlib.Path(html_out)] = html
     if published:
-        files[base / "published.json"] = json.dumps(
-            {"capture": data.get("capture", 0), "at": data.get("as_of", ""),
-             "session": (data.get("session") or {}).get("id", "")}) + "\n"
+        files[base / "published.json"] = json.dumps(_published(base / "published.json", kind, data)) + "\n"
     atomic.write_all_atomic(files)
     return list(files)
+
+
+def _published(path, kind, data):
+    """published.json: the session panel's capture and the explain panel's view, each under its own entry, so
+    publishing one never erases what the other said it drew."""
+    try:
+        held = json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {}
+    except (OSError, UnicodeDecodeError, ValueError):  # a marker that can't be read is rewritten from this publish
+        held = {}
+    if kind == "session":
+        held.update({"capture": data.get("capture", 0), "at": data.get("as_of", ""),
+                     "session": (data.get("session") or {}).get("id", "")})
+    else:
+        held["explain"] = {"view": data.get("view", ""), "at": data.get("as_of", "")}
+    return held
 
 
 def clear_forms(root, kind):
@@ -297,3 +310,39 @@ def prepare_digest(vault, root, today, data, made_commit=""):
     digest = companionplan.digest(data, made, vaultfiles.fingerprint(root), cli.next_step_text(vault, today))
     write_plan_digest(root, digest)
     return digest
+
+
+SEEN = FOLDER + "/seen.json"
+
+
+def seen(root):
+    """What the reader saw last ({"previous", "current"}), {} on the first copy. A file that can't be read raises
+    ToolError: the caller says so and starts again, never reads it as "nothing changed"."""
+    path = pathlib.Path(root) / SEEN
+    if not path.is_file():
+        return {}
+    try:
+        found = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, ValueError) as exc:
+        raise errors.ToolError(f"What you saw last time couldn't be read ({exc}).") from exc
+    return found if isinstance(found, dict) else {}
+
+
+def write_seen(root, found):
+    write_json(pathlib.Path(root) / SEEN, found)
+
+
+def viewer(root):
+    """(handle with its @, onboarding audience): from `.vela/handle` and the role saved by `vela whoami --role`, "" for
+    each that isn't there."""
+    root = pathlib.Path(root)
+    handle = sessiongit.read_handle(root) or ""
+    role = ""
+    try:
+        role = (root / ".vela" / "role").read_text(encoding="utf-8").split("\n", 1)[0].strip()
+    except FileNotFoundError:
+        role = ""
+    except (OSError, UnicodeDecodeError):  # an unreadable role file is no role; the handle is what the views need
+        role = ""
+    handle = handle.strip()
+    return ("@" + handle.lstrip("@") if handle else ""), role

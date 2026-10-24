@@ -66,8 +66,9 @@ def progress_of(data, names):
     found = []
     for row in data["progress"]["rows"]:
         mix = row["mix"]
+        # mix is [early idea, assumption, confirmed, decided]: what is being planned is everything not already confirmed
         found.append({"app": row["app"], "name": name(names, row["app"]), "stage": row["stage"], "decided": mix[3],
-                      "total": sum(mix), "next": row["reason"]})
+                      "open": mix[0] + mix[1], "total": mix[0] + mix[1] + mix[3], "next": row["reason"]})
     return found
 
 

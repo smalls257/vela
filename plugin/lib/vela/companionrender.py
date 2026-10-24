@@ -4,10 +4,11 @@ Every surface draws the same dict, so they can't drift (Distributed Monolith rul
 rule: the words and the counts come from the dict. The panels only show; nothing here sends anything back to Claude
 (owner's ruling of October 24, 2026), so there are no buttons. Vault text reaches the HTML only escaped.
 """
+import datetime
 import re
 from html import escape as _escape
 
-from vela import companionsvg
+from vela import companionsvg, say
 
 def escape(text):
     """Text for an HTML text node: markup is escaped; quotes are safe there and stay readable."""
@@ -109,9 +110,68 @@ def session_sections(data):
     return sections
 
 
+def explain_header(data):
+    day = data["copy"]["made"]["date"]
+    return f"copy of {say.date_words(day, datetime.date.fromisoformat(data['as_of']))}"
+
+
+def item_line(view, item, today):
+    """One item as a plain line; "" for a totals row (its numbers are in the headline)."""
+    if item["id"] == "total":
+        return ""
+    bits = [item["name"]]
+    if view == "flow":
+        return f"{item['id']}. {item['name']}"
+    if view in ("stuck", "who"):
+        if item.get("who") and view == "stuck":
+            bits.append(item["who"])
+        if item.get("open_days") is not None:
+            bits.append(f"{item['open_days']} days")
+        if item.get("ask_by"):
+            bits.append("ask by " + say.date_words(item["ask_by"], today))
+        if item.get("holds"):
+            bits.append("holds " + ", ".join(item["holds"]))
+    elif view == "needs" and item.get("date"):
+        bits.append("by " + say.date_words(item["date"], today))
+    elif view == "left":
+        bits.append(f"{item['decided']} of {item['total']} decided")
+    elif view == "track":
+        bits.append(item.get("status") or ("due " + item["target"] if item.get("target") else ""))
+    return " \u00b7 ".join(b for b in bits if b)
+
+
+def explain_blocks(data):
+    """[(heading or "", [lines])]: the groups when the view has them, else the items; never the page's own opening."""
+    view, today = data["view"], datetime.date.fromisoformat(data["as_of"])
+    if view in ("none", "page"):
+        return []
+    if data["groups"]:
+        return [(g["who"], [item_line(view, i, today) for i in g["items"]]) for g in data["groups"]]
+    lines = [line for line in (item_line(view, i, today) for i in data["items"]) if line]
+    return [("", lines)] if lines else []
+
+
+def explain_markdown(data):
+    out = [f"**{data['copy']['title']}**   {explain_header(data)}", ""]
+    out += [*data["headline"], ""]
+    if data["since"]:
+        out += [data["since"], ""]
+    for heading, lines in explain_blocks(data):
+        if heading:
+            out.append(f"**{heading}**")
+        out += [f"- {line}" for line in lines]
+        out.append("")
+    if data["diagram"] and data["diagram"]["text"]:
+        out += ["    " + line for line in data["diagram"]["text"].split("\n")] + [""]
+    out += [*data["not_recorded"]]
+    out += [f"Full picture: {data['dashboard']} in this folder", ""]
+    out += [f"Note: {w}" for w in data["warnings"]]
+    return "\n".join(out).rstrip("\n") + "\n"
+
+
 def markdown(data):
-    if data["kind"] != "session":
-        raise NotImplementedError("the explain layout comes with `vela companion explain`")
+    if data["kind"] == "explain":
+        return explain_markdown(data)
     title = data["session"]["title"]
     out = [f"**{title}**   {header_line(data)}", ""]
     if data["notes"] == "unreadable":
@@ -134,7 +194,7 @@ STYLE = """body{margin:0;background:var(--room);color:var(--ink);font:14px/1.45 
 main{padding:16px 18px;max-width:420px}h1{font-size:15px;margin:0 0 2px}.asof{color:var(--ink-3);font-size:12px}
 .about{color:var(--ink-2);margin:8px 0 12px}h2{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);margin:14px 0 4px}
 ul{list-style:none;margin:0;padding:0}li{padding:3px 0}.next{background:var(--deck-2);border-left:3px solid var(--unexamined);padding:6px 10px;border-radius:4px}
-.sub{color:var(--ink-3);font-size:12px}.note{color:var(--caution-text);font-size:12px}footer{color:var(--ink-3);font-size:12px;margin-top:14px}
+.sub{color:var(--ink-3);font-size:12px}.note{color:var(--caution-text);font-size:12px}.lead{font-size:22px;font-weight:600;margin:10px 0 2px}.since{color:var(--diff-add);font-size:13px}footer{color:var(--ink-3);font-size:12px;margin-top:14px}
 svg{max-width:100%;height:auto}"""
 
 
@@ -153,9 +213,26 @@ def inline(svg):
     return svg.replace(' xmlns="http://www.w3.org/2000/svg"', "")
 
 
+def explain_html(data, palette):
+    body = [f"<h1>{escape(data['copy']['title'])}</h1><div class=\"asof\">{escape(explain_header(data))}</div>"]
+    body += [f"<p class=\"{'lead' if n == 0 else 'about'}\">{escape(line)}</p>" for n, line in enumerate(data["headline"])]
+    if data["since"]:
+        body.append(f"<p class=\"since\">{escape(data['since'])}</p>")
+    for heading, lines in explain_blocks(data):
+        body.append((f"<h2>{escape(heading)} ({len(lines)})</h2>" if heading else "") + html_list(lines))
+    if data["diagram"]:
+        body.append(inline(data["diagram"]["svg"]))
+    body += [f"<p class=\"note\">{escape(line)}</p>" for line in data["not_recorded"]]
+    body += [f"<p class=\"note\">{escape(w)}</p>" for w in data["warnings"]]
+    body.append(f"<footer>{escape('Full picture: ' + data['dashboard'] + ' in this folder')}</footer>")
+    return (f"<!doctype html><html lang=\"en\"><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width\">"
+            f"<title>{escape(data['copy']['title'])}</title><style>{palette}\n{STYLE}</style><body><main>"
+            + "".join(body) + "</main></body></html>\n")
+
+
 def html(data, palette):
-    if data["kind"] != "session":
-        raise NotImplementedError("the explain layout comes with `vela companion explain`")
+    if data["kind"] == "explain":
+        return explain_html(data, palette)
     body = [f"<h1>{escape(data['session']['title'])}</h1><div class=\"asof\">{escape(header_line(data))}</div>"]
     if data["notes"] == "unreadable":
         body.append(f"<p>{escape(UNREADABLE)}</p>")
