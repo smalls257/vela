@@ -160,6 +160,35 @@ def of(vault):
     return sized
 
 
+# ---- the lead's choice in .vela.yaml: the size block, edited without touching any other line ---------------------
+
+_SIZE_KEY = re.compile(r"^size:")
+
+
+def _without_block(text):
+    kept, inside = [], False
+    for line in text.splitlines(keepends=True):
+        if _SIZE_KEY.match(line):
+            inside = True
+            continue
+        if inside and (line.startswith((" ", "\t")) or not line.strip()):
+            continue
+        inside = False
+        kept.append(line)
+    return "".join(kept)
+
+
+def config_without_choice(text):
+    return _without_block(text)
+
+
+def config_with_choice(text, choice):
+    """`.vela.yaml` text with the size block set to `choice`, replacing an old one; every other line is kept."""
+    held = _without_block(text)
+    held += "" if held.endswith("\n") or not held else "\n"
+    return (f'{held}size:\n  band: {choice.band}\n  because: "{choice.because}"\n  date: "{choice.date}"\n')
+
+
 # ---- what the lead hears, once ------------------------------------------------------------------------------------
 
 def _listed(signals):
