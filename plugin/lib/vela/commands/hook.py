@@ -121,7 +121,9 @@ def staleness_line(root):
         return ""
     if notes is None or "capture" not in marker or marker.get("session") != str(stub.get("id", "")):
         return ""
-    return companionsession.behind(int(marker["capture"]), companionsession.highest_capture(notes))
+    if not isinstance(marker["capture"], int) or isinstance(marker["capture"], bool):
+        raise ValueError("the published marker's capture is not a number")
+    return companionsession.behind(marker["capture"], companionsession.highest_capture(notes))
 
 
 def cmd_said(args, out):
@@ -134,7 +136,6 @@ def cmd_said(args, out):
     prompt = payload.get("prompt")
     if not isinstance(prompt, str) or not prompt.strip() or said.harness_injected(prompt):
         return 0
-    say_if_behind(payload, out)
     when = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     for root in vaults_started_from(marker_folder(payload)):  # opened at a repo's root, every plan below hears it
         name = str(payload.get("session_id") or "") or vaultgit.current_branch(root) or "session"
@@ -142,18 +143,16 @@ def cmd_said(args, out):
             saidlog.append(root, name, when, prompt)
         except OSError as exc:
             warn(f"couldn't log the message under {root / saidlog.FOLDER}: {exc}; `vela record add` will mark yeses unverified", "said")
+    say_if_behind(payload, out)  # after the log: nothing it meets can cost the person's words or block the message
     return 0
 
 
 def say_if_behind(payload, out):
     """Print the staleness line for the plan above the hook's folder, if there is one; never fail the hook."""
-    from vela import errors
-    above = vault_for(marker_folder(payload))
-    if above is None:
-        return
-    try:
-        line = staleness_line(above)
-    except (errors.ToolError, OSError, ValueError) as exc:
+    try:  # nosemgrep: broad-except-not-reraised -- exit 2 here would block and erase the person's message; the warning goes to stderr
+        above = vault_for(marker_folder(payload))
+        line = staleness_line(above) if above is not None else ""
+    except Exception as exc:  # a UserPromptSubmit hook that exits 2 blocks and erases the person's message
         warn(f"couldn't tell whether the session panel is behind: {exc}", "said")
         return
     if line:
