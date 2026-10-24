@@ -610,9 +610,22 @@ def _copy_problem(vault, row):
     if found is None:
         return "W804", f"{row.copy} is orphaned: {row.subject} is no longer in the vault. The row stays as a record."
     if not any(c.id == row.copy for c in owed(vault)):
+        if entry.follows and entry.trigger.matches(found.fact_map()):
+            return _held_by_parent(vault, row, entry)
         return "W804", (f"{row.copy} is no longer owed: {row.subject} no longer matches the trigger "
                         f"'{entry.trigger.text}'. The row stays as a record.")
     return None
+
+
+def _held_by_parent(vault, row, entry):
+    """The trigger matches but the entry `follows` another whose copy is not yet a yes: the row waits, whether the
+    parent is still pending or was answered no. Nothing to remove, so no finding; one only when the parent is itself
+    not owed on the subject, which the lead should hear."""
+    parent = f"{entry.follows}@{row.subject}"
+    if any(c.id == parent for c in owed(vault)):
+        return None
+    return "W804", (f"{row.copy} follows {entry.follows}, which is not owed on {row.subject}, so this copy is not "
+                    "owed either. The row stays as a record.")
 
 
 def _row_findings(vault):

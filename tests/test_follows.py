@@ -44,3 +44,28 @@ def test_a_follows_that_cannot_hold_is_refused_at_load(follows, said):
     entry["follows"] = follows
     with pytest.raises(catalog.CatalogError, match=said):
         catalog.parse_catalog(data)
+
+
+def with_rows(root, *rows):
+    edit(root / LEDGER, HEADER, HEADER + "".join(f"| {r} | @dana | 2026-10-23 |\n" for r in rows))
+
+
+def w804(root):
+    from conftest import run
+    return [line for line in run("check", "--vault", str(root))[1].splitlines() if "W804" in line and "REG-05" in line]
+
+
+@pytest.mark.parametrize("parent", ["unknown | unknown: [[11-unknowns-and-risks#UNK-001]]",
+                                    "not-applicable | reason: nothing is sold with another party"])
+def test_a_follow_up_row_waiting_on_its_parent_is_not_called_unmatched(tmp_path, parent):
+    # The trigger matches; the row waits for Q-REG-01's answer. Telling the lead to remove it would delete a recorded answer.
+    root = from_template(tmp_path)
+    with_rows(root, f"Q-REG-01@INI-001 | {parent}",
+              "Q-REG-05@INI-001 | not-applicable | reason: no product is shared across parties")
+    assert w804(root) == []
+
+
+def test_a_follow_up_row_is_still_called_out_when_its_trigger_stops_matching(tmp_path):
+    root = from_template(tmp_path)
+    with_rows(root, "Q-REG-05@INI-999 | not-applicable | reason: gone")
+    assert w804(root), "an unmatched subject still draws the finding"
