@@ -99,3 +99,18 @@ def test_the_core_reads_no_clock():
     meta = {"id": SESSION, "title": "Grill: x", "modes": ["grill"], "status": "open", "date": "2026-10-24"}
     got = companionsession.unreadable(meta, "missing", "2026-10-24", "09:00")
     assert got["as_of"] == "2026-10-24T09:00"
+
+
+def test_the_skills_suffix_keeps_a_failed_writes_exit_code(tmp_path):
+    import re
+    import subprocess
+    from conftest import REPO
+    text = (REPO / "plugin" / "skills" / "companion" / "SKILL.md").read_text(encoding="utf-8")
+    suffix = re.search(r"put `([^`]*companion session --html)` at the end", text).group(1)
+    assert not suffix.startswith(";")
+    plugin = REPO / "plugin"
+    command = "sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela no-such-command " + suffix
+    done = subprocess.run(["sh", "-c", command], cwd=tmp_path, capture_output=True, text=True,
+                          env={**__import__("os").environ, "CLAUDE_PLUGIN_ROOT": str(plugin)})
+    assert done.returncode != 0
+    assert "session.html" not in done.stdout
