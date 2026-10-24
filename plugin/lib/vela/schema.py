@@ -453,6 +453,7 @@ CODES = {
     "E404": "generated block markers are broken",
     "W405": "a slice page still has a Joins line, which is no longer read: joins come from its flows",
     "W406": "two or more slices name no After, or none does: the tracer is the one slice with no After",
+    "W407": "a box on a flow page's sequence diagram cannot be drawn as a lane group in the Flows view",
     "E601": "flowchart over its element budget",
     "E602": "sequence diagram over its participant budget",
     "E603": "diagram type not supported",

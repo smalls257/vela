@@ -82,3 +82,26 @@ def expired(catalog, today):
                            "blocks its slice again.",
                            "Fix the finding and delete the override, or write a new end date and why it moved."))
     return out
+
+
+def box_findings(catalog, party_names):
+    """W407 for each `box` on a flow page that the Flows view cannot draw as a group (flowcheck.mermaid.plan_boxes says why, in
+    words). A box that is quietly not drawn would leave the page's own line ("Lookups groups Pricing and Vessel schedule") saying
+    something the view does not show, so the page is told. `party_names` is the lowercased names of the vault's registered parties."""
+    from vela.flowcheck import mermaid
+    out = []
+    for flow in catalog.flows.values():
+        if not flow.has_diagram:
+            continue
+        tree = mermaid.parse_tree(flow, [])
+        if not tree.boxes:
+            continue
+
+        def lane_of(name, tree=tree):
+            title = " ".join(tree.participants.get(name, (name, ""))[0].split())
+            app = catalog.app_named(title)
+            return app.key if app is not None else (title.lower() if title.lower() in party_names else "")
+        for line, words in mermaid.plan_boxes(tree, lane_of)[1]:
+            out.append(Finding(flow.path, line, "W407", words, "Give the box two or more participants that are apps or parties in the plan, each in one box, "
+                                                              "or take the box out; until then the Flows view opens this flow without that group."))
+    return out

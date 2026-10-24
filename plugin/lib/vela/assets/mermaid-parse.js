@@ -15,8 +15,9 @@ const stubElement = () => ({ setAttribute: noop, appendChild: noop, style: {} })
 globalThis.window = globalThis;
 globalThis.addEventListener = noop;
 globalThis.Element = function Element() {};
-// a sequence diagram's `box` asks the page whether its first word is a CSS color (new Option().style); a parse needs only an answer
-globalThis.Option = function Option() { this.style = {}; };
+// a sequence diagram's `box` asks the page whether its first word is a CSS color (new Option().style)
+// A browser keeps a color only when it is one; this stub keeps none, so no first word reads as a color and the whole text is the title.
+globalThis.Option = function Option() { this.style = { set color(value) {}, get color() { return ""; } }; };
 globalThis.document = {
   nodeType: 9, compatMode: "CSS1Compat", readyState: "complete", body: { appendChild: noop },
   createElement: stubElement, querySelector: () => null, querySelectorAll: () => [], addEventListener: noop,

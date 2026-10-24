@@ -1,6 +1,6 @@
 /* What the reader has done to the Flows view, apart from the flow itself: which start they follow, which lanes they grouped,
    folded into another, or hid. One flow at a time: every choice is kept per flow and rides in the address (#flows&open=FLO
-   &start=S2&group=Channels:APP-a,APP-b&fold=APP-pricing,APP-ledger&hide=PTY-01), the way the Show picker's branch does, so it
+   &start=S2&lanes=Channels:APP-a,APP-b&fold=APP-pricing,APP-ledger&hide=PTY-01), the way the Show picker's branch does, so it
    survives a reload and Back and never carries to another flow.
 
    FlowKit draws a flow as it is handed. flowOf hands it the played flow through apply() below, which returns the same flow
@@ -13,7 +13,7 @@
    move onto it, and those that end up the same become one arrow that says who it stands for ("to all 3 in Channels"); what
    passes between its own members becomes a card on its lane with the step numbers kept ("6–7, 2 steps in one"), so no step
    goes missing. The flow page can write groups with mermaid's `box` (the build reads them as flow.groups); they apply when the
-   flow opens, `ungroup=Channels` in the address takes one away, and a `group=` in the address wins over the page's. The saved
+   flow opens, `apart=Channels` in the address takes one away, and a `lanes=` in the address wins over the page's. (Not `group=`: that is the Apps map's own key, and a value meant for one would break the other.) The saved
    clip, the list and the panel keep every app.
 
    A lane can fold into another when it talks to exactly one other lane, answers it at least once, that lane itself talks to at least two, and it is not
@@ -27,27 +27,29 @@ const FlowView = (() => {
   const SAVED = () => `explorer.lanegroups.${D.vaultId}`, SAVED_MAX = 12;  // groups made on other flows, offered here (newest first)
 
   const blank = () => ({ start: "all", folded: new Set(), hidden: new Set(), groups: null, ungroup: new Set() });
+  /* The address holds each value encoded once: HASH (URLSearchParams) takes that layer off when it reads. Inside a value the pieces are encoded
+     once more, name by name, so a name may hold , : ; or %; readGroups and names take that second layer off, each piece once. */
+  const unenc = (t) => { try { return decodeURIComponent(t); } catch (e) { console.warn("[flows] an address piece is not valid encoding, so it is read as typed:", t); return t; } };  // a hand-typed "50% off" stays as typed
   /* The groups the address names: "Channels:APP-a,APP-b;Lookups:APP-c,APP-d", each name and ID encoded. */
   function readGroups(text) {
     return text.split(";").filter(Boolean).map((part) => {
       const at = part.indexOf(":");
-      return at < 0 ? null : { name: decodeURIComponent(part.slice(0, at)), members: part.slice(at + 1).split(",").filter(Boolean).map(decodeURIComponent) };
+      return at < 0 ? null : { name: unenc(part.slice(0, at)), members: part.slice(at + 1).split(",").filter(Boolean).map(unenc) };
     }).filter((g) => g && g.name);
   }
   const writeGroups = (groups) => groups.map((g) => `${enc(g.name)}:${g.members.map(enc).join(",")}`).join(";");
-  const names = (text) => (text ? text.split(",").filter(Boolean).map(decodeURIComponent) : []);
+  const names = (text) => (text ? text.split(",").filter(Boolean).map(unenc) : []);
 
   function choices(key) {
     if (!(key in picked)) picked[key] = blank();
-    const sig = ["start", "fold", "hide", "group", "ungroup"].map((n) => HASH.get(n) || "").join("|");
+    const sig = ["start", "fold", "hide", "lanes", "apart"].map((n) => HASH.get(n) || "").join("|");
     // a pasted link or Back brings its own choices; the page's own changes write the address without reading it back
     if ((HASH.get("present") || HASH.get("open") || (typeof Flows !== "undefined" ? Flows.st.key : "")) === key && sig !== (seen[key] || "")) {
       seen[key] = sig;
       const list = (n) => (HASH.get(n) ? HASH.get(n).split(",").filter(Boolean) : []);
-      // the map's own address also has a group= (how it groups apps): only what reads as groups here is one
-      const made = HASH.get("group") ? readGroups(HASH.get("group")) : [];
+      const made = HASH.get("lanes") ? readGroups(HASH.get("lanes")) : [];
       picked[key] = { start: HASH.get("start") || "all", folded: new Set(list("fold")), hidden: new Set(list("hide")),
-        groups: made.length ? made : null, ungroup: new Set(names(HASH.get("ungroup"))) };
+        groups: made.length ? made : null, ungroup: new Set(names(HASH.get("apart"))) };
       version++;
     }
     return picked[key];
@@ -56,8 +58,8 @@ const FlowView = (() => {
   function hashPart(key) {
     const v = choices(key), out = [];
     if (v.start !== "all") out.push("start=" + enc(v.start));
-    if (v.groups) out.push("group=" + writeGroups(v.groups));  // names and IDs are encoded one by one; the : , ; between them read as they are
-    else if (v.ungroup.size) out.push("ungroup=" + enc([...v.ungroup].map(enc).join(",")));
+    if (v.groups) out.push("lanes=" + enc(writeGroups(v.groups)));  // each name once, then the whole value once more for the address
+    else if (v.ungroup.size) out.push("apart=" + enc([...v.ungroup].map(enc).join(",")));
     if (v.folded.size) out.push("fold=" + enc([...v.folded].join(",")));
     if (v.hidden.size) out.push("hide=" + enc([...v.hidden].join(",")));
     return out.length ? "&" + out.join("&") : "";
@@ -187,7 +189,7 @@ const FlowView = (() => {
         for (const m of g.members) if (!touched.has(m)) said.push(`This link groups ${titleOf(m)}, which isn't in this flow.`);
         for (const m of present) if (taken.has(m)) said.push(`This link puts ${titleOf(m)} in two groups, so ${g.name} doesn't take it.`);
       }
-      if (free.length < 2) { if (link) said.push(`${g.name} has fewer than two lanes in this flow, so it isn't drawn.`); continue; }
+      if (free.length < 2) { said.push(`${g.name} has fewer than two lanes in this flow, so it isn't drawn.`); continue; }
       if (free.length >= touched.size) { said.push(`${g.name} would be every lane in this flow, so it isn't drawn.`); continue; }
       const id = idFor(g.name, ids), members = free.sort((a, b) => order.indexOf(a) - order.indexOf(b));
       ids.add(id); free.forEach((m) => taken.add(m));
@@ -195,6 +197,7 @@ const FlowView = (() => {
       live.push({ id, name: g.name, members, source });
       GROUPS[id] = { name: g.name, members };
     }
+    if (!link) for (const note of (FLOW[key] && FLOW[key].groupNotes) || []) said.push(note);  // boxes the page writes that the build could not draw, said once here
     const memberOf = {};
     for (const g of live) for (const m of g.members) memberOf[m] = g.id;
     const laneObj = (id) => { const g = live.find((x) => x.id === id); return g ? { id, name: g.name, group: { members: g.members, source: g.source } } : D.lanes[LANE_INDEX[id]]; };
@@ -245,7 +248,7 @@ const FlowView = (() => {
   function changed() { version++; listeners.forEach((fn) => fn()); }
   const watch = (fn) => { listeners.push(fn); };
   const keepInHash = (key) => {
-    const kept = (location.hash || "#").slice(1).split("&").filter((p) => p && !/^(start|fold|hide|group|ungroup)=/.test(p));
+    const kept = (location.hash || "#").slice(1).split("&").filter((p) => p && !/^(start|fold|hide|lanes|apart)=/.test(p));
     history.replaceState(null, "", "#" + kept.join("&") + hashPart(key));
   };
   const change = (key, fn) => { choices(key); fn(picked[key]); keepInHash(key); changed(); };
@@ -307,9 +310,15 @@ const FlowView = (() => {
     });
     if (said) toast(said);
   }
+  /* Returns "" when renamed, else the plain reason it was not (the name is another group's: two would come apart together). */
   function renameGroup(key, id, name) {
-    const g = stageOf(key).live.find((x) => x.id === id), clean = (name || "").trim();
-    if (!g || !clean || clean === g.name) return;
+    const st = stageOf(key), g = st.live.find((x) => x.id === id), clean = (name || "").trim();
+    if (!g || !clean || clean === g.name) return "";
+    if (st.live.some((x) => x.id !== id && x.name.toLowerCase() === clean.toLowerCase())) {
+      const said = `There is already a group called ${clean}. Pick another name.`;
+      toast(said);
+      return said;
+    }
     change(key, (v) => {
       const now = wanted(key, v).map((x) => (x.name === g.name ? { ...x, name: clean } : x));
       v.groups = now; v.ungroup = new Set();
@@ -317,6 +326,7 @@ const FlowView = (() => {
       for (const set of [v.folded, v.hidden]) if (set.delete(id)) set.add(next);
       remember(key, { name: clean, members: g.members });
     });
+    return "";
   }
   /* Groups offered, never applied: the business areas the map names (two or more of this flow's lanes in one), and groups made on other flows in this browser. */
   function suggestions(key) {

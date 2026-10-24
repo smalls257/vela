@@ -20,7 +20,7 @@ const MapView = (() => {
   const GROUP_OFF = { domain: "No app has a business area yet, so there is nothing to group by",
     capability: "No app has requirements or epics tied to a capability yet, so there is nothing to group by" };
   const groupOff = (id) => (id === "domain" && !hasDomains()) || (id === "capability" && !hasCapabilities());
-  const group = () => { const g = st.group || (manyApps() && hasDomains() ? "domain" : "none"); return groupOff(g) ? "none" : g; };
+  const group = () => { const g = st.group || (manyApps() && hasDomains() ? "domain" : "none"); return groupOff(g) || !GROUPS.some(([id]) => id === g) ? "none" : g; };
   let pulses = [], trains = [], gPulses = null, LAY = null, stripEl = null;
   const LEDE = {
     cockpit: "The apps and the contracts between them. Pick one to see what it's waiting on.",
@@ -802,7 +802,7 @@ const MapView = (() => {
   });
   const mode = () => (lens() === "cockpit" ? (st.focus ? "focus" : group() === "none" ? "cockpit" : group()) : lens());
   function here() { return App.focus ? mapAnchors(App.focus) : []; }
-  return { LOOKS: { cockpit: COCKPIT_LOOKS, focus: () => ({ ...COCKPIT_LOOKS(), ...MapGroups.LOOKS_FOCUS }) }, render, highlight, here, lens, group, viewItems, st, lamp, contractSize, fitSvg, shortWhy, startBreathing: () => breathe.start(), big, COCKPIT, markDrop, clearDrop, justDropped, resetPulses: () => { pulses = []; }, CLUSTER_PAST };
+  return { GROUP_IDS: GROUPS.map(([id]) => id), LOOKS: { cockpit: COCKPIT_LOOKS, focus: () => ({ ...COCKPIT_LOOKS(), ...MapGroups.LOOKS_FOCUS }) }, render, highlight, here, lens, group, viewItems, st, lamp, contractSize, fitSvg, shortWhy, startBreathing: () => breathe.start(), big, COCKPIT, markDrop, clearDrop, justDropped, resetPulses: () => { pulses = []; }, CLUSTER_PAST };
 })();
 View("map", { label: "Map", title: "The apps, the contracts between them, and what's waiting", render: MapView.render, highlight: MapView.highlight,
   count: () => `${D.map.apps.length}·${D.map.contracts.length}`, lamp: () => { const top = litSubjects()[0]; return top ? top.light.level : null; } });

@@ -150,7 +150,7 @@ const LaneGroups = (() => {
     const rename = h("span", { class: "gp-rename" });
     const startRename = () => {
       const input = h("input", { type: "text", value: g.name, "aria-label": "Group name", autocomplete: "off" });
-      const save = () => { const t = input.value.trim(); if (t && t !== g.name) { FlowView.renameGroup(key, id, t); const next = FlowView.groupsFor(key).find((x) => x.name === t); DetailsPanel.show(next ? next.id : id, { reset: true }); } else paintBack(); };
+      const save = () => { const t = input.value.trim(); if (t && t !== g.name) { if (FlowView.renameGroup(key, id, t)) return input.focus(); const next = FlowView.groupsFor(key).find((x) => x.name === t); DetailsPanel.show(next ? next.id : id, { reset: true }); } else paintBack(); };
       input.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); save(); } else if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); paintBack(); } });
       rename.replaceChildren(input, h("button", { class: "btn tiny", type: "button", onclick: save }, "Save"), h("button", { class: "btn tiny", type: "button", onclick: () => paintBack() }, "Cancel"));
       input.focus(); input.select();

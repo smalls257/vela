@@ -130,8 +130,11 @@
     if (!foldable.length) return;
     const bad = [], seenMerged = [];
     for (const f of foldable) {
-      const key = f.key, hosts = FlowView.hostsOf(key), plain = FlowKit.flowOf(key, { plain: true });
-      clean(key); Nav.open("flows", key); Flows.select(key, -1); await tick(); await tick();
+      const key = f.key;
+      Nav.open("flows", key); Flows.select(key, -1); await tick(); await tick();
+      clean(key); await tick();  // a flow that opens grouped is checked lane by lane: what folds is worked out on the lanes as they are
+      const hosts = FlowView.hostsOf(key), plain = FlowKit.flowOf(key, { plain: true });
+      if (!Object.keys(hosts).length) continue;
       const btn = $("#simplify-btn");
       if (!btn || btn.getAttribute("aria-pressed") !== "false" || btn.textContent !== "Simplify") { bad.push(`${key}: no Simplify button`); continue; }
       const answering = new Set(plain.steps.flatMap((x) => x.messages.flatMap((m) => (m.kind === "request" ? [m.to] : m.kind === "answer" ? [m.from] : []))));
@@ -251,7 +254,7 @@
   const WEB = "APP-website", DESK = "APP-call-center", KIOSK = "APP-kiosks", BOOK = "APP-booking", PRICE = "APP-pricing", CUST = "APP-customer-identity", SCHED = "APP-vessel-schedule";
   const forgetGroups = () => { try { localStorage.removeItem(`explorer.lanegroups.${D.vaultId}`); } catch (e) { console.warn("[selftest] this browser keeps nothing, so no saved lane groups to clear:", e.message); } };
   async function reopen(key, extra = {}) {  // the way a pasted link or Back opens a flow: the address names what it names
-    for (const step of [{ ungroup: "~" }, extra]) {
+    for (const step of [{ apart: "~" }, extra]) {
       for (const k of [...HASH.keys()]) HASH.delete(k);
       HASH.set("open", key); for (const [k, v] of Object.entries(step)) HASH.set(k, v);
       Flows.select(key, -1); Nav.open("flows", key); await tick();
@@ -276,7 +279,7 @@
 
   async function grouping(ok) {
     const f1 = D.flows.find((f) => f.key === "FLO-001" && (f.groups || []).length === 2);
-    if (!f1) return;
+    if (!f1) { console.warn("[selftest] groups skipped: no FLO-001 with two page groups in this vault"); return; }
     const key = f1.key, bad = [];
     // opens grouped: the page's two boxes are two lanes, six lanes where there were ten, the step numbers unchanged
     await reopen(key);
@@ -303,28 +306,64 @@
     FlowView.setStart(key, "all"); await tick();
     ok(!bad.length, `groups: ${key} opens with its page's Channels and Lookups, ${was.size} lanes drawn as ${drawn.length}, step numbers kept, the same arrows merged ("from all 3 in Channels"), starts working`, `groups: ${bad.slice(0, 6).join("; ")}`);
 
-    // ungroup rides in the address, and a link with group= wins over the page's
+    // ungroup rides in the address (apart=), and a link with lanes= wins over the page's
     bad.length = 0;
     FlowView.ungroup(key, "grp:channels"); await tick();
-    if (FlowView.hashPart(key) !== "&ungroup=Channels" || FlowView.groupsFor(key).length !== 1) bad.push(`ungroup wrote "${FlowView.hashPart(key)}"`);
+    if (FlowView.hashPart(key) !== "&apart=Channels" || FlowView.groupsFor(key).length !== 1) bad.push(`ungroup wrote "${FlowView.hashPart(key)}"`);
     if ($("#group-btn").textContent !== "Grouped · 1") bad.push("the button did not follow");
-    await reopen(key, { ungroup: "Channels" });
+    await reopen(key, { apart: "Channels" });
     if (FlowView.groupsFor(key).map((g) => g.name).join() !== "Lookups") bad.push("a link naming ungroup did not open ungrouped");
-    await reopen(key, { group: `${encodeURIComponent("Ferry, lanes: two")}:${KIOSK},${WEB}`, ungroup: "Lookups" });
+    await reopen(key, { lanes: `${encodeURIComponent("Ferry, lanes: two")}:${KIOSK},${WEB}`, apart: "Lookups" });
     const link = FlowView.groupsFor(key);
-    if (link.length !== 1 || link[0].name !== "Ferry, lanes: two" || link[0].id !== "grp:ferry-lanes-two" || !/^&group=/.test(FlowView.hashPart(key)) || /ungroup/.test(FlowView.hashPart(key))) bad.push(`a link's group gave ${JSON.stringify(link)} and "${FlowView.hashPart(key)}"`);
-    if (!FlowView.hashPart(key).startsWith("&group=Ferry%2C%20lanes%3A%20two:APP-")) bad.push(`the name is not in the address: ${FlowView.hashPart(key)}`);
+    if (link.length !== 1 || link[0].name !== "Ferry, lanes: two" || link[0].id !== "grp:ferry-lanes-two" || !/^&lanes=/.test(FlowView.hashPart(key)) || /apart/.test(FlowView.hashPart(key))) bad.push(`a link's group gave ${JSON.stringify(link)} and "${FlowView.hashPart(key)}"`);
+    if (!FlowView.hashPart(key).startsWith("&lanes=Ferry%252C%2520lanes%253A%2520two%3AAPP-")) bad.push(`the name is not in the address: ${FlowView.hashPart(key)}`);
     // fold and hide name the group by its ID
     FlowView.hide(key, "grp:ferry-lanes-two"); await tick();
     if (!FlowKit.flowOf(key).view.hidden.has("grp:ferry-lanes-two") || !hitOf("ghost", "grp:ferry-lanes-two") || !textOf(FlowKit.flowOf(key)).includes("hidden · show")) bad.push("a hidden group is not a ghost chip");
     FlowView.show(key, "grp:ferry-lanes-two");
     // a link that cannot be honored is drawn as far as it can be, and says the rest
-    await reopen(key, { group: `Channels:${WEB},${DESK},APP-nowhere;One:${PRICE};Both:${WEB},${CUST},${SCHED}` });
+    await reopen(key, { lanes: `Channels:${WEB},${DESK},APP-nowhere;One:${PRICE};Both:${WEB},${CUST},${SCHED}` });
     const said = FlowKit.flowOf(key).view.said.join(" ");
     if (FlowView.groupsFor(key).map((g) => g.name).join() !== "Channels,Both" || !/APP-nowhere, which isn't in this flow/.test(said) || !/One has fewer than two lanes/.test(said)
       || !/puts Public website in two groups, so Both doesn't take it/.test(said)) bad.push(`an impossible link gave ${FlowView.groupsFor(key).map((g) => g.name)} and "${said}"`);
     if (!/which isn't in this flow/.test($("#caption").textContent)) bad.push("the page does not say what the link asked for");
-    ok(!bad.length, "groups: ungroup rides in the address, a link's group= wins over the page's, names with commas and colons survive, a hidden group is a chip, an impossible link is drawn as far as it can be and says the rest", `groups: ${bad.slice(0, 6).join("; ")}`);
+    ok(!bad.length, "groups: ungroup rides in the address, a link's lanes= wins over the page's, names with commas and colons survive, a hidden group is a chip, an impossible link is drawn as far as it can be and says the rest", `groups: ${bad.slice(0, 6).join("; ")}`);
+
+    // a name with , : ; and % survives the real address: written by hashPart, read back by URLSearchParams after a reload; a hand-typed % never throws
+    bad.length = 0;
+    for (const name of ["Ops: back, office", "50% off; today", "100%", "Plain"]) {
+      await reopen(key, { apart: "Channels,Lookups" });
+      FlowView.makeGroup(key, name, [KIOSK, WEB]); await tick();
+      const wrote = FlowView.hashPart(key), addr = "#flows&open=" + encodeURIComponent(key) + wrote;  // the address Flows.select writes
+      await reopen(key, { apart: "Channels,Lookups" });
+      for (const k of [...HASH.keys()]) HASH.delete(k);
+      new URLSearchParams(addr.slice(1)).forEach((v, k) => HASH.append(k, v)); FlowKit.flowOf(key);  // a reload: HASH is made from the address text, the one decode
+      const back = FlowView.groupsFor(key).find((g) => g.members.includes(KIOSK));
+      if (!back || back.name !== name || back.members.length !== 2) bad.push(`"${name}" came back as ${JSON.stringify(back && back.name)} from ${addr}`);
+      if (FlowView.hashPart(key) !== wrote) bad.push(`"${name}" was written ${wrote} and again ${FlowView.hashPart(key)}`);
+    }
+    const errs = window.__errors.length;
+    await reopen(key, { lanes: `50%off:${KIOSK},${WEB}` });
+    if (window.__errors.length !== errs || FlowView.groupsFor(key).map((g) => g.name).join() !== "50%off") bad.push(`a hand-typed 50%off gave ${FlowView.groupsFor(key).map((g) => g.name)} and ${window.__errors.slice(errs)}`);
+    // the map's own group= is not ours: a flows link carrying it neither makes groups here nor breaks the map
+    await reopen(key, { group: "Channels:APP-website,APP-call-center" });
+    if (FlowView.groupsFor(key).map((g) => g.name).join() !== "Channels,Lookups") bad.push("a map group= changed this flow's groups");
+    ok(!bad.length, "groups: a name with , : ; and % round-trips through the real address, and a map group= is left alone", `groups: ${bad.slice(0, 6).join("; ")}`);
+
+    // a group cannot be renamed to a name another group has (Ungroup would take both); the page's own unmakeable boxes are said
+    bad.length = 0;
+    await reopen(key);
+    const before = FlowView.groupsFor(key).map((g) => g.name).join();
+    const refused = FlowView.renameGroup(key, "grp:lookups", "Channels");
+    if (!/already a group called Channels/.test(refused) || FlowView.groupsFor(key).map((g) => g.name).join() !== before) bad.push(`renaming to a taken name gave "${refused}" and ${FlowView.groupsFor(key).map((g) => g.name)}`);
+    if (FlowView.renameGroup(key, "grp:lookups", "Lookups 2") !== "" || FlowView.groupsFor(key).map((g) => g.name).join() !== "Channels,Lookups 2") bad.push("a free name was refused");
+    FlowView.ungroup(key, "grp:channels"); await tick();
+    if (FlowView.groupsFor(key).map((g) => g.name).join() !== "Lookups 2") bad.push(`Ungroup took ${FlowView.groupsFor(key).map((g) => g.name)} with it`);
+    FLOW[key].groupNotes = ["The box Odd has fewer than two lanes, so it is not drawn as a group."];
+    await reopen(key);
+    if (!FlowKit.flowOf(key).view.said.includes(FLOW[key].groupNotes[0]) || !$("#caption").textContent.includes("The box Odd has fewer than two lanes")) bad.push("a box the build could not draw is not said on the flow");
+    delete FLOW[key].groupNotes; forgetGroups(); await reopen(key);
+    ok(!bad.length, "groups: renaming to another group's name is refused in plain words, and a page box that cannot be drawn is said on the flow", `groups: ${bad.slice(0, 6).join("; ")}`);
 
     // fold works on the grouped flow; grouping a folded or hidden lane clears that choice and says so
     bad.length = 0;
@@ -352,7 +391,7 @@
 
     // the picker: G opens it, Esc closes it and focus goes back, Group these needs two lanes and not every lane
     bad.length = 0;
-    await reopen(key, { ungroup: "Channels,Lookups" });
+    await reopen(key, { apart: "Channels,Lookups" });
     $("#group-btn").focus(); press("g"); await tick();
     const dlg = $("[data-group-picker]");
     if (!dlg || dlg.getAttribute("role") !== "dialog" || !dlg.contains(document.activeElement)) bad.push("G did not open the picker with focus inside it");
@@ -379,7 +418,7 @@
     if (!sugg || go().disabled || $("#gp-name").value !== "Quote desk" || go().textContent !== "Group these 2") bad.push("taking a suggestion did not fill the checkboxes and the name");
     go().click(); await tick();
     Object.assign(D.domains, domains);
-    if (FlowView.groupsFor(key).map((g) => g.name).join() !== "Quote desk" || $("[data-group-picker]") || !/^&group=Quote%20desk/.test(FlowView.hashPart(key)) || document.activeElement !== $("#group-btn")) bad.push(`the picker made ${FlowView.groupsFor(key).map((g) => g.name)}, address ${FlowView.hashPart(key)}`);
+    if (FlowView.groupsFor(key).map((g) => g.name).join() !== "Quote desk" || $("[data-group-picker]") || !/^&lanes=Quote%2520desk/.test(FlowView.hashPart(key)) || document.activeElement !== $("#group-btn")) bad.push(`the picker made ${FlowView.groupsFor(key).map((g) => g.name)}, address ${FlowView.hashPart(key)}`);
     // a group made here is offered on another flow, never applied
     const other = D.flows.find((g) => g.key !== key && FlowKit.touchedLanes(FlowKit.flowOf(g.key, { plain: true })).has(PRICE) && FlowKit.touchedLanes(FlowKit.flowOf(g.key, { plain: true })).has(CUST));
     if (other) {
@@ -429,7 +468,7 @@
     FlowView.ungroup(key, "grp:channels"); await tick();
     Flows.present(key, 0); await tick();
     const pf = FlowKit.flowOf(key);
-    if (!$("#overlay").classList.contains("present") || !Flows.presenter() || FlowView.hashPart(key) !== "&ungroup=Channels" || pf.view.laneGroups.map((g) => g.name).join() !== "Lookups") bad.push(`present: ${FlowView.hashPart(key)}`);
+    if (!$("#overlay").classList.contains("present") || !Flows.presenter() || FlowView.hashPart(key) !== "&apart=Channels" || pf.view.laneGroups.map((g) => g.name).join() !== "Lookups") bad.push(`present: ${FlowView.hashPart(key)}`);
     Flows.closePresent();
     const clip = FlowKit.flowOf(key, { plain: true });
     if (clip.view || clip.steps.length !== plain.steps.length || FlowKit.drawnClip(clip).some((t) => /group of|Lookups/.test(t)) || !/without your groups/.test(Flows.clipNote())) bad.push("the clip is not the whole flow without groups");
@@ -498,7 +537,7 @@
   /* The words that fit: "Grouped · 2" in the header row in every theme and in Plain. */
   async function groupFits(ok) {
     const f1 = D.flows.find((f) => f.key === "FLO-001" && (f.groups || []).length === 2);
-    if (!f1) return;
+    if (!f1) { console.warn("[selftest] groups skipped: no FLO-001 with two page groups in this vault"); return; }
     const was = Theme.id, fx = FX.on, problems = [];
     for (const [id, label, motion] of [...Theme.LIST.map((t) => [t.id, t.label, true]), [was, "Plain", false]]) {
       Theme.set(id); FX.set(motion);

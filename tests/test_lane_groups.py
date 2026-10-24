@@ -111,6 +111,26 @@ def test_a_box_of_one_lane_or_of_lanes_the_plan_does_not_draw_is_no_group(built,
     data = json.loads(DATA.search(out.read_text(encoding="utf-8")).group(1))
     groups = {f["key"]: f for f in data["flows"]}["FLO-001"]["groups"]
     assert [g["name"] for g in groups] == ["Channels"]  # Lookups is left with one lane: not a group
+    # and it is said, never dropped: on the flow's record for the view, and as W407 from check
+    assert {f["key"]: f for f in data["flows"]}["FLO-001"]["groupNotes"] == ["The box Lookups has fewer than two lanes, so it is not drawn as a group."]
+    said = [line for line in run("check", "--vault", str(page), "--today", TODAY)[1].splitlines() if " W407 " in line]
+    assert len(said) == 1 and said[0].startswith(FLO_001) and "The box Lookups has fewer than two lanes" in said[0]
+    assert not [line for line in run("check", "--vault", str(vault), "--today", TODAY)[1].splitlines() if " W407 " in line]  # the example's own boxes draw
+
+
+def test_every_box_the_view_cannot_draw_is_told_with_its_reason():
+    participants = {n: (t, "") for n, t in {"a": "Alpha", "b": "Beta", "c": "Gamma", "d": "Delta", "z": "Zed"}.items()}
+    tree = type("T", (), {"participants": participants, "boxes": [
+        ("Front", ["a", "b"], 3), ("Front", ["c", "d"], 8), ("Mid", ["b", "c", "z"], 12), ("Solo", ["d"], 16)]})()
+    known = {"a": "A", "b": "B", "c": "C", "d": "D"}
+    groups, notes = mermaid.plan_boxes(tree, lambda name: known.get(name, ""))
+    assert groups == [("Front", ["A", "B"])]  # Mid keeps only C: below two, so it is not a group
+    assert notes == [
+        (8, "The box Front has the name of an earlier box, so it is not drawn as a group."),
+        (12, "Beta is in an earlier box too, so Mid does not take it."),
+        (12, "Zed in the box Mid is no app or party the plan knows, so it is left out of the group."),
+        (12, "The box Mid has fewer than two lanes, so it is not drawn as a group."),
+        (16, "The box Solo has fewer than two lanes, so it is not drawn as a group.")]
 
 
 def test_the_conventions_and_the_flow_writing_skill_name_the_rule():

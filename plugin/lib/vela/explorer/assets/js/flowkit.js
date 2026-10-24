@@ -104,7 +104,7 @@ const FlowKit = (() => {
       for (const m of st.messages) { take(m.from); take(m.to); }
       take(st.self);
       const sender = st.messages[0] ? st.messages[0].from : null;
-      fresh.sort((a, b) => (a === sender ? -1 : b === sender ? 1 : LANE_INDEX[a] - LANE_INDEX[b]));
+      fresh.sort((a, b) => (a === sender ? -1 : b === sender ? 1 : (LANE_INDEX[a] ?? 1e6) - (LANE_INDEX[b] ?? 1e6)));
       seen.push(...fresh);
     }
     return seen;

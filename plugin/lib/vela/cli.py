@@ -1357,7 +1357,9 @@ def slice_findings(root, vault, today):
     boundary session is where it gets drawn. The checker runs here, in milliseconds a slice, so check judges the
     result itself rather than trusting a recorded one."""
     from vela.flowcheck import readers, verdicts
-    return verdicts.findings(readers.read_catalog(vault, spec_texts(root)), today, CHECK_SLICE_STATES)
+    catalog = readers.read_catalog(vault, spec_texts(root))
+    return (verdicts.findings(catalog, today, CHECK_SLICE_STATES)
+            + verdicts.box_findings(catalog, {p.name.lower() for p in vault.parties}))  # W407: a box the Flows view cannot draw
 
 
 def cmd_check_slice(args, out):

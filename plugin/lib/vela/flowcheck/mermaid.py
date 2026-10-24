@@ -375,6 +375,37 @@ def split_boxes(tokens):
     return kept, boxes
 
 
+def plan_boxes(tree, lane_of):
+    """([(group name, [lanes])], [(line, words)]): the page's `box` blocks as the Flows view draws them, and one sentence for
+    each thing it cannot draw. `lane_of(participant name)` is the lane a participant stands for, or "" when it names no app or
+    party. Not drawn, and said: a box whose name an earlier box already took, a participant that is no app or party, a participant
+    already in an earlier box, and a box left with fewer than two lanes. The checker (W407) and the view both read this one
+    function, so neither can drop a box the other keeps."""
+    groups, notes, used = [], [], set()
+    for name, members, line in tree.boxes:
+        if not name:
+            continue  # the parser has already said a box needs a name
+        if any(name == g for g, _ in groups):
+            notes.append((line, f"The box {name} has the name of an earlier box, so it is not drawn as a group."))
+            continue
+        lanes = []
+        for member in members:
+            title = tree.participants.get(member, (member, ""))[0]
+            lane = lane_of(member)
+            if not lane:
+                notes.append((line, f"{title} in the box {name} is no app or party the plan knows, so it is left out of the group."))
+            elif lane in used:
+                notes.append((line, f"{title} is in an earlier box too, so {name} does not take it."))
+            elif lane not in lanes:
+                lanes.append(lane)
+        if len(lanes) < 2:
+            notes.append((line, f"The box {name} has fewer than two lanes, so it is not drawn as a group."))
+            continue
+        groups.append((name, lanes))
+        used.update(lanes)
+    return groups, notes
+
+
 def parse_tree(flow, problems):
     tokens, boxes = split_boxes(flow.lines)
     parser = _Parser(tokens, flow.path, flow.id, problems)

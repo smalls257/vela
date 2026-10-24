@@ -98,21 +98,17 @@ def drawn_calls(vault, keys, catalog, page, by_name):
 
 
 def default_groups(vault, keys, catalog, page, by_name, lane_ids):
-    """[{"name": "Channels", "lanes": [lane ids]}] for the page's `box` blocks, in the diagram's order: the groups the page
-    writes for the Flows view to open with. A box keeps the lanes the page's participants map to (an app by the checker's
-    reading, an outside party by its title); a participant with no lane is left out, and a box left with fewer than two
-    lanes is no group at all. The diagram is read by the flow checker's parser, never again here."""
+    """([{"name": "Channels", "lanes": [lane ids]}], [sentences]) for the page's `box` blocks, in the diagram's order: the groups
+    the page writes for the Flows view to open with, and what it could not draw of them, said (flowcheck.mermaid.plan_boxes, the
+    one reading the checker's W407 shares). A box keeps the lanes the page's participants map to (an app by the checker's
+    reading, an outside party by its title). The diagram is read by the flow checker's parser, never again here."""
     tree = tree_of(catalog, page)
     if tree is None or not tree.boxes:
-        return []
+        return [], []
+    from vela.flowcheck import mermaid
     people = people_of(tree, catalog, vault, keys, by_name)
-    out, used = [], set()
-    for name, members, _ in tree.boxes:
-        lanes = [l for l in dict.fromkeys(people.get(m, "") for m in members) if l in lane_ids and l not in used]
-        if len(lanes) >= 2 and name and name not in {g["name"] for g in out}:
-            out.append({"name": name, "lanes": lanes})
-            used.update(lanes)
-    return out
+    groups, notes = mermaid.plan_boxes(tree, lambda name: people.get(name, "") if people.get(name, "") in lane_ids else "")
+    return [{"name": name, "lanes": lanes} for name, lanes in groups], [words for _, words in notes]
 
 
 def call_nodes(nodes):
