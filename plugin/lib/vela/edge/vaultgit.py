@@ -16,8 +16,9 @@ from vela import planscope, publish, roles
 
 GIT_TIMEOUT = 20
 FETCH_TIMEOUT = 8  # an owner's session start must not hang on a dead network
-# A credential prompt would hang a tool with no terminal. The fetch fails fast instead.
-NO_PROMPT = {"GIT_TERMINAL_PROMPT": "0", "GIT_ASKPASS": "true", "SSH_ASKPASS": "true"}
+# A credential prompt would hang a tool with no terminal. The fetch fails fast instead. GCM_INTERACTIVE covers Git
+# Credential Manager, which opens a browser sign-in whatever GIT_TERMINAL_PROMPT says.
+NO_PROMPT = {"GIT_TERMINAL_PROMPT": "0", "GIT_ASKPASS": "true", "SSH_ASKPASS": "true", "GCM_INTERACTIVE": "never"}
 
 
 def at(ref, path):

@@ -89,3 +89,19 @@ def test_on_main_with_no_session_it_is_nothing_to_draw_as_before(tmp_path):
     (root / "sessions" / f"{SESSION}.md").unlink()
     code, out = run_companion(root, "session", "--json")
     assert code == 1 and "No session is open in this folder." in out
+
+
+def test_a_reader_copy_inside_another_repo_on_a_design_branch_draws_no_design_session(tmp_path):
+    from vela.edge import companionstore
+    outer = tmp_path / "outer"
+    outer.mkdir()
+    git(outer.parent, "init", "-q", str(outer))
+    (outer / "x.txt").write_text("x", encoding="utf-8")
+    git(outer, "add", "-A")
+    git(outer, "commit", "-qm", "x")
+    git(outer, "checkout", "-q", "-b", "design/booking")
+    workspace = outer / "ws"
+    (workspace / ".vela").mkdir(parents=True)
+    (workspace / ".vela" / "workspace.json").write_text("{}", encoding="utf-8")
+    assert companionstore.design_session(workspace) is None
+    assert companionstore.design_session(outer) is not None   # the same branch is a design session for its owner

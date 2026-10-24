@@ -183,11 +183,27 @@ def _published(path, kind, data):
     return held
 
 
+MARKER_KEYS = {"session": ("capture", "at", "session"), "explain": ("explain",)}
+
+
 def clear_forms(root, kind):
-    """Remove a kind's three files and the published marker, so a panel can't keep showing a session that has closed."""
+    """Remove a kind's three files and that kind's entry in the published marker, so a panel can't keep showing a
+    session that has closed. The other kind's entry stays: closing a session must not make the explain panel look
+    unpublished."""
     base = folder(root)
-    for name in (f"{kind}.json", f"{kind}.md", f"{kind}.html", "published.json"):
+    for name in (f"{kind}.json", f"{kind}.md", f"{kind}.html"):
         (base / name).unlink(missing_ok=True)
+    marker = base / "published.json"
+    try:
+        held = json.loads(marker.read_text(encoding="utf-8")) if marker.is_file() else {}
+    except (OSError, UnicodeDecodeError, ValueError):  # a marker that can't be read says nothing worth keeping
+        held = {}
+    for key in MARKER_KEYS.get(kind, ()):
+        held.pop(key, None)
+    if held and isinstance(held, dict):
+        atomic.write_atomic(marker, json.dumps(held) + "\n")
+    else:
+        marker.unlink(missing_ok=True)
 
 
 DESIGN_DOCS = "docs/tech-design"
@@ -203,6 +219,8 @@ def design_session(root):
     from vela.edge import vaultgit
     from vela.explorer import design_data
     root = pathlib.Path(root)
+    if sessiongit.is_read_copy(root):  # a reader's copy may sit inside someone else's repo, on a design/ branch
+        return None
     try:
         branch = vaultgit.current_branch(root)
     except vaultgit.GitUnavailable:

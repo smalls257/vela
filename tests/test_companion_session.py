@@ -134,3 +134,13 @@ def test_a_question_resolved_later_in_the_session_is_not_new_and_open(plan):
 def test_an_item_decided_twice_is_listed_once(plan):
     got = _with_rows(plan, f"| FLO-001 | assumption | decided | [[{SESSION}#^c11]] |")
     assert [d["id"] for d in got["decided"]].count("FLO-001") == 1
+
+
+def test_closing_a_session_panel_leaves_the_explain_panels_marker(plan):
+    session_json(plan)
+    marker = plan / ".vela" / "companion" / "published.json"
+    marker.write_text(json.dumps({"capture": 14, "at": "x", "session": SESSION, "explain": {"view": "stuck", "at": "x"}}),
+                      encoding="utf-8")
+    (plan / "sessions" / f"{SESSION}.md").unlink()
+    assert run_companion(plan, "session", "--json")[0] == 1
+    assert json.loads(marker.read_text(encoding="utf-8")) == {"explain": {"view": "stuck", "at": "x"}}

@@ -134,3 +134,8 @@ def test_a_link_inside_the_repository_is_refused_in_words_never_read_as_the_main
     code, text = run("open", link, "--into", str(tmp_path / "ws"))
     assert code == 1 and "points at a branch or a folder" in text and "https://github.com/harborline/booking-plan" in text
     assert not (tmp_path / "ws").exists()
+
+
+def test_no_prompt_also_turns_off_git_credential_manager():
+    from vela.edge import vaultgit
+    assert vaultgit.NO_PROMPT["GCM_INTERACTIVE"] == "never"
