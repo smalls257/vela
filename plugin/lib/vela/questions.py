@@ -8,7 +8,7 @@ carries its questions with it. The same vault always gives the same copies in th
 import re
 from dataclasses import dataclass
 
-from vela import catalog, ledger, privaterecord, schema
+from vela import catalog, ladder, ledger, privaterecord, schema
 from vela.model import Finding, meta_line
 from vela.parse import CODE_SPAN, WIKILINK, links_in, split_frontmatter
 
@@ -770,6 +770,40 @@ def consequential(group):
     return group["severity"] == "high" or bool(group["blocks"])
 
 
+# Q-OPS-02 asks what happens to each CONSUMER when the provider is down or slow. The provider's case table answers a
+# different question (how the provider answers a failed call), so only a consumer's own runtime page can answer this one.
+CONSUMER_FAILURE_ENTRY = "Q-OPS-02"
+
+
+def failure_answers(vault, copy):
+    """For a Q-OPS-02 copy: one "<runtime page>#<heading>" for each consumer of the contract whose runtime page has a
+    failure section (a `##` heading matching ladder.FAILURE) that links or names the contract. () unless every consumer
+    has one, and for a contract nobody consumes. Read back to the lead, never filed as the answer."""
+    contract = vault.item(copy.subject.id)
+    consumers = vault.consumers(contract) if contract is not None else []
+    anchors = []
+    for app in consumers:
+        runtime = ladder.runtime_page(vault, app)
+        found = _failure_section(vault, runtime, contract) if runtime is not None else ""
+        if not found:
+            return ()
+        anchors.append(found)
+    return tuple(dict.fromkeys(anchors))
+
+
+def _failure_section(vault, runtime, contract):
+    for heading in runtime.headings:
+        if heading.level != 2 or not ladder.FAILURE.search(heading.text):
+            continue
+        first, last = _section_span(runtime, heading.text)
+        body = "\n".join(runtime.text.split("\n")[first:last])
+        links_it = any(first < link.line <= last and vault.resolve(link, runtime) is contract.page
+                       and link.anchor.startswith(contract.id) for link in runtime.links)
+        if links_it or re.search(rf"\b{re.escape(contract.id)}\b", body):
+            return f"{runtime.name}#{heading.text}"
+    return ""
+
+
 def digest(vault, area=None, subject_id=None):
     """The pending copies (undisposed, or asked and still waiting) grouped by entry, so one answer can serve
     many, and the pending reviewer questions, ranked: high severity that blocks something first, then high,
@@ -787,9 +821,16 @@ def digest(vault, area=None, subject_id=None):
         why = {}
         for d in found:
             why[d.label] = why.get(d.label, 0) + 1
-        out.append({"band": _band(entry.severity, blocked), "entry": entry_id, "area": entry.area,
-                    "severity": entry.severity, "question": entry.question, "copies": [d.copy.id for d in found],
-                    "why": why, "blocks": blocked})
+        group = {"band": _band(entry.severity, blocked), "entry": entry_id, "area": entry.area,
+                 "severity": entry.severity, "question": entry.question, "copies": [d.copy.id for d in found],
+                 "why": why, "blocks": blocked}
+        if entry_id == CONSUMER_FAILURE_ENTRY:
+            answers = {d.copy.id: failure_answers(vault, d.copy) for d in found}
+            read = [copy for copy, anchors in answers.items() if anchors]
+            if read:  # the copies a consumer's runtime page already answers, read back to the lead: never filed
+                group["on_page"] = list(dict.fromkeys(a for copy in read for a in answers[copy]))
+                group["on_page_copies"] = read
+        out.append(group)
     reviewers = [r for r in reviewer_rows(vault) if area is None or r.area == area] if subject_id is None else []
     for row in reviewers:
         if not reviewer_pending(vault, row):

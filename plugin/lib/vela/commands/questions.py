@@ -138,12 +138,21 @@ def lead_digest(answer, area_names):
                           answer="That's every question for this session; the rest are listed if you want them.")
     lines = []
     for group in answer["groups"]:
-        said = f"{area_names.get(group['area'], 'Another area')}: {group['question'].strip()}"
+        area = area_names.get(group["area"], "Another area")
+        read = group.get("on_page_copies", [])
+        if read and len(read) == len(group["copies"]):
+            lines.append(say.Line("", plain=f"{area}: the runtime pages already say what happens when these fail: "
+                                            f"{say.names_said([c.split('@', 1)[1] for c in read])}. Is that the answer?"))
+            continue
+        said = f"{area}: {group['question'].strip()}"
         if group["blocks"]:
             said += f" It holds up {say.names_said(group['blocks'][:3])}" + (
                 f" and {say.count_words(len(group['blocks']) - 3)} more." if len(group["blocks"]) > 3 else ".")
         if len(group["copies"]) > 1:
             said += f" It comes up in {say.count_words(len(group['copies']))} places; one answer for all?"
+        if read:
+            said += (" The runtime pages already say what happens for "
+                     f"{say.names_said([c.split('@', 1)[1] for c in read])}; is that the answer there?")
         lines.append(say.Line("", plain=said))
     held = answer["held"]
     head = ("One question for today:" if count == 1 else
