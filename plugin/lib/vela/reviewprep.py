@@ -36,6 +36,8 @@ The rules, each with its reason:
 Pure: pages arrive as the vault model and texts; no disk, git or clock.
 """
 import difflib
+import hashlib
+import json
 import re
 from dataclasses import dataclass, field
 
@@ -110,13 +112,30 @@ def checkpoint_number(record_text):
     return 1 + sum(1 for i in range(*span) if lines[i].startswith("### "))
 
 
-def session_skip(record_text, sized, prepared=0):
-    """"" when a checkpoint is due: none has run in this record yet (no `### ` heading under `## Reviews`, and none
-    `prepared` whose findings folder exists), or the plan's size asks for a review after each mode. Else why every
-    area is skipped."""
+def earlier_checkpoint_covers(record_text, sized, prepared=0):
+    """True when, at this size, an earlier checkpoint of the session already ran reviewers (a `### ` heading under
+    `## Reviews`, or `prepared` findings folders that held packets) and the size asks for only one a session. It
+    answers for the session, never for an area: `later_skip` decides each area by what changed since."""
     if sized.needs(Need.REVIEW_EACH_MODE):
-        return ""
-    return ONE_PER_SESSION if prepared or checkpoint_number(record_text) > 1 else ""
+        return False
+    return bool(prepared) or checkpoint_number(record_text) > 1
+
+
+def listing_signature(area_answer):
+    """A short fingerprint of an area's owed listing, kept when a checkpoint runs, to see later what changed."""
+    blob = json.dumps(area_answer, sort_keys=True, ensure_ascii=False, default=str)
+    return hashlib.sha256(blob.encode("utf-8")).hexdigest()[:16]
+
+
+def later_skip(area_answer, close_pages, before):
+    """Why an area is skipped on a later checkpoint of the session, or "" when it runs. `before` is the area's
+    listing fingerprint at the last checkpoint that ran ("" when unknown). It runs when its owed listing moved, or a
+    page this checkpoint changed or focuses on is about a subject it covers: a new supplier makes the personal-data
+    area run again."""
+    touched = {c["subject_page"] for c in area_answer["copies"] if c["subject_page"]} & set(close_pages)
+    if touched or not before or listing_signature(area_answer) != before:
+        return skip_reason(area_answer, close_pages)
+    return ONE_PER_SESSION
 
 
 def heading(n, checkpoint, today, rerun_of=None, areas=()):

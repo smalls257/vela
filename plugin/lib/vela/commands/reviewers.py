@@ -150,17 +150,23 @@ def _clear(root, *folders):
 
 
 def _prepared(root, record_id):
-    """How many checkpoints this session has already prepared: the findings folders `prepare` makes for it."""
+    """How many checkpoints this session has prepared that ran reviewers: findings folders `prepare` leaves behind.
+    A checkpoint that skipped every area leaves none, so it never counts as this session's review."""
     folder = root / ".vela" / "findings" / record_id
     return sum(1 for child in folder.iterdir() if child.is_dir()) if folder.is_dir() else 0
 
 
-def _all_skipped(vault, n, args, reason):
-    """A checkpoint with no packets: every area listed as skipped with `reason`, nothing written or cleared."""
-    prep = reviewprep.Prep(n, reviewprep.heading(n, args.checkpoint, today_of(args), None, ()),
-                           f".vela/review/{n}", "", "")
-    prep.skipped += [reviewprep.Skipped(code, label, reason) for code, label in vault.catalog.areas]
-    return prep
+def _state_path(record_id):
+    return f".vela/review-state/{record_id}.json"
+
+
+def _listings_at_last_run(root, record_id):
+    """{area code: listing fingerprint} as the last checkpoint that ran reviewers left it; {} when none did."""
+    path = root / _state_path(record_id)
+    try:
+        return json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {}
+    except ValueError:
+        return {}
 
 
 def prepare(root, args, reader, cli):
@@ -175,10 +181,9 @@ def prepare(root, args, reader, cli):
         held = reviewprep.checkpoints(text)
         raise Failed(f"--rerun {args.rerun}: the record has no checkpoint {args.rerun} under ## Reviews"
                      + (f" (it has {', '.join(map(str, held))})." if held else " (it has none yet)."))
-    if args.rerun is None:
-        reason = reviewprep.session_skip(text, sizing.of(vault), _prepared(root, record_id))
-        if reason:
-            return said(_all_skipped(vault, n, args, reason), args, [], None, reader, rel)
+    earlier = args.rerun is None and reviewprep.earlier_checkpoint_covers(text, sizing.of(vault),
+                                                                          _prepared(root, record_id))
+    before = _listings_at_last_run(root, record_id) if earlier else {}
     changes = _changes(root, reader, cli)
     commit = None if reader else _commit(root, record_id, changes)
     now = {p.path: p.text for p in vault.pages}
@@ -194,12 +199,18 @@ def prepare(root, args, reader, cli):
     close = set(changed) | set(focus)
     prep = reviewprep.Prep(n, reviewprep.heading(n, args.checkpoint, today_of(args), args.rerun, only or ()),
                            folder, findings, changed_arg, rerun_of=args.rerun)
-    files = {}
+    files, listings = {}, {}
     for code, label in vault.catalog.areas:
         if only is not None and code not in only:
             continue
         answer = questions.listing(vault, code)
-        reason = reviewprep.skip_reason(answer, close) if only is None else ""
+        listings[code] = reviewprep.listing_signature(answer)
+        if only is not None:
+            reason = ""
+        elif earlier:
+            reason = reviewprep.later_skip(answer, close, before.get(code, ""))
+        else:
+            reason = reviewprep.skip_reason(answer, close)
         if reason:
             prep.skipped.append(reviewprep.Skipped(code, label, reason))
             continue
@@ -211,6 +222,10 @@ def prepare(root, args, reader, cli):
         prep.packets.append(reviewprep.Packet(code, label, tuple(pages), packet, qfile, ffile, body))
         files[qfile] = json.dumps(answer, indent=2, ensure_ascii=False) + "\n"
         files[packet] = body
+    if prep.packets:
+        files[_state_path(record_id)] = json.dumps({**before, **listings}, indent=2) + "\n"
+    else:
+        shutil.rmtree(root / findings)  # nothing ran, so this checkpoint is not the session's review
     wrote = [sessiongit.write_text(root, path, body) for path, body in files.items()]
     return said(prep, args, wrote, commit, reader, rel)
 
