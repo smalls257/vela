@@ -20,8 +20,11 @@ const FlowKit = (() => {
   const UI = getComputedStyle(document.documentElement).getPropertyValue("--ui") || "system-ui, sans-serif";
   const SERIF = getComputedStyle(document.documentElement).getPropertyValue("--serif") || "Georgia, serif";
   const lanes = D.lanes;
-  const laneColor = (id) => { readPalette(); return PALETTE[(LANE_INDEX[id] ?? 0) % PALETTE.length]; };
-  const laneName = (id) => { const l = lanes[LANE_INDEX[id]]; return l ? l.full || l.name : titleOf(id); };
+  /* A group the reader made (flowview.js) is a lane of its own in the flow: "grp:channels", neutral in color because it is not any one app. */
+  const isGroup = (id) => typeof id === "string" && id.startsWith("grp:");
+  const isLane = (id) => LANE_INDEX[id] !== undefined || isGroup(id);
+  const laneColor = (id) => { readPalette(); return isGroup(id) ? C.ink2 : PALETTE[(LANE_INDEX[id] ?? 0) % PALETTE.length]; };
+  const laneName = (id) => { if (isGroup(id)) return FlowView.groupName(id); const l = lanes[LANE_INDEX[id]]; return l ? l.full || l.name : titleOf(id); };
   const emblemImg = {};
   Assets.onReady(() => { for (const l of lanes) { const url = Assets.emblem(l.id); if (url) { const img = new Image(); img.src = url; emblemImg[l.id] = img; } } });
 
@@ -47,17 +50,37 @@ const FlowKit = (() => {
   }
   function unitsOf(step) {
     if (step.folded) return [{ kind: "folded", lane: step.self }];  // lanes folded into one: a single beat on the host's lane
-    if (step.messages.length) {
+    if (step.messages.length || step.inside) {
       const out = [];
       step.messages.forEach((m, mi) => {
         if (m.kind === "answer") { out.push({ kind: "reply", mi, from: m.from, to: m.to, msg: m }); return; }  // an answer drawn later than its call
         out.push({ kind: "msg", mi, from: m.from, to: m.to, msg: m }); if (m.kind === "request") out.push({ kind: "reply", mi, from: m.to, to: m.from, msg: m });
       });
+      // what happened between lanes of one group in this step: a card on the group's lane, beside the arrows that leave it
+      (step.inside || []).forEach((card) => out.push({ kind: "folded", lane: card.lane, card }));
       return out;
     }
-    if (step.self && LANE_INDEX[step.self] !== undefined) return [{ kind: "self", lane: step.self }];
+    if (step.self && isLane(step.self)) return [{ kind: "self", lane: step.self }];
     if (step.ref) return [{ kind: "ref", ref: step.ref }];
     return [{ kind: "note", unrecorded: !!step.unrecorded }];
+  }
+  const sameWords = (a, b) => { const flat = (t) => String(t).toLowerCase().replace(/[^a-z0-9]+/g, " ").trim(); return flat(a) === flat(b); };
+  /* An arrow that stands for several lanes of a group says which: "to all 3 in Channels", "from Pricing", "from Pricing to Port kiosks". */
+  function groupNote(u) {
+    const ends = u.msg && u.msg.groupEnds;
+    if (!ends || !ends.length) return "";
+    const say = (e) => {
+      const names = e.members.map(laneName);
+      return e.all && names.length > 1 ? `all ${names.length} in ${laneName(e.lane)}` : names.length > 2 ? `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}` : names.join(" and ");
+    };
+    const at = (side) => ends.find((e) => e.lane === (side === "from" ? u.from : u.to));
+    const f = at("from"), t = at("to");
+    return [f ? `from ${say(f)}` : "", t ? `to ${say(t)}` : ""].filter(Boolean).join(" ");
+  }
+  /* The card a folded step draws on its lane: what was done, and through which lanes. A fold's card reads "via ..."; a group's reads "inside Channels: ...". */
+  function cardOf(step, u) {
+    if (u.card) return u.card;
+    return { say: step.say, via: step.viaText || `via ${step.via.join(", ")}${step.run.length > 1 ? ` \u00b7 ${step.run.length} steps in one` : ""}`, stacked: step.run.length > 1 };
   }
   const openPins = (step) => step.unknowns.filter((p) => ASK[p.id] && ASK[p.id].state === "open");
   function flowQuestions(flow) {
@@ -67,9 +90,27 @@ const FlowKit = (() => {
   }
   function touchedLanes(flow) {
     const set = new Set();
-    flow.steps.forEach((st) => { st.messages.forEach((m) => { set.add(m.from); set.add(m.to); }); if (st.self) set.add(st.self); });
+    flow.steps.forEach((st) => { st.messages.forEach((m) => { set.add(m.from); set.add(m.to); }); if (st.self) set.add(st.self); (st.inside || []).forEach((c) => set.add(c.lane)); });
     return set;
   }
+  /* The lanes a flow draws, left to right. The ones where it starts come first, in the order its starts are written; then each lane as the
+     steps first reach it, so the first actor is the first lane. Lanes that one step reaches together keep the sender first and the
+     map's order for the rest, the order the plan already has for them. */
+  function laneOrder(flow) {
+    const seen = [], starts = flow.starts || (!flow.branch && FLOW[flow.key] ? FLOW[flow.key].starts : null);
+    for (const o of starts ? starts.options : []) if (o.lane && isLane(o.lane) && !seen.includes(o.lane)) seen.push(o.lane);
+    for (const st of flow.steps) {
+      const fresh = [], take = (id) => { if (id && isLane(id) && !seen.includes(id) && !fresh.includes(id)) fresh.push(id); };
+      for (const m of st.messages) { take(m.from); take(m.to); }
+      take(st.self);
+      const sender = st.messages[0] ? st.messages[0].from : null;
+      fresh.sort((a, b) => (a === sender ? -1 : b === sender ? 1 : LANE_INDEX[a] - LANE_INDEX[b]));
+      seen.push(...fresh);
+    }
+    return seen;
+  }
+  /* What the page draws as lanes: the flow's own list when it has been through groups (flow.view.lanes), else one lane per app it touches. */
+  const lanesFor = (flow) => (flow.view && flow.view.lanes) || laneOrder(flow).map((id) => lanes[LANE_INDEX[id]]);
   const stepTiming = (step, Dt) => unitsOf(step).map((u, j) => ({ u, t0: j * Dt, t1: (j + 1) * Dt }));
   const travelTime = (step, Dt) => unitsOf(step).length * Dt;
   // On a light room (a theme that rings its lamps) a lamp's color is a fill, not ink: words take the lamp's text
@@ -131,8 +172,10 @@ const FlowKit = (() => {
     MEASURE.font = FONT.chipId(k); const idW = MEASURE.measureText(con.id).width;
     MEASURE.font = FONT.chip(k);
     const whole = MEASURE.measureText(con.title).width, widest = Math.max(...con.title.split(/\s+/).map((t) => MEASURE.measureText(t).width));
-    const inner = Math.max(50 * k, room - 16 * k, widest);  // a word is never broken: the pill may be wider than the arrow instead
-    const withId = whole + idW + 6 * k <= inner, lines = whole <= inner ? [con.title] : wrap(MEASURE, con.title, inner);
+    const fits = Math.max(50 * k, room - 16 * k, widest);  // a word is never broken: the pill may be wider than the arrow instead
+    // A pill gets the width its title needs (up to a cap), not the width of a short arrow: "Booking API" is one line on any arrow. The ID rides along only when the arrow has the room.
+    const inner = Math.max(fits, Math.min(whole, 300 * k));
+    const withId = whole + idW + 6 * k <= fits, lines = whole <= inner ? [con.title] : wrap(MEASURE, con.title, inner);
     const textW = Math.max(...lines.map((t) => MEASURE.measureText(t).width));
     const lh = leading(k, 11.5);
     return { con, lines, withId, idW, lh, textW, w: textW + (withId ? idW + 6 * k : 0) + 16 * k, h: Math.max(19 * k, lines.length * lh + 7 * k) };
@@ -142,35 +185,39 @@ const FlowKit = (() => {
   function measureRow(r, flow, G) {
     const { u } = r, k = G.s, step = flow.steps[r.si], lh = leading(k);
     if (u.kind === "msg" || u.kind === "reply") {
-      const x1 = G.laneX[LANE_INDEX[u.from]], x2 = G.laneX[LANE_INDEX[u.to]];
+      const x1 = G.laneX[G.ix(u.from)], x2 = G.laneX[G.ix(u.to)];
       if (x1 === undefined || x2 === undefined) { r.up = r.down = 14 * k; r.lines = []; return; }
       const reach = Math.abs(x2 - x1);
       MEASURE.font = FONT.say(k);
-      r.lines = wrap(MEASURE, sayOf(step, u), Math.max(120 * k, reach - 24 * k)); r.lh = lh;
       r.chip = u.kind === "msg" && !r.noChip && CONTRACT[u.msg.contract] ? chipOf(CONTRACT[u.msg.contract], Math.max(60 * k, reach - 34 * k), k) : null;
       r.guessed = u.kind === "msg" && u.msg.direction !== "stated";
       r.noContract = u.kind === "msg" && !u.msg.contract;  // a recorded pair that names no contract: a plain arrow, said so under its words
       // An arrow to a lane the reader hid is dotted and stays one short line: it is still there, it just isn't in the way.
       r.hid = [u.from, u.to].filter((id) => G.hidden.has(id));
       if (r.hid.length) { r.chip = null; r.hidNote = `${r.hid.length === 2 ? "between" : "to"} ${r.hid.map(laneName).join(" and ")}, hidden`; }
+      // the words under an arrow that only repeat the pill's title say nothing the pill does not: the pill is shown alone
+      const said = sayOf(step, u);
+      r.lines = r.chip && sameWords(said, r.chip.con.title) ? [] : wrap(MEASURE, said, Math.max(120 * k, reach - 24 * k)); r.lh = lh;
+      r.groupNote = groupNote(u);  // which lanes of a group this arrow stands for ("to all 3 in Channels")
       r.up = (r.chip ? r.chip.h + 6 * k : 0) + 8 * k;
-      r.down = 8 * k + r.lines.length * lh + (r.guessed || r.noContract || r.hid.length ? leading(k, 10.5) + 2 * k : 0) + 5 * k;
+      r.down = 8 * k + r.lines.length * lh + (r.groupNote ? leading(k, 10.5) + 2 * k : 0) + (r.guessed || r.noContract || r.hid.length ? leading(k, 10.5) + 2 * k : 0) + 5 * k;
     } else if (u.kind === "self" && G.hidden.has(u.lane)) {
       // a step inside a hidden lane: one dim line to the left of its narrow column
-      const X = G.laneX[LANE_INDEX[u.lane]];
+      const X = G.laneX[G.ix(u.lane)];
       r.room = Math.max(120 * k, X - G.x - G.gutter - 16 * k);
       MEASURE.font = FONT.say(k); r.lines = wrap(MEASURE, `In ${laneName(u.lane)}, hidden: ${stepSays(step)}`, r.room); r.lh = lh;
       r.up = r.down = Math.max(10 * k, (r.lines.length * lh + 6 * k) / 2);
     } else if (u.kind === "self" || u.kind === "folded") {
-      const X = G.laneX[LANE_INDEX[u.lane]], lw = 34 * k;
+      const X = G.laneX[G.ix(u.lane)], lw = 34 * k;
       r.room = Math.max(80 * k, Math.min(G.colW * 1.8, G.x + G.w - (X + lw + 8 * k) - 8 * k));
       if (u.kind === "folded") {
-        // lanes folded into this one: what the host did, and which lanes it did it through
-        const via = `via ${step.via.join(", ")}${step.run.length > 1 ? ` \u00b7 ${step.run.length} steps in one` : ""}`;
+        // lanes folded into this one: what the host did, and which lanes it did it through; or what happened inside a group
+        const card = cardOf(step, u), via = card.via;
+        r.card = card;
         // the card takes the side of the lane with more room: to its right, or to its left when the lane is near the edge
         const right = G.x + G.w - (X + lw + 8 * k) - 8 * k, left = X - lw - 8 * k - (G.x + G.gutter);
         r.room = Math.max(200 * k, Math.min(G.colW * 2.4, Math.max(right, left)));
-        MEASURE.font = FONT.say(k); r.lines = wrap(MEASURE, step.say, r.room - 12 * k); r.lh = lh;
+        MEASURE.font = FONT.say(k); r.lines = wrap(MEASURE, card.say, r.room - 12 * k); r.lh = lh;
         MEASURE.font = FONT.guess(k); r.viaLines = wrap(MEASURE, via, r.room - 12 * k);
         r.ch = (r.lines.length + r.viaLines.length) * lh + 14 * k;
         const want = Math.max(...r.lines.map((t) => { MEASURE.font = FONT.say(k); return MEASURE.measureText(t).width; }), ...r.viaLines.map((t) => { MEASURE.font = FONT.guess(k); return MEASURE.measureText(t).width; })) + 16 * k;
@@ -193,7 +240,7 @@ const FlowKit = (() => {
       r.lines = wrap(MEASURE, r.words.join(" "), room); r.lh = lh;
       r.bh = r.lines.length * lh + 20 * k; r.up = r.down = r.bh / 2 + 3 * k;
     } else {
-      const xs = [...G.touched].map((id) => G.laneX[LANE_INDEX[id]]).filter((x) => x !== undefined);
+      const xs = [...G.touched].map((id) => G.laneX[G.ix(id)]).filter((x) => x !== undefined);
       r.x0 = xs.length ? Math.min(...xs) - G.colW * 0.32 : G.x + G.gutter; r.x1 = xs.length ? Math.max(...xs) + G.colW * 0.32 : G.x + G.w - 10;
       const ref = u.ref && FLOW[u.ref];
       MEASURE.font = FONT.say(k); r.lines = wrap(MEASURE, ref ? `Repeats “${E[u.ref].title}”` : stepSays(step), Math.max(80 * k, r.x1 - r.x0 - 24 * k)); r.lh = lh;
@@ -215,21 +262,24 @@ const FlowKit = (() => {
   }
   /* The starts and the folds the reader sees (flowview.js): which lanes are entry lanes, and which host folded lanes in. */
   const viewOf = (flow) => flow.view || { start: "all", hidden: new Set(), hosts: {}, folded: new Set(), pickable: {} };
-  const entryLanes = (flow) => (flow.starts ? flow.starts.options.filter((o) => o.lane && LANE_INDEX[o.lane] !== undefined).map((o) => ({ lane: o.lane, id: o.id })) : []);
+  /* Where the flow can begin: a start's lane is the app it names, or the group that app is in on this stage. */
+  const entryLanes = (flow) => (flow.starts ? flow.starts.options.filter((o) => o.lane && isLane(o.lane)).map((o) => ({ lane: o.lane, id: o.id, at: (flow.view && flow.view.memberOf && flow.view.memberOf[o.lane]) || o.lane })) : []);
   function layoutAt(flow, box, k) {
     const { x, y, w, h: ht } = box;
     const gutter = 46 * k, bottomPad = 10 * k, view = viewOf(flow);
     const touched = touchedLanes(flow), hidden = new Set([...view.hidden].filter((id) => touched.has(id)));
-    // Only the lanes this flow's steps touch are drawn, in the map's order, and they share the whole width. Any other lane is not drawn at all;
+    // Only the lanes this flow's steps touch are drawn, first actor first (laneOrder), and they share the whole width. Any other lane is not drawn at all;
     // one the reader hid takes a narrow column.
-    const weight = lanes.map((l) => (!touched.has(l.id) ? 0 : hidden.has(l.id) ? HIDDEN_WEIGHT : 1));
+    const list = lanesFor(flow).filter((l) => touched.has(l.id)), index = new Map(list.map((l, i) => [l.id, i]));
+    const weight = list.map((l) => (hidden.has(l.id) ? HIDDEN_WEIGHT : 1));
     const unit = (w - gutter) / Math.max(1, weight.reduce((a, b) => a + b, 0));
     let acc = x + gutter;
     const laneX = weight.map((wt) => { const c = acc + (wt * unit) / 2; acc += wt * unit; return c; });
-    const names = lanes.map((l, i) => (hidden.has(l.id) ? ghostLabel(l, weight[i] * unit, k) : laneLabel(l, weight[i] * unit, touched.has(l.id), k)));
-    // under a name: its Start tag, or the lanes folded into it
+    const names = list.map((l, i) => (hidden.has(l.id) ? ghostLabel(l, weight[i] * unit, k) : laneLabel(l, weight[i] * unit, true, k)));
+    // under a name: "group of 3", then its Start tag, or the lanes folded into it
     const tagged = entryLanes(flow).length > 0 || Object.values(view.hosts).some((hs) => hs.folded);
-    const tagH = tagged ? 17 * k : 0;
+    const grouped = list.some((l) => l.group && !hidden.has(l.id));
+    const tagH = (tagged ? 17 * k : 0) + (grouped ? 15 * k : 0);
     const headerH = 12 * k + Math.max(32 * k, ...names.map((n) => n.h)) + tagH, top = y + headerH + 18 * k;
     const rows = [];
     let before = "", joined = false;
@@ -250,7 +300,7 @@ const FlowKit = (() => {
       const same = before.u.msg.contract === r.u.msg.contract && new Set([before.u.from, before.u.to, r.u.from, r.u.to]).size === 2;
       if (same) r.noChip = true;
     });
-    const G = { x, y, w, s: k, gutter, headerH, tagH, colW: unit, laneX, rows, top, touched, flow, names, hidden, view, weight };
+    const G = { x, y, w, s: k, gutter, headerH, tagH, colW: unit, laneX, rows, top, touched, flow, names, hidden, view, weight, lanes: list, ix: (id) => index.get(id), grouped };
     rows.forEach((r) => measureRow(r, flow, G));
     const stepGap = 12 * k, rowGap = 4 * k;
     const gapBefore = (r, i) => (i === 0 ? 0 : r.si !== rows[i - 1].si ? stepGap : rowGap);
@@ -308,7 +358,7 @@ const FlowKit = (() => {
     const hl = st.highlight ? new Set(st.highlight) : null;
     const absent = (lane) => !G.touched.has(lane.id);
     DIM = 1;
-    lanes.forEach((lane, i) => {
+    G.lanes.forEach((lane, i) => {
       if (absent(lane)) return;
       const X = G.laneX[i], y0 = G.y + G.headerH + 4 * k, y1 = G.bottom;
       let amp = 0, dt = 0;
@@ -377,12 +427,12 @@ const FlowKit = (() => {
   }
   function drawHeader(ctx, G, st, hits, curTiming, tau, hl, pin) {
     const { s: k, flow, view } = G, entries = entryLanes(flow);
-    lanes.forEach((lane, i) => {
+    G.lanes.forEach((lane, i) => {
       if (!G.touched.has(lane.id)) return;
       const X = G.laneX[i], lab = G.names[i], by = pin + 6 * k;
       if (st.seen) st.seen.add("flow.lane");
       if (G.hidden.has(lane.id)) { drawGhost(ctx, G, lane, X, lab, by, st, hits); return; }
-      const mine = entries.filter((e) => e.lane === lane.id), host = view.hosts[lane.id];
+      const mine = entries.filter((e) => e.at === lane.id), host = view.hosts[lane.id], group = lane.group || null;
       const dim = view.start !== "all" && mine.length > 0 && !mine.some((e) => e.id === view.start);
       ctx.save();
       if (dim) ctx.globalAlpha = 0.3;
@@ -396,20 +446,25 @@ const FlowKit = (() => {
         badge = { text, w: ctx.measureText(text).width + 14 * k + (host.folded && host.open ? 10 * k : 0) };
         ctx.font = lab.font;
       }
-      const bw = tw + 40 * k + (badge ? badge.w + 8 * k : 0), bh = lab.h, bx = X - bw / 2;
+      const bw = tw + 40 * k + (group ? 16 * k : 0) + (badge ? badge.w + 8 * k : 0), bh = lab.h, bx = X - bw / 2;
       let glow = 0;
       for (const { u, t1, t0 } of curTiming) { const own = u.kind === "self" || u.kind === "folded", hitLane = own ? u.lane : u.to, ta = own ? t0 : t1; if (hitLane === lane.id && tau >= ta) glow = Math.max(glow, Math.exp(-(tau - ta) / 0.7)); }
-      if (hl && hl.has(lane.id)) glow = Math.max(glow, 0.7);
+      const lit = hl && (hl.has(lane.id) || (group && group.members.some((m) => hl.has(m))));
+      if (lit) glow = Math.max(glow, 0.7);
       if (glow > 0.02 && (glowOn() || st.recording)) { ctx.shadowColor = hexA(laneColor(lane.id), 0.75 * glow); ctx.shadowBlur = 24 * k * glow; }
       rr(ctx, bx, by, bw, bh, bh / 2); ctx.fillStyle = C.deck2; ctx.fill(); ctx.shadowBlur = 0;
-      ctx.strokeStyle = hexA(laneColor(lane.id), 0.45 + 0.5 * glow); ctx.lineWidth = (hl && hl.has(lane.id) ? 2 : 1) * k;
+      ctx.strokeStyle = hexA(laneColor(lane.id), 0.45 + 0.5 * glow); ctx.lineWidth = (lit ? 2 : 1) * k;
       ctx.setLineDash(lane.gap ? [5 * k, 4 * k] : []); ctx.stroke(); ctx.setLineDash([]);
       const dx = bx + 16 * k, dy = by + bh / 2, img = st.images !== false && emblemImg[lane.id];
-      if (img && img.complete && img.naturalWidth) { ctx.save(); ctx.beginPath(); ctx.arc(dx, dy, 9 * k, 0, 7); ctx.clip(); ctx.drawImage(img, dx - 9 * k, dy - 9 * k, 18 * k, 18 * k); ctx.restore(); }
+      if (group) {
+        // a stack of the members' colors where an app's emblem would be: this lane is several, not one
+        if (st.seen) st.seen.add("flow.group");
+        group.members.slice(0, 3).forEach((m, j) => { ctx.fillStyle = laneColor(m); ctx.beginPath(); ctx.arc(dx - 4 * k + j * 7 * k, dy, 4.2 * k, 0, 7); ctx.fill(); ctx.strokeStyle = C.deck2; ctx.lineWidth = 1 * k; ctx.stroke(); });
+      } else if (img && img.complete && img.naturalWidth) { ctx.save(); ctx.beginPath(); ctx.arc(dx, dy, 9 * k, 0, 7); ctx.clip(); ctx.drawImage(img, dx - 9 * k, dy - 9 * k, 18 * k, 18 * k); ctx.restore(); }
       // no emblem: the lane's own glyph, in the lane's color, so the color still says which lane it is
       else Icons.stroke(ctx, Icons.name(lane.id), dx, dy, 15 * k, laneColor(lane.id));
       ctx.font = lab.font; ctx.fillStyle = C.ink; ctx.textBaseline = "middle"; ctx.textAlign = "left";
-      lines.forEach((t, j) => { say(ctx, st, t, dx + 12 * k, dy + (j - (lines.length - 1) / 2) * lhL + 0.5 * k); });
+      lines.forEach((t, j) => { say(ctx, st, t, dx + (group ? 24 : 12) * k, dy + (j - (lines.length - 1) / 2) * lhL + 0.5 * k); });
       ctx.restore();
       hits.push({ type: "lane", id: lane.id, x: bx, y: by, w: bw, h: bh });
       if (badge) {
@@ -431,10 +486,18 @@ const FlowKit = (() => {
         ctx.strokeStyle = C.muted; ctx.lineWidth = 1.4 * k; ctx.beginPath(); ctx.moveTo(hx - 3 * k, hy - 3 * k); ctx.lineTo(hx + 3 * k, hy + 3 * k); ctx.moveTo(hx + 3 * k, hy - 3 * k); ctx.lineTo(hx - 3 * k, hy + 3 * k); ctx.stroke();
         hits.push({ type: "hide", id: lane.id, x: hx - r, y: hy - r, w: r * 2, h: r * 2 });
       }
-      const ty = by + bh + 3 * k;
+      let ty = by + bh + 3 * k;
+      if (group) {  // who the lane is, under its name; a Start tag, or a fold's "with ...", sits under that
+        ctx.save();
+        if (dim) ctx.globalAlpha = 0.3;
+        ctx.font = FONT.guess(k); ctx.fillStyle = C.muted; ctx.textAlign = "center"; ctx.textBaseline = "top";
+        say(ctx, st, `group of ${group.members.length}`, X, ty);
+        ctx.restore();
+        ty += 15 * k;
+      }
       if (mine.length) {
-        // the Start tag: this lane is where the flow can begin
-        const text = "START";
+        // the Start tag: this lane is where the flow can begin; a group that holds two starts says so
+        const text = mine.length > 1 ? `${mine.length} STARTS` : "START";
         ctx.save();
         if (dim) ctx.globalAlpha = 0.3;
         ctx.font = `700 ${px(10, k)}px ${UI}`;
@@ -516,7 +579,7 @@ const FlowKit = (() => {
     ga(ctx, 1);
     const k = G.s, u = r.u, y = r.y, ink = phase === "future" ? hexA(C.ink, 0.35) : phase === "now" ? C.ink : C.ink2;
     if (u.kind === "msg" || u.kind === "reply") {
-      const x1 = G.laneX[LANE_INDEX[u.from]], x2 = G.laneX[LANE_INDEX[u.to]];
+      const x1 = G.laneX[G.ix(u.from)], x2 = G.laneX[G.ix(u.to)];
       if (x1 === undefined || x2 === undefined) return;
       const dir = Math.sign(x2 - x1) || 1, a = x1 + dir * 5 * k, b = x2 - dir * 6 * k, e = ease(p);
       const head = phase === "future" ? b : a + (b - a) * e, col = step.differs ? amber(phase) : unitColor(phase, u.from);
@@ -540,7 +603,8 @@ const FlowKit = (() => {
       }
       const mid = (x1 + x2) / 2;
       if (r.chip) {
-        const { con, lines, withId, idW, lh } = r.chip, cw = r.chip.w, ch = r.chip.h, cx = mid - cw / 2, cy = y - ch - 6 * k;
+        const { con, lines, withId, idW, lh } = r.chip, cw = r.chip.w, ch = r.chip.h, cy = y - ch - 6 * k;
+        const cx = Math.max(G.x + G.gutter, Math.min(mid - cw / 2, G.x + G.w - cw - 4 * k));  // a pill as wide as its title stays on the stage
         const lv = levelOf(con.id);
         if (st.seen) { st.seen.add("flow.chip"); if (lv !== "dark" && phase !== "future") st.seen.add("lamp." + lv); }
         ga(ctx, phase === "future" ? 0.4 : 1);
@@ -558,21 +622,28 @@ const FlowKit = (() => {
       ga(ctx, phase === "now" && p < 1 ? 0.35 + 0.65 * e : 1);
       ctx.font = FONT.say(k);
       drawLines(ctx, st, r.lines, mid, y + 9 * k, r.lh, "center", ink);
+      // under the words: which lanes of a group the arrow stands for, then what else the arrow has to say
+      let noteY = y + 9 * k + r.lines.length * r.lh + 2 * k;
+      if (r.groupNote) {
+        ctx.font = FONT.guess(k); ctx.fillStyle = C.muted; ctx.textAlign = "center"; ctx.textBaseline = "top";
+        say(ctx, st, r.groupNote, mid, noteY);
+        noteY += leading(k, 10.5) + 2 * k;
+      }
       if (r.guessed && phase === "now" && p >= 1 && st.labels !== false) {
         ctx.font = FONT.guess(k); ctx.fillStyle = C.heuristic; ctx.textAlign = "center"; ctx.textBaseline = "top";
-        say(ctx, st, "direction guessed", mid, y + 9 * k + r.lines.length * r.lh + 2 * k);
+        say(ctx, st, "direction guessed", mid, noteY);
       }
       if (r.hid.length && st.labels !== false) {
         ctx.font = FONT.guess(k); ctx.fillStyle = C.muted; ctx.textAlign = "center"; ctx.textBaseline = "top";
-        say(ctx, st, r.hidNote, mid, y + 9 * k + r.lines.length * r.lh + 2 * k);
+        say(ctx, st, r.hidNote, mid, noteY);
       } else if (r.noContract && phase !== "future" && st.labels !== false) {
         ctx.font = FONT.guess(k); ctx.fillStyle = C.muted; ctx.textAlign = "center"; ctx.textBaseline = "top";
-        say(ctx, st, "no contract named", mid, y + 9 * k + r.lines.length * r.lh + 2 * k);
+        say(ctx, st, "no contract named", mid, noteY);
       }
       ga(ctx, 1);
       hits.push({ type: "row", si: r.si, line: y, x: Math.min(x1, x2), y: y - r.up, w: Math.abs(x2 - x1), h: r.up + r.down });
     } else if (u.kind === "self" && G.hidden.has(u.lane)) {
-      const X = G.laneX[LANE_INDEX[u.lane]];
+      const X = G.laneX[G.ix(u.lane)];
       ctx.strokeStyle = hexA(laneColor(u.lane), phase === "future" ? 0.3 : 0.7); ctx.lineWidth = 1.2 * k; ctx.setLineDash([2 * k, 2 * k]);
       ctx.beginPath(); ctx.arc(X, y, 4.5 * k, 0, 7); ctx.stroke(); ctx.setLineDash([]);
       ctx.font = FONT.say(k); ctx.textAlign = "right"; ctx.textBaseline = "middle"; ctx.fillStyle = hexA(C.ink, phase === "future" ? 0.35 : 0.7);
@@ -580,7 +651,7 @@ const FlowKit = (() => {
       hits.push({ type: "row", si: r.si, x: X - r.room - 16 * k, y: y - r.up, w: r.room + 20 * k, h: r.up + r.down });
     } else if (u.kind === "folded") {
       if (st.seen) { st.seen.add("flow.folded"); if (phase === "future") st.seen.add("flow.future"); }
-      const X = G.laneX[LANE_INDEX[u.lane]], col = step.differs ? amber(phase) : unitColor(phase, u.lane), lw = 34 * k, lh = 11 * k, sx = (v) => (r.flip ? 2 * X - v : v);
+      const X = G.laneX[G.ix(u.lane)], col = step.differs ? amber(phase) : unitColor(phase, u.lane), lw = 34 * k, lh = 11 * k, sx = (v) => (r.flip ? 2 * X - v : v);
       ctx.strokeStyle = col; ctx.setLineDash(phase === "future" ? [2 * k, 4 * k] : []);
       // a doubled loop and a stacked card: several steps pressed into one
       ctx.lineWidth = 1.3 * k; ctx.globalAlpha = 0.5 * DIM;
@@ -591,7 +662,7 @@ const FlowKit = (() => {
       arrowHead(ctx, sx(X + 5 * k), y + lh * 0.95, r.flip ? 1 : -1, 7 * k, true, col);
       if (phase === "now" && !reducedMotion()) { ctx.strokeStyle = hexA(laneColor(u.lane), 0.6 * (1 - p) * DIM); ctx.lineWidth = 2 * k; ctx.beginPath(); ctx.arc(X, y, 6 * k + p * 22 * k, 0, 7); ctx.stroke(); }
       const top = y - r.ch / 2;
-      if (step.run.length > 1) { rr(ctx, r.cx + 4 * k, top + 3 * k, r.cw, r.ch, 8 * k); ctx.fillStyle = C.deck; ctx.fill(); ctx.strokeStyle = hexA(laneColor(u.lane), 0.3); ctx.lineWidth = 1 * k; ctx.stroke(); }
+      if (r.card.stacked) { rr(ctx, r.cx + 4 * k, top + 3 * k, r.cw, r.ch, 8 * k); ctx.fillStyle = C.deck; ctx.fill(); ctx.strokeStyle = hexA(laneColor(u.lane), 0.3); ctx.lineWidth = 1 * k; ctx.stroke(); }
       rr(ctx, r.cx, top, r.cw, r.ch, 8 * k); ctx.fillStyle = C.deck2; ctx.fill(); ctx.strokeStyle = hexA(laneColor(u.lane), phase === "now" ? 0.85 : 0.55); ctx.lineWidth = 1 * k; ctx.stroke();
       ctx.font = FONT.say(k); ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.fillStyle = ink;
       r.lines.forEach((t, j) => say(ctx, st, t, r.cx + 8 * k, top + 7 * k + (j + 0.5) * r.lh));
@@ -599,7 +670,7 @@ const FlowKit = (() => {
       r.viaLines.forEach((t, j) => say(ctx, st, t, r.cx + 8 * k, top + 7 * k + (r.lines.length + j + 0.5) * r.lh));
       hits.push({ type: "row", si: r.si, x: Math.min(X - 10 * k, r.cx), y: y - r.up, w: Math.abs(r.cx - X) + r.cw + 20 * k, h: r.up + r.down });
     } else if (u.kind === "self") {
-      const X = G.laneX[LANE_INDEX[u.lane]], col = step.differs ? amber(phase) : unitColor(phase, u.lane), lw = 34 * k, lh = 11 * k;
+      const X = G.laneX[G.ix(u.lane)], col = step.differs ? amber(phase) : unitColor(phase, u.lane), lw = 34 * k, lh = 11 * k;
       if (step.differs && st.seen) st.seen.add("flow.differs");
       if (st.seen) { st.seen.add("flow.self"); if (phase === "future") st.seen.add("flow.future"); }
       ctx.strokeStyle = col; ctx.lineWidth = (phase === "now" ? 2.2 : 1.5) * k;
@@ -634,10 +705,10 @@ const FlowKit = (() => {
   }
   function markerPoint(G, r) {
     const u = r.u, k = G.s;
-    if (u.kind === "msg") { const x1 = G.laneX[LANE_INDEX[u.from]], x2 = G.laneX[LANE_INDEX[u.to]]; return { x: x1 + (x2 - x1) * 0.78, y: r.y }; }
+    if (u.kind === "msg") { const x1 = G.laneX[G.ix(u.from)], x2 = G.laneX[G.ix(u.to)]; return { x: x1 + (x2 - x1) * 0.78, y: r.y }; }
     if (u.kind === "folded") return { x: r.cx + r.cw - 12 * k, y: r.y + r.ch / 2 - 10 * k };  // on the card, bottom right: the questions of every step folded in
-    if (u.kind === "self") return { x: G.laneX[LANE_INDEX[u.lane]] + (G.hidden.has(u.lane) ? 10 : 46) * k, y: r.y - 13 * k };
-    const xs = [...G.touched].map((id) => G.laneX[LANE_INDEX[id]]).filter((x) => x !== undefined);
+    if (u.kind === "self") return { x: G.laneX[G.ix(u.lane)] + (G.hidden.has(u.lane) ? 10 : 46) * k, y: r.y - 13 * k };
+    const xs = [...G.touched].map((id) => G.laneX[G.ix(id)]).filter((x) => x !== undefined);
     return { x: (xs.length ? Math.max(...xs) : G.x + G.w - 60) + G.colW * 0.32, y: r.y };
   }
   function drawMarkers(ctx, G, si, r, st, hits) {
@@ -682,7 +753,7 @@ const FlowKit = (() => {
   function drawTitleCard(ctx, flow, T, W, H) {
     const k = W / 1280, b = W < 1000 ? 1.8 : 1;
     background(ctx, W, H);
-    const touched = [...touchedLanes(flow)].sort((a, c) => LANE_INDEX[a] - LANE_INDEX[c]);
+    const touched = lanesFor(flow).map((l) => l.id).filter((id) => touchedLanes(flow).has(id));
     touched.forEach((id, j) => {
       const X = W * 0.66 + j * 60 * k, dt = T - 0.25 - j * 0.22, amp = dt > 0 ? 9 * k * Math.exp(-dt / 0.45) : 0;
       ctx.strokeStyle = hexA(laneColor(id), 0.65); ctx.lineWidth = 2.2 * k; ctx.beginPath();
@@ -833,7 +904,8 @@ const FlowKit = (() => {
   Legend.define("flow.start", [bx({ stroke: "ink-3", w: 1.2, rx: 4.5, x: 3, y: 4, width: 14, height: 8 }), ln({ stroke: "ink-2", w: 3, y: 8 })], "Start tag and rail: where the flow can begin; each start's steps sit under their own heading");
   Legend.define("flow.folded", [bx({ stroke: "ink-3", w: 1.2, rx: 4, x: 11, y: 3, width: 20, height: 10 }), ln({ stroke: "ink-3", w: 1.4 })], "Stacked card: lanes folded into this one, their steps pressed into one. The +n on a name unfolds them");
   Legend.define("flow.hidden", [bx({ stroke: "ink-3", w: 1.2, dash: "3 3", rx: 4, x: 8, y: 3, width: 18, height: 10 })], "Dashed chip: a lane you hid; arrows to it are dotted. Press it to show it again");
-  const LOOK_ORDER = ["flow.stated", "flow.inferred", "flow.reply", "flow.self", "flow.band", "flow.future", "flow.chip", ...Legend.LAMPS.map((lv) => "lamp." + lv), "flow.pin", "flow.pin.settled", "flow.lane", "flow.stepno", "flow.differs", "flow.start", "flow.folded", "flow.hidden"];
+  Legend.define("flow.group", [bx({ fill: "deck-2", stroke: "ink-3", w: 1.2, rx: 4.5, y: 3.5, height: 9 }), { k: "dot", fill: "ink-2", x: 7, r: 2 }, { k: "dot", fill: "ink-3", x: 12, r: 2 }], "Pill with a stack of dots: lanes drawn as one, made by you or written on the flow page. Its panel names them, and Ungroup draws them apart");
+  const LOOK_ORDER = ["flow.stated", "flow.inferred", "flow.reply", "flow.self", "flow.band", "flow.future", "flow.chip", ...Legend.LAMPS.map((lv) => "lamp." + lv), "flow.pin", "flow.pin.settled", "flow.lane", "flow.stepno", "flow.differs", "flow.start", "flow.folded", "flow.group", "flow.hidden"];
   function census(flow) {
     const seen = new Set(), canvas = document.createElement("canvas");
     canvas.width = 1040; canvas.height = 700;
@@ -877,11 +949,12 @@ const FlowKit = (() => {
     if (flow.steps.length) out.add("flow.stepno");
     if (flow.steps.some((step) => step.differs && unitsOf(step).some((u) => u.kind !== "ref"))) out.add("flow.differs");
     if (flow.starts) out.add("flow.start");
-    if (flow.steps.some((step) => step.folded)) out.add("flow.folded");
+    if (has(({ u }) => u.kind === "folded")) out.add("flow.folded");
+    if (flow.view && flow.view.lanes && flow.view.lanes.some((l) => l.group && touchedLanes(flow).has(l.id) && !flow.view.hidden.has(l.id))) out.add("flow.group");
     if (flow.view && [...flow.view.hidden].some((id) => touchedLanes(flow).has(id))) out.add("flow.hidden");
     return out;
   }
   const flowProbes = (keyOf) => Object.fromEntries(LOOK_ORDER.map((id) => [id, () => expected(flowOf(keyOf())).has(id)]));
-  return { census, drawnText, drawnClip, sayOf, stepSays, stepNo, captionOf, expected, flowProbes, PALETTE, C, UI, SERIF, laneColor, laneName, flowOf, inferredNote, unitsOf, openPins, flowQuestions, touchedLanes, stepTiming, travelTime, layout, drawScene,
+  return { laneOrder, lanesFor, isGroup, isLane, census, drawnText, drawnClip, sayOf, stepSays, stepNo, captionOf, expected, flowProbes, PALETTE, C, UI, SERIF, laneColor, laneName, flowOf, inferredNote, unitsOf, openPins, flowQuestions, touchedLanes, stepTiming, travelTime, layout, drawScene,
     drawClipFrame, clipPlan, clipFormat, recordClip, download, hexA, markerColor, CLIP };
 })();

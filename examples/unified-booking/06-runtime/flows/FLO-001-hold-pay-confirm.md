@@ -27,15 +27,21 @@ capabilities: [CAP-013, CAP-014, CAP-015]
 
 There are three ways in, one for each channel. Steps 1 to 3 are the three starts. From step 4 on, the flow is the same for all three.
 
+Channels groups the website, call center desktop and port kiosks; Lookups groups Pricing, Customer identity and Vessel schedule.
+
 ```mermaid
 sequenceDiagram
-    participant W as Public website
-    participant D as Call center desktop
-    participant K as Port kiosks
+    box Channels
+        participant W as Public website
+        participant D as Call center desktop
+        participant K as Port kiosks
+    end
     participant B as Booking
-    participant VS as Vessel schedule
-    participant CI as Customer identity
-    participant P as Pricing
+    box Lookups
+        participant VS as Vessel schedule
+        participant CI as Customer identity
+        participant P as Pricing
+    end
     participant FM as FERRYMASTER
     alt A customer books on the website
         W->>B: CON-001 hold a seat

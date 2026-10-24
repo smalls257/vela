@@ -318,6 +318,7 @@ function ent(key) {
   }
   if (key && key.startsWith("grill:")) return typeof Grills !== "undefined" ? Grills.entry(key) : null;  // a grill waiting, as the Grills waiting view lists it
   if (key && key.startsWith("lib:")) return typeof Library !== "undefined" ? Library.entry(key) : null;  // a Library row, whatever page cites it
+  if (key && key.startsWith("grp:")) return typeof FlowView !== "undefined" ? FlowView.groupEnt(key) : null;  // lanes a reader drew as one on the Flows view
   if (key && key.startsWith("gap:")) { const l = D.lanes[LANE_INDEX[key]]; return l ? { key, kind: "gap", title: l.name, id: "" } : null; }  // an end a flow step names that the plan doesn't know
   if (EXTERNAL[key]) return { key, kind: "external", title: EXTERNAL[key].title, id: "" };
   if (key === "lights") return { key, kind: "lights", title: "Needs you", id: "" };

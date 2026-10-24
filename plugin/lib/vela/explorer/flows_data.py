@@ -428,6 +428,8 @@ def flows(vault, keys, contracts, pins, names, catalog=None):
         drawing = Drawing(starts_data.drawn_calls(vault, keys, catalog, page, by_name)) if catalog is not None else Drawing()
         record = flow_record(vault, keys, page, by_id, lanes, words, blockers, names, outside, drawing)
         record["domain"] = domain_of(record["steps"], app_domains)
+        record["groups"] = (starts_data.default_groups(vault, keys, catalog, page, by_name, {l["id"] for l in lanes})
+                            if catalog is not None else [])
         record["hops"], record["segments"] = journey(record["steps"], by_id)
         out.append(record)
     return {"lanes": lanes, "flows": out}

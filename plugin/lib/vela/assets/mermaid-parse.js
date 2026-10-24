@@ -15,6 +15,8 @@ const stubElement = () => ({ setAttribute: noop, appendChild: noop, style: {} })
 globalThis.window = globalThis;
 globalThis.addEventListener = noop;
 globalThis.Element = function Element() {};
+// a sequence diagram's `box` asks the page whether its first word is a CSS color (new Option().style); a parse needs only an answer
+globalThis.Option = function Option() { this.style = {}; };
 globalThis.document = {
   nodeType: 9, compatMode: "CSS1Compat", readyState: "complete", body: { appendChild: noop },
   createElement: stubElement, querySelector: () => null, querySelectorAll: () => [], addEventListener: noop,

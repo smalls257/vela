@@ -74,6 +74,27 @@ def test_a_link_naming_folds_and_hides_opens_with_them(tmp_path, chrome_path):  
 
 
 @pytest.mark.browser
+def test_a_flow_whose_page_writes_boxes_opens_grouped_and_a_link_can_ungroup_it(tmp_path, chrome_path):  # noqa: F811
+    page = staged(tmp_path)
+    out = dom(chrome_path, page, "flows&open=FLO-001&still")
+    assert re.search(r'id="group-btn"[^>]*aria-pressed="true"[^>]*aria-label="Grouped, 2 groups"', out) and "Grouped · 2" in out
+    # the list under the diagram is the keyboard path: a row for each group, its members under it, Ungroup and Hide beside it
+    assert "Channels, group of 3" in out and "Lookups, group of 3" in out and 'aria-label="Ungroup Channels"' in out and 'aria-label="Hide Channels"' in out
+    # a member is not hidden alone while it is grouped
+    assert 'aria-label="Hide Public website"' not in out
+    # a link names what the reader did: ungroup rides in the address, and rides on a present link too
+    one = dom(chrome_path, page, "flows&open=FLO-001&ungroup=Channels&still")
+    assert "Grouped · 1" in one and 'aria-label="Ungroup Lookups"' in one and 'aria-label="Ungroup Channels"' not in one and 'aria-label="Hide Public website"' in one
+    none = dom(chrome_path, page, "flows&open=FLO-001&ungroup=Channels,Lookups&still")
+    assert "Grouped" not in none and re.search(r'id="group-btn"[^>]*aria-pressed="false"[^>]*aria-label="Group lanes"', none)
+    present = dom(chrome_path, page, "present=FLO-001&step=2&ungroup=Channels&still")
+    assert 'data-step="2"' in present  # (the groups on a present screen are canvas pixels: the selftest reads what it draws, and that the address carries them)
+    # a link's own group= wins over the page's, and what it cannot honor is said
+    link = dom(chrome_path, page, "flows&open=FLO-001&group=Ferry:APP-booking,APP-nowhere&still")
+    assert "which isn't in this flow" in link and "Ferry has fewer than two lanes" in link and "Channels, group of 3" not in link
+
+
+@pytest.mark.browser
 def test_the_selftest_walks_the_pinned_row_the_starts_and_the_folds_at_both_sizes(tmp_path, chrome_path):  # noqa: F811
     page = staged(tmp_path)
     for viewport in ("1600,1000", "800,600"):
@@ -83,5 +104,8 @@ def test_the_selftest_walks_the_pinned_row_the_starts_and_the_folds_at_both_size
                      "ok starts, FLO-010: Next skips the steps of the start not picked", "ok starts, FLO-010: the arrow keys move between the starts",
                      "ok starts, FLO-010: a click on a Start tag picks that start", "ok starts, FLO-010: pressing the picked start again goes back to Either", "ok starts, FLO-010: a link naming the start opens with it picked",
                      "ok starts, FLO-013: a guess says it is one", "ok starts, FLO-001: picking", "ok fold: on ", "ok hide: on FLO-001, a lane hides",
-                     "ok hide: a link naming a hidden lane", "ok flows: the Starts from picker and Simplify fit the header row in every theme and in Plain"):
+                     "ok hide: a link naming a hidden lane", "ok flows: the Starts from picker and Simplify fit the header row in every theme and in Plain",
+                     "ok groups: FLO-001 opens with its page's Channels and Lookups", "ok groups: ungroup rides in the address", "ok groups: a group can host a fold", "ok groups: G opens the picker",
+                     "ok groups: a click on a group's pill opens its panel", "ok groups: present mode draws the groups", "ok groups: traffic inside a group is one card",
+                     "ok groups: with both groups on, the lane names do not overlap", "ok groups: the Group button, Starts from and Simplify fit the header row", "ok arrows: across "):
             assert any(line.startswith(want) for line in lines), (viewport, want)

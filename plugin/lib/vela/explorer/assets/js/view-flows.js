@@ -91,6 +91,7 @@ const Flows = (() => {
       canvas.style.cursor = t ? "pointer" : "default";
       p.hover = t && (t.type === "lane" || t.type === "hide" || t.type === "fold") ? t.id : null;
       if (t && t.type === "unknown") { const q = ASK[t.id]; showTip(e, `<b>${esc(E[t.id] ? E[t.id].title : t.id)}</b>${esc(q.state === "open" ? q.question : "Answered: " + (q.outcome || q.question))}`); }
+      else if (t && t.type === "lane" && FlowKit.isGroup(t.id)) { const g = FlowView.groupsFor(p.key).find((x) => x.id === t.id); showTip(e, `<b>${esc(FlowKit.laneName(t.id))}</b>${g ? "draws " + esc(g.members.map(titleOf).join(", ")) + " as one" : "a group of lanes"}`); }
       else if (t && t.type === "lane") showTip(e, `<b>${esc(FlowKit.laneName(t.id))}</b>${FlowKit.touchedLanes(FlowKit.flowOf(p.key)).has(t.id) ? "in this flow" : "not in this flow"}`);
       else if (t && t.type === "contract") showTip(e, `<b>${esc(CONTRACT[t.id].title)}</b>${esc(contractSays(t.id))}`);
       else if (t && t.type === "fold") { const g = FlowView.hostsOf(p.key)[t.id] || [], on = FlowView.choices(p.key).folded.has(t.id); showTip(e, `<b>${esc(g.map(titleOf).join(" and "))}</b>${on ? "folded into " + esc(titleOf(t.id)) + "; press to unfold" : "press to fold into " + esc(titleOf(t.id))}`); }
@@ -136,10 +137,11 @@ const Flows = (() => {
       { id: "rehearse", label: "Rehearse this flow", say: "Quiz yourself: rebuild the flow from memory, then reveal it", run: () => Rehearse.open(st.key) },
       { id: "clip", label: "Save as video", say: clipNote(), attrs: { id: "clip-btn" }, run: saveClip },
       sum ? { separator: true } : null, sum ? { node: sum } : null];
-    const diagram = Menus.frame({ barClass: "flows-head", left: [picker, branch, startsPicker(), simplifyButton()], right: [Menus.keyButton(key), present_, Nav.moreMenu(moreFlow)],
+    const diagram = Menus.frame({ barClass: "flows-head", left: [picker, branch, startsPicker(), simplifyButton(), groupButton()], right: [Menus.keyButton(key), present_, Nav.moreMenu(moreFlow)],
       say: [tag ? h("span", { class: "tracer-place" }, tag, ` ${Releases.tracerPlaceWords(pl)}`) : null, h("span", { class: "dia-hint", id: "clip-status", role: "status", "aria-live": "polite" })] }, stage);
     main.append(diagram);
     if (HASH.has("picker")) picker.open();  // #flows&picker opens the list on arrival, for screenshots
+    if (HASH.has("grouppicker")) setTimeout(() => LaneGroups.open(st.key), 60);  // #flows&grouppicker opens the group picker on arrival, for screenshots
     nodeList = flowNodes(st.key, () => player);
     const caption = h("section", { class: "caption", id: "caption", "aria-live": "polite" });
     const transport = h("footer", { class: "transport", id: "transport" });
@@ -172,6 +174,8 @@ const Flows = (() => {
       f.starts.guessed ? h("span", { class: "starts-guess heuristic", title: "The page doesn't say who sends some of these steps, so which lanes start the flow is a guess." }, "a guess") : null);
     return box;
   }
+  /* Group lanes (lanegroups.js): one button beside Simplify; the picker is a dialog and G opens it. */
+  function groupButton() { return LaneGroups.button(st.key, () => (LaneGroups.isOpen() ? LaneGroups.close(true) : LaneGroups.open(st.key))); }
   function simplifyButton() {
     const hosts = Object.keys(FlowView.hostsOf(st.key));
     if (!hosts.length) return null;
@@ -183,7 +187,13 @@ const Flows = (() => {
   function repaintView() {
     if (!player || !player.canvas.isConnected) return;
     for (const old of $$("[data-starts]")) { const next = startsPicker(); if (next) old.replaceWith(next); }
-    const sb = $("#simplify-btn"); if (sb) { const next = simplifyButton(); if (next) sb.replaceWith(next); }
+    // Simplify and Group come and go with what the flow can do (a lane that can fold, three lanes to group): paint both again, in the same place, keeping focus
+    const bar = $(".flows-head .dia-l"), had = document.activeElement && document.activeElement.id;
+    if (bar) {
+      for (const id of ["#simplify-btn", "#group-btn"]) { const old = $(id); if (old) old.remove(); }
+      bar.append(...[simplifyButton(), groupButton()].filter(Boolean));
+      if (had === "simplify-btn" || had === "group-btn") { const again = $("#" + had); if (again) again.focus(); }
+    }
     player.reflow(); paintCaption(); buildTransport(); paintTransport();
     if (legend) { legend.seen.clear(); FlowKit.census(FlowKit.flowOf(st.key)).forEach((id) => legend.saw(id)); legend.paint(); }  // the key follows what the stage now draws
     if (nodeList && nodeList.isConnected) { const next = flowNodes(st.key, () => player); next.open = nodeList.open; nodeList.replaceWith(next); nodeList = next; }
@@ -200,20 +210,27 @@ const Flows = (() => {
   /* The canvas is pixels, so a keyboard cannot reach what is drawn on it. This list is the same nodes as buttons: every
      lane, step, contract and open question the canvas draws, each opening the panel as a click on the canvas does. */
   function flowNodes(flowKey, playerOf) {
-    const f = FlowKit.flowOf(flowKey, { plain: true });  // every lane and contract, whatever is folded or hidden on the stage
-    const lanes = [...FlowKit.touchedLanes(f)].sort((a, b) => LANE_INDEX[a] - LANE_INDEX[b]);
+    const f = FlowKit.flowOf(flowKey, { plain: true });  // every lane and contract, whatever is folded, hidden or grouped on the stage
+    const groups = FlowView.groupsFor(flowKey), memberOf = {};
+    for (const g of groups) for (const m of g.members) memberOf[m] = g;
+    // a group's row stands where its first member stood, with the members under it; the rest keep the flow's order
+    const lanes = [...new Set(FlowView.laneIds(flowKey).map((id) => (memberOf[id] ? memberOf[id].id : id)))];
     const hosts = FlowView.hostsOf(flowKey), folded = FlowView.choices(flowKey).folded;
     // a lane's name opens the panel; next to it, the same two choices the canvas has (fold what talks only to it, hide it), as buttons
-    const laneRow = (k) => {
+    const laneRow = (k, inGroup) => {
       const hidden = FlowView.isHidden(flowKey, k), members = hosts[k];
+      if (inGroup) return h("span", { class: "fn-lane fn-member" }, btn({ text: titleOf(k), label: titleOf(k), key: k }));  // a lane in a group hides with the group; ungroup first to hide it alone
       const hideBtn = h("button", { class: "flow-node fn-act", type: "button", "aria-pressed": String(hidden), "aria-label": `${hidden ? "Show" : "Hide"} ${titleOf(k)}`,
         onclick: () => (hidden ? FlowView.show(flowKey, k) : FlowView.hide(flowKey, k)) }, hidden ? "Show" : "Hide");
       const foldBtn = members ? h("button", { class: "flow-node fn-act", type: "button", "aria-pressed": String(folded.has(k)),
         "aria-label": `${folded.has(k) ? "Unfold" : "Fold"} ${members.map(titleOf).join(" and ")} ${folded.has(k) ? "from" : "into"} ${titleOf(k)}`,
         onclick: () => FlowView.toggleFold(flowKey, k) }, folded.has(k) ? `Unfold ${members.length}` : `Fold ${members.length}`) : null;
-      const name = btn({ text: titleOf(k), label: titleOf(k), key: k });
+      const g = groups.find((x) => x.id === k);
+      const name = btn({ text: g ? `${g.name}, group of ${g.members.length}` : titleOf(k), label: titleOf(k), key: k });
       name.addEventListener("keydown", (e) => { if (e.key === "Delete" || e.key === "Backspace") { e.preventDefault(); FlowView.hide(flowKey, k); } });
-      return h("span", { class: "fn-lane" }, name, foldBtn, hideBtn);
+      const undo = g ? h("button", { class: "flow-node fn-act", type: "button", "data-ungroup": k, "aria-label": `Ungroup ${g.name}`, onclick: () => FlowView.ungroup(flowKey, k) }, "Ungroup") : null;
+      const row = h("span", { class: "fn-lane" + (g ? " fn-group-row" : "") }, name, undo, foldBtn, hideBtn);
+      return g ? h("span", { class: "fn-grouped" }, row, h("span", { class: "fn-members" }, g.members.map((m) => laneRow(m, true)))) : row;
     };
     const contracts = [...new Set(f.steps.flatMap((x) => x.contracts))].filter((c) => CONTRACT[c]);
     const pins = [...new Set(f.steps.flatMap((x) => x.unknowns.map((u) => u.id)))].filter((u) => ent(u));
@@ -221,7 +238,7 @@ const Flows = (() => {
     const group = (title, kids) => (kids.length ? h("div", { class: "fn-group" }, h("b", {}, title), kids) : null);
     return h("details", { class: "flow-nodes", "data-flow-nodes": flowKey },
       h("summary", {}, "The flow as a list"),
-      group("Apps and outside services", lanes.filter((k) => ent(k)).map(laneRow)),
+      group("Apps and outside services", lanes.filter((k) => ent(k)).map((k) => laneRow(k))),
       group("Contracts", contracts.map((c) => btn({ text: CONTRACT[c].title, label: `${CONTRACT[c].title} (${c})`, key: c }))),
       group("Open questions", pins.map((u) => btn({ text: titleOf(u), label: `${titleOf(u)} (${u})`, key: u }))));
   }
@@ -245,14 +262,14 @@ const Flows = (() => {
     }
     const stp = f.steps[st.cur];
     const facts = h("ul", { class: "cap-facts" });
-    // A folded step is several: each is read out under its own number.
+    // A folded step is several: each is read out under its own number. What a group draws as one arrow, the facts still say app by app.
     for (const x of stp.run || [stp]) {
       if (stp.run) facts.append(h("li", { class: "cap-sub" }, h("i", { class: "lane-dot named" }), h("span", {}, h("b", {}, `Step ${x.n}`), " ", h("span", { html: x.html }))));
-      stepFacts(x, facts);
+      stepFacts(x.plain || x, facts);
     }
     box.append(h("div", { class: "cap-where" }, h("span", {}, h("b", {}, `Step ${FlowKit.stepNo(stp)}`), ` of ${f.steps.length}`, " ",
       h("button", { class: "linkish", type: "button", "data-step-details": "", onclick: () => DetailsPanel.show(PlanDetails.stepKey(st.key, st.cur), { reset: true }) }, "Details for this step")), h("span", { class: "muted" }, E[st.key].title)),
-      stp.run ? h("div", { class: "cap-text" }, `${upFirst(stp.via.join(" and "))} folded into ${titleOf(stp.self)}: ${stp.say}.`) : h("div", { class: "cap-text", html: stp.html }), facts, ...[startsLine(f, stp), inferredLine()].filter(Boolean));  // native append prints a null as "null"
+      stp.grouped ? h("div", { class: "cap-text" }, `${stp.say}.`, h("div", { class: "muted" }, upFirst(stp.viaText))) : stp.run ? h("div", { class: "cap-text" }, `${upFirst(stp.via.join(" and "))} folded into ${titleOf(stp.self)}: ${stp.say}.`) : h("div", { class: "cap-text", html: stp.html }), facts, ...[startsLine(f, stp), inferredLine()].filter(Boolean));  // native append prints a null as "null"
   }
   /* The facts under one step: who sends over which contract, its open questions, what the step names besides. */
   function stepFacts(stp, facts) {
@@ -299,8 +316,9 @@ const Flows = (() => {
   }
   /* What the address asked for that this flow no longer has. */
   function ignoredLine(f) {
-    const gone = f.view && f.view.ignored;
-    return gone && gone.length ? h("div", { class: "cap-starts heuristic", "data-ignored-link": "" }, `The link asked for ${gone.join(", ")}, which this flow doesn't have any more.`) : null;
+    const gone = f.view && f.view.ignored, said = (f.view && f.view.said) || [];
+    const lines = [gone && gone.length ? `The link asked for ${gone.join(", ")}, which this flow doesn't have any more.` : "", ...said].filter(Boolean);
+    return lines.length ? h("div", { class: "cap-starts heuristic", "data-ignored-link": "" }, lines.join(" ")) : null;
   }
   function buildTransport() {
     const tr = $("#transport"); if (!tr) return;
@@ -346,7 +364,10 @@ const Flows = (() => {
     else { player.pause(); player.go(st.cur); }
     history.replaceState(null, "", `#flows&open=${encodeURIComponent(key)}${st.cur >= 0 ? `&step=${st.cur + 1}` : ""}${Branches.hashPart(key)}${FlowView.hashPart(key)}`);
   }
-  function clipNote() { const fmt = FlowKit.clipFormat(); return fmt ? "Saves this flow as a video you can drop into slides" : "Recording a video doesn't work in this browser; try Chrome"; }
+  function clipNote() {
+    const fmt = FlowKit.clipFormat(), grouped = FlowView.groupsFor(st.key).length > 0;
+    return fmt ? `Saves ${grouped ? "the whole flow" : "this flow"} as a video you can drop into slides${grouped ? ", without your groups" : ""}` : "Recording a video doesn't work in this browser; try Chrome";
+  }
   async function saveClip() {
     await (document.fonts ? document.fonts.ready : Promise.resolve());
     if (recording) return;
@@ -428,7 +449,8 @@ const Flows = (() => {
   function here() {
     if (!st.key || App.view !== "flows") return null;
     const f = FlowKit.flowOf(st.key);  // the branch shown, when one is picked
-    return st.cur >= 0 ? [...laneEnds(f.steps[st.cur])] : flowStations(f);
+    const apps = (ids) => [...new Set(ids.flatMap((k) => (FlowKit.isGroup(k) ? ((FlowView.groupsFor(st.key).find((g) => g.id === k) || { members: [] }).members) : [k])))];
+    return st.cur >= 0 ? apps([...laneEnds(f.steps[st.cur])]) : apps(flowStations(FlowKit.flowOf(st.key, { plain: true })));
   }
   function highlight(key) { if (FLOW[key] && key !== st.key) select(key, -1); paintFocus(key); }
   /* ------------------------------------------------------------ the Details panel (detailspanel.js) */
@@ -436,6 +458,7 @@ const Flows = (() => {
   /* The lanes a pick lights on the canvas: a step's ends, a contract's two sides, what a question holds up. */
   function litBy(key) {
     if (PlanDetails.isStep(key)) { const s = flowOf().steps[PlanDetails.parseStep(key).i]; return s ? [...stepEnds(s)] : []; }
+    if (FlowKit.isGroup(key)) { const g = FlowView.groupsFor(st.key).find((x) => x.id === key); return g ? [key, ...g.members] : [key]; }
     return [...new Set([...mapAnchors(key), ...PlanDetails.held(key).apps])];
   }
   /* The play head follows a picked step, and the scrub ticks of the steps a picked question or contract touches are marked. */
@@ -475,7 +498,7 @@ const Flows = (() => {
     const p = PlanDetails.parseStep(key), f = FlowKit.flowOf(p.flow), s = f.steps[p.i];
     if (!s) return [h("div", { class: "p-empty" }, "That step isn't in the flow shown any more. Pick it again.")];
     const groups = [];
-    for (const m of (s.run || [s]).flatMap((x) => x.messages)) {  // a folded step: every message of the steps folded into it
+    for (const m of (s.run || [s]).flatMap((x) => (x.plain || x).messages)) {  // a folded step: every message of the steps folded into it; a group's arrows, app by app
       const g = groups.find((x) => x.contract === m.contract && x.from === m.from && x.kind === m.kind);
       if (g) g.to.push(m.to); else groups.push({ ...m, to: [m.to] });
     }
@@ -506,11 +529,11 @@ const Flows = (() => {
   DetailsPanel.register("flows", {
     view: "flows", live: () => D.flows.length > 0 && !!st.key && !!FLOW[st.key],
     rootLabel: () => (E[st.key] ? shorten(E[st.key].title, 26) : "The flow"), summary: flowSummary,
-    owns: (k) => PlanDetails.owns(k) || (k === st.key && !!FLOW[k]),
-    detail: (k) => (PlanDetails.isStep(k) ? stepNodes(k) : k === st.key && FLOW[k] ? flowSummary() : PlanDetails.detail(k, "flows")),
-    label: PlanDetails.label, open: (k) => PlanDetails.openFor(k, "flows"), focus: (k) => paintFocus(k),
+    owns: (k) => FlowKit.isGroup(k) || PlanDetails.owns(k) || (k === st.key && !!FLOW[k]),
+    detail: (k) => (FlowKit.isGroup(k) ? LaneGroups.panel(st.key, k) : PlanDetails.isStep(k) ? stepNodes(k) : k === st.key && FLOW[k] ? flowSummary() : PlanDetails.detail(k, "flows")),
+    label: (k) => (FlowKit.isGroup(k) ? FlowKit.laneName(k) : PlanDetails.label(k)), open: (k) => PlanDetails.openFor(k, "flows"), focus: (k) => paintFocus(k),
   });
-  return { render, select, present, closePresent, here, highlight, st, player: () => player, presenter: () => presenter, saveClip };
+  return { render, select, present, closePresent, clipNote, here, highlight, st, player: () => player, presenter: () => presenter, saveClip };
 })();
 View("flows", { label: "Flows", title: "Each flow, played step by step across the apps", render: Flows.render, here: Flows.here, highlight: Flows.highlight,
   count: () => String(D.flows.length), lamp: () => { const l = D.flows.map((f) => levelOf(f.key)).filter((x) => x !== "dark").sort((a, b) => rank(b) - rank(a))[0]; return l || null; } });

@@ -57,7 +57,7 @@ class ExplorerError(Exception):
 
 # The page's script and style, in load order: shared code first, one module per view, the boot last.
 JS_MODULES = ("core", "theme", "fx", "menus", "assets", "icons", "layout", "pan", "geometry", "capfocus", "diagrams", "search", "minimap", "reader", "viewer", "queue", "panel", "panelsize", "detailspanel", "motion", "view-map",
-              "wires", "mapgroups", "releases", "slices", "flowkit", "flowpicker", "branches", "flowview", "view-flows", "rehearse", "view-asks", "view-decisions", "view-library", "view-grills", "view-progress",
+              "wires", "mapgroups", "releases", "slices", "flowkit", "flowpicker", "branches", "flowview", "lanegroups", "view-flows", "rehearse", "view-asks", "view-decisions", "view-library", "view-grills", "view-progress",
               "view-trace", "capview", "sections", "needs", "roles", "onboard", "nav", "markdown", "ask", "inside", "plan", "drafts", "freshness", "main")
 SELFTEST_MODULES = ("selftest", "selftest-branches", "selftest-flowview", "selftest-qol", "selftest-inside", "selftest-onboard", "selftest-details", "selftest-library", "selftest-grills", "selftest-needs", "selftest-zoom", "selftest-capfocus", "selftest-capview", "selftest-diagrams")  # 120 KB of checks: bundled only when asked (`vela explore --selftest`), not shipped to every reader
 CSS_MODULES = ("base", "menus", "nav", "panel", "compact", "map", "needs", "flows", "rehearse", "asks", "decisions", "pages", "reader", "roles", "onboard",

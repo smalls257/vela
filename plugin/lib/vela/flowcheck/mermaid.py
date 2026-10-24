@@ -3,6 +3,9 @@
 Only these lines are read; any other line is an unreadable-line problem (F10, R0):
 
     participant <Name> [as <App title>]
+    box [<color>] <Group name> / participant ... / end
+                                           a named group of lanes. Only participants go inside. The flow page's default
+                                           lane group in the dashboard's Flows view; mermaid draws it as a box
     A->>B: CON-nnn <words>                 a call; B must be CON-nnn's provider
     B-->>A: <status> <case_key>            an answer: B's drawn reply, or the first line of A's branch
     A-)B: EVT-nnn <words>                  an event published for subscriber B
@@ -32,6 +35,7 @@ from vela.flowcheck.tables import FlowLine, Problem
 NAME = r"[A-Za-z_][\w]*"
 LINE_PATTERNS = (
     ("participant", re.compile(rf"^participant\s+({NAME})(?:\s+as\s+(.+?))?\s*$")),
+    ("box", re.compile(r"^box\b\s*(.*?)\s*$")),
     ("answer", re.compile(rf"^({NAME})-->>({NAME}):\s*(\d{{3}}|ok|error)\s+(\w+)\s*$")),
     ("call", re.compile(rf"^({NAME})->>({NAME}):\s*(CON-\d+)\b\s*(.*)$")),
     ("event", re.compile(rf"^({NAME})-\)({NAME}):\s*(EVT-\d+)\b\s*(.*)$")),
@@ -55,6 +59,30 @@ NOTE_PATTERNS = (
 )
 
 
+BOX_COLOR = re.compile(r"^(?:(?:rgba?|hsla?)\s*\([^)]*\)|#[0-9A-Fa-f]{3,8}|(\w+))\s*")
+CSS_COLORS = frozenset("""transparent aliceblue antiquewhite aqua aquamarine azure beige bisque black blanchedalmond blue blueviolet brown
+burlywood cadetblue chartreuse chocolate coral cornflowerblue cornsilk crimson cyan darkblue darkcyan darkgoldenrod darkgray
+darkgreen darkgrey darkkhaki darkmagenta darkolivegreen darkorange darkorchid darkred darksalmon darkseagreen darkslateblue
+darkslategray darkslategrey darkturquoise darkviolet deeppink deepskyblue dimgray dimgrey dodgerblue firebrick floralwhite
+forestgreen fuchsia gainsboro ghostwhite gold goldenrod gray green greenyellow grey honeydew hotpink indianred indigo ivory khaki
+lavender lavenderblush lawngreen lemonchiffon lightblue lightcoral lightcyan lightgoldenrodyellow lightgray lightgreen lightgrey
+lightpink lightsalmon lightseagreen lightskyblue lightslategray lightslategrey lightsteelblue lightyellow lime limegreen linen
+magenta maroon mediumaquamarine mediumblue mediumorchid mediumpurple mediumseagreen mediumslateblue mediumspringgreen
+mediumturquoise mediumvioletred midnightblue mintcream mistyrose moccasin navajowhite navy oldlace olive olivedrab orange
+orangered orchid palegoldenrod palegreen paleturquoise palevioletred papayawhip peachpuff peru pink plum powderblue purple
+rebeccapurple red rosybrown royalblue saddlebrown salmon sandybrown seagreen seashell sienna silver skyblue slateblue slategray
+slategrey snow springgreen steelblue tan teal thistle tomato turquoise violet wheat white whitesmoke yellow yellowgreen""".split())
+
+
+def box_name(words):
+    """The group's name from what follows `box`. Mermaid reads a first word that is a CSS color (rgb(...), #hex, a color name) as the
+    box's color and the rest as its name, so this does too: the name the dashboard shows is the name mermaid draws."""
+    found = BOX_COLOR.match(words)
+    if found and (found.group(1) is None or found.group(1).lower() in CSS_COLORS):
+        words = words[found.end():]
+    return " ".join(words.split())
+
+
 def case_keys(text):
     """("timeout", "unavailable") from "timeout, 503 unavailable". None when a part is not a key."""
     keys = []
@@ -71,8 +99,10 @@ def _leaves(text):
 
 
 def tokenize(lines, first_line, path, item, problems):
-    """FlowLines from the diagram's lines; `first_line` is the file line of lines[0] ("sequenceDiagram")."""
-    out = []
+    """FlowLines from the diagram's lines; `first_line` is the file line of lines[0] ("sequenceDiagram").
+    A `box` opens a group that only participants may sit in; its `end` is a "boxend" token, so it never reads as the
+    end of an alt or a par."""
+    out, open_box = [], None
     for n, raw in enumerate(lines, first_line):
         text = raw.strip()
         if not text or text.startswith("%%") or text == "sequenceDiagram":
@@ -80,8 +110,19 @@ def tokenize(lines, first_line, path, item, problems):
         token = _token(text, n)
         if token is None:
             problems.append(Problem(f"{path}:{n}", f"Unreadable line, outside the checked subset: {text}", item))
-        else:
-            out.append(token)
+            continue
+        if open_box is not None:
+            if token.kind == "end":
+                token, open_box = FlowLine(n, "boxend", ()), None
+            elif token.kind != "participant":
+                problems.append(Problem(f"{path}:{n}", f"Only participants go inside a box ({open_box.parts[0]}); close it with end first: {text}", item))
+        elif token.kind == "box":
+            if not token.parts[0]:
+                problems.append(Problem(f"{path}:{n}", "A box needs a name: it is the group's name on the Flows view.", item))
+            open_box = token
+        out.append(token)
+    if open_box is not None:
+        problems.append(Problem(f"{path}:{open_box.line}", f"The box {open_box.parts[0]} is never closed with end.", item))
     return out
 
 
@@ -95,6 +136,8 @@ def _token(text, n):
             return FlowLine(n, kind, (case_keys(found.group(1)) or None, found.group(1)))
         if kind == "note":
             return _note(found.group(1), found.group(2), n)
+        if kind == "box":
+            return FlowLine(n, "box", (box_name(found.group(1)),))
         return FlowLine(n, kind, tuple(g if g is not None else "" for g in found.groups()))
     return None
 
@@ -144,6 +187,7 @@ class Node:
 class Tree:
     nodes: list
     participants: dict = field(default_factory=dict)  # name -> (title, line)
+    boxes: list = field(default_factory=list)  # [(group name, [participant names], line)] from the page's `box` blocks, in order
     starts: list = field(default_factory=list)  # [Branch] of an opening alt written in words; `nodes` holds the first one's walk
     head: list = field(default_factory=list)  # the GIVEN notes before that alt
     tail: list = field(default_factory=list)  # what follows the alt, shared by every start
@@ -313,10 +357,29 @@ def _replies(nodes, provider, caller):
     return False
 
 
+def split_boxes(tokens):
+    """(tokens without the box lines, [(name, [participant names], line)]). The participants stay in the stream, where the
+    parser reads them as it always did; the boxes are only a grouping drawn over them."""
+    kept, boxes, open_box = [], [], None
+    for token in tokens:
+        if token.kind == "box":
+            open_box = (token.parts[0], [], token.line)
+        elif token.kind == "boxend":
+            if open_box is not None:
+                boxes.append(open_box)
+            open_box = None
+        else:
+            if open_box is not None and token.kind == "participant":
+                open_box[1].append(token.parts[0])
+            kept.append(token)
+    return kept, boxes
+
+
 def parse_tree(flow, problems):
-    parser = _Parser(flow.lines, flow.path, flow.id, problems)
+    tokens, boxes = split_boxes(flow.lines)
+    parser = _Parser(tokens, flow.path, flow.id, problems)
     head, starts = parser.opening_alt()
     tail = parser.block(set())
     # `nodes` is the diagram read as its first start: what the explorer's branch view walks. The check walks every start (build.py).
     nodes = head + starts[0].body + tail if starts else tail
-    return Tree(nodes, parser.participants, starts, head, tail)
+    return Tree(nodes, parser.participants, starts=starts, head=head, tail=tail, boxes=boxes)

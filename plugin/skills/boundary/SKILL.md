@@ -55,6 +55,8 @@ Record the answer so releases does not ask again: a capture of the path in the l
 
 When a flow's steps and its contracts' case tables are confirmed, draw it as the strict sequence diagram (`vela conventions "Flow check"`).
 
+Group what makes sense by default, with a `box` block around the participants (`vela conventions "Flow check"`): channels that follow the same steps (the lanes an opening `alt` names are a strong hint), and lookups or back-end services that only answer the core app in this flow. Never group the app the flow is about, and don't group lanes just to save width. Say the grouping in one plain line on the page: "Channels groups the website, call center desktop and port kiosks."
+
 Take the stubs one at a time. Show each sheet as a numbered list with these plain labels:
 
 1. **Does:** what the app decides or keeps, in the domain's words, and the domain the user named for it.

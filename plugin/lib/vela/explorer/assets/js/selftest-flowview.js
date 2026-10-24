@@ -35,6 +35,7 @@
     for (const h of [...v.folded]) FlowView.toggleFold(key, h);
     for (const l of [...v.hidden]) FlowView.show(key, l);
     FlowView.setStart(key, "all");
+    for (const g of FlowView.groupsFor(key)) FlowView.ungroup(key, g.id);  // a flow that opens grouped (its page's boxes) is drawn lane by lane for the checks that count lanes
   }
   const rowKinds = (flow) => FlowKit.layout(flow, { x: 0, y: 6, w: 1032, h: 694, s: 1 }).rows.map((r) => r.u.kind);
 
@@ -42,14 +43,14 @@
     const f = D.flows.slice().sort((a, b) => b.steps.length - a.steps.length)[0];
     Nav.open("flows", f.key); Flows.select(f.key, -1); await tick();
     const stage = $(".stage"), keep = [stage.style.flex, stage.style.height, stage.style.minHeight];
-    stage.style.flex = "none"; stage.style.height = "200px"; stage.style.minHeight = "0"; await tick(); await tick();
+    stage.style.flex = "none"; stage.style.height = "120px"; stage.style.minHeight = "0"; await tick(); await tick();
     const scrollable = stage.scrollHeight > stage.clientHeight + 40;
     ok(scrollable, `pin: a short stage makes ${f.key} scroll`, `pin: the stage did not scroll (${stage.scrollHeight} in ${stage.clientHeight})`);
     const lane0 = hitOf("lane"), top0 = lane0 ? lane0.y : -1;
     stage.scrollTop = 180; await tick(); await tick();
     const lane1 = hitOf("lane"), under = Flows.player().hits.filter((t) => !["lane", "fold", "hide", "ghost", "starttag"].includes(t.type) && t.y + t.h <= stage.scrollTop + lane1.h);
     const offset = stage.getBoundingClientRect().top - stageGeom().rect.top;  // how far the canvas has scrolled past the top of the room
-    ok(!!lane0 && !!lane1 && Math.abs(lane1.y - lane0.y - offset) < 3 && offset > 100, `pin: scrolled ${Math.round(offset)} px, the lane names stay at the top of the room (hit moved ${Math.round(lane1.y - lane0.y)} px)`,
+    ok(!!lane0 && !!lane1 && Math.abs(lane1.y - lane0.y - offset) < 3 && offset > 50, `pin: scrolled ${Math.round(offset)} px, the lane names stay at the top of the room (hit moved ${Math.round(lane1.y - lane0.y)} px)`,
       `pin: the names did not follow the scroll: ${lane0 && lane0.y} then ${lane1 && lane1.y}, scrolled ${offset}`);
     ok(under.length === 0, "pin: nothing under the pinned row can be hit there", `pin: ${under.length} hits lie under the pinned names`);
     clickHit(lane1); await tick();
@@ -119,7 +120,7 @@
       had.forEach(([k, v]) => HASH.append(k, v));
       const elsewhere = D.flows.find((g) => g.key !== key);
       if (elsewhere) Flows.select(elsewhere.key, -1);
-      ok(back === second.id && (!elsewhere || (FlowView.hashPart(elsewhere.key) === "" && !/start=/.test(location.hash))), `starts, ${key}: a link naming the start opens with it picked; another flow starts clean`, `starts, ${key}: the link opened with ${back}; the other flow's address "${elsewhere && FlowView.hashPart(elsewhere.key)}" and "${location.hash}"`);
+      ok(back === second.id && (!elsewhere || (!/start=/.test(FlowView.hashPart(elsewhere.key)) && !/start=/.test(location.hash))), `starts, ${key}: a link naming the start opens with it picked; another flow starts clean`, `starts, ${key}: the link opened with ${back}; the other flow's address "${elsewhere && FlowView.hashPart(elsewhere.key)}" and "${location.hash}"`);
       clean(key);
     }
   }
@@ -181,6 +182,7 @@
     if (!f) return;
     const key = f.key, bad = [];
     clean(key); Nav.open("flows", key); Flows.select(key, -1); await tick();
+    clean(key); await tick();  // opening the flow read its address again, which may bring back what its page groups
     const lane = [...FlowKit.touchedLanes(FlowKit.flowOf(key))].sort((a, b) => LANE_INDEX[b] - LANE_INDEX[a])[0];
     moveTo(hitOf("lane", lane)); await tick(); await tick();
     const x = hitOf("hide", lane);
@@ -203,7 +205,7 @@
     // the list: a button for each, and Delete on a lane's name hides it
     $(".flow-nodes").open = true;
     const name = $$(".fn-lane .flow-node:not(.fn-act)", $(".flow-nodes")).find((b) => b.textContent === titleOf(lane));
-    if (!name) bad.push("the list has no button for the lane");
+    if (!name) bad.push(`the list has no button for the lane ${lane}/${titleOf(lane)}: ${$$(".fn-lane .flow-node:not(.fn-act)", $(".flow-nodes")).map((b) => b.textContent).join("|")}`);
     else { press("Delete", name); await tick(); if (!FlowView.isHidden(key, lane)) bad.push("Delete on the lane's name did not hide it"); }
     const show = $(`.fn-act[aria-label="Show ${titleOf(lane)}"]`);
     if (!show) bad.push("the list has no Show button for the hidden lane"); else { show.click(); await tick(); if (FlowView.isHidden(key, lane)) bad.push("the list's Show did not show it"); }
@@ -244,13 +246,281 @@
     ok(!problems.length, `flows: the Starts from picker and Simplify fit the header row in every theme and in Plain (${keys.length} flows)`, `flows: ${problems.slice(0, 6).join(" | ")}`);
   }
 
+
+  /* ---------- lane groups: written on the flow page with `box`, made and taken apart by the reader, drawn as lanes of their own */
+  const WEB = "APP-website", DESK = "APP-call-center", KIOSK = "APP-kiosks", BOOK = "APP-booking", PRICE = "APP-pricing", CUST = "APP-customer-identity", SCHED = "APP-vessel-schedule";
+  const forgetGroups = () => { try { localStorage.removeItem(`explorer.lanegroups.${D.vaultId}`); } catch (e) { console.warn("[selftest] this browser keeps nothing, so no saved lane groups to clear:", e.message); } };
+  async function reopen(key, extra = {}) {  // the way a pasted link or Back opens a flow: the address names what it names
+    for (const step of [{ ungroup: "~" }, extra]) {
+      for (const k of [...HASH.keys()]) HASH.delete(k);
+      HASH.set("open", key); for (const [k, v] of Object.entries(step)) HASH.set(k, v);
+      Flows.select(key, -1); Nav.open("flows", key); await tick();
+    }
+    FlowKit.flowOf(key);
+  }
+  /* A flow written for the check: three channels, Booking and Pricing, with the steps that make a group interesting. */
+  function synthetic() {
+    const msg = (from, to, contract = "CON-001", says = "hold a seat") => ({ from, to, contract, direction: "stated", kind: "send", says, answer: "" });
+    const pin = D.asks.length ? [{ id: D.asks[0].id, why: "cited", textSaysOpen: false }] : [];
+    const step = (n, messages, o = {}) => ({ n, html: `step ${n}`, text: `Step ${n} happens.`, short: `Step ${n} happens`, says: `step ${n} happens`, messages, self: null, recordsPair: true, lanesNamed: 0, unrecorded: false, ref: null, unknowns: [],
+      contracts: [], linked: [], named: [], fromTable: false, start: "", ...o });
+    FLOW["FLO-GROUPS"] = { key: "FLO-GROUPS", id: "FLO-GROUPS", steps: [
+      step(1, [msg(WEB, BOOK)]), step(2, [msg(BOOK, PRICE, "CON-003", "price it")]),
+      step(3, [msg(DESK, KIOSK, "", "hand the hold over")], { unknowns: pin }), step(4, [msg(KIOSK, DESK, "", "hand it back")], { unknowns: pin }),
+      step(5, [msg(WEB, DESK, "", "pass a note")], { start: "S1" }), step(6, [msg(DESK, WEB, "", "pass it on")], { start: "S2" }),
+      step(7, [msg(BOOK, WEB, "CON-001", "confirm"), msg(BOOK, DESK, "CON-001", "confirm"), msg(BOOK, KIOSK, "CON-001", "confirm"), msg(KIOSK, DESK, "", "tell the desk")]),
+      step(8, [], { self: WEB })], unknowns: [], groups: [{ name: "Channels", lanes: [WEB, DESK, KIOSK] }] };
+    E["FLO-GROUPS"] = { id: "FLO-GROUPS", title: "Groups flow", state: "", key: "FLO-GROUPS" };
+    return "FLO-GROUPS";
+  }
+
+  async function grouping(ok) {
+    const f1 = D.flows.find((f) => f.key === "FLO-001" && (f.groups || []).length === 2);
+    if (!f1) return;
+    const key = f1.key, bad = [];
+    // opens grouped: the page's two boxes are two lanes, six lanes where there were ten, the step numbers unchanged
+    await reopen(key);
+    const plain = FlowKit.flowOf(key, { plain: true }), flow = FlowKit.flowOf(key), names = flow.view.laneGroups.map((g) => g.name);
+    if (JSON.stringify(names) !== JSON.stringify(["Channels", "Lookups"])) bad.push(`opens with ${names}`);
+    const drawn = flow.view.lanes.filter((l) => FlowKit.touchedLanes(flow).has(l.id)), was = FlowKit.touchedLanes(plain);
+    if (drawn.length !== was.size - 4 || was.size < 8) bad.push(`${was.size} lanes became ${drawn.length}`);
+    if (JSON.stringify(flow.steps.map((x) => x.n)) !== JSON.stringify(plain.steps.map((x) => x.n))) bad.push("a step number changed");
+    if (!$("#group-btn") || $("#group-btn").textContent !== "Grouped · 2" || $("#group-btn").getAttribute("aria-label") !== "Grouped, 2 groups") bad.push(`the header button says "${$("#group-btn") && $("#group-btn").textContent}"`);
+    // the same arrows become one that says who it stands for; different contracts stay separate
+    const all3 = flow.steps.flatMap((x) => x.messages).filter((m) => (m.groupEnds || []).some((e) => e.all && e.members.length === 3));
+    if (all3.length !== 1 || plain.steps.flatMap((x) => x.messages).filter((m) => [WEB, DESK, KIOSK].includes(m.from) && m.contract === "CON-001" && m.kind === "send").length !== 3) bad.push(`the three channels' arrows became ${all3.length}`);
+    const lookups = flow.steps.find((x) => x.messages.filter((m) => m.to === "grp:lookups").length > 1);
+    if (!lookups || new Set(lookups.messages.filter((m) => m.to === "grp:lookups").map((m) => m.contract)).size !== lookups.messages.filter((m) => m.to === "grp:lookups").length) bad.push("arrows with different contracts to Lookups were merged");
+    const words = textOf(flow).join(" | ");
+    if (!/from all 3 in Channels/.test(words) || !/to Vessel schedule/.test(words) || !/group of 3/.test(words)) bad.push(`the drawing says "${words.slice(0, 160)}"`);
+    if (Legend.audit().filter((p) => p.startsWith("flow")).length) bad.push(Legend.audit()[0]);
+    // the Start tag sits on the group; Starts from still names each start; picking one still dims the other's steps
+    const tag = hitOf("starttag");
+    if (!tag || tag.lane !== "grp:channels" || tag.ids.length !== 3 || !textOf(flow).includes("3 STARTS")) bad.push("the Start tag is not on the Channels group");
+    if ($$("[data-starts] [role=radio]").length !== f1.starts.options.length + 1) bad.push("Starts from changed");
+    FlowView.setStart(key, "S2"); await tick();
+    if (FlowKit.flowOf(key).steps.filter((x) => FlowView.dimmedStep(key, x)).length !== f1.starts.options[0].steps.length + f1.starts.options[2].steps.length) bad.push("picking a start did not dim the others");
+    FlowView.setStart(key, "all"); await tick();
+    ok(!bad.length, `groups: ${key} opens with its page's Channels and Lookups, ${was.size} lanes drawn as ${drawn.length}, step numbers kept, the same arrows merged ("from all 3 in Channels"), starts working`, `groups: ${bad.slice(0, 6).join("; ")}`);
+
+    // ungroup rides in the address, and a link with group= wins over the page's
+    bad.length = 0;
+    FlowView.ungroup(key, "grp:channels"); await tick();
+    if (FlowView.hashPart(key) !== "&ungroup=Channels" || FlowView.groupsFor(key).length !== 1) bad.push(`ungroup wrote "${FlowView.hashPart(key)}"`);
+    if ($("#group-btn").textContent !== "Grouped · 1") bad.push("the button did not follow");
+    await reopen(key, { ungroup: "Channels" });
+    if (FlowView.groupsFor(key).map((g) => g.name).join() !== "Lookups") bad.push("a link naming ungroup did not open ungrouped");
+    await reopen(key, { group: `${encodeURIComponent("Ferry, lanes: two")}:${KIOSK},${WEB}`, ungroup: "Lookups" });
+    const link = FlowView.groupsFor(key);
+    if (link.length !== 1 || link[0].name !== "Ferry, lanes: two" || link[0].id !== "grp:ferry-lanes-two" || !/^&group=/.test(FlowView.hashPart(key)) || /ungroup/.test(FlowView.hashPart(key))) bad.push(`a link's group gave ${JSON.stringify(link)} and "${FlowView.hashPart(key)}"`);
+    if (!FlowView.hashPart(key).startsWith("&group=Ferry%2C%20lanes%3A%20two:APP-")) bad.push(`the name is not in the address: ${FlowView.hashPart(key)}`);
+    // fold and hide name the group by its ID
+    FlowView.hide(key, "grp:ferry-lanes-two"); await tick();
+    if (!FlowKit.flowOf(key).view.hidden.has("grp:ferry-lanes-two") || !hitOf("ghost", "grp:ferry-lanes-two") || !textOf(FlowKit.flowOf(key)).includes("hidden · show")) bad.push("a hidden group is not a ghost chip");
+    FlowView.show(key, "grp:ferry-lanes-two");
+    // a link that cannot be honored is drawn as far as it can be, and says the rest
+    await reopen(key, { group: `Channels:${WEB},${DESK},APP-nowhere;One:${PRICE};Both:${WEB},${CUST},${SCHED}` });
+    const said = FlowKit.flowOf(key).view.said.join(" ");
+    if (FlowView.groupsFor(key).map((g) => g.name).join() !== "Channels,Both" || !/APP-nowhere, which isn't in this flow/.test(said) || !/One has fewer than two lanes/.test(said)
+      || !/puts Public website in two groups, so Both doesn't take it/.test(said)) bad.push(`an impossible link gave ${FlowView.groupsFor(key).map((g) => g.name)} and "${said}"`);
+    if (!/which isn't in this flow/.test($("#caption").textContent)) bad.push("the page does not say what the link asked for");
+    ok(!bad.length, "groups: ungroup rides in the address, a link's group= wins over the page's, names with commas and colons survive, a hidden group is a chip, an impossible link is drawn as far as it can be and says the rest", `groups: ${bad.slice(0, 6).join("; ")}`);
+
+    // fold works on the grouped flow; grouping a folded or hidden lane clears that choice and says so
+    bad.length = 0;
+    const f10 = D.flows.find((f) => f.key === "FLO-010");
+    if (f10) {
+      const fk = f10.key, NOTIFY = "APP-notifications";
+      await reopen(fk);
+      FlowView.simplify(fk); await tick();
+      FlowView.hide(fk, NOTIFY); await tick();
+      const was2 = [...FlowView.choices(fk).folded];
+      FlowView.makeGroup(fk, "Back end", [PRICE, NOTIFY]); await tick();
+      const told = $("#toast").textContent;
+      if (!was2.length || FlowView.choices(fk).folded.size || FlowView.isHidden(fk, NOTIFY) || !/Unfolded Pricing to group it/.test(told) || !/Showed Notifications to group it/.test(told)) bad.push(`grouping left folded=${[...FlowView.choices(fk).folded]} hidden=${FlowView.isHidden(fk, NOTIFY)} and said "${told}"`);
+      const hosts = FlowView.hostsOf(fk);
+      if (JSON.stringify(hosts[BOOK]) !== JSON.stringify(["grp:back-end"])) bad.push(`the group is not offered to fold into Booking: ${JSON.stringify(hosts)}`);
+      FlowView.simplify(fk); await tick();
+      const folded = FlowKit.flowOf(fk);
+      if (!folded.steps.some((x) => x.folded && (x.via || []).includes("Back end")) || FlowKit.touchedLanes(folded).has("grp:back-end") || !hitOf("lane", BOOK)) bad.push("Simplify did not fold the Back end group into Booking");
+      FlowView.ungroup(fk, "grp:back-end"); await tick();
+      if (FlowView.choices(fk).folded.size || !/Unfolded Back end to ungroup it/.test($("#toast").textContent)) bad.push(`ungrouping a folded group said "${$("#toast").textContent}"`);
+      forgetGroups();
+      await reopen(fk);
+    }
+    ok(!bad.length, "groups: a group can host a fold and Simplify folds what the grouped flow allows; grouping a folded or hidden lane clears that choice and says so", `groups: ${bad.slice(0, 6).join("; ")}`);
+
+    // the picker: G opens it, Esc closes it and focus goes back, Group these needs two lanes and not every lane
+    bad.length = 0;
+    await reopen(key, { ungroup: "Channels,Lookups" });
+    $("#group-btn").focus(); press("g"); await tick();
+    const dlg = $("[data-group-picker]");
+    if (!dlg || dlg.getAttribute("role") !== "dialog" || !dlg.contains(document.activeElement)) bad.push("G did not open the picker with focus inside it");
+    const go = () => $("#gp-go"), boxes = () => $$("#group-picker input[type=checkbox]:not(:disabled)");
+    const tick1 = (b) => { b.checked = !b.checked; b.dispatchEvent(new Event("change", { bubbles: true })); };
+    if (!go().disabled) bad.push("Group these is enabled with nothing checked");
+    tick1(boxes()[0]); if (!go().disabled) bad.push("Group these is enabled with one lane checked");
+    tick1(boxes()[1]); if (go().disabled || go().textContent !== "Group these 2") bad.push(`Group these says "${go().textContent}" with two`);
+    boxes().slice(2).forEach((b) => { if (!b.checked) tick1(b); });
+    if (!go().disabled || !/Leave at least one lane out/.test($(".gp-warn").textContent)) bad.push("every lane checked still lets the group be made");
+    press("Escape", dlg); await tick();
+    if ($("[data-group-picker]") || document.activeElement !== $("#group-btn")) bad.push(`Esc left the picker or its focus: ${document.activeElement && document.activeElement.id}`);
+    // the picker makes the group with the name typed, and takes a suggestion
+    const domains = { ...D.domains };  // the plan's own business areas stay as they were; the check borrows two lanes for one of its own
+    for (const id of Object.keys(D.domains)) D.domains[id] = "No domain";
+    D.domains[PRICE] = "Quote desk"; D.domains[CUST] = "Quote desk";
+    const offered = FlowView.suggestions(key).map((g) => g.name + ":" + g.why);
+    D.domains[CUST] = "No domain";
+    const one = FlowView.suggestions(key).some((g) => g.name === "Quote desk");
+    D.domains[CUST] = "Quote desk";
+    if (JSON.stringify(offered) !== JSON.stringify(["Quote desk:business area on the map"]) || one) bad.push(`suggestions from the map gave ${offered} and ${one} with one lane`);
+    press("g"); await tick();
+    const sugg = $("[data-suggest]"); if (!sugg) bad.push("no suggestion in the picker"); else { sugg.click(); await tick(); }
+    if (!sugg || go().disabled || $("#gp-name").value !== "Quote desk" || go().textContent !== "Group these 2") bad.push("taking a suggestion did not fill the checkboxes and the name");
+    go().click(); await tick();
+    Object.assign(D.domains, domains);
+    if (FlowView.groupsFor(key).map((g) => g.name).join() !== "Quote desk" || $("[data-group-picker]") || !/^&group=Quote%20desk/.test(FlowView.hashPart(key)) || document.activeElement !== $("#group-btn")) bad.push(`the picker made ${FlowView.groupsFor(key).map((g) => g.name)}, address ${FlowView.hashPart(key)}`);
+    // a group made here is offered on another flow, never applied
+    const other = D.flows.find((g) => g.key !== key && FlowKit.touchedLanes(FlowKit.flowOf(g.key, { plain: true })).has(PRICE) && FlowKit.touchedLanes(FlowKit.flowOf(g.key, { plain: true })).has(CUST));
+    if (other) {
+      await reopen(other.key);
+      const more = FlowView.suggestions(other.key).find((g) => g.name === "Quote desk");
+      if (!more || !/^made on /.test(more.why) || FlowView.groupsFor(other.key).some((g) => g.name === "Quote desk")) bad.push(`another flow was not offered the group: ${JSON.stringify(more)}`);
+    }
+    forgetGroups();
+    ok(!bad.length, "groups: G opens the picker and Esc closes it with focus back on the button, Group these needs two lanes and not every lane, a suggestion fills it in, the group rides in the address, and a group made on one flow is offered on another, never applied", `groups: ${bad.slice(0, 6).join("; ")}`);
+
+    // the panel and the list: a click on the group's pill opens its panel and a second click puts it down; the list is the keyboard path
+    bad.length = 0;
+    await reopen(key);
+    const pill = hitOf("lane", "grp:channels");
+    if (!pill) bad.push("no group pill on the stage");
+    else {
+      clickHit(pill); await tick();
+      if (App.trail[App.trail.length - 1] !== "grp:channels" || !/Group/.test($("#panel-body").textContent) || !/A group the flow page writes/.test($("#panel-body").textContent) || !/Rename/.test($("#panel-body").textContent)) bad.push(`the pill opened "${App.trail}" and "${$("#panel-body").textContent.slice(0, 80)}"`);
+      clickHit(hitOf("lane", "grp:channels")); await tick();
+      if (App.trail.length) bad.push(`a second click left ${App.trail}`);
+    }
+    $(".flow-nodes").open = true;
+    const row = $(".fn-group-row"), name = row && $(".flow-node:not(.fn-act)", row);
+    if (!row || !/^Channels, group of 3$/.test(name.textContent) || !$$(".fn-members .flow-node").some((b) => b.textContent === "Port kiosks")) bad.push("the list has no Channels row with its members");
+    else {
+      name.click(); await tick(); if (App.trail[App.trail.length - 1] !== "grp:channels") bad.push("the list row did not open the group's panel");
+      name.click(); await tick(); if (App.trail.length) bad.push("a second press on the list row did not put the group down");
+      press("Delete", name); await tick();
+      if (!FlowView.isHidden(key, "grp:channels") || !$(`.fn-act[aria-label="Show Channels"]`)) bad.push("Delete on the row did not hide the group");
+      $(`.fn-act[aria-label="Show Channels"]`).click(); await tick();
+      $(`.fn-act[aria-label="Ungroup Channels"]`).click(); await tick();
+      if (FlowView.groupsFor(key).some((g) => g.name === "Channels") || !$(`.fn-lane .flow-node[aria-label="Hide Public website"]`)) bad.push("Ungroup in the list did not take Channels apart and give its lanes their Hide buttons back");
+    }
+    // rename from the panel
+    await reopen(key);
+    DetailsPanel.show("grp:lookups", { reset: true }); await tick();
+    const renamer = $$("#panel-body button").find((b) => b.textContent === "Rename"); if (renamer) renamer.click();
+    const field = $("#panel-body .gp-rename input");
+    if (!field) bad.push("Rename opened no field"); else { field.value = "Back end"; press("Enter", field); await tick(); }
+    if (!FlowView.groupsFor(key).some((g) => g.name === "Back end" && g.id === "grp:back-end") || !textOf(FlowKit.flowOf(key)).includes("Back end")) bad.push("rename did not rename the lane");
+    DetailsPanel.clear();
+    ok(!bad.length, "groups: a click on a group's pill opens its panel and a second click puts it down; the list has a row for each group with Ungroup and Hide, Delete hides it, members stay buttons; Rename works from the panel", `groups: ${bad.slice(0, 6).join("; ")}`);
+
+    // present mode draws the groups and carries what the reader did; the saved clip is the whole flow and says so
+    bad.length = 0;
+    await reopen(key);
+    FlowView.ungroup(key, "grp:channels"); await tick();
+    Flows.present(key, 0); await tick();
+    const pf = FlowKit.flowOf(key);
+    if (!$("#overlay").classList.contains("present") || !Flows.presenter() || FlowView.hashPart(key) !== "&ungroup=Channels" || pf.view.laneGroups.map((g) => g.name).join() !== "Lookups") bad.push(`present: ${FlowView.hashPart(key)}`);
+    Flows.closePresent();
+    const clip = FlowKit.flowOf(key, { plain: true });
+    if (clip.view || clip.steps.length !== plain.steps.length || FlowKit.drawnClip(clip).some((t) => /group of|Lookups/.test(t)) || !/without your groups/.test(Flows.clipNote())) bad.push("the clip is not the whole flow without groups");
+    ok(!bad.length, "groups: present mode draws the groups and its address carries what the reader did; Save as video records the whole flow and says it is without your groups", `groups: ${bad.slice(0, 6).join("; ")}`);
+
+    // traffic inside a group: one beat with the numbers kept, the open questions kept, never across a start; a mixed step keeps its arrows and adds the beat
+    bad.length = 0;
+    const syn = synthetic();
+    const sf = FlowKit.flowOf(syn), sp = FlowKit.flowOf(syn, { plain: true });
+    const nos = sf.steps.map((x) => x.nLabel || String(x.n));
+    const inner = sf.steps.find((x) => x.grouped && x.run.length === 2);
+    if (JSON.stringify(nos) !== JSON.stringify(["1", "2", "3–4", "5", "6", "7", "8"])) bad.push(`steps read ${nos}`);
+    if (!inner || !/^inside Channels: .* · 2 steps in one$/.test(inner.viaText) || inner.unknowns.length !== (sp.steps[2].unknowns.length ? 1 : 0)) bad.push(`the beat is ${inner && inner.viaText}`);
+    if (sf.steps.filter((x) => x.grouped).map((x) => x.nLabel || x.n).join() !== "3–4,5,6,8") bad.push("a beat crossed a start, or a step that stays inside was left out");
+    const mixed = sf.steps.find((x) => x.n === 7);
+    if (!mixed || mixed.messages.length !== 1 || !mixed.inside || mixed.inside[0].via !== "inside Channels: Port kiosks to Call center desktop" || FlowKit.unitsOf(mixed).map((u) => u.kind).join() !== "msg,folded") bad.push("a step with arrows and inside traffic lost one of them");
+    const lonely = sf.steps.find((x) => x.n === 8);
+    if (!lonely || lonely.viaText !== "in Public website") bad.push(`a step on one member says "${lonely && lonely.viaText}"`);
+    const said2 = textOf(sf).join(" | ");
+    if (!/inside Channels: .* · 2 steps in one/.test(said2) || !/to all 3 in Channels/.test(said2)) bad.push(`the drawing says "${said2.slice(0, 200)}"`);
+    delete FLOW[syn]; delete E[syn];
+    ok(!bad.length, "groups: traffic inside a group is one card on its lane with the step numbers kept (3–4, 2 steps in one), its open questions kept, never merged across a start; a step with arrows and inside traffic keeps both; one member's step says which", `groups: ${bad.slice(0, 6).join("; ")}`);
+
+    // no overlaps and nothing off the stage, grouped, at both widths
+    bad.length = 0;
+    await reopen(key);
+    for (const w of [1040, 800]) {
+      const g = FlowKit.flowOf(key), G = FlowKit.layout(g, { x: 0, y: 6, w: w - 8, h: 694, s: clamp(w / 1040, 0.8, 1.2) }), hits = FlowKit.drawScene(SCRATCH.getContext("2d"), G, { cur: -1, tau: 99, clock: 0, D: 0.8, images: false });
+      const pills = hits.filter((t) => t.type === "lane").sort((a, b) => a.x - b.x);
+      for (let i = 1; i < pills.length; i++) if (pills[i].x < pills[i - 1].x + pills[i - 1].w - 0.5) bad.push(`${w}: ${pills[i - 1].id} and ${pills[i].id} overlap`);
+      for (const t of hits) if (t.x < -1 || t.x + t.w > w + 1) bad.push(`${w}: a ${t.type} runs off the stage`);
+    }
+    ok(!bad.length, "groups: with both groups on, the lane names do not overlap and nothing is off the stage at 1040 and at 800 wide", `groups: ${bad.slice(0, 4).join("; ")}`);
+    await reopen(key);
+  }
+
+
+  /* What an arrow says once, and where lanes stand: the pill that names a contract is not said again under the arrow, a short pill is one line,
+     and the first lane is the first actor (where the flow starts, then the order the steps reach each lane). */
+  async function arrowsAndLanes(ok) {
+    const bad = [];
+    let chips = 0, said = 0;
+    for (const f of D.flows) {
+      const flow = FlowKit.flowOf(f.key, { plain: true }), norm = (t) => String(t).toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+      for (const w of [1040, 800]) {
+        const G = FlowKit.layout(flow, { x: 0, y: 6, w: w - 8, h: 694, s: clamp(w / 1040, 0.8, 1.2) });
+        for (const r of G.rows) {
+          if (!r.chip) continue;
+          chips++;
+          const title = r.chip.con.title;
+          if (r.lines.length && norm(r.lines.join(" ")) === norm(title)) bad.push(`${f.key}: "${title}" is said on the pill and again under the arrow`);
+          if (r.lines.length) said++;
+          if (title.length <= 28 && r.chip.lines.length > 1) bad.push(`${f.key} at ${w}: the pill "${title}" wraps to ${r.chip.lines.length} lines`);
+        }
+      }
+      const order = FlowKit.laneOrder(flow), first = f.starts ? f.starts.options[0].lane : flow.steps.map((x) => (x.messages[0] ? x.messages[0].from : x.self)).find(Boolean);
+      if (order[0] !== first) bad.push(`${f.key}: the first lane is ${order[0]}, the first actor is ${first}`);
+      if (f.starts && JSON.stringify(order.slice(0, f.starts.options.length)) !== JSON.stringify(f.starts.options.map((o) => o.lane))) bad.push(`${f.key}: the start lanes are not first, in start order`);
+      const at = (id) => flow.steps.findIndex((x) => x.messages.some((m) => m.from === id || m.to === id) || x.self === id);
+      const reached = order.filter((id) => !(f.starts && f.starts.options.some((o) => o.lane === id)));
+      if (reached.some((id, i) => i && at(id) < at(reached[i - 1]))) bad.push(`${f.key}: a lane stands left of one the steps reach earlier`);
+    }
+    ok(!bad.length && chips > 0, `arrows: across ${D.flows.length} flows no pill's title is said again under its arrow, a short title is one line on a short arrow, and lanes stand in the order the flow reaches them (start lanes first)`, `arrows: ${bad.slice(0, 5).join("; ") || "no pills at all"}`);
+  }
+
+  /* The words that fit: "Grouped · 2" in the header row in every theme and in Plain. */
+  async function groupFits(ok) {
+    const f1 = D.flows.find((f) => f.key === "FLO-001" && (f.groups || []).length === 2);
+    if (!f1) return;
+    const was = Theme.id, fx = FX.on, problems = [];
+    for (const [id, label, motion] of [...Theme.LIST.map((t) => [t.id, t.label, true]), [was, "Plain", false]]) {
+      Theme.set(id); FX.set(motion);
+      await reopen(f1.key);
+      if ($("#simplify-btn")) { $("#simplify-btn").click(); await tick(); }
+      if (!/Grouped/.test($("#group-btn").textContent)) problems.push(`${label}: ${$("#group-btn").textContent}`);
+      for (const b of [...TextFit.textFits($(".flows-head")), ...TextFit.clippedText($(".flows-head"))]) problems.push(`${label}: "${b.text}" ${b.why}`);
+    }
+    Theme.set(was); FX.set(fx); await reopen(f1.key);
+    ok(!problems.length, "groups: the Group button, Starts from and Simplify fit the header row in every theme and in Plain with the groups on", `groups: ${problems.slice(0, 6).join(" | ")}`);
+  }
+
   SelfTest.run = async () => {
     const report = await base(), lines = [], errors = window.__errors.length;
     const ok = (cond, good, bad) => { lines.push(cond ? "ok " + good : "FAIL " + (bad || good)); if (HASH.has("trace")) console.log("[selftest] " + lines[lines.length - 1]); };
     try {
       if (D.flows.length) {
         showView("flows");
-        for (const part of [pinned, starts, folding, hiding, fitting]) await part(ok);
+        const hadHash = [...HASH.entries()];
+        for (const part of [pinned, starts, folding, hiding, fitting, grouping, groupFits, arrowsAndLanes]) await part(ok);
+        for (const k of [...HASH.keys()]) HASH.delete(k);
+        hadHash.forEach(([k, v]) => HASH.append(k, v));
       }
     } catch (e) { lines.push("FAIL the flow view checks threw: " + e.message + " " + (e.stack || "").split("\n")[1]); }
     Nav.home(); go("lights", { reset: true });

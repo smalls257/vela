@@ -988,6 +988,7 @@ The strict sequence diagram is the flow page's first ` ```mermaid ` block that s
 | Line | Means |
 |---|---|
 | `participant S as Shop` | `S` stands for the app titled Shop. |
+| `box Channels` ... `participant` lines ... `end` | A named group of lanes, written where the participants are declared. Only participants go inside. The dashboard's Flows view opens the flow with each box drawn as one lane (the reader can ungroup it), and GitHub draws the box too. A box colored with `rgb(...)` or `transparent` reads the same; its name is the words after the color. |
 | `S->>I: CON-010 place a hold` | Shop calls Inventory's CON-010. The words after the ID read as the step in a trace. |
 | `I-->>S: 409 unavailable` | Inventory's answer: inside Inventory's drawn handling it returns the call; as the first line of a branch it labels it. |
 | `alt placed` ... `else unavailable, timeout` ... `end` | Branches on the call just before, one per answer. `timeout` and `gave_up` are the answers the check adds from Can time out and Retries. |
