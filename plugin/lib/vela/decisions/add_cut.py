@@ -5,8 +5,8 @@ it names and its `**Options considered:**` bullet (boundary section 2; plan 2.13
   the stubs that follow have a list to come from.
 - **`- **Options considered:** <picked cut> (picked); <cut>: rejected, <reason>; ...`**, the page-level form
   CONVENTIONS gives: a cut is a choice between ways to split the direction, and the rejected ones keep their reasons so
-  a later session can see what was weighed and why it lost. A pick with no rejected option is refused: boundary offers
-  two or three cuts, never one.
+  a later session can see what was weighed and why it lost. A pick with no rejected option is refused: a cut is
+  chosen between ways, so the plan names the real alternative it set aside.
 - **The capture of the pick** is marked at once, `→ keep: [[05-building-blocks#<cut>|cut]] (assumption)`: the cut is
   believed, not decided, until it's settled.
 """

@@ -146,8 +146,9 @@ def test_grill_offers_the_override_and_still_runs_the_rest_of_the_grill():
     assert "the override is filed with the decision in section 4" not in grill
     from vela import cli
     helped = cli.build_parser()._subparsers._group_actions[0].choices["decide"].format_help()
-    for flag in ("--override RULE", "--reason-from ^cR", "--until YYYY-MM-DD", "--on-behalf @owner", "--dissent ^cJ", "--provider ^cP"):
+    for flag in ("--override RULE", "--reason-from ^cR", "--until YYYY-MM-DD", "--dissent ^cJ", "--provider ^cP"):
         assert flag in helped, flag  # `decide --help` lists the flags the skill no longer spells out
+    assert "--on-behalf" not in helped
     for gone in ("- **Decided by:** @<user's handle>, on behalf of @<owner>", "This is how GATE-5 passes",
                  "W316 instead of E316", "`- **Override:** GATE-n by @<user's handle> on <today>"):
         assert gone not in grill, gone  # decide writes the override bullets

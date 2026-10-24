@@ -443,7 +443,6 @@ CODES = {
     "W316": "decided while an open unknown blocks it, by override",
     "W318": "decided contract has no Tested by, by override",
     "W323": "override not needed",
-    "W324": "decided on the owner's behalf, not yet confirmed",
     "E401": "generated block was edited by hand",
     "W402": "generated block is out of date",
     "E403": "generated block not allowed here",

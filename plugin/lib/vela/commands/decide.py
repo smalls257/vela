@@ -9,7 +9,7 @@ through the same `decisions.plan` as `vela apply`, so `close gate` and `decide` 
 asks "Why this one, in your words?" and captures the answer; code copies it.
 
     vela decide ID --readback ^cN --yes ^cM [--why ^cK] [--dissent ^cJ]
-                   [--override RULE ... --reason-from ^cR [--until YYYY-MM-DD]] [--on-behalf @owner]
+                   [--override RULE ... --reason-from ^cR [--until YYYY-MM-DD]]
                    [--provider ^cP] [--picked "OPTION=^cP" --rejected "OPTION=^cR|declined" ...]
                    [--group CRITERIA READBACK YES ...] [--vault V] [--today D] [--json|--for-lead]
     vela decide ID --later --yes ^cM [--vault V] [--today D] [--json|--for-lead]
@@ -18,7 +18,10 @@ asks "Why this one, in your words?" and captures the answer; code copies it.
 ID is a page's or item's ID, an allocation row as `CAP-nnn.FRn@APP-<slug>`, or a release's heading. `--provider` is a
 contract's (where the provider stands), `--group` an epic's (one per criterion group read back); each kind's module
 says why. `--override` may repeat; its rules share one reason, and `--until` goes on the standing ones only (an event
-rule, GATE-1, 2, 3 or 5, has nothing to end).
+rule, GATE-1, 2 or 3, has nothing to end).
+
+The lead's yes settles any item. When the item is someone else's, `Decided by: @lead, on behalf of @owner` is written
+for them and the answer says so once; nothing is refused or overridden.
 
 Any session can decide: the rule is that `vela decide` filed it, with the lead's yes to a read-back, and nothing here
 reads the session's modes. `--later --yes ^cM` is the other answer to an offer to settle: it keeps the lead's yes under
@@ -77,7 +80,6 @@ def register(sub):
                         help="a rule the lead sets aside (GATE-4, E318, \"case table\", ...); repeat for each")
     parser.add_argument("--reason-from", metavar="^cR", help="the capture holding the lead's reason for the overrides")
     parser.add_argument("--until", metavar="YYYY-MM-DD", help="the last day a standing override covers")
-    parser.add_argument("--on-behalf", metavar="@owner", help="the owner the lead decides for (goes with GATE-5)")
     parser.add_argument("--options-none", metavar="^cN",
                         help="the capture holding the lead's answer that this was the only option: recorded as the options considered, so no Shape session is needed (the grill gate below medium asks that one question)")
     parser.add_argument("--provider", metavar="^cP", help="contract: the capture saying where the provider stands")
@@ -128,7 +130,7 @@ def item_from(args, ident, by, reader):
     if args.reopen:
         return {"id": ident, "reopen": True, "why": args.why, "by": by, "reader": reader}
     item = {"id": ident, "readback": args.readback, "yes": args.yes, "why": args.why, "dissent": args.dissent,
-            "overrides": override_groups(args), "on_behalf_of": args.on_behalf, "by": by, "reader": reader}
+            "overrides": override_groups(args), "by": by, "reader": reader}
     if args.provider:
         item["provider"] = args.provider
     if getattr(args, "stated_in", None):
@@ -332,7 +334,8 @@ def file_item(item, root, staged, record, reader):
         except GitUnavailable as exc:
             return failed(f"wrote {', '.join(written)} but the commit failed: {exc}",
                           "I wrote it down, but couldn't commit it; the changes are on disk.")
-    return report(item, target, state, written, commit, reader)
+    owners = decide_writes.stand_in_owners(item, staged, record, target)
+    return report(item, target, state, written, commit, reader, owners)
 
 
 def set_aside_words(item):
@@ -353,10 +356,14 @@ def rule_words(rule):
     return f'the "{meaning}" check' if meaning else "a check"
 
 
-def report(item, target, state, written, commit, reader):
+def report(item, target, state, written, commit, reader, owners=()):
     said = "reopened" if item.get("reopen") else state
     lines = [say.Line(f"{said} {target.id}: wrote {', '.join(written)}" + (f"; commit {commit}" if commit else ""),
                       plain=f"{target.name} is {said}." + set_aside_words(item))]
+    if owners:
+        lines.append(say.Line(f"decided on behalf of {' '.join(owners)}",
+                              plain=f"{target.name} is {' and '.join(owners)}'s; I noted you settled it for them. "
+                                    "They can confirm it or challenge it."))
     if reader:
         lines.append(say.Line("read copy: nothing committed (no git runs here); the decision is pending the owner's "
                               "approval.", plain="This is your copy, so nothing was committed, and the owner sees "

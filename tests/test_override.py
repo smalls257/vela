@@ -99,7 +99,7 @@ def test_a_label_one_typo_away_is_an_error_not_prose(ub):
     edit(ub / PRICING, CONFIRMED, "- **Confirmd by:** @hl-pricing-senior on 2026-08-12\n")
     found = codes(ub)
     assert ("E321", CAP) in found
-    assert ("E322", PRICING) in found and ("W324", PRICING) in found
+    assert ("E322", PRICING) in found
 
 
 def test_malformed_decided_by_and_confirmed_by_are_errors(ub):
@@ -186,20 +186,12 @@ def test_the_fixture_decides_con_003_on_an_absent_owners_behalf_and_is_confirmed
     assert findings(check(FIXTURE, TODAY)[1]) == []
 
 
-def test_on_behalf_unconfirmed_warns_until_confirmed(ub):
+def test_on_behalf_unconfirmed_warns_nothing(ub):
+    """The owner's confirmation is optional: an unconfirmed on-behalf decision is read, never warned about."""
     edit(ub / PRICING, CONFIRMED, "")
     code, out = broken(ub)
-    assert code == 0 and findings(out) == [("W324", PRICING)]
-    assert ("@hl-solution-lead decided" in out and "(CON-003) on @harborline/revenue-team's behalf, and "
-            "@harborline/revenue-team hasn't confirmed it yet." in out)
-    assert "/vela:challenge" in out
-    edit(ub / PRICING, "on behalf of @harborline/revenue-team\n", "on behalf of @harborline/revenue-team\n" + CONFIRMED)
-    assert codes(ub) == []
-
-
-def test_the_decider_cannot_confirm_for_the_owner(ub):
-    edit(ub / PRICING, CONFIRMED, "- **Confirmed by:** @hl-solution-lead on 2026-08-12\n")
-    assert codes(ub) == [("W324", PRICING)]
+    assert code == 0 and findings(out) == [] and "hasn't confirmed" not in out
+    assert query(ub, "get", "CON-003")[1]["decided_by"]["confirmed"] is False
 
 
 # ------------------------------------------------------------------ views
@@ -285,12 +277,12 @@ def test_an_owner_confirming_after_handoff_changes_nothing_the_senior_accepted(u
 
 
 def test_a_bare_decided_by_is_the_owners_own_decision_and_needs_no_confirmation(ub):
-    """What accepting a reader's proposal writes: well formed (no E322), and not 'on behalf', so no W324."""
+    """What accepting a reader's proposal writes: well formed (no E322) and not 'on behalf'."""
     text = (ub / PRICING).read_text(encoding="utf-8")
     heading = re.search(r"^### CON-\d+ .*$", text, re.M).group(0)
     (ub / PRICING).write_text(text.replace(heading, heading + "\n\n- **Decided by:** @hl-pricing-senior", 1), encoding="utf-8")
     _, out = check(ub, TODAY)
-    assert ("E322", PRICING) not in findings(out) and ("W324", PRICING) not in findings(out)
+    assert ("E322", PRICING) not in findings(out)
     (ub / PRICING).write_text((ub / PRICING).read_text(encoding="utf-8").replace("Decided by:** @hl-pricing-senior", "Decided by:** pricing senior", 1), encoding="utf-8")
     assert ("E322", PRICING) in findings(check(ub, TODAY)[1])
 

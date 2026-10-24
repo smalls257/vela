@@ -1,7 +1,7 @@
 """`vela boundary cover --cut FILE`: per proposed cut, the requirements one app carries whole, the ones split across
 apps (so the crossing needs a contract), and the ones no app carries (CLI/skill overhaul, Task 21g).
 
-Why: boundary tests each of its two or three cuts against the functional requirements. That test is a count, and
+Why: boundary tests each of its cuts against the functional requirements. That test is a count, and
 counted by hand over every capability page it came out wrong and reached the lead full of IDs. The count is here;
 which cut to pick, and whether a split is worth its contract, stays with the lead and the skill.
 

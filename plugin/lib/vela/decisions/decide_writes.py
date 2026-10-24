@@ -26,8 +26,8 @@ Why each write, and why it is code's:
 - **An Override** is written by the `override` kind's own grammar (`decisions.override.bullet_value`), parsed back with
   check's parser before it is returned; a standing rule needs `until`, an event rule takes none, so the rules a lead
   sets aside are split into one bullet of each.
-- **Decided by ... on behalf of** goes with a GATE-5 override, as CONVENTIONS "Overrides" says: that is how GATE-5
-  passes with the owner away, and the check keeps warning until the owner confirms.
+- **Decided by ... on behalf of** is written whenever the yes isn't the owner's own (`stand_in_owners`): the lead's yes
+  settles any item, with no refusal, no override and no warning.
 - **Pending approval** in a reader copy: a reader's decision is a proposal that looks settled until an owner has seen
   it (`vela.pending`). Role is known to code, so the marker never depends on the model remembering it.
 """
@@ -40,7 +40,6 @@ from vela.decisions import agenda, consent, options_line, override as override_k
 HANDLE = re.compile(rf"^{vault_schema.HANDLE}$")
 STATE_BULLET = re.compile(r"^- \*\*State:\*\*\s*(?P<state>\S*)")
 FRONTMATTER_STATE = re.compile(r"^state:\s*(?P<state>.*?)\s*$")
-GATE_5 = "GATE-5"
 # What the lead hears once when a gate rule that takes no end date (the stage, the options, the agenda's or the owner's
 # yes) could be set aside: it holds at the moment of deciding, so an exception is a reason, not a period.
 EVENT_WAIVER = "It's your call: I can decide it anyway and note your reason."
@@ -248,20 +247,6 @@ def override_refusals(item, view, record, target):
                                  override="none: an override always carries the lead's reason"))
             continue
         found += override_kind.validate(one, view, record)
-    owners = item.get("on_behalf_of")
-    if owners:
-        bad = [o for o in str(owners).split() if not HANDLE.match(o)]
-        if bad:
-            found.append(refusal("decide-on-behalf-handle", "I need the owner's handle to say whose decision this was.",
-                                 f"--on-behalf takes handles such as @owner; {', '.join(bad)} is not one.",
-                                 override="none: name the owner by handle", audience=say.MODEL))
-        if GATE_5 not in rules_set_aside(item):
-            found.append(refusal("decide-on-behalf-needs-gate-5",
-                                 "The owner isn't here, so I'll note this as your call on their behalf. What's your "
-                                 "reason?",
-                                 "Add --override GATE-5 --reason-from <the lead's reason>: deciding on the owner's "
-                                 "behalf is how GATE-5 passes with them away (CONVENTIONS \"Overrides\").",
-                                 override="none: the GATE-5 override is the record of it"))
     return found + by_refusals(item)
 
 
@@ -287,34 +272,25 @@ def owners_of(view, target):
     return tuple(OWNER_HANDLES.findall(text))
 
 
-def owner_refusals(item, view, record, target):
-    """GATE-5, the owner present, as a check: it was the grill skill's alone while only a grill decided, and now any
-    session decides (a Sensor in place of the room that carried it). The yes must be the owner's own, or the lead says
-    they decide on the owner's behalf: `--on-behalf` with the GATE-5 override, which `override_refusals` then holds to
-    its reason and the check keeps warning about until the owner confirms (W324)."""
+def stand_in_owners(item, view, record, target):
+    """The owners' handles when the lead's yes settles an item someone else owns, else (): the lead's yes settles any
+    item, so nothing is refused, but a decision that isn't the owner's own is never filed as if it were (Silent
+    Fallback of consent otherwise). It is written as `Decided by ... on behalf of`, which the owner can confirm or
+    challenge later."""
     owners = owners_of(view, target)
     if not owners or item.get("reopen") or not item.get("yes") or consent.exists(item["yes"], record) is not None:
-        return []
-    if GATE_5 in rules_set_aside(item) or item.get("on_behalf_of"):
-        return []
+        return ()
     who = speaker(record.capture(item["yes"]), getattr(view, "lead", None))
     if any(consent.same_handle(who, owner) for owner in owners):
-        return []
-    names = " and ".join(owners)
-    return [textedit.refusal(GATE_5, f"{target.name} is {names}'s to decide, and the yes isn't theirs. Shall I decide it on "
-                            "their behalf and note your reason? They can confirm it later, or challenge it if they "
-                            "disagree.",
-                    f"Either capture the owner's own yes (origin {owners[0]}) and decide with that, or decide on their "
-                    f"behalf: --on-behalf {' '.join(owners)} --override GATE-5 --reason-from <the lead's reason>.",
-                    override="the lead's override of GATE-5, with their reason, deciding on the owner's behalf",
-                    waiver=EVENT_WAIVER)]
+        return ()
+    return owners
 
 
 def gate_refusals(item, view, record, target):
     """The grill gate's verdict on the target, each reason the lead didn't set aside refused. A flow check that did
     not pass is never set aside here: its findings are covered by the dated overrides the checker itself reads
     (`vela conventions "Flow check"`), which its standing already applies, and "not fully checked" has none."""
-    out = owner_refusals(item, view, record, target)
+    out = []
     if not target.gate:
         return out
     found = gates.verdict(view.model, record.text, target.gate, textedit.today(view), getattr(view, "flows", None))
@@ -384,8 +360,9 @@ def history_bullets(item, view, record, target, decision=True):
         see = record.id if words else ""
         out.append(f"- **Dissent:** {receipts.dissent_value(speaker(capture, view.lead), today, words, see=see)}")
     out += _override_bullets(item, view, record, target)
-    if item.get("on_behalf_of"):
-        out.append(f"- **Decided by:** {item['by']}, on behalf of {item['on_behalf_of']}")
+    owners = stand_in_owners(item, view, record, target)
+    if owners:
+        out.append(f"- **Decided by:** {item['by']}, on behalf of {' '.join(owners)}")
     if item.get("reader"):
         out.append(f"- **Pending approval:** {item['by']}, {today}")
     return out

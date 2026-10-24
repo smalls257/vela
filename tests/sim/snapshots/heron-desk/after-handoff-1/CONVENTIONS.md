@@ -199,7 +199,7 @@ The person using the skills may override any rule in them: a grill gate, "only a
   | `"<the rule's words>"`, in double quotes | a skill rule with no name above, for example `"Shape offers 2 or 3 options"` | none |
 
 - **Where it sits.** Under an item's heading, or under `#### <ID>` in the page's `## History`, it covers that contract or functional requirement. At page level, which is directly under `## History`, it covers the page and its goal rows, not the items under its headings. A rule that belongs to no item, such as how a session ran, goes at page level in the session record. An override of `E805` goes at page level under `## Question ledger` on `11-unknowns-and-risks.md`, and covers every E805 there; each one still prints, as W805.
-- **Decided by.** When someone other than the item's owner decided it: the decider's handle, `, on behalf of ` and the owner's handle or handles. Deciding on the owner's behalf is how a Grill passes GATE-5 with the owner absent, and it goes with `**Override:** GATE-5`. A bare handle, `- **Decided by:** @owner`, is the owner's own decision: it is what accepting a reader's proposal writes, and it needs no confirmation.
+- **Decided by.** When someone other than the item's owner decided it: the decider's handle, `, on behalf of ` and the owner's handle or handles. The lead's yes settles any item, so `vela decide` writes this line itself whenever the yes isn't the owner's own, with no override and no reason asked; nothing warns, and the owner can add a `**Confirmed by:**` line or challenge it. A bare handle, `- **Decided by:** @owner`, is the owner's own decision: it is what accepting a reader's proposal writes, and it needs no confirmation.
 - **Confirmed by.** The owner adds it later: their handle, ` on ` and the date. A team owner is confirmed by one of its people. A confirmation by the person who decided does not count.
 - **An owner who disagrees** with a decision made on their behalf raises `/vela:challenge` on the item, as a senior does after handoff. Confirming and challenging are the only two answers.
 
@@ -208,7 +208,6 @@ The person using the skills may override any rule in them: a grill gate, "only a
 - A well-formed override that names the rule an error enforces turns that error into its warning, and the warning quotes the override. Nothing else changes: the warning stays until the rule is met or the bullet goes.
 - A malformed override is E321: no rule, an unknown rule name, no handle, no date, a date that is not real, or no reason. A malformed `**Decided by:**` or `**Confirmed by:**` is E322. So is a label one typo away from one of the three, such as `**Overide:**`. A typo never silently fails to override.
 - W323: an override names a rule the check can test, and the item does not break it, so the override sets nothing aside. A rule only a gate tests, such as `E805`, is judged only when that gate runs, so a plain check never calls its override idle.
-- W324: an item carries `**Decided by:** ... on behalf of @owner` and no `**Confirmed by:**`, until the owner confirms.
 
 ## Pending approval
 
@@ -510,7 +509,6 @@ Run `python3 .claude/skills/vela/scripts/vela check` from the vault root. It rea
 | E322 | decided-by or confirmed-by is malformed | W304 | fact without a source, by override |
 | W316 | decided while an open unknown blocks it, by override | W317 | decided by a requirements session, by override |
 | W318 | decided contract has no Tested by, by override | W323 | override not needed |
-| W324 | decided on the owner's behalf, not yet confirmed | W327 | reader's decisions pending approval |
 | W329 | a table row's link label pipe is not escaped as `\|` | | |
 | E801 | question ledger row is malformed | E802 | ledger state lacks the evidence it needs |
 | E803 | ledger row names nothing the catalog owes | W804 | ledger row is orphaned or no longer owed |

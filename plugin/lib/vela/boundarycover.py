@@ -1,6 +1,6 @@
 """Which requirements each proposed cut carries whole, splits across apps, or leaves with no app. Pure.
 
-Boundary offers two or three ways to cut a decided direction into apps and tests each against the functional
+Boundary offers the ways to cut a decided direction into apps and tests each against the functional
 requirements (boundary skill, section 2). The test is a count: for every requirement, how many of the cut's apps say
 they carry it. One app: carried whole. Two or more: split, and the crossing needs a contract, which is a cost the
 lead weighs. None: nobody builds it, also a cost. Done by hand, the model miscounted and the lead heard a tally that

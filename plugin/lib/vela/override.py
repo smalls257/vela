@@ -372,8 +372,7 @@ def testable(rule, gate):
 
 def apply(vault, findings, today, gate=None):
     """The findings with every overridden error turned into its warning, plus W323 for an
-    override that sets aside a rule the item does not break, W324 for an on-behalf decision
-    the owner has not confirmed, E398 for a standing override past its `until` (which covers
+    override that sets aside a rule the item does not break, E398 for a standing override past its `until` (which covers
     nothing, so the error it named stays an error), and E321/E322 for bullets that cannot be
     read. `gate` is the gate check ran under, so an override of a gate-only code is idle only
     when its gate ran. `today` is "YYYY-MM-DD", passed in."""
@@ -416,13 +415,6 @@ def apply(vault, findings, today, gate=None):
                 out.append(_f(page, found.line, "W323",
                               f"Override not needed: {where} does not break {', '.join(idle)}, so the override sets nothing aside.",
                               "Remove the rule from the bullet, or the bullet. The session record keeps the history."))
-        behalf = on_behalf(page, item_id)
-        if behalf and not behalf.confirmed_by:
-            owners = " ".join(behalf.owners)
-            out.append(_f(page, behalf.line, "W324",
-                          f"{behalf.by} decided {vault.named(where)} on {owners}'s behalf, and {owners} hasn't confirmed it yet.",
-                          f"Ask {owners} to confirm (add - **Confirmed by:** {CONFIRMED_BY_GRAMMAR}), "
-                          f"or to challenge it with /vela:challenge if they disagree."))
     out.extend(grammar_findings(vault))
     out.extend(label_findings(vault))
     return out
