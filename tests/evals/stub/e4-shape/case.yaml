@@ -1,6 +1,6 @@
 schema_version: '1.1'
 name: e4-shape-stub
-description: '"That''s decided" during a Shape stays an assumption and the record says to grill it.'
+description: '"That''s decided" during a Shape gets a read-back, and with no yes after it the item stays not decided yet.'
 tags:
 - e4-shape
 - stub
@@ -38,7 +38,7 @@ graders:
   min: 0
   max: 0
   arm: both
-- name: says-grill-to-confirm
+- name: offers-the-read-back
   type: regex
-  pattern: \b(grill to confirm|a grill to confirm|needs? a grill|grill it)\b
+  pattern: \b(still yes|read (it|that) back|here's what i'll write)\b
   flags: i
