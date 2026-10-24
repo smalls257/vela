@@ -95,3 +95,11 @@ def run_companion(root, *args, today=TODAY, now="10:41"):
     out = io.StringIO()
     code = fast.main(["companion", *args, "--vault", str(root), "--today", today, "--now", now], out)
     return code, out.getvalue()
+
+
+def prepared(root):
+    """Run `vela companion prepare` once on a plan, so `explain` finds a current digest."""
+    from conftest import run
+    code, text = run("companion", "prepare", "--vault", str(root), "--today", TODAY)
+    assert code == 0, text
+    return root

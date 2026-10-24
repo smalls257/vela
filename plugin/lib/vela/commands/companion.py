@@ -23,11 +23,15 @@ NO_SESSION = "No session is open in this folder."
 
 def register(sub):
     top = sub.add_parser("companion", help="the panels beside a chat: what this session decided, and what a question needs")
-    verbs = top.add_subparsers(dest="companion_command", metavar="{session}")
+    verbs = top.add_subparsers(dest="companion_command", metavar="{session,prepare}")
     verbs.required = True
     session = verbs.add_parser("session", help="what this session is about, what it decided, what's open and what's next")
     common(session)
     session.set_defaults(func=cmd_session)
+    prepare = verbs.add_parser("prepare", help="make the plan digest the explain views read, without drawing the dashboard")
+    prepare.add_argument("--vault", default=".", help="vault root (default: current directory)")
+    prepare.add_argument("--today", help="today's date, YYYY-MM-DD (default: the system date)")
+    prepare.set_defaults(func=cmd_prepare)
 
 
 def common(parser):
@@ -43,7 +47,7 @@ def common(parser):
 
 def clock(args):
     stamp = datetime.datetime.now()
-    return args.today or stamp.date().isoformat(), args.now or stamp.strftime("%H:%M")
+    return args.today or stamp.date().isoformat(), getattr(args, "now", None) or stamp.strftime("%H:%M")
 
 
 def root_of(args):
@@ -141,3 +145,31 @@ def design_or_nothing(args, out, root, today, now):
     data = companiondesign.build(found["branch"], found["record"], found["doc_text"], found["design"], found["doc_rel"],
                                  found["touched"], today, now)
     return finish(args, out, root, data, 0)
+
+
+def prepare(root, today):
+    """Load the plan, run the dashboard's own extract (no page drawn) and write the digest. Seconds on a big plan, which
+    is why it happens once per open and not once per question. Returns the digest."""
+    from vela import cli
+    from vela.explorer import build
+    vault = cli.load_vault(root)
+    data = build.extract(vault, root, today)
+    return companionstore.prepare_digest(vault, root, today, data, head_of(root))
+
+
+def head_of(root):
+    from vela.edge import vaultgit
+    try:
+        return vaultgit.head_short(root, "HEAD")
+    except vaultgit.GitUnavailable:
+        return ""
+
+
+def cmd_prepare(args, out):
+    import time
+    root = pathlib.Path(args.vault).resolve()
+    today = clock(args)[0]
+    started = time.perf_counter()
+    prepare(root, today)
+    print(f"Prepared the plan's data in {time.perf_counter() - started:.1f} s.", file=out)
+    return 0

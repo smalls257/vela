@@ -145,13 +145,11 @@ CATALOG = pathlib.Path(__file__).resolve().parent.parent.parent.parent / "catalo
 
 def plan_next(root):
     """(text, made date) of the digest's suggestion, ("", "") when there is no digest or it holds none."""
-    path = pathlib.Path(root) / FOLDER / "plan.json"
-    if not path.is_file():
-        return "", ""
     try:
-        found = json.loads(path.read_text(encoding="utf-8")).get("next") or {}
-    except (OSError, UnicodeDecodeError, ValueError, AttributeError):
+        digest = plan_digest(root)
+    except errors.ToolError:  # a digest that can't be read is rebuilt by `explain`; a session panel just has no suggestion
         return "", ""
+    found = (digest or {}).get("next") or {}
     return str(found.get("text", "")), str(found.get("made", ""))
 
 
@@ -253,3 +251,49 @@ def palette():
     if start < 0 or end < 0:
         raise errors.ToolError("The dashboard's palette has no end marker, so the panel has no colors to use.")
     return text[start:end] + "}"
+
+
+PLAN = FOLDER + "/plan.json"
+
+
+def plan_digest(root):
+    """The stored plan digest, None when there isn't one. One that can't be read raises ToolError: it is never read as
+    an empty plan."""
+    path = pathlib.Path(root) / PLAN
+    if not path.is_file():
+        return None
+    try:
+        found = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, ValueError) as exc:
+        raise errors.ToolError(f"The plan digest couldn't be read ({exc}).") from exc
+    if not isinstance(found, dict) or "version" not in found:
+        raise errors.ToolError("The plan digest isn't one this vela wrote.")
+    return found
+
+
+def write_plan_digest(root, digest):
+    write_json(pathlib.Path(root) / PLAN, digest)
+
+
+def copy_source(root):
+    """Where this copy came from, in words for the digest: "GitHub <repository>" or "a published copy" for a reader's
+    copy, "this repository" for an owner's."""
+    root = pathlib.Path(root)
+    if not sessiongit.is_read_copy(root):
+        return "this repository"
+    try:
+        stamp = json.loads((root / ".vela" / "published.json").read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, ValueError):  # a copy with no readable stamp is still a published copy
+        return "a published copy"
+    given = stamp.get("from") if isinstance(stamp, dict) else ""
+    return str(given) if given else "a published copy"
+
+
+def prepare_digest(vault, root, today, data, made_commit=""):
+    """Cut the digest from the dashboard's own `data` and write it. `vault` is the loaded plan (for vela's own next
+    line). The fingerprint is of the files as they are now."""
+    from vela import cli, companionplan
+    made = {"date": today, "commit": made_commit, "from": copy_source(root)}
+    digest = companionplan.digest(data, made, vaultfiles.fingerprint(root), cli.next_step_text(vault, today))
+    write_plan_digest(root, digest)
+    return digest

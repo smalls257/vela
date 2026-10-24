@@ -2754,6 +2754,22 @@ NEXT_MODE_WORDS = {"probe": "ask about", "discover": "find sources for", "bounda
                    "shape": "shape the options for", "grill": "grill", "epics": "write the epics for"}
 
 
+def next_step_text(vault, today):
+    """The first thing `vela next` says, without its prefix and its as-of tail: what the companions quote as vela's
+    suggestion, so a panel never disagrees with the command."""
+    if not vault.apps:
+        return first_step(vault)
+    row = progress.best(progress.grid(vault, today))
+    step = initiative_step(vault, row)
+    if step:
+        return step
+    if row is None:
+        return "nothing to do. Every app's decisions are made and its epics agreed."
+    subject = vault.named(row.subject)
+    reason = without_subject(row.reason, subject)
+    return f"{vault.name_of(row.app.id)}: {NEXT_MODE_WORDS.get(row.mode, row.mode)} {subject}. {reason}"
+
+
 def cmd_next(args, out):
     if getattr(args, "for_lead", False) or getattr(args, "json", False):
         return next_through_say(args, out)
@@ -2763,20 +2779,9 @@ def cmd_next(args, out):
     when = f"As of {today} ({origin})."
     lines = []
     if not vault.apps:
-        line = f"vela next: {first_step(vault)} {when}"
-        print(line, file=out)
+        print(f"vela next: {next_step_text(vault, today)} {when}", file=out)
         return 0
-    row = progress.best(progress.grid(vault, today))
-    step = initiative_step(vault, row)
-    if step:
-        lines.append(f"vela next: {step} {when}")
-    elif row is None:
-        lines.append(f"vela next: nothing to do. Every app's decisions are made and its epics agreed. {when}")
-    else:
-        subject = vault.named(row.subject)
-        reason = without_subject(row.reason, subject)
-        lines.append(f"vela next: {vault.name_of(row.app.id)}: {NEXT_MODE_WORDS.get(row.mode, row.mode)} "
-                     f"{subject}. {reason} {when}")
+    lines.append(f"vela next: {next_step_text(vault, today)} {when}")
     slice_step = slices.next_step(slices.read_slices(vault)) if slices.on_pages(vault) else ""
     if slice_step:
         lines.append(f"vela next: for the slices: {slice_step}")
