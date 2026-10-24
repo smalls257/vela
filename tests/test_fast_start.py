@@ -77,3 +77,10 @@ def test_a_hook_costs_little_from_an_installed_copy(tmp_path):
 def test_cli_still_raises_the_same_tool_error():
     from vela import errors
     assert cli.ToolError is errors.ToolError
+
+
+def test_the_companion_session_command_never_imports_the_whole_cli(tmp_path):
+    from companion_vault import grill_session
+    root = grill_session(tmp_path)
+    found = imported(["companion", "session", "--json", "--vault", str(root)])
+    assert "vela.cli" not in found and "vela.explorer.build" not in found
