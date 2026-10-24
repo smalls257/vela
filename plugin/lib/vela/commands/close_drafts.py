@@ -243,8 +243,8 @@ def lead_lines(found, vault, resolver, review=None):
     if found.split:
         out.append(say.Line(found.split.question, plain=found.split.question))
     if review is not None and found.count and not review["due"]:
-        text = (f"Only {say.count_words(found.count)} paragraph{'' if found.count == 1 else 's'} this time, so I've read "
-                f"{'it' if found.count == 1 else 'them'} back to you instead of sending {'it' if found.count == 1 else 'them'} to a reviewer.")
+        text = (f"Only {say.count_words(found.count)} paragraph{'' if found.count == 1 else 's'} this time, so I'll read "
+                f"{'it' if found.count == 1 else 'them'} back to you with the rest instead of sending {'it' if found.count == 1 else 'them'} to a reviewer.")
         out.append(say.Line(text, plain=text))
     # the model's reminder, not news to the lead on every close (voice audit row 159)
     out.append(say.Line("Also: a glossary entry for each term a newcomer to the initiative wouldn't know.",

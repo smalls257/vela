@@ -30,7 +30,8 @@ def test_a_short_close_tells_the_lead_it_was_read_back_not_sent_to_a_reviewer(tm
     count = drafts_json(vault)["count"]
     assert 0 < count < 5, "the fixture drafts a few paragraphs"
     text = drafts(vault, "--for-lead")[1]
-    assert "back to you instead of sending" in text and "to a reviewer" in text
+    assert "back to you with the rest instead of sending" in text and "to a reviewer" in text
+    assert "I've read" not in text, "the read-back comes later, in the close, so it is not claimed as done"
 
 
 def test_a_medium_plan_always_sends_the_drafts(tmp_path):

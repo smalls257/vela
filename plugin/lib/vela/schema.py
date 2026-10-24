@@ -529,7 +529,7 @@ NEEDS = {
 }
 VOICE_REVIEW_MIN_PARAGRAPHS = 5  # why: a fresh reader is worth its cost from about five drafted paragraphs
 WEIGHTS = ("decision", "polish", "auto")
-POLISH = dict.fromkeys(("W329", "W353", "W360", "W361", "W362", "W363", "W364", "W365", "W366", "W367", "W368",
+POLISH = dict.fromkeys(("W353", "W360", "W361", "W362", "W363", "W364", "W365", "W366", "W367", "W368",
                         "W369", "W371", "W372", "W373"), "polish")
 AUTO = dict.fromkeys(("W326", "W358", "W402", "W408"), "auto")
 SCALE = {"W352": "scale:DOMAIN_FIELD"}

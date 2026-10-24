@@ -1,6 +1,8 @@
 """sizing.of: the plan's size from apps, capabilities and releases, ratcheted by the stubs, set by the lead."""
 import ast
 import re
+import subprocess
+import sys
 
 import pytest
 
@@ -159,7 +161,9 @@ def test_only_sizing_compares_a_band():
     assert offenders == [], "ask sizing.of(vault).needs(Need.X) instead"
 
 
-@pytest.mark.parametrize("name", ["closegate.py", "closereadback.py", "receipts.py", "decisions/consent.py",
-                                  "commands/close_push.py"])
-def test_privacy_steps_never_read_the_size(name):
-    assert not re.search(r"\bsizing\b", (LIB / name).read_text(encoding="utf-8"))
+@pytest.mark.parametrize("module", ["closegate", "closereadback", "receipts", "decisions.consent", "commands.close_push"])
+def test_privacy_steps_never_load_the_size(module):
+    # The import graph, not a grep: a module that reaches sizing through another import would still be size-aware.
+    code = ("import sys, importlib; sys.path.insert(0, %r); importlib.import_module('vela.%s'); "
+            "sys.exit(1 if 'vela.sizing' in sys.modules else 0)" % (str(LIB.parent), module))
+    assert subprocess.run([sys.executable, "-c", code], capture_output=True).returncode == 0, module

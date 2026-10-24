@@ -29,7 +29,7 @@ AUTO = "AUTO"  # --fix auto runs every fixer in one pass
 
 
 def register(sub):
-    check = sub.add_parser("check", help="read-only check of the vault")
+    check = sub.add_parser("check", help="check the vault (it changes no page; --for-lead and --gate grill also record the size line on the open session)")
     check.add_argument("--vault", default=".", help="vault root (default: current directory)")
     check.add_argument("--today", help="the date to judge overdue questions by, YYYY-MM-DD (default: today)")
     check.add_argument("--gate", choices=schema.GATES,
