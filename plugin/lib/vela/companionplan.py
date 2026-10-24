@@ -8,7 +8,7 @@ never served as current.
 """
 import datetime
 
-VERSION = 1
+VERSION = 2
 STUCK_LEVELS = ("warning", "caution")  # the lamp colors that mean something is held up; "override" is a lead's choice
 
 
@@ -30,13 +30,14 @@ def name(names, key):
 
 def asks_of(data, names):
     holds = {u["id"]: [name(names, h) for h in u.get("holds", [])] for u in data["unknowns"]}
+    hold_keys = {u["id"]: u.get("holds", []) for u in data["unknowns"]}
     found = []
     for ask in data["asks"]:
         found.append({"id": ask["id"], "name": name(names, ask["id"]), "who": ask["ask"]["name"],
                       "who_key": ask["ask"]["key"], "state": ask["state"], "ask_by": ask["askBy"],
                       "opened": ask["opened"], "light": ask["light"]["level"], "urgency": ask["light"]["urgency"],
                       "open_days": days_between(ask["opened"], data["today"]) if ask["opened"] else None,
-                      "holds": holds.get(ask["id"], [])})
+                      "holds": holds.get(ask["id"], []), "hold_keys": list(hold_keys.get(ask["id"], []))})
     return found
 
 
@@ -52,14 +53,33 @@ def needs_of(data, names):
                       for line in data["needs"]["lines"]]}
 
 
-def releases_of(data):
-    return [{"name": s.get("name", ""), "target": s.get("target", ""), "state": s.get("state", "")}
-            for s in data.get("releases", {}).get("states", []) if s.get("name") != "Today"]
+def releases_of(data, slices):
+    """The releases with the keys of the slices tied to each: the ones whose Slices bullet names them, or whose own
+    Milestone bullet says the release's name. A release's date is only as good as the slices that hold it."""
+    found = []
+    for s in data.get("releases", {}).get("states", []):
+        if s.get("name") == "Today":
+            continue
+        name = s.get("name", "")
+        tied = [x["key"] for x in slices if name in x["milestones"] or (x["milestone"] and x["milestone"].lower() == name.lower())]
+        found.append({"name": name, "target": s.get("target", ""), "state": s.get("state", ""), "slices": tied})
+    return found
+
+
+def reach_of(slice_row):
+    """Every key a question could hold this slice up through: its apps, its flows and the contracts it joins."""
+    keys = list(slice_row.get("apps", []))
+    for flow in slice_row.get("flows", []):
+        keys += [flow.get("id", ""), flow.get("key", "")]
+    for join in slice_row.get("joins", []):
+        keys += [join.get("id", ""), join.get("key", "")]
+    return sorted({k for k in keys if k})
 
 
 def slices_of(data):
     return [{"key": s["key"], "name": s["name"], "status": s["status"] or "planned", "journey_due": s["journeyDue"],
-             "milestone": s["milestone"], "overdue": s["overdue"]} for s in data["slicePlan"]["list"]]
+             "milestone": s["milestone"], "milestones": list(s.get("milestones", [])), "overdue": s["overdue"],
+             "reach": reach_of(s)} for s in data["slicePlan"]["list"]]
 
 
 def progress_of(data, names):
@@ -95,10 +115,11 @@ def digest(data, made, fingerprint, next_line):
     """The digest (version 1). `made` is {"date", "commit", "from"}; `next_line` is vela next's first line."""
     names = names_of(data)
     asks = asks_of(data, names)
+    slices = slices_of(data)
     return {"version": VERSION, "made": made, "fingerprint": fingerprint, "title": data["title"],
             "initiative": data["initiative"], "today": data["today"], "names": names, "asks": asks,
-            "stuck": stuck_of(asks), "needs": needs_of(data, names), "releases": releases_of(data),
-            "slices": slices_of(data), "progress": progress_of(data, names), "flows": flows_of(data, names),
+            "stuck": stuck_of(asks), "needs": needs_of(data, names), "releases": releases_of(data, slices),
+            "slices": slices, "progress": progress_of(data, names), "flows": flows_of(data, names),
             "pages": pages_of(data),
             "apps": [{"key": a["key"], "name": a["title"], "domain": a.get("domain", "")} for a in data["map"]["apps"]],
             "app_lights": {a["key"]: data["lights"].get(a["key"], {}).get("level", "dark") for a in data["map"]["apps"]},

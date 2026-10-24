@@ -12,7 +12,7 @@ An index entry is JSON-shaped:
 """
 from dataclasses import dataclass
 
-from vela import askwho, flows, model, parse, schema
+from vela import askwho, flows, model, parse, progress, schema
 
 VERSION = 1  # bump when an entry's shape changes; an index of another version is rebuilt whole
 
@@ -60,7 +60,7 @@ def _blocks(item, page):
 def _item_entry(item, page):
     return {"kind": item.kind, "name": item.name, "state": first_word(item.fact("State")),
             "owner": item.fact("Owner"), "ask": item.fact("Ask"), "ask_by": _date_of(item.fact("Ask by")),
-            "opened": _date_of(item.fact("Opened")), "blocks": _blocks(item, page)}
+            "opened": progress.leading_date(item.fact("Opened")), "blocks": _blocks(item, page)}
 
 
 def _steps(vault, page):

@@ -64,7 +64,7 @@ def asks(vault, keys, as_of):
             "id": u.id, "question": plain(u.fact("Question")), "summary": first_prose(u.page, u.line),
             "ownerRaw": plain(u.fact("Owner")), "ask": who_to_ask(u, handles), "state": u.fact("State"),
             "askBy": date_only(u.fact("Ask by")), "askByRaw": raw_unless_date(u.fact("Ask by")),
-            "opened": date_only(u.fact("Opened")),
+            "opened": progress.opened_date(u),
             "holdsReason": plain(blocks) if (not blocks or NOTHING.match(blocks)) else "",
             "outcome": plain(u.fact("Outcome")),
             "light": unknown_light(u, as_of) if u.fact("State") == "open" else {"level": "dark", "urgency": 0},

@@ -65,33 +65,62 @@ def ask_item(ask):
             "ask_by": ask["ask_by"], "holds": ask["holds"], "light": ask["light"]}
 
 
-def verdict(digest, release, today):
-    """Never says the plan is fine: it can only say a date passed with nothing recorded, or what could make it late."""
-    if any(s["overdue"] for s in digest["slices"]):
-        return "Late: a due date passed with nothing recorded."
-    could = len(digest["stuck"])
+STATUS_WORDS = {"on": "on", "live but off": "live but switched off", "journey passes": "past their journey check",
+                "building": "building", "planned": "only planned"}  # best first; each status in its own word
+
+
+def is_shipped(release, slices):
+    """Shipped means it has slices and every one of them is on. A date with no slice recorded is not shipped."""
+    mine = [s for s in slices if s["key"] in release["slices"]]
+    return bool(mine) and all(s["status"] == "on" for s in mine)
+
+
+def release_named(digest, about):
+    """The release `--about` names, else the earliest dated release that has not shipped, else None."""
+    dated = [r for r in digest["releases"] if r["target"]]
+    if about.strip():
+        return find(dated, about)
+    waiting = [r for r in dated if not is_shipped(r, digest["slices"])]
+    return min(waiting, key=lambda r: r["target"]) if waiting else None
+
+
+def could_hold_up(digest, slices):
+    """The stuck questions whose holds reach one of these slices."""
+    reached = {key for s in slices for key in s["reach"]}
+    return [a for a in digest["stuck"] if reached & set(a["hold_keys"])]
+
+
+def verdict(digest, release, mine, out):
+    """Never says the plan is fine: it can only say a date passed with nothing recorded, or what could make it late.
+    A passed date with the release not on is Late whatever else is true, so the words never contradict the date."""
+    if out < 0 or any(s["overdue"] for s in mine):
+        return "Late: the date passed." if out < 0 else "Late: a due date passed with nothing recorded."
+    could = len(could_hold_up(digest, mine))
     if could:
         return f"{count_words(could, 'thing', 'things')} could make it late."
     return "Nothing in the plan says it's late."
 
 
+def status_sentence(mine):
+    counts = {status: sum(1 for s in mine if s["status"] == status) for status in STATUS_WORDS}
+    parts = [f"{n} {'is' if n == 1 else 'are'} {STATUS_WORDS[status]}" for status, n in counts.items() if n]
+    return f"Of {count_words(len(mine), 'slice', 'slices')}, " + (", ".join(parts[:-1]) + " and " + parts[-1] if len(parts) > 1 else parts[0]) + "."
+
+
 def view_track(digest, about, viewer, today):
-    dated = [r for r in digest["releases"] if r["target"]]
-    if not dated:
+    if not any(r["target"] for r in digest["releases"]):
         return ["No release has a date yet."], [], []
-    release = dated[0]
+    release = release_named(digest, about)
+    if release is None:
+        return ["Every dated release has shipped."], [], []
     out = days_out(release["target"], today)
     when = f"{out} days out" if out >= 0 else f"{-out} days ago"
     headline = [f"{release['name']} is due {date_words(release['target'], today)}, {when}."]
-    slices = digest["slices"]
-    if slices:
-        building = [s for s in slices if s["status"] != "planned"]
-        planned = len(slices) - len(building)
-        headline.append(f"{len(building)} of {len(slices)} slices {'is' if len(building) == 1 else 'are'} building and "
-                        f"{planned} {'is' if planned == 1 else 'are'} only planned.")
-    headline.append(verdict(digest, release, today))
+    mine = [s for s in digest["slices"] if s["key"] in release["slices"]]
+    headline.append(status_sentence(mine) if mine else "No slice is tied to it yet.")
+    headline.append(verdict(digest, release, mine, out))
     items = [{"id": release["name"], "name": release["name"], "target": release["target"], "days_out": out}]
-    items += [{"id": s["key"], "name": s["name"], "status": s["status"], "overdue": s["overdue"]} for s in slices]
+    items += [{"id": s["key"], "name": s["name"], "status": s["status"], "overdue": s["overdue"]} for s in mine]
     return headline, items, []
 
 
