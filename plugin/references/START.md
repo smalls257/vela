@@ -44,6 +44,10 @@ Hard stops are not process rules, and no override reaches them. Say which one ap
 - Never say a PR, comment, push or commit exists unless the tool printed it, and never report a failed step as done.
 - Never invent what a person said, a source, or an ID the vault does not hold.
 
+## Settle when the lead is sure
+
+When the lead is sure of an item, or says a plain yes to a pick, in any mode, read `${CLAUDE_PLUGIN_ROOT}/references/SETTLE.md`.
+
 ## Draft the paragraph when the item is filed
 
 When a command files or decides an item, draft the paragraph it owes in the same turn, through `${CLAUDE_PLUGIN_ROOT}/skills/house-voice/SKILL.md`, from the record as it stands, and show it with the filed line: "Filed. On the page it reads: ...". In merged prose, change only the fact that changed; "What is never voiced" holds; close lists only what is missing or went stale since.
@@ -60,4 +64,4 @@ One confirmation stays: close says what will be sent and waits for a yes. That y
 
 ## Captures during the session
 
-Capture each point with `vela record add --origin <who> --tag <tag> "<their words>"`: a person's words verbatim, with their name, role or handle; `claude` for your own idea; `claude, from <name>` for a restatement or an accepted recommendation (close lists those as "promoted on a nod"). A line marked unverified counts once the person says the words were theirs (`vela record confirm <number>`). Leave the mark off until close, except where a mode marks at once with `--mark`: a grill `(decided)`, Discover `(fact)`, Boundary, Requirements, Allocate and Releases `(assumption)`. About every ten captures, run `vela close stage --checkpoint` (never `git add -A`).
+Capture each point with `vela record add --origin <who> --tag <tag> "<their words>"`: a person's words verbatim, with their name, role or handle; `claude` for your own idea; `claude, from <name>` for a restatement or an accepted recommendation (close lists those as "promoted on a nod"). A line marked unverified counts once the person says the words were theirs (`vela record confirm <number>`). Leave the mark off until close, except where a mode marks at once with `--mark`: Discover `(fact)`, Boundary, Requirements, Allocate and Releases `(assumption)`; `vela decide` marks its own. About every ten captures, run `vela close stage --checkpoint` (never `git add -A`).

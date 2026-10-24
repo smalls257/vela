@@ -256,9 +256,9 @@ def test_captures_are_numbered_by_record_add_and_keep_their_origins():
 
 def test_start_names_every_mode_that_marks_at_once():
     marks = START.split("Leave the mark off until close")[1].split("\n")[0]
-    for name in ("grill", "Discover", "Boundary", "Requirements", "Allocate", "Releases"):
+    for name in ("Discover", "Boundary", "Requirements", "Allocate", "Releases"):
         assert name in marks, name
-    assert "(decided)" in marks and "(fact)" in marks and "(assumption)" in marks
+    assert "(decided)" not in marks and "(fact)" in marks and "(assumption)" in marks
 
 
 # --- answer a challenge

@@ -113,9 +113,7 @@ def test_modes_says_team_lead_and_grill_in_lower_case():
     assert not re.search(r"\bGrill\b", prose)
 
 
-def test_a_yes_in_a_session_that_cannot_decide_goes_through_vela_decide():
-    from conftest import REPO
-    modes = (REPO / "plugin/references/MODES.md").read_text(encoding="utf-8")
-    assert "run `vela decide` on it anyway" in modes and "says what to offer" in modes
-    assert "offer the lead a short grill" not in modes and "an assumption nobody sees again" not in modes
+def test_no_mode_is_told_to_hold_a_yes_back_for_a_grill():
+    assert "session that can't decide" not in MODES and "decide anything outside a grill" not in MODES
+    assert "except an item the lead settles" in MODES
 
