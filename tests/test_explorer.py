@@ -80,8 +80,10 @@ def test_the_two_live_call_paths_have_their_data(trading):
     step2 = paper["steps"][1]
     (message,) = step2["messages"]
     assert {k: v for k, v in message.items() if k not in ("says", "answer")} == {"from": "APP-coach", "to": "PTY-01", "contract": "CON-003", "direction": "stated", "kind": "send"}
-    assert message["says"].startswith("Coach opens a sandbox paper account") and message["answer"] == ""  # the arrow's words, whole
     contract = next(c for c in data["map"]["contracts"] if c["id"] == "CON-003")
+    # one label per arrow: the contract's title, never the step's sentence (that shows once, on the step)
+    assert message["says"] == contract["title"] and message["answer"] == ""
+    assert "Coach opens a sandbox paper account" in step2["text"]
     assert contract["provider"] == "PTY-01" and contract["consumers"] == ["APP-coach"]
     # Questions sit at the step they hold, with the record's state: UNK-050 is resolved, whatever the prose says.
     assert [p["id"] for p in step2["unknowns"]] == ["UNK-050"]
@@ -173,7 +175,7 @@ def test_no_unescaped_vault_text(tmp_path):
     question = re.search(r"- \*\*Question:\*\* (.*)", text)
     unknowns.write_text(text.replace(question.group(0), question.group(0) + " " + evil, 1), encoding="utf-8")
     flow = next((vault / "06-runtime/flows").glob("FLO-001*.md"))
-    flow.write_text(flow.read_text(encoding="utf-8").replace("Find a crossing]].", "Find a crossing]]. " + evil, 1), encoding="utf-8")
+    flow.write_text(flow.read_text(encoding="utf-8").replace("Find a crossing]]).", "Find a crossing]]). " + evil, 1), encoding="utf-8")
     page, data = built(tmp_path, vault, "2026-11-20", "evil")
     blob = DATA.search(page).group(1)
     assert "<" not in blob, "the data block holds a raw <"

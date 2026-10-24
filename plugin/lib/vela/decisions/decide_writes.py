@@ -35,7 +35,7 @@ import re
 from dataclasses import dataclass
 
 from vela import gates, override as overrides, privaterecord, receipts, said, say, schema as vault_schema
-from vela.decisions import agenda, consent, override as override_kind, schema, textedit
+from vela.decisions import agenda, consent, options_line, override as override_kind, schema, textedit
 
 HANDLE = re.compile(rf"^{vault_schema.HANDLE}$")
 STATE_BULLET = re.compile(r"^- \*\*State:\*\*\s*(?P<state>\S*)")
@@ -191,6 +191,10 @@ def words_refusals(item, view, record):
         why = consent.why_in_their_words(item["why"], record, lead)
         if why is not None:
             found.append(why)
+    if item.get("options_none"):
+        missing = consent.exists(item["options_none"], record)
+        if missing is not None:
+            found.append(missing)
     if item.get("dissent"):
         missing = consent.exists(item["dissent"], record)
         capture = record.capture(item["dissent"])
@@ -320,7 +324,7 @@ def gate_refusals(item, view, record, target):
         if route is not None and route in named:
             continue
         if (item.get("stated_in") or options_given(item)) and reason.rule == STATED_SKIPS:
-            continue  # a source states the decision, or the lead's pick is written with it: the options come with it
+            continue  # a source states it, the pick is written with it, or the lead said there was only this one
         override = found.route if route is not None else \
             "none from decide: settle each finding, or the dated flow-check override the checker reads"
         # The gate's fix is my recommendation to the lead; an event rule is set aside with a reason and no end date.
@@ -389,9 +393,14 @@ def history_bullets(item, view, record, target, decision=True):
 
 # --- a settled pick's options (--picked, --rejected)
 
-def options_given(item):
-    """A pick is on the item: the options come with the decision, so GATE-2 has nothing left to ask for."""
+def pick_given(item):
+    """--picked or --rejected is on the item."""
     return bool(item.get("picked") or item.get("rejected"))
+
+
+def options_given(item):
+    """The options come with the decision (a pick, or the lead's "only this one"), so GATE-2 has nothing to ask."""
+    return pick_given(item) or bool(item.get("options_none"))
 
 
 def options_specs(item):
@@ -412,19 +421,25 @@ def option_ref(spec):
 
 
 def options_bullet(item, view, record):
-    """`- **Options considered:** <picked> (picked); <option>: rejected, "<the lead's words>"; <option>: rejected, reason
-    declined`. A reason goes on in words only when that person may be quoted; else the bullet points at the notes."""
-    parts = [f"{textedit.inline(option_parts(item['picked'])[0])} (picked)"]
+    """The `**Options considered:**` line for this decision, in the form the lead's words call for (options_line).
+    A reason goes on in words only when that person may be quoted; else the bullet points at the notes."""
+    if item.get("options_none"):
+        capture = record.capture(item["options_none"])
+        cite = privaterecord.citation(record.id, record.part, int(capture.n))
+        words = textedit.inline(capture.quote) if consent.may_quote(capture, record, view.lead) else None
+        return options_line.only_this_one(cite, words)
+    rejected = []
     for spec in item.get("rejected") or []:
         name, rest = option_parts(spec)
         if rest == DECLINED:
-            reason = "reason declined"
+            why = options_line.DECLINED_REASON
         else:
             capture = record.capture(rest)
-            reason = (f'"{textedit.inline(capture.quote)}"' if consent.may_quote(capture, record, view.lead)
-                      else f"the reason is in {textedit.capture_ref(record, rest)}")
-        parts.append(f"{textedit.inline(name)}: rejected, {reason}")
-    return f"- **Options considered:** {'; '.join(parts)}"
+            why = (f'"{textedit.inline(capture.quote).replace(chr(34), chr(39))}"'
+                   if consent.may_quote(capture, record, view.lead)
+                   else f"the reason is in {textedit.capture_ref(record, rest)}")
+        rejected.append((textedit.inline(name), why))
+    return options_line.picked(textedit.inline(option_parts(item["picked"])[0]), rejected)
 
 
 def options_written(view, target):
@@ -439,7 +454,11 @@ def options_written(view, target):
 def options_refusals(item, view, record, target):
     """A pick is whole: the option picked, at least one set aside, each citing a capture the record holds, and not
     written already. Each refusal names the way round it (the audience is the model)."""
-    if not options_given(item):
+    if item.get("options_none") and pick_given(item):
+        return [refusal("decide-options-both", "An item has one answer to what else was on the table, not two.",
+                        "Give --options-none (the only option) or --picked with --rejected, not both.",
+                        override="none: one options line per item", audience=say.MODEL)]
+    if not pick_given(item):
         return []
     gate_two = "the lead's override of GATE-2, with their reason, instead of --picked and --rejected"
     if not item.get("picked") or not item.get("rejected"):
@@ -472,7 +491,7 @@ def add_history(text, bullets, target):
 def consumed(item):
     """Every capture the decision filed, the cited one first: each is kept on the item it went into, so close finds
     nothing of this decision left to place."""
-    refs = [item.get(name) for name in ("yes", "why", "readback", "dissent", "provider")]
+    refs = [item.get(name) for name in ("yes", "why", "readback", "dissent", "provider", "options_none")]
     refs += [option_ref(spec) for spec in options_specs(item)]
     refs += [group.get(name) for group in item.get("groups") or [] for name in ("readback", "yes")]
     refs += [group.get("reason") for group in item.get("overrides") or []]

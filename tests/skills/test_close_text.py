@@ -92,7 +92,9 @@ sources: [SRC-01]
 
 def suggestion(options):
     page = parse_page("05-building-blocks/shop-building-blocks.md", APP.format(options=options))
-    [row] = progress.grid(build([page], {"initiative": "INI-900", "title": "Mini"}), "2026-01-15")
+    # pins the medium path: a shape session leaves options, then the grill; a small plan asks its one question in the grill
+    medium = {"band": "medium", "because": "[[2026-01-01-grill-a]] c1", "date": "2026-01-01"}
+    [row] = progress.grid(build([page], {"initiative": "INI-900", "title": "Mini", "size": medium}), "2026-01-15")
     return row.mode, row.subject
 
 
@@ -528,7 +530,7 @@ def test_close_drafts_prose_through_house_voice():
     four = csec(2)
     assert "through `${CLAUDE_PLUGIN_ROOT}/skills/house-voice/SKILL.md`" in four
     assert "vela close drafts --json" in four and "vela close stage --draft" in four
-    assert "`vela style` on each drafted page" in four and "until it prints nothing" in four
+    assert "`vela style` on each drafted page" in four and "fix its mechanical findings once" in four
     # rule deletion: house-voice owns merged prose (`vela prose replace`) and closedrafts.WHY["adr"] names `vela add adr`
     assert "vela prose replace --page" not in four and "vela add adr --state decided" not in four
     assert "vela add adr --state decided" in closedrafts.WHY["adr"]

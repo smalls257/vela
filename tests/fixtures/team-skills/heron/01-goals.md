@@ -14,16 +14,16 @@ Heron has one goal so far, the chief information officer's first ask: a desk hel
 
 ## Where it stands
 
-<!-- generated:where-it-stands sha=3524ee6d: do not edit, run vela render -->
+<!-- generated:where-it-stands sha=8508887d: do not edit, run vela render -->
 _Kept up to date by vela from the pages it reads._
 
 **Where each app has got to**
 
 | App | Step reached | Open questions holding it up | Topics nobody has looked at | Contracts settled |
 |---|---|---|---|---|
-| [[consent-and-identity-building-blocks\|Consent and identity]] | researched | 3 | 4 | 0 of 3 |
-| [[summarizer-building-blocks\|Summarizer]] | researched | 1 | 4 | 0 of 1 |
-| [[desktop-agent-building-blocks\|Desktop agent]] | ready to hand over | 2 | 5 | 0 of 4 |
+| [[consent-and-identity-building-blocks\|Consent and identity]] | boundaries drawn | 3 | 4 | 0 of 3 |
+| [[desktop-agent-building-blocks\|Desktop agent]] | boundaries drawn | 2 | 5 | 0 of 4 |
+| [[summarizer-building-blocks\|Summarizer]] | boundaries drawn | 1 | 4 | 0 of 1 |
 
 **Handed to its team:** [[desktop-agent-building-blocks|Desktop agent]] (@agent-lead, 2026-10-12, PR pending)
 
@@ -66,16 +66,16 @@ _Kept up to date by vela from the pages it reads._
 
 ## Progress by app
 
-<!-- generated:progress-map sha=0dc0c50f: do not edit, run vela render -->
+<!-- generated:progress-map sha=bcacc7e2: do not edit, run vela render -->
 _Kept up to date by vela from the pages it reads._
 
 **How sure each app's items are,** as of the last session on October 12, 2026
 
 | App | Step reached | Early ideas | Assumed | Confirmed | Decided | Oldest open question | Next session |
 |---|---|---|---|---|---|---|---|
-| [[consent-and-identity-building-blocks\|Consent and identity]] | researched | 0 | 5 | 0 | 0 | [[11-unknowns-and-risks#UNK-068 Who builds Consent and identity\|Who builds Consent and identity]], open since October 12, 2026 | Grill Consent and identity runtime |
-| [[summarizer-building-blocks\|Summarizer]] | researched | 0 | 3 | 0 | 0 | [[11-unknowns-and-risks#UNK-067 How slow is too slow\|How slow is too slow]], open since October 12, 2026 | Grill Summarizer runtime |
-| [[desktop-agent-building-blocks\|Desktop agent]] | ready to hand over | 0 | 3 | 0 | 0 | [[11-unknowns-and-risks#UNK-066 Consent sees what agent read\|Consent sees what agent read]], open since October 12, 2026 | Grill Desktop agent runtime |
+| [[consent-and-identity-building-blocks\|Consent and identity]] | boundaries drawn | 0 | 5 | 0 | 0 | [[11-unknowns-and-risks#UNK-068 Who builds Consent and identity\|Who builds Consent and identity]], open since October 12, 2026 | Grill Consent and identity runtime |
+| [[desktop-agent-building-blocks\|Desktop agent]] | boundaries drawn | 0 | 3 | 0 | 0 | [[11-unknowns-and-risks#UNK-066 Consent sees what agent read\|Consent sees what agent read]], open since October 12, 2026 | Grill Desktop agent runtime |
+| [[summarizer-building-blocks\|Summarizer]] | boundaries drawn | 0 | 3 | 0 | 0 | [[11-unknowns-and-risks#UNK-067 How slow is too slow\|How slow is too slow]], open since October 12, 2026 | Grill Summarizer runtime |
 <!-- /generated:progress-map -->
 
 ## Why now

@@ -107,6 +107,15 @@ def test_start_on_a_feature_branch_stays_on_it_and_records_it(tmp_path, monkeypa
     assert git(vault, "rev-parse", "main") == began  # no pull, no switch, nothing committed to main
 
 
+def test_session_start_says_the_size_first_time(tmp_path, monkeypatch):
+    vault = owner(tmp_path, monkeypatch)
+    code, output = start(vault, "--mode", "grill", "--topic", "consent", "--for-lead")
+    assert code == 0, output
+    assert "I'm treating this as a small plan" in output
+    meta = stub_meta(session_files.stub_text(vault, f"{TODAY}-consent"))
+    assert meta["size"].startswith("small; apps ")
+
+
 def test_new_branch_makes_a_session_branch_from_the_current_one(tmp_path, monkeypatch):
     vault = owner(tmp_path, monkeypatch)
     git(vault, "switch", "-q", "-c", "waiting-for-review")

@@ -7,7 +7,6 @@ arc42: "§5"
 c4: container
 state: decided
 change: new
-stage: epics
 handed_off: "Booking senior, 2026-11-10"
 handed_off_pr: 23
 owner: "@harborline/booking-team"

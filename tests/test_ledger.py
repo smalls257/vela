@@ -260,7 +260,7 @@ def test_a_row_with_an_error_disposes_of_nothing(ub):
     code, answer = ask(ub)
     copy = next(c for c in answer["copies"] if c["id"] == "Q-FIN-03@SV-01")
     assert copy["valid"] is False and copy["state"] == "answered" and copy["pending"]
-    assert answer["undisposed"] == 1 and answer["coverage"].startswith("57 owed, 1 undisposed")
+    assert answer["undisposed"] == 1 and answer["coverage"].startswith("56 owed, 1 undisposed")
     assert [c["id"] for c in ask(ub, "--open")[1]["copies"]] == ["Q-FIN-02@INI-002", "Q-FIN-03@SV-01"]
     _, out = run("questions", "--vault", str(ub))
     assert "Q-FIN-03@SV-01 | FIN | high | unreadable row (answered) | SV-01 | not linked to an item yet |" in out
@@ -286,10 +286,10 @@ def test_vela_questions_prints_the_coverage_line_and_one_line_per_copy():
     code, out = run("questions", "--vault", str(FIXTURE))
     lines = out.splitlines()
     assert code == 0
-    assert lines[0] == ("vela questions: 57 standard questions apply, 0 not dealt with yet, 1 asked but not answered, "
+    assert lines[0] == ("vela questions: 56 standard questions apply, 0 not dealt with yet, 1 asked but not answered, "
                         "1 open reviewer question (question catalog v1). 1 reviewer question, 1 open.")
     assert "complete" not in out.lower()
-    assert len(lines) == 59
+    assert len(lines) == 58
     assert "Q-DAT-02@APP-website | DAT | high | answered by assumption through Q-DAT-02@APP-* | APP-website | dealt with | What customer data" in out
     assert lines[-1].startswith("R-FIN-01 | FIN | normal | open | reviewer | not linked to an item yet | Points are earned")
 
@@ -334,7 +334,7 @@ def test_a_template_vault_owes_its_initiative_questions(tmp_path):
     shutil.copytree(REPO / "plugin" / "template", vault)
     code, answer = ask(vault)
     assert code == 0
-    assert answer["owed"] == answer["undisposed"] == 12
+    assert answer["owed"] == answer["undisposed"] == 11  # REG-05 waits for REG-01's yes
     assert {c["subject"] for c in answer["copies"]} == {"INI-001"}
 
 
@@ -412,7 +412,7 @@ def test_rows_of_a_misplaced_table_are_read_but_dispose_of_nothing(ub):
     assert broken(ub, allow=("W809", "W366")) == [("E801", LEDGER)]
     untyped_warns(ub)
     code, answer = ask(ub)
-    assert code == 0 and answer["undisposed"] == 57 and not any(c["valid"] for c in answer["copies"] if c["row"])
+    assert code == 0 and answer["undisposed"] == 56 and not any(c["valid"] for c in answer["copies"] if c["row"])
     assert answer["reviewer_open"] == 1
 
 
@@ -425,7 +425,7 @@ def test_rows_under_a_second_ledger_heading_dispose_of_nothing(ub):
     assert found == ["E801"]
     untyped_warns(ub)
     assert "appears twice" in check(ub, TODAY)[1] and "must sit under" in check(ub, TODAY)[1]
-    assert ask(ub)[1]["undisposed"] == 57
+    assert ask(ub)[1]["undisposed"] == 56
 
 
 def test_a_glossary_table_headed_copy_on_another_page_is_not_a_ledger(ub):

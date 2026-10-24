@@ -23,10 +23,10 @@ def names():
     out.update(f"`{v}`" for v in schema.CONTRACT_STATES + schema.CONTRACT_CHANGES + schema.UNKNOWN_STATES
                + schema.RISK_STATES + schema.SOURCE_KINDS + schema.CONTAINER_STATES + schema.CELL_STATES
                + schema.PARTY_RELATIONSHIPS)
-    out.update(f"`{v}`" for v in ledger.STATES + catalog.SCOPES + catalog.SEVERITIES + catalog.BLOCK_KINDS + catalog.CREATES)
+    out.update(f"`{v}`" for v in ledger.STATES + catalog.SCOPES + catalog.SEVERITIES + catalog.BLOCK_KINDS + catalog.CREATES + catalog.GROUPS)
     out.update(f"`{k}`" for k in ledger.KEYS)
     out.update(f"`{field}`" for field in ("id", "area", "scope", "trigger", "question", "why", "severity", "blocks",
-                                         "creates", "mentions", "mention_why", "mention_except"))
+                                         "creates", "mentions", "mention_why", "mention_except", "follows", "group"))
     out.update(f"`{code}`" for code in ("FIN", "DAT", "PTN", "REG", "OPS"))
     out.add("`Q-OPS-01@APP-*`")
     for header in (schema.GOALS_HEADER, schema.SOURCES_HEADER, schema.CHANGES_HEADER, ledger.HEADER):

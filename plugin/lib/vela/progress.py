@@ -8,7 +8,7 @@ import datetime
 import re
 from dataclasses import dataclass
 
-from vela import model, override, schema, trace
+from vela import ladder, model, override, schema, sizing, trace
 
 OPENED_DATE = re.compile(r"^(\d{4}-\d{2}-\d{2})\b")
 SETTLED = ("decided", "fact")
@@ -113,11 +113,10 @@ def overdue(unknown, as_of):
     return bool(as_of) and is_date(ask_by) and ask_by < as_of
 
 
-def in_grill_stage(app):
-    """GATE-1: an app's item can be grilled once the app is at target or later."""
-    stage = text(app.meta.get("stage"))
-    order = schema.ENUMS["stage"]
-    return stage in order and order.index(stage) >= order.index("target")
+def in_grill_stage(vault, app):
+    """GATE-1: an app's item can be grilled once its pages reach target or later."""
+    reached = ladder.stage(vault, app)
+    return bool(reached) and ladder.rank(reached) >= ladder.rank("target")
 
 
 def is_boundary_stub(app):
@@ -146,10 +145,13 @@ def suggest(vault, app, as_of, blocked):
             return 3, "discover", unit.id, (f"{named(unit.id)} {handoffwarn_phrase(unit.state)}, and {app_name} isn't being changed, so it "
                                             f"needs a source that shows it as fact.")
         if laddered and (unit.state == "inkling" or (unit.state == "assumption" and not unit.options)):
-            return 3, "shape", unit.id, f"{named(unit.id)} {handoffwarn_phrase(unit.state)} and has no options written down."
+            if sizing.of(vault).needs(sizing.Need.OPTIONS_BEFORE_GRILL):
+                return 3, "shape", unit.id, f"{named(unit.id)} {handoffwarn_phrase(unit.state)} and has no options written down."
+            return 3, "grill", unit.id, (f"{named(unit.id)} {handoffwarn_phrase(unit.state)}, and nobody has said yet whether anything "
+                                         "else was on the table; one question in a grill settles that.")
     ready = [u for u in mine if u.state == "assumption" and u.options and u.id not in blocked]
-    if ready and not in_grill_stage(app):
-        stage = text(app.meta.get("stage")) or "no stage"
+    if ready and not in_grill_stage(vault, app):
+        stage = ladder.stage(vault, app) or "no stage"
         return 4, "discover", ready[0].id, f"{named(ready[0].id)} is ready to decide, but {app_name} is still at the {stage} stage; a grill needs the app at target or later."
     if ready:
         return 5, "grill", ready[0].id, f"{named(ready[0].id)} is ready to decide: settle it when you're sure, or grill it to test it first."
@@ -179,10 +181,8 @@ def handoffwarn_phrase(state):
     return handoffwarn.state_phrase(state)
 
 
-def stage_rank(app):
-    stage = text(app.meta.get("stage"))
-    order = schema.ENUMS["stage"]
-    return order.index(stage) if stage in order else len(order)
+def stage_rank(vault, app):
+    return ladder.rank(ladder.stage(vault, app))
 
 
 def grid(vault, as_of):
@@ -192,10 +192,10 @@ def grid(vault, as_of):
     for app in vault.apps:
         oldest, opened = oldest_unknown(vault, app)
         rule, mode, subject, reason = suggest(vault, app, as_of, blocked)
-        stage = text(app.meta.get("stage")) if app.meta.get("change") in schema.LADDERED_CHANGES else ""
+        stage = ladder.stage(vault, app)
         rows.append(Row(app, stage, mix(vault, app), oldest, opened, rule, mode, subject, reason,
                         decided_by_override(vault, app)))
-    return sorted(rows, key=lambda r: (not r.stage, stage_rank(r.app), r.app.id))
+    return sorted(rows, key=lambda r: (not r.stage, stage_rank(vault, r.app), r.app.id))
 
 
 def decided_text(row):
@@ -210,4 +210,4 @@ def best(rows):
     open_rows = [r for r in rows if r.mode != "none"]
     if not open_rows:
         return None
-    return min(open_rows, key=lambda r: (r.rule, stage_rank(r.app), r.app.id))
+    return min(open_rows, key=lambda r: (r.rule, ladder.rank(r.stage), r.app.id))

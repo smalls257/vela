@@ -25,7 +25,7 @@ from vela import handoffwarn, ladder, say, schema
 
 # The stages whose entry lists make up the handoff checklist: every stage after baseline. "epics" is the stage's name,
 # but its entry list is concern cells and containers, which CONVENTIONS "Handoff" puts on the checklist.
-CHECKLIST_STAGES = schema.ENUMS["stage"][1:]
+CHECKLIST_STAGES = schema.STAGES[1:]
 
 
 @dataclass(frozen=True)

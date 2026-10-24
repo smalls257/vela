@@ -7,7 +7,6 @@ arc42: "§5"
 c4: container
 state: decided
 change: changed
-stage: epics
 owner: "@harborline/revenue-team"
 authored: mixed
 sources: ["Pricing senior review of CON-003", SRC-09]

@@ -706,9 +706,10 @@ def flow_branches(flow, catalog, vault, keys, answers, today):
     }
 
 
-def extract(vault, keys, today, specs=None):
-    """{flow key: branch data} for every flow page."""
-    catalog = readers.read_catalog(vault, specs or {})
+def extract(vault, keys, today, specs=None, catalog=None):
+    """{flow key: branch data} for every flow page. `catalog` is the flow checker's read of the vault when the caller has
+    it already (the build reads it once for the branches and the starts)."""
+    catalog = catalog or readers.read_catalog(vault, specs or {})
     answers = answers_of(vault)
     return {keys.page(page): flow_branches(catalog.flows.get(page.id), catalog, vault, keys, answers, today)
             for page in sorted(vault.of_type("flow"), key=lambda p: p.id)}

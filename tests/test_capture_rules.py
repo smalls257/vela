@@ -8,7 +8,7 @@ from vela import cli, flows, rules, schema
 
 FIXTURE = REPO / "examples" / "unified-booking"
 FLOW = "06-runtime/flows/FLO-001-hold-pay-confirm.md"
-STEP5 = "5. [[CAP-022-notify-customer|Notify customer]]."
+STEP5 = "7. [[booking-building-blocks|Booking]] → [[notifications-building-blocks|Notifications]]: publishes"
 CON1 = "[[booking-building-blocks#CON-001 Booking API|Booking API]]"
 CON7 = "[[booking-building-blocks#CON-007 Tidepay payment outcome|Tidepay payment outcome]]"
 WEBSITE = "[[website-building-blocks|Public website]]"
@@ -29,7 +29,7 @@ def check(vault):
 def with_step(tmp_path, step):
     """The example's hold flow with one more step ahead of its last."""
     vault = copy(tmp_path)
-    edit(vault / FLOW, STEP5, f"6. {step}\n{STEP5}")
+    edit(vault / FLOW, STEP5, f"8. {step}\n{STEP5}")
     return vault
 
 
@@ -65,7 +65,7 @@ def test_a_step_that_links_a_contract_and_names_no_pair_warns_only(tmp_path):
 
 def test_steps_read_back_their_pair_and_their_contracts(tmp_path):
     model = cli.load_vault(with_step(tmp_path, f"{WEBSITE} → {BOOKING}: asks to hold the seat over {CON1}."))
-    step = next(s for s in flows.steps(model) if s.number == 6 and s.page.id == "FLO-001")
+    step = next(s for s in flows.steps(model) if s.number == 8 and s.page.id == "FLO-001")
     assert [flows.endpoint(model, step.page, t) for t in step.pair] == ["APP-website", "APP-booking"]
     assert [c.id for c in step.contracts] == ["CON-001"]
 
@@ -83,13 +83,11 @@ def test_once_one_app_has_a_domain_the_rest_of_a_large_initiative_warn(tmp_path)
     assert check(vault).count("W352") == 8  # nine apps, one named
 
 
-def test_a_small_initiative_is_not_asked_for_domains(tmp_path):
+def test_a_plan_sized_below_large_is_not_asked_for_domains(tmp_path):
     vault = copy(tmp_path)
     set_domains(vault, {"website": "Channels"})
     model = cli.load_vault(vault)
-    keep = {"website", "kiosks"}
-    model.pages[:] = [p for p in model.pages if p.type != "app-building-blocks" or p.name.split("-building")[0] in keep]
-    assert len(model.apps) < schema.DOMAIN_MIN_APPS
+    model.config["size"] = {"band": "medium", "because": "[[2026-01-01-grill-a]] c1", "date": "2026-01-01"}
     assert list(rules.domain_rules(model, TODAY)) == []
 
 
@@ -168,9 +166,9 @@ def test_the_explorer_draws_a_recorded_sender_as_stated_even_against_the_provide
     page = (vault / "dashboard.html").read_text(encoding="utf-8")
     data = json.loads(re.search(r'<script type="application/json" id="data">(.*?)</script>', page, re.S).group(1))
     flow = next(f for f in data["flows"] if f["key"] == "FLO-001")
-    step = next(s for s in flow["steps"] if s["n"] == 6)
+    step = next(s for s in flow["steps"] if s["n"] == 8)
     assert step["messages"] == [{"from": "APP-website", "to": "APP-booking", "contract": "CON-001",
-                                 "direction": "stated", "kind": "send", "says": "waits on Booking API", "answer": ""}]
+                                 "direction": "stated", "kind": "send", "says": "Hold a seat", "answer": ""}]  # the diagram's own words for that call, not the step's sentence
 
 
 def test_a_flow_that_names_its_capabilities_is_clean(tmp_path):

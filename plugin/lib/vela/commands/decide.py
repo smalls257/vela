@@ -76,6 +76,8 @@ def register(sub):
     parser.add_argument("--reason-from", metavar="^cR", help="the capture holding the lead's reason for the overrides")
     parser.add_argument("--until", metavar="YYYY-MM-DD", help="the last day a standing override covers")
     parser.add_argument("--on-behalf", metavar="@owner", help="the owner the lead decides for (goes with GATE-5)")
+    parser.add_argument("--options-none", metavar="^cN",
+                        help="the capture holding the lead's answer that this was the only option: recorded as the options considered, so no Shape session is needed (the grill gate below medium asks that one question)")
     parser.add_argument("--provider", metavar="^cP", help="contract: the capture saying where the provider stands")
     parser.add_argument("--group", nargs=3, action="append", metavar=("CRITERIA", "READBACK", "YES"),
                         help="epic: a criterion group read back (AC1-AC5), its read-back and the lead's yes; repeat")
@@ -133,6 +135,8 @@ def item_from(args, ident, by, reader):
         item["picked"] = args.picked
     if args.rejected:
         item["rejected"] = list(args.rejected)
+    if getattr(args, "options_none", None):
+        item["options_none"] = args.options_none
     if args.group:
         item["groups"] = [{"criteria": c, "readback": r, "yes": y} for c, r, y in args.group]
     return {k: v for k, v in item.items() if v not in (None, [])}

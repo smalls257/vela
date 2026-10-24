@@ -10,7 +10,7 @@
      The trail reads "Design › NoteClient › Note request", each earlier name returns there, and "← back" pops one.
    - Open. A thing with a view of its own (another app, a flow) shows an Open button in its Details header. The first
      click on the thing only shows its details; Open is the second click and is the one that jumps.
-   - Escape, and the page calling clear() on empty space, return to the summary. Hovering never changes the panel.
+   - Escape, the page calling clear() on empty space, and a second click on the picked thing return to the summary. Hovering never changes the panel.
    - Falling back: a key the page does not own (a vault page, a contract) is drawn by Panel.keyNodes, so the panel
      is never empty and a page need not know how every vault thing looks.
 
@@ -26,7 +26,8 @@
      open(key)    null, or {label, run} when the key has a view of its own
      focus(key)   paint the diagram for what is picked, or clear it when null     (required)
      rendered()   called after Details is drawn, for a drawing that must be placed once it is on the page
-   and it calls DetailsPanel.show(key) to pick (reset: true starts a new trail), .clear() for empty space, and
+   and it calls DetailsPanel.show(key) to pick (reset: true starts a new trail), .toggle(key) where a second click on the
+   picked thing should put it down, .clear() for empty space, and
    .link(key, text) for an inline link that pushes onto the trail.
 
    Used by: Inside this app (inside.js), Flows, the Apps map, Who to ask and Decisions (their view-*.js files). The
@@ -68,6 +69,9 @@ const DetailsPanel = (() => {
     App.trail = []; st.tab = "details"; refresh();
     return true;
   }
+  /* A second click on what is picked puts it down, so the reader never hunts for a way back to the summary. */
+  const isPicked = (key) => active() && !!key && topKey() === key;
+  function toggle(key, opts = {}) { if (isPicked(key)) clear(); else show(key, opts); }
   /* A page was entered fresh: nothing is picked and Details shows. */
   function reset() { st.tab = "details"; st.seen = ""; }
   function setTab(tab) { st.tab = tab; Panel.render(); const p = current(); if (p) p.focus(topKey() || null); }
@@ -115,7 +119,7 @@ const DetailsPanel = (() => {
     if (clear()) { ev.preventDefault(); }
   });
 
-  return { register, active, current, render, show, back, clear, trailTo, setTab, link, refresh, reset, get tab() { return st.tab; } };
+  return { register, active, current, render, show, toggle, isPicked, back, clear, trailTo, setTab, link, refresh, reset, get tab() { return st.tab; } };
 })();
 
 /* What Flows, the Apps map, Who to ask and Decisions say about the same few things, written once.
@@ -166,7 +170,7 @@ const PlanDetails = (() => {
   const owns = (k) => isStep(k) || !!whoOf(k) || !!CONTRACT[k] || isQuestion(k) || isOutside(k) || isGap(k) || !!APPS[k] || isRelease(k);
   const label = (k) => {
     if (whoOf(k)) return personLabel(whoOf(k));
-    if (isStep(k)) { const p = parseStep(k), s = FlowKit.flowOf(p.flow).steps[p.i]; return s ? `Step ${s.n}: ${s.short}` : "A step"; }
+    if (isStep(k)) { const p = parseStep(k), s = FlowKit.flowOf(p.flow).steps[p.i]; return s ? `Step ${FlowKit.stepNo(s)}: ${s.short}` : "A step"; }
     return titleOf(k);
   };
 

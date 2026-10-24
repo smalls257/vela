@@ -100,7 +100,7 @@ def test_status_is_the_vela_status_grid(mini):
     code, answer = ask(mini, "status", "--today", "2026-01-15")
     assert code == 0
     assert answer["today"] == "2026-01-15"
-    assert [a["app"] for a in answer["apps"]] == ["APP-till", "APP-shop", "APP-stock"]
+    assert [a["app"] for a in answer["apps"]] == ["APP-shop", "APP-till", "APP-stock"]  # both reach baseline, so by ID; stock is off the ladder
     _, text = run("status", "--vault", str(mini), "--today", "2026-01-15")
     for app in answer["apps"]:
         said = cli.NEXT_MODE_WORDS.get(app["next"], app["next"])  # the grid's mode, in the words status prints

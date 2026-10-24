@@ -41,7 +41,7 @@ def test_cell_row_without_app_link(mini):
 
 def test_new_app_with_no_cell_anywhere(mini):
     (mini / "05-building-blocks" / "web-building-blocks.md").write_text(
-        "---\nid: APP-web\ntype: app-building-blocks\ntitle: Web\nstate: inkling\nchange: new\nstage: baseline\n"
+        "---\nid: APP-web\ntype: app-building-blocks\ntitle: Web\nstate: inkling\nchange: new\n"
         "owner: \"@mini/web-team\"\nauthored: authored\n---\n# Web\n", encoding="utf-8")
     _, out = check(mini)
     assert primary(out) == []

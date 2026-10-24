@@ -25,7 +25,7 @@ PAGE_TYPES = {
     },
     "app-building-blocks": {
         "required": ("id", "type", "title", "state", "owner", "authored", "change"),
-        "optional": ("stage", "initiative", "arc42", "c4", "sources", "handed_off", "handed_off_pr", "domain", "stub"),
+        "optional": ("initiative", "arc42", "c4", "sources", "handed_off", "handed_off_pr", "domain", "stub"),
         "states": STATE_ITEM,
     },
     "app-runtime": {
@@ -75,7 +75,7 @@ PAGE_TYPES = {
     "session": {
         "required": ("id", "type", "date", "modes", "status"),
         "optional": ("title", "summary", "branch", "start_commit", "captures_sha256", "ready", "challenges",
-                     "harvest_declined", "title_override"),
+                     "harvest_declined", "title_override", "size", "size_kept"),
         "states": None,
     },
     "sources": {
@@ -105,14 +105,14 @@ ENUMS = {
     "change@app-building-blocks": ("new", "changed", "integrated", "unchanged", "retired"),
     "change@capability": ("new", "extend", "replace", "narrow", "retire", "unchanged"),
     "origin": ("proposed", "imported"),
-    "stage": ("baseline", "target", "boundaries", "contracts", "handoff", "epics"),
     "stub": ("boundary",),
     "status": ("open", "closed"),
 }
 LIST_FIELDS = ("sources", "apps", "delivers", "consumes", "flows", "depends_on", "modes", "capabilities")
-DOMAIN_MIN_APPS = 6  # W352 applies from this many apps
 SESSION_MODES = ("dump", "discover", "shape", "boundary", "allocate", "releases", "grill", "requirements", "epics", "challenge", "answer")
-LADDERED_CHANGES = ("new", "changed")  # app pages with these carry `stage`
+LADDERED_CHANGES = ("new", "changed")  # app pages with these sit on the stage ladder (ladder.stage)
+# The ladder's order. Nobody types a stage: it is what an app's pages reach (ladder.stage).
+STAGES = ("baseline", "target", "boundaries", "contracts", "handoff", "epics")
 
 # A GitHub login: letters, digits and hyphens, and an underscore too, since an Enterprise Managed User's login is
 # `name_shortcode`. Every handle pattern in vela is built from this one, so a login that works here works everywhere.
@@ -363,7 +363,6 @@ CODES = {
     "E315": "a Decision or Dissent line is not in the receipt form",
     "E316": "decided while an open unknown blocks it",
     "E318": "decided contract has no Tested by",
-    "E319": "stage does not fit the app's change",
     "E320": "contract is missing a required fact",
     "E321": "override is malformed",
     "E322": "decided-by or confirmed-by is malformed",
@@ -451,6 +450,8 @@ CODES = {
     "E404": "generated block markers are broken",
     "W405": "a slice page still has a Joins line, which is no longer read: joins come from its flows",
     "W406": "two or more slices name no After, or none does: the tracer is the one slice with no After",
+    "W407": "a box on a flow page's sequence diagram cannot be drawn as a lane group in the Flows view",
+    "W408": "a page still has a stage line, which is no longer read: vela works the stage out from the pages",
     "E601": "flowchart over its element budget",
     "E602": "sequence diagram over its participant budget",
     "E603": "diagram type not supported",
@@ -487,6 +488,52 @@ CODES = {
     "E821": "design gap acknowledged by someone whose typed words never name it",
     "W821": "design gap acknowledged_by cannot be checked: no said log",
 }
+
+# ------------------------------------------------------------- the plan's size (sizing.py is the only reader)
+
+SIZE_BANDS = ("small", "medium", "large")
+# signal -> ((the most a small plan has, the most a medium plan has), why)
+SIZE_SIGNALS = {
+    "apps": ((2, 5), "Two apps are one conversation, one team each; from three, the hand-offs between apps need "
+                     "their own sessions; from six, the dashboard needs domains to stay readable (once W352's line)."),
+    "capabilities": ((2, 5), "Up to two changing capabilities fit on one boundary sheet; from three, their "
+                             "requirements need their own session; from six, dividing them among apps does too."),
+    "releases": ((1, 2), "One release is one date, asked in a grill; a second needs a releases session to order "
+                         "them; from three, slices carry the order."),
+}
+SIZE_MEANS = {
+    "small": "That means fewer steps and quieter checks; say if it's bigger than it looks.",
+    "medium": "That means options written down before a grill and the wording notes at close; say if it's smaller than it looks.",
+    "large": "That means every step, a review after each mode, and every check said; say if it's smaller than it looks.",
+}
+# need -> (the band it starts at, what a smaller plan loses by skipping it)
+NEEDS = {
+    "READING_LOAD_SHOWN": ("medium", "Wording notes wait until asked on a small plan, because a few pages are read by "
+                                     "their owner anyway; from medium they are said."),
+    "OPTIONS_BEFORE_GRILL": ("medium", "One question settles one option on a small plan; from medium the options are "
+                                       "written down before a grill so the lead can compare them."),
+    "REVIEW_EACH_MODE": ("large", "One review checkpoint a session covers what changed on a smaller plan; a large "
+                                  "plan gets a fresh reader after each mode."),
+    "VOICE_REVIEW_ALWAYS": ("medium", "A few drafted paragraphs are read back by the lead anyway; from medium a "
+                                      "fresh reader checks the voice whatever the count."),
+    "DOMAIN_FIELD": ("large", "Domains group nothing below six apps, so a smaller plan has no use for a domain "
+                              "field on each app page."),
+    "REQUIREMENTS_SESSION": ("medium", "One or two capabilities' requirements fit on the Boundary sheet; from medium "
+                                       "they need a session of their own."),
+    "ALLOCATE_SESSION": ("medium", "One or two capabilities' shares fit on the Boundary sheet; from medium dividing "
+                                   "them among apps needs its own session."),
+    "RELEASES_SESSION": ("medium", "One release's date is one grill question; from medium ordering the releases "
+                                   "needs a session of its own."),
+}
+VOICE_REVIEW_MIN_PARAGRAPHS = 5  # why: a fresh reader is worth its cost from about five drafted paragraphs
+WEIGHTS = ("decision", "polish", "auto")
+POLISH = dict.fromkeys(("W353", "W360", "W361", "W362", "W363", "W364", "W365", "W366", "W367", "W368",
+                        "W369", "W371", "W372", "W373"), "polish")
+AUTO = dict.fromkeys(("W326", "W358", "W402", "W408"), "auto")
+SCALE = {"W352": "scale:DOMAIN_FIELD"}
+# The one weight of every finding code: decision (said at every size), polish (quiet in --for-lead and at close,
+# counted, listed in plain check), auto (close fixes it when it can) or scale:<NEED> (fires from that need's band).
+WEIGHT = {**dict.fromkeys(CODES, "decision"), **POLISH, **AUTO, **SCALE}
 
 # ------------------------------------------------------------- traceability
 

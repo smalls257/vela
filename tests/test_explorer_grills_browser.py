@@ -42,7 +42,7 @@ WANTED = [
     "grills: what it holds up lists",
     "grills: Enter on the chip",
     "grills: the chip \"holds up:",
-    "grills: a batch of 3 lists them by what they unblock (9, 9, 0 things held up) and builds one prompt",
+    "grills: a batch of 3 lists them by what they unblock (12, 12, 0 things held up) and builds one prompt",
     "grills: the batch prompt starts /vela:grill with every name and numbers the grills in order, in plain words",
     "grills: Copy batch prompt copies exactly the batch shown",
     "grills: Remove takes one grill out of the batch",

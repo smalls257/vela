@@ -4,7 +4,7 @@ A review checkpoint finds the questions the plan owes and nobody has asked. Code
 
 ## 1 and 2. Prepare the checkpoint
 
-Make sure everything said so far is in the session's notes as captures: a reviewer sees only what is written. Then run `vela reviewers prepare --checkpoint "<the checkpoint and its focus>" --focus <the pages its focus touches>`. Give only the pages the focus touches; every reviewer reads them, and each page is paid for again on each of its turns. It writes one packet per area to `.vela/review/<n>/<AREA>.md` and prints the areas it skipped and why, the heading, and the merge command for later. While the reviewers run, say the one line `--for-lead` gives ("Checking this against five angles, about a minute.", naming any angle left out) and nothing more until the digest is ready.
+Make sure everything said so far is in the session's notes as captures: a reviewer sees only what is written. Then run `vela reviewers prepare --checkpoint "<the checkpoint and its focus>" --focus <the pages its focus touches>`. Give only the pages the focus touches; every reviewer reads them, and each page is paid for again on each of its turns. It writes one packet per area to `.vela/review/<n>/<AREA>.md` and prints the areas it skipped and why (relay each; a later checkpoint in the same session may skip every area, and you run one only when the lead asks, with `--rerun N --areas`), the heading, and the merge command for later. While the reviewers run, say the one line `--for-lead` gives ("Checking this against five angles, about a minute.", naming any angle left out) and nothing more until the digest is ready.
 
 ## 3. One reviewer per area
 

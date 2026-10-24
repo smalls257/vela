@@ -286,7 +286,8 @@ const Nodes = (() => {
     const where = spec ? [spec.key, spec.note, spec.open].filter(Boolean).length : 0;
     if (!name || !String(name).trim() || where !== 1) throw new Error(`[nodes] a diagram node needs a name and exactly one of key, note or open, got ${JSON.stringify(name)} with ${where}`);
     const target = spec.key || spec.note || "";
-    const open = spec.open || (() => go(target, spec.opts || { reset: true }));
+    // a second click on the node already picked puts it down (DetailsPanel.toggle), on every diagram alike
+    const open = spec.open || (() => DetailsPanel.toggle(target, spec.opts || { reset: true }));
     const fire = (ev) => { if (spec.guard && !spec.guard()) return; if (spec.stop && ev) ev.stopPropagation(); open(ev); };
     el.setAttribute("tabindex", spec.nested ? "-1" : "0");
     el.setAttribute("role", spec.role || "button");
@@ -317,6 +318,7 @@ function ent(key) {
   }
   if (key && key.startsWith("grill:")) return typeof Grills !== "undefined" ? Grills.entry(key) : null;  // a grill waiting, as the Waiting for a decision view lists it
   if (key && key.startsWith("lib:")) return typeof Library !== "undefined" ? Library.entry(key) : null;  // a Library row, whatever page cites it
+  if (key && key.startsWith("grp:")) return typeof FlowView !== "undefined" ? FlowView.groupEnt(key) : null;  // lanes a reader drew as one on the Flows view
   if (key && key.startsWith("gap:")) { const l = D.lanes[LANE_INDEX[key]]; return l ? { key, kind: "gap", title: l.name, id: "" } : null; }  // an end a flow step names that the plan doesn't know
   if (EXTERNAL[key]) return { key, kind: "external", title: EXTERNAL[key].title, id: "" };
   if (key === "lights") return { key, kind: "lights", title: "Needs you", id: "" };
@@ -434,6 +436,7 @@ const flowsFor = (key) => (FLOW_TOUCH[key] || []).slice().sort((a, b) => cmp(a.f
 function stepEnds(st) {
   const ends = new Set();
   for (const m of st.messages) { ends.add(m.from); ends.add(m.to); }
+  for (const x of st.run || []) for (const m of x.messages) { ends.add(m.from); ends.add(m.to); }  // a folded step: the lanes folded into its host
   if (st.self) ends.add(st.self);
   for (const c of st.contracts) { const con = CONTRACT[c]; if (con) { ends.add(con.provider); con.consumers.forEach((k) => ends.add(k)); } }
   st.linked.forEach((k) => ends.add(RUNTIME_TO_APP[k] || k));
@@ -449,6 +452,7 @@ function firstStepTouching(f, key) {
 function laneEnds(st) {
   const ends = new Set();
   for (const m of st.messages) { ends.add(m.from); ends.add(m.to); }
+  for (const x of st.run || []) for (const m of x.messages) { ends.add(m.from); ends.add(m.to); }
   if (st.self) ends.add(st.self);
   return ends;
 }

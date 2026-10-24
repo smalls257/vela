@@ -45,7 +45,7 @@ import re
 import shlex
 from dataclasses import dataclass
 
-from vela import cases, closegate, model, override, progress, questions, say, schema, slices
+from vela import allocation, cases, closegate, ladder, model, override, progress, questions, releases, say, schema, sizing, slices
 from vela.flowcheck import standing as flowstanding
 
 FLOW_CHECK, CASE_TABLE = "flow check", "case table"
@@ -75,10 +75,11 @@ class Reason:
     fix: str
     next: str = ""
     blocked_by: tuple = ()  # the open unknowns, for GATE-4
+    ask: str = ""  # the one question for the lead, when one answer settles this reason
 
     def as_json(self):
         return {"rule": self.rule, "plain": self.plain, "fix": self.fix, "next": self.next,
-                "blocked_by": list(self.blocked_by)}
+                "blocked_by": list(self.blocked_by), "ask": self.ask}
 
 
 @dataclass(frozen=True)
@@ -182,9 +183,9 @@ def route(vault, item_id, rules, today):
 
 def stage_reason(vault, found, name):
     app = app_of(vault, found)
-    if app is None or app.meta.get("change") not in schema.LADDERED_CHANGES or progress.in_grill_stage(app):
+    if app is None or app.meta.get("change") not in schema.LADDERED_CHANGES or progress.in_grill_stage(vault, app):
         return None
-    stage = progress.text(app.meta.get("stage")) or "no"
+    stage = ladder.stage(vault, app)
     app_name = _say(vault, app.id)
     return Reason("GATE-1", f"{app_name} is still at the {stage} stage, and a grill needs it at target or later.",
                   f"I'd run a Discover session on {app_name} first. Or I can decide {name} now and note it as "
@@ -216,6 +217,13 @@ def option_reason(vault, found, name):
                       "/vela:epics")
     if state == "assumption" and options:
         return None
+    if not sizing.of(vault).needs(sizing.Need.OPTIONS_BEFORE_GRILL):
+        # Below medium the gate asks the one question; the lead's answer is recorded by `vela decide --options-none`,
+        # so the skill never decides the route (the gate's reason carries it).
+        return Reason("GATE-2", f"Nobody has said yet whether anything other than {name} was on the table.",
+                      "I'd ask you once: was anything else on the table? Your answer goes on the plan as the options "
+                      "considered.", f"vela decide {found.id} --options-none ^cN",
+                      ask=f"Was anything other than {name} on the table?")
     said = "has no state yet" if not state else "is only an inkling" if state == "inkling" else \
         "has no options on the table yet, so there's nothing to pick from"
     return Reason("GATE-2", f"{name} {said}.", "I'd lay out the options first. Or I can decide it now and note it as "
@@ -383,7 +391,7 @@ def verdict(vault, record, item, today, flows=None):
         if covering:
             overridden.extend(covering)
         else:
-            reasons.append(Reason(judged.rule, judged.plain, _ended(judged.fix, ended), judged.next))
+            reasons.append(Reason(judged.rule, judged.plain, _ended(judged.fix, ended), judged.next, ask=judged.ask))
     for judged, covering in (unknown_reason(vault, found, name, today, blocked), case_reason(vault, found, name, today)):
         overridden.extend(covering)
         if judged is not None:
@@ -438,5 +446,26 @@ def report(vault, verdicts, notes=()):
     for found in verdicts:
         lines += lines_for(found, resolver)
     lines += [say.Line(n, plain=resolver.plain(n)) for n in notes]
+    asked = release_date_ask(vault)
+    if asked:
+        lines.append(say.Line(asked, plain=asked))
     return say.Result("check --gate grill", exit=say.DONE if ready == len(verdicts) else say.REFUSED, lines=lines,
-                      data={"ready": ready == len(verdicts), "items": [v.as_json() for v in verdicts]})
+                      data={"ready": ready == len(verdicts), "items": [v.as_json() for v in verdicts],
+                            "release_date_ask": asked})
+
+
+def release_date_ask(vault):
+    """The one question that dates the releases when no Releases session will: below the size that needs one, a
+    release with no target, or none on a plan whose requirements are allocated, is asked in the grill. "" when it is
+    not due, so the skill never carries the condition (a second copy of it would drift)."""
+    if sizing.of(vault).needs(sizing.Need.RELEASES_SESSION):
+        return ""
+    found = releases.releases(vault)
+    undated = [r for r in found if not r.target]
+    if undated:
+        return (f"{undated[0].name} has no date yet. I'd ask you once when it should go out; your answer goes on the "
+                "releases page as its Target.")
+    if not found and allocation.due(vault):
+        return ("No release says when anyone gets any of this. I'd ask you once when the first one should go out; "
+                "your answer goes on the releases page as its Target.")
+    return ""

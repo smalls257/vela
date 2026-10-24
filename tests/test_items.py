@@ -156,20 +156,6 @@ def test_gate_four_on_a_page(mini):
     assert ("E316", GOALS) in codes(out)
 
 
-# stage
-
-def test_new_app_needs_a_stage(mini):
-    edit(mini / SHOP, "stage: contracts\n", "")
-    _, out = check(mini)
-    assert ("E319", SHOP) in codes(out)
-
-
-def test_unchanged_app_takes_no_stage(mini):
-    edit(mini / STOCK, "change: unchanged\n", "change: unchanged\nstage: baseline\n")
-    _, out = check(mini)
-    assert codes(out) == [("E319", STOCK)]
-
-
 # fact tables
 
 def test_goal_row_state(mini):
