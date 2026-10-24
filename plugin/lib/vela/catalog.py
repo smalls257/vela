@@ -19,7 +19,7 @@ SEVERITIES = ("high", "normal")
 BLOCK_KINDS = ("app", "contract", "requirement", "capability", "decision", "epic")
 CREATES = ("party", "stored-value")
 REQUIRED = ("id", "area", "scope", "trigger", "question", "why", "severity")
-OPTIONAL = ("blocks", "creates", "mentions", "mention_why", "mention_except")
+OPTIONAL = ("blocks", "creates", "mentions", "mention_why", "mention_except", "follows")
 ENTRY_ID_RE = re.compile(r"^Q-(?P<area>[A-Z]{3})-\d{2}$")
 AREA_RE = re.compile(r"^[A-Z]{3}$")
 WORD_RE = re.compile(r"^[a-z]+$")
@@ -97,6 +97,7 @@ class Entry:
     mentions: tuple  # lower-case words that, untyped in a fact, suggest the subject this entry creates
     mention_why: tuple = ()  # (word, why) for every mention: the reason that word is on the list
     mention_except: tuple = ()  # phrases ("credit card*") that contain a mention word and are not the subject
+    follows: str = ""  # the entry ID whose copy on the same subject must be answered first; "" for none
 
 
 @dataclass(frozen=True)
@@ -305,6 +306,10 @@ def _entry(raw, n, areas, problems):
         problems.append(f"{where}: only an initiative-scope entry may create a subject or list mentions")
     if mentions and not creates:
         problems.append(f"{where}: mentions need a creates, the subject kind the words suggest")
+    follows = raw.get("follows", "")
+    if "follows" in raw and not (isinstance(follows, str) and ENTRY_ID_RE.match(follows)):
+        problems.append(f"{where}: follows must name an entry such as Q-REG-01")
+        follows = ""
     trigger = None
     if scope in SCOPES:
         try:
@@ -313,7 +318,7 @@ def _entry(raw, n, areas, problems):
             problems.append(f"{where}: {exc}")
     if len(problems) > before or trigger is None:
         return None
-    return Entry(entry_id, area, scope, trigger, question, why, severity, blocks, creates or "", mentions, mention_why, exceptions)
+    return Entry(entry_id, area, scope, trigger, question, why, severity, blocks, creates or "", mentions, mention_why, exceptions, follows)
 
 
 def _kind_list(raw, key, allowed, where, problems):
@@ -365,6 +370,26 @@ def parse_kinds(raw_kinds, codes, problems):
     return tuple(Kind(n, m, a, tuple(k for k in names if k in near)) for n, (m, a, near) in parsed.items())
 
 
+def _follows_problems(entries):
+    """Why a `follows` cannot hold: it names itself, no entry, an entry of another scope, or an entry that follows one
+    itself (one level only, so a follow-up never waits on a chain)."""
+    by_id = {e.id: e for e in entries}
+    out = []
+    for entry in entries:
+        if not entry.follows:
+            continue
+        parent = by_id.get(entry.follows)
+        if entry.follows == entry.id:
+            out.append(f"{entry.id}: follows itself")
+        elif parent is None:
+            out.append(f"{entry.id}: follows {entry.follows}, which names no entry in the catalog")
+        elif parent.scope != entry.scope:
+            out.append(f"{entry.id}: follows {entry.follows}, which has another scope ({parent.scope}, not {entry.scope})")
+        elif parent.follows:
+            out.append(f"{entry.id}: follows {entry.follows}, which follows {parent.follows} itself; one level only")
+    return out
+
+
 def parse_catalog(data):
     """The Catalog the YAML describes, or CatalogError listing every problem."""
     if not isinstance(data, dict):
@@ -405,6 +430,7 @@ def parse_catalog(data):
         if entry.id in seen:
             problems.append(f"{entry.id} is used by two entries")
         seen.add(entry.id)
+    problems += _follows_problems(entries)
     if problems:
         raise CatalogError("; ".join(problems))
     return Catalog(version, tuple(areas), tuple(sorted(entries, key=lambda e: e.id)), kinds)

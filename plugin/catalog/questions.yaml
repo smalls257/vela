@@ -252,6 +252,7 @@ entries:
     why: A customer deals with the seller, not with the party that failed, so liability has to be placed before the product is sold. The simulated runs never asked who answers to the customer.
     severity: normal
     blocks: [decision, epic]
+    follows: Q-REG-01
 
   - id: Q-REG-02
     area: REG

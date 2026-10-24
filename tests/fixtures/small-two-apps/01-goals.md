@@ -29,15 +29,15 @@ _Kept up to date by vela from the pages it reads._
 
 ## Progress by app
 
-<!-- generated:progress-map sha=6f3f68dd: do not edit, run vela render -->
+<!-- generated:progress-map sha=f9e4319c: do not edit, run vela render -->
 _Kept up to date by vela from the pages it reads._
 
 **How sure each app's items are:** no session yet, so no question counts as overdue
 
 | App | Step reached | Early ideas | Assumed | Confirmed | Decided | Oldest open question | Next session |
 |---|---|---|---|---|---|---|---|
-| [[jobs-api-building-blocks\|Jobs API]] | boundaries drawn | 0 | 2 | 0 | 0 | none | Shape Jobs API |
-| [[scheduler-building-blocks\|Scheduler]] | boundaries drawn | 0 | 2 | 0 | 0 | none | Shape Scheduler |
+| [[jobs-api-building-blocks\|Jobs API]] | boundaries drawn | 0 | 2 | 0 | 0 | none | Grill Jobs API |
+| [[scheduler-building-blocks\|Scheduler]] | boundaries drawn | 0 | 2 | 0 | 0 | none | Grill Scheduler |
 <!-- /generated:progress-map -->
 
 ## Why now

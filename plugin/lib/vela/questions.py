@@ -102,19 +102,36 @@ def subject(vault, subject_id):
     return next((s for s in subjects(vault) if s.id == subject_id), None)
 
 
+# A follow-up question (catalog `follows`) is owed once its parent's copy on the same subject says yes. The ledger has
+# no "yes" state: a no is `not-applicable`, which keeps the follow-up off the ledger.
+FOLLOW_ON_STATES = ("answered", "assumed")
+
+
 def owed(vault):
     """Every owed copy, sorted by copy ID: each catalog entry applied once per subject of its
-    scope whose facts its trigger matches."""
+    scope whose facts its trigger matches. An entry that `follows` another is owed on a subject only when the
+    other's copy there is answered or assumed (two passes: the plain copies, then the ones waiting on them)."""
     if "owed" in vault.cache:
         return vault.cache["owed"]
     by_kind = {}
     for found in subjects(vault):
         by_kind.setdefault(found.kind, []).append(found)
-    copies = [Copy(f"{entry.id}@{found.id}", entry, found)
-              for entry in vault.catalog.entries
-              for found in by_kind.get(entry.scope, [])
-              if entry.trigger.matches(found.fact_map())]
-    vault.cache["owed"] = tuple(sorted(copies, key=lambda c: c.id))
+
+    def copies_of(entries):
+        return [Copy(f"{entry.id}@{found.id}", entry, found)
+                for entry in entries for found in by_kind.get(entry.scope, [])
+                if entry.trigger.matches(found.fact_map())]
+
+    plain = copies_of(e for e in vault.catalog.entries if not e.follows)
+    held = {c.id: c for c in plain}
+    readable = [r for r in rows(vault) if r.kind in ("copy", "wildcard") and r.state in ledger.STATES]
+    waiting = []
+    for copy in copies_of(e for e in vault.catalog.entries if e.follows):
+        parent = held.get(f"{copy.entry.follows}@{copy.subject.id}")
+        row = _best_row(vault, readable, parent)[0] if parent is not None else None
+        if row is not None and row.state in FOLLOW_ON_STATES:
+            waiting.append(copy)
+    vault.cache["owed"] = tuple(sorted(plain + waiting, key=lambda c: c.id))
     return vault.cache["owed"]
 
 
@@ -308,6 +325,16 @@ def _covers(vault, row, copy):
     return 0
 
 
+def _best_row(vault, readable, copy):
+    """(the row that covers `copy` best, how well): its own row, else the longest wildcard, else an initiative row."""
+    best, rank = None, 0
+    for row in readable:
+        score = _covers(vault, row, copy)
+        if score and (score > rank or (score == rank == 2 and len(row.subject) > len(best.subject))):
+            best, rank = row, score
+    return best, rank
+
+
 def _assignments(vault):
     """(copy, row, rank) for each owed copy: its own row, else the wildcard with the longest prefix, else an
     initiative row that `covers:` its scope. Exceptions take their own row. A broken row is still the one
@@ -315,14 +342,7 @@ def _assignments(vault):
     if "assignments" in vault.cache:
         return vault.cache["assignments"]
     readable = [r for r in rows(vault) if r.kind in ("copy", "wildcard") and r.state in ledger.STATES]
-    out = []
-    for copy in owed(vault):
-        best, rank = None, 0
-        for row in readable:
-            score = _covers(vault, row, copy)
-            if score and (score > rank or (score == rank == 2 and len(row.subject) > len(best.subject))):
-                best, rank = row, score
-        out.append((copy, best, rank))
+    out = [(copy, *_best_row(vault, readable, copy)) for copy in owed(vault)]
     vault.cache["assignments"] = tuple(out)
     return vault.cache["assignments"]
 

@@ -139,10 +139,10 @@ Kiosk images ship in March and September. If March slips, kiosks wait six months
 
 Catalog v1 owes these questions. Each row says where one stands. A wildcard row answers every copy it matches, and a copy with its own row is an exception to it.
 
-<!-- generated:undisposed-questions sha=75a848d9: do not edit, run vela render -->
+<!-- generated:undisposed-questions sha=7c66772f: do not edit, run vela render -->
 _Kept up to date by vela from the pages it reads._
 
-**Questions:** 57 owed, 0 undisposed, 1 asked, 1 open reviewer question, against catalog v1.
+**Questions:** 56 owed, 0 undisposed, 1 asked, 1 open reviewer question, against catalog v1.
 
 | Ref | Status | Area | How serious | About | Question |
 |---|---|---|---|---|---|
@@ -177,7 +177,6 @@ _Kept up to date by vela from the pages it reads._
 | Q-PTN-06@PTY-02 | assumed | belief: no notice is due, because Booking works around the mainframe and never inside it (CST-1), so the vendor contract stays as it is; load-bearing: no; signpost: procurement raising the vendor contract's 2028 end date in the INI-005 plan | @hl-solution-lead | 2026-11-19 |
 | Q-REG-01@INI-002 | not-applicable | reason: Booking sells single ferry crossings, and nothing is sold with another party | @hl-solution-lead | 2026-11-19 |
 | Q-REG-02@INI-002 | unknown | unknown: [[#UNK-008 Review of the customer data Booking holds\|UNK-008]] | @hl-solution-lead | 2026-11-19 |
-| Q-REG-05@INI-002 | not-applicable | reason: no product is shared across parties, so no party's failure reaches a customer through one | @hl-solution-lead | 2026-11-19 |
 | Q-OPS-01@APP-booking | answered | item: [[#UNK-007 Booking on-call\|UNK-007]]; source: "joins the Platform on-call rota from go-live" in [[concern-operations]]; answer: The Booking team joins the Platform on-call rota from go-live | @hl-solution-lead | 2026-11-19 |
 | Q-OPS-01@APP-call-center | assumed | belief: the Contact Center Systems team keeps supporting the desktop on today's hours, without the manual fix queue; load-bearing: no; signpost: an agent unable to get a failed booking fixed out of hours after cutover | @hl-solution-lead | 2026-11-19 |
 | Q-OPS-01@APP-notifications | answered | item: [[concern-operations\|Operations]]; source: "new consumer covered by the Platform rota" in [[concern-operations]]; answer: Covered by the Platform rota, so the same people answer for Booking and Notifications | @hl-solution-lead | 2026-11-19 |
