@@ -1,4 +1,5 @@
 """The claude.ai package is built from committed files and never carries bin/."""
+import json
 import subprocess
 import sys
 import zipfile
@@ -103,3 +104,57 @@ def test_no_shipped_skill_description_holds_a_tag():
         front = path.read_text(encoding="utf-8").split("---", 2)[1]
         match = package_plugin.DESCRIPTION.search(front)
         assert not (match and package_plugin.TAG.search(match.group(1))), path
+def reader_zip(tmp_path):
+    out = tmp_path / "vela-reader.zip"
+    package_plugin.package(out, say=lambda _: None, reader=True)
+    return out
+
+
+def skills_in(out):
+    return sorted({n.split("/")[1] for n in names(out) if n.startswith("skills/") and n.count("/") >= 2})
+
+
+def test_the_reader_zip_holds_exactly_the_five_reader_skills(tmp_path):
+    assert skills_in(reader_zip(tmp_path)) == sorted(package_plugin.READER_SKILLS)
+
+
+def test_the_reader_zip_keeps_the_whole_core_and_drops_bin_and_agents(tmp_path):
+    held = names(reader_zip(tmp_path))
+    assert "lib/vela/cli.py" in held and "lib/vela/attention.py" in held and "references/START.md" in held
+    assert not [n for n in held if n.startswith(("bin/", "agents/"))]
+
+
+def test_the_reader_manifest_and_hooks(tmp_path):
+    out = reader_zip(tmp_path)
+    with zipfile.ZipFile(out) as archive:
+        manifest = json.loads(archive.read(".claude-plugin/plugin.json"))
+        hooks = json.loads(archive.read("hooks/hooks.json"))
+    full = json.loads((REPO / "plugin" / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
+    assert manifest["name"] == "vela-reader" and manifest["version"] == full["version"]
+    assert set(hooks["hooks"]) == {"SessionStart", "UserPromptSubmit"} and "modules" not in hooks
+
+
+def test_no_reader_skill_names_a_skill_the_reader_doesnt_have(tmp_path):
+    out = reader_zip(tmp_path)
+    assert package_plugin.dropped_mentions(out) == []
+    with zipfile.ZipFile(out) as archive:
+        ask = archive.read("skills/find/SKILL.md").decode("utf-8")
+    assert "/vela-reader:ask" in ask and "/vela:ask" not in ask
+
+
+def test_the_setup_page_ships_inside_and_beside_the_zip(tmp_path):
+    out = reader_zip(tmp_path)
+    assert "SETUP.md" in names(out) and (tmp_path / "vela-reader-setup.md").is_file()
+    page = (tmp_path / "vela-reader-setup.md").read_text(encoding="utf-8")
+    for git_word in ("git ", "clone", "branch", "commit", "repository"):
+        assert git_word not in page.lower(), git_word
+
+
+def test_no_zip_ships_the_mods_tests_or_modules_until_cowork_is_proven(tmp_path):
+    for out in (reader_zip(tmp_path), tmp_path / "full.zip"):
+        if out.name == "full.zip":
+            package_plugin.package(out, say=lambda _: None)
+        held = names(out)
+        assert not [n for n in held if n.endswith((".test.ts", ".test.tsx"))]
+        with zipfile.ZipFile(out) as archive:
+            assert "modules" not in json.loads(archive.read("hooks/hooks.json"))
