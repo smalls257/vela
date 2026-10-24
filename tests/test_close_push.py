@@ -19,14 +19,15 @@ TODAY = "2026-10-20"
 STOCK = "05-building-blocks/stock-building-blocks.md"
 MARK = " → keep: [[stock-building-blocks#CON-002 Stock level|CON-002]] (decided)"
 YES_WORDS = "Yes, decide stock level as read."
-YES = f'- [thought] (@lead) "{YES_WORDS}" says yes{MARK} ^c01'
-YES_ROW = f"| CON-002 | fact | decided | [[{RECORD}#^c01]] |"
+BACK = f"- [thought] (claude) Read back: stock level is read on both sides{MARK} ^c01"
+YES = f'- [thought] (@lead) "{YES_WORDS}" says yes{MARK} ^c02'
+YES_ROW = f"| CON-002 | fact | decided | [[{RECORD}#^c02]] |"
 DECIDED = f"- **State:** decided\n- **Decision:** [[{RECORD}]]\n- **Tested by:** the stock read test on both sides"
 SEND_MARK = "drop: the yes to send this for review"
 
 
 def record_text(record_id=RECORD, modes="grill", title="Grill: stock", captures=None, rows=None):
-    captures = captures if captures is not None else [YES]
+    captures = captures if captures is not None else [BACK, YES]
     rows = rows if rows is not None else [YES_ROW.replace(RECORD, record_id)]
     lines = ["---", f"id: {record_id}", "type: session", f'title: "{title}"', f"date: {TODAY}", f"modes: [{modes}]",
              "status: open", "summary: Stock level is decided.", "---", "", f"# {TODAY} {title}", "", "## Captures",
@@ -69,7 +70,7 @@ def sent_session(tmp_path, stock_owner=None, handle="lead", record_id=RECORD, br
         (vault / ".vela" / "handle").write_text(handle + "\n", encoding="utf-8")
     state = {"id": record_id, "path": f"sessions/private/{record_id}.md", "stub": f"sessions/{record_id}.md",
              "part": 1, "branch": branch, "modes": modes.split(", "),
-             "started": TODAY, "last_capture": 1}
+             "started": TODAY, "last_capture": 2}
     (vault / ".vela" / "session.json").write_text(json.dumps(state), encoding="utf-8")
     return vault, bare
 
@@ -99,7 +100,7 @@ def test_push_without_consent_prints_notice_exits_3(tmp_path):
     assert code == 3, out
     assert f"I'll push `{BRANCH}` and open a pull request for" in out
     assert "stock-team" in out and "mini/shop-team" in out  # the changed app's owner and its contract's consumer
-    assert "1 capture" in out and "--consent" in out
+    assert "2 captures" in out and "--consent" in out
     assert "run vela close finish while the session is still open, then vela close push --consent ^cNN" in out
     assert f'--mark "{SEND_MARK}"' in out
     assert git(vault, "rev-parse", "HEAD") == head and not remote_has(bare, BRANCH)
@@ -107,7 +108,7 @@ def test_push_without_consent_prints_notice_exits_3(tmp_path):
     assert code == 3 and lead.strip().startswith("I'll send this for review to") and lead.strip().endswith("OK?")
     assert say.leak_in(lead) is None
     code, data = push(vault, "--json")
-    assert code == 3 and json.loads(data)["needs_lead"][0]["captures_at_notice"] == 1
+    assert code == 3 and json.loads(data)["needs_lead"][0]["captures_at_notice"] == 2
 
 
 def test_consent_before_notice_refused(tmp_path):

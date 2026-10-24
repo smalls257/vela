@@ -11,8 +11,10 @@ AFTER = ("- **Change:** new\n- **State:** decided\n"
          "- **Why:** the person picks the folder, so Heron reads only what they chose to share.\n"
          "- **Tested by:** the pilot user points Heron at a test folder and checks the note uses only its files\n\n"
          "### CON-003 Call tool records")
-CAPTURE = ('- [decision] (@replay-lead) "Yes, Heron reads only the folder I point it at, as read back." '
-           "→ keep: [[heron-building-blocks#CON-002 Chosen folder|CON-002]] (decided) ^c01\n")
+CAPTURE = ("- [thought] (claude) Read back: Heron reads only the folder the person points it at "
+           "→ keep: [[heron-building-blocks#CON-002 Chosen folder|CON-002]] (decided) ^c01\n"
+           '- [decision] (@replay-lead) "Yes, Heron reads only the folder I point it at, as read back." '
+           "→ keep: [[heron-building-blocks#CON-002 Chosen folder|CON-002]] (decided) ^c02\n")
 QUOTE = "Heron reads only the folder I point it at"
 
 
@@ -24,6 +26,6 @@ def run(ctx):
     record = ctx.outputs["record"]
     body = record.read_text(encoding="utf-8")
     body = body.replace("## Captures\n\n", "## Captures\n\n" + CAPTURE + "\n", 1)
-    body = body.rstrip("\n") + f"\n| CON-002 | assumption | decided | [[{ctx.record_id}#^c01]] |\n"
+    body = body.rstrip("\n") + f"\n| CON-002 | assumption | decided | [[{ctx.record_id}#^c02]] |\n"
     record.write_text(body, encoding="utf-8")
     ctx.outputs["quote"] = QUOTE

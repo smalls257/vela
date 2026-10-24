@@ -13,6 +13,8 @@ STOCK = "05-building-blocks/stock-building-blocks.md"
 LEDGER_ROW = "| Q-DAT-01@APP-stock | not-applicable | reason: no personal data | @priya | 2026-10-01 |"
 LEDGER = f"\n## Question ledger\n\n| Copy | State | Evidence | By | Date |\n|---|---|---|---|---|\n{LEDGER_ROW}\n"
 OTHER_DECISION = f'- **Decision:** [[{RID}]] c01, @priya: "Yes, one till API for the web and the kiosks."'
+THIS_BACK = ("- [thought] (claude) Read back: one till API for everything → keep: "
+             "[[stock-building-blocks#CON-002 Stock level|CON-002]] (decided) ^c02")
 THIS_YES = '- [thought] (@priya) "Yes, still one till API for everything." says yes → park ^c03'
 BARE_OK = '- [thought] (@priya) "ok" → park ^c04'
 SUMMARY = "In progress."
@@ -23,7 +25,7 @@ def part_two_notes(captures):
     return privaterecord.new_private(RID, "Stock grill", "2026-10-20", 2).replace("\n## Captures\n", "\n".join(lines), 1)
 
 
-def two_machine_session(tmp_path, captures=(THIS_YES,), ledger=False):
+def two_machine_session(tmp_path, captures=(THIS_BACK, THIS_YES), ledger=False):
     """Part 1's notes (and the Changes row for the decision) stayed on the other machine; this is part 2."""
     vault = make_vault(tmp_path)
     if ledger:
@@ -97,7 +99,7 @@ def test_reconfirm_repoints_the_receipt_to_part_two(tmp_path):
 
 
 def test_a_no_changes_nothing_and_the_gate_keeps_asking(tmp_path):
-    vault = two_machine_session(tmp_path, captures=(THIS_YES, BARE_OK))
+    vault = two_machine_session(tmp_path, captures=(THIS_BACK, THIS_YES, BARE_OK))
     before = text_of(vault, STOCK)
     code, out = reconfirm(vault, "--yes", "^c04", "CON-002")
     assert code == 1 and text_of(vault, STOCK) == before
@@ -106,7 +108,7 @@ def test_a_no_changes_nothing_and_the_gate_keeps_asking(tmp_path):
 
 def test_the_yes_must_be_the_leads_own(tmp_path):
     other = '- [thought] (@cto-ana) "Yes, keep it." → park ^c05'
-    vault = two_machine_session(tmp_path, captures=(THIS_YES, other))
+    vault = two_machine_session(tmp_path, captures=(THIS_BACK, THIS_YES, other))
     code, out = reconfirm(vault, "--yes", "^c05", "CON-002")
     assert code == 1 and "2.c05" not in text_of(vault, STOCK)
 

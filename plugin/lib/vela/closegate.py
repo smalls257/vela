@@ -10,7 +10,10 @@ words behind every change into or out of `decided`:
   (CONVENTIONS' captures grammar: a person's origin means "words quoted verbatim"; `claude, from <name>` is Claude's
   summary of them);
 - and whose words are not a bare non-yes ("ok", "okay", "sure", "next", "fine", or nothing), which START already says
-  is not a yes.
+  is not a yes;
+- and, for a change into `decided`, the yes comes after a read-back: an earlier capture kept on the same item at
+  `decided`, the mark `vela decide` writes on every capture it files. Without it, the lead's offhand "that's decided"
+  would read on the page as a verified yes, now that E303 no longer reads a session's modes (a Silent Fallback).
 
 What this proves is limited, and said plainly (plan 4.3, a Sensor, not a Shield): the model writes every field these
 checks read, so the gate shows a missing or malformed yes; it cannot prove the lead said the words. That is why
@@ -34,6 +37,9 @@ from vela.said import confirmed, is_unverified
 
 CONSENT_CLEAR = ("The lead's own yes, quoted in the session record with a Changes row citing it, clears it; so does "
                  "their override with a reason.")
+READBACK_FIRST = "I never read {name} back to you before writing it as decided. Shall I read it back now?"
+READBACK_CLEAR = ("Reading the final wording back, capturing it, and capturing the lead's yes after it clears it, "
+                  "through vela decide; so does the lead's override of the quoted-yes rule, with their reason.")
 BARE_NON_YES = ("", "ok", "okay", "sure", "next", "fine")
 CONSENT_STATE = "decided"
 
@@ -211,8 +217,26 @@ def judge_change(change, rows, said, vault, record_name, part=1):
     if capture.is_bare_non_yes:
         return Problem(f"You said '{capture.quote or 'ok'}' on {change.name}. Was that a yes to {moving(change)}?",
                        f"{change.item}: ^c{capture.n} says only '{capture.quote}'", kind=CONSENT), None
+    if change.after == CONSENT_STATE and not read_back_before(capture, said, change.item, CONSENT_STATE):
+        return Problem(READBACK_FIRST.format(name=change.name),
+                       f"{change.item}: ^c{capture.n} is the first capture kept on it at {CONSENT_STATE}; no earlier "
+                       "capture is its read-back", clear=READBACK_CLEAR, kind=CONSENT), None
     return None, Consent(change.item, change.name, f"{change.before} to {change.after}", capture.quote,
                          privaterecord.citation(record_name, part, int(capture.n)))
+
+
+def read_back_before(capture, said, item, state):
+    """True when a capture numbered before `capture` keeps `item` at `state` (markrules.parse_mark: the read-back mark
+    `vela decide` writes on every capture it filed). A read-back an earlier mode marked at `assumption` does not count.
+    Imported inside the function: markrules imports closegate."""
+    from vela import markrules
+    for other in said.values():
+        if int(other.n) >= int(capture.n):
+            continue
+        mark = markrules.parse_mark(other.mark)
+        if mark is not None and any(t.id == item and t.state == state for t in mark.targets):
+            return True
+    return False
 
 
 def change_row(change, rows):
@@ -240,7 +264,7 @@ def judge(changes, record_text, record_name, vault, part=1):
     for change in changes:
         named = StateChange(change.item, vault.name_of(change.item), change.before, change.after)
         problem, line = judge_change(named, rows, said, vault, record_name, part)
-        problems += [replace(problem, clear=CONSENT_CLEAR)] if problem else []
+        problems += [replace(problem, clear=problem.clear or CONSENT_CLEAR)] if problem else []
         consent += [line] if line else []
     return problems, consent
 

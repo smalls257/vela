@@ -10,7 +10,7 @@ def run(ctx):
     code, out = ctx.vela("marks", "plan", "--today", ctx.today, "--json")
     data = json.loads(out)
     assert code == 0 and not data["needs_lead"], out
-    assert [a["capture"] for a in data["left_alone"]] == ["^c01"], out
+    assert [a["capture"] for a in data["left_alone"]] == ["^c01", "^c02"], out
     code, said = ctx.vela("marks", "plan", "--today", ctx.today, "--for-lead")
     assert "already has its place" in said, said
     ctx.outputs["marks plan --for-lead"] = said

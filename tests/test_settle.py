@@ -1,6 +1,7 @@
 """Settle anywhere: `vela decide` decides in any session, and every protection it carries still runs there."""
 import json
 import re
+import subprocess
 
 import pytest
 
@@ -110,3 +111,34 @@ def test_close_says_which_session_in_plain_words():
     said = closegate._lead_message("CON-003 is decided, but no **Decision:** bullet links the session that decided it.",
                                    Named())
     assert said == "Job due is decided, but nothing says which session decided it."
+
+
+def on_a_session_branch(root):
+    """main holds the vault as it was; the session's branch is where the decision lands (close gate judges the
+    difference)."""
+    for args in (["init", "-q", "-b", "main"], ["add", "-A"], ["commit", "-q", "-m", "start"],
+                 ["switch", "-q", "-c", "session/x"]):
+        subprocess.run(["git", *args], cwd=root, check=True, capture_output=True)
+
+
+def test_a_settle_in_shape_passes_close_gate(tmp_path):
+    root = make_vault(tmp_path)
+    in_session_with_modes(root, "shape")
+    on_a_session_branch(root)
+    assert decide(root, "--readback", "^c01", "--yes", "^c02", "--why", "^c03", "--provider", "^c07")[0] == 0
+    gate = json.loads(run("close", "gate", "--vault", str(root), "--today", TODAY, "--json")[1])
+    assert not [p for p in gate.get("problems", []) if p.get("kind") == "consent"], gate
+
+
+def test_a_hand_set_decided_citing_that_s_decided_fails_close(tmp_path):
+    root = make_vault(tmp_path, captures=['- [thought] (@priya) "That\'s decided." ^c01'])
+    in_session_with_modes(root, "shape")
+    on_a_session_branch(root)
+    page = (root / STOCK).read_text(encoding="utf-8")
+    (root / STOCK).write_text(re.sub(r"(### CON-002[\s\S]*?- \*\*State:\*\* )assumption", r"\1decided", page, count=1),
+                              encoding="utf-8")
+    session_files.edit_record(root, RECORD_ID, "## Captures",
+                              f"## Changes\n\n| ID | From | To | Source |\n|---|---|---|---|\n"
+                              f"| CON-002 | assumption | decided | [[{RECORD_ID}#^c01]] |\n\n## Captures")
+    gate = json.loads(run("close", "gate", "--vault", str(root), "--today", TODAY, "--json")[1])
+    assert any("never read" in p.get("plain", "") for p in gate.get("problems", [])), gate
