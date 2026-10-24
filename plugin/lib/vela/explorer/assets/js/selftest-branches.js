@@ -31,7 +31,9 @@
     const at = (t) => `step ${flow.steps[t.si].n}`;
     list.forEach((a, i) => list.slice(i + 1).forEach((b) => { if (meets(a, b)) out.push(`the ${a.id} pill at ${at(a)} over the ${b.id} pill at ${at(b)}`); }));
     // one exchange, one pill: the answer to a call, on the next step over the same contract, is not labeled again
-    list.forEach((a, i) => { const b = list[i + 1]; if (b && b.id === a.id && b.si === a.si + 1) out.push(`the ${a.id} pill drawn twice, at ${at(a)} and ${at(b)}`); });
+    // (two starts that each make the same call are two exchanges, not a call and its answer)
+    const apart = (a, b) => flow.steps[a.si].start && flow.steps[b.si].start && flow.steps[a.si].start !== flow.steps[b.si].start;
+    list.forEach((a, i) => { const b = list[i + 1]; if (b && b.id === a.id && b.si === a.si + 1 && !apart(a, b)) out.push(`the ${a.id} pill drawn twice, at ${at(a)} and ${at(b)}`); });
     for (const a of list) for (const r of rows) {
       const line = r.line ?? r.y + r.h / 2;  // a message row's hit area holds the arrow and its words; `line` is the arrow
       if (r.si !== a.si && line > a.y + 1 && line < a.y + a.h - 1 && a.x < r.x + r.w && r.x < a.x + a.w) out.push(`the ${a.id} pill at ${at(a)} across the arrow of ${at(r)}`);

@@ -17,37 +17,39 @@ capabilities: [CAP-013, CAP-014, CAP-015]
 
 ## Steps
 
-1. [[CAP-011-find-a-crossing|Find a crossing]]. The channel reads sailings from Vessel schedule, as it does today.
-2. [[CAP-014-hold-a-seat|Hold a seat]]. Booking checks capacity, looks up the customer, gets the fare through [[CAP-012-quote-a-fare|Quote a fare]] and writes BKHOLD to FERRYMASTER. The hold lasts 10 minutes.
-3. [[CAP-015-take-payment|Take payment]]. The channel sends the customer to Tidepay's hosted payment page. Tidepay reports the outcome to Booking.
-4. [[CAP-013-reserve-a-crossing|Confirm booking]]. Booking writes BKCONF to FERRYMASTER and marks the booking confirmed once the ledger accepts it.
-5. [[CAP-022-notify-customer|Notify customer]]. Booking publishes the state change and Notifications sends the confirmation ([[FLO-003-notify-on-change|Notify on change]]).
+1. [[website-building-blocks|Public website]] → [[booking-building-blocks|Booking]]: asks to hold a seat, over [[booking-building-blocks#CON-001 Booking API|Booking API]]. The customer has found a crossing first: the website reads sailings from Vessel schedule, as it does today ([[CAP-011-find-a-crossing|Find a crossing]]). This is [[CAP-014-hold-a-seat|Hold a seat]].
+2. [[call-center-building-blocks|Call center desktop]] → [[booking-building-blocks|Booking]]: asks to hold a seat, over [[booking-building-blocks#CON-001 Booking API|Booking API]]. The agent has found a crossing for the caller, the same way. This is [[CAP-014-hold-a-seat|Hold a seat]].
+3. [[kiosks-building-blocks|Port kiosks]] → [[booking-building-blocks|Booking]]: asks to hold a seat, over [[booking-building-blocks#CON-001 Booking API|Booking API]]. The customer has picked a crossing on the screen. This is [[CAP-014-hold-a-seat|Hold a seat]].
+4. [[CAP-014-hold-a-seat|Hold the seat]]. Booking checks capacity, looks up the customer, gets the fare through [[CAP-012-quote-a-fare|Quote a fare]] and writes BKHOLD to FERRYMASTER. The hold lasts 10 minutes.
+5. [[CAP-015-take-payment|Take payment]]. The channel sends the customer to Tidepay's hosted payment page. Tidepay reports the outcome to Booking.
+6. [[CAP-013-reserve-a-crossing|Confirm booking]]. Booking writes BKCONF to FERRYMASTER and marks the booking confirmed once the ledger accepts it.
+7. [[booking-building-blocks|Booking]] → [[notifications-building-blocks|Notifications]]: publishes the state change, over [[booking-building-blocks#CON-002 Booking state changed|Booking state changed]]. Notifications then sends the confirmation ([[FLO-003-notify-on-change|Notify on change]]). This is [[CAP-022-notify-customer|Notify customer]].
 
-The diagram shows the website. The call center desktop and the kiosk app follow the same sequence; only the channel changes.
+There are three ways in, one for each channel. Steps 1 to 3 are the three starts. From step 4 on, the flow is the same for all three.
 
 ```mermaid
 sequenceDiagram
     participant W as Public website
-    participant VS as Vessel schedule
+    participant D as Call center desktop
+    participant K as Port kiosks
     participant B as Booking
+    participant VS as Vessel schedule
     participant CI as Customer identity
     participant P as Pricing
     participant FM as FERRYMASTER
-    participant T as Tidepay
-    participant N as Notifications
-    W->>VS: Find crossings (existing read)
-    W->>B: Hold seat (CON-001)
-    B->>VS: Capacity check (CON-004)
-    B->>CI: Customer lookup (CON-005)
-    B->>P: Quote fare (CON-003)
-    B->>FM: BKHOLD over MQ (CON-006)
-    B-->>W: Hold reference, fare, expiry
-    W->>T: Customer pays on hosted page
-    T->>B: Payment outcome webhook (CON-007)
-    B->>FM: BKCONF over MQ (CON-006)
-    W->>B: Get booking (CON-001)
-    B-->>W: Confirmed
-    B-)N: Booking state changed via event bus (CON-002)
+    alt A customer books on the website
+        W->>B: CON-001 hold a seat
+    else A customer calls in
+        D->>B: CON-001 hold a seat
+    else A customer uses a kiosk
+        K->>B: CON-001 hold a seat
+    end
+    B->>VS: CON-004 capacity check
+    B->>CI: CON-005 customer lookup
+    B->>P: CON-003 quote a fare
+    B->>FM: CON-006 BKHOLD over MQ
+    Note over W: HUMAN The customer pays on Tidepay's hosted page
+    B->>FM: CON-006 BKCONF over MQ
 ```
 
 ## What the customer sees
@@ -70,11 +72,13 @@ The customer picks a sailing and sees the fare with a 10-minute timer. They pay 
 
 | Step | Contracts |
 |---|---|
-| 1 Find a crossing | Existing Vessel schedule read by the channel. No INI-002 contract. |
-| 2 Hold a seat | [[booking-building-blocks#CON-001 Booking API\|CON-001 Booking API]] (hold), [[vessel-schedule-building-blocks#CON-004 Capacity check\|CON-004]], [[customer-identity-building-blocks#CON-005 Customer lookup\|CON-005]], [[pricing-building-blocks#CON-003 Quote a fare\|CON-003]], [[ferrymaster-building-blocks#CON-006 Ledger transactions\|CON-006]] (BKHOLD) |
-| 3 Take payment | [[booking-building-blocks#CON-007 Tidepay payment outcome\|CON-007 Payment outcome]] |
-| 4 Confirm booking | [[ferrymaster-building-blocks#CON-006 Ledger transactions\|CON-006]] (BKCONF), [[booking-building-blocks#CON-001 Booking API\|CON-001 Booking API]] (get) |
-| 5 Notify customer | [[booking-building-blocks#CON-002 Booking state changed\|CON-002 Booking state changed]] |
+| 1 Hold a seat on the website | [[booking-building-blocks#CON-001 Booking API\|CON-001 Booking API]] (hold). The sailing read is the existing Vessel schedule read. No INI-002 contract. |
+| 2 Hold a seat at the call center | [[booking-building-blocks#CON-001 Booking API\|CON-001 Booking API]] (hold) |
+| 3 Hold a seat at a kiosk | [[booking-building-blocks#CON-001 Booking API\|CON-001 Booking API]] (hold) |
+| 4 Hold the seat | [[vessel-schedule-building-blocks#CON-004 Capacity check\|CON-004]], [[customer-identity-building-blocks#CON-005 Customer lookup\|CON-005]], [[pricing-building-blocks#CON-003 Quote a fare\|CON-003]], [[ferrymaster-building-blocks#CON-006 Ledger transactions\|CON-006]] (BKHOLD) |
+| 5 Take payment | [[booking-building-blocks#CON-007 Tidepay payment outcome\|CON-007 Payment outcome]] |
+| 6 Confirm booking | [[ferrymaster-building-blocks#CON-006 Ledger transactions\|CON-006]] (BKCONF), [[booking-building-blocks#CON-001 Booking API\|CON-001 Booking API]] (get) |
+| 7 Notify customer | [[booking-building-blocks#CON-002 Booking state changed\|CON-002 Booking state changed]] |
 
 ## Tested end to end
 

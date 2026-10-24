@@ -1,11 +1,11 @@
-# Handoff manifest: APP-booking
+# Handoff record: Booking
 
 - **App:** APP-booking
 - **Commit:** example
 - **Written:** 2026-11-20
-- **Items:** 18
+- **Items:** 21
 
-Written by `vela handoff APP-booking`. Do not edit it by hand. `vela handoff verify APP-booking` lists what changed since the senior accepted this app.
+Made by `vela handoff APP-booking`; don't edit it by hand. To see what changed since the app's team accepted it, run `vela handoff verify APP-booking`. The Hash column is a fingerprint of each item's text, used to spot changes.
 
 | ID | Kind | Page | State | Hash |
 |---|---|---|---|---|
@@ -27,3 +27,14 @@ Written by `vela handoff APP-booking`. Do not edit it by hand. `vela handoff ver
 | EPC-037 | epic | 13-epics/EPC-037-events-and-notifications.md | decided | b369fae92a31 |
 | EPC-038 | epic | 13-epics/EPC-038-pricing-serves-booking.md | decided | e9d139538092 |
 | EPC-039 | epic | 13-epics/EPC-039-run-booking.md | decided | 7cd21cad2663 |
+| SLC-001 | slice | slices/SLC-001-website-books-through-booking.md | - | b3017b4def47 |
+| SLC-002 | slice | slices/SLC-002-call-center-moves-to-booking.md | - | 5ec665e7c8a2 |
+| SLC-003 | slice | slices/SLC-003-kiosks-book-in-the-march-image.md | - | ff9fec219740 |
+
+## Flow checks when written
+
+Where each slice's flow check stood, as recorded by vela check-slice:
+
+- SLC-001 A customer books on the website through Booking: Nobody has run the flow check on it yet.
+- SLC-002 The call center books, amends and cancels through Booking: Nobody has run the flow check on it yet.
+- SLC-003 Kiosks book through Booking in the March image: Nobody has run the flow check on it yet.

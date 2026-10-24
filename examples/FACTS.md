@@ -94,7 +94,7 @@ Overlap: INI-004 Loyalty Revamp also touches CAP-013. INI-005 Mainframe Exit tou
 
 ## Flows (`flows/`)
 
-- `FLO-001-hold-pay-confirm.md`: Find a crossing → Hold a seat → Take payment → Confirm booking → Notify customer.
+- `FLO-001-hold-pay-confirm.md`: three starts (website, call center desktop, kiosk) each hold a seat → Booking holds the seat → Take payment → Confirm booking → Notify customer.
 - `FLO-002-amend-or-cancel.md`: Find booking → Check change allowed → Re-quote (amend) → Write to ledger → Notify customer.
 - `FLO-003-notify-on-change.md`: Booking state changes → Event published → Notifications decides channel → Message sent.
 

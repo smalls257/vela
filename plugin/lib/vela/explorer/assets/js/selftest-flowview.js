@@ -96,8 +96,8 @@
       const second = s.options[s.options.length - 1], other = s.options[0];
       radios[radios.length - 1].click(); await tick();
       const flow = FlowKit.flowOf(key), dim = flow.steps.filter((x) => FlowView.dimmedStep(key, x)).map((x) => x.n);
-      ok(flow.view.start === second.id && FlowView.hashPart(key).includes(`start=${second.id}`) && JSON.stringify(dim) === JSON.stringify(other.steps) && $(`[data-starts] [aria-checked=true]`).textContent === second.label,
-        `starts, ${key}: picking "${second.label}" dims exactly the steps of "${other.label}", and rides in the address`, `starts, ${key}: dimmed ${dim}, address "${FlowView.hashPart(key)}"`);
+      ok(flow.view.start === second.id && FlowView.hashPart(key).includes(`start=${second.id}`) && JSON.stringify(dim) === JSON.stringify(s.options.filter((o) => o !== second).flatMap((o) => o.steps)) && $(`[data-starts] [aria-checked=true]`).textContent === second.label,
+        `starts, ${key}: picking "${second.label}" dims exactly the steps of the other starts, and rides in the address`, `starts, ${key}: dimmed ${dim}, address "${FlowView.hashPart(key)}"`);
       Flows.player().go(-1); Flows.player().go(0);
       ok(flow.steps[Flows.player().cur].start !== other.id, `starts, ${key}: Next skips the steps of the start not picked`, `starts, ${key}: playing started on step ${flow.steps[Flows.player().cur].n}, in the other start`);
       ok(Legend.audit().filter((p) => p.startsWith("flow")).length === 0, `starts, ${key}: the key matches the drawing with a start picked`, `starts, ${key}: ${Legend.audit()[0]}`);
