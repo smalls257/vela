@@ -183,7 +183,7 @@ def hostile_blocks():
     nodes = [diagrams.app_node(type("P", (), {"meta": {"title": n, "change": "new"}, "id": f"APP-{i}", "name": f"app-{i}"})())
              for i, n in enumerate(HOSTILE_NAMES)]
     nodes += [diagrams.external_node(n or "x") for n in HOSTILE_NAMES]
-    edges = [(nodes[i], nodes[i + 1], f"CON-{i:03d}") for i in range(len(nodes) - 1)]
+    edges = [(nodes[i], nodes[i + 1], f"CON-{i:03d}", f"CON-{i:03d}") for i in range(len(nodes) - 1)]
     graph = diagrams._graph(nodes, edges)
     groups = [("g_one", diagrams.safe_label('Dom "a"; [b]', "No domain"), [n.key for n in graph.nodes[:5]])]
     return [diagramcheck.Block("hostile", 1, "\n".join(diagrams.flowchart(graph, "LR", groups)))]

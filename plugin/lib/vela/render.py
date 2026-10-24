@@ -261,11 +261,11 @@ def node_link(node):
     return link(node.page.name, cell(diagrams.safe_label(title(node.page), node.page.name)))
 
 
-def left_out_table(count, header, rows):
-    """The table under a diagram that lists what the budget kept out of it."""
+def left_out_table(count, header, rows, kept_note=""):
+    """The table under a diagram that lists what the budget kept out of it. `kept_note` says how the diagram chose."""
     if not rows:
         return []
-    return ["", f"**Not drawn, to keep the diagram readable (at most {schema.FLOWCHART_BUDGET} boxes):** {count}", "",
+    return ["", f"**Not drawn, to keep the diagram readable (at most {schema.FLOWCHART_BUDGET} boxes{kept_note}):** {count}", "",
             f"| Not drawn | {header} |", "|---|---|", *rows]
 
 
@@ -278,10 +278,10 @@ def skipped_table(skipped):
 
 
 def graph_block(graph, direction="LR", groups=(), reserved=0):
-    drawn, left_out = diagrams.fit(graph, schema.FLOWCHART_BUDGET, reserved)
+    drawn, left_out = diagrams.fit_with_others(graph, schema.FLOWCHART_BUDGET, reserved)
     rows = [row(node_link(n), cell(", ".join(diagrams.overflow_contracts(graph, n)) or "none")) for n in left_out]
     fence = mermaid_fence(diagrams.flowchart(drawn, direction, groups)) + ["", diagrams.key_line(drawn)] if graph.nodes else []
-    return fence + left_out_table(len(left_out), "Contracts", rows) + skipped_table(graph.skipped)
+    return fence + left_out_table(len(left_out), "Contracts", rows, ", keeping the most connected") + skipped_table(graph.skipped)
 
 
 def context_map(vault, page):
