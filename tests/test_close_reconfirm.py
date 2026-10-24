@@ -13,9 +13,10 @@ STOCK = "05-building-blocks/stock-building-blocks.md"
 LEDGER_ROW = "| Q-DAT-01@APP-stock | not-applicable | reason: no personal data | @priya | 2026-10-01 |"
 LEDGER = f"\n## Question ledger\n\n| Copy | State | Evidence | By | Date |\n|---|---|---|---|---|\n{LEDGER_ROW}\n"
 OTHER_DECISION = f'- **Decision:** [[{RID}]] c01, @priya: "Yes, one till API for the web and the kiosks."'
-THIS_BACK = ("- [thought] (claude) Read back: one till API for everything → keep: "
-             "[[stock-building-blocks#CON-002 Stock level|CON-002]] (decided) ^c02")
-THIS_YES = '- [thought] (@priya) "Yes, still one till API for everything." says yes → park ^c03'
+# The real part 2: the "Still yes?" question and the answer are captured with no mark (START leaves marks to close);
+# nothing hand-writes a read-back, so these tests drive the flow close section 3 describes.
+THIS_BACK = '- [thought] (claude) "These were decided on the other machine: one till API for everything. Still yes?" ^c02'
+THIS_YES = '- [thought] (@priya) "Yes, still one till API for everything." ^c03'
 BARE_OK = '- [thought] (@priya) "ok" → park ^c04'
 SUMMARY = "In progress."
 
@@ -90,7 +91,7 @@ def test_part_one_never_asks(tmp_path):
 
 def test_reconfirm_repoints_the_receipt_to_part_two(tmp_path):
     vault = two_machine_session(tmp_path)
-    code, out = reconfirm(vault, "--yes", "^c03", "CON-002")
+    code, out = reconfirm(vault, "--readback", "^c02", "--yes", "^c03", "CON-002")
     assert code == 0, out
     assert f'[[{RID}]] 2.c03, @priya: "Yes, still one till API for everything."' in text_of(vault, STOCK)
     assert f"| CON-002 | fact | decided | [[{RID}#^c03]] |" in text_of(vault, privaterecord.private_path(RID))
@@ -98,10 +99,29 @@ def test_reconfirm_repoints_the_receipt_to_part_two(tmp_path):
     assert not [p for p in gate(vault) if p["kind"] in (closegate.CONSENT, closegate.RECEIPT)]
 
 
+def test_the_real_two_machine_flow_closes_clean_and_marks_the_question_and_the_yes(tmp_path):
+    """Review finding 1: the gate said "I never read it back" at every part-2 close, because no step of the real flow
+    kept a read-back on the item. The question the lead answered is that read-back."""
+    vault = two_machine_session(tmp_path)
+    assert "keep:" not in text_of(vault, privaterecord.private_path(RID))
+    code, out = reconfirm(vault, "--readback", "^c02", "--yes", "^c03", "CON-002")
+    assert code == 0, out
+    notes = text_of(vault, privaterecord.private_path(RID))
+    assert notes.count("(decided) ^c0") == 2 and "|CON-002]] (decided) ^c02" in notes
+    assert not [p for p in gate(vault) if p["kind"] in (closegate.CONSENT, closegate.ELSEWHERE)]
+
+
+def test_a_yes_that_came_before_the_question_is_refused(tmp_path):
+    vault = two_machine_session(tmp_path, captures=(THIS_YES.replace("^c03", "^c01"), THIS_BACK))
+    before = text_of(vault, STOCK)
+    code, out = reconfirm(vault, "--readback", "^c02", "--yes", "^c01", "CON-002")
+    assert code == 1 and text_of(vault, STOCK) == before
+
+
 def test_a_no_changes_nothing_and_the_gate_keeps_asking(tmp_path):
     vault = two_machine_session(tmp_path, captures=(THIS_BACK, THIS_YES, BARE_OK))
     before = text_of(vault, STOCK)
-    code, out = reconfirm(vault, "--yes", "^c04", "CON-002")
+    code, out = reconfirm(vault, "--readback", "^c02", "--yes", "^c04", "CON-002")
     assert code == 1 and text_of(vault, STOCK) == before
     assert len(elsewhere(vault)) == 1
 
@@ -109,14 +129,14 @@ def test_a_no_changes_nothing_and_the_gate_keeps_asking(tmp_path):
 def test_the_yes_must_be_the_leads_own(tmp_path):
     other = '- [thought] (@cto-ana) "Yes, keep it." → park ^c05'
     vault = two_machine_session(tmp_path, captures=(THIS_BACK, THIS_YES, other))
-    code, out = reconfirm(vault, "--yes", "^c05", "CON-002")
+    code, out = reconfirm(vault, "--readback", "^c02", "--yes", "^c05", "CON-002")
     assert code == 1 and "2.c05" not in text_of(vault, STOCK)
 
 
 def test_an_id_the_gate_did_not_ask_about_is_refused_and_nothing_is_written(tmp_path):
     vault = two_machine_session(tmp_path)
     before = text_of(vault, STOCK), text_of(vault, privaterecord.private_path(RID))
-    code, out = reconfirm(vault, "--yes", "^c03", "CON-002", "CON-999")
+    code, out = reconfirm(vault, "--readback", "^c02", "--yes", "^c03", "CON-002", "CON-999")
     assert code == 1
     assert (text_of(vault, STOCK), text_of(vault, privaterecord.private_path(RID))) == before
 
@@ -129,7 +149,7 @@ def test_a_ledger_row_taken_off_on_the_other_machine_is_asked_about_and_reconfir
     found = elsewhere(vault)
     assert len(found) == 1 and "a question taken off" in found[0]["plain"] and copy in found[0]["detail"]
     assert not [p for p in gate(vault) if p["kind"] == closegate.REMOVED_ROW]
-    code, out = reconfirm(vault, "--yes", "^c03", "CON-002", copy)
+    code, out = reconfirm(vault, "--readback", "^c02", "--yes", "^c03", "CON-002", copy)
     assert code == 0, out
     assert f"| {copy} | ledger row | removed | [[{RID}#^c03]] |" in text_of(vault, privaterecord.private_path(RID))
     assert not elsewhere(vault)
@@ -140,7 +160,7 @@ def test_reconfirm_after_a_finished_read_back_says_it_reopens_it(tmp_path):
     vault = two_machine_session(tmp_path)
     assert run("close", "readback", "--done", "--vault", str(vault))[0] == 0
     assert closegate.READBACK not in {p["kind"] for p in gate(vault)}
-    code, out = reconfirm(vault, "--yes", "^c03", "CON-002", "--for-lead")
+    code, out = reconfirm(vault, "--readback", "^c02", "--yes", "^c03", "CON-002", "--for-lead")
     assert code == 0, out
     assert "I've changed a line you already read back, so read it back again." in out
     assert closegate.READBACK in {p["kind"] for p in gate(vault)}
@@ -154,7 +174,7 @@ def test_part_one_closing_last_is_asked_about_what_part_two_decided(tmp_path):
     page = vault / STOCK
     page.write_text(text_of(vault, STOCK).replace(f"[[{RID}]] c01", f"[[{RID}]] 2.c01"), encoding="utf-8")
     assert len(elsewhere(vault)) == 1
-    code, out = reconfirm(vault, "--yes", "^c03", "CON-002")
+    code, out = reconfirm(vault, "--readback", "^c02", "--yes", "^c03", "CON-002")
     assert code == 0, out
     assert f"[[{RID}]] c03, @priya" in text_of(vault, STOCK)
     assert not elsewhere(vault)

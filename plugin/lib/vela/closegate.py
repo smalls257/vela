@@ -38,8 +38,9 @@ from vela.said import confirmed, is_unverified
 CONSENT_CLEAR = ("The lead's own yes, quoted in the session record with a Changes row citing it, clears it; so does "
                  "their override with a reason.")
 READBACK_FIRST = "I never read {name} back to you before writing it as decided. Shall I read it back now?"
-READBACK_CLEAR = ("Reading the final wording back, capturing it, and capturing the lead's yes after it clears it, "
-                  "through vela decide; so does the lead's override of the quoted-yes rule, with their reason.")
+READBACK_CLEAR = ("Reading the final wording back, capturing it, and capturing the lead's yes after it clears it "
+                  "(vela decide for a new decision; vela close reconfirm --readback for one the other machine made); "
+                  "so does the lead's override of the quoted-yes rule, with their reason.")
 BARE_NON_YES = ("", "ok", "okay", "sure", "next", "fine")
 CONSENT_STATE = "decided"
 
@@ -477,7 +478,7 @@ def removal_problems(before, after, rows, said):
 # ------------------------------------------------------------------ Task 12: what the other machine decided
 
 STILL_YES = "These were decided on the other machine: {names}. Still yes?"
-STILL_YES_CLEAR = ("The lead's yes in this part, recorded with vela close reconfirm --yes ^cNN and the IDs, clears it. "
+STILL_YES_CLEAR = ("The lead's yes in this part, recorded with vela close reconfirm --readback ^cQ --yes ^cNN and the IDs, clears it. "
                    "A no leaves the item as it is, and the lead may reopen it.")
 LEDGER_ROW, OVERRIDE_ROW = "ledger row", "override"  # the From cell of a removal's Changes row
 

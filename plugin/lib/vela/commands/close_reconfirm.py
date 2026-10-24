@@ -5,7 +5,10 @@ The Violation this command's shape prevents is a Silent Fallback in the record: 
 read the first part's notes, so a decision made there would reach the pull request under a yes nobody on this machine
 heard. The gate asks once (`closegate.ELSEWHERE`); the lead answers here, in a capture of this part, and then the
 receipt names this part's yes (`[[<id>]] 2.c03, @lead: "..."`) and the Changes table holds the row for it. Nothing is
-decided by this command: it files the lead's yes the gate then judges as it judges any other. A no is captured and
+decided by this command: it files the lead's yes the gate then judges as it judges any other. The "Still yes?" question is the read-back of this
+part (the first read-back happened on the other machine, in notes this machine cannot read), so `--readback ^cQ` names
+the captured question, and it and the yes are marked `keep ... (decided)` the way `vela decide` marks its own, or the
+gate would ask "I never read it back" at every two-machine close. A no is captured and
 files nothing, so the gate keeps asking and the skill offers to reopen the item.
 
 Close order (controller ruling C7): this runs before the read-back, so the read-back digest covers the new words.
@@ -15,8 +18,8 @@ Exit codes: 0 filed; 1 refused (said in plain words, nothing written); 2 the too
 import pathlib
 
 from vela import closegate, closereadback, privaterecord, receipts, say
-from vela.decisions import consent, textedit
-from vela.edge import flowstore, mergegit, sessiongit, vaultgit
+from vela.decisions import consent, decide, textedit
+from vela.edge import apply as disk, flowstore, mergegit, sessiongit, vaultgit
 
 NAME = "close reconfirm"
 REOPENED = "I've changed a line you already read back, so read it back again."
@@ -27,6 +30,8 @@ def register_close(steps):
     p = steps.add_parser("reconfirm", help="the lead's yes, in this part, to what the other machine decided: "
                                            "re-points each receipt here and records the yes in the Changes table")
     p.add_argument("--vault", default=".", help="vault root (default: current directory)")
+    p.add_argument("--readback", required=True, metavar="^cQ",
+                   help="the capture of your \"Still yes?\" question, made before the lead's answer")
     p.add_argument("--yes", required=True, metavar="^cNN", help="the lead's capture of this part saying yes")
     p.add_argument("ids", nargs="+", metavar="ID", help="what the gate asked about: item or page IDs, ledger copies")
     say.add_output_flags(p)
@@ -61,7 +66,7 @@ def run(args, out):
 
 
 def reconfirm(args, root, vault, before, record, lead):
-    refusal = _yes_refusal(args.yes, record, lead)
+    refusal = _yes_refusal(args.yes, args.readback, record, lead)
     if refusal is not None:
         return say.Result(NAME, exit=say.REFUSED, refusals=[refusal])
     rows, said = closegate.change_rows(record.text), closegate.captures(record.text)
@@ -77,6 +82,7 @@ def reconfirm(args, root, vault, before, record, lead):
     for ident in dict.fromkeys(args.ids):
         notes = textedit.add_change(notes, ident, asked[ident].before, asked[ident].after, source)
         _repoint(vault, root, pages, ident, record, lead, yes)
+    notes = _marked(notes, vault, root, [asked[i] for i in dict.fromkeys(args.ids)], args)
     wrote = [sessiongit.write_text(root, rel, text) for rel, text in pages.items()]
     wrote.append(sessiongit.write_text(root, record.path, notes))
     names = say.names_said([asked[i].name for i in dict.fromkeys(args.ids)])
@@ -104,8 +110,26 @@ def _read_back(root, vault, record, lead):
     return closereadback.digest(found) == stored
 
 
-def _yes_refusal(ref, record, lead):
-    first = consent.a_yes(ref, record)
+def _marked(notes, vault, root, asked, args):
+    """`notes` with the question and the yes kept on every item reconfirmed as decided: the read-back the gate looks
+    for (`closegate.read_back_before`). A removal has no item to keep, so those captures are left for close's marks."""
+    from vela import decisions
+    staged = textedit.attach(decisions.Staged(vault, disk.reader(root)), "", [])
+    kept = []
+    for away in asked:
+        target = None if away.is_removal else decide.locate(staged, away.id)[1]
+        if target is not None and away.after == closegate.CONSENT_STATE:
+            kept.append(textedit.keep_mark(textedit.basename(target.path), target.anchor, target.id, away.after))
+    if not kept:
+        return notes
+    mark = "keep: " + "; ".join(k[len("keep: "):] for k in kept)
+    for ref in (args.readback, args.yes):
+        notes = textedit.mark_if_unmarked(notes, ref, mark)
+    return notes
+
+
+def _yes_refusal(ref, readback, record, lead):
+    first = consent.a_yes(ref, record, readback=readback)
     if first is not None:
         return first
     handle, names = lead if lead else ("", ())
