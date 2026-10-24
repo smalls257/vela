@@ -218,3 +218,20 @@ def test_the_session_panel_and_the_explorer_read_the_same_opened_date(plan):
     path = "11-unknowns-and-risks.md"
     entry = pageindex.entries(path, (plan / path).read_text(encoding="utf-8"))
     assert asked["UNK-006"] == "2026-10-07" == entry["items"]["UNK-006"]["opened"]
+
+
+@pytest.mark.parametrize("kind,opening", [("question", "An answer on"), ("proposal", "Your review of"),
+                                          ("handed", "Your take on"), ("grill", "A grill on")])
+def test_each_kind_of_need_is_asked_for_in_its_own_words(kind, opening):
+    digest = dated_digest()
+    digest["names"] = {"X": {"name": "Booking events"}}
+    digest["needs"] = {"lines": [{"key": "X", "name": "Booking events", "kind": kind, "for": ["@hl-director"], "date": "",
+                                  "days": None, "standing": ""}]}
+    got = companionexplain.explain(digest, "needs", "", VIEWER, None, "2026-10-24")
+    assert got["headline"][1] == f"{opening} Booking events."
+
+
+def test_nothing_waiting_still_gives_the_next_date():
+    digest = dated_digest()
+    got = companionexplain.explain(digest, "needs", "", VIEWER, None, "2026-10-24")
+    assert got["headline"] == ["Nothing right now. The plan's next date is Rollout, December 1."]

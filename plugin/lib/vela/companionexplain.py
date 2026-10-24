@@ -145,8 +145,11 @@ def by_holder(asks):
     return [{"who": who, "items": items} for who, items in groups.items()]
 
 
+NEED_OPENERS = {"question": "An answer on", "proposal": "Your review of", "handed": "Your take on", "grill": "A grill on"}
+
+
 def need_words(line, today):
-    base = f"A yes on {line['name']}"
+    base = f"{NEED_OPENERS.get(line['kind'], 'Your attention on')} {line['name']}"
     return f"{base} by {date_words(line['date'], today)}." if line["date"] else f"{base}."
 
 
@@ -155,7 +158,9 @@ def view_needs(digest, about, viewer, today):
         raise NeedsViewer(NEEDS_WHO)
     mine = [line for line in digest["needs"]["lines"] if viewer.handle in line["for"]]
     if not mine:
-        return ["Nothing right now."], [], []
+        next_release = release_named(digest, "")
+        when = f" The plan's next date is {next_release['name']}, {date_words(next_release['target'], today)}." if next_release else ""
+        return ["Nothing right now." + when], [], []
     headline = [f"{count_words(len(mine), 'thing needs', 'things need')} you."]
     headline += [need_words(line, today) for line in mine[:LIST_LIMIT]]
     if len(mine) > LIST_LIMIT:
