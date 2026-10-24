@@ -1,0 +1,7 @@
+{
+  "description": "Timing probe: stamps when each prompt arrives and each turn stops.",
+  "hooks": {
+    "UserPromptSubmit": [{"hooks": [{"type": "command", "command": "mkdir -p ./.vela-probe && python3 -c \"import json,time; print(json.dumps({'event':'prompt','t':time.time()}))\" >> ./.vela-probe/hooks.jsonl", "timeout": 5}]}],
+    "Stop": [{"hooks": [{"type": "command", "command": "mkdir -p ./.vela-probe && python3 -c \"import json,time; print(json.dumps({'event':'stop','t':time.time()}))\" >> ./.vela-probe/hooks.jsonl", "timeout": 5}]}]
+  }
+}

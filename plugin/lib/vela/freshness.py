@@ -107,6 +107,22 @@ def reader_report(workspace, stamp, unreachable, unreadable, checked_at):
                   lead=f"A newer copy came out{when}. Your drafts are safe; I can carry them over to it. Want that?")
 
 
+def github_report(workspace, head, why, checked_at):
+    """A copy opened from a GitHub link, against where the repository is now. `head` is the commit its default branch
+    is at ("" when `why` says it couldn't be asked). It says only what it knows: unreachable is a state, not a failure."""
+    have = {"commit": _short(workspace.get("base_commit")), "date": workspace.get("base_date") or ""}
+    since = f" Your copy is from {say.date_words(have['date'])}." if have["date"] else ""
+    if why:
+        return Report("reader", UNREACHABLE, checked_at, f"I couldn't ask GitHub whether there is a newer plan ({why}).{since}", have=have,
+                      lead=f"I couldn't ask GitHub whether there's a newer plan.{since}")
+    if same_commit(workspace.get("base_commit"), head):
+        words = f"Your copy is the latest plan on GitHub, from {say.date_words(have['date'])}." if have["date"] else \
+            "Your copy is the latest plan on GitHub."
+        return Report("reader", CURRENT, checked_at, words, have=have, latest=dict(have), lead=words)
+    words = "There's a newer plan on GitHub. Say *get the newer plan* and I'll bring it in; your drafts stay."
+    return Report("reader", NEWER, checked_at, words, have=have, latest={"commit": _short(head), "date": ""}, lead=words)
+
+
 def _counts(behind, ahead, uncommitted):
     return f"{_plural(behind, 'commit')} behind, {ahead} ahead, {_plural(uncommitted, 'uncommitted file')}"
 

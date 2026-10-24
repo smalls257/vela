@@ -1,0 +1,6 @@
+{
+  "name": "vela-probe-placement",
+  "version": "0.1.0",
+  "description": "Probe: where a mod pane goes, and whether settings hooks still fire beside a hooks module.",
+  "author": { "name": "vela" }
+}

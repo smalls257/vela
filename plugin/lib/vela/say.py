@@ -43,7 +43,7 @@ LEAD_PATTERNS = {
                             r"|Could not resolve host|Permission denied \(publickey\)|\bCONFLICT \(|non-fast-forward"
                             r"|\bgit (?:push|pull|fetch|merge|switch|checkout|config|add|commit|rebase|stash|status)\b"),
     # `vela <subcommand>`: "vela needs 3.9" is prose, "vela check" is a command (test_say holds the list to the parser).
-    "command": re.compile(r"\bvela (?:add|apply|boundary|capture|check(?:-diagrams|-slice)?|close|conventions|decide"
+    "command": re.compile(r"\bvela (?:add|apply|boundary|capture|check(?:-diagrams|-slice)?|close|companion|conventions|decide"
                           r"|doctor|epics|explore|export|findings|freshness|grill|guard|handoff|health|hook|import|ladder|library|map|marks"
                           r"|new|next(?:-id)?|onboard|open|plans|proposals|propose|prose|publish|query|questions|record|releases|render"
                           r"|records|reviewers|role|session|size|status|style|team|terms|tickets|upgrade|view|voice(?:check|score)?"

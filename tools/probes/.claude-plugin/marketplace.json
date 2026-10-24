@@ -1,0 +1,8 @@
+{
+  "name": "vela-probes",
+  "owner": { "name": "vela" },
+  "plugins": [
+    { "name": "vela-probe-placement", "source": "./mod-placement", "description": "Where a mod pane docks in the terminal, the desktop Code tab and Cowork." },
+    { "name": "vela-probe-timing", "source": "./cowork-panel-timing", "description": "Times Cowork turns with and without a published panel." }
+  ]
+}

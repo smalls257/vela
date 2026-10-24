@@ -51,10 +51,16 @@ def is_date(value):
     return True
 
 
+def leading_date(value):
+    """The YYYY-MM-DD an **Opened:** value starts with ("2026-10-24 Grill" is how vela writes it), or "". The one
+    reader of that bullet: the explorer's asks and the session panel's page index both call it, so they cannot disagree."""
+    match = OPENED_DATE.match(value or "")
+    return match.group(1) if match and is_date(match.group(1)) else ""
+
+
 def opened_date(unknown):
     """The YYYY-MM-DD an **Opened:** bullet starts with, or ""."""
-    match = OPENED_DATE.match(unknown.fact("Opened"))
-    return match.group(1) if match and is_date(match.group(1)) else ""
+    return leading_date(unknown.fact("Opened"))
 
 
 def last_session_date(vault):

@@ -16,8 +16,9 @@ from vela import planscope, publish, roles
 
 GIT_TIMEOUT = 20
 FETCH_TIMEOUT = 8  # an owner's session start must not hang on a dead network
-# A credential prompt would hang a tool with no terminal. The fetch fails fast instead.
-NO_PROMPT = {"GIT_TERMINAL_PROMPT": "0", "GIT_ASKPASS": "true", "SSH_ASKPASS": "true"}
+# A credential prompt would hang a tool with no terminal. The fetch fails fast instead. GCM_INTERACTIVE covers Git
+# Credential Manager, which opens a browser sign-in whatever GIT_TERMINAL_PROMPT says.
+NO_PROMPT = {"GIT_TERMINAL_PROMPT": "0", "GIT_ASKPASS": "true", "SSH_ASKPASS": "true", "GCM_INTERACTIVE": "never"}
 
 
 def at(ref, path):
@@ -162,12 +163,17 @@ def tracked_paths(root):
     raise GitUnavailable(f"git ls-files failed: {err or 'no message'}")
 
 
+# The companions' own files (written by every dashboard build and every panel run) are tool state, never a change to the
+# plan, whether or not the vault's .gitignore says so; counting them would make a page built twice differ from itself.
+COMPANION_FOLDER = ".vela/companion"
+
+
 def uncommitted(root):
     """Files changed or untracked under the vault, as git status sees them (ignored files are not listed). The files the
     explorer build writes itself (the dashboard and the pinned layout, publish.KEPT) are left out: the build counts what
     is uncommitted and then writes them, so counting them would make a page built before a commit differ from the same
     page built after it."""
-    return status_paths(root, pathspec=[".", *(f":(exclude){path}" for path in publish.KEPT)])
+    return status_paths(root, pathspec=[".", *(f":(exclude){path}" for path in (*publish.KEPT, COMPANION_FOLDER))])
 
 
 def user_identity(root):

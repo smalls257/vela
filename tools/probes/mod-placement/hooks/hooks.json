@@ -1,0 +1,7 @@
+{
+  "description": "Placement probe: a settings hook and a hooks module side by side.",
+  "hooks": {
+    "SessionStart": [{"hooks": [{"type": "command", "command": "date +%s > \"${TMPDIR:-/tmp}/vela-probe-settings-hook\"", "timeout": 5}]}]
+  },
+  "modules": ["./probe.js"]
+}

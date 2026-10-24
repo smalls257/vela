@@ -56,3 +56,9 @@ def test_a_reopen_says_where_the_readers_version_went_in_plain_words():
     assert "`<page>.mine.md`" not in skill and "every skill runs as a reader" not in skill
     assert "the planning sessions (`/vela:dump`, `/vela:shape` and so on)" in skill
     assert "Never delete or empty a folder to make room." in skill
+
+
+def test_open_takes_a_github_link_and_never_an_older_copy():
+    skill = text("skills/open/SKILL.md")
+    assert "GitHub link" in skill and "never offer an older copy" in skill
+    assert "get the newer plan" in skill and "full vela plugin" in skill

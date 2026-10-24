@@ -33,7 +33,7 @@ import uuid
 from vela import (allocation, attention, cli, completeness, gates, grills, handoff, ladder, links, model, override, pending, plainwords,
                      progress, reading, roles, say, schema, slices, terms, trace)
 from vela import search as vela_search
-from vela.edge import atomic
+from vela.edge import atomic, companionstore
 from vela.flowcheck import readers
 from vela.parse import FENCE, closes_fence
 
@@ -960,6 +960,8 @@ def generate(root, out, today, pins_path=None, seed=None, assets_config=None, de
     data["theme"] = theme
     data["built"] = built
     data.update(access_data(root, vault, freshness))
+    if root in out.resolve().parents:  # the vault's own dashboard (or a person's page under it), never a publish's scratch build
+        companionstore.prepare_digest(vault, root, today, data, (built or {}).get("commit", ""))
     said = link_sources(data, root, design_args, out.parent, plan_args)
     # Which apps this build newly pinned is a fact about the pins file, not the vault: the page does not read it, and
     # carrying it would make the first build and every later build of one vault differ. The report lines still say it.
