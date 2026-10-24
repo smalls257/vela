@@ -18,8 +18,9 @@ SCOPES = ("initiative", "app", "contract", "capability", "party", "stored-value"
 SEVERITIES = ("high", "normal")
 BLOCK_KINDS = ("app", "contract", "requirement", "capability", "decision", "epic")
 CREATES = ("party", "stored-value")
+GROUPS = ("existence",)  # entries read back together, one numbered turn: the six that ask whether a subject exists at all
 REQUIRED = ("id", "area", "scope", "trigger", "question", "why", "severity")
-OPTIONAL = ("blocks", "creates", "mentions", "mention_why", "mention_except", "follows")
+OPTIONAL = ("blocks", "creates", "mentions", "mention_why", "mention_except", "follows", "group")
 ENTRY_ID_RE = re.compile(r"^Q-(?P<area>[A-Z]{3})-\d{2}$")
 AREA_RE = re.compile(r"^[A-Z]{3}$")
 WORD_RE = re.compile(r"^[a-z]+$")
@@ -98,6 +99,7 @@ class Entry:
     mention_why: tuple = ()  # (word, why) for every mention: the reason that word is on the list
     mention_except: tuple = ()  # phrases ("credit card*") that contain a mention word and are not the subject
     follows: str = ""  # the entry ID whose copy on the same subject must be answered first; "" for none
+    group: str = ""  # one of GROUPS, or "" for an entry asked on its own
 
 
 @dataclass(frozen=True)
@@ -310,6 +312,10 @@ def _entry(raw, n, areas, problems):
     if "follows" in raw and not (isinstance(follows, str) and ENTRY_ID_RE.match(follows)):
         problems.append(f"{where}: follows must name an entry such as Q-REG-01")
         follows = ""
+    group = raw.get("group", "")
+    if "group" in raw and group not in GROUPS:
+        problems.append(f"{where}: group {group!r} is not one of {', '.join(GROUPS)}")
+        group = ""
     trigger = None
     if scope in SCOPES:
         try:
@@ -318,7 +324,7 @@ def _entry(raw, n, areas, problems):
             problems.append(f"{where}: {exc}")
     if len(problems) > before or trigger is None:
         return None
-    return Entry(entry_id, area, scope, trigger, question, why, severity, blocks, creates or "", mentions, mention_why, exceptions, follows)
+    return Entry(entry_id, area, scope, trigger, question, why, severity, blocks, creates or "", mentions, mention_why, exceptions, follows, group)
 
 
 def _kind_list(raw, key, allowed, where, problems):

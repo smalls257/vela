@@ -1044,3 +1044,51 @@ def untyped_mentions(vault):
                               f"has no answer yet ({entry.question})",
                               f"Ask the lead: type it with vela add subject from the facts they give, and link it from "
                               f"here, or answer {copy} in the question ledger.")
+
+
+# ------------------------------------------------------------------ the six existence questions, read back together
+
+@dataclass(frozen=True)
+class ExistenceLine:
+    copy: str        # "Q-FIN-01@INI-001"
+    question: str
+    recommend: str   # "no" or ""
+    why: str         # the evidence for the no, in plain words; "" when there is no recommendation
+
+
+NO_STORED_VALUE = "nothing on the pages mentions it"
+NO_PARTY = "the pages type no party and nothing hands data or work to an outside provider"
+RETIRES = ("retire", "replace")  # a capability change that moves ownership, operation or payment (PTN-01)
+
+
+def recommends_no(vault, entry):
+    """The why for a recommended "no" to an existence question, or "". A "no" is recommended only on the plan's
+    evidence, so the lead's answer is never the model's guess filed under their name: the entry creates a subject kind
+    and none is typed, and no untyped mention of it fires (W809). An entry that creates a party also needs no contract
+    with a `**Provider:**` (data or work handed to an outside provider is what those questions ask about), and
+    PTN-01 needs no app or capability retired or replaced."""
+    if not entry.creates:
+        return ""
+    typed = vault.stored_values if entry.creates == "stored-value" else vault.parties
+    if typed or any(f"{entry.id}@" in f.message for f in untyped_mentions(vault)):
+        return ""
+    if entry.creates == "stored-value":
+        return NO_STORED_VALUE
+    if any(c.fact("Provider") for c in vault.contracts):
+        return ""
+    if entry.id == "Q-PTN-01" and (any(a.meta.get("change") == "retired" for a in vault.apps) or any(
+            c.meta.get("change") in RETIRES for c in vault.of_type("capability"))):
+        return ""
+    return NO_PARTY
+
+
+def existence_lines(vault):
+    """The pending copies of the existence entries, in area order then ID: one line each, to read back together."""
+    order = {code: n for n, code in enumerate(vault.catalog.area_codes)}
+    pending = [d.copy for d in dispositions(vault) if d.pending and d.copy.entry.group == "existence"]
+    pending.sort(key=lambda c: (order.get(c.entry.area, len(order)), c.entry.id, c.id))
+    lines = []
+    for copy in pending:
+        why = recommends_no(vault, copy.entry)
+        lines.append(ExistenceLine(copy.id, copy.entry.question, "no" if why else "", why))
+    return tuple(lines)
