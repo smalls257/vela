@@ -55,8 +55,11 @@ SHARED = {"id": "the item's ID (a release by its heading, an allocation row as C
           "by": "the lead's handle; computed",
           "reader": "true in a reader copy; computed",
           "reopen": "true to reopen a decided item (a change of mind), with why",
-          "stated_in": "the source (SRC-nn) that states the decision, when an import confirms it: no options needed"}
-JUDGMENT = ("readback", "yes", "why", "dissent", "overrides", "on_behalf_of")
+          "stated_in": "the source (SRC-nn) that states the decision, when an import confirms it: no options needed",
+          "picked": "the option the lead picked and the capture where they picked it: \"<option>=^cP\"",
+          "rejected": "each option set aside: [\"<option>=^cR\"] (the capture holding the lead's reason) or "
+                      "[\"<option>=declined\"]"}
+JUDGMENT = ("readback", "yes", "why", "dissent", "overrides", "on_behalf_of", "picked", "rejected")
 
 
 def kind_module(kind):
@@ -176,6 +179,7 @@ def validate(item, view, record):
     found += stated_refusals(item, view)
     found += decide_writes.yes_refusals(item, record)
     found += decide_writes.words_refusals(item, view, record)
+    found += decide_writes.options_refusals(item, view, record, target)
     found += decide_writes.override_refusals(item, view, record, target)
     found += decide_writes.gate_refusals(item, view, record, target)
     return found + list(module.refusals(item, view, record, target))

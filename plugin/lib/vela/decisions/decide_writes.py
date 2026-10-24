@@ -50,6 +50,7 @@ GATE_3 = "GATE-3"
 # still holds, because a stated decision can still be blocked or unfinished.
 STATED_SKIPS = "GATE-2"
 REOPENED = "reopened"
+DECLINED = "declined"
 
 
 @dataclass(frozen=True)
@@ -281,8 +282,8 @@ def gate_refusals(item, view, record, target):
         route = gates.ROUTE_NAMES.get(reason.rule)
         if route is not None and route in named:
             continue
-        if item.get("stated_in") and reason.rule == STATED_SKIPS:
-            continue  # a source states the decision: there were options, weighed where it was made, not here
+        if (item.get("stated_in") or options_given(item)) and reason.rule == STATED_SKIPS:
+            continue  # a source states the decision, or the lead's pick is written with it: the options come with it
         override = found.route if route is not None else \
             "none from decide: settle each finding, or the dated flow-check override the checker reads"
         # The gate's fix is my recommendation to the lead; an event rule is set aside with a reason and no end date.
@@ -332,7 +333,8 @@ def receipt(item, view, record):
 def history_bullets(item, view, record, target, decision=True):
     """The bullets a decision adds under `## History`, in CONVENTIONS' order."""
     today = textedit.today(view)
-    out = [f"- **Decision:** {receipt(item, view, record)}"] if decision else []
+    out = [options_bullet(item, view, record)] if options_given(item) else []
+    out += [f"- **Decision:** {receipt(item, view, record)}"] if decision else []
     if item.get("why"):
         out.append(f"- **Why:** {textedit.inline(record.capture(item['why']).quote)}")
     if item.get("dissent"):
@@ -348,6 +350,82 @@ def history_bullets(item, view, record, target, decision=True):
     return out
 
 
+# --- a settled pick's options (--picked, --rejected)
+
+def options_given(item):
+    """A pick is on the item: the options come with the decision, so GATE-2 has nothing left to ask for."""
+    return bool(item.get("picked") or item.get("rejected"))
+
+
+def options_specs(item):
+    """The `<option>=<^cN or declined>` strings, the pick first."""
+    return ([item["picked"]] if item.get("picked") else []) + list(item.get("rejected") or [])
+
+
+def option_parts(spec):
+    """(option, what follows the last '='), or (spec, "") when there is no '='."""
+    name, _, rest = str(spec).rpartition("=")
+    return (name.strip(), rest.strip()) if name else (str(spec).strip(), "")
+
+
+def option_ref(spec):
+    """The capture a spec cites, or "" for a declined reason."""
+    rest = option_parts(spec)[1]
+    return "" if rest == DECLINED else rest
+
+
+def options_bullet(item, view, record):
+    """`- **Options considered:** <picked> (picked); <option>: rejected, "<the lead's words>"; <option>: rejected, reason
+    declined`. A reason goes on in words only when that person may be quoted; else the bullet points at the notes."""
+    parts = [f"{textedit.inline(option_parts(item['picked'])[0])} (picked)"]
+    for spec in item.get("rejected") or []:
+        name, rest = option_parts(spec)
+        if rest == DECLINED:
+            reason = "reason declined"
+        else:
+            capture = record.capture(rest)
+            reason = (f'"{textedit.inline(capture.quote)}"' if consent.may_quote(capture, record, view.lead)
+                      else f"the reason is in {textedit.capture_ref(record, rest)}")
+        parts.append(f"{textedit.inline(name)}: rejected, {reason}")
+    return f"- **Options considered:** {'; '.join(parts)}"
+
+
+def options_written(view, target):
+    """Whether the item (or page) already carries an `**Options considered:**` bullet."""
+    found = view.model.item(target.id)
+    if found is not None:
+        return vault_schema.OPTIONS_LABEL in found.facts
+    pages = view.model.by_id.get(target.id) or []
+    return bool(pages and pages[0].page_bullets(vault_schema.OPTIONS_LABEL))
+
+
+def options_refusals(item, view, record, target):
+    """A pick is whole: the option picked, at least one set aside, each citing a capture the record holds, and not
+    written already. Each refusal names the way round it (the audience is the model)."""
+    if not options_given(item):
+        return []
+    gate_two = "the lead's override of GATE-2, with their reason, instead of --picked and --rejected"
+    if not item.get("picked") or not item.get("rejected"):
+        return [refusal("decide-options-one", "A pick needs something it was picked over before I can write it down.",
+                        "Give both --picked \"<option>=^cP\" and --rejected \"<option>=^cR\" (or =declined) for each "
+                        "option set aside; one option alone is not a choice.", override=gate_two, audience=say.MODEL)]
+    found = []
+    for spec in options_specs(item):
+        name, rest = option_parts(spec)
+        problem = None if rest == DECLINED else consent.exists(rest, record) if rest else True
+        if problem is not None:
+            found.append(refusal("decide-options-capture", "I can't find where that option was picked or set aside.",
+                                 f"{spec!r}: use <option>=^cN with a capture in this record, or <option>=declined for "
+                                 "a reason the lead declined to give.", override="none: drop --picked and --rejected",
+                                 audience=say.MODEL))
+    if options_written(view, target):
+        found.append(refusal("decide-options-written", "That item already has its options written down, so I left "
+                                                        "them as they are.",
+                             "Drop --picked and --rejected; the bullet stays as written.",
+                             override="none: the options are already on the page", audience=say.MODEL))
+    return found
+
+
 def add_history(text, bullets, target):
     for bullet in bullets:
         text = textedit.add_history(text, bullet, target.history)
@@ -358,6 +436,7 @@ def consumed(item):
     """Every capture the decision filed, the cited one first: each is kept on the item it went into, so close finds
     nothing of this decision left to place."""
     refs = [item.get(name) for name in ("yes", "why", "readback", "dissent", "provider")]
+    refs += [option_ref(spec) for spec in options_specs(item)]
     refs += [group.get(name) for group in item.get("groups") or [] for name in ("readback", "yes")]
     refs += [group.get("reason") for group in item.get("overrides") or []]
     return list(dict.fromkeys(ref for ref in refs if ref))

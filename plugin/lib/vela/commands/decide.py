@@ -10,7 +10,8 @@ asks "Why this one, in your words?" and captures the answer; code copies it.
 
     vela decide ID --readback ^cN --yes ^cM [--why ^cK] [--dissent ^cJ]
                    [--override RULE ... --reason-from ^cR [--until YYYY-MM-DD]] [--on-behalf @owner]
-                   [--provider ^cP] [--group CRITERIA READBACK YES ...] [--vault V] [--today D] [--json|--for-lead]
+                   [--provider ^cP] [--picked "OPTION=^cP" --rejected "OPTION=^cR|declined" ...]
+                   [--group CRITERIA READBACK YES ...] [--vault V] [--today D] [--json|--for-lead]
     vela decide ID --later --yes ^cM [--vault V] [--today D] [--json|--for-lead]
     vela decide --reopen ID --why ^cN [--vault V] [--today D] [--json|--for-lead]
 
@@ -78,6 +79,11 @@ def register(sub):
     parser.add_argument("--provider", metavar="^cP", help="contract: the capture saying where the provider stands")
     parser.add_argument("--group", nargs=3, action="append", metavar=("CRITERIA", "READBACK", "YES"),
                         help="epic: a criterion group read back (AC1-AC5), its read-back and the lead's yes; repeat")
+    parser.add_argument("--picked", metavar="OPTION=^cP",
+                        help="settling a pick: the option the lead picked and the capture where they picked it")
+    parser.add_argument("--rejected", metavar="OPTION=^cR", action="append",
+                        help="settling a pick: an option set aside and the capture holding the lead's reason "
+                             "(OPTION=declined when they gave none); repeat for each")
     parser.add_argument("--stated-in", metavar="SRC-nn",
                         help="import: the source that states the decision; the lead's yes confirms it, no options "
                              "needed")
@@ -123,6 +129,10 @@ def item_from(args, ident, by, reader):
         item["provider"] = args.provider
     if getattr(args, "stated_in", None):
         item["stated_in"] = args.stated_in
+    if args.picked:
+        item["picked"] = args.picked
+    if args.rejected:
+        item["rejected"] = list(args.rejected)
     if args.group:
         item["groups"] = [{"criteria": c, "readback": r, "yes": y} for c, r, y in args.group]
     return {k: v for k, v in item.items() if v not in (None, [])}

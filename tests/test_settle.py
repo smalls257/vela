@@ -6,10 +6,10 @@ import subprocess
 import pytest
 
 import session_files
-from conftest import REPO, run
+from conftest import REPO, edit, run
 from vela import closegate, override, say, schema
-from test_decide import (RECORD_ID, STOCK, TODAY, block_con_002, decide_con_002, git_init, git_log,
-                         in_session_with_modes, make_vault)
+from test_decide import (CAPTURES, RECORD, RECORD_ID, STOCK, STRATEGY, TODAY, block_con_002, decide_con_002, filed,
+                         git_init, git_log, in_session_with_modes, item, make_vault, plan)
 
 LIB = REPO / "plugin" / "lib" / "vela"
 EVERY_MODE = ["dump", "discover", "shape", "boundary", "requirements", "allocate", "releases", "grill", "epics",
@@ -142,3 +142,74 @@ def test_a_hand_set_decided_citing_that_s_decided_fails_close(tmp_path):
                               f"| CON-002 | assumption | decided | [[{RECORD_ID}#^c01]] |\n\n## Captures")
     gate = json.loads(run("close", "gate", "--vault", str(root), "--today", TODAY, "--json")[1])
     assert any("never read" in p.get("plain", "") for p in gate.get("problems", [])), gate
+
+
+# --- settling a pick writes its options
+
+PICK = CAPTURES + ['- [answer] (@priya) "One Shop API. That\'s decided." ^c16',
+                   '- [answer] (@priya) "Two places to change for every price rule." ^c17',
+                   '- [answer] (@stock-team) "The till should own its calls." ^c18']
+OPTIONS = ("\n- **Options considered:** one Shop API (picked); the till calls Stock itself: rejected, two places to "
+           "change\n")
+
+
+def pick_vault(tmp_path):
+    root = make_vault(tmp_path, captures=PICK)
+    in_session_with_modes(root, "shape")
+    edit(root / STRATEGY, OPTIONS, "\n")
+    return root
+
+
+def settle_strategy(**more):
+    base = dict(why="^c03", picked="One Shop API=^c16", rejected=["The till calls Stock itself=^c17"])
+    base.update(more)
+    return item("solution-strategy", **base)
+
+
+def test_settling_a_pick_writes_its_options_in_the_leads_words_and_decides(tmp_path):
+    writes = filed(pick_vault(tmp_path), [settle_strategy()])
+    page = writes[STRATEGY]
+    assert "state: decided" in page
+    assert ('- **Options considered:** One Shop API (picked); The till calls Stock itself: rejected, "Two places to '
+            'change for every price rule."') in page
+    assert page.index("**Options considered:**") < page.index("**Decision:**")
+    assert "(decided) ^c16" in writes[RECORD] and "(decided) ^c17" in writes[RECORD]
+
+
+def test_a_reason_someone_else_gave_goes_on_by_reference(tmp_path):
+    page = filed(pick_vault(tmp_path), [settle_strategy(rejected=["The till calls Stock itself=^c18"])])[STRATEGY]
+    assert "The till should own its calls" not in page
+    assert f"The till calls Stock itself: rejected, the reason is in [[{RECORD_ID}]] c18" in page
+
+
+def test_a_declined_reason_is_recorded_as_declined(tmp_path):
+    page = filed(pick_vault(tmp_path), [settle_strategy(rejected=["The till calls Stock itself=declined"])])[STRATEGY]
+    assert "The till calls Stock itself: rejected, reason declined" in page
+
+
+def test_a_pick_with_nothing_set_aside_is_refused_with_its_override(tmp_path):
+    _, refusals = plan(pick_vault(tmp_path), [settle_strategy(rejected=[])])
+    assert "decide-options-one" in [r.rule for r in refusals]
+    assert all("GATE-2" in r.override for r in refusals if r.rule == "decide-options-one")
+
+
+def test_a_pick_naming_a_capture_the_record_lacks_is_refused(tmp_path):
+    _, refusals = plan(pick_vault(tmp_path), [settle_strategy(rejected=["The till calls Stock itself=^c99"])])
+    assert "decide-options-capture" in [r.rule for r in refusals]
+
+
+def test_options_already_written_are_left_as_they_are(tmp_path):
+    root = make_vault(tmp_path, captures=PICK)
+    in_session_with_modes(root, "shape")
+    _, refusals = plan(root, [settle_strategy()])
+    assert "decide-options-written" in [r.rule for r in refusals]
+
+
+def test_the_flags_reach_the_command(tmp_path):
+    root = pick_vault(tmp_path)
+    git_init(root)
+    code, out = run("decide", "solution-strategy", "--readback", "^c01", "--yes", "^c02", "--why", "^c03",
+                    "--picked", "One Shop API=^c16", "--rejected", "The till calls Stock itself=^c17",
+                    "--vault", str(root), "--today", TODAY, "--json")
+    assert code == 0, out
+    assert git_log(root)[0] == "shape: solution-strategy decided"
