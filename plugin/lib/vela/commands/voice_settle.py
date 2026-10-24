@@ -14,9 +14,9 @@ Two steps, one each side of the rewrite the skill writes (dispatching the review
   - A sentence the reviewer named as redundant may take its negation with it (`--redundant`, for that page only). A
     named sentence that is not in the draft or is still in the rewrite is voicecheck's "could not check": that page is
     restored too, because an unchecked rewrite is never committed.
-  - `--score` adds the voicescore summary line for the PR body. It is a hint, never a gate: it does not change the exit
+  - `--score` adds the voicescore summary line. It is a hint, never a gate: it does not change the exit
     code and it never restores or keeps a page.
-  The outcome goes to `.vela/close/<id>.voice.json` for `close pr`'s **Voice review** (Task 12 reads it):
+  The outcome goes to `.vela/close/<id>.voice.json` (the pull request body no longer reads it):
   `{"version": 1, "redundant": [{"page", "sentence"}], "restored": [{"page", "why"}], "kept": [page, ...]}`.
 
 The Violations this shape prevents: the **Distributed Monolith** of a checkpoint in one prose step and a restore in
@@ -57,7 +57,7 @@ def register_voice(each):
     parser.add_argument("--redundant", nargs=2, action="append", default=[], metavar=("PAGE", "SENTENCE"),
                         help="a sentence the reviewer named as redundant on PAGE, exactly as it stood; repeatable")
     parser.add_argument("--score", action="store_true",
-                        help="add the voicescore summary line for the PR body (a hint, never a gate)")
+                        help="add the voicescore summary line (a hint, never a gate)")
     parser.add_argument("--session", help="the session id; default: the one record in sessions/ that says status: open")
     parser.add_argument("--vault", default=".", help="vault root (default: current directory)")
     say.add_output_flags(parser)
@@ -310,6 +310,6 @@ def score_line(root, pages):
 
 def lead_score(line):
     if line.startswith("voicescore: not run"):
-        return "The style reading didn't run, so the PR says why."
+        return "The style reading didn't run."
     inside, total = line.split(": ", 1)[1].split(" paragraphs", 1)[0].split(" of ")
     return f"The style reading puts {inside} of {total} paragraphs inside your range; it's a hint, not a verdict."

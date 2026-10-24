@@ -3,6 +3,7 @@ for an answer session), the saved body when `gh` fails, and the handoff's PR num
 the sim's stub (only `pr create` works) or the one below, which logs each call with the body it was given."""
 import importlib.util
 import json
+import re
 import sys
 
 from conftest import REPO, run
@@ -103,7 +104,7 @@ def test_a_branch_with_an_open_pull_request_gets_the_session_added_not_a_second_
     assert code == 0, out
     assert not created(log)
     (comment,) = [c for c in calls(log) if c["args"][:2] == ["pr", "comment"]]
-    assert comment["args"][2] == "9" and "**Decisions**" in comment["body"]
+    assert comment["args"][2] == "9" and "**What changed**" in comment["body"]
     assert "already has a review open" in out and "pull/9" in out
     code, out = pr(vault, "--json")
     assert json.loads(out)["added_to_open"] is True
@@ -116,7 +117,7 @@ def test_gh_failure_saves_body_and_says_one_sentence(tmp_path, monkeypatch):
     assert code == 1, out
     assert out.strip() == prbody.SAVED_SENTENCE and "I've kept its text" in out
     saved = (vault / ".vela" / "pr-body.md").read_text(encoding="utf-8")
-    assert "**Decisions**" in saved
+    assert "**What changed**" in saved
     code, out = pr(vault)
     assert code == 1 and "502" in out and "gh pr create" in out  # the default mode names what failed
 
@@ -131,14 +132,18 @@ def test_no_pr_claimed_without_url(tmp_path, monkeypatch):
     assert "github.invalid" not in out
 
 
-def test_receipts_listed_in_body_and_no_quotes(tmp_path, monkeypatch):
+def test_the_body_says_what_changed_in_plain_words_and_nothing_else(tmp_path, monkeypatch):
     log = fake_gh(tmp_path, monkeypatch)
     vault, _ = pushed(tmp_path)
     assert pr(vault)[0] == 0
     body = created(log)[0]["body"]
-    assert f"- Stock level: fact to decided, [[{RECORD}]] c01" in body
+    assert "- Stock level: now decided" in body
     assert YES_WORDS not in body and '"Yes, send it."' not in body
-    assert f"Sent with your yes on October 20, 2026." in body
+    assert re.findall(r"^\*\*(.+?)\*\*$", body, re.M) == ["What changed"]
+    for gone in ("Needs a look", "Decisions", "Check", "Stage", "Voice review", "In their words", "Overrides",
+                 "Questions still open", "Sent with your yes", "[[", " c01", "Filled in by the reviewer",
+                 "Structural fixes", "Prose edits", "Does customer data cross"):
+        assert gone not in body, gone
 
 
 def test_pending_pr_number_written(tmp_path, monkeypatch):
@@ -156,21 +161,6 @@ def test_pending_pr_number_written(tmp_path, monkeypatch):
     assert git(bare, "rev-parse", BRANCH) == git(vault, "rev-parse", "HEAD")
 
 
-def test_redundant_sentences_listed_under_voice_review(tmp_path, monkeypatch):
-    log = fake_gh(tmp_path, monkeypatch)
-    vault, _ = pushed(tmp_path)
-    voice = {"version": 1, "redundant": [{"page": "05-building-blocks/stock-building-blocks.md",
-                                          "sentence": "Stock counts what is left."}],
-             "restored": [], "kept": ["05-building-blocks/stock-building-blocks.md"],
-             "voicescore": "voicescore: 2 of 2 paragraphs inside your range"}
-    (vault / ".vela" / "close" / f"{RECORD}.voice.json").write_text(json.dumps(voice), encoding="utf-8")
-    assert pr(vault)[0] == 0
-    body = created(log)[0]["body"]
-    review = body.split("**Voice review**", 1)[1].split("\n\n**", 1)[0]
-    assert '"Stock counts what is left."' in review and "Stock" in review
-    assert "voicescore: 2 of 2 paragraphs inside your range" in review
-
-
 def test_prose_file_goes_first(tmp_path, monkeypatch):
     log = fake_gh(tmp_path, monkeypatch)
     vault, _ = pushed(tmp_path)
@@ -179,7 +169,7 @@ def test_prose_file_goes_first(tmp_path, monkeypatch):
     assert pr(vault, "--prose", str(prose))[0] == 0
     body = created(log)[0]["body"]
     assert body.startswith("Stock level is now decided.")
-    assert "**Overrides**" in body and "**Check**" in body and "**Questions still open**" in body
+    assert "- Stock level: now decided" in body
 
 
 def test_pr_before_push_refused(tmp_path, monkeypatch):
@@ -208,7 +198,7 @@ def test_answer_session_pushes_challenge_branch_and_comments(tmp_path, monkeypat
     assert not created(log)
     (comment,) = [c for c in calls(log) if c["args"][:2] == ["pr", "comment"]]
     assert comment["args"][2] == "5"
-    assert "E316 for CON-002 should now be gone." in comment["body"]
+    assert "**What changed**" in comment["body"]
     assert "https://github.invalid/mini/vault/pull/5#issuecomment-1" in out
 
 
@@ -225,24 +215,24 @@ def test_reviewer_handles():
     assert prbody.reviewer_words(["mini/identity-team", "priya"]) == "Priya and the identity team"
 
 
-def test_overdue_and_open_questions_by_their_words():
-    lines = prbody.section("Overdue open questions", prbody.overdue_lines(
-        [("Who signs off the stock count?", "@ops", "2026-10-01")]))
-    assert lines[0] == "**Overdue open questions**"
-    assert "- Who signs off the stock count? Owner @ops, due 2026-10-01." in lines
-    assert not any("W705" in line for line in lines)
+def test_state_moves_in_plain_words():
+    assert prbody.state_move("fact", "decided") == "now decided"
+    assert prbody.state_move("decided", "assumption") == "set back to not decided yet"
+    assert prbody.state_move("open", "resolved") == "answered"
 
 
-def test_stage_line_wording():
-    assert prbody.stage_line("Stock", "handover", "boundary") == \
-        "Ready to move on: Stock's pages are ready for handover; its stage still says 'boundary'."
+def test_what_changed_has_no_record_link_or_capture_number():
+    class Vault:
+        def name_of(self, ident):
+            return "Stock level"
+    row = type("Row", (), {"item": "CON-002", "before": "fact", "after": "decided", "capture_number": "1"})()
+    assert prbody.what_changed([row], Vault()) == ["- Stock level: now decided"]
 
 
-def test_red_check_by_the_items_state():
-    decided = prbody.red_check("CON-002", "Stock level", "decided")
-    assert "E316 is deliberate" in decided
-    other = prbody.red_check("CON-002", "Stock level", "assumption")
-    assert "Nothing blocks this merge" in other and "E316 is deliberate" not in other
+def test_a_body_is_the_sentences_and_what_changed_only():
+    text = prbody.body(prbody.Facts(summary="Done.", changed=["- Stock level: now decided"]))
+    assert text == "Done.\n\n**What changed**\n\n- Stock level: now decided\n"
+    assert "Needs a look" not in text
 
 
 def test_lead_never_hears_a_code_in_the_failure_sentence():

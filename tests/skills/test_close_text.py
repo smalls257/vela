@@ -269,7 +269,7 @@ def test_pr_body_is_the_sentences_a_reviewer_reads():
     """Task 22a: `close pr` builds the lists; PR-BODY.md keeps only what code can't write."""
     body = (PLUGIN / "skills" / "close" / "PR-BODY.md").read_text(encoding="utf-8")
     assert len(body.split()) < 340  # the paragraph on what the body never says (the notes stay private) is new
-    assert "two or three sentences" in body and "Don't repeat any of it" in body
+    assert "two or three sentences" in body and "Don't repeat the list" in body and "**What changed**" in body
     for heading in ("**Promoted on a nod:**", "**May still say the old value:**", "**Minutes.**", "**Stage:**"):
         assert heading not in body, heading
     assert "the two or three sentences a reviewer reads first" in prbody.__doc__
@@ -288,7 +288,7 @@ def test_the_close_manifest_step_tells_the_lead_what_is_not_firm():
 
 def test_close_reports_the_stage_as_a_line_and_never_asks():
     assert "vela ladder" not in CLOSE_22A  # close pr writes the stage line itself
-    assert prbody.stage_line("Till", "design", "boundary").startswith("Ready to move on: ")
+    assert not hasattr(prbody, "stage_line")  # the stage is not in the body any more
 
 
 def test_close_writes_the_handoff_pr_number():
@@ -321,7 +321,6 @@ def test_close_keeps_the_override_bullets():
     from vela import closegate, override
     assert "E321" in inspect.getsource(override) and "Write - **Override:**" in inspect.getsource(override)
     assert "Was that on purpose?" in inspect.getsource(closegate.unagreed_removals) or "Was that on purpose?" in inspect.getsource(closegate)
-    assert '("Overrides", f.overrides, "none")' in read("plugin", "lib", "vela", "prbody.py")
 
 
 # --- From tests/test_reader_skills.py: Reader mode in the skill text: no git in a read copy, owner-only skills
@@ -391,7 +390,7 @@ def test_ledger_is_the_conversation_only_and_the_rows_are_code():
 def test_close_reports_questions_and_reviews_in_the_pr_body():
     for label in ("**Questions:**", "**Catalog proposals:**", "vela check --gate shape", "vela questions --open --digest"):
         assert label not in CLOSE_22A, label  # close pr collects them
-    assert '("Questions still open", f.open_questions, "none")' in read("plugin", "lib", "vela", "prbody.py")
+    assert "Questions still open" not in read("plugin", "lib", "vela", "prbody.py").split("def body")[1]
 
 
 def test_close_keeps_its_existing_guards():
@@ -504,7 +503,6 @@ def test_close_marks_honestly_and_never_claims_a_pr():
     assert "Do not open a PR for a branch that is not pushed." not in CLOSE_SKILL
     assert "isn't pushed by close push yet" in read("plugin", "lib", "vela", "commands", "close_push.py")
     assert "`org/team`" in prbody.__doc__ and "the lead's own\n  handle is dropped" in prbody.__doc__
-    assert '("Kept on Claude\'s suggestion (check these)", f.kept_on_claude, None)' in read("plugin", "lib", "vela", "prbody.py")
 
 
 def test_close_finds_the_open_session_through_session_open():
@@ -516,7 +514,7 @@ def test_close_finds_the_open_session_through_session_open():
 
 
 def test_close_pr_body_reviewers_and_staging():
-    assert "Decisions the owner hasn't heard read back" in prbody.__doc__
+    assert "still\n  run in `vela check` and in CI" in prbody.__doc__
     assert "gh api user" not in CLOSE_22A and "If nobody remains, leave out" not in CLOSE_22A
     assert "git add -A" not in CLOSE and "vela close finish" in CLOSE_SKILL  # only the CLI stages
 
@@ -602,10 +600,8 @@ def test_a_decline_is_a_stub_entry_and_conventions_say_so():
 # --- the close skill ------------------------------------------------------------------------
 
 
-def test_the_pr_body_reports_voicescore_in_the_voice_review_line():
-    assert "voicescore: not run (not asked for)" in read("plugin", "lib", "vela", "prbody.py")
-    assert "- **Voice review:**" not in CLOSE_22A
-    assert "--score" in voice_review()
+def test_voice_review_scores_without_touching_the_pr_body():
+    assert "--score" in voice_review() and "- **Voice review:**" not in CLOSE_22A
 
 
 def test_voice_review_dispatches_a_fresh_reviewer_and_voice_settle_does_the_git():

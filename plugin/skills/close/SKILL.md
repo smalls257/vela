@@ -40,7 +40,7 @@ If the session touched prose, run the voice review once as `${CLAUDE_PLUGIN_ROOT
 In this order, so the read-back covers the final words:
 
 1. **Still yes?** Run `vela close gate --json` and act only on its "Still yes" item (decisions made on the other machine); everything else it lists is section 4's. Ask once, in one message, with the names it gives: "These were decided on the other machine: the booking API, and one question taken off the finance page. Still yes?" Capture the answer and do what the gate's clear line says. On a no, run nothing; offer to reopen the item. Never reconfirm anything for them. If an item's owner is someone else and isn't here, their decision stays a name in the receipt with no words, and `close pr` lists it for them: don't chase their words now.
-2. **The read-back.** Run `vela close readback --for-lead` and read its sentences in groups of about five, by item name. For each, the lead keeps it, rewords it or cuts it (`vela close readback --help`); a decision's own receipt can be reworded, never cut, and new words must be theirs. Offer to pick a line of theirs for the pull request's "In their words". Someone else's words go in only with that person's own yes to being quoted, whatever the lead says they told them. Then `vela close readback --done`.
+2. **The read-back.** Run `vela close readback --for-lead` and read its sentences in groups of about five, by item name. For each, the lead keeps it, rewords it or cuts it (`vela close readback --help`); a decision's own receipt can be reworded, never cut, and new words must be theirs. Then `vela close readback --done`.
 
 ## 4. Check, then finish and send
 

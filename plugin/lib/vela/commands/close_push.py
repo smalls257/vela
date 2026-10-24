@@ -34,7 +34,7 @@ it's checked whatever the host.
 
 `close pr`: when the branch already has an open pull request (`gh pr view` on the branch), the session's body is added to
 it as a comment and no second one is opened; the lead is told so. Reviewers from `owner:` fields (the lead's own handle dropped, `vela whoami`; team handles kept as
-`org/team`), the body `prbody.body` builds (its Decisions are the pages' receipts, its push line the day of the lead's yes; no capture's words are in it), and
+`org/team`), the body `prbody.body` builds (the sentences and one plain line per item that changed; no capture's words are in it), and
 `gh pr create`; for an answer session, `gh pr comment` on the challenge's open PR instead. When `gh` fails, or prints
 no URL, the body is saved to `.vela/pr-body.md` and the lead hears one sentence; a PR is never said to exist unless
 `gh` printed its URL. When a PR was created and the session wrote `handed_off_pr: pending`, the number replaces
@@ -51,8 +51,8 @@ import re
 import tempfile
 from dataclasses import replace
 
-from vela import closegate, closereadback, commands, parse, planscope, prbody, privaterecord, say, sessions
-from vela.commands import apply, close_gate, whoami
+from vela import closegate, commands, parse, planscope, prbody, privaterecord, say, sessions
+from vela.commands import close_gate, whoami
 from vela.decisions import consent as consents
 from vela.decisions import record as records
 from vela.edge import flowstore, ghcli, hostprobe, sessiongit, vaultgit
@@ -391,62 +391,20 @@ def pushed_marker(root, session):
     return marker
 
 
-def stub_meta(root, session):
-    """The committed header of the session: where each part's fingerprint is kept."""
-    return privaterecord.stub_meta((root / privaterecord.stub_path(session.id)).read_text(encoding="utf-8"))
-
-
-def body_facts(root, vault, session, marker, before_texts, before, args):
-    from vela import cli, ladder, questions, rules
-    today, _ = cli.parse_today(args.today)
-    findings = list(rules.check(vault, today))
-    changed = set(before_texts)
-    titles = {p.path: str(p.meta.get("title") or p.name) for p in vault.pages}
-    rows = closegate.change_rows(session.text)
-    decided = [r.item for r in rows if r.after == closegate.CONSENT_STATE]
-    owed = [(d.copy.entry.question, d.copy.subject.title) for d in questions.dispositions(vault)
-            if d.pending and d.copy.subject.page is not None and d.copy.subject.page.path in changed]
-    entries = {e.id: e.question for e in vault.catalog.entries}
-    added = [(name, o) for key, (name, o) in sorted(closegate.override_scopes(vault).items(), key=lambda p: str(p[0]))
-             if key not in closegate.override_scopes(before)]
-    stage = [prbody.stage_line(str(app.meta.get("title") or app.name), reached, app.meta.get("stage"))
-             for app in vault.apps for reached in [ladder.ahead_of_stage(vault, app)] if reached]
-    check = [prbody.check_line(findings, len(vault.pages))]
-    red = ""
-    if session.answer and session.challenged:
-        still = any(f.code == "E316" and session.challenged in f.message for f in findings)
-        check.append(prbody.answer_check(session.challenged, still))
-    if "challenge" in session.record.modes:
-        ident = prbody.topic_of(session.record.title)
-        state = closegate.states(vault).get(ident, "")
-        red = prbody.red_check(ident, vault.name_of(ident), state)
-    texts = {p.path: p.text for p in vault.pages}
-    voice = read_marker(root, close_file(session.id, "voice"))
+def body_facts(root, vault, session, args):
+    """The sentences the lead's model wrote (or the session's summary) and what changed. Nothing else is gathered:
+    the checks live in `vela check` and CI."""
     prose = pathlib.Path(args.prose).read_text(encoding="utf-8") if args.prose else ""
     summary = str(parse.split_frontmatter(session.text)[0].get("summary") or "")
-    return prbody.Facts(
-        summary=summary, prose=prose,
-        decisions=prbody.decision_lines(vault, session.id), push_line=prbody.push_words(marker.get("date", "")),
-        in_their_words=prbody.in_their_words(closereadback.valid_picks(
-            close_gate.read_picked(root, session.id), closegate.captures(session.text), apply.lead_of(root)), vault,
-            closegate.captures(session.text), apply.lead_of(root)),
-        fingerprint_note=prbody.fingerprint_notes(stub_meta(root, session), session.part),
-        changed=prbody.what_changed(rows, vault, session.id, session.part), voice=prbody.voice_lines(voice, lambda p: titles.get(p, p)),
-        kept_on_claude=prbody.kept_on_claude(session.text, vault),
-        not_read_back=prbody.not_read_back(decided, vault, prbody.present_people(session.text)),
-        overrides=prbody.override_lines(added, vault),
-        old_values=prbody.old_value_hits(prbody.old_values(before, vault), texts),
-        overdue=prbody.overdue_lines(prbody.overdue_rows(vault, findings)),
-        open_questions=prbody.open_question_lines(owed),
-        catalog_gaps=prbody.catalog_gap_lines(questions.stats(vault), entries),
-        red_check=red, check=check, stage=stage)
+    return prbody.Facts(summary=summary, prose=prose,
+                        changed=prbody.what_changed(closegate.change_rows(session.text), vault))
 
 
 def open_pr(root, vault, session, args):
-    marker = pushed_marker(root, session)
+    pushed_marker(root, session)
     before_texts = changes(root)
     found, before = reviewer_handles(root, vault, before_texts, PR)
-    text = prbody.body(body_facts(root, vault, session, marker, before_texts, before, args))
+    text = prbody.body(body_facts(root, vault, session, args))
     with tempfile.TemporaryDirectory(prefix="vela-pr-") as folder:
         body_file = pathlib.Path(folder) / "body.md"
         body_file.write_text(text, encoding="utf-8")
