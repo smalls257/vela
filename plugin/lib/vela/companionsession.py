@@ -50,6 +50,17 @@ def highest_capture(notes):
     return max((int(n) for n in closegate.captures(notes)), default=0)
 
 
+def behind(published, notes):
+    """The line for Claude when the published panel shows fewer captures than the notes hold, "" when it is current.
+    It is for Claude, so the command words are allowed."""
+    if notes <= published:
+        return ""
+    gap = notes - published
+    word = "1 capture" if gap == 1 else f"{gap} captures"
+    return (f"The session companion is {word} behind; run `sh ${{CLAUDE_PLUGIN_ROOT}}/scripts/run-vela companion session "
+            "--html` in the same Bash call as your next vela write and publish the file to the same artifact.")
+
+
 def unreadable(stub, why, today, now):
     """The panel for a session whose notes can't be read: every list is null, never empty, and the warning says why."""
     return {"version": VERSION, "kind": "session", "as_of": as_of(today, now), "capture": 0, "notes": "unreadable",

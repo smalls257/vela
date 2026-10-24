@@ -346,3 +346,16 @@ def viewer(root):
         role = ""
     handle = handle.strip()
     return ("@" + handle.lstrip("@") if handle else ""), role
+
+
+def published(root):
+    """What the Cowork publish path last drew ({"capture", "at", "session", "explain"}); {} when nothing was published
+    here. A marker that can't be read raises ToolError."""
+    path = pathlib.Path(root) / FOLDER / "published.json"
+    if not path.is_file():
+        return {}
+    try:
+        found = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, ValueError) as exc:
+        raise errors.ToolError(f"The published-panel marker couldn't be read ({exc}).") from exc
+    return found if isinstance(found, dict) else {}
