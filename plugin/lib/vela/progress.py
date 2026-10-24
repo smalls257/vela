@@ -152,7 +152,7 @@ def suggest(vault, app, as_of, blocked):
         stage = text(app.meta.get("stage")) or "no stage"
         return 4, "discover", ready[0].id, f"{named(ready[0].id)} is ready to decide, but {app_name} is still at the {stage} stage; a grill needs the app at target or later."
     if ready:
-        return 5, "grill", ready[0].id, f"{named(ready[0].id)} is not decided yet; its options are written down and no open question holds it up."
+        return 5, "grill", ready[0].id, f"{named(ready[0].id)} is ready to decide: settle it when you're sure, or grill it to test it first."
     for unit in mine:
         if unit.id in blocked:
             unknown = blocked[unit.id][0]

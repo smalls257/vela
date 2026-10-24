@@ -25,6 +25,7 @@ def say(mini, sentence):
     "A Grill will decide the till's float.",
     "The rounding rule is to be decided later.",
     "This is settled in the next Grill.",
+    "We'll settle it later.",
 ])
 def test_prose_that_leaves_a_matter_for_a_grill_warns(mini, sentence):
     say(mini, sentence)

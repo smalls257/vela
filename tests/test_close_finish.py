@@ -247,8 +247,8 @@ def test_closing_sets_the_stub_status_and_quotes_the_summary_in_the_notes():
     assert notes.split("---", 2)[2] == split.private.split("---", 2)[2]
 
 
-def test_close_tells_the_lead_which_yeses_wait_for_a_short_grill(tmp_path):
-    """E81: a yes in a session that can't decide is listed for the next grill; close says so, in words and no IDs."""
+def test_close_tells_the_lead_which_yeses_are_waiting_to_be_settled(tmp_path):
+    """E81: a yes the lead gave and didn't settle is listed; close says so, in words and no IDs."""
     vault = session(tmp_path)
     page = vault / STOCK
     page.write_text(page.read_text(encoding="utf-8").replace("- **State:** fact", "- **State:** assumption", 1),
@@ -262,5 +262,17 @@ def test_close_tells_the_lead_which_yeses_wait_for_a_short_grill(tmp_path):
     assert run("render", "--vault", str(vault))[0] == 0
     code, out = finish(vault, "--for-lead")
     assert code == 0, out
-    assert "One item you said yes to is ready for a short grill: Stock level." in out
+    assert "One item you said yes to is waiting to be settled: Stock level." in out
+    assert "CON-002" not in out
+
+
+def test_close_says_what_the_session_settled(tmp_path):
+    vault = session(tmp_path)
+    session_files.edit_record(
+        vault, RECORD, "## Captures",
+        f"## Changes\n\n| ID | From | To | Source |\n|---|---|---|---|\n"
+        f"| CON-002 | assumption | decided | [[{RECORD}#^c01]] |\n\n## Captures")
+    code, out = finish(vault, "--for-lead")
+    assert code == 0, out
+    assert "You settled one thing in this session: Stock level." in out
     assert "CON-002" not in out

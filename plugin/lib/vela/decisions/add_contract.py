@@ -5,7 +5,7 @@ provider's building-blocks page (boundary section 4, allocate; CONVENTIONS "Fact
 - **The required bullets** (`**Crosses the boundary:**`, `**Consumers:**`, `**Change policy:**`, `**Change:**`,
   `**State:**`) are all written, so the page passes the contract check from its first line. Consumers link each
   consumer's page, or say `none`.
-- **Never `decided`**: only a grill decides a contract, so a new one is at most an `assumption`. The case table is
+- **Never `decided`**: a contract is settled with `vela decide` once it is written, so a new one is at most an `assumption`. The case table is
   the session's to read back with the lead, one open case at a time; it is not invented here.
 - Numbered `CON-nnn` past every open branch. The capture gets the `## Changes` row and its keep mark.
 """
@@ -48,9 +48,9 @@ def validate(item, vault, record):
                                       f"change is one of {', '.join(CHANGES)}."))
     state = item.get("state") or "assumption"
     if state not in STATES:
-        found.append(textedit.refusal("add-contract-state", "A new contract isn't decided until a grill decides it.",
-                                      f"state is one of {', '.join(STATES)}; decide it in a grill.",
-                                      override="an override of grill on the item, then vela decide"))
+        found.append(textedit.refusal("add-contract-state", "A new contract starts as not decided yet; once it's written, it can be settled.",
+                                      f"state is one of {', '.join(STATES)}; settle it with vela decide once it is written.",
+                                      override="none: write it at assumption, then vela decide"))
     if state == "fact":
         refusal = resolve.fact_source_refusal(vault, item.get("source"))
         if refusal is not None:

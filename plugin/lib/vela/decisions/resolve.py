@@ -19,7 +19,7 @@ What it refuses, and why:
   stays open, with what the plan says in its `**Notes:**`.
 - **Only an open unknown** is resolved; one already resolved keeps its Outcome.
 
-What it blocked is not changed here: a grill decides, and Discover writes the fact, each in its own mode.
+What it blocked is not changed here: a decision settles it (vela decide), and Discover writes the fact, each in its own mode.
 """
 import re
 

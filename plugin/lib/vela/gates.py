@@ -13,7 +13,7 @@ What is judged, and why each rule is the grill skill's own (the why moves with t
   is at `target` or later (`progress.in_grill_stage`): before then the app's parts are not read back, so a decision
   would be about a shape nobody confirmed. Initiative-level items pass.
 - **GATE-2, a preferred option.** The item is at `assumption` with an `**Options considered:**` bullet, or an epic is at
-  `draft` or `reopened`: a Grill decides between options Shape wrote down, it does not invent them. An item already
+  `draft` or `reopened`: a decision picks between options Shape wrote down, it does not invent them. An item already
   `decided` (or a `fact`) is said so, since reopening is a change of mind the lead chooses. A concern page, a table row,
   an unknown or a risk carries no option bullet, so GATE-2 is left to the skill for those (a concern cell passes when the
   lead states what the initiative does for the app; code can't hear that).

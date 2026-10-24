@@ -4,7 +4,7 @@ capability page (requirements section 3; REQUIREMENTS-IN-VAULT).
 - **Numbered after the highest**, on the page and on every open branch: numbers are never reused, because a dropped
   requirement's links and release rows must not start pointing at a new one.
 - **The heading format**: the capability's ID, `.FR<n>`, and a short name of at most six words.
-- **`**State:** assumption`** at most: a requirements session cannot decide; only a grill makes an FR `decided`.
+- **`**State:** assumption`** at most: a new requirement starts as not decided yet; `vela decide` settles it.
 - **`**Source:**`** links the capture the lead said it in, so the requirement keeps the words it came from.
 - **Criteria** are plain sentences, one bullet each, with a `- Trace:` line under any that cites an item; a requirement
   with more than about seven criteria is two requirements (the skill proposes the split before writing).
@@ -38,8 +38,8 @@ def validate(item, vault, record):
                                       f"{item['capability']} is no capability page in this vault."))
     if (item.get("state") or "assumption") not in STATES:
         found.append(textedit.refusal("add-fr-state", "A requirements session writes a requirement as assumed at most.",
-                                      "state is inkling or assumption; a grill decides it.",
-                                      override="an override of grill on the item, then vela decide"))
+                                      "state is inkling or assumption; it's settled with vela decide.",
+                                      override="none: write it at assumption, then vela decide"))
     if len(item.get("traces") or []) > len(item.get("criteria") or []):
         found.append(textedit.refusal("add-fr-traces", "There are more trace lines than criteria.",
                                       "Give one traces entry per criterion, in order."))

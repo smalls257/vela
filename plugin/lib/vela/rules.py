@@ -466,7 +466,7 @@ def handoff_rules(vault, today):
         for gap in handoffwarn.gaps(vault, app):
             if gap.kind == "unfirm":
                 yield _f(gap.page, gap.line, "W386", f"{gap.sentence} {handing(app)}",
-                         "Decide it in a grill before the app's team accepts the app, or tell them it isn't settled.")
+                         "Settle it before the app's team accepts the app (vela decide, in any session), or tell them it isn't settled.")
             elif gap.kind == "no-designer":
                 yield _f(gap.page, gap.line, "W387", f"{gap.sentence} {handing(app)}",
                          "Hand the app that provides those calls to a team too, or warn this app's team that the calls have no design behind them yet.")

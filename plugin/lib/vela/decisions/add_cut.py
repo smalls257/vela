@@ -8,7 +8,7 @@ it names and its `**Options considered:**` bullet (boundary section 2; plan 2.13
   a later session can see what was weighed and why it lost. A pick with no rejected option is refused: boundary offers
   two or three cuts, never one.
 - **The capture of the pick** is marked at once, `→ keep: [[05-building-blocks#<cut>|cut]] (assumption)`: the cut is
-  believed, not decided, until a grill.
+  believed, not decided, until it's settled.
 """
 from vela.decisions import textedit
 from vela.decisions.schema import Write

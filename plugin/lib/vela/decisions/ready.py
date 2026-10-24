@@ -91,9 +91,9 @@ def from_keep(record_text, record_id, capture, ident, state, lead):
 
 
 def sentence(names):
-    """What close tells the lead about their yeses still waiting for a grill, in their words (no IDs); "" when none."""
+    """What close tells the lead about their yeses still waiting to be settled, in their words (no IDs); "" when none."""
     if not names:
         return ""
     if len(names) == 1:
-        return f"One item you said yes to is ready for a short grill: {names[0]}."
-    return f"{say.count_words(len(names), capital=True)} items you said yes to are ready for a short grill: {say.names_said(names)}."
+        return f"One item you said yes to is waiting to be settled: {names[0]}."
+    return f"{say.count_words(len(names), capital=True)} items you said yes to are waiting to be settled: {say.names_said(names)}."

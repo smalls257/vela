@@ -6,7 +6,7 @@ the four sections close fills (`## Context`, `## Decision`, `## Alternatives con
 to link to the moment a grill offers it. The prose is the model's to draft and the lead's to read back.
 
 - Numbered `ADR-nnnn` past every open branch.
-- `state` is `proposed` until a grill decides it; a record for a page decided this session may be written `decided`
+- `state` is `proposed` until it's settled; a record for a page decided this session may be written `decided`
   with `decision` naming the deciding session, which goes under `## History` as its `**Decision:**` bullet. That
   bullet is a receipt (`receipts.decision_value`): it needs `capture`, the yes it came from, and carries that person's
   words only when `consent.may_quote` lets them out. A bare `[[session]]` would be a Decision nobody can trace.
@@ -22,7 +22,7 @@ STATES = ("proposed", "decided", "superseded", "rejected")
 FIELDS = {"title": "what was decided, as a short sentence",
           "owner": "the handle that owns the record: the lead's",
           "state": "proposed (default) or decided",
-          "decision": "for a decided record: the deciding grill session's ID (needs capture, the yes it came from)",
+          "decision": "for a decided record: the deciding session's ID (needs capture, the yes it came from)",
           "decides": "the ID of the page or item it records the decision for (optional; linked under Decision)",
           "capture": "the capture where the lead asked for or agreed to the record; a decided record's receipt cites it",
           "id": "leave null: vela numbers it past every open branch"}
@@ -36,9 +36,9 @@ def validate(item, vault, record):
         found.append(textedit.refusal("add-state", "I couldn't tell where that decision stands.",
                                       f"state is one of {', '.join(STATES)}."))
     if item.get("state") == "decided" and not item.get("decision"):
-        found.append(textedit.refusal("add-adr-decision", "A decided record needs the grill that decided it.",
-                                      "Give decision: the grill session's ID.",
-                                      override="leave state proposed until a grill decides it"))
+        found.append(textedit.refusal("add-adr-decision", "A decided record needs the session that decided it.",
+                                      "Give decision: the deciding session's ID.",
+                                      override="leave state proposed until it's settled"))
     if item.get("decision") and not item.get("capture"):
         found.append(textedit.refusal("add-adr-capture", "I need the answer that decided it written down before I can "
                                                          "cite it.",

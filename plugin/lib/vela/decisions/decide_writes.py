@@ -45,7 +45,7 @@ GATE_5 = "GATE-5"
 # yes) could be set aside: it holds at the moment of deciding, so an exception is a reason, not a period.
 EVENT_WAIVER = "It's your call: I can decide it anyway and note your reason."
 GATE_3 = "GATE-3"
-# The one grill rule a decision a source states skips: a Grill picks between options Shape wrote down, and the
+# The one grill rule a decision a source states skips: a decision picks between options Shape wrote down, and the
 # document records a choice already made. Every other reason (the stage, an open question, a contract's case table)
 # still holds, because a stated decision can still be blocked or unfinished.
 STATED_SKIPS = "GATE-2"
