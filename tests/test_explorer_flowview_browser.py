@@ -81,7 +81,7 @@ def test_the_selftest_walks_the_pinned_row_the_starts_and_the_folds_at_both_size
         for want in ("ok pin: a short stage makes", "ok pin: a click on a pinned name still opens", "ok pin: a shadow falls under the pinned row", "ok pin: the saved clip draws the flow whole",
                      "ok starts: 4 flows with one way in show no Starts from", 'ok starts, FLO-010: "Starts from" in the header row', "ok starts, FLO-010: picking",
                      "ok starts, FLO-010: Next skips the steps of the start not picked", "ok starts, FLO-010: the arrow keys move between the starts",
-                     "ok starts, FLO-010: a click on a Start tag picks that start", "ok starts, FLO-010: a link naming the start opens with it picked",
+                     "ok starts, FLO-010: a click on a Start tag picks that start", "ok starts, FLO-010: pressing the picked start again goes back to Either", "ok starts, FLO-010: a link naming the start opens with it picked",
                      "ok starts, FLO-013: a guess says it is one", "ok fold: on ", "ok hide: on FLO-001, a lane hides",
                      "ok hide: a link naming a hidden lane", "ok flows: the Starts from picker and Simplify fit the header row in every theme and in Plain"):
             assert any(line.startswith(want) for line in lines), (viewport, want)

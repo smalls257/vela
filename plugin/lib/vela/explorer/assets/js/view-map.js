@@ -412,7 +412,7 @@ const MapView = (() => {
       if (o.sub) LabelFit.put(grp, { x: tx, y: top + f.lines.length * f.lh + 4 + 0.82 * sf.size, "text-anchor": "middle", class: "node-sub" }, o.sub, room, { size: 11.5 });
     }
     s("title", {}, grp).textContent = light ? `${o.title || o.label}: ${LIGHT[level].word}` : `${o.title || o.label} (outside service). Its status shows on the contracts that connect to it.`;
-    const pick = o.onpick || (() => { go(o.key, { reset: true }); });
+    const pick = o.onpick || (() => DetailsPanel.toggle(o.key, { reset: true }));
     Nodes.wire(grp, { label: o.title || o.label || o.key, aria: o.aria || `${o.title || o.label}: ${light ? LIGHT[level].word : "outside service, no status of its own"}. ${o.sub || ""}`, open: pick, guard: () => !justDropped() });
     grp.addEventListener("mousemove", (e) => showTip(e, `<b>${esc(o.title || o.label)}</b>${light ? esc(LIGHT[level].word) + (light.reasons[0] ? ": " + esc(reasonText(light.reasons[0])) : "") : "Outside service: its status shows on the contracts that connect to it"}`));
     grp.addEventListener("mouseleave", hideTip);
@@ -466,7 +466,7 @@ const MapView = (() => {
         Legend.saw("lane");
         if (["assumption", "inkling", ""].includes(E[fid].state || "")) { s("path", { d, class: "hollow", fill: "none", stroke: Theme.c("room"), "stroke-width": 2.2, "stroke-linecap": "round" }, g); Legend.saw("lane.hollow"); }
         const hit = s("path", { d, fill: "none", stroke: "transparent", "stroke-width": 16, class: "line-hit" }, g);
-        Nodes.wire(hit, { label: `${E[fid].title}, a flow line on the map`, open: () => selectLine(fid) });  // selectLine opens the flow in the panel too
+        Nodes.wire(hit, { label: `${E[fid].title}, a flow line on the map`, open: () => { if (st.line === fid && DetailsPanel.isPicked(fid)) { selectLine(null); DetailsPanel.clear(); } else selectLine(fid); } });  // selectLine opens the flow in the panel too; the picked line, pressed again, closes
         hit.addEventListener("mousemove", (e) => showTip(e, `<b>${esc(E[fid].title)}</b>${esc(E[fid].state ? stateWord(E[fid].state) : "No status written down yet")}. Click to follow it.`));
         hit.addEventListener("mouseleave", hideTip);
       }
@@ -560,7 +560,7 @@ const MapView = (() => {
     }
     stn.labelSide = side;
     names.push(put(side));
-    const open = () => { go(n.key, { reset: true }); };
+    const open = () => DetailsPanel.toggle(n.key, { reset: true });
     Nodes.wire(grp, { label: n.title, aria: `${n.title}. Open details.`, open });
   }
   /* Engineering works: open questions on the track or station they hold up, from each question's Blocks line. Each
@@ -776,6 +776,7 @@ const MapView = (() => {
     }
     if (lens() === "matrix" && key) { const cur = $(".grid-wrap"); if (cur) { const w = $("#board"), top = w.scrollTop, left = w.scrollLeft; rerender(); Object.assign($("#board"), { scrollTop: top, scrollLeft: left }); } }
     if (key && lens() === "cockpit" && typeof Motion !== "undefined") { if (st.focus || group() !== "none") MapGroups.highlight(key); Motion.onPick(key); }
+    if (!key && typeof Motion !== "undefined" && Motion.active) Motion.clear();  // nothing picked, nothing traced: the trace goes with its pick
     if (KEY && KEY.host && KEY.host.isConnected && lens() !== "matrix") { KEY.set("picked", !!$("g.hit.picked, path.duct.picked, g.station.picked, .focus-center", board), mode() === "focus" ? "White outline: the app in focus, and what you pick" : null); KEY.paint(); }
     const focusBtn = $("#focus-btn"), fresh = focusButton();
     if (focusBtn && fresh) focusBtn.replaceWith(fresh);  // "Show <the app you picked> and its neighbors"

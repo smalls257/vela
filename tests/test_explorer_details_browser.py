@@ -30,6 +30,7 @@ WANTED = [
     "(flows): the crumb that names the flow returns to its summary",
     "(flows): the first click only shows; Open is the second click",
     "(flows): Escape returns to the flow's summary",
+    "(flows): a second click on the picked contract, step or lane returns to the flow's summary",
     "(flows): the open question",                          # lights what it holds up
     "(flows): say names, never codes",
     "(map): nothing picked shows the page summary",
@@ -38,6 +39,7 @@ WANTED = [
     "(map): Open goes inside the app",
     "(map): Escape returns to the summary",
     "(map): a click on empty space returns to the summary",
+    "(map): a second click on the picked box returns to the summary",
     "(map): the open question",
     "(asks): nothing picked says",
     "(asks): a person shows their",

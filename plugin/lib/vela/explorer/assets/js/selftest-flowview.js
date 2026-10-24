@@ -108,6 +108,9 @@
       FlowView.setStart(key, "all"); await tick(); clickHit(Flows.player().hits.find((t) => t.type === "starttag" && t.ids[0] === other.id)); await tick();
       const picked = FlowKit.flowOf(key).view.start; clickHit(Flows.player().hits.find((t) => t.type === "starttag" && t.ids[0] === other.id)); await tick();
       ok(!!tag && picked === other.id && FlowKit.flowOf(key).view.start === "all", `starts, ${key}: a click on a Start tag picks that start; a second click lets go`, `starts, ${key}: tag clicks gave ${picked} then ${FlowKit.flowOf(key).view.start}`);
+      // the picked start, pressed again, goes back to Either
+      FlowView.setStart(key, second.id); await tick(); $(`[data-starts] [data-start="${second.id}"]`).click(); await tick();
+      ok(FlowKit.flowOf(key).view.start === "all" && $("[data-starts] [data-start=all]").getAttribute("aria-checked") === "true", `starts, ${key}: pressing the picked start again goes back to Either`, `starts, ${key}: a second press left start ${FlowKit.flowOf(key).view.start}`);
       // the address brings the pick back, and another flow does not carry it
       const had = [...HASH.entries()];
       HASH.set("open", key); HASH.set("start", second.id); Flows.select(key, -1); Nav.open("flows", key); await tick();

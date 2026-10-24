@@ -103,14 +103,14 @@ const Flows = (() => {
     canvas.addEventListener("click", (e) => {
       const t = hitAt(e);
       if (!t) { if (!p.present) DetailsPanel.clear(); return; }  // empty space goes back to the flow's summary
-      if (t.type === "unknown" || t.type === "contract") { if (!p.present) DetailsPanel.show(t.id, { reset: true }); else opts.onPick && opts.onPick(t); }
+      if (t.type === "unknown" || t.type === "contract") { if (!p.present) DetailsPanel.toggle(t.id, { reset: true }); else opts.onPick && opts.onPick(t); }
       else if (t.type === "ref") { p.key = t.id; p.go(-1); opts.onFlow && opts.onFlow(p); }
-      else if (t.type === "lane") { if (!p.present) DetailsPanel.show(t.id, { reset: true }); }
+      else if (t.type === "lane") { if (!p.present) DetailsPanel.toggle(t.id, { reset: true }); }
       else if (t.type === "fold") FlowView.toggleFold(p.key, t.id);
       else if (t.type === "hide") FlowView.hide(p.key, t.id);
       else if (t.type === "ghost") FlowView.show(p.key, t.id);
       else if (t.type === "starttag") FlowView.setStart(p.key, FlowView.startPicked(p.key) === t.ids[0] ? "all" : t.ids[0]);
-      else if (t.si !== undefined) { p.pause(); p.go(t.si, { exact: true }); if (!p.present) DetailsPanel.show(PlanDetails.stepKey(p.key, t.si), { reset: true }); }
+      else if (t.si !== undefined) { p.pause(); p.go(t.si, { exact: true }); if (!p.present) DetailsPanel.toggle(PlanDetails.stepKey(p.key, t.si), { reset: true }); }
     });
     requestAnimationFrame(p.frame);
     return p;
@@ -161,7 +161,7 @@ const Flows = (() => {
       h("span", { class: "starts-lbl" }, "Starts from"),
       opts.map((o, i) => [i === 2 ? h("span", { class: "starts-or" }, "or") : null,
         h("button", { type: "button", role: "radio", class: "starts-opt", "aria-checked": String(on === o.id), tabindex: on === o.id ? 0 : -1, "data-start": o.id, title: o.words,
-          onclick: () => FlowView.setStart(st.key, o.id),
+          onclick: () => FlowView.setStart(st.key, on === o.id ? "all" : o.id),  // the picked start, pressed again, goes back to Either
           onkeydown: (e) => {
             if (e.key !== "ArrowRight" && e.key !== "ArrowLeft" && e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
             e.preventDefault();

@@ -286,7 +286,8 @@ const Nodes = (() => {
     const where = spec ? [spec.key, spec.note, spec.open].filter(Boolean).length : 0;
     if (!name || !String(name).trim() || where !== 1) throw new Error(`[nodes] a diagram node needs a name and exactly one of key, note or open, got ${JSON.stringify(name)} with ${where}`);
     const target = spec.key || spec.note || "";
-    const open = spec.open || (() => go(target, spec.opts || { reset: true }));
+    // a second click on the node already picked puts it down (DetailsPanel.toggle), on every diagram alike
+    const open = spec.open || (() => DetailsPanel.toggle(target, spec.opts || { reset: true }));
     const fire = (ev) => { if (spec.guard && !spec.guard()) return; if (spec.stop && ev) ev.stopPropagation(); open(ev); };
     el.setAttribute("tabindex", spec.nested ? "-1" : "0");
     el.setAttribute("role", spec.role || "button");
