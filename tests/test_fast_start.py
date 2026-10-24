@@ -84,3 +84,20 @@ def test_the_companion_session_command_never_imports_the_whole_cli(tmp_path):
     root = grill_session(tmp_path)
     found = imported(["companion", "session", "--json", "--vault", str(root)])
     assert "vela.cli" not in found and "vela.explorer.build" not in found
+
+
+def test_two_versions_at_one_path_get_separate_bytecode_caches(tmp_path):
+    """The release zip stamps every file 1980-01-01, so a same-size edit unzipped over the same path looks unchanged to
+    Python; a cache folder per plugin version keeps the old bytecode from being served to the new code."""
+    plugin = installed_copy(tmp_path / "p")
+    env = {k: v for k, v in os.environ.items() if k not in ("VELA_PYCACHE", "XDG_CACHE_HOME", "LOCALAPPDATA")}
+    env["HOME"] = str(tmp_path / "home")
+    manifest = plugin / ".claude-plugin" / "plugin.json"
+    for version in ("1.0.0", "1.0.1"):
+        data = json.loads(manifest.read_text(encoding="utf-8"))
+        data["version"] = version
+        manifest.write_text(json.dumps(data), encoding="utf-8")
+        done = subprocess.run(["sh", str(plugin / "scripts" / "run-vela"), "--version"], capture_output=True, text=True, env=env)
+        assert done.returncode == 0, done.stdout
+    cache = next((tmp_path / "home").rglob("pycache"))
+    assert {"1.0.0", "1.0.1"} <= {child.name for child in cache.iterdir()}

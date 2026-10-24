@@ -27,7 +27,19 @@ def cache_home():
 # plugin would end up committed. So bytecode is cached in the user's cache folder instead. Writing none at all made
 # an installed plugin compile every module on every run (0.68 s CPU for `vela status` on a big vault, 0.45 s with a
 # cache). A folder that can't be written just means no cache; Python already copes.
-sys.pycache_prefix = os.environ.get("VELA_PYCACHE") or str(cache_home() / "vela" / "pycache")
+def plugin_version():
+    """The installed plugin's version, "unversioned" when plugin.json can't be read. The release zips stamp every file
+    1980-01-01, and Python trusts a .pyc by source mtime and size: a newer version unzipped over the same path with a
+    constant changed to a same-length value would run the old bytecode. A cache folder per version cannot."""
+    try:
+        import json
+        manifest = pathlib.Path(__file__).resolve().parent.parent / ".claude-plugin" / "plugin.json"
+        return str(json.loads(manifest.read_text(encoding="utf-8")).get("version") or "unversioned")
+    except (OSError, ValueError, AttributeError):
+        return "unversioned"
+
+
+sys.pycache_prefix = os.environ.get("VELA_PYCACHE") or str(cache_home() / "vela" / "pycache" / plugin_version())
 
 # lib/ goes first on the path, so `import yaml` is always the vendored PyYAML in lib/yaml, never a copy
 # installed on this machine: the same YAML behavior everywhere, and no pip step for whoever installs the plugin.
