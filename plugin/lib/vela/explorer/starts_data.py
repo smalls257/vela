@@ -52,19 +52,30 @@ def annotate(vault, keys, flows, catalog, lanes):
 
 # --- from the diagram ----------------------------------------------------------------------------------------------
 
-def from_diagram(vault, keys, catalog, page, flow, by_name):
-    """The starts an opening alt names, or None when the flow has none (or fewer than two that its steps show)."""
+def tree_of(catalog, page):
+    """The page's strict sequence diagram read by the flow checker's parser, or None when it draws none."""
     drawn = catalog.flows.get(page.id) if page is not None else None
     if drawn is None or not drawn.has_diagram:
-        return NO_STARTS
+        return None
     from vela.flowcheck import mermaid
-    tree = mermaid.parse_tree(drawn, [])
-    if len(tree.starts) < 2:
-        return NO_STARTS
+    return mermaid.parse_tree(drawn, [])
+
+
+def people_of(tree, catalog, vault, keys, by_name):
+    """{participant name: lane id}: an app by the checker's own reading, anything else (an outside party) by its title."""
     people = branches_data.participant_keys(tree, catalog, vault, keys)
     for name, (title, _) in tree.participants.items():
         if name not in people and title.lower() in by_name:
             people[name] = by_name[title.lower()]
+    return people
+
+
+def from_diagram(vault, keys, catalog, page, flow, by_name):
+    """The starts an opening alt names, or None when the flow has none (or fewer than two that its steps show)."""
+    tree = tree_of(catalog, page)
+    if tree is None or len(tree.starts) < 2:
+        return NO_STARTS
+    people = people_of(tree, catalog, vault, keys, by_name)
     options = []
     for b in tree.starts:
         calls = calls_within(b.body, people)
@@ -75,16 +86,31 @@ def from_diagram(vault, keys, catalog, page, flow, by_name):
     return record(flow["steps"], owner, list(range(len(options))), options, source="diagram")
 
 
-def calls_within(nodes, people):
-    """[(from lane, to lane, contract or event ID)] for every call and event in a block, in order, lanes as the page names them."""
-    found = []
+def drawn_calls(vault, keys, catalog, page, by_name):
+    """[(from lane, to lane, contract ID, words)] for every call the page's diagram draws, every start included, in order.
+    The words are the diagram's own for the call ("capacity check"). Empty when the page draws no strict diagram."""
+    tree = tree_of(catalog, page)
+    if tree is None:
+        return []
+    people = people_of(tree, catalog, vault, keys, by_name)
+    return [(people.get(n.parts[0], ""), people.get(n.parts[1], ""), n.parts[2], n.parts[3].strip())
+            for n in call_nodes(tree.all_nodes()) if n.kind == "call"]
+
+
+def call_nodes(nodes):
+    """Every call and event node in a block, in order, handling and branches included."""
     for node in nodes or ():
         if node.kind in ("call", "publish"):
-            found.append((people.get(node.parts[0], ""), people.get(node.parts[1], ""), node.parts[2]))
-        found += calls_within(node.handling, people) + calls_within(node.handler, people)
+            yield node
+        yield from call_nodes(node.handling)
+        yield from call_nodes(node.handler)
         for branch in node.branches or ():
-            found += calls_within(branch.body, people)
-    return found
+            yield from call_nodes(branch.body)
+
+
+def calls_within(nodes, people):
+    """[(from lane, to lane, contract or event ID)] for every call and event in a block, in order, lanes as the page names them."""
+    return [(people.get(n.parts[0], ""), people.get(n.parts[1], ""), n.parts[2]) for n in call_nodes(nodes)]
 
 
 def tie_steps(steps, options, tail=()):

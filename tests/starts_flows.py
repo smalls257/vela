@@ -66,9 +66,10 @@ ONE_WAY = f"""1. A customer picks a sailing on the {WEB}.
 4. {PRICING} → {BOOKING}: gets the fare back, over {FARE}.
 """
 
-# no sender named: each arrow is drawn from its contract's provider, so the direction is a guess
-UNSAID = f"""1. The {SCHEDULE} reports the sailing's capacity, over {CAPACITY}.
-2. {TIDEPAY} reports the payment outcome, over {PAID}.
+# no sender named: a request goes from its consumer to its provider, and only the lane the step names is a consumer here, so the
+# direction is a guess
+UNSAID = f"""1. The customer holds a seat on the {WEB}, over {HOLD}.
+2. An agent holds a seat on the {DESK}, over {HOLD}.
 3. {BOOKING} → {NOTIFY}: tells it the seat is held, over {STATE}.
 """
 
@@ -76,7 +77,7 @@ PAGES = {
     "FLO-010-book-two-ways.md": (HEAD.format(id="FLO-010", title="Book a seat two ways", lead="A seat is held from the website or from a phone call.") + TWO_WAYS + ALT),
     "FLO-011-book-two-ways-no-alt.md": (HEAD.format(id="FLO-011", title="Book a seat two ways, no alt", lead="The same steps with no diagram.") + TWO_WAYS),
     "FLO-012-book-one-way.md": (HEAD.format(id="FLO-012", title="Book a seat one way", lead="Only the website holds a seat.") + ONE_WAY),
-    "FLO-013-two-reports-sender-unsaid.md": (HEAD.format(id="FLO-013", title="Two reports reach Booking, sender unsaid", lead="The steps never say who sends.") + UNSAID),
+    "FLO-013-two-reports-sender-unsaid.md": (HEAD.format(id="FLO-013", title="Two channels hold a seat, sender unsaid", lead="The steps never say who sends.") + UNSAID),
 }
 
 

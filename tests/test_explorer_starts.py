@@ -64,15 +64,26 @@ def test_one_way_in_is_no_starts(built):
     _, flows = built
     assert flows["FLO-012"]["starts"] is None
     assert {s["start"] for s in flows["FLO-012"]["steps"]} == {""}
-    assert all(f["starts"] is None for k, f in flows.items() if k in ("FLO-001", "FLO-002", "FLO-003"))  # the example's own flows
+    assert all(f["starts"] is None for k, f in flows.items() if k in ("FLO-002", "FLO-003"))  # the example's own one-way flows
 
 
 def test_a_start_found_on_inferred_arrows_says_it_is_a_guess(built):
     _, flows = built
     starts = flows["FLO-013"]["starts"]
     assert starts is not None and starts["source"] == "guess" and starts["guessed"] is True
-    assert [(o["lane"], o["steps"]) for o in starts["options"]] == [("APP-vessel-schedule", [1]), ("PTY-01", [2])]
+    assert [(o["lane"], o["steps"]) for o in starts["options"]] == [(WEB, [1]), (DESK, [2])]
     assert [m["direction"] for s in flows["FLO-013"]["steps"][:2] for m in s["messages"]] == ["inferred", "inferred"]
+
+
+def test_the_example_hold_flow_has_three_starts_and_the_picker_shows_them(built):
+    """FLO-001 says the website, the call center desktop and the kiosk app follow one sequence: three ways in, joined at Booking."""
+    _, flows = built
+    starts = flows["FLO-001"]["starts"]
+    assert starts["source"] == "diagram" and starts["guessed"] is False and starts["unmatched"] == []
+    assert [(o["label"], o["lane"], o["steps"]) for o in starts["options"]] == [
+        ("A customer books on the website", WEB, [1]), ("A customer calls in", DESK, [2]), ("A customer uses a kiosk", "APP-kiosks", [3])]
+    assert starts["merge"] == {"step": 4, "lane": BOOKING}
+    assert owners(flows["FLO-001"]) == {1: "S1", 2: "S2", 3: "S3", 4: "", 5: "", 6: "", 7: ""}
 
 
 def steps(*specs):

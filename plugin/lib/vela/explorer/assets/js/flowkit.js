@@ -130,7 +130,8 @@ const FlowKit = (() => {
   function chipOf(con, room, k) {
     MEASURE.font = FONT.chipId(k); const idW = MEASURE.measureText(con.id).width;
     MEASURE.font = FONT.chip(k);
-    const whole = MEASURE.measureText(con.title).width, inner = Math.max(50 * k, room - 16 * k);
+    const whole = MEASURE.measureText(con.title).width, widest = Math.max(...con.title.split(/\s+/).map((t) => MEASURE.measureText(t).width));
+    const inner = Math.max(50 * k, room - 16 * k, widest);  // a word is never broken: the pill may be wider than the arrow instead
     const withId = whole + idW + 6 * k <= inner, lines = whole <= inner ? [con.title] : wrap(MEASURE, con.title, inner);
     const textW = Math.max(...lines.map((t) => MEASURE.measureText(t).width));
     const lh = leading(k, 11.5);
@@ -145,7 +146,7 @@ const FlowKit = (() => {
       if (x1 === undefined || x2 === undefined) { r.up = r.down = 14 * k; r.lines = []; return; }
       const reach = Math.abs(x2 - x1);
       MEASURE.font = FONT.say(k);
-      r.lines = wrap(MEASURE, sayOf(step, u), Math.max(70 * k, reach - 24 * k)); r.lh = lh;
+      r.lines = wrap(MEASURE, sayOf(step, u), Math.max(120 * k, reach - 24 * k)); r.lh = lh;
       r.chip = u.kind === "msg" && !r.noChip && CONTRACT[u.msg.contract] ? chipOf(CONTRACT[u.msg.contract], Math.max(60 * k, reach - 34 * k), k) : null;
       r.guessed = u.kind === "msg" && u.msg.direction !== "stated";
       r.noContract = u.kind === "msg" && !u.msg.contract;  // a recorded pair that names no contract: a plain arrow, said so under its words
