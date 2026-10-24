@@ -182,6 +182,10 @@ GROUP_SAYS = {
 FIXABLE = {"id-in-sentence"}  # names I can write in myself; the rest need the lead
 
 
+FIRST_SHAPE = ("{epc} is in the first shape (numbered criteria under ## Epic acceptance criteria); run "
+               "vela epics lint --fix-shape {epc}, which keeps each AC number.")
+
+
 def cmd_lint(args, out):
     root = pathlib.Path(args.vault)
     vault, resolver = load(root)
@@ -206,6 +210,9 @@ def cmd_lint(args, out):
         result.lines = [say.Line(f"{n} epics: every criterion passes the boundary test.",
                                  f"Every criterion in the {say.count_words(n)} epic{'' if n == 1 else 's'} can be "
                                  "checked at a contract or a flow.")]  # voice audit row 186: not "the boundary test"
+    old_shape = [e.id for e in epics if epicslint.is_first_shape((root / e.path).read_text(encoding="utf-8"))]
+    result.data["first_shape"] = old_shape
+    result.lines += [say.Line(FIRST_SHAPE.format(epc=epc), plain="", audience=say.MODEL) for epc in old_shape]
     return emit(result, args, out, resolver)
 
 

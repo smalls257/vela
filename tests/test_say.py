@@ -169,3 +169,44 @@ def test_the_session_date_helper_and_the_override_question_use_the_same_order():
     assert sessions.date_in_words("2026-10-14", datetime.date(2026, 1, 1)) == "October 14"
     assert sessions.date_in_words("2027-02-02", datetime.date(2026, 1, 1)) == "February 2, 2027"
     assert override._said("2026-12-01") == "December 1"
+
+
+# --- a refusal names its fix (the October 22 trim): the skills dropped their per-command exit-code ladders because
+# every refusal carries a `fix`, so a refusal built with no fix, an empty one or a one-word one would leave the model
+# with neither the skill's recovery path nor the command's.
+
+def _refusal_fixes():
+    """(file, line, fix expression) for every `Refusal(...)` in the program whose fix is written out in place."""
+    import ast
+    found = []
+    for path in sorted((REPO / "plugin" / "lib" / "vela").rglob("*.py")):
+        for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
+            if not isinstance(node, ast.Call):
+                continue
+            name = node.func.attr if isinstance(node.func, ast.Attribute) else getattr(node.func, "id", "")
+            if name != "Refusal":
+                continue
+            fix = node.args[2] if len(node.args) >= 3 else next((k.value for k in node.keywords if k.arg == "fix"), None)
+            found.append((path.name, node.lineno, fix))
+    return found
+
+
+def test_every_refusal_is_built_with_a_fix_that_says_what_to_do():
+    import ast
+    refusals = _refusal_fixes()
+    assert len(refusals) >= 40, len(refusals)
+    for name, line, fix in refusals:
+        assert fix is not None, f"{name}:{line} has no fix"
+        if isinstance(fix, ast.Constant):  # a literal: a variable or an f-string is built from a reason the test can't see
+            assert isinstance(fix.value, str) and len(fix.value.split()) >= 3, f"{name}:{line} fix is {fix.value!r}"
+
+
+def test_no_session_open_says_how_to_start_one(tmp_path):
+    """The gap the trim found: `vela decide` (via apply's record lookup) said there was nothing to file into and
+    stopped, so the skill's "start a session" sentence was the only place that said what to run."""
+    from vela.commands import apply
+    import shutil
+    vault = tmp_path / "ub"
+    shutil.copytree(REPO / "examples" / "unified-booking", vault)
+    _, result = apply.find_record(vault)
+    assert result is not None and "vela session start" in result.lines[0].text

@@ -8,7 +8,10 @@ command prints the checklist; the skill drafts each paragraph on it (Filter). Wh
   branch's history, falls back to the merge-base with main), plus untracked pages, or,
   in a reader copy, the folder against its `.vela/baseline`, so a reader copy runs no git at all;
 - the vault as it is now, which `closedrafts` asks `query refs` of for each item resolved or decided this session;
-- the open session record, for its modes (an epics session owes each epic's own sections).
+- the open session record, for its modes (an epics session owes each epic's own sections);
+- the session's own commits and the working tree, so a paragraph written earlier in the session counts as done and
+  is listed again only when the facts under it changed afterward (`SessionHistory`). A reader copy runs no git, so
+  there everything is listed.
 
 `closedrafts.py` holds the rules and the why of each. Read-only: it writes nothing and runs no subcommand.
 
@@ -28,6 +31,7 @@ PLAIN_WHY = {
     "adr": "it was decided and shapes the whole design, so it needs a decision record",
     "epic": "an epics session owes this part of each epic it drafted",
 }
+NOW = "the working tree"
 LEADING_ID = re.compile(r"^(\S+-\S+)\s+\S")
 
 
@@ -70,6 +74,39 @@ def session_start(root, record):
     if began and sessiongit.ref_exists(root, began) and mergegit.is_ancestor(root, began, "HEAD"):
         return began
     return branch_point(root)
+
+
+class SessionHistory:
+    """Answers `closedrafts.owed` from git: when was this paragraph last written since the session began, and what
+    did the vault say then. Versions of a page are its text at the session's start, after each later commit that
+    touched it, and now (the working tree). A paragraph counts as written when a version changed its prose in a
+    section that already existed: a page or an item that first appears in a version was created there, not drafted."""
+
+    def __init__(self, root, began):
+        self.root, self.began, self.versions = root, began, {}
+
+    def text_at(self, rev, path):
+        """The page's text at `rev` (NOW: the working tree), or None when it had no such page."""
+        if rev == NOW:
+            page = self.root / path
+            return page.read_text(encoding="utf-8") if page.is_file() else None
+        code, out, _ = vaultgit.run_git(self.root, "show", f"{rev}:./{path}", binary=True)
+        return out.decode("utf-8", "replace") if code == 0 else None
+
+    def revs_of(self, path):
+        code, out, _ = vaultgit.run_git(self.root, "log", "--reverse", "--format=%H", f"{self.began}..HEAD", "--", path)
+        return [self.began] + (out.split() if code == 0 and out else []) + [NOW]
+
+    def written(self, path, heading, names=()):
+        """A function path -> text as it stood when the paragraph was last written, or None when it never was."""
+        if path not in self.versions:
+            self.versions[path] = [(rev, self.text_at(rev, path)) for rev in self.revs_of(path)]
+        versions, last = self.versions[path], None
+        for (_, before), (rev, after) in zip(versions, versions[1:]):
+            prose = closedrafts.paragraph(after, heading, names)[0]
+            if closedrafts.has_section(before, heading) and prose and prose != closedrafts.paragraph(before, heading, names)[0]:
+                last = rev
+        return None if last is None else (lambda other: self.text_at(last, other))
 
 
 def git_changes(root, record=None):
@@ -118,7 +155,8 @@ def list_owed(args, out, cli):
     after = cli.load_vault(root)
     changes = page_changes(reader_changes(root) if reader else git_changes(root, record), cli.page_kind)
     changes = {p: t for p, t in changes.items() if (root / p).is_file()}
-    found = closedrafts.owed(closedrafts.vault_before(after, changes), after, changes, record.modes)
+    history = None if reader else SessionHistory(root, session_start(root, record))
+    found = closedrafts.owed(closedrafts.vault_before(after, changes), after, changes, record.modes, history)
     resolver = say.Resolver(after)
     lines = default_lines(found, record.id, reader) if say.mode_of(args) != "for-lead" else lead_lines(found, after, resolver)
     result = say.Result("close drafts", exit=say.DONE, lines=lines, data=as_data(found, record.id, reader))
@@ -128,6 +166,7 @@ def list_owed(args, out, cli):
 def as_data(found, record_id, reader):
     return {"record": record_id, "reader_copy": reader, "count": found.count,
             "paragraphs": [p.as_json() for p in found.paragraphs],
+            "done": [p.as_json() for p in found.done],
             "readback": [r.__dict__ for r in found.readback],
             "long_lists": [x.as_json() for x in found.long_lists],
             "split": found.split.as_json() if found.split else None,
@@ -140,7 +179,10 @@ def default_lines(found, record_id, reader):
     out = [say.Line(f"close drafts: {n} paragraph{'' if n == 1 else 's'} owed for {record_id} (changes since {since}).")]
     for p in found.paragraphs:
         items = f" ({', '.join(p.items)})" if p.items else ""
-        out.append(say.Line(f"- {p.page} > {p.heading} [{p.kind}]{items}: {p.why}"))
+        out.append(say.Line(f"- {p.page} > {p.heading} [{p.kind}, {p.status}]{items}: {p.why}"))
+    if found.done:
+        where = ", ".join(f"{d.page} > {d.heading}" for d in found.done)
+        out.append(say.Line(f"already written this session, facts unchanged since ({len(found.done)}): {where}"))
     for r in found.readback:
         out.append(say.Line(f"read back: {r.item} {r.name} ({r.before} -> decided), {r.page} > {r.heading}"))
     for x in found.long_lists:
@@ -168,6 +210,8 @@ def place(owed, vault, resolver):
 
 def plain_why(owed, resolver):
     said = []
+    if owed.moved:
+        said.append("I wrote it earlier, but the facts under it changed afterward")
     if owed.mentions:
         names = ", ".join(resolver.name(i) for i in owed.mentions)
         verbs = " or ".join(sorted(set(owed.mentions.values())))

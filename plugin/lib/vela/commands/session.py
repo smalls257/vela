@@ -44,6 +44,19 @@ it and the local default branch goes back to where the session began.
 candidate captures, in `--json`), the overdue open questions, `vela next`, and how much is still open. A `gh` failure
 is a printed line and exit 2, and `review_comments` is null, never an empty list that reads as "no comments"
 (Silent Fallback). Everything else in the brief still runs.
+
+Where START.md's old prose went (the October 22 trim; START keeps one line, "on exit 3 ask what it asks, one at a time,
+and run it again"): the choice a lead must make is printed here, every time, so it survives compaction.
+- Which plan: a repository root that holds several plans exits 3 with `plans.which_plan` (the question, each plan by
+  title, `--vault <folder>`). Never guess, never pick the first.
+- No plan yet: `no_plan_yet` names `vela new`, says never to set a plan up by hand (no copied files, no `git init`) and
+  to run `session start` again. A plan can go in a subfolder of a repository that holds others (`vela new --vault`).
+  Documents that were in the folder land in the plan's inbox, where Discover reads them. `vela new` asks for the GitHub
+  handle itself (`--handle`) and for the title (`--title`).
+- Open sessions: resume (`--resume <id>`), close (`/vela:close`) or start another (`--new`); never close one the
+  user hasn't asked to close.
+- The initiative's name: asked once; `--title` answers it and `--unnamed` records that the lead declined (the
+  dashboard then reads "New initiative").
 """
 import argparse
 import dataclasses
@@ -286,8 +299,11 @@ def no_plan_yet():
     the lead), so the start stops first and names the way forward: `vela new` starts one."""
     question = "There's no plan in this folder yet. Want me to start one? I'll need the initiative's name."
     return say.Result(START, exit=say.NEEDS_LEAD, needs_lead=[{
-        "ask": "start a plan", "question": question, "answer_with": 'vela new --title "<initiative name>"'}], lines=[
-        say.Line("vela: no plan here yet; `vela new` starts one.", plain=question)])
+        "ask": "start a plan", "question": question, "answer_with": 'vela new --title "<initiative name>"',
+        "then": "run session start again"}], lines=[
+        say.Line("vela: no plan here yet; `vela new` starts one, never a plan set up by hand (no copied files, no git "
+                 "init). In a subfolder of a repository that holds other plans: `vela new --vault <folder>`. Then run "
+                 "session start again.", plain=question)])
 
 
 def start(root, args, today, plain):
@@ -745,7 +761,8 @@ def start_owner(root, args, today, modes, plain, said, host):
 
 def review_needs_branch(current):
     """Said once, when a session starts on the default branch: close can't open a pull request from it."""
-    return say.Line(f"on {current}: a review needs a branch; `session start --new-branch` makes one",
+    return say.Line(f"on {current}: a review needs its own branch; with the lead's yes, run vela session branch "
+                    "(the session is open now)",
                     plain=f"We're on {current}, and a review needs its own branch. If you want one for this session, "
                           "say so and I'll make it; otherwise the work stays here.")
 

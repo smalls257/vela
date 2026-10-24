@@ -1,10 +1,10 @@
 # Ledger rows and catalog gaps
 
-Read by close in section 3. `marks plan` drafts the question-ledger rows (`vela apply --schema ledger` lists the fields), and `vela apply` writes them and refuses a row written wrong. Two things stay yours.
+Read when close files ledger rows. `marks plan` drafts the question-ledger rows (`vela apply --schema ledger` lists the fields), and `vela apply` writes them and refuses a row written wrong. Two things stay yours.
 
 ### A row the lead's words leave unclear
 
-Ask it as one of section 2's leftovers: "You said the call recorder probably doesn't keep audio. I'd note that as something we're resting on, and check it with the vendor. Right?" Then fill the row from the answer:
+Ask it as one of close's leftovers: "You said the call recorder probably doesn't keep audio. I'd note that as something we're resting on, and check it with the vendor. Right?" Then fill the row from the answer:
 
 - answered: `item` is the item the answer went into, and `source` is a document's source row, or a first-hand row you add with `vela add source --location "first-hand: <handle>"` when the lead's word is the only source. Never invent a source; with none, the row is `assumed`.
 - assumed: `load_bearing` says whether the plan rests on it, and `signpost` points at what the lead said would show it wrong. Ask only when it's high severity and you can't tell.

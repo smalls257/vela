@@ -129,7 +129,8 @@ def find_record(root):
     if not opened.several:
         why = f" ({'; '.join(opened.problems)})" if opened.problems else ""
         return None, say.Result(NAME, exit=say.FAILED if opened.problems else say.REFUSED, lines=[say.Line(
-            f"No session is open, so there is nothing to file into{why}.",
+            f"No session is open, so there is nothing to file into{why}. Start one with "
+            "`vela session start --mode <mode> --topic \"<topic>\" --for-lead`.",
             plain="No session is open, so there's nowhere to file your answers.")])
     choices = [{"id": r.id, "topic": r.title, "date": r.date} for r in opened.records]
     return None, say.Result(NAME, exit=say.NEEDS_LEAD, needs_lead=choices, lines=[say.Line(

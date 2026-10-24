@@ -1,6 +1,6 @@
 ---
 name: open
-description: "Open a published plan, or a newer one, as a private reader workspace for someone with no git; Never writes to the folder you opened it from. Offer it when someone sends a published folder or zip; start it only on a yes."
+description: "Open a published plan, or a newer one, as a private reader workspace for someone with no git; never writes to the folder you opened it from. Offer it when someone sends a published folder or zip; start it only on a yes."
 argument-hint: "<published folder or .zip>"
 allowed-tools: Read Bash(sh *scripts/run-vela *) Bash(uname *) Bash(open *) Bash(xdg-open *)
 ---

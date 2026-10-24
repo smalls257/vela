@@ -52,8 +52,8 @@ def test_session_modes_are_listed_the_same_everywhere():
     modes = text("references/MODES.md")
     rows = re.findall(r"^\| ([A-Za-z &]+) \(`(\w+)`\) \|", modes, re.M)
     names = {name for name, _ in rows}
-    start = text("references/START.md")
-    shown = re.search(r"display name in `MODES.md`: ([^.]+)\.", start).group(1)
-    start_names = set(re.split(r", | or ", shown))
-    assert names - {"Answer", "Challenge"} <= start_names and "Releases" in start_names
+    # START no longer lists the names (the trim): the record's title comes from `sessions.MODE_NAMES`, MODES.md's table
+    from vela import sessions
+    assert "display name" not in text("references/START.md")
+    assert names == set(sessions.MODE_NAMES.values())
     assert {code for _, code in rows} == set(schema.SESSION_MODES)

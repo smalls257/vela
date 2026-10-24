@@ -121,3 +121,9 @@ def test_allocate_says_rows_and_apps_by_name_and_grill_lower_case():
     assert "say the requirement and the app by name" in SKILL
     assert "/vela:grill APP-<slug>" not in SKILL and '"/vela:grill Desktop agent"' in SKILL
     assert not re.search(r"\bGrill\b", SKILL)
+
+
+def test_allocate_drafts_the_paragraph_of_each_item_it_files_now():
+    body = (REPO / "plugin" / "skills" / "allocate" / "SKILL.md").read_text(encoding="utf-8")
+    assert "Draft" in body and "paragraph" in body and "START.md" in body
+    assert "Draft the paragraph when the item is filed" in body or "Draft each filed item's paragraph now" in body

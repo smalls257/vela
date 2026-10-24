@@ -78,6 +78,15 @@ def test_why_must_be_the_leads_words():
     assert consent.why_in_their_words("^c33", rec, LEAD) is None
 
 
+def test_an_unverified_why_of_the_leads_is_fixed_by_confirming_it_not_by_a_quote_yes():
+    rec = opened('- [why] (@priya, unverified) "Stores already count it." ^c34')
+    refusal = consent.why_in_their_words("^c34", rec, LEAD)
+    assert refusal.rule == "consent-why-not-theirs"
+    assert "is the lead's, but marked unverified" in refusal.fix
+    assert "vela record confirm 34, then decide again" in refusal.fix
+    assert "quote-yes" not in refusal.fix, "the lead's own words need no quote-yes, only the confirm"
+
+
 def test_push_yes_must_follow_the_send_notice():
     rec = opened('- [answer] (@priya) "Yes, send it." ^c12', '- [answer] (@priya) "Yes, send it." ^c15')
     assert consent.after_send_notice(rec.capture("^c12"), notice_count=14).plain == \

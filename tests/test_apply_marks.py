@@ -1,4 +1,4 @@
-"""The `marks` apply kind (overhaul Task 15): close section 3's "write the marks" as code. A mark goes into its capture
+"""The `marks` apply kind (overhaul Task 15): close's "Find the session and mark the captures": "write the marks" as code. A mark goes into its capture
 line before the block ID, a leftover is filed only on the lead's own answer, and a fact never comes from a plan."""
 import json
 
@@ -98,3 +98,12 @@ def test_marks_schema_takes_every_field_marks_plan_writes():
                "deferral"}
     assert written <= set(marks.SCHEMA.fields)
     assert json.dumps(marks.SCHEMA.example)
+
+
+def test_a_keep_with_no_id_or_page_is_refused_to_the_model_not_the_lead(tmp_path):
+    from vela import say
+    root = make_vault(tmp_path, captures=['- [idea] (@priya) "A badge for regulars." ^c05'])
+    _, refusals = plan(root, "marks", [{"capture": "^c05", "mark": "keep", "to": "inkling", "state": "inkling",
+                                        "id": None, "page": None}])
+    unfilled = [r for r in refusals if r.rule == "decision-unfilled"]
+    assert unfilled and all(r.audience == say.MODEL for r in unfilled)

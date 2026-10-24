@@ -54,8 +54,8 @@ def test_the_format_the_skill_writes_round_trips_through_releases_py(tmp_path):
 def test_the_skill_names_the_exact_header_and_the_codes_it_must_pass():
     assert "| Delivers | Criteria | Note |" in SKILL
     assert releases.HEADER == ("Delivers", "Criteria", "Note")
-    for code in ("E344", "E340", "E341", "W343"):
-        assert code in SKILL
+    for code in ("E344", "E340", "E341", "W343", "E394", "W392", "W393", "W347", "W349"):
+        assert code not in SKILL  # each check's own message names its fix (rule deletion)
 
 
 def test_next_offers_releases_once_allocation_is_carried_and_no_release_exists(tmp_path):
@@ -135,7 +135,7 @@ def test_the_releases_example_matches_the_plans_bullet_format():
     text = read("skills/releases/SKILL.md")
     block = text.split("```", 2)[1]
     assert block.index("**State:**") < block.index("**Slices:** SLC-001") < block.index("| Delivers")
-    assert "`**Tracer:**`, `**Not in the tracer:**`" in text  # a vault still on the releases page keeps working
+    assert "**Tracer:**" not in text and "**Not in the tracer:**" not in text  # no vault is on the old releases-page tracer
     assert '`vela conventions "Slices"` gives' in text
 
 
@@ -148,10 +148,13 @@ def test_the_conversation_asks_for_names_not_codes():
 
 # ---- tests/test_stale_branch.py: S15 read a stale branch and said nothing was allocated (diagnosis 6B)
 
-def test_releases_checks_freshness_first_and_stops_when_behind():
-    start = SKILL.split("## 1. Start", 1)[1].split("\n\n", 3)[2]  # the paragraph after the voice line
-    assert start.startswith("Then, before any other command, run `vela freshness --for-lead`. If it exits 3") and "stop, say what it printed in your words" in start
-    assert "vela session start --mode releases" in start
+def test_releases_leaves_freshness_to_start_which_runs_it_after_session_start_for_every_mode():
+    """A rule change, not a move (the October 23 trim): releases once ran `vela freshness` before `session start` and
+    stopped when the branch was behind; START step 1 now runs it after `session start` and offers to bring main in, as it
+    already did for the other modes (`vela close sync-main` runs mid-session anyway)."""
+    assert "before any other command, run `vela freshness" not in SKILL and "vela freshness" not in SKILL
+    # START step 1 runs freshness and offers to bring main in (pinned in test_start_text.py)
+    assert "Run the steps in `${CLAUDE_PLUGIN_ROOT}/references/START.md` with mode `releases`" in SKILL
 
 
 # ---- overhaul plan Task 22f: the conversation voice first, the commands that own the lookups and the slice grammar
@@ -161,21 +164,13 @@ def voice_line(text):
     return next(p for p in text.split("\n\n") if "references/CONVERSATION-VOICE.md`" in p and "voice/VOICE.md" in p)
 
 
-def test_releases_loads_the_voice_before_freshness_and_before_its_first_question():
-    line = voice_line(SKILL)
-    assert line.index("voice/VOICE.md") < line.index("references/CONVERSATION-VOICE.md`")
-    assert "house-voice" in line  # releases writes page prose: the release opening and each slice's opening
-    at = SKILL.index(line)
-    assert at < SKILL.index("vela freshness"), "the lead hears freshness's news in the voice, so the voice comes first"
-    assert at < SKILL.index("Ask one question at a time")
-    first_command = re.search(r"`vela [a-z-]+", SKILL[SKILL.index("## 1. Start"):]).group(0)
-    assert first_command == "`vela freshness"
-
-
-def test_releases_says_command_output_in_its_own_words_never_the_tools():
+def test_releases_leaves_the_voice_and_the_relay_to_start():
+    # rule deletion: START step 0 reads the owner's voice, then CONVERSATION-VOICE, before anything is said, and
+    # "Relaying a command" says command output is the lead's in your own words; releases repeats neither
+    assert not any("references/CONVERSATION-VOICE.md`" in p and "voice/VOICE.md" in p for p in SKILL.split("\n\n"))
     assert "in its words" not in SKILL and "as printed" not in SKILL
-    assert "say what it printed in your words and offer to bring it up to date" in SKILL
-    assert "say in one plain sentence that you couldn't check" in SKILL
+    # (START step 0 and "Relaying a command" are pinned in test_start_text.py)
+    assert "## 2. One question at a time" in SKILL
 
 
 def test_releases_flow_check_line_carried_as_written():
@@ -220,4 +215,32 @@ def test_releases_reads_criteria_back_by_their_words_and_says_grill_lower_case()
 def test_releases_says_what_to_do_with_the_ready_to_decide_hand_off():
     from conftest import REPO
     text = (REPO / "plugin/skills/releases/SKILL.md").read_text(encoding="utf-8")
-    assert "run `vela decide` on it" in text and "ready to decide, offer the lead a short grill" in text
+    # rule deletion: MODES.md and `vela decide` itself (decide-not-in-this-session) say it; the copy here is gone
+    assert "run `vela decide` on it" not in text and "ready to decide, offer the lead a short grill" not in text
+
+
+def test_releases_drafts_the_paragraph_of_each_item_it_files_now():
+    body = (REPO / "plugin" / "skills" / "releases" / "SKILL.md").read_text(encoding="utf-8")
+    assert "Draft" in body and "paragraph" in body and "START.md" in body
+    assert "Draft the paragraph when the item is filed" in body or "Draft each filed item's paragraph now" in body
+
+
+# ---- trim, stage 2 and 3 (lane D): what a command enforces or prints is not said here again
+
+def test_releases_leaves_what_the_commands_enforce_to_them():
+    assert "It numbers the page, writes its bullets" not in SKILL
+    assert "Only a grill decides, unless the lead overrides it" not in SKILL
+    assert "A stale copy is how a releases session says nothing is allocated" not in SKILL
+    assert "A bad date fails" not in SKILL and "W349 notes it" not in SKILL
+
+
+def test_a_stale_branch_decision_still_names_its_fix():
+    """The skill no longer pre-explains `vela decide` outside a grill; the command's refusal must carry the offer."""
+    from vela.commands import decide
+    import inspect
+    source = inspect.getsource(decide.cannot_decide_here)
+    assert "Offer the lead a short grill on it now" in source and "Nothing was decided" in source
+
+
+def test_releases_stays_under_its_word_cap():
+    assert len(SKILL.split()) <= 1390  # 2,041 before the first trim; 1,767 after it; 1,349 after the second

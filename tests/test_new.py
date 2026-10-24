@@ -163,6 +163,11 @@ def test_session_start_with_no_plan_says_to_run_vela_new(tmp_path):
 
 def test_the_start_skills_point_at_vela_new_and_never_a_hand_setup():
     start = (REPO / "plugin" / "references" / "START.md").read_text(encoding="utf-8")
-    assert "vela new --title" in start and "Never set a plan up by hand" in start
+    from vela.commands import session
+    # rule deletion: START's "No plan here yet" paragraph moved into the command's own exit 3
+    assert "No plan here yet" not in start and "Never set a plan up by hand" not in start
+    said = session.no_plan_yet()
+    assert "vela new --title" in said.needs_lead[0]["answer_with"] and said.needs_lead[0]["then"]
+    assert "never a plan set up by hand" in said.lines[0].text and "git init" in said.lines[0].text
     for skill in ("dump", "discover", "import"):
         assert "vela new" in (SKILLS / skill / "SKILL.md").read_text(encoding="utf-8"), skill

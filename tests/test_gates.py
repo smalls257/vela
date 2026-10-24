@@ -200,6 +200,10 @@ def test_flowcheck_not_fully_checked_blocks_and_no_override_covers_it(ub):
     found = judge(ub, "SLC-001", flows=partial)
     assert not found.ready and rules_of(found) == ["flow check"]
     assert "not fully checked" in found.reasons[0].plain
+    assert found.reasons[0].next.endswith(
+        'If the lead lives with a finding, record it with vela apply (kind override, the slice page, rule "flow check") '
+        'with their reason and an end date; "not fully checked" takes none.')
+    assert "- **Override:**" not in found.reasons[0].next and found.reasons[0].next.startswith("vela check-slice ")
     page = ub / SLICE
     page.write_text(page.read_text(encoding="utf-8") + "\n- **Override:** \"not fully checked\" by @hl-solution-lead "
                     "on 2026-11-19 until 2026-12-31: the budget ran out\n", encoding="utf-8")

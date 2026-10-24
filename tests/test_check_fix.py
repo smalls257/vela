@@ -1,4 +1,4 @@
-"""`vela check --fix W326` (overhaul Task 21b): close section 6 sets a page's `state` as W326 says. One right answer, so
+"""`vela check --fix W326` (overhaul Task 21b): close's "Check, then finish and send" sets a page's `state` as W326 says. One right answer, so
 code does it and the model never hand-edits a state line."""
 import json
 import shutil

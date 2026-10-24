@@ -1,4 +1,4 @@
-"""`vela decide CON-nnn`: a contract decided, on its provider's page (grill section 4; CONVENTIONS "Fact bullets"). Pure.
+"""`vela decide CON-nnn`: a contract decided, on its provider's page (grill's "File each decision as its branch closes"; CONVENTIONS "Fact bullets"). Pure.
 
 The Violation this kind exists to prevent is a Paper Tiger contract: decided on the consumer's word while nobody asked
 the side that has to build it. So, beyond what every decision writes (`decide_writes`):

@@ -1,4 +1,4 @@
-"""`vela marks plan` (overhaul Task 14): close section 2's default marks as one table in `vela.markrules`, and the
+"""`vela marks plan` (overhaul Task 14): close's "Find the session and mark the captures": the default marks as one table in `vela.markrules`, and the
 command that drafts the `marks` (and `ledger`) decision files from it.
 
 One test per rule, table-driven, so a rule deleted from the table fails a named case. The rule's reason lives in the
@@ -46,7 +46,7 @@ def only_item(plan):
     return plan.items[0]
 
 
-# One row per close section 2 rule: (case, capture line, context overrides, expected fields of the drafted item).
+# One row per default-mark rule: (case, capture line, context overrides, expected fields of the drafted item).
 RULES = [
     ("wild-park", '- [wild] (@sam) "What if the desk ran itself?" ^c01', {},
      {"rule": "wild-park", "mark": "park", "needs_lead": False}),
@@ -299,3 +299,12 @@ def test_no_open_session_is_refused(tmp_path):
     shutil.copytree(MINI, root)
     code, out = marks_plan(root)
     assert code == 1 and "No session is open" in out
+
+
+def test_a_person_idea_kept_as_an_inkling_with_no_page_is_the_models_to_fill_not_a_question_for_the_lead():
+    plan = planned(['- [idea] (@sam) "A badge for regulars." ^c01'])
+    item = only_item(plan)
+    assert item["mark"] == "keep" and item["page"] is None and item["id"] is None
+    assert [n["capture"] for n in plan.for_model] == ["^c01"]
+    assert plan.counts["for_model"] == 1 and plan.counts["needs_lead"] == 0
+    assert "the ID of the item or page the inkling belongs on, such as RUN-heron" in item["hints"]["page"]

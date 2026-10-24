@@ -11,7 +11,7 @@ reader copy runs no git), and the flow checker's record for the flows and slices
 not ready, 2 the tool failed.
 
 Task 21b: `check --fix W326 [--json|--for-lead]` sets each flagged page's frontmatter `state` as W326 says and prints
-what changed (close section 6). Why it is code: a page whose rows have moved on but whose own state has not reads as
+what changed (close's "Check, then finish and send"). Why it is code: a page whose rows have moved on but whose own state has not reads as
 unsettled to everyone, and there is one right answer, so the model never hand-edits a state line. What to set is
 `w326fix`'s (pure); this shell runs the check, writes through `edge/atomic.py`, runs no git (so a reader copy is the
 same, and says the change reaches the owner through a proposal), and checks the vault again: a new state brings its

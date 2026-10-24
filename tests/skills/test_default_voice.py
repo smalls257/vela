@@ -38,8 +38,11 @@ def default_section():
     return read(SKILL).split("## The default voice", 1)[1].split("\n## ", 1)[0]
 
 
-def test_the_skill_and_the_owners_copy_carry_the_same_eight_targets():
-    assert targets(default_section()) == TARGETS
+def test_the_owners_copy_carries_the_eight_targets_and_the_skill_no_longer_repeats_them():
+    # Rule deletion (the October 23 trim): the skill's measures table is gone, so there is one copy of the numbers. The
+    # owner's call: no command measures a draft against it, and the voice reviewer reads the default voice's sentences,
+    # so put the table back (about 60 words) if drafts drift long.
+    assert "| Measure | Target |" not in default_section()
     assert targets(read(DEFAULT)) == TARGETS
 
 
@@ -57,7 +60,7 @@ def test_the_voice_is_conversational_and_short():
 
 def test_the_owners_voice_md_outranks_the_default():
     skill = read(SKILL)
-    assert "wins over the default voice, the rules below and the examples" in skill
+    assert "wins over the default voice below and the examples" in skill
     assert skill.index("voice/VOICE.md") < skill.index("## The default voice")
     assert "A line in the owner's `voice/VOICE.md` wins over any line here" in default_section()
     owner = read(DEFAULT)

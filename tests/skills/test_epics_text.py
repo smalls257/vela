@@ -59,14 +59,15 @@ def test_epics_accepts_reopened_to_decided_for_an_epic():
 
 def test_epics_stages_what_render_rewrote():
     epics = read("plugin/skills/epics/SKILL.md")
-    # epics still stages by hand until its rewrite
-    assert "Stage every file `vela render` reported" in epics
+    # rule deletion: `vela close stage --checkpoint` stages by exact path and the hook denies hand staging
+    assert "Stage every file `vela render` reported" not in epics
+    assert "`vela render`" in epics and "vela close stage --checkpoint" in epics
 
 
 def test_epics_writes_owning_team_now():
-    # `vela add epic` writes the owning team with the skeleton, in this session
+    # `vela add epic --team` writes the owning team with the skeleton; the skill no longer narrates it (rule deletion)
     epics = read("plugin/skills/epics/SKILL.md")
-    assert "`vela add epic --title" in epics and "the owning team" in epics
+    assert "`vela add epic --title" in epics and "--team <@team>" in epics and "and the owning team" not in epics
 
 
 # --- From tests/test_override.py: The user can override any rule, and an override is never invisible.
@@ -76,7 +77,8 @@ def test_epics_writes_owning_team_now():
 
 def test_epics_keeps_the_override_bullets():
     epics = read_override("skills", "epics", "SKILL.md")
-    assert "Keep every `**Override:**`, `**Decided by:**` and `**Confirmed by:**` bullet" in epics
+    # rule deletion: closegate blocks a close that removed an override since the branch point (E321, E322)
+    assert "Keep every `**Override:**`, `**Decided by:**` and `**Confirmed by:**` bullet" not in epics
 
 
 # --- From tests/test_reading_load.py: Pages a person can hold in mind: plain names in prose, IDs on a Trace line, and
@@ -117,8 +119,8 @@ def test_epics_reads_the_question_gate():
 
 def test_epics_offers_the_e805_override_with_its_exact_bullet():
     epics = text("skills/epics/SKILL.md")
-    assert "- **Override:** E805 by @<handle> on <today> until <date>: <reason>" in epics  # E805 is a standing rule
-    assert "under the `## History` section at the end of `11-unknowns-and-risks.md`" in epics and "turns E805 into W805, which still prints" in epics
+    assert "- **Override:** E805 by @<handle>" not in epics  # rule deletion: decisions/override.py writes the line
+    assert "turns E805 into W805" not in epics
     assert "`vela questions --open --digest`" in epics
     assert "kind `override`" in epics and "kind `defer`" in epics and "`vela apply <file> --for-lead`" in epics
     assert "Defer it to whoever can answer" in epics and "--gate epics --app <APP-id>" in epics
@@ -175,23 +177,26 @@ def test_epics_skill_reads_the_gaps_and_runs_the_gate():
     assert "`vela epics frontier --team <@team> --for-lead`" in epics
     assert "2 or 3 ways to cut" in epics and "exactly one owning team" in epics
     assert "4 to 7 criteria" in epics and "## Done when" in epics
-    assert "`[testing]`" in epics
-    assert "offer `/vela:requirements` on that `CAP-nnn`, then `/vela:allocate`" in epics and "Never write the requirement into the epic." in epics
+    assert "`[testing]`" not in epics  # rule deletion: the concern marker is `add epic --concern`'s (decisions/add_epic.py)
+    assert "offer `/vela:requirements` on it, then `/vela:allocate`" in epics and "Never write the requirement into the epic." in epics
     assert "Set an epic to `decided` only when the solution lead confirms" in epics
-    assert "in groups of about five" in epics and "while a criterion lacks a yes it files nothing" in epics
+    assert "in groups of about five" in epics
+    assert "while a criterion lacks a yes it files nothing" not in epics and "Exit 3 means already decided" not in epics  # decide_epic says it
     assert "every criterion has a yes, its own or its group's" in epics
-    assert "It does not mean they are decided" in epics and "check --gate epics --app <APP-id>" in epics
+    assert "passing means structurally complete, not decided" in epics and "check --gate epics --app <APP-id>" in epics
     assert "list each epic still at `draft`" in epics
     assert "`vela epics lint <EPC-id> --for-lead`" in epics and "rewrite the criterion at the boundary" in epics
-    assert "writes the number and the Trace line" in epics and "More than 7 means the epic should be split" in epics
-    assert "`modes: [epics, shape, grill]` and the title `Epics: <team>`" in epics
+    assert "writes the number and the Trace line" not in epics and "More than 7 means the epic should be split" not in epics
+    assert "A cut that gives an epic more than about seven criteria is one to split" in epics  # section 3 owns the split
+    assert "modes `epics`, `shape` and `grill`" in epics
     assert "check --gate epics" in epics
-    assert "Never say an app's epics are complete while one remains." in epics
+    assert "Never say an app's epics are complete while one remains" in epics
 
 
 def test_epics_skill_frontmatter_instruction_names_the_epics_mode():
     epics = text("skills/epics/SKILL.md")
-    assert "`modes: [epics, shape, grill]`" in epics and "`modes: [shape, grill]`" not in epics
+    assert "modes `epics`, `shape` and `grill`" in epics and "`modes: [shape, grill]`" not in epics
+    assert "`modes: [epics, shape, grill]`" not in epics  # rule deletion: `session start --mode` takes the three modes
 
 
 # tech-design-grill vault mode (V1-18): read the slice, link back by ID and commit, never copy vault text.
@@ -236,7 +241,10 @@ def test_epics_never_makes_the_tracer_a_gate():
 
 def test_epics_says_e805_holds_asked_questions_too():
     epics = text("skills/epics/SKILL.md")
-    assert "nobody has disposed, or that was asked and still waits for its answer" in epics
+    # rule deletion: the E805 message says a question that was asked and not answered holds the gate (questions.STANDING_WORDS)
+    assert "nobody has disposed, or that was asked and still waits for its answer" not in epics
+    from vela import questions
+    assert questions.STANDING_WORDS["asked"] == "has been asked but not answered"
 
 
 # --- Task 22d (overhaul plan 2.3): the mechanics moved into commands; the skill names them and keeps the judgment.
@@ -256,7 +264,10 @@ def test_epics_leaves_the_boundary_test_to_lint():
     epics = EPICS.read_text(encoding="utf-8")
     assert "Before you propose a criterion, run the boundary test" not in epics
     assert not re.search(r"^1\. Its `- Trace:` line", epics, re.M) and "Redis or Kafka" not in epics
-    assert "`vela epics lint --fix-shape <EPC-id>`" in epics
+    # rule deletion (NEW-10): `vela epics lint` names a first-shape epic and the --fix-shape that keeps its AC numbers
+    assert "`vela epics lint --fix-shape <EPC-id>`" not in epics
+    from vela.commands import epics as epics_command
+    assert "run vela epics lint --fix-shape {epc}, which keeps each AC number" in epics_command.FIRST_SHAPE
 
 
 def test_epics_offers_the_e805_routes_once_without_a_rerun_warning():
@@ -310,3 +321,25 @@ def test_epics_names_only_commands_that_exist():
 def test_epics_offers_the_tracker_link_to_the_library():
     body = (PLUGIN / "skills/epics/SKILL.md").read_text(encoding="utf-8")
     assert "vela library add" in body and "for the Library" in body and "`links:` stays as written" in body
+
+
+def test_epics_drafts_the_paragraph_of_each_item_it_files_now():
+    body = (REPO / "plugin" / "skills" / "epics" / "SKILL.md").read_text(encoding="utf-8")
+    assert "Draft" in body and "paragraph" in body and "START.md" in body
+    assert "Draft the paragraph when the item is filed" in body or "Draft each filed item's paragraph now" in body
+
+
+# ---- trim, stage 2 and 3 (lane D): what a command enforces or prints is not said here again
+
+def test_epics_leaves_what_the_commands_enforce_to_them():
+    epics = EPICS.read_text(encoding="utf-8")
+    assert "## Never" not in epics
+    assert "Never name a component, table or technology in a criterion" not in epics  # epicslint holds it
+    assert "Never edit a generated block" not in epics  # the hook and E401 hold it
+    assert "It numbers the epic and writes the frontmatter" not in epics
+    assert "needs one marked criterion, or a waiver in the cell" not in epics  # W503 / E503 under --gate epics
+    assert "Contents: 1 start" not in epics
+
+
+def test_epics_stays_under_its_word_cap():
+    assert len(EPICS.read_text(encoding="utf-8").split()) <= 1440  # 2,021 before the first trim; 1,806 after it; 1,394 after the second

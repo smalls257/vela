@@ -106,6 +106,14 @@ def test_the_gate_wants_the_leads_words_on_their_own_receipt():
     assert "CON-003" not in found[0].plain and "CON-003" in found[0].detail
 
 
+def test_the_gate_names_the_command_that_clears_each_receipt_problem():
+    """The close skill no longer carries these recipes (sections 7); the gate's own `clear` line does."""
+    own = gate(f"- **Decision:** [[{RECORD}]] c07, @priya")[0].clear
+    assert "vela close readback --reword CON-003 --line decision" in own and "--approved ^cNN" in own
+    other = gate(f'- **Decision:** [[{RECORD}]] c09, @cto-ana: "Yes, one booking API."', captures=(ANA,))[0].clear
+    assert "quote-yes" in other and "a yes the lead relays doesn't count" in other
+
+
 def test_the_leads_handle_may_arrive_without_an_at_sign_or_as_a_display_name():
     assert gate(f"- **Decision:** [[{RECORD}]] c07, @priya", lead=("@priya", frozenset()))
     assert gate(f"- **Decision:** [[{RECORD}]] c07, @priya", lead=("PRIYA", frozenset()))

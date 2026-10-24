@@ -172,6 +172,15 @@ def may_quote(capture, record, lead):
     return from_the_lead(capture, handle, names) is None or quote_yes(record, capture.origin) is not None
 
 
+WHY_OVERRIDE = ("leave the reason out (the item is filed with no why), or an override citing the lead's words for "
+                "going ahead")
+
+
+def _is_the_lead(origin, lead):
+    handle, names = lead
+    return same_handle(origin, handle) or origin.strip().casefold() in {n.casefold() for n in names}
+
+
 def why_in_their_words(ref, record, lead):
     missing = exists(ref, record)
     if missing is not None:
@@ -179,12 +188,16 @@ def why_in_their_words(ref, record, lead):
     capture = record.capture(ref)
     if capture.is_person and may_quote(capture, record, lead):
         return None
+    if lead is not None and capture.is_person and capture.unverified and _is_the_lead(confirmed(capture.origin), lead):
+        return _refusal("consent-why-not-theirs", "Were those your words? I couldn't check who typed them.",
+                        f"^c{capture.n} is the lead's, but marked unverified (nothing logged what was typed). Ask "
+                        f"whether those were their words; on a yes run vela record confirm {capture.n}, then decide "
+                        "again.", override=WHY_OVERRIDE)
     return _refusal("consent-why-not-theirs", "Why this one, in your words?",
                     f"Ask the lead why, in their words, and capture that (^c{capture.n} is not the lead's words, and "
                     f"{capture.origin!r} gave no quote-yes). Someone else's reason goes on a page only after they "
                     "say, in this session, that they may be quoted.",
-                    override="leave the reason out (the item is filed with no why), or an "
-                             "override citing the lead's words for going ahead")
+                    override=WHY_OVERRIDE)
 
 
 def after_send_notice(yes, notice_count):

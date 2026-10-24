@@ -1,4 +1,4 @@
-"""What every decision writes and checks, whatever it decides (overhaul Task 16; grill section 4). Pure.
+"""What every decision writes and checks, whatever it decides (overhaul Task 16; grill's "File each decision as its branch closes"). Pure.
 
 The Violation this exists to prevent is a Distributed Monolith across the target kinds. Grill section 4 is nine writes
 per decision, and seven of them are the same whether the target is a page, a contract, a requirement, an epic, a

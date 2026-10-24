@@ -26,7 +26,11 @@ def test_review_prepares_the_checkpoint_with_one_command():
     prep = section("1 and 2. Prepare the checkpoint")
     assert '`vela reviewers prepare --checkpoint "<the checkpoint and its focus>" --focus' in prep
     assert "`.vela/review/<n>/<AREA>.md`" in prep  # where the packets live (schedule: REVIEW must say so)
-    assert "lists each area it skipped with the reason" in prep
+    assert "commits the stub and the changed pages" not in prep and "clears the findings folder" not in prep  # reviewers.py docstring owns it
+
+
+def test_review_spells_the_command_boundary_no_longer_does():
+    assert "run `vela reviewers prepare --checkpoint" in REVIEW  # boundary names its checkpoint and focus only
 
 
 def test_review_sections_one_and_two_lost_their_recipes():
@@ -68,7 +72,7 @@ def test_review_merges_in_code_and_never_reads_a_failure_as_clean():
     assert "Never write an empty findings list for a reviewer that did not finish" in REVIEW
     assert "An area that did not run is never reported as clean" in merge
     assert "- **Coverage:** <the merge's coverage line" in merge
-    assert "merge failed: <error>" in merge and "R-` id" in merge
+    assert "merge failed: <error>" in merge and "R-` id" not in merge and "is dropped: it was owed" not in merge  # reviews.merge drops them
     assert "replace each inner straight `\"` with `”`" in merge
     assert "file name without .md" in merge
 
@@ -76,7 +80,7 @@ def test_review_merges_in_code_and_never_reads_a_failure_as_clean():
 def test_the_digest_is_the_session_command_and_never_twice_is_its_bookkeeping():
     digest = section("5. The digest")
     assert "`vela questions --digest --session <session id> --for-lead`" in digest
-    assert "At most three questions" in digest and "Once per session" in digest and "Never twice, never ruled out" in digest
+    assert "At most three questions" in digest and "Once per session" in digest and "Never twice, never ruled out" not in digest  # the command keeps count
     assert "first five" not in digest and "next five" not in digest
     assert "A turn of 50 questions is a dump" in digest
     assert "Never paste a reviewer's reply, or the findings JSON, into the conversation" in digest
@@ -114,3 +118,7 @@ def test_the_short_digest_is_described_in_conventions():
 def test_the_reviewer_refuses_a_placeholder():
     agent = (PLUGIN / "agents" / "area-reviewer.md").read_text(encoding="utf-8")
     assert "a placeholder" in agent and "no questions file" in agent
+
+
+def test_review_stays_trimmed():
+    assert len(REVIEW.split()) <= 1510  # was 1702; prepare/merge mechanics live in the commands (now 1462)

@@ -38,6 +38,8 @@ Label every line with what it rests on: the requirement, an app page, a contract
 
 Then run `vela render` and `vela check`, fix every error, and commit a checkpoint with `vela close stage --checkpoint --for-lead`. The `allocation` block should show the requirement carried, and the trace check T7 (a code for you, not the lead) should no longer name it.
 
+Draft the paragraph each filed item owes now, as `START.md` says under "Draft the paragraph when the item is filed", and show it with the filed line.
+
 ## 4. Review, then finish
 
 Run the review checkpoint in `${CLAUDE_PLUGIN_ROOT}/references/REVIEW.md`, with the checkpoint "after the rows are written" and the app pages and contracts this session changed as its focus. Show the digest as REVIEW says and capture what the lead takes.

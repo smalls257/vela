@@ -1,6 +1,6 @@
 """The pull request `vela close pr` opens: its title, its reviewers and its body (overhaul Task 12). Pure.
 
-The Violation this exists to prevent is a God Method in prose: close section 8 and PR-BODY.md had the model work out
+The Violation this exists to prevent is a God Method in prose: close's "The pull request, and what you tell the lead" and PR-BODY.md had the model work out
 the reviewers, run greps, paste check lines and copy the consent block by hand, every close, and a
 skipped step left a list out with nothing saying it was skipped. Everything here is computable, so it is computed:
 

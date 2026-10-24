@@ -157,3 +157,9 @@ def test_discover_says_the_audit_wording():
 
 def test_discover_stops_when_a_command_cant_say_it():
     assert "When a command can't express what the lead wants, say so and stop." in DISCOVER
+
+
+def test_discover_drafts_the_paragraph_of_each_item_it_files_now():
+    body = (REPO / "plugin" / "skills" / "discover" / "SKILL.md").read_text(encoding="utf-8")
+    assert "Draft" in body and "paragraph" in body and "START.md" in body
+    assert "Draft the paragraph when the item is filed" in body or "Draft each filed item's paragraph now" in body

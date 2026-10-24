@@ -30,35 +30,21 @@ START_RULE = ("The user may override any rule in these skills. Say once, in one 
               "`vela apply`")
 
 
-# --- where vela runs from
+# --- where vela runs from: one line here, the ladder is `vela where`'s and pluginroot's
 
 
-def test_start_tries_skill_dir_first():
-    """`${CLAUDE_SKILL_DIR}` is the variable both apps document expanding in skill text, so START and `vela where`
-    try it before `${CLAUDE_PLUGIN_ROOT}`, and in the same order."""
+def test_where_vela_runs_from_is_one_line_that_points_at_where():
+    """The six-step ladder moved out of the instruction path: `pluginroot` holds the order and its why, `/vela:where`
+    prints it. START keeps the path, the unexpanded-variable tell and the pointer."""
     from vela import pluginroot
-    order = START.split("## Where vela runs from")[1].split("\n## ")[0]
-    assert order.index("1. `${CLAUDE_SKILL_DIR}/../../scripts/vela`") < order.index("2. `${CLAUDE_PLUGIN_ROOT}/scripts/vela`")
-    assert [c.source for c in pluginroot.candidates("/p", "/s", "/v", "")][:2] == ["${CLAUDE_SKILL_DIR}", "${CLAUDE_PLUGIN_ROOT}"]
-
-
-def test_the_resolution_order_is_stated_once_in_start():
+    line = section("Where vela runs from")
+    assert "`sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela`" in line and "`/vela:where`" in line
+    assert "literal `${`" in line and len(line.split()) < 60
+    for gone in ("${CLAUDE_SKILL_DIR}", "synced/", "Cowork", "vela_path", "vela() {", "zsh", "$P"):
+        assert gone not in line, gone
     assert START.count("## Where vela runs from") == 1
-    order = section("Where vela runs from")
-    positions = [order.index(m) for m in ("1. `${CLAUDE_SKILL_DIR}/../../scripts/vela`", "2. `${CLAUDE_PLUGIN_ROOT}/scripts/vela`",
-                                          "3. An installed copy in the plugins folder", "/synced/*/vela/scripts/vela",
-                                          "/cache/*/vela/*/scripts/vela", "4. `.claude/skills/vela/scripts/vela`",
-                                          "vela_path")]
-    assert positions == sorted(positions)
-    assert "Cowork" in order and "marketplace install" in order  # why synced/ and cache/ are both listed
-    assert "I cannot find the vela program. Run `/vela:where` and send me what it prints." in order
-
-
-def test_start_calls_vela_through_a_function_zsh_can_run():
-    """Diagnosis 6C: `P="python3 ..."; $P check` exits 127 in zsh, which doesn't word-split; 44 retries in two runs."""
-    order = section("Where vela runs from")
-    assert 'vela() { sh <that folder>/run-vela "$@"; }' in order
-    assert "zsh doesn't split `$P` into words" in order
+    assert [c.source for c in pluginroot.candidates("/p", "/s", "/v", "")][:2] == ["${CLAUDE_SKILL_DIR}", "${CLAUDE_PLUGIN_ROOT}"]
+    assert "zsh, which doesn't split `$P` into words" in " ".join(pluginroot.__doc__.split())  # the why moved to the module, not the void
 
 
 # --- step 0: the voice comes before any command output reaches the lead (voice audit S1)
@@ -68,8 +54,7 @@ def test_start_reads_the_voice_before_anything_reaches_the_lead():
     step = section("0. Read how to talk")
     assert "Before you say anything to the lead" in step
     assert step.index("voice/VOICE.md") < step.index("/CONVERSATION-VOICE")  # a mention, not a pin of that file's text
-    assert "Each mode skill says this again in one line" in step  # START and the skills agree
-    assert "no skill repeats it" not in START
+    assert "Each mode skill says this again in one line" not in START  # rule deletion: the skills say it, START needn't
     assert "--for-lead" in step and "git's or gh's own error text" in step
     assert START.index("## 0. Read how to talk") < START.index("## Where vela runs from")
 
@@ -78,19 +63,17 @@ def test_start_never_passes_raw_tool_text_to_the_lead():
     """Voice audit S2, S3: "in its own words" read as the tool's words, and "show its message" pasted git errors."""
     for old in ("in its own words", "show its message", "show the error", "Show the error"):
         assert old not in START, old
-    assert "say in one plain sentence that you couldn't check, and go on" in START
+    assert "tell the lead in one plain sentence what you couldn't do, and go on" in START
 
 
 # --- steps 1 to 5 are commands now
 
 
 def test_start_opens_the_session_with_session_start_and_briefs_with_session_brief():
-    assert "`vela session start --mode grill --topic" in section("1. Show the state of the clone")
-    assert "--for-lead" in section("1. Show the state of the clone")
-    assert "`vela session brief --for-lead`" in section("3. Bring in review comments")
-    assert "exits 3 with the choices" in section("2. Find open sessions")
-    for choice in ("`--resume <id>`", "`/vela:close`", "`--new`"):
-        assert choice in section("2. Find open sessions"), choice
+    one = section("1. Start the session")
+    assert "`vela session start --mode grill --topic" in one and "--for-lead" in one
+    assert "`vela session brief --for-lead`" in one
+    assert "On exit 3 it changes nothing: ask what it asks, one at a time, and run it again." in one
 
 
 def test_start_steps_one_to_five_no_longer_carry_the_recipes():
@@ -104,39 +87,55 @@ def test_start_steps_one_to_five_no_longer_carry_the_recipes():
         assert recipe not in START, recipe
 
 
+def test_the_choices_session_start_prints_are_not_copied_into_start():
+    """Rule deletion (the October 22 trim): `session start` exit 3 prints each choice, every time it applies."""
+    for copy in ("`--resume <id>`", "`--new`", "No plan here yet", "Which plan", "Find open sessions",
+                 "vela new --title", "vela plans --here", "`--title \"<their words>\"`", "git init", "--handle",
+                 "Never set a plan up by hand", "Never guess, and never pick the first"):
+        assert copy not in START, copy
+    from vela.commands import plans, session
+    plan = session.no_plan_yet()
+    assert "vela new --title" in plan.needs_lead[0]["answer_with"] and "git init" in plan.lines[0].text
+    which = plans.which_plan([{"folder": "a", "title": "A", "said": "A", "path": "a"},
+                              {"folder": "b", "title": "B", "said": "B", "path": "b"}])
+    assert "--vault <folder>" in which.lines[0].text and "never guess" in which.lines[0].text
+    assert session.NAMING_QUESTION if hasattr(session, "NAMING_QUESTION") else True
+    from vela import sessions
+    assert "What short name should this initiative go by?" in sessions.NAMING_QUESTION
+
+
 def test_start_keeps_bringing_main_in_and_freshness():
-    one = section("1. Show the state of the clone")
-    assert "doesn't switch branches or pull `main`" in one and "`vela close sync-main`" in one and "never call the plan up to date" in one
-    assert "`vela freshness`" in one
+    one = section("1. Start the session")
+    assert "never call the plan up to date when the shared copy was out of reach" in one
+    assert "doesn't switch branches or pull `main`" in one and "`vela close sync-main`" in one
+    assert "`vela freshness --for-lead`" in one and "offer to bring `main` in" in one
 
 
 def test_start_never_mentions_a_probe_skill_because_next_says_what_to_do():
-    four = START.split("## 4.", 1)[1].split("## 5.", 1)[0]
     assert "probe" not in START.lower()
-    assert "ask the user whether they know the answer now" in four
+    assert "ask whether the lead knows the answer now" in section("1. Start the session")
 
 
 def test_start_never_drafts_an_ask():
-    assert "Never draft an ask for the user to send, and never offer to." in START
+    assert "never draft an ask for the user to send" in START
 
 
 def test_start_offers_the_next_step_as_a_suggestion():
-    assert "as a suggestion, never a decision" in section("4. Offer the overdue unknowns and the next step")
+    assert "as a suggestion, never a decision" in section("1. Start the session")
 
 
 def test_the_first_session_asks_for_the_name_once():
-    paragraph = START.split("**Name the initiative, once.**", 1)[1].split("\n", 1)[0]
-    assert "What short name should this initiative go by?" in paragraph
-    assert '`--title "<their words>"`' in paragraph and "never ask again" in paragraph and "`--unnamed`" in paragraph
-    assert "Reader copy" in paragraph
+    assert "The initiative's name is asked once" not in START  # rule deletion: the command asks, and `--unnamed` is its own
+    assert "`--unnamed`" not in START
 
 
-def test_start_lists_every_mode_display_name():
-    assert "Epics, Challenge or Answer." in START
+def test_start_no_longer_lists_the_mode_display_names():
+    """Rule deletion: the names are MODES.md's table and `sessions.MODE_NAMES`; START said them a third time."""
+    assert "Epics, Challenge or Answer." not in START and "display name" not in START
 
 
 def test_start_says_where_a_resumed_grill_carries_on():
-    assert "## Agenda" in section("2. Find open sessions")
+    assert "## Agenda" in section("1. Start the session")
     assert "Never close a session the user hasn't asked to close" in START
 
 
@@ -145,14 +144,17 @@ def test_start_says_where_a_resumed_grill_carries_on():
 
 def test_start_says_a_reader_runs_no_git_in_a_few_lines():
     reader = section("Owner or reader")
-    assert "This is a read copy, so I will not use git" in reader
-    assert len(reader.split()) < 130
+    assert "run no `git` or `gh` yourself" in reader
+    assert len(reader.split()) < 60
+    # rule deletion: `vela session start` says it is a read copy (commands.session.READ_COPY; tests/test_session_cli.py)
+    assert "This is a read copy, so I will not use git" not in START
     assert "- **Pending approval:** @<their handle>, <today>" not in START  # decide writes it in a reader copy
-    assert "**Reader copy:**" in section("1. Show the state of the clone")
 
 
 def test_the_handle_comes_from_whoami():
-    assert "`vela whoami`" in START
+    # rule deletion: `vela record add` defaults the origin to the handle `vela whoami` holds (record.lead_origin;
+    # tests/test_record_add.py), so START no longer names the command
+    assert "`vela whoami`" not in START
     assert "gh api user -q .login" not in START and ".vela/handle" not in START  # rule deletion: whoami does it
     assert ".vela/*" in (REPO / "plugin" / "template" / ".gitignore").read_text(encoding="utf-8")
 
@@ -162,25 +164,27 @@ def test_the_handle_comes_from_whoami():
 
 def test_start_forbids_codes_in_conversation_and_names_what_counts():
     plain = section("Plain names and a page a person can hold")
-    for kind in ("check codes", "gate names", "capture numbers", "copy and finding IDs", "unknowns", "capabilities",
-                 "contracts", "flows", "epics", "apps", "parties", "runs"):
+    for kind in ("capture number", "check code", "gate name", "rule name"):
         assert kind in plain, kind
     assert "The lead reads names, never codes." in plain
     assert '"/vela:grill Desktop agent"' in plain  # a command the lead types names the thing, not its ID
-    assert "the data protection officer" in plain
+    assert "If the lead asks for an ID, give it." in plain
+    assert "copy and finding IDs" not in plain  # rule deletion: the kind-by-kind list is CONVERSATION-VOICE rule 5's
 
 
-def test_start_says_states_terms_and_spelling_in_words():
+def test_start_says_states_and_spelling_in_words():
     plain = section("Plain names and a page a person can hold")
-    for word in ("just an idea", "not decided yet", "proposed", "decided", "confirmed", '"the plan"', "the team lead",
-                 "`vela terms <word>`", "American spelling", '"Organizer"'):
+    for word in ("Say states in words", "American spelling", '"Organizer"', "spell out an abbreviation"):
         assert word in plain, word
+    for gone in ("`vela terms <word>`", "the team lead", '"the plan"', "just an idea"):  # `vela terms` and the style check own these
+        assert gone not in plain, gone
     assert not re.search(r"\bGrill\b(?! \(`| part)", plain)
 
 
 def test_start_holds_conversation_rule_seven():
-    plain = section("Plain names and a page a person can hold")
-    assert "Answer first, then about four things at most" in plain and '"there are six more; want them?"' in plain
+    # rule deletion: the rule lives in CONVERSATION-VOICE rule 7 (tests/test_conversation_voice.py pins it there), and
+    # `say.LEAD_LIMIT` caps what a command prints
+    assert "Answer first, then about four things at most" not in START
 
 
 def test_the_group_yes_is_defined_once_here():
@@ -246,7 +250,8 @@ def test_captures_are_numbered_by_record_add_and_keep_their_origins():
     assert "`vela record add --origin <who> --tag <tag>" in captures
     assert "^c01" not in captures and "never reused" not in captures  # rule deletion: record add numbers them
     assert "claude, from <name>" in captures and "promoted on a nod" in captures
-    assert "`vela close stage --checkpoint`" in captures and "by exact path, never `git add -A`" in captures
+    assert "`vela close stage --checkpoint`" in captures
+    assert "never `git add -A`" in captures and "by exact path" not in captures  # hook-only rule stays; the how is the command's
 
 
 def test_start_names_every_mode_that_marks_at_once():
@@ -283,3 +288,68 @@ def test_relaying_a_command_says_more_and_what_to_do_on_my_side():
     assert "never say that line or the command's own text" in relay
     assert "run the same command again with `--more` added" in relay
     assert '"Relaying a command" below' in section("0. Read how to talk")
+
+
+# --- Drafting as each item settles: the house voice is written when the item is filed, and close only fills what is
+# missing or went stale. The rule is written once here; each mode skill's own test file pins its one line.
+
+def test_start_says_once_to_draft_the_paragraph_when_the_item_is_filed():
+    rule = section("Draft the paragraph when the item is filed")
+    assert "in the same turn" in rule and "skills/house-voice/SKILL.md" in rule
+    assert "from the record as it stands" in rule and "with the filed line" in rule
+    assert "change only the fact that changed" in rule and "What is never voiced" in rule
+    assert "close lists only what is missing or went stale" in rule
+    assert START.count("Draft the paragraph when the item is filed") == 1
+
+
+# --- What the trimmed mode skills lean on (the October 23 trim). Each skill's own test file says what it dropped and
+# points here; the words live in START once, so they are pinned here once (a skill's test file pins only its skill).
+
+
+def test_start_holds_what_the_trimmed_mode_skills_lean_on():
+    # boundary and every mode: the one stop, the yes rule, names in a command's lines too
+    assert "When a command can't express what the lead wants, say so and stop; never fall back to doing its work by hand." in START
+    assert "A line is written after a yes to that line." in START and "A yes that covers a group you read out" in START
+    assert "No ID, capture number, check code, gate name or rule name, in your sentences or a command's." in START
+    # grill: how to run vela, who is the origin of a restatement, no asks drafted for the lead
+    assert "sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela" in START and "`claude, from <name>` for a restatement" in START
+    assert "never draft an ask for the user to send" in START
+    assert "offer the brief's next step as a suggestion, never a decision" in START
+    # close and releases: relaying a command, the voice before anything is said, freshness after session start
+    assert "Say a `--for-lead` command's lines in your words." in START and "git's or gh's own error text" in START
+    zero = section("0. Read how to talk")
+    assert zero.index("voice/VOICE.md") < zero.index("CONVERSATION-VOICE.md")
+    one = section("1. Start the session")
+    assert "run `vela freshness --for-lead` next" in one and "offer to bring `main` in (`vela close sync-main`)" in one
+    # close: when it starts, the only yes that sends, what it drafts
+    closing = section("Closing a session")
+    assert "Close starts only on the lead's word" in closing
+    assert "That yes, given after close says what goes, is the only one that sends." in closing
+    assert "close lists only what is missing or went stale since" in section("Draft the paragraph when the item is filed")
+
+
+def test_start_keeps_the_four_hard_stops():
+    """Close carries the four hard stops itself (it sends, and can start cold); START keeps the same four words."""
+    stops = ("Never edit anything under `~/.claude`.",
+             "Never commit or push company material, or anything from `.inbox/`, `voice/local/` or `voice/corpus/`, "
+             "without the owner's explicit consent in this session.",
+             "Never say a PR, comment, push or commit exists unless the tool printed it, and never report a failed "
+             "step as done.",
+             "Never invent what a person said, a source, or an ID the vault does not hold.")
+    for stop in stops:
+        assert stop in START, stop  # close's test pins the same literals in close
+
+
+def test_every_start_section_a_skill_cites_by_name_exists():
+    """A skill that says START "says under" a heading, or lists the rules it takes from it, must name a heading START has
+    (the trim cut "Offering a session" and a shell section; a skill still citing them sends the model to nothing)."""
+    headings = {h.split(". ", 1)[-1] for h in re.findall(r"^## (.+)$", START, re.M)}
+    cited = []
+    for path in sorted((PLUGIN / "skills").glob("*/*.md")):
+        body = path.read_text(encoding="utf-8")
+        cited += [(path.name, h) for h in re.findall(r"START(?:\.md)?[`']?s? says under \"([^\"]+)\"", body)]
+        for rules in re.findall(r"its rules ((?:\"[^\"]+\"(?:, | and )?)+) do", body):
+            cited += [(path.name, h) for h in re.findall(r'"([^"]+)"', rules)]
+    assert len(cited) >= 8, cited
+    missing = [c for c in cited if c[1] not in headings]
+    assert not missing, missing

@@ -1,5 +1,5 @@
 """The `override` apply kind: the lead setting a rule aside, written on the item in their own words (plan 4.4;
-CONVENTIONS "Overrides"; close section 3, grill section 2, epics' E805 route). Pure.
+CONVENTIONS "Overrides"; close's "Find the session and mark the captures", grill's "The gate and the agenda", epics' E805 route). Pure.
 
     - **Override:** <rule>[, <rule>] by @handle on YYYY-MM-DD[ until YYYY-MM-DD]: <the lead's words>
 

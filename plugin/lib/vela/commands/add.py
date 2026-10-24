@@ -6,13 +6,13 @@ applied decision file under `.vela/decisions/<session>/`, so what was filed can 
 Types (`vela add TYPE --help` lists each one's fields, and `vela.decisions.add_<type>` says why each rule holds):
 unknown, constraint, subject, adr, epic, slice, app-stub, contract, fr, source, cut.
 
-Why a command and not only a file: grill section 5 ("a new unknown mid-grill"), boundary, releases and requirements
+Why a command and not only a file: grill's "File each decision as its branch closes" ("a new unknown mid-grill"), boundary, releases and requirements
 write one item at a time while the lead is talking, and drafting a file for one item is a step a model skips. "New
 IDs come from vela next-id, so an open session branch never hands out the same number twice": this command reads
 `main` and every session branch (`edge/idgit.py`) and says the ID it took, so nothing is numbered by hand.
 
 `vela add unknown --blocks X` also takes each agenda item the unknown now holds up off the agenda, and says which
-(grill section 5: "take that item off the agenda ... re-run GATE-4 for every other agenda item it blocks").
+(grill's "File each decision as its branch closes": "take that item off the agenda ... re-run GATE-4 for every other agenda item it blocks").
 
 A missing `--owner` is the lead's handle (`.vela/handle`, as `vela whoami` keeps it): never asked for.
 

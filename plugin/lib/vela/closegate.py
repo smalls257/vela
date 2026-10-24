@@ -627,11 +627,16 @@ def receipt_problems(vault, before, record_id, part, record_text, lead):
         if _speaker_is_lead(who, lead):
             if bullet.label == "Decision" and not words:
                 out.append(Problem(NO_WORDS.format(name=name), f"{where}: the receipt names {who} and holds no words",
-                                   "Quoting the lead's own words in the receipt clears it.", kind=RECEIPT))
+                                   "Quoting the lead's own words in the receipt clears it: vela close readback --reword "
+                                   f"{bullet.item or '<ID>'} --line decision --words \"<their words>\" --approved ^cNN, where "
+                                   "^cNN is a yes they gave in the session. With no such yes, ask for one now and capture it.",
+                                   kind=RECEIPT))
         elif words and not _may_quote(held, who, lead):
             out.append(Problem(UNQUOTED.format(name=name), f"{where}: {who}'s words, with no quote-yes from {who}",
-                               f"Asking {who}, in the session, whether they may be quoted clears it; so does taking "
-                               "their words out of the line.", kind=RECEIPT))
+                               f"Asking {who}, in the session, whether they may be quoted clears it: capture their answer "
+                               f"with them as origin and the tag quote-yes (a yes the lead relays doesn't count). So does "
+                               "taking their words out of the line at the read-back, by cutting or rewording it.",
+                               kind=RECEIPT))
     return out
 
 

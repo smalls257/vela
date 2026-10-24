@@ -15,7 +15,7 @@ SKILLS = REPO / "plugin" / "skills"
 START = REPO / "plugin" / "references" / "START.md"
 
 RUNS_ALL_OF_START = ("grill", "epics", "boundary", "discover", "import", "dump", "shape")
-RUNS_START_STEP_0 = {"challenge": "read how to talk (its steps 0, 1, 2 and 5)",
+RUNS_START_STEP_0 = {"challenge": "start the session (its steps 0 and 1)",
                      "voice-seed": "Run steps 0 and 1 of `${CLAUDE_PLUGIN_ROOT}/references/START.md`"}
 NAMES_THE_VOICE_FILE = ("proposals", "propose", "open", "house-voice")
 WRITES_PAGE_PROSE = {"discover": "SKILL.md", "import": "SKILL.md", "epics": "SKILL.md", "boundary": "PAGES.md"}

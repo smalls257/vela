@@ -439,3 +439,11 @@ def test_an_unknown_named_twice_in_one_row_is_reported_once(ub):
          "| Q-OPS-06@INI-002 | unknown | unknown: UNK-007 and UNK-007 again |")
     assert broken(ub) == [("E802", LEDGER)]
     assert check(ub, TODAY)[1].count("UNK-007 is resolved; record the answer") == 1
+
+
+def test_the_w809_fix_sends_the_subject_through_vela_add_subject_never_a_hand_typed_heading(ub):
+    edit(ub / LEDGER, "| Copy | State | Evidence | By | Date |\n", "## Notes\n\n| Copy | State | Evidence | By | Date |\n")
+    out = check(ub, TODAY)[1]
+    assert "W809" in out
+    assert "type it with vela add subject from the facts they give" in out
+    assert "### SUB" not in out and "03-context-and-scope.md and link it" not in out

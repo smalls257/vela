@@ -25,6 +25,16 @@ CLOSE_22A = "\n".join((REPO / "plugin" / "skills" / "close" / name).read_text(en
                       for name in ("SKILL.md", "READER.md", "PR-BODY.md"))
 
 
+HEADINGS = {1: "1. Find the session and mark the captures", 2: "2. Write the items and the prose",
+            3: "3. Still yes, then the read-back", 4: "4. Check, then finish and send",
+            5: "5. The pull request, and what you tell the lead", 6: "6. No session open"}
+
+
+def csec(n):
+    """Close's numbered section n (the trim of October 23 cut nine sections to six), up to the next `## `."""
+    return CLOSE_SKILL.split(f"## {HEADINGS[n]}\n", 1)[1].split("\n## ", 1)[0]
+
+
 def read(*parts):
     return (REPO.joinpath(*parts)).read_text(encoding="utf-8")
 
@@ -108,8 +118,8 @@ def test_close_finds_an_answer_record_on_a_shared_branch():
 def test_close_leaves_the_answer_session_route_to_close_push_and_pr():
     """An answer session pushes to its challenge's branch and comments on that PR: `close push` and `close pr` own it."""
     assert "challenge's\n   branch" in close_push.__doc__ and "gh pr comment" in close_push.__doc__
-    eight = section(CLOSE_SKILL, "## 8.", "## What you tell")
-    assert "for an answer session it comments on the challenge's pull request instead" in eight
+    # rule deletion: `close push` and `close pr` pick the route themselves, so the skill no longer says it
+    assert "for an answer session it comments on the challenge's pull request instead" not in CLOSE_SKILL
     for recipe in ("git push origin <branch>", "gh pr comment <number>", "gh pr list --head", "E316 for <ID>"):
         assert recipe not in CLOSE_22A, recipe
 
@@ -157,9 +167,9 @@ def test_the_moved_rules_keep_their_reasons_in_code():
 def test_close_finish_push_pr_in_order():
     """The yes to send is numbered after `close push`'s notice and captured while the record is still open, so
     `close finish` commits it; then the push cites it and `close pr` quotes it (tests/replay/step_45 and step_70)."""
-    seven = section(CLOSE_SKILL, "## 7. Finish and send", "## 8.")
+    seven = csec(4)
     order = ["vela check-slice --changed", "vela close gate --for-lead", "vela close push --for-lead",
-             "vela record add --origin", "vela close finish --summary", "vela close push --consent ^cN"]
+             "vela record add --tag decision", "vela close finish --summary", "vela close push --consent ^cN"]
     at = [seven.index(step) for step in order]
     assert at == sorted(at), order
     assert '--mark "drop: the yes to send this for review"' in seven
@@ -170,12 +180,14 @@ def test_close_finish_push_pr_in_order():
 
 
 def test_close_relays_the_gate_grouped_and_in_its_own_words():
-    seven = section(CLOSE_SKILL, "## 7. Finish and send", "## 8.")
-    assert "group it by what holds the close up, about four at a time" in seven
-    assert "which slices still run end to end and which break, and where" in seven
+    seven = csec(4)
+    assert "grouped by what holds the close up" in seven
+    assert "say which slices still run end to end and which break" in seven
     assert "may keep any as it is" in seven
     assert "as it prints them" not in CLOSE_SKILL and "in its words" not in CLOSE_SKILL
-    assert "Never pass raw git or `gh` error text on" in CLOSE_SKILL
+    # rule deletion: START's "Relaying a command" and its plain-names rule say it for every mode
+    assert "Never pass raw git or `gh` error text on" not in CLOSE_SKILL
+    # (START's "Relaying a command" is pinned in test_start_text.py)
 
 
 def test_a_command_that_cant_do_it_is_a_stop_not_a_recipe():
@@ -193,7 +205,7 @@ def test_close_says_grill_in_lower_case():
 
 
 def test_close_turns_a_deferral_into_a_question_with_an_owner_and_a_date():
-    four = section(CLOSE_SKILL, "## 4. Draft the prose", "### Voice review")
+    four = csec(2)
     assert "is never kept as prose" in four and "vela add unknown --blocks <ID>" in four
     assert any(rule.name == "deferral-unknown" for rule in markrules.RULES)
 
@@ -217,8 +229,8 @@ def test_close_leaves_the_owning_team_epics_wrote():
 
 def test_close_checks_remote_session_records_before_taking_an_id():
     """Close numbers through `vela add`, which reads every local and remote session branch itself."""
-    step3 = section(CLOSE_SKILL, "## 3.", "## 4.")
-    assert "numbers past every open session branch" in step3 and "never number an item by hand" in step3
+    step3 = csec(2)
+    assert "numbers past every open session branch" not in step3 and "never number an item by hand" not in step3  # next_id owns it
     assert "every session branch" in add.__doc__
     assert '"refs/heads/session/", "refs/remotes/origin/session/"' in read("plugin/lib/vela/cli.py")
 
@@ -232,15 +244,17 @@ def test_close_checks_remote_session_records_before_taking_an_id():
 def test_close_merges_a_moved_main_before_render():
     # The merge recipe moved into `vela close sync-main` (tests/test_sync_main.py pins its behavior); the skill
     # runs it before render and checkpoints through `close stage`.
-    step = close_section("## 6. Bring in main and check", "## 7.")
+    step = csec(4)
     assert step.index("vela close sync-main") < step.index("vela render")
-    assert "vela close stage --checkpoint" in step
+    assert "vela close stage --checkpoint" not in step and "--accept-not-compared" not in step  # sync-main prints both
+    assert close_sync.CHECKPOINT == "vela close stage --checkpoint" and "--accept-not-compared" in close_sync.ACCEPT
+    assert "Exit 3 for uncommitted edits" not in step and "Exit 1: main changed lines" not in step
     assert "git merge" not in step and "-X ours" not in step and "--theirs" not in step
     assert "long-lived PR" in read("README.md") and "merge `origin/main`" in read("README.md")
 
 
 def test_close_says_the_draft_commit_holds_whole_pages_and_review_lists_only_prose():
-    draft = close_section("## 4. Draft the prose", "### Voice review")
+    draft = csec(2)
     assert "vela close stage --draft" in draft
     assert "the drafted pages whole" in close_stage.__doc__
     assert "Leave out the bullets, table rows and headings" in voice_review()
@@ -301,7 +315,12 @@ def test_close_numbers_new_items_one_way():
 def test_close_keeps_the_override_bullets():
     close = skill_text("close")
     assert "Keep every `**Override:**`, `**Decided by:**` and `**Confirmed by:**` bullet as written" in close
-    assert "fix its grammar, never delete it" in close
+    # rule deletion: `check` says it (E321's fix writes the grammar) and the close gate asks about a removed override
+    assert "fix its grammar, never delete it" not in close
+    import inspect
+    from vela import closegate, override
+    assert "E321" in inspect.getsource(override) and "Write - **Override:**" in inspect.getsource(override)
+    assert "Was that on purpose?" in inspect.getsource(closegate.unagreed_removals) or "Was that on purpose?" in inspect.getsource(closegate)
     assert '("Overrides", f.overrides, "none")' in read("plugin", "lib", "vela", "prbody.py")
 
 
@@ -310,8 +329,9 @@ def test_close_keeps_the_override_bullets():
 
 
 def test_close_has_a_reader_section_that_commits_and_pushes_nothing():
-    pointer = CLOSE_SKILL.split("## Reader copy", 1)[1].split("## 1. Find the session")[0]
-    assert "skills/close/READER.md" in pointer and "Never say a PR exists" in pointer
+    pointer = CLOSE_SKILL.split("Run `vela role`.", 1)[1].split("## 1.")[0]
+    assert "skills/close/READER.md" in pointer and "In a reader copy" in pointer
+    assert "Never say a PR exists unless `gh` printed its URL." in CLOSE_SKILL
     reader = text("skills/close/READER.md")  # read only when `vela role` says reader
     assert len(reader.split()) < 150
     assert ("This is a read-only copy, so I'll save your notes here and stop. Nothing leaves your machine. To send your "
@@ -357,7 +377,7 @@ def test_ledger_is_the_conversation_only_and_the_rows_are_code():
     about a row the lead's words leave unclear, and drafting a catalog entry."""
     ledger = text("skills/close/LEDGER.md")
     assert len(ledger.split()) < 300
-    assert "Ask it as one of section 2's leftovers" in ledger and "Never invent a source" in ledger
+    assert "Ask it as one of close's leftovers" in ledger and "Never invent a source" in ledger
     assert "write no row for those copies" in ledger
     assert "never ask whether a gap turned up late" in ledger
     assert "Never edit `${CLAUDE_PLUGIN_ROOT}/catalog/questions.yaml`" in ledger and "pruning is the maintainer's call" in ledger
@@ -375,11 +395,12 @@ def test_close_reports_questions_and_reviews_in_the_pr_body():
 
 
 def test_close_keeps_its_existing_guards():
-    for kept in ("### Voice review", "### Harvest the owner's edits", "vela close sync-main",
-                 "nor the inbox, `voice/local/` or `voice/corpus/`", "vela voice settle --checkpoint",
-                 "vela voice settle --rewrites"):
+    for kept in ("run the voice review once as", "VOICE-REVIEW.md", "HARVEST.md", "vela voice harvest list --json",
+                 "vela close sync-main", "vela voice settle --checkpoint", "vela voice settle --rewrites"):
         assert kept in CLOSE, kept
-    assert len(CLOSE_SKILL.split()) <= 3050  # was 2330; the private-notes close adds still-yes, the read-back and the receipts (3007 words)
+    assert "### Voice review" not in CLOSE_SKILL  # the review is a paragraph in section 2 now
+    assert len(CLOSE_SKILL.split()) <= 1610  # was 3061 before the first trim; 2,585 after it; 1,557 after the second
+    assert "nor the inbox, `voice/local/` or `voice/corpus/`" not in CLOSE_SKILL  # guard.py holds the allow-list
 
 
 # --- From tests/test_session_experience.py: What the skills make a lead go through (the constraints the skills put on a lead's session).
@@ -393,21 +414,25 @@ def test_close_can_be_started_by_the_model():
 
 
 def test_close_asks_one_confirmation_before_it_pushes_and_never_starts_on_its_own():
-    starting = section_session_experience(skill_text("close"), "Starting a close")
-    assert "never by yours" in starting
-    assert re.search(r"Before section 7 pushes.*wait for a yes", starting, re.S)
-    assert "A bare \"close\" is consent to file, not to send." in starting
+    assert "Close starts on the lead's word, never yours." in CLOSE_SKILL
+    assert "Sending is the only step that leaves the machine, and it takes its own yes." in CLOSE_SKILL
+    assert re.search(r"`vela close push --for-lead` and say its notice.*; wait\.", csec(4), re.S)
+    # rule deletion: START says when close starts and that only a yes after the notice sends, and `close push` refuses
+    # a yes captured before the notice (decisions/consent.py:after_send_notice)
+    assert 'A bare "close" is consent to file, not to send.' not in CLOSE_SKILL
+    # START's "Closing a session" holds when close starts and the only yes that sends (pinned in test_start_text.py)
 
 
 # --- S25: record by default, ask only the few unsettled items, never the tool's own filing
 
 
 def test_close_files_by_default_and_asks_at_most_three_unsettled_items():
-    sec2 = section_session_experience(CLOSE_SKILL, "2. Mark every capture")
-    assert "vela marks plan --json" in sec2 and "without asking" in sec2 and "at most three items" in sec2
-    assert "never show the lead the marks, a capture number or a list to approve" in sec2
-    assert "There are four more; want them?" in sec2  # conversation rule 7: offer the rest
-    assert "vela apply <file> --for-lead" in sec2 and "from its counts" in sec2
+    sec1 = csec(1)
+    assert "vela marks plan --json" in sec1 and "at most three" in sec1 and "in one message" in sec1
+    assert "never show the lead marks, capture numbers or a list to approve" in sec1
+    assert "`vela apply <file> --for-lead`" in sec1 and "by group and in the lead's words" in sec1
+    # rule deletion: conversation rule 7 and `say.LEAD_LIMIT` offer the rest
+    assert "There are four more; want them?" not in CLOSE_SKILL
 
 
 def test_worked_examples_kept():
@@ -448,8 +473,11 @@ def test_close_never_asks_for_minutes_handles_or_the_late_gap():
 
 
 def test_close_writes_the_handoff_manifest_when_a_senior_takes_an_app():
-    seven = section(CLOSE_SKILL, "## 7. Finish and send", "## 8.")
-    assert "run it with `--replace` only once they say so in this session" in seven
+    seven = csec(4)
+    # rule deletion: `close finish --replace` says it (commands/closefinish.py), when a manifest already exists
+    assert "run it with `--replace` only once they say so in this session" not in seven
+    assert "it only once they agree to the changes; then finish again with --replace." in read(
+        "plugin", "lib", "vela", "closefinish.py")
     assert "not settled at handoff" in seven
     assert "The close commit comes first" in closefinish.__doc__
     assert closefinish.MANIFEST_MESSAGE == "Handoff manifest for {app}"
@@ -472,14 +500,19 @@ def test_the_bullet_shape_leaves_is_what_vela_next_reads():
 def test_close_marks_honestly_and_never_claims_a_pr():
     assert "never Claude's to keep or drop: the lead chooses" in CLOSE_SKILL
     assert "Never say a PR exists unless `gh` printed its URL." in CLOSE_SKILL  # the hard stop
-    assert "Do not open a PR for a branch that is not pushed." in CLOSE_SKILL
+    # rule deletion: `close pr` refuses a branch `close push` hasn't pushed (close_push.pushed_marker; tests/test_close_pr.py)
+    assert "Do not open a PR for a branch that is not pushed." not in CLOSE_SKILL
+    assert "isn't pushed by close push yet" in read("plugin", "lib", "vela", "commands", "close_push.py")
     assert "`org/team`" in prbody.__doc__ and "the lead's own\n  handle is dropped" in prbody.__doc__
     assert '("Kept on Claude\'s suggestion (check these)", f.kept_on_claude, None)' in read("plugin", "lib", "vela", "prbody.py")
 
 
 def test_close_finds_the_open_session_through_session_open():
     close = skill_text("close")
-    assert "vela session open --switch" in close and "--id <the one they picked>" in close
+    assert "vela session open --switch" in close
+    # rule deletion: with several open it exits 3 and prints "Run again with --id <id> to pick one"
+    # (tests/test_session_open.py::test_several_open_exits_3_and_lists)
+    assert "--id <the one they picked>" not in close
 
 
 def test_close_pr_body_reviewers_and_staging():
@@ -489,15 +522,18 @@ def test_close_pr_body_reviewers_and_staging():
 
 
 def test_close_never_stages_the_inbox():
-    assert "it never stages the notes" in skill_text("close") and "nor the inbox" in skill_text("close")  # close stage owns it (tests/test_guard.py)
+    assert "it never stages the notes" not in skill_text("close") and "nor the inbox" not in skill_text("close")  # guard.py owns the allow-list (tests/test_guard.py)
+    assert "The notes stay on this machine" in skill_text("close")
 
 
 def test_close_drafts_prose_through_house_voice():
-    four = section(CLOSE_SKILL, "## 4. Draft the prose", "### Voice review")
-    assert "Read `${CLAUDE_PLUGIN_ROOT}/skills/house-voice/SKILL.md` and follow it" in four
+    four = csec(2)
+    assert "through `${CLAUDE_PLUGIN_ROOT}/skills/house-voice/SKILL.md`" in four
     assert "vela close drafts --json" in four and "vela close stage --draft" in four
-    assert "vela style <each drafted page>" in four and "until it prints nothing" in four
-    assert "vela prose replace --page" in four and "vela add adr --state decided" in four
+    assert "`vela style` on each drafted page" in four and "until it prints nothing" in four
+    # rule deletion: house-voice owns merged prose (`vela prose replace`) and closedrafts.WHY["adr"] names `vela add adr`
+    assert "vela prose replace --page" not in four and "vela add adr --state decided" not in four
+    assert "vela add adr --state decided" in closedrafts.WHY["adr"]
     assert "Prose to draft" not in CLOSE
 
 
@@ -507,10 +543,12 @@ def test_close_knows_an_epic_owes_its_summary():
 
 def test_close_ends_with_the_dashboard_line_close_finish_gives():
     last = CLOSE_SKILL.split("\n## ")[-1]
-    assert last.startswith("9. The dashboard")
-    assert "vela close dashboard --for-lead" in last and "vela close dashboard --branch" in last
-    assert "A failed build never undoes the close" in last and "never called up to date unless it built" in last
-    assert "go straight to section 9, which has its own path for a close with no session" in CLOSE_SKILL
+    assert last.startswith("6. No session open")
+    assert "vela close dashboard --for-lead" in last and "vela close dashboard --put-back --for-lead" in last
+    assert "the dashboard line `close finish` gave" in csec(5)
+    # rule deletion: `close finish` and `close dashboard` print the failed-build line (closefinish.DASHBOARD_FAILED)
+    assert "A failed build never undoes the close" not in last and "never called up to date unless it built" not in last
+    assert "If none is open, change no page and go to section 6." in CLOSE_SKILL
     for gone in ("The explorer could not be built", "The dashboard is rebuilt in your folder but not committed",
                  "never pipe it", "Rebuild dashboard", "dashboard/<today>"):
         assert gone not in CLOSE_SKILL, gone
@@ -521,8 +559,7 @@ def test_close_ends_with_the_dashboard_line_close_finish_gives():
 
 
 def test_close_replaces_the_opening_it_rewrites_instead_of_adding_one():
-    assert ("A page has one opening: the one you rewrite replaces the old one, and you never write a new opening "
-            "beside it.") in CLOSE_SKILL
+    assert "A page has one opening" not in CLOSE_SKILL  # W371 holds it
 
 
 # --- From tests/test_v3_final_fixes.py: The v3 final fix wave.
@@ -534,10 +571,12 @@ def test_close_replaces_the_opening_it_rewrites_instead_of_adding_one():
 
 
 def test_close_lists_w809_and_w804_to_the_lead():
-    six = section(CLOSE_SKILL, "## 6. Bring in main and check", "## 7.")
-    for said in ("W809", "W804", "offer to type the subject", "fix the row", "Never delete it without a yes",
-                 "vela check --for-lead"):
-        assert said in six, said
+    four = csec(4)
+    for said in ("Ask about a possibly untyped subject", "a ledger row that no longer fits", "in plain words",
+                 "Never delete a ledger row or an override to quiet a check", "vela check --for-lead"):
+        assert said in four, said
+    # rule deletion: the codes went (NEW-11: W809's fix names `vela add subject`, which the lead never hears as a code)
+    assert "W809" not in CLOSE_SKILL and "W804" not in CLOSE_SKILL
 
 
 # --- From tests/test_voice_review.py: The voice review at close: a fresh-context agent flags paragraphs, the drafter
@@ -606,7 +645,7 @@ def test_close_loads_the_conversation_voice_before_its_first_command_and_questio
     body = CLOSE_SKILL.split("---\n", 2)[2]
     line = next(l for l in body.splitlines() if "references/CONVERSATION-VOICE.md" in l)
     assert "voice/VOICE.md" in line and line.index("voice/VOICE.md") < line.index("CONVERSATION-VOICE.md")
-    assert "`house-voice`" in line
+    assert "skills/house-voice/SKILL.md" in csec(2)  # drafting prose goes through house-voice; the opening need not name it
     at = body.index(line)
     first_command = body.index("`vela ")
     first_question = min(i for i in (body.find('?"'), body.find("?\")"), body.find("Ask ")) if i >= 0)
@@ -619,15 +658,64 @@ def test_close_keeps_the_one_relay_line_and_the_hard_stop():
 
 
 def test_close_has_flow_end_codes_fixed_with_the_lead_before_the_session_closes():
-    assert "(E351)" in CLOSE_SKILL and "(W354)" in CLOSE_SKILL and "(W374)" in CLOSE_SKILL and "only on their yes" in CLOSE_SKILL
+    assert "an outside actor becomes a party only on their yes" in CLOSE_SKILL
+    # rule deletion: the codes are `check`'s and `check-slice`'s to explain (rules.py reads E351, W354 and W374)
+    assert "E351, W354, W374" not in CLOSE_SKILL
+
+
+# --- Drafting as each item settles: close drafts only what `close drafts` still lists, runs the voice reviewer once on
+# every paragraph the session touched, and shows the lead only the new or changed ones.
+
+
+def test_close_drafts_only_what_is_missing_or_stale_and_reviews_everything_touched():
+    four = csec(2)
+    assert "draft only its `paragraphs`" in four
+    assert "run the voice review once as" in four and "show the lead only new or changed paragraphs" in four
+    # rule deletion: `close drafts --json` marks a paragraph drafted as an item settled `done` and lists only what is
+    # missing or stale (tests/test_close_drafts.py), and START says so under "Draft the paragraph when the item is filed"
+    assert "Paragraphs written as items settled are `done`; leave them" not in four
+    assert "every prose paragraph this session touched" in read("plugin", "skills", "close", "VOICE-REVIEW.md")
+    assert len(four.split()) < 330
+
+
+def test_close_no_longer_rebuilds_every_paragraph_at_the_end():
+    for gone in ("It lists every paragraph this session owes", "Keep the owner's wording wherever its facts still hold",
+                 "Skip it if nothing was drafted", "a fresh reader checks the drafts"):
+        assert gone not in CLOSE_SKILL, gone
 
 
 def test_a_session_on_main_moves_to_its_own_branch_before_finish():
     """After `close finish` the session is closed and `record add` can't take the send yes, so a lead who learns at step 4
     that main needs a review branch can never send. The move is offered at step 1, while the session is open."""
     text = (REPO / "plugin" / "skills" / "close" / "SKILL.md").read_text(encoding="utf-8")
-    send = text[text.index("Then send, in this order"):text.index("## 8. Open the pull request")]
+    send = text[text.index("Then send, in this order"):text.index("## 5. The pull request")]
     step1, step4 = send[send.index("1. Run `vela close push --for-lead`"):send.index("2. Capture")], send[send.index("4. Run"):]
     assert "review needs its own branch" in step1 and "`vela session branch --for-lead`" in step1
     assert "still open" in step1
     assert "session branch" not in step4
+
+
+# --- The trim of October 23 (review finding 4): close is the one skill that sends, and it can start cold with START
+# never read in the conversation. START is a Read result that compaction can drop; SKILL text is re-attached.
+
+
+def test_close_carries_the_four_hard_stops_itself():
+    for stop in ("Never edit anything under `~/.claude`.",
+                 "Never commit or push company material, or anything from `.inbox/`, `voice/local/` or `voice/corpus/`, "
+                 "without the owner's explicit consent in this session.",
+                 "Never say a PR, comment, push or commit exists unless the tool printed it, and never report a failed "
+                 "step as done.",
+                 "Never invent what a person said, a source, or an ID the vault does not hold."):
+        assert stop in CLOSE_SKILL, stop
+
+
+def test_close_reconfirms_before_the_read_back_and_sends_in_its_order():
+    three = csec(3)
+    assert three.index("**Still yes?**") < three.index("**The read-back.**")
+    assert "act only on its \"Still yes\" item" in three and "everything else it lists is section 4's" in three
+    assert CLOSE_SKILL.index("## 3.") < CLOSE_SKILL.index("vela close sync-main") < CLOSE_SKILL.index("vela close push --for-lead")
+    send = csec(4)
+    order = ["1. Run `vela close push --for-lead`", "2. Capture the lead's answer", "3. Run `vela close finish",
+             "4. Run `vela close push --consent"]
+    at = [send.index(step) for step in order]
+    assert at == sorted(at), order

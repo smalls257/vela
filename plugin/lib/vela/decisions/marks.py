@@ -1,4 +1,4 @@
-"""The `marks` apply kind: each capture's mark written into its line (close section 3, "Write the marks"). Pure. The
+"""The `marks` apply kind: each capture's mark written into its line (close's "Find the session and mark the captures"). Pure. The
 items are the ones `vela marks plan` drafts (Task 14, `vela.markrules`), with the model's and the lead's answers
 filled in.
 
@@ -37,7 +37,7 @@ The rules, with their reasons:
 Fields the drafter writes for the record and the PR body (`rule`, `reason`, `lifted`, `recommend`, `deferral`, ...)
 are taken and not written: they say why the default was chosen.
 """
-from vela import markrules
+from vela import markrules, say
 from vela.decisions import add_unknown, consent, ready, resolve, schema, textedit
 
 LEDGER_PAGE = "11-unknowns-and-risks"
@@ -126,7 +126,7 @@ def _keep_refusals(item, vault, record):
     found = []
     if not item.get("state"):
         found.append(textedit.refusal("decision-unfilled", "I still need one of your answers before I can file these.",
-                                      f"{item['capture']}: a keep needs state."))
+                                      f"{item['capture']}: a keep needs state.", audience=say.MODEL))
     if item.get("state") == "fact":
         refusal = resolve.fact_source_refusal(vault, item.get("source"))
         if refusal is not None:
@@ -136,7 +136,8 @@ def _keep_refusals(item, vault, record):
         if not unknown["name"]:
             return found + [textedit.refusal("decision-unfilled", "I still need one of your answers before I can file "
                                                                   "these.",
-                                             f"{item['capture']}: a new unknown needs name, its short heading.")]
+                                             f"{item['capture']}: a new unknown needs name, its short heading.",
+                                             audience=say.MODEL)]
         return found + add_unknown.validate(unknown, vault, record)
     if item.get("to") == "ledger":
         if not ids_of(item) or None in (item.get("id") or [None]):
@@ -152,7 +153,8 @@ def _keep_refusals(item, vault, record):
                                           "id at it."))
     if not ids_of(item) and not target:
         found.append(textedit.refusal("decision-unfilled", "I still need one of your answers before I can file these.",
-                                      f"{item['capture']}: a keep needs id (or page, for an inkling)."))
+                                      f"{item['capture']}: a keep needs id (or page, for an inkling).",
+                                      audience=say.MODEL))
     return found
 
 

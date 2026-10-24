@@ -18,7 +18,7 @@ the line is written from fields and read back by the same pattern (`LINE`). Why 
   itself is the `override` kind's to write, on the item, where check reads it.
 
 An item already on the agenda has its line replaced, never a second line added. `vela add unknown --blocks X` calls
-`block` so an item a new unknown holds comes off the agenda in the same write (grill section 5).
+`block` so an item a new unknown holds comes off the agenda in the same write (grill's "File each decision as its branch closes").
 """
 import re
 
@@ -79,7 +79,7 @@ def set_line(record_text, ident, line):
 
 
 def block(record_text, ident, unknown_id):
-    """The record with `ident` taken off the agenda for `unknown_id` (grill section 5), unless it is decided, already
+    """The record with `ident` taken off the agenda for `unknown_id` (grill's "File each decision as its branch closes"), unless it is decided, already
     off for another unknown, or the lead overrode GATE-4 for it. Unchanged when it isn't on the agenda."""
     found = entries(record_text).get(ident)
     if found is None or not now_blocked(found) or found["status"].startswith("off-agenda: UNK"):

@@ -64,6 +64,15 @@ def head(vault):
     return git(vault, "rev-parse", "HEAD"), git(vault, "rev-parse", "--abbrev-ref", "HEAD")
 
 
+def test_the_model_line_on_main_names_session_branch_not_a_flag_that_cannot_move_an_open_session(tmp_path, monkeypatch):
+    vault = owner(tmp_path, monkeypatch)
+    with_remote(tmp_path, vault)
+    code, output = start(vault, "--mode", "grill", "--topic", "desk agent calendar")
+    assert code == 0, output
+    assert "with the lead's yes, run vela session branch (the session is open now)" in output
+    assert "session start --new-branch" not in output
+
+
 def test_start_on_main_stays_on_main_notes_it_and_says_a_review_needs_a_branch(tmp_path, monkeypatch):
     vault = owner(tmp_path, monkeypatch)
     with_remote(tmp_path, vault)
@@ -219,6 +228,14 @@ def test_reader_copy_uses_no_git(tmp_path, monkeypatch):
     assert "Review comments aren't checked in your copy." in output
     assert not git_log.exists(), "a reader copy ran git"
     assert not gh_log.exists(), "a reader copy ran gh"
+
+
+def test_a_reader_copy_says_it_is_a_copy_in_the_start_output_so_the_skill_need_not(tmp_path, monkeypatch):
+    copy = reader_copy(tmp_path)
+    shim(tmp_path, monkeypatch, "git")
+    code, output = start(copy, "--mode", "discover", "--topic", "reading the sources", "--for-lead")
+    assert code == 0, output
+    assert "your work stays in this folder and nothing goes to the shared plan until you send a proposal" in output
 
 
 def challenge_branch(vault, branch, record_id):

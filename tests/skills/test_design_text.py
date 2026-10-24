@@ -34,6 +34,14 @@ def read(rel):
     return (PLUGIN / rel).read_text(encoding="utf-8")
 
 
+def test_design_cites_only_the_start_sections_that_exist():
+    # MODES once listed the design session and START once had a shell section; both went in the October 23 trim
+    design = read("skills/design/SKILL.md")
+    assert "A design opens no session" in design and "`docs/tech-design/<slug>.md`" in design
+    assert "Shell that runs on a Mac and on Linux" not in design
+    # (the START headings it cites are checked against START in test_start_text.py)
+
+
 # --- From tests/test_design_skill.py: /vela:design (P13, S48, S52): the plugin's design skill, the summary-first doc
 # it writes, and the Heron fixture.
 
@@ -183,3 +191,18 @@ def test_design_names_only_commands_that_exist():
     assert len(found) >= 5, found
     for line, written, argv in found:
         assert is_a_mention(parser, argv) or parse_error(parser, argv) is None, (line, written)
+
+
+# ---- trim, stage 2 (lane D): what a command prints or refuses is not narrated here again
+
+def test_design_leaves_what_the_commands_print_to_them():
+    body = skill_text_design_skill()
+    assert "Every file this skill names sits beside this one" not in body
+    assert "records the vault commit" not in body  # TECH-DESIGN-FROM-VAULT.md and handoff verify say it
+    assert "the commit stops on a choice no yes names" not in body  # vela team commit asks for the yes itself
+    assert "stopped a cancel-hold flow from drawing" not in body and "never `;`" in body
+    assert "Exit 1 names every diagram" not in body and "W604" not in body  # check-diagrams prints the Node.js fix
+
+
+def test_design_stays_under_its_word_cap():
+    assert len(skill_text_design_skill().split()) <= 1610  # 1,604 before the trim; 1,557 after

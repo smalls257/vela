@@ -41,12 +41,16 @@ record's text or None; `flows` is {slice key or flow ID: standing.Standing} for 
 shell from the checker's record. A flow or slice with no standing given is "not checked", never ready.
 """
 import re
+import shlex
 from dataclasses import dataclass
 
 from vela import cases, closegate, model, override, progress, questions, say, schema, slices
 from vela.flowcheck import standing as flowstanding
 
 FLOW_CHECK, CASE_TABLE = "flow check", "case table"
+# The model's route when the lead lives with a finding: the command, never the Override bullet's grammar.
+FLOW_OVERRIDE_ROUTE = ('If the lead lives with a finding, record it with vela apply (kind override, the slice page, rule '
+                       '"flow check") with their reason and an end date; "not fully checked" takes none.')
 CASE_TABLE_RULE = '"case table"'
 OVERRIDE_NAMES = {"GATE-1": ("GATE-1",), "GATE-2": ("GATE-2",), "GATE-4": ("GATE-4", "E316"),
                   CASE_TABLE: (CASE_TABLE_RULE,)}
@@ -85,7 +89,7 @@ class Verdict:
     overridden: tuple = ()  # Override.as_dict() of each override that let a rule through
     owed: tuple = ()  # copy IDs still owed on the item, not answered in the record
     questions: tuple = ()  # the owed copies' questions, in the same order
-    route: str = ""  # the Override bullet that would decide it anyway, "" when ready or when nothing can
+    route: str = ""  # the `vela decide` flags that would decide it anyway, "" when ready or when nothing can
 
     @property
     def fix(self):
@@ -162,13 +166,15 @@ def _ended(fix, ended):
 
 
 def route(vault, item_id, rules, today):
-    """The Override bullet that decides the item anyway, with a suggested end for a standing rule (offered, never
-    written: the lead picks the date)."""
+    """The `vela decide` flags that decide the item anyway, with a suggested end for a standing rule (offered, never
+    written: the lead picks the date). Flags, not the Override bullet's grammar: a model that reads the bullet writes
+    it by hand, and only `vela decide` and `vela apply` record an override with its receipts."""
     names = [ROUTE_NAMES[r] for r in rules if r in ROUTE_NAMES]
     if not names:
         return ""
-    until = f" until {override.suggest_until(item_id, vault, today)}" if any(map(override.is_standing, names)) else ""
-    return f"- **Override:** {', '.join(names)} by @<handle> on {today}{until}: <the lead's reason>"
+    until = f" --until {override.suggest_until(item_id, vault, today)}" if any(map(override.is_standing, names)) else ""
+    flags = " ".join(f"--override {shlex.quote(name)}" for name in names)
+    return f"vela decide {item_id} ... {flags} --reason-from ^cR{until}"
 
 
 # ------------------------------------------------------------------ the conditions
@@ -305,7 +311,8 @@ def flow_reason(vault, found, name, flows):
             else f"has {worst.words}" + (f" ({', '.join(worst.open)})" if worst.open else ""))
     return Reason(FLOW_CHECK, f"The flow check of {name} {said}.",
                   "I'd read each finding out with its owners and settle it. If you're happy to live with one for "
-                  "now, I'll note that with an end date; a check that didn't finish can't be waved through.", command)
+                  "now, I'll note that with an end date; a check that didn't finish can't be waved through.",
+                  f"{command}. {FLOW_OVERRIDE_ROUTE}")
 
 
 def slice_reasons(vault, found, name, today):

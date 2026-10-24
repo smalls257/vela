@@ -1,5 +1,4 @@
-"""`add app-stub`: a stub page for an app of the picked cut, `05-building-blocks/<slug>-building-blocks.md` (boundary
-section 2).
+"""`add app-stub`: a stub page for an app of the picked cut, `05-building-blocks/<slug>-building-blocks.md` (boundary's "Find the seams, then offer the cuts").
 
 - **Every later link has a page to point at.** A stub is written for each `new` or `changed` app of the cut before any
   sheet is read back, so a link to it never dangles and an app the session doesn't reach is never lost: `vela next`

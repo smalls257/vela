@@ -83,7 +83,9 @@ def test_the_list_names_the_decision_and_the_why(tmp_path):
 def test_a_reword_must_be_an_excerpt_or_an_approved_wording(tmp_path):
     vault = closing_vault(tmp_path)
     before = page_text(vault)
-    assert readback(vault, "--reword", "CON-002", "--line", "decision", "--words", "a new thing")[0] == 1
+    code, out = readback(vault, "--reword", "CON-002", "--line", "decision", "--words", "a new thing")
+    assert code == 1
+    assert "readback-words-not-yours" in out and "run again with --approved ^cNN" in out
     assert page_text(vault) == before
     assert readback(vault, "--reword", "CON-002", "--line", "decision", "--words", "one till API")[0] == 0
     assert f'c01, @priya: "one till API"' in page_text(vault)
