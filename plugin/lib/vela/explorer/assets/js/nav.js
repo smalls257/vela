@@ -245,13 +245,14 @@ const Nav = (() => {
     if (App.view === "slices" && typeof Slices !== "undefined") p.push(...Slices.hashParts());
     if (App.view === "grills") p.push(...Grills.hashParts());
     if (App.view === "flows" && typeof Branches !== "undefined" && Flows.st.key) { const b = Branches.hashPart(Flows.st.key); if (b) p.push(b.slice(1)); }
+    if (App.view === "flows" && typeof FlowView !== "undefined" && Flows.st.key) { const b = FlowView.hashPart(Flows.st.key); if (b) p.push(b.slice(1)); }
     setHash("#" + p.join("&"), !!(opts && opts.replace));
   }
   function boot() {
     if (typeof Slices !== "undefined") Slices.readHash();  // a link to the slices brings its filters; one without clears them
     const hs = HASH.get("s"), legacy = VIEWS.find((v) => (HASH.has(v.id) || (v.alias && HASH.has(v.alias))) && !["role", "doc"].includes(v.id));
     if (HASH.get("lens")) MapView.st.lens = HASH.get("lens");
-    if (HASH.get("group")) MapView.st.group = HASH.get("group");
+    if (MapView.GROUP_IDS.includes(HASH.get("group"))) MapView.st.group = HASH.get("group");  // only a grouping the map has: a stray value once broke its Group menu
     if (HASH.has("onboard")) { onboard(HASH.get("onboard"), HASH.get("m")); return true; }
     if (HASH.has("role")) { role(HASH.get("role")); return true; }
     if (HASH.has("overview")) { overview(); return true; }  // #overview: the front page of whoever is viewing, without naming a role

@@ -4,8 +4,9 @@ Every node, edge, light and number on the page comes from vela's own parser and 
 `model`, `attention`, `progress`, `completeness`, `allocation`, `trace`, `ladder`, `override`, `handoff` and
 `search`. The lights on every map and view are `attention.lights`, the one rule for what needs the lead.
 
-Three things are heuristic, and the page labels each one where it shows:
+Four things are heuristic, and the page labels each one where it shows:
 - the direction of a message in a played flow when the step does not say who sends (flows_data.py);
+- where a flow starts, when its diagram has no opening alt and the arrows the rule rests on are inferred (starts_data.py);
 - an app or party named in a step's text without a link;
 - who holds an answer when the unknown has no **Ask:** line, guessed from its **Owner:** line (asks_data.py).
 
@@ -33,10 +34,11 @@ from vela import (allocation, attention, cli, completeness, gates, grills, hando
                      progress, reading, roles, say, schema, slices, terms, trace)
 from vela import search as vela_search
 from vela.edge import atomic
+from vela.flowcheck import readers
 from vela.parse import FENCE, closes_fence
 
 from . import (asks_data, assets_inline, capdeps, branches_data, breakdown_find, design_data, design_find, draft_data, flows_data, grills_data, icons_data, inside_data, library_data, needs_data, onboard_data,
-               pages_data, panel_data, plan_data, roles_data, serve, slices_data)
+               pages_data, panel_data, plan_data, roles_data, serve, slices_data, starts_data)
 from . import pins as pinning
 from .record import (HANDLE, LABELED_LINE, PROSE_LIMIT, Keys, dashboard_pages, inline_html,
                      plain, refs_in, title_of)
@@ -55,9 +57,9 @@ class ExplorerError(Exception):
 
 # The page's script and style, in load order: shared code first, one module per view, the boot last.
 JS_MODULES = ("core", "theme", "fx", "menus", "assets", "icons", "layout", "pan", "geometry", "capfocus", "diagrams", "search", "minimap", "reader", "viewer", "queue", "panel", "panelsize", "detailspanel", "motion", "view-map",
-              "wires", "mapgroups", "releases", "slices", "flowkit", "flowpicker", "branches", "view-flows", "rehearse", "view-asks", "view-decisions", "view-library", "view-grills", "view-progress",
+              "wires", "mapgroups", "releases", "slices", "flowkit", "flowpicker", "branches", "flowview", "lanegroups", "view-flows", "rehearse", "view-asks", "view-decisions", "view-library", "view-grills", "view-progress",
               "view-trace", "capview", "sections", "needs", "roles", "onboard", "nav", "markdown", "ask", "inside", "plan", "drafts", "freshness", "main")
-SELFTEST_MODULES = ("selftest", "selftest-branches", "selftest-qol", "selftest-inside", "selftest-onboard", "selftest-details", "selftest-library", "selftest-grills", "selftest-needs", "selftest-zoom", "selftest-capfocus", "selftest-capview", "selftest-diagrams")  # 120 KB of checks: bundled only when asked (`vela explore --selftest`), not shipped to every reader
+SELFTEST_MODULES = ("selftest", "selftest-branches", "selftest-flowview", "selftest-qol", "selftest-inside", "selftest-onboard", "selftest-details", "selftest-library", "selftest-grills", "selftest-needs", "selftest-zoom", "selftest-capfocus", "selftest-capview", "selftest-diagrams")  # 120 KB of checks: bundled only when asked (`vela explore --selftest`), not shipped to every reader
 CSS_MODULES = ("base", "menus", "nav", "panel", "compact", "map", "needs", "flows", "rehearse", "asks", "decisions", "pages", "reader", "roles", "onboard",
                "releases", "slices", "capview", "branches", "ask", "inside", "plan", "pending", "drafts", "library", "grills", "themes", "plain")
 
@@ -321,6 +323,21 @@ def external_name(said):
     return PROSE_BREAK.split(said, 1)[0].strip() or said
 
 
+PUSH_WORDS = re.compile(r"\b(events?|webhooks?|publish(?:es|ed)?)\b", re.I)
+
+
+def pushes(contract):
+    """True when the contract's own words in "Crosses the boundary" say the provider sends it out (an event, a webhook, "publishes").
+    A contract with no such words is read as a request (consumers call the provider). The vault has no kind field."""
+    crosses = contract.facts.get("Crosses the boundary")
+    return bool(crosses and PUSH_WORDS.search(plain(crosses.value)))
+
+
+def inbound(contract):
+    """True for a contract an outside party calls into the vault (a webhook): CONVENTIONS gives only these a Delivery or Order bullet."""
+    return bool(contract.facts.get("Delivery") or contract.facts.get("Order"))
+
+
 def system_map(vault, keys):
     parties_by_name = {p.name.lower(): p for p in vault.parties}
     contracts, externals = [], {}
@@ -333,6 +350,7 @@ def system_map(vault, keys):
             "id": c.id, "title": c.name, "provider": pkey, "providerKind": pkind, "keptOn": keys.page(c.page),
             "consumers": [keys.page(p) for p in vault.consumers(c)], "state": c.fact("State"),
             "change": c.fact("Change"), "crosses": inline_html(crosses.value, keys, c.page) if crosses else "",
+            "push": pushes(c), "inbound": inbound(c),
         })
     apps = [{"key": keys.page(a), "id": a.id, "title": title_of(a), "change": str(a.meta.get("change") or ""),
              "state": str(a.meta.get("state") or ""), "stage": str(a.meta.get("stage") or ""),
@@ -623,7 +641,9 @@ def extract(vault, root, today, pins_path=None, designs=None, seed=None, plans=N
     data["icons"], data["iconsUnknown"] = icons_data.for_map(data["nodes"], entities, domain_of, app_meta)
     data["linkProblems"] = link_problems(vault)
     names = {n["key"]: n["title"] for n in data["nodes"]}
-    played = flows_data.flows(vault, keys, data["map"]["contracts"], {n["key"]: [n["col"], n["row"]] for n in data["nodes"]}, names)
+    specs = cli.spec_texts(pathlib.Path(root))
+    catalog = readers.read_catalog(vault, specs)  # the flow checker's read, once, for the branches and for where each flow starts
+    played = flows_data.flows(vault, keys, data["map"]["contracts"], {n["key"]: [n["col"], n["row"]] for n in data["nodes"]}, names, catalog)
     data["lanes"], data["flows"] = played["lanes"], played["flows"]
     data["capDeps"] = capdeps.derive(data["flows"])  # the flows alone say which capability needs which (capdeps.py)
     whole = {e["key"]: external_name(e["said"]) for e in data["map"]["externals"]}
@@ -644,7 +664,8 @@ def extract(vault, root, today, pins_path=None, designs=None, seed=None, plans=N
     data["grills"] = grill_rows(vault, root, keys, today, [r["id"] for r in data["library"]["rows"]])
     data["needs"] = needs_data.extract(data, entities, [{"key": keys.page(a), "handed_off": str(a.meta.get("handed_off") or "")} for a in vault.apps], today)
     data["slicePlan"] = slices_data.extract(vault, keys, today, cli.spec_texts(pathlib.Path(root)), recorded)
-    data["branches"] = branches_data.extract(vault, keys, today, cli.spec_texts(pathlib.Path(root)))
+    data["branches"] = branches_data.extract(vault, keys, today, specs, catalog)
+    starts_data.annotate(vault, keys, data["flows"], catalog, data["lanes"])
     data["containers"] = inside_data.containers(vault, keys)
     data["designs"] = inside_data.inside(vault, keys, designs or {})
     data["plans"] = plan_data.inside(vault, keys, plans or {}, data["designs"])

@@ -610,7 +610,7 @@ Run `vela check` from the vault root. It reads, never writes, and never stops at
 
 The table is generated from the codes `vela check` uses, so it cannot drift from them, and each finding's fix line says how to put it right. `vela upgrade` brings a vault's copy up to date.
 
-<!-- generated:check-codes sha=08956284: do not edit, run vela render -->
+<!-- generated:check-codes sha=f2f71924: do not edit, run vela render -->
 | Code | Finding |
 |---|---|
 | E101 | page has no frontmatter |
@@ -729,6 +729,7 @@ The table is generated from the codes `vela check` uses, so it cannot drift from
 | E404 | generated block markers are broken |
 | W405 | a slice page still has a Joins line, which is no longer read: joins come from its flows |
 | W406 | two or more slices name no After, or none does: the tracer is the one slice with no After |
+| W407 | a box on a flow page's sequence diagram cannot be drawn as a lane group in the Flows view |
 | E501 | no epic delivers a capability that changes |
 | W501 | no epic delivers a capability that changes |
 | E502 | no epic delivers a new or changed contract |
@@ -988,9 +989,11 @@ The strict sequence diagram is the flow page's first ` ```mermaid ` block that s
 | Line | Means |
 |---|---|
 | `participant S as Shop` | `S` stands for the app titled Shop. |
+| `box Channels` ... `participant` lines ... `end` | A named group of lanes, written where the participants are declared. Only participants go inside. The dashboard's Flows view opens the flow with each box drawn as one lane (the reader can ungroup it), and GitHub draws the box too. A box colored with `rgb(...)` or `transparent` reads the same; its name is the words after the color. A box that cannot be drawn as a group (a name an earlier box took, a participant that is no app or party, a lane already in an earlier box, or fewer than two lanes left) warns W407, and the Flows view says the same on the flow. |
 | `S->>I: CON-010 place a hold` | Shop calls Inventory's CON-010. The words after the ID read as the step in a trace. |
 | `I-->>S: 409 unavailable` | Inventory's answer: inside Inventory's drawn handling it returns the call; as the first line of a branch it labels it. |
 | `alt placed` ... `else unavailable, timeout` ... `end` | Branches on the call just before, one per answer. `timeout` and `gave_up` are the answers the check adds from Can time out and Retries. |
+| `alt The customer books on the website` ... `else The customer calls in` ... `end` | As the diagram's first statement, before any call: the flow's starts, one per option, named in plain words. The dashboard's Flows view offers them under "Starts from" and marks which numbered steps belong to which. The check walks every start, each on to the steps after the alt; GIVEN notes may come before the alt. |
 | `S-)B: EVT-008 order placed` | Shop publishes the event for Billing. |
 | `par Billing takes the payment` ... `end` | Right after an event line, a call from an outside party, or a TIMER: what the receiver does when it arrives, or when the timer fires. |
 | `Note over S: SET hold held` | Shop changes an entity's state. |

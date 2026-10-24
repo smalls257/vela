@@ -230,7 +230,7 @@ def unused_cases(catalog, trees):
     reached, called = set(), {}
     drawn = {flow.id for flow, _ in trees}
     for flow, tree in trees:
-        for node in _walk(tree.nodes):
+        for node in _walk(tree.all_nodes()):
             if node.kind == "call":
                 cid = node.parts[2]
                 called.setdefault(cid, f"{flow.path}:{node.line}")

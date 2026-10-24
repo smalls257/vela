@@ -136,6 +136,8 @@ class Semantics:
         kind = ins.kind
         if kind == "call":
             return self.call_steps(state, i, ins)
+        if kind == "fork":  # an opening alt: the journey takes one of the flow's starts
+            return [(("fork", t[0], t[3], x, 0, 0), self.with_thread(state, i, self.advance(t, target)), None) for x, target in enumerate(ins.data["targets"])]
         if kind == "reply":
             return self.reply_steps(state, i, ins)
         if kind == "contract":
@@ -515,7 +517,7 @@ class Semantics:
     # --- reduction ------------------------------------------------------------------------------------------------
 
     def _is_local(self, ins):
-        if ins.kind in ("human", "timer", "reply"):
+        if ins.kind in ("human", "timer", "reply", "fork"):
             return True
         if ins.kind != "call":
             return False

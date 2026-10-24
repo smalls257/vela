@@ -39,6 +39,8 @@ Then ask once, for every app together, what the lead's people call the area of t
 
 **Draw the tracer candidate's flows first.** Say what "tracer" and "slice" mean, from `vela terms`, the first time. Before the first sheet, offer the journey that crosses the most of the cut's apps and read its steps back first, so its pages exist when Releases chooses the tracer. Record the answer so releases does not ask again: capture the path in the lead's words, marked at once `→ keep: [[<first flow page>#Steps|<the flow's name>]] (assumption)`, and open the flow page with "We build this journey first, as the first thin path: ..." (Releases finds it by those words). With no candidate yet, say Releases will ask once. Once a flow's steps and case tables are confirmed, draw its sequence diagram.
 
+Group what makes sense by default with a `box`: channels that follow the same steps (an opening `alt` names them) and lookups that only answer the core app. Never group the app the flow is about, and don't group lanes just to save width. Say it in one plain line.
+
 Take the stubs one at a time. Show each sheet as a numbered list:
 
 1. **Does:** what the app decides or keeps, in the domain's words, and its domain.
