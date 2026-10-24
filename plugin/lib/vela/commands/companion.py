@@ -115,9 +115,8 @@ def gather(root, stub, notes, index, today, now):
     warnings = []
     try:
         touched = companionstore.touched(root, str(stub.get("start_commit", "")), session_started(root, stub))
-    except vaultgit.GitUnavailable as exc:
+    except vaultgit.GitUnavailable:  # git's own words carry hashes and paths a lead must not read; the panel says it plainly
         touched = None
-        warnings.append(f"I couldn't tell which pages this session changed ({exc}).")
     map_text, why = companionstore.map_next(root, str(stub.get("id", "")))
     if why:
         warnings.append(why)
