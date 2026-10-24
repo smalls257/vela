@@ -9,7 +9,7 @@ Made by `vela handoff APP-booking`; don't edit it by hand. To see what changed s
 
 | ID | Kind | Page | State | Hash |
 |---|---|---|---|---|
-| APP-booking | app | 05-building-blocks/booking-building-blocks.md | decided | 16f2769f76b3 |
+| APP-booking | app | 05-building-blocks/booking-building-blocks.md | decided | ce640b2a5171 |
 | RUN-booking | runtime | 06-runtime/apps/booking-runtime.md | decided | 5811578d3af2 |
 | CON-001 | provides | 05-building-blocks/booking-building-blocks.md | decided | 0ff1c634d33e |
 | CON-002 | provides | 05-building-blocks/booking-building-blocks.md | decided | c802cfa780e6 |

@@ -2,6 +2,7 @@
 each handoff manifest alone, then the dashboard alone, in that order; a replaced manifest needs `--replace` and the
 app's team's own yes, or nothing is written; a dashboard that fails never undoes the close; with no session the
 dashboard is never committed to main; a read copy commits nothing."""
+import re
 import shutil
 import subprocess
 
@@ -106,6 +107,13 @@ def test_the_finished_stub_holds_this_parts_fingerprint_and_verify_agrees(tmp_pa
     held = privaterecord.parts(privaterecord.stub_meta(session_files.stub_text(vault, RECORD)))
     assert held == {privaterecord.part_of(notes): privaterecord.fingerprint(notes)}
     assert run("records", "verify", RECORD, "--vault", str(vault))[0] == 0
+
+
+def test_close_finish_records_the_size_without_names(tmp_path):
+    vault = session(tmp_path)
+    assert finish(vault)[0] == 0
+    size = privaterecord.stub_meta(session_files.stub_text(vault, RECORD))["size"]
+    assert re.match(r"^(small|medium|large); apps \d+, capabilities \d+, releases \d+$", size)
 
 
 def test_manifest_written_after_close_commit_and_names_it(tmp_path):

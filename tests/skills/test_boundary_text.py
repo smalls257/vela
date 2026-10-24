@@ -70,7 +70,7 @@ def test_boundary_marks_its_own_captures():
 
 def test_boundary_turns_a_decided_direction_into_apps_and_decides_nothing():
     b = text("skills/boundary/SKILL.md")
-    assert "Offer 2 or 3 ways to cut the direction into apps, never one and never more than three" in b
+    assert "Offer the cut the lead described and, only when there is a real alternative, one more" in b
     assert "a correction needs its own yes" in b
     # the yes rule lives in START once, for every mode (tests/skills/test_start_text.py pins it there)
     assert "write a line only after the yes `START.md` defines" not in b

@@ -5,7 +5,6 @@ title: Till
 initiative: INI-900
 state: assumption
 change: changed
-stage: baseline
 owner: "@mini/till-team"
 authored: mixed
 ---

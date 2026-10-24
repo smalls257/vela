@@ -21,7 +21,7 @@ the baseline could not be read, said with the reason, never an empty checklist);
 import pathlib
 import re
 
-from vela import closedrafts, opening, say, sessions
+from vela import closedrafts, opening, say, sessions, sizing
 from vela.edge import copies, flowstore, mergegit, sessiongit, vaultgit
 
 PLAIN_WHY = {
@@ -158,8 +158,10 @@ def list_owed(args, out, cli):
     history = None if reader else SessionHistory(root, session_start(root, record))
     found = closedrafts.owed(closedrafts.vault_before(after, changes), after, changes, record.modes, history)
     resolver = say.Resolver(after)
-    lines = default_lines(found, record.id, reader) if say.mode_of(args) != "for-lead" else lead_lines(found, after, resolver)
-    result = say.Result("close drafts", exit=say.DONE, lines=lines, data=as_data(found, record.id, reader))
+    review = closedrafts.voice_review(sizing.of(after), found.count)
+    lines = (default_lines(found, record.id, reader, review) if say.mode_of(args) != "for-lead"
+             else lead_lines(found, after, resolver, review))
+    result = say.Result("close drafts", exit=say.DONE, lines=lines, data={**as_data(found, record.id, reader), "voice_review": review})
     return commands.emit(result, args, out, resolver)
 
 
@@ -173,7 +175,7 @@ def as_data(found, record_id, reader):
             "judgment": list(found.judgment), "kept_wording": list(found.kept)}
 
 
-def default_lines(found, record_id, reader):
+def default_lines(found, record_id, reader, review=None):
     since = "its baseline" if reader else "the session began"
     n = found.count
     out = [say.Line(f"close drafts: {n} paragraph{'' if n == 1 else 's'} owed for {record_id} (changes since {since}).")]
@@ -195,6 +197,8 @@ def default_lines(found, record_id, reader):
     out += [say.Line(f"kept wording: {page}: the documents' words, as the lead chose; no voiced prose owed")
             for page in found.kept]
     out += [say.Line(f"judgment: {j}") for j in found.judgment]
+    if review is not None:
+        out.append(say.Line(f"voice review: {'due' if review['due'] else 'not due'}: {review['why']}"))
     return out
 
 
@@ -221,7 +225,7 @@ def plain_why(owed, resolver):
     return "; ".join(said)
 
 
-def lead_lines(found, vault, resolver):
+def lead_lines(found, vault, resolver, review=None):
     n = found.count
     head = (f"{say.count_words(n, capital=True)} paragraph{' is' if n == 1 else 's are'} to write up."
             if n else "Nothing needs writing up this time.")  # voice audit row 151: not "owes"
@@ -238,6 +242,10 @@ def lead_lines(found, vault, resolver):
         out.append(say.Line(text, plain=text))
     if found.split:
         out.append(say.Line(found.split.question, plain=found.split.question))
+    if review is not None and found.count and not review["due"]:
+        text = (f"Only {say.count_words(found.count)} paragraph{'' if found.count == 1 else 's'} this time, so I'll read "
+                f"{'it' if found.count == 1 else 'them'} back to you with the rest instead of sending {'it' if found.count == 1 else 'them'} to a reviewer.")
+        out.append(say.Line(text, plain=text))
     # the model's reminder, not news to the lead on every close (voice audit row 159)
     out.append(say.Line("Also: a glossary entry for each term a newcomer to the initiative wouldn't know.",
                         audience=say.MODEL))

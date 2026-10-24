@@ -23,15 +23,15 @@ sources: ["2026-01-10-shop-api"]
 
 ## Where it stands
 
-<!-- generated:where-it-stands sha=2f7a01bb: do not edit, run vela render -->
+<!-- generated:where-it-stands sha=84800831: do not edit, run vela render -->
 _Kept up to date by vela from the pages it reads._
 
 **Where each app has got to**
 
 | App | Step reached | Open questions holding it up | Topics nobody has looked at | Contracts settled |
 |---|---|---|---|---|
+| [[shop-building-blocks\|Shop]] | named in scope | 0 | 0 | 2 of 2 |
 | [[till-building-blocks\|Till]] | named in scope | 0 | 0 | 1 of 1 |
-| [[shop-building-blocks\|Shop]] | agreeing contracts | 0 | 0 | 2 of 2 |
 
 **Open questions**
 

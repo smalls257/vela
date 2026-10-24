@@ -5,14 +5,14 @@ from vela.model import build
 from vela.parse import parse_page
 
 CONFIG = {"initiative": "INI-900", "title": "Mini shop"}
+# The medium path: options are written down in a Shape session before a grill. A small plan asks one question in a grill.
+MEDIUM = {**CONFIG, "size": {"band": "medium", "because": "[[2026-01-01-grill-a]] c1", "date": "2026-01-01"}}
 NEW_BLOCK = "<!-- generated:progress-map sha=00000000: do not edit, run vela render -->\n<!-- /generated:progress-map -->\n"
 
 
-def app_page(name, state="assumption", stage="target", sources="[SRC-01]", body="", change="changed"):
+def app_page(name, state="assumption", sources="[SRC-01]", body="", change="changed"):
     lines = [f"id: APP-{name}", "type: app-building-blocks", f"title: {name.capitalize()}", f"state: {state}",
              'owner: "@t"', "authored: authored", f"change: {change}"]
-    if stage is not None:
-        lines.append(f"stage: {stage}")
     if sources is not None:
         lines.append(f"sources: {sources}")
     return f"05-building-blocks/{name}-building-blocks.md", "---\n" + "\n".join(lines) + f"\n---\n\n# {name}\n\n{body}"
@@ -40,8 +40,8 @@ def epic(eid, app, state="decided"):
             f"authored: mixed\napps: [APP-{app}]\ndelivers: [CON-001]\n---\n\n# {eid}\n")
 
 
-def vault_of(*pages):
-    return build([parse_page(path, text) for path, text in pages], CONFIG)
+def vault_of(*pages, config=CONFIG):
+    return build([parse_page(path, text) for path, text in pages], config)
 
 
 def only(vault, app_id, as_of="2026-01-15"):
@@ -63,14 +63,16 @@ def test_an_overdue_unknown_comes_first():
 
 
 def test_an_item_with_no_options_means_shape():
-    row = only(vault_of(app_page("shop")), "APP-shop")
+    row = only(vault_of(app_page("shop"), config=MEDIUM), "APP-shop")  # pins the medium path
     assert (row.rule, row.mode, row.subject) == (3, "shape", "APP-shop")
-    assert only(vault_of(app_page("shop", state="inkling")), "APP-shop").reason == "Shop (APP-shop) is only an early idea so far and has no options written down."
+    assert only(vault_of(app_page("shop", state="inkling"), config=MEDIUM), "APP-shop").reason == "Shop (APP-shop) is only an early idea so far and has no options written down."
 
 
 def test_options_recorded_before_target_means_discover_for_gate_one():
-    page = app_page("shop", state="decided", stage="baseline", body=contract("CON-001", "till", "assumption", options=True))
-    row = only(vault_of(page), "APP-shop")
+    # the only source is a session that only dumped, so the pages reach baseline and no further
+    dump = ("sessions/2026-01-01-dump.md", "---\nid: 2026-01-01-dump\ntype: session\ndate: 2026-01-01\nmodes: [dump]\nstatus: closed\n---\n")
+    page = app_page("shop", state="decided", sources="[2026-01-01-dump]", body=contract("CON-001", "till", "assumption", options=True))
+    row = only(vault_of(page, dump), "APP-shop")
     assert (row.rule, row.mode, row.subject) == (4, "discover", "CON-001")
     assert "a grill needs the app at target or later" in row.reason
 
@@ -118,7 +120,7 @@ def test_an_epic_not_decided_means_epics():
 
 
 def test_apps_outside_the_ladder_have_nothing_to_do():
-    row = only(vault_of(app_page("stock", state="fact", stage=None, change="unchanged")), "APP-stock")
+    row = only(vault_of(app_page("stock", state="fact", change="unchanged")), "APP-stock")
     assert (row.stage, row.mode) == ("", "none")
 
 
@@ -126,7 +128,7 @@ def test_mix_counts_the_page_runtime_page_and_contracts():
     shop = app_page("shop", state="decided", body=contract("CON-001", "till") + contract("CON-002", "till", "fact"))
     runtime = ("06-runtime/apps/shop-runtime.md", "---\nid: RUN-shop\ntype: app-runtime\ntitle: Shop runtime\n"
                "state: inkling\nowner: \"@t\"\nauthored: authored\n---\n\n# Shop runtime\n")
-    row = only(vault_of(shop, runtime), "APP-shop")
+    row = only(vault_of(shop, runtime, config=MEDIUM), "APP-shop")  # pins the medium path
     assert row.mix == (1, 0, 1, 2)
     assert (row.mode, row.subject) == ("shape", "RUN-shop")
 
@@ -141,17 +143,18 @@ def test_oldest_unknown_is_the_first_opened_and_one_with_no_date_comes_last():
 
 
 def test_malformed_values_never_crash():
-    path, text = app_page("shop", state="[a]", stage="[x, y]", sources="not-a-list")
+    path, text = app_page("shop", state="[a]", sources="not-a-list")
     row = only(vault_of((path, text.replace("change: changed", "change: {a: b}"))), "APP-shop")
     assert row.mode in ("discover", "shape", "none")
 
 
 def test_best_takes_the_lowest_rule_then_the_earliest_stage():
-    a = app_page("alpha", state="decided", stage="contracts", body=contract("CON-001", "beta", "assumption", options=True))
-    b = app_page("beta", state="decided", stage="target", body=contract("CON-002", "alpha", "assumption", options=True))
+    parts = "| Container | Job | Contracts served or used | Proposed by | State |\n|---|---|---|---|---|\n| Core | Does it | none | lead | assumption |\n\n"
+    a = app_page("alpha", state="decided", body=parts + contract("CON-001", "beta", "assumption", options=True))  # reaches contracts
+    b = app_page("beta", state="decided", body=contract("CON-002", "alpha", "assumption", options=True))  # no containers table: boundaries
     rows = progress.grid(vault_of(a, b), "2026-01-15")
     assert progress.best(rows).app.id == "APP-beta"
-    settled = app_page("gamma", state="fact", stage=None, change="unchanged")
+    settled = app_page("gamma", state="fact", change="unchanged")
     assert progress.best(progress.grid(vault_of(settled), "2026-01-15")) is None
 
 

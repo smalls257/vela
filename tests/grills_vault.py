@@ -78,6 +78,7 @@ def make(tmp_path):
     shop = root / "05-building-blocks" / "shop-building-blocks.md"
     extra = (contract("CON-010", "Receipt delivery") + contract("CON-011", "Refund window")
              + contract("CON-012", "Gift cards", options=False, table=False) + contract("CON-013", "Loyalty points"))
+    edit(shop, "change: new\n", "change: new\nsources: [SRC-01]\n")  # its pages reach target, so a grill can take its items
     edit(shop, "## Contracts this app consumes", extra + "## Contracts this app consumes")
     edit(root / "11-unknowns-and-risks.md", "- **Question:** Is there a test till we can use?\n",
          "- **Question:** Is there a test till we can use?\n- **Blocks:** [[shop-building-blocks#CON-011 Refund window|CON-011]]\n")

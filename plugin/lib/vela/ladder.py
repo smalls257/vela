@@ -1,14 +1,15 @@
-"""How far up the stage ladder an app's pages already reach. Pure: reads the vault, decides nothing.
+"""How far up the stage ladder an app's pages reach. Pure: reads the vault, decides nothing.
 
-`stage` is typed by hand (CONVENTIONS.md, "Areas and stages"), so an app whose pages have moved on keeps the stage it
-was given. This computes the highest stage whose entry list, and every one below it, holds today, and what the next
-stage still needs. Close reports it once, as a line, never as a question: the lead types the stage or ignores it.
+The stage is not typed anywhere (CONVENTIONS.md, "Areas and stages"): it is the highest stage whose entry list, and
+every one below it, holds today. Every reader asks `stage(vault, app)`, so a page that moved on and a line that says
+where it stands cannot disagree (a typed stage drifted from the pages, a Fossil Comment of a field). `allows` also
+says what the next stage still needs.
 """
 import re
 
 from vela import model, schema
 
-ORDER = schema.ENUMS["stage"]
+ORDER = schema.STAGES
 SETTLED = ("decided", "fact")
 CONTAINER_DONE = ("confirmed", "unchanged", "retired")
 # "How the app behaves on failure": boundary writes "## On failure", and the example says "When a dependency is slow
@@ -104,10 +105,14 @@ def allows(vault, app):
     return reached, []
 
 
-def ahead_of_stage(vault, app):
-    """The stage the pages reach when it is later than the app's typed stage, or ""."""
-    reached, _ = allows(vault, app)
-    typed = app.meta.get("stage")
-    if not reached or typed not in ORDER:
-        return ""
-    return reached if ORDER.index(reached) > ORDER.index(typed) else ""
+def stage(vault, app):
+    """The stage an app's pages reach, worked out once per vault; "" for an app outside the ladder."""
+    stages = vault.cache.setdefault("stages", {})
+    if app.id not in stages:
+        stages[app.id] = allows(vault, app)[0]
+    return stages[app.id]
+
+
+def rank(stage_name):
+    """Where a stage sits on the ladder; past the end for "" so an app outside it sorts last."""
+    return ORDER.index(stage_name) if stage_name in ORDER else len(ORDER)

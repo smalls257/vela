@@ -4,7 +4,6 @@ type: app-building-blocks
 title: Desktop agent
 state: assumption
 change: new
-stage: handoff
 handed_off: "@agent-lead, 2026-10-12"
 handed_off_pr: pending
 domain: Capture

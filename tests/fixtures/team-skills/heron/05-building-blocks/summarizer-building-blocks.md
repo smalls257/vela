@@ -4,7 +4,6 @@ type: app-building-blocks
 title: Summarizer
 state: assumption
 change: new
-stage: target
 domain: Insight
 owner: "@product-owner"
 authored: authored

@@ -4,7 +4,6 @@ type: app-building-blocks
 title: Consent and identity
 state: assumption
 change: new
-stage: target
 domain: Trust
 owner: "@product-owner"
 authored: authored

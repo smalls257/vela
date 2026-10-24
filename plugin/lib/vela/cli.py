@@ -23,7 +23,7 @@ import traceback
 
 import yaml
 
-from vela import allocation, capture, catalog, completeness, diagramcheck, doctor, drafts, search, export, freshness, handoff, handoffwarn, health, ids, ladder, model, onboardpath, opening, pending, pluginroot, proposal, reading, parse, progress, publish, query, questions, releases, render, replay, review, reviews, roles, rules, schema, secretscan, slices, sourcerows, terms, tickets, untrusted, viewer, voicecheck, voicescore
+from vela import allocation, capture, catalog, completeness, diagramcheck, doctor, drafts, search, export, freshness, handoff, handoffwarn, health, ids, ladder, leadview, model, onboardpath, opening, pending, pluginroot, proposal, reading, parse, progress, publish, query, questions, releases, render, replay, review, reviews, roles, rules, schema, secretscan, sizing, slices, sourcerows, terms, tickets, untrusted, viewer, voicecheck, voicescore
 from vela.edge import atomic, copies, machine, mermaidjs, replays, reviewgit, sessiongit, teamdocs, vaultgit
 from vela.edge import proposals as proposal_files
 from vela import commands, guard, privaterecord, say
@@ -64,6 +64,10 @@ def load_config(root):
         raise ToolError(f".vela.yaml has stale_after_days: {days!r}. Write a whole number of days, such as 60.")
     if "records_split" in config:
         config["records_split"] = records_split_date(config["records_split"])
+    try:
+        sizing.read_choice(config)
+    except ValueError as exc:
+        raise ToolError(f".vela.yaml has size: ...: {exc}. Run vela size set <band> --because ^cN, or vela size clear.") from exc
     return config
 
 
@@ -1197,7 +1201,10 @@ def cmd_check(args, out):
     errors = sum(1 for f in findings if f.is_error)
     warnings = len(findings) - errors
     if getattr(args, "for_lead", False):
-        return check_for_lead(vault, findings, errors, out, more=getattr(args, "more", False))
+        from vela.commands import size
+        return check_for_lead(vault, findings, errors, out, more=getattr(args, "more", False),
+                              listing="wording" if getattr(args, "wording", False) else "said",
+                              announced=size.announce(root, vault))
     elapsed = time.perf_counter() - started
     print(f"vela check: {errors} errors, {warnings} warnings in {len(vault.pages)} pages, judged as of {today} ({origin}). "
           f"Took {elapsed:.2f} s." + (f" {GATE_WORDS[args.gate]}" if args.gate else "")
@@ -1214,19 +1221,40 @@ def cmd_check(args, out):
     return 1 if errors else 0
 
 
-def check_for_lead(vault, findings, errors, out, more=False):
+def check_for_lead(vault, findings, errors, out, more=False, listing="said", announced=()):
     """`check --for-lead`: the count first, then each finding as the lead would hear it, what must be fixed before what
     is worth a look, by page title and with no code, ID or fix line. The fix lines are for the model; the lead hears
-    what is wrong. `say` keeps it to about four and raises on a leak."""
+    what is wrong. What the lead hears follows each finding's weight (`leadview.split`): a decision is always said;
+    wording notes wait, counted, below the size that shows them; close's own fixes are counted. Nothing is hidden:
+    plain `vela check` lists every finding, and each quiet group is named in one line with the way to ask for it.
+    `listing="wording"` lists only the wording notes. `say` keeps it to about four and raises on a leak."""
     resolver = say.Resolver(vault)
-    lines = []
-    for finding in sorted(findings, key=lambda f: not f.is_error):
+    wording = listing == "wording"
+    if wording:
+        notes = [f for f in findings if schema.WEIGHT.get(f.code) == "polish"]
+        view = leadview.LeadView(tuple(notes), (), ())
+    else:
+        view = leadview.split(vault, findings, sizing.of(vault))
+    lines = list(announced)
+    for finding in view.said:
         page = vault.page(pathlib.PurePosixPath(finding.path).stem)
         where = resolver.page_title(page.name) if page is not None else None
         lines.append(say.Line(f"{where or finding.path}: {finding.message}",
                               plain=f"{where or file_words(finding.path)}: {finding.message}"))
-    result = say.Result("check --for-lead", exit=1 if errors else 0, lines=lines,
-                        answer=check_lead_header(errors, len(findings) - errors, len(vault.pages)))
+    said_errors = sum(1 for f in view.said if f.is_error)
+    answer = (check_wording_header(len(view.said), len(vault.pages)) if wording
+              else check_lead_header(said_errors, len(view.said) - said_errors, len(vault.pages)))
+    quiet = []
+    if view.wording:
+        n = len(view.wording)
+        quiet.append(f"There {'is' if n == 1 else 'are'} also {say.count_words(n)} wording note{'' if n == 1 else 's'} "
+                     f"on the pages; want {'it' if n == 1 else 'them'}?")
+        lines.append(say.Line(f"{n} wording notes kept quiet at this size: vela check --for-lead --wording lists them", audience=say.MODEL))
+    if view.fixed:
+        n = len(view.fixed)
+        quiet.append(f"I'll fix {say.count_words(n)} more myself when we close.")
+        lines.append(say.Line(f"{n} findings close fixes itself (vela check --fix auto does it now)", audience=say.MODEL))
+    result = say.Result("check --for-lead", exit=1 if errors else 0, lines=lines, answer=answer, closing=" ".join(quiet))
     return commands.emit(result, argparse.Namespace(for_lead=True, more=more), out, resolver)
 
 
@@ -1235,6 +1263,12 @@ def file_words(path):
     if path == ".vela.yaml":
         return "The plan's settings"
     return path if say.leak_in(path) is None else "A file in the plan"
+
+
+def check_wording_header(notes, pages):
+    if not notes:
+        return f"No wording notes on the {pages} pages."
+    return f"{notes} wording note{'' if notes == 1 else 's'} across the {pages} pages."
 
 
 def check_lead_header(errors, warnings, pages):
@@ -2625,13 +2659,6 @@ def oldest_text(row, today):
     return f"{name}, open {days_between(row.opened, today)} days (since {row.opened})"
 
 
-def ladder_note(vault, app):
-    """" | pages reach <stage>" when the app's pages meet a later stage's entry list than its typed stage, else "".
-    Said once, here and in close's report, never asked: the lead types the stage, or leaves it."""
-    reached = ladder.ahead_of_stage(vault, app)
-    return f" (its pages already meet the {reached} stage)" if reached else ""
-
-
 def without_subject(reason, subject):
     """The reason with its opening subject said as "It", when the line has just named that subject."""
     for lead in (subject, f"The open question {subject}"):
@@ -2648,10 +2675,9 @@ def status_line(row, today, vault=None):
     inkling, assumption, fact, decided = row.mix
     subject = vault.named(row.subject) if vault is not None and row.subject else row.subject
     next_text = f"{NEXT_MODE_WORDS.get(row.mode, row.mode)} {subject}".strip() if row.mode != "none" else "nothing"
-    note = ladder_note(vault, row.app) if vault is not None else ""
     name = vault.named(row.app.id) if vault is not None else row.app.id
     reason = without_subject(row.reason, subject)
-    return (f"{name} | stage: {row.stage or 'none'}{note} | {counted(inkling, 'early idea')}, {counted(assumption, 'assumption')}, {counted(fact, 'fact')}, "
+    return (f"{name} | stage: {row.stage or 'none'} | {counted(inkling, 'early idea')}, {counted(assumption, 'assumption')}, {counted(fact, 'fact')}, "
             f"{progress.decided_text(row)} decided | oldest open question: {oldest_text(row, today)} | next: {next_text}. {reason}")
 
 
@@ -2689,15 +2715,14 @@ def cmd_style(args, out):
 
 
 def cmd_ladder(args, out):
-    """For each app on the ladder: its typed stage, the stage its pages reach, and what the next stage still needs."""
+    """For each app on the ladder: the stage its pages reach, and what the next stage still needs."""
     root = pathlib.Path(args.vault).resolve()
     vault = load_vault(root)
     apps = [a for a in vault.apps if a.meta.get("change") in schema.LADDERED_CHANGES]
-    print(f"vela ladder: {len(apps)} apps being built or changed, each with the stage it is marked at and the stage its pages meet.", file=out)
+    print(f"vela ladder: {len(apps)} apps being built or changed, each with the stage its pages reach.", file=out)
     for app in apps:
         reached, gaps = ladder.allows(vault, app)
-        typed = app.meta.get("stage") or "none"
-        head = f"{vault.named(app.id)} | marked at stage: {typed} | pages meet stage: {reached}"
+        head = f"{vault.named(app.id)} | stage: {reached}"
         if gaps:
             shown = "; ".join(gaps[:3]) + (f"; and {len(gaps) - 3} more" if len(gaps) > 3 else "")
             head += f" | held back from the next stage by: {shown}"
@@ -2729,11 +2754,17 @@ def initiative_step(vault, row):
     partly filled vault is not nagged again and again."""
     if row is not None and row.rule <= 1:
         return None
+    sized = sizing.of(vault)
     loose = allocation.unallocated(vault)
-    if loose:
+    if loose and sized.needs(sizing.Need.ALLOCATE_SESSION):
         return (f"for the whole plan: decide which app owns {vault.named(loose[0].id)}, with /vela:allocate. "
                 f"It {handoffwarn.state_phrase(loose[0].fact('State'))} and no app has taken it, so no team owns it yet.")
-    if allocation.due(vault) and not releases.releases(vault) and not vault.of_type("epic"):
+    if loose:
+        return (f"for the whole plan: say which app owns {vault.named(loose[0].id)}, on that app's boundary sheet (/vela:boundary). "
+                f"It {handoffwarn.state_phrase(loose[0].fact('State'))} and no app has taken it, so no team owns it yet.")
+    # Below medium the release's date is one question in an app's grill, so this step stays quiet and the frontier wins.
+    if (allocation.due(vault) and not releases.releases(vault) and not vault.of_type("epic")
+            and sized.needs(sizing.Need.RELEASES_SESSION)):
         return ("for the whole plan: date the releases, with /vela:releases. Every requirement has an app, but no release "
                 "says when anyone gets any of it, so date them before the epics are written.")
     have = {r.id.split(".")[0] for r in allocation.requirements(vault)}
@@ -2741,8 +2772,11 @@ def initiative_step(vault, row):
             if c.meta.get("change") in schema.ENUMS["change@capability"] and c.meta.get("change") != "unchanged"
             and c.id not in have]
     if bare and (not vault.of_type("epic") or not have):
-        return (f"for the whole plan: write the requirements for {vault.named(bare[0].id)}, with /vela:requirements. "
-                f"The capability is {bare[0].meta['change']} and has no requirements yet, so there's nothing to divide among the apps for it.")
+        words = f"The capability is {bare[0].meta['change']} and has no requirements yet, so there's nothing to divide among the apps for it."
+        if sized.needs(sizing.Need.REQUIREMENTS_SESSION):
+            return f"for the whole plan: write the requirements for {vault.named(bare[0].id)}, with /vela:requirements. {words}"
+        return (f"for the whole plan: write the requirements for {vault.named(bare[0].id)} on the boundary sheet, with "
+                f"/vela:boundary. {words}")
     return None
 
 
@@ -2750,12 +2784,21 @@ def first_step(vault):
     """What to do while no app page exists. Once a Grill has decided the solution strategy, the direction is set
     and only a Boundary session turns it into apps; before that, the work is still finding out and shaping."""
     strategy = vault.page("04-solution-strategy")
-    if strategy is not None and strategy.meta.get("state") == "decided" and not allocation.requirements(vault):
+    sized = sizing.of(vault)
+    decided = strategy is not None and strategy.meta.get("state") == "decided"
+    if decided and not allocation.requirements(vault):
+        if not sized.needs(sizing.Need.REQUIREMENTS_SESSION):
+            return ("for the whole plan: run a boundary session, with /vela:boundary. The solution strategy is decided, so "
+                    "split the work into apps; the requirements and each app's share go on the boundary sheet.")
         return ("for the whole plan: write the requirements, with /vela:requirements. The solution strategy is decided "
                 "and no capability has requirements yet, so write them before the boundary session splits the work into apps.")
-    if strategy is not None and strategy.meta.get("state") == "decided":
+    if decided:
         return ("for the whole plan: run a boundary session, with /vela:boundary. The solution strategy is decided and "
                 "no app page exists yet, so split the work into apps.")
+    sources = strategy.meta.get("sources") if strategy is not None else None
+    if isinstance(sources, list) and sources and not sized.needs(sizing.Need.OPTIONS_BEFORE_GRILL):
+        return ("for the whole plan: grill the solution strategy, with /vela:grill 04-solution-strategy. Boundary waits "
+                "until the direction is decided; one question about other options is enough at this size.")
     return ("for the whole plan: no app page exists yet, so start by getting everything known written down "
             "(/vela:dump, a brainstorm), or by reading the existing sources (/vela:discover).")
 
@@ -2834,10 +2877,15 @@ def next_through_say(args, out):
     found = [line[len("vela next: "):] if line.startswith("vela next: ") else line.strip()
              for line in printed.getvalue().splitlines() if line.strip()]
     said = [_AS_OF.sub("", line).strip() for line in found]
+    root = pathlib.Path(args.vault).resolve()
+    vault = load_vault(root)
+    from vela.commands import size
     result = say.Result("next", exit=code, answer=f"Next I'd suggest this: {said[0]}" if said else "",
-                        lines=[say.Line(f"vela next: {line}", plain=f"Also: {words}" if n else "")
-                               for n, (line, words) in enumerate(zip(found, said))], data={"next": found})
-    return commands.emit(result, args, out, say.Resolver(load_vault(pathlib.Path(args.vault).resolve())))
+                        lines=size.announce(root, vault)  # first: recorded as said, so never behind a cap
+                        + [say.Line(f"vela next: {line}", plain=f"Also: {words}" if n else "")
+                           for n, (line, words) in enumerate(zip(found, said))],
+                        data={"next": found})
+    return commands.emit(result, args, out, say.Resolver(vault))
 
 
 def find_plan(root):
@@ -2889,7 +2937,7 @@ def handoff_steps(vault):
     lead hears it before the senior accepts the app."""
     out = []
     for app in vault.apps:
-        if not handoffwarn.at_handoff(app):
+        if not handoffwarn.at_handoff(vault, app):
             continue
         found = handoffwarn.gaps(vault, app)
         if not found:

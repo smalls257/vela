@@ -83,13 +83,11 @@ def test_once_one_app_has_a_domain_the_rest_of_a_large_initiative_warn(tmp_path)
     assert check(vault).count("W352") == 8  # nine apps, one named
 
 
-def test_a_small_initiative_is_not_asked_for_domains(tmp_path):
+def test_a_plan_sized_below_large_is_not_asked_for_domains(tmp_path):
     vault = copy(tmp_path)
     set_domains(vault, {"website": "Channels"})
     model = cli.load_vault(vault)
-    keep = {"website", "kiosks"}
-    model.pages[:] = [p for p in model.pages if p.type != "app-building-blocks" or p.name.split("-building")[0] in keep]
-    assert len(model.apps) < schema.DOMAIN_MIN_APPS
+    model.config["size"] = {"band": "medium", "because": "[[2026-01-01-grill-a]] c1", "date": "2026-01-01"}
     assert list(rules.domain_rules(model, TODAY)) == []
 
 

@@ -7,7 +7,6 @@ arc42: "§5"
 c4: container
 state: decided
 change: changed
-stage: epics
 owner: "@harborline/contact-center-systems"
 authored: mixed
 sources: ["Contact Center Systems senior container review", "Head of Contact Center review of retired fix screens"]

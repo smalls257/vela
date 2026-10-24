@@ -5,7 +5,7 @@ Every rule runs on every page it can read. No rule stops the others.
 import datetime
 import re
 
-from vela import allocation, cases, deferrals, flows, handoffwarn, links, override, parse, pending, privaterecord, progress, questions, receipts, readability, readload, releases, render, schema, slices, sourcerows, trace, wording
+from vela import allocation, cases, deferrals, flows, handoffwarn, links, override, parse, pending, privaterecord, progress, questions, receipts, readability, readload, releases, render, schema, sizing, slices, sourcerows, trace, wording
 from vela.model import Finding, blocked_units, decided_goal_rows, goal_rows_at, meta_line
 
 
@@ -118,7 +118,7 @@ def frontmatter_rules(vault, today):
 def _enum_findings(vault, page, page_type, spec):
     meta = page.meta
     checks = [("authored", schema.ENUMS["authored"]), ("c4", schema.ENUMS["c4"]),
-              ("origin", schema.ENUMS["origin"]), ("stage", schema.ENUMS["stage"]), ("stub", schema.ENUMS["stub"]),
+              ("origin", schema.ENUMS["origin"]), ("stub", schema.ENUMS["stub"]),
               ("status", schema.ENUMS["status"])]
     if spec["states"]:
         checks.append(("state", spec["states"]))
@@ -461,7 +461,7 @@ def handoff_rules(vault, today):
     """Sensor for the app handed over on an override: every item still short of a yes is named before the senior accepts it.
     A contract with no case table is W380 already, and the read-back lists it with the rest."""
     for app in vault.apps:
-        if not handoffwarn.at_handoff(app):
+        if not handoffwarn.at_handoff(vault, app):
             continue
         for gap in handoffwarn.gaps(vault, app):
             if gap.kind == "unfirm":
@@ -1088,13 +1088,24 @@ def flow_capability_rules(vault, today):
                          "Use the ID of a capability page, such as CAP-013, or take it out.")
 
 
+def old_stage_rules(vault, today):
+    """W408. Nobody types a stage: vela works it out from the pages an app reaches. A page that still carries a
+    `stage:` line says a second thing next to the plan, so check says the line is not read and `--fix auto` removes it."""
+    for page in vault.pages:
+        if "stage" in page.meta:
+            yield _f(page, meta_line(page, "stage"), "W408",
+                     f"{vault.named(page.id) if page.id else page.name} still has a stage line, and vela now works the stage out "
+                     "from the pages, so the line is not read.",
+                     "Delete the stage line, or run vela check --fix auto.")
+
+
 def domain_rules(vault, today):
-    """W352 and W353. Once any app names a domain, a large initiative's other apps should; two spellings of one
+    """W352 and W353. Once any app names a domain, a large plan's (sizing) other apps should; two spellings of one
     domain split the Group: Domain view in two."""
     named = [p for p in vault.apps + vault.of_type("capability") if isinstance(p.meta.get("domain"), str) and p.meta["domain"].strip()]
     if not named:
         return
-    if len(vault.apps) >= schema.DOMAIN_MIN_APPS and any(p in named for p in vault.apps):
+    if sizing.of(vault).needs(sizing.Need.DOMAIN_FIELD) and any(p in named for p in vault.apps):
         for app in vault.apps:
             if app not in named:
                 yield _f(app, 1, "W352", f"{app.id} has no domain, but other apps in this {len(vault.apps)}-app initiative do.",
@@ -1185,21 +1196,6 @@ def _gate_four(vault):
                 back = "set it to reopened" if page.meta.get("type") == "epic" else "set it back to assumption"
                 yield _f(page, line, "E316", f"{unit_id} is decided, but open unknown {unknown.id} blocks it.",
                          f"Resolve {unknown.id} first, or {back}.")
-
-
-# --------------------------------------------------------------------- stage
-
-def stage_rules(vault, today):
-    for app in vault.apps:
-        change, stage = app.meta.get("change"), app.meta.get("stage")
-        if change not in schema.ENUMS["change@app-building-blocks"]:
-            continue  # E103 or E105 already reports it
-        if change in schema.LADDERED_CHANGES and not stage:
-            yield _f(app, meta_line(app, "change"), "E319", f"{app.id} is {change} but has no stage.",
-                     "Add stage: baseline (or the stage the app is in now).")
-        if change and change not in schema.LADDERED_CHANGES and stage:
-            yield _f(app, meta_line(app, "stage"), "E319", f"{app.id} is {change}, so it sits outside the ladder and takes no stage.",
-                     "Remove the stage field, or set change: changed if the app now changes.")
 
 
 # ------------------------------------------------------------------ concerns
@@ -1505,5 +1501,5 @@ def session_note_rules(vault, today):
 
 
 RULES = (parse_errors, frontmatter_rules, duplicate_rules, link_rules, reference_rules, table_rules,
-         history_rules, page_state_rules, stale_mention_rules, allocation_rules, release_rules, slice_rules, flow_sender_rules, flow_end_rules, flow_capability_rules, domain_rules, ask_rules, requirement_coverage_rules, contract_rules, case_table_rules, handoff_rules, deferral_rules, why_rules, wording_rules, requirement_rules, unknown_rules, risk_rules, subject_rules, question_rules, certainty_rules, stage_rules, concern_rules,
+         history_rules, page_state_rules, stale_mention_rules, allocation_rules, release_rules, slice_rules, flow_sender_rules, flow_end_rules, flow_capability_rules, old_stage_rules, domain_rules, ask_rules, requirement_coverage_rules, contract_rules, case_table_rules, handoff_rules, deferral_rules, why_rules, wording_rules, requirement_rules, unknown_rules, risk_rules, subject_rules, question_rules, certainty_rules, concern_rules,
          diagram_rules, block_rules, trace_rules, freshness_rules, link_field_rules, link_pipe_rules, reading_load_rules, session_note_rules, receipts.receipt_rules)

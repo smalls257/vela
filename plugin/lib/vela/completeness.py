@@ -5,7 +5,7 @@ and the reviewers find only what is written. Each share says what it counts, so 
 """
 from dataclasses import dataclass
 
-from vela import progress, questions, reading, schema
+from vela import progress, questions, reading, schema, sizing
 
 SETTLED = ("decided", "fact")
 
@@ -65,9 +65,18 @@ def owed_questions(vault):
     return Share("checklist questions answered", done, len(kept) + len(rows))
 
 
+def not_written(page):
+    return reading.not_started(model_body(page), page.type, str(page.meta.get("state", "")))
+
+
 def pages(vault):
-    made = [p for p in vault.pages if p.type in reading.TEMPLATE_TYPES]
-    written = sum(1 for p in made if not reading.not_started(model_body(p), p.type, str(p.meta.get("state", ""))))
+    """Template pages written, of the ones this plan needs. The releases page and any slice page are left out while
+    unwritten and the plan's size needs no Releases session (a Paper Tiger otherwise: a small plan "incomplete" for
+    a page it was never going to need). A written one always counts."""
+    skip_unwritten = not sizing.of(vault).needs(sizing.Need.RELEASES_SESSION)
+    made = [p for p in vault.pages if p.type in reading.TEMPLATE_TYPES
+            and not (skip_unwritten and (p.id == "releases" or p.type == "slice") and not_written(p))]
+    written = sum(1 for p in made if not not_written(p))
     return Share("pages written", written, len(made))
 
 

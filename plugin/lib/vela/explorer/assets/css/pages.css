@@ -31,7 +31,6 @@ td.wide { max-width: 320px; }
 .ladder span { width: 22px; height: 9px; border-radius: 3px; background: var(--deck-3); }
 .ladder span.done { background: var(--ink-3); }
 .ladder span.cur { background: var(--ink); box-shadow: 0 0 8px var(--board-light); }
-.ladder span.reach { box-shadow: inset 0 0 0 1.5px var(--ink-2); }
 .ladder.off span { background: var(--deck); }
 .mix { display: flex; height: 9px; width: 150px; border-radius: 4px; overflow: hidden; background: var(--deck-3); }
 .due-chart { width: 100%; height: auto; }

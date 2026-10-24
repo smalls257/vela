@@ -25,7 +25,7 @@ PRIVATE_DIR = "sessions/private"
 PENDING = "pending"
 LISTS = ("ready", "challenges", "harvest_declined")
 STUB_KEYS = ("id", "type", "title", "date", "modes", "status", "branch", "start_commit", "captures_sha256",
-             "ready", "challenges", "harvest_declined", "title_override")
+             "ready", "challenges", "harvest_declined", "title_override", "size", "size_kept")
 READY_HEADING = "Ready to decide"
 READY_LINE = re.compile(r"^- (?P<id>\S+): the lead said yes in (?P<session>\S+)(?: \((?P<yes>\^c\d+)\))?\s*$")
 DECLINE = re.compile(r"^Harvest declined: PR (?P<pr>\d+) (?P<page>.+) (?P<hash>[0-9a-f]{12})\s*$")
@@ -137,6 +137,16 @@ def with_part(stub_text, part, value):
 def with_status(stub_text, status):
     meta, body = _read(stub_text)
     return _assemble({**meta, "status": status}, body)
+
+
+def with_size(stub_text, size="", kept=""):
+    """The stub with its recorded size (the shape band and the counts, no names) and, when given, the band whose
+    size-down line was said this session. Each is set only when non-empty."""
+    meta, body = _read(stub_text)
+    for key, value in (("size", size), ("size_kept", kept)):
+        if value:
+            meta = {**meta, key: value}
+    return _assemble(meta, body)
 
 
 def listed(meta, key):
