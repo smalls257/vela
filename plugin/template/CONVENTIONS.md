@@ -151,7 +151,7 @@ Contract, under `### CON-nnn <name>` on the provider's building-blocks page:
 | `**Why:**` | Written when `decided`: the lead's own reasons, in their words. See Certainty and sources. |
 | `**Provider:**` | Only for an external provider with no page. The contract then lives on the consumer's page. |
 | `**Dissent:**` | Optional. |
-| `**Options considered:**` | Optional. What a Shape weighed, in the page-level form. |
+| `**Options considered:**` | Optional. What a Shape weighed, in the page-level form. Below a medium plan a grill may record `only this one: <the lead's words> ([[<session>]] c14)` instead (`vela decide <ID> --options-none ^cN`), with the words only when the person may be quoted. |
 | `**Links:**` | Optional. Where the contract is written down outside the vault, such as its API spec. See Links out of the vault. |
 | `**Auth:**` | Optional, but a stub needs it. How a caller proves who it is, in a few words. |
 | `**Can time out:**` | Optional. `yes` or `no`: whether a caller can be left waiting with no answer. The flow check needs it on every contract a slice calls. |

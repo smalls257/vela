@@ -55,8 +55,10 @@ SHARED = {"id": "the item's ID (a release by its heading, an allocation row as C
           "by": "the lead's handle; computed",
           "reader": "true in a reader copy; computed",
           "reopen": "true to reopen a decided item (a change of mind), with why",
-          "stated_in": "the source (SRC-nn) that states the decision, when an import confirms it: no options needed"}
-JUDGMENT = ("readback", "yes", "why", "dissent", "overrides", "on_behalf_of")
+          "stated_in": "the source (SRC-nn) that states the decision, when an import confirms it: no options needed",
+          "options_none": "the capture holding the lead's answer that this was the only option (no Shape session); "
+                          "written as the options considered, in their words when they may be quoted"}
+JUDGMENT = ("readback", "yes", "why", "dissent", "overrides", "on_behalf_of", "options_none")
 
 
 def kind_module(kind):

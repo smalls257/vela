@@ -44,7 +44,7 @@ import re
 import shlex
 from dataclasses import dataclass
 
-from vela import cases, closegate, ladder, model, override, progress, questions, say, schema, slices
+from vela import cases, closegate, ladder, model, override, progress, questions, say, schema, sizing, slices
 from vela.flowcheck import standing as flowstanding
 
 FLOW_CHECK, CASE_TABLE = "flow check", "case table"
@@ -74,10 +74,11 @@ class Reason:
     fix: str
     next: str = ""
     blocked_by: tuple = ()  # the open unknowns, for GATE-4
+    ask: str = ""  # the one question for the lead, when one answer settles this reason
 
     def as_json(self):
         return {"rule": self.rule, "plain": self.plain, "fix": self.fix, "next": self.next,
-                "blocked_by": list(self.blocked_by)}
+                "blocked_by": list(self.blocked_by), "ask": self.ask}
 
 
 @dataclass(frozen=True)
@@ -215,6 +216,13 @@ def option_reason(vault, found, name):
                       "/vela:epics")
     if state == "assumption" and options:
         return None
+    if not sizing.of(vault).needs(sizing.Need.OPTIONS_BEFORE_GRILL):
+        # Below medium the gate asks the one question; the lead's answer is recorded by `vela decide --options-none`,
+        # so the skill never decides the route (the gate's reason carries it).
+        return Reason("GATE-2", f"Nobody has said yet whether anything other than {name} was on the table.",
+                      "I'd ask you once: was anything else on the table? Your answer goes on the plan as the options "
+                      "considered.", f"vela decide {found.id} --options-none ^cN",
+                      ask=f"Was anything other than {name} on the table?")
     said = "has no state yet" if not state else "is only an inkling" if state == "inkling" else \
         "has no options on the table yet, so there's nothing to pick from"
     return Reason("GATE-2", f"{name} {said}.", "I'd lay out the options first. Or I can decide it now and note it as "
@@ -382,7 +390,7 @@ def verdict(vault, record, item, today, flows=None):
         if covering:
             overridden.extend(covering)
         else:
-            reasons.append(Reason(judged.rule, judged.plain, _ended(judged.fix, ended), judged.next))
+            reasons.append(Reason(judged.rule, judged.plain, _ended(judged.fix, ended), judged.next, ask=judged.ask))
     for judged, covering in (unknown_reason(vault, found, name, today, blocked), case_reason(vault, found, name, today)):
         overridden.extend(covering)
         if judged is not None:
