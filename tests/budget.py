@@ -30,9 +30,11 @@ def cpu_run(argv, env=None, stdin=""):
 
 
 def measure(plugin, args, env, runs=5, stdin=""):
-    """{"cpu": median CPU, "wall": median wall, "codes": exit codes}; the warm-up run is not counted."""
+    """{"cpu": least CPU, "wall": median wall, "codes": exit codes}; the warm-up run is not counted. CPU is the least of the
+    runs, not the median: other work on the machine only ever adds to it (the full gate runs dozens of workers at once,
+    which pushed a 0.15 s hook to 0.20 s), so the least run is the closest to what the command itself costs."""
     argv = ["sh", str(plugin / "scripts" / "run-vela"), *args]
     cpu_run(argv, env, stdin)
     found = [cpu_run(argv, env, stdin) for _ in range(runs)]
-    return {"cpu": statistics.median(c for c, _, _ in found), "wall": statistics.median(w for _, w, _ in found),
+    return {"cpu": min(c for c, _, _ in found), "wall": statistics.median(w for _, w, _ in found),
             "codes": [d.returncode for _, _, d in found], "out": found[-1][2].stdout}
