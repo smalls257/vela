@@ -130,6 +130,46 @@ def test_a_settle_in_shape_passes_close_gate(tmp_path):
     assert not [p for p in gate.get("problems", []) if p.get("kind") == "consent"], gate
 
 
+def a_decided_adr_file(root):
+    (root / ".vela").mkdir(exist_ok=True)
+    (root / ".vela" / "handle").write_text("priya\n")
+    path = root / "adr.json"
+    path.write_text(json.dumps({"version": 1, "kind": "add", "session": RECORD_ID, "items": [
+        {"type": "adr", "title": "Stock over one API", "owner": "@priya", "state": "decided", "decision": RECORD_ID,
+         "capture": "^c02", "decides": "CON-002", "id": None}]}))
+    return path
+
+
+def consent_problems(root):
+    gate = json.loads(run("close", "gate", "--vault", str(root), "--today", TODAY, "--json")[1])
+    return [p for p in gate.get("problems", []) if p.get("kind") == "consent"]
+
+
+def test_a_decided_record_of_a_decision_made_this_session_passes_close_gate(tmp_path):
+    """Review finding 2: the record's yes is the decision's yes, and no read-back was ever kept on the record."""
+    root = make_vault(tmp_path)
+    in_session_with_modes(root, "grill")
+    on_a_session_branch(root)
+    assert decide(root, "--readback", "^c01", "--yes", "^c02", "--why", "^c03", "--provider", "^c07")[0] == 0
+    code, out = run("apply", str(a_decided_adr_file(root)), "--vault", str(root), "--json")
+    assert code == 0, out
+    assert consent_problems(root) == []
+
+
+def test_vela_add_adr_decided_knows_the_lead(tmp_path):
+    """`vela add` never passed the lead, so a decided record always refused decide-lead-unknown."""
+    root = make_vault(tmp_path)
+    in_session_with_modes(root, "grill")
+    on_a_session_branch(root)
+    assert decide(root, "--readback", "^c01", "--yes", "^c02", "--why", "^c03", "--provider", "^c07")[0] == 0
+    (root / ".vela").mkdir(exist_ok=True)
+    (root / ".vela" / "handle").write_text("priya\n")
+    code, out = run("add", "adr", "--title", "Stock over one API", "--state", "decided", "--decision", RECORD_ID,
+                    "--capture", "^c02", "--decides", "CON-002", "--vault", str(root), "--today", TODAY, "--json")
+    assert code == 0, out
+    assert consent_problems(root) == []
+
+
 def test_a_hand_set_decided_citing_that_s_decided_fails_close(tmp_path):
     root = make_vault(tmp_path, captures=['- [thought] (@priya) "That\'s decided." ^c01'])
     in_session_with_modes(root, "shape")

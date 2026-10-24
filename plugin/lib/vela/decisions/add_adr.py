@@ -105,9 +105,27 @@ def apply(item, vault, record):
         writes.append(Write(index, text + bullet + "\n"))
     rec = textedit.record_text(record, vault)
     if item.get("capture"):
-        rec = textedit.add_change(rec, ident, "-", item.get("state") or "proposed",
-                                  textedit.capture_link(record.id, item["capture"]))
-        rec = textedit.mark_if_unmarked(rec, item["capture"], textedit.keep_mark(name, f"{ident} {title}", ident,
-                                                                                 item.get("state") or "proposed"))
+        state = item.get("state") or "proposed"
+        rec = textedit.add_change(rec, ident, "-", state, textedit.capture_link(record.id, item["capture"]))
+        rec = textedit.mark_if_unmarked(rec, item["capture"], textedit.keep_mark(name, f"{ident} {title}", ident, state))
+        back = read_back_of(item, record) if state == "decided" else None
+        if back is not None:
+            rec = textedit.add_keep_target(rec, back, name, f"{ident} {title}", ident, state)
     return writes + textedit.record_writes(record, vault, rec)
 
+
+
+def read_back_of(item, record):
+    """The capture where Claude read back the item this record records, before the yes: a record of a decision is
+    covered by the read-back the decision had, so the gate (`closegate.read_back_before`) finds it kept on the record
+    too. None when `decides` is not decided in this session, and the gate then asks, as it does for any decision."""
+    from vela import markrules
+    if not item.get("decides") or record.capture(item["capture"]) is None:
+        return None
+    yes = record.capture(item["capture"])
+    for other in record.captures.values():
+        mark = markrules.parse_mark(other.mark)
+        if (int(other.n) < int(yes.n) and not other.is_person and mark is not None
+                and any(t.id == item["decides"] and t.state == "decided" for t in mark.targets)):
+            return other.n
+    return None

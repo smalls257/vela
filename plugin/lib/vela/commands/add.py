@@ -133,7 +133,8 @@ def file_new(root, today, vault, item):
         return early
     reader = sessiongit.is_read_copy(root)
     try:
-        staged = textedit.attach(decisions.Staged(vault, disk.reader(root)), today, idgit.branch_texts(root))
+        staged = textedit.attach(decisions.Staged(vault, disk.reader(root)), today, idgit.branch_texts(root),
+                               lead=apply_command.lead_of(root))
     except GitUnavailable as exc:
         return failed(f"couldn't read the other branches' numbers: {exc}",
                       "I couldn't check which numbers other sessions hold, so I added nothing.")
