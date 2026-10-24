@@ -6,7 +6,7 @@ argument-hint: "[CAP-nnn, APP-<slug>, or none for the whole initiative]"
 
 # Allocate
 
-Make every requirement somebody's. Allocation says, for each requirement, which app carries which part, and which contract carries the part that crosses between them, before anyone cuts epics. Allocation never decides: each row is `assumption` (to the lead, "not decided yet") until a grill decides it.
+Make every requirement somebody's. Allocation says, for each requirement, which app carries which part, and which contract carries the part that crosses between them, before anyone cuts epics. Each row is `assumption` (to the lead, "not decided yet") until the lead settles it.
 
 Vela is `sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela` (`START.md`, "Where vela runs from", covers a host that leaves the variable unexpanded). The format is `vela conventions "Requirements and allocation"`. When a command can't express what the lead wants, say so and stop.
 
@@ -44,11 +44,10 @@ Draft the paragraph each filed item owes now, as `START.md` says under "Draft th
 
 Run the review checkpoint in `${CLAUDE_PLUGIN_ROOT}/references/REVIEW.md`, with the checkpoint "after the rows are written" and the app pages and contracts this session changed as its focus. Show the digest as REVIEW says and capture what the lead takes.
 
-When the lead says they are done, close as `${CLAUDE_PLUGIN_ROOT}/references/START.md` says under "Closing a session". Then a grill on each app decides its rows with its page, and `/vela:epics` takes each team's criteria from them. Say the one line the lead types by the app's name, such as "/vela:grill Desktop agent".
+When the lead says they are done, close as `${CLAUDE_PLUGIN_ROOT}/references/START.md` says under "Closing a session". Then each app's rows are settled with its page, in a grill or whenever the lead is sure, and `/vela:epics` takes each team's criteria from them. Say the one line the lead types by the app's name, such as "/vela:grill Desktop agent".
 
 ## Never
 
 - Allocate inside one app: how an app splits its share among its own parts is its team's design.
 - Put a requirement's criteria into a share cell. The cell is one sentence; the criteria stay on the requirement.
 - Change a requirement to make it easier to allocate. A requirement that can't be allocated as written is a question for `/vela:requirements` or a grill, never a quiet rewrite.
-- Write `decided`. Only a grill decides, unless the lead overrides it as `START.md` says.

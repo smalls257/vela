@@ -388,7 +388,7 @@ def test_decide_says_it_is_already_decided_and_offers_the_reopen():
 
 
 def test_grill_is_leaner_than_it_was():
-    assert len(text("skills/grill/SKILL.md").split()) <= 1450  # 2,342 before the first trim; 2,046 after it; 1,407 after the second; +26 for the `ask` line
+    assert len(text("skills/grill/SKILL.md").split()) <= 1470  # 2,342 before the first trim; 2,046 after it; 1,407 after the second; +26 for the `ask` line; +20 for the description's settle offer and the 'Settle <name>' line
     # 415 before the first trim; 364 after it; step 0 (a reader stops, the review's fix for NEW-13) made it 396
     assert len(text("skills/grill/HANDOFF.md").split()) <= 410
 
@@ -403,7 +403,7 @@ def test_grill_reads_back_by_name_and_keeps_ids_out_of_its_own_wording():
 
 def test_grill_description_and_lower_case_name():
     grill = text("skills/grill/SKILL.md")
-    assert "the only session that sets decided. Offer it when" in grill.split("---", 2)[1]
+    assert "and decide what holds up. Offer it when" in grill.split("---", 2)[1]
     body = grill.split("---", 2)[2] + text("skills/grill/HANDOFF.md")
     for proper in ("A Grill", "a Grill", "the Grill", "Grill row", "a Grill's"):
         assert proper not in body, proper

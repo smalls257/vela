@@ -37,10 +37,10 @@ def test_requirements_called_from_another_mode_joins_the_open_session():
 
 def test_requirements_in_vault_caps_certainty_and_moves_the_output():
     ref = text("references/REQUIREMENTS-IN-VAULT.md")
-    assert "It writes at most `assumption`." in ref
+    assert "It writes at most `assumption`, unless the lead settles an item." in ref
+    assert "settle it as `SETTLE.md` says" in ref and "W317" not in ref and "E317" not in ref
     assert "It never writes `fact`." in ref
     assert "there is no `docs/requirements/<slug>.md`" in ref
     assert "### CAP-NNN.FRn <short name>" in ref
-    assert "Offer `/vela:grill CAP-NNN.FRn`." in ref
     assert "E316" in ref
     assert "/vela:close" in ref

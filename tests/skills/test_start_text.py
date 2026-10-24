@@ -268,7 +268,7 @@ def test_start_answers_a_challenge_on_its_own_branch():
     assert "ANSWER-A-CHALLENGE.md" in section("Answer a challenge")
     assert "`vela session start --mode answer --answer <PR number or the challenged ID> --for-lead`" in ANSWER
     assert "never starts on a guessed branch" in ANSWER
-    assert "never opening a new one" in ANSWER and "adds `grill` to the session's modes" in ANSWER
+    assert "never opening a new one" in ANSWER and "Add `grill` to the session's modes only when the lead wants it tested" in ANSWER
 
 
 def test_answer_a_challenge_lost_its_recipe_to_session_start():

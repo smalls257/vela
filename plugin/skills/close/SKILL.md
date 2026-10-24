@@ -59,7 +59,7 @@ Then send, in this order:
 
 Write the two or three sentences a reviewer reads first to `.vela/close/prose.md`, as `${CLAUDE_PLUGIN_ROOT}/skills/close/PR-BODY.md` says, then run `vela close pr --prose .vela/close/prose.md --for-lead` and show the URL it prints. Never say a PR exists unless `gh` printed its URL.
 
-End with three to six plain sentences: what was filed, by group; what waits on someone, with the date; the pull request link, or why there is none; and the dashboard line `close finish` gave. If the notes aren't backed up, add: "Your notes for this session are only on this computer. Want me to copy them somewhere safe?" On a yes, ask for a folder outside the plan and run `vela records backup --to <folder>`. For a switch, end with the line that starts the next mode, by name ("/vela:grill Desktop agent").
+End with three to six plain sentences: what was filed, by group; what was settled, as close finish says it; what waits on someone, with the date; the pull request link, or why there is none; and the dashboard line `close finish` gave. If the notes aren't backed up, add: "Your notes for this session are only on this computer. Want me to copy them somewhere safe?" On a yes, ask for a folder outside the plan and run `vela records backup --to <folder>`. For a switch, end with the line that starts the next mode, by name ("/vela:grill Desktop agent").
 
 ## 6. No session open
 

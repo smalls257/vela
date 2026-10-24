@@ -293,3 +293,10 @@ def test_a_bare_decided_by_is_the_owners_own_decision_and_needs_no_confirmation(
     assert ("E322", PRICING) not in findings(out) and ("W324", PRICING) not in findings(out)
     (ub / PRICING).write_text((ub / PRICING).read_text(encoding="utf-8").replace("Decided by:** @hl-pricing-senior", "Decided by:** pricing senior", 1), encoding="utf-8")
     assert ("E322", PRICING) in findings(check(ub, TODAY)[1])
+
+
+@pytest.mark.parametrize("old", ["grill", "E317", "W317"])
+def test_a_retired_rule_says_it_is_gone_and_to_delete_the_bullet(old):
+    problem = override._rule_problem([old])
+    assert "that rule is gone" in problem and "delete this bullet" in problem
+    assert "Use GATE-1" not in problem

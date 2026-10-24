@@ -1,12 +1,12 @@
 ---
 name: grill
-description: "Decide ready items one question at a time, each with a recommended answer held under pushback; the only session that sets decided. Offer it when someone wants an open question settled; start it only on a yes."
+description: "Test items one hard question at a time, each with a recommended answer held under pushback, and decide what holds up. Offer it when someone isn't sure yet, wants something tested, has many items to settle, or asks to settle an item with no session open; start it only on a yes."
 argument-hint: "<item IDs or page names to decide>"
 ---
 
 # The grill
 
-A grill is the only session that makes an item `decided` (say what the word means once, from `vela terms`). It takes the ready items, and any the lead decides anyway, one question at a time, and files each decision as its branch closes.
+A grill tests part of the plan with hard questions and decides what holds up (say what the word means once, from `vela terms`). It takes the ready items, and any the lead decides anyway, one question at a time, and files each decision as its branch closes.
 
 Run the steps in `${CLAUDE_PLUGIN_ROOT}/references/START.md` with mode `grill`, and read the grill row of `${CLAUDE_PLUGIN_ROOT}/references/MODES.md`. A kind with no command of its own is filed with `vela apply` (`--schema <kind>` gives the file).
 
@@ -28,6 +28,8 @@ Not: "CON-003 (Dock unlock): decided, GATE-5 overridden, see UNK-012." An app's 
 **Acceptance.** Silence, "ok", "next", "sure" with nothing else, or a change of subject do not count as acceptance. Before you close a branch, ask for an explicit yes or an alternative; before anything is decided, read the final wording back and get a yes (items that close together can share one read-back of about five). Capture each answer and your read-back with `vela record add --tag thought "<words>"`.
 
 ## 2. Open with a ready item
+
+If the lead opened with "Settle <name>" and is sure, run only `${CLAUDE_PLUGIN_ROOT}/references/SETTLE.md` for it.
 
 Items the brief lists as ready to decide come first. Open the agenda with them, and still read each wording back for its own yes. On turn 1 run `vela check --gate decide --all --for-lead` and open with a ready item as a proposal: "I'd decide <item> as <answer>, because <reason>. OK?" Recaps and reading come after that, or only if needed. If nothing is ready, say so in one line and ask the question that would make the nearest item ready. When an answer settles an item that isn't ready, offer to decide it anyway in that same turn, with its read-back: "That settles <item>. It isn't ready because <reason>. Decide it anyway?" Never file a settling answer as a note without that offer.
 

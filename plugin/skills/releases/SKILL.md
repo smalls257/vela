@@ -6,7 +6,7 @@ argument-hint: "[a release name or date, or none for the whole plan]"
 
 # Releases
 
-Say in what order the plan gets built, and when people see it. A release is a milestone: a date somebody outside the team will see, the slices that should be on by then, and the requirements, or only some of their checks, that must hold that day. Nothing waits for a release. What this session writes is "not decided yet" until a grill decides it, and a slice has no status until a grill plans it.
+Say in what order the plan gets built, and when people see it. A release is a milestone: a date somebody outside the team will see, the slices that should be on by then, and the requirements, or only some of their checks, that must hold that day. Nothing waits for a release. What this session writes is "not decided yet" until the lead settles it, and a slice has no status until it's planned.
 
 Run the steps in `${CLAUDE_PLUGIN_ROOT}/references/START.md` with mode `releases`, and read the Releases row of `${CLAUDE_PLUGIN_ROOT}/references/MODES.md`. The first time you say slice, tracer or grill, say what it is from `vela terms`. Page formats: `vela conventions "Releases"` and `vela conventions "Slices"`.
 
@@ -57,7 +57,7 @@ Then run `vela render` and `vela check`, fix what they say, tell the lead which 
 
 ## 4. Review, then finish
 
-Run the review checkpoint in `${CLAUDE_PLUGIN_ROOT}/references/REVIEW.md` "after the releases are written", with `04b-releases.md` as its focus, and capture what the lead takes. When the lead is done, close as `START.md` says under "Closing a session". Then a grill decides the releases, and `/vela:epics` cuts each team's epics against them.
+Run the review checkpoint in `${CLAUDE_PLUGIN_ROOT}/references/REVIEW.md` "after the releases are written", with `04b-releases.md` as its focus, and capture what the lead takes. When the lead is done, close as `START.md` says under "Closing a session". Then the releases are settled, in a grill or whenever the lead is sure, and `/vela:epics` cuts each team's epics against them.
 
 ## Never
 

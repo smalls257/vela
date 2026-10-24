@@ -6,7 +6,7 @@ argument-hint: "<team handle or APP-id, or 'every team'>"
 
 # Epics
 
-Turn the app's handoff list into epics a team can build from: not decided yet, until a grill decides it. Only the grill part of this session sets an epic to `decided`. The cuts, the criteria's wording, the read-backs and the questions are yours; the commands file them.
+Turn the app's handoff list into epics a team can build from: not decided yet, until the solution lead settles it, in this session's grill part or whenever sure. The cuts, the criteria's wording, the read-backs and the questions are yours; the commands file them.
 
 Run the steps in `${CLAUDE_PLUGIN_ROOT}/references/START.md` with modes `epics`, `shape` and `grill` and the team as the topic, and read those three rows of `${CLAUDE_PLUGIN_ROOT}/references/MODES.md`. The epic page is `vela conventions "Epics and traceability"`.
 
