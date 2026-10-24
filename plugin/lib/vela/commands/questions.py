@@ -120,14 +120,22 @@ def lead_existence(found):
         return say.Result("questions --existence", answer="Every existence question has an answer already.")
     lines = [say.Line("", plain=f"{n}. {line.question.strip()}") for n, line in enumerate(found, start=1)]
     head = "These decide what else I'll ask. Answer yes or no to each:"
-    nos = [n for n, line in enumerate(found, start=1) if line.recommend]
-    closing = "Which are yes?"
-    if nos:
-        reason = found[nos[0] - 1].why if len({found[n - 1].why for n in nos}) == 1 else "nothing on the pages mentions it"
-        reason = "nothing on the pages mentions it" if reason == questions.NO_STORED_VALUE else reason
-        closing += f" I'd say no to {say.names_said([str(n) for n in nos])}: {reason}."
+    closing = "Which are yes?" + recommended_noes(found)
     return say.Result("questions --existence", answer=head, lines=lines, closing=closing,
                       data={"lines": len(found)})
+
+
+def recommended_noes(found):
+    """" I'd say no to 1 and 2: <reason>." with each recommended no under its own reason, so a stored value and a party
+    never share the other's evidence; "" when none is recommended."""
+    by_reason = {}
+    for n, line in enumerate(found, start=1):
+        if line.recommend:
+            by_reason.setdefault(line.why, []).append(str(n))
+    parts = [f"{say.names_said(numbers)}: {reason}" for reason, numbers in by_reason.items()]
+    if len(parts) <= 1:
+        return f" I'd say no to {parts[0]}." if parts else ""
+    return " I'd say no to " + "; and to ".join(parts) + "."
 
 
 def lead_digest(answer, area_names):
