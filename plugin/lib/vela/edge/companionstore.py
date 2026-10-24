@@ -236,3 +236,20 @@ def _design_of(path, design_data, slug):
 def _blank_design(slug):
     return {"title": "", "frontmatter": {"slug": slug, "gaps": [], "deferred": []}, "summary": {"text": "", "mermaid": []},
             "open_questions": [], "vault": None, "problems": []}
+
+
+BASE_CSS = pathlib.Path(__file__).resolve().parent.parent / "explorer" / "assets" / "css" / "base.css"
+
+
+def palette():
+    """The `:root { ... }` block of the dashboard's palette, through its end marker, so the panel and the dashboard
+    share one set of colors. A palette that can't be read raises: a page with no colors would be unreadable ink on ink."""
+    try:
+        text = BASE_CSS.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as exc:
+        raise errors.ToolError(f"The dashboard's colors couldn't be read ({exc}).") from exc
+    end = text.find("/* end of palette */")
+    start = text.find(":root {")
+    if start < 0 or end < 0:
+        raise errors.ToolError("The dashboard's palette has no end marker, so the panel has no colors to use.")
+    return text[start:end] + "}"

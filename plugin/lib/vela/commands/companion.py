@@ -15,7 +15,7 @@ import datetime
 import json
 import pathlib
 
-from vela import companiondesign, companionsession
+from vela import companiondesign, companionrender, companionsession
 from vela.edge import companionstore, plans
 
 NO_SESSION = "No session is open in this folder."
@@ -54,14 +54,16 @@ def root_of(args):
     return found if found is not None else start
 
 
-def render_forms(data):
-    """(markdown, html). Task 7 draws them; until then each says so, so nothing is silently blank."""
-    return "Rendered in Task 7.\n", "<!doctype html><title>vela</title><p>Rendered in Task 7.</p>\n"
+def render_forms(root, data):
+    """(markdown, html) of the dict, after its band and drawings are filled in. The palette is the dashboard's, so the
+    panel and the dashboard share one room."""
+    companionrender.with_renders(data)
+    return companionrender.markdown(data), companionrender.html(data, companionstore.palette())
 
 
 def finish(args, out, root, data, exit_code):
     data["vault"] = str(root)
-    markdown, html = render_forms(data)
+    markdown, html = render_forms(root, data)
     published = args.html is not None
     companionstore.write_forms(root, data["kind"], data, markdown, html, html_out=args.html or None, published=published)
     if args.json:
