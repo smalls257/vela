@@ -57,5 +57,8 @@ def clone(repo, dest, timeout=60):
 
 def remote_head(repo, timeout):
     """The commit the repository's default branch is at now, for freshness."""
+    if gh_signed_in():  # a private repository only answers with the credentials gh holds; plain git has none here
+        sha = run([shutil.which("gh"), "api", f"repos/{repo.owner}/{repo.name}/commits/HEAD", "--jq", ".sha"], timeout).strip()
+        return sha
     out = run(["git", "ls-remote", f"{CLONE_BASE}/{repo.owner}/{repo.name}.git", "HEAD"], timeout)
     return out.split()[0] if out.split() else ""

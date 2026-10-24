@@ -10,7 +10,7 @@ from dataclasses import dataclass
 
 NO_GIT, NO_ACCESS, UNREACHABLE = "no-git", "no-access", "unreachable"
 NAME = r"[A-Za-z0-9][A-Za-z0-9_.-]*"
-LINK = re.compile(rf"^(?:https?://|git@)?(?:www\.)?github\.com[/:](?P<owner>{NAME})/(?P<name>{NAME})(?:/(?:tree|blob)/.*)?/?$")
+LINK = re.compile(rf"^(?:https?://|git@)?(?:www\.)?github\.com[/:](?P<owner>{NAME})/(?P<name>{NAME})(?P<inside>/(?:tree|blob)/.*?)?/?$")
 NO_ACCESS_WORDS = ("repository not found", "authentication failed", "could not read username",
                    "does not appear to be a git repository", "403", "permission denied")
 UNREACHABLE_WORDS = ("could not resolve host", "timed out", "connection refused", "network is unreachable",
@@ -22,6 +22,7 @@ SOMEONE = "the person who sent you the link"
 class Repo:
     owner: str
     name: str
+    inside: str = ""  # "/tree/<branch>/<folder>" when the link points inside the repository, else ""
 
     @property
     def label(self):
@@ -38,7 +39,7 @@ def parse(text):
     if not found:
         return None
     name = found["name"][:-4] if found["name"].endswith(".git") else found["name"]
-    return Repo(found["owner"], name) if name else None
+    return Repo(found["owner"], name, found["inside"] or "") if name else None
 
 
 def failure_kind(stderr):
@@ -60,6 +61,13 @@ def message(kind, owner_name):
         return f"I couldn't reach GitHub from this computer. Try again when you're online, or ask {owner_name} to send the plan as a file."
     return (f"GitHub didn't let this computer read the plan. Sign in to GitHub here, or ask {owner_name} to add you, "
             "or to send the plan as a file.")
+
+
+def points_inside_message(repo):
+    """A link to a branch, a file or a folder is not read as the repository's main plan: the person would get a plan
+    they did not point at, and nothing would say so (Silent Fallback ruled out)."""
+    return (f"That link points at a branch or a folder inside {repo.label}, and I only open a repository's main plan. "
+            f"Send the repository's own link ({repo.url}), or ask {SOMEONE} to send the plan as a file.")
 
 
 def owner_of(config, repo):

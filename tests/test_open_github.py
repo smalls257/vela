@@ -112,3 +112,25 @@ def test_a_readers_drafts_do_not_roll_since_last_time(tmp_path, github):
     seen = json.loads((ws / ".vela" / "companion" / "seen.json").read_text(encoding="utf-8"))
     assert seen["current"]["made"]["date"] == stamp["date"] and seen["current"]["made"]["commit"] == stamp["short"]
     assert not seen.get("previous")
+
+
+def test_a_signed_in_gh_user_is_asked_through_gh_for_a_private_repo(tmp_path, monkeypatch):
+    """Plain git has no credentials for a private repository; asking it made a signed-in director read "couldn't ask
+    GitHub". With gh signed in the freshness question goes through gh, which holds them."""
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    fake = bin_dir / "gh"
+    fake.write_text('#!/bin/sh\ncase "$1" in\n  auth) exit 0;;\n  api) echo "' + "c" * 40 + '"; exit 0;;\nesac\nexit 1\n')
+    fake.chmod(0o755)
+    monkeypatch.setenv("PATH", f"{bin_dir}:" + __import__("os").environ["PATH"])
+    monkeypatch.setattr(githubcopy, "CLONE_BASE", (tmp_path / "nowhere").as_uri())  # plain git would fail here
+    assert githubcopy.remote_head(githubsource.Repo("harborline", "private-plan"), 10) == "c" * 40
+
+
+@pytest.mark.parametrize("link", ["https://github.com/harborline/booking-plan/tree/session-x",
+                                  "https://github.com/harborline/booking-plan/tree/main/projects/heron",
+                                  "https://github.com/harborline/booking-plan/blob/main/README.md"])
+def test_a_link_inside_the_repository_is_refused_in_words_never_read_as_the_main_plan(tmp_path, github, link):
+    code, text = run("open", link, "--into", str(tmp_path / "ws"))
+    assert code == 1 and "points at a branch or a folder" in text and "https://github.com/harborline/booking-plan" in text
+    assert not (tmp_path / "ws").exists()

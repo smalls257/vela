@@ -654,6 +654,8 @@ def copy_from_github(repo, today_flag):
     """(files, stamp) of the plan as last committed on GitHub, made by the same publish steps a folder or zip goes
     through. A failure is said in one plain sentence (git's own words go to stderr) and nothing ever opens an older
     copy instead (Silent Fallback ruled out)."""
+    if repo.inside:
+        raise Declined(githubsource.points_inside_message(repo))
     if not githubcopy.has_git():
         raise Declined(githubsource.message(githubsource.NO_GIT, githubsource.SOMEONE))
     today, _ = parse_today(today_flag)
