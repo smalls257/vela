@@ -1088,6 +1088,17 @@ def flow_capability_rules(vault, today):
                          "Use the ID of a capability page, such as CAP-013, or take it out.")
 
 
+def old_stage_rules(vault, today):
+    """W408. Nobody types a stage: vela works it out from the pages an app reaches. A page that still carries a
+    `stage:` line says a second thing next to the plan, so check says the line is not read and `--fix auto` removes it."""
+    for page in vault.pages:
+        if "stage" in page.meta:
+            yield _f(page, meta_line(page, "stage"), "W408",
+                     f"{vault.named(page.id) if page.id else page.name} still has a stage line, and vela now works the stage out "
+                     "from the pages, so the line is not read.",
+                     "Delete the stage line, or run vela check --fix auto.")
+
+
 def domain_rules(vault, today):
     """W352 and W353. Once any app names a domain, a large plan's (sizing) other apps should; two spellings of one
     domain split the Group: Domain view in two."""
@@ -1490,5 +1501,5 @@ def session_note_rules(vault, today):
 
 
 RULES = (parse_errors, frontmatter_rules, duplicate_rules, link_rules, reference_rules, table_rules,
-         history_rules, page_state_rules, stale_mention_rules, allocation_rules, release_rules, slice_rules, flow_sender_rules, flow_end_rules, flow_capability_rules, domain_rules, ask_rules, requirement_coverage_rules, contract_rules, case_table_rules, handoff_rules, deferral_rules, why_rules, wording_rules, requirement_rules, unknown_rules, risk_rules, subject_rules, question_rules, certainty_rules, concern_rules,
+         history_rules, page_state_rules, stale_mention_rules, allocation_rules, release_rules, slice_rules, flow_sender_rules, flow_end_rules, flow_capability_rules, old_stage_rules, domain_rules, ask_rules, requirement_coverage_rules, contract_rules, case_table_rules, handoff_rules, deferral_rules, why_rules, wording_rules, requirement_rules, unknown_rules, risk_rules, subject_rules, question_rules, certainty_rules, concern_rules,
          diagram_rules, block_rules, trace_rules, freshness_rules, link_field_rules, link_pipe_rules, reading_load_rules, session_note_rules, receipts.receipt_rules)

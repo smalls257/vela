@@ -22,7 +22,7 @@ def test_the_quiet_set_is_the_reading_load():
 
 
 def test_auto_and_scale_are_the_named_few():
-    assert sorted(c for c, w in schema.WEIGHT.items() if w == "auto") == ["W326", "W358", "W402"]
+    assert sorted(c for c, w in schema.WEIGHT.items() if w == "auto") == ["W326", "W358", "W402", "W408"]
     assert {c: w for c, w in schema.WEIGHT.items() if w.startswith("scale:")} == {"W352": "scale:DOMAIN_FIELD"}
 
 

@@ -644,7 +644,7 @@ Run `vela check` from the vault root. It reads, never writes, and never stops at
 
 The table is generated from the codes `vela check` uses, so it cannot drift from them, and each finding's fix line says how to put it right. `vela upgrade` brings a vault's copy up to date.
 
-<!-- generated:check-codes sha=06187a08: do not edit, run vela render -->
+<!-- generated:check-codes sha=000646f1: do not edit, run vela render -->
 | Code | Finding |
 |---|---|
 | E101 | page has no frontmatter |
@@ -762,6 +762,7 @@ The table is generated from the codes `vela check` uses, so it cannot drift from
 | E404 | generated block markers are broken |
 | W405 | a slice page still has a Joins line, which is no longer read: joins come from its flows |
 | W406 | two or more slices name no After, or none does: the tracer is the one slice with no After |
+| W408 | a page still has a stage line, which is no longer read: vela works the stage out from the pages |
 | E501 | no epic delivers a capability that changes |
 | W501 | no epic delivers a capability that changes |
 | E502 | no epic delivers a new or changed contract |

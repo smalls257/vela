@@ -453,6 +453,7 @@ CODES = {
     "E404": "generated block markers are broken",
     "W405": "a slice page still has a Joins line, which is no longer read: joins come from its flows",
     "W406": "two or more slices name no After, or none does: the tracer is the one slice with no After",
+    "W408": "a page still has a stage line, which is no longer read: vela works the stage out from the pages",
     "E601": "flowchart over its element budget",
     "E602": "sequence diagram over its participant budget",
     "E603": "diagram type not supported",
@@ -530,7 +531,7 @@ VOICE_REVIEW_MIN_PARAGRAPHS = 5  # why: a fresh reader is worth its cost from ab
 WEIGHTS = ("decision", "polish", "auto")
 POLISH = dict.fromkeys(("W329", "W353", "W360", "W361", "W362", "W363", "W364", "W365", "W366", "W367", "W368",
                         "W369", "W371", "W372", "W373"), "polish")
-AUTO = dict.fromkeys(("W326", "W358", "W402"), "auto")
+AUTO = dict.fromkeys(("W326", "W358", "W402", "W408"), "auto")
 SCALE = {"W352": "scale:DOMAIN_FIELD"}
 # The one weight of every finding code: decision (said at every size), polish (quiet in --for-lead and at close,
 # counted, listed in plain check), auto (close fixes it when it can) or scale:<NEED> (fires from that need's band).

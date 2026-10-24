@@ -3,9 +3,10 @@
 A finding weighted `auto` (schema.WEIGHT) is one close can fix, so it is counted ("I'll fix 26 more myself when we
 close") instead of said. The Violation this prevents is a Silent Fallback: a promise that close fixes something it
 cannot. So `fixable` answers per finding, from the same code that would make the fix: W402 always (close renders),
-W326 when `w326fix` can plan it, W358 when the plan has exactly one capability page. One that cannot is said.
+W326 when `w326fix` can plan it, W358 when the plan has exactly one capability page, W408 when the
+line can be found (it is simply removed). One that cannot is said.
 """
-from vela import w326fix, w358fix
+from vela import stagefix, w326fix, w358fix
 
 
 def fixable(vault, finding):
@@ -18,4 +19,6 @@ def fixable(vault, finding):
             return False
     if finding.code == "W358":
         return any(c.path == finding.path for c in w358fix.plan(vault))
+    if finding.code == "W408":
+        return any(c.path == finding.path for c in stagefix.plan(vault))
     return False

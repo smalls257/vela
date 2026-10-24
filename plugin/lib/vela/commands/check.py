@@ -22,7 +22,7 @@ failed.
 """
 import pathlib
 
-from vela import gates, plainwords, roles, rules, say, schema, sessions, w326fix, w358fix
+from vela import gates, plainwords, roles, rules, say, schema, sessions, stagefix, w326fix, w358fix
 from vela.edge import atomic
 
 AUTO = "AUTO"  # --fix auto runs every fixer in one pass
@@ -43,7 +43,7 @@ def register(sub):
     check.add_argument("--app", help="with --gate epics: check only this app and the things on its handoff list (give its ID, "
                                      "like APP-booking); other apps, and the check that every requirement has an app, are skipped")
     check.add_argument("--fix", metavar="CODE",
-                       help="W326, W358 or auto (both): W326 sets each page's state as it says (a page whose rows have all "
+                       help="W326, W358, W408 or auto (all three): W326 sets each page's state as it says (a page whose rows have all "
                             "moved on reads as unsettled until its own state follows); W358 writes the plan's one "
                             "capability onto each flow that names none; prints what changed. Any other code is refused")
     check.add_argument("--wording", action="store_true",
@@ -71,7 +71,7 @@ def run(args, out):
         raise cli.ToolError("--wording lists the wording notes as the lead hears them, so it goes with --for-lead.")
     if args.json and not grill_items:
         raise cli.ToolError("--json prints the grill verdicts (or, with --fix, what changed), so it goes with "
-                            "--gate grill --item <ID> or --fix W326, W358 or auto.")
+                            "--gate grill --item <ID> or --fix W326, W358, W408 or auto.")
     if grill_items and say.mode_of(args) != "default":
         return verdicts(args, out)
     return cli.cmd_check(args, out)
@@ -148,6 +148,10 @@ def fix(args, out):
             found = w358fix.plan(vault)
             changes += found
             files.update(w358fix.rewrite(found, {**texts, **files}))
+        if code in (stagefix.FIXABLE[0], AUTO):
+            found = stagefix.plan(vault)
+            changes += found
+            files.update(stagefix.rewrite(found, {**texts, **files}))
     except w326fix.FixDrift as exc:
         raise cli.ToolError(str(exc)) from exc
     except (w326fix.NoStateLine, ValueError) as exc:
@@ -190,12 +194,12 @@ def fix_refusal(args):
     """A Result refusing this `--fix`, or None. Only W326 has one right answer; and --fix inside a gate or with items
     would leave unclear which check it answered."""
     code = args.fix.strip().upper()
-    if code not in w326fix.FIXABLE + w358fix.FIXABLE + (AUTO,):
+    if code not in w326fix.FIXABLE + w358fix.FIXABLE + stagefix.FIXABLE + (AUTO,):
         result = say.Result("check --fix", exit=say.REFUSED, data={"code": args.fix})
         result.refusals.append(say.Refusal(
-            "fix", "I can only fix two kinds of problem by myself: a page whose status hasn't caught up with what's on "
-                   "it, and a journey that names no capability when the plan has just one.",  # voice audit row 222
-            f"--fix takes W326, W358 or auto; fix {args.fix} by hand as its Fix line says.",
+            "fix", "I can only fix three kinds of problem by myself: a page whose status hasn't caught up with what's on "
+                   "it, a journey that names no capability when the plan has just one, and an old stage line.",  # voice audit row 222
+            f"--fix takes W326, W358, W408 or auto; fix {args.fix} by hand as its Fix line says.",
             "Edit the page by hand; nothing here stops that.", waiver=""))  # no rule to set aside, only a limit
         return result
     if args.gate or args.item or args.app:
@@ -209,6 +213,9 @@ def fix_refusal(args):
 
 
 def changed_line(change, resolver):
+    if isinstance(change, stagefix.Change):
+        return say.Line(f"{change.path}:{change.line}: removed '{change.before}' ({change.why})",
+                        f"{resolver.name(change.page)} no longer carries a stage line; I work the stage out from the pages.")
     if isinstance(change, w358fix.Change):
         title = resolver.name(change.page)
         return say.Line(f"{change.path}: {change.after} ({change.why})",
