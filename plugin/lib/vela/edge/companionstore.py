@@ -177,3 +177,62 @@ def clear_forms(root, kind):
     base = folder(root)
     for name in (f"{kind}.json", f"{kind}.md", f"{kind}.html", "published.json"):
         (base / name).unlink(missing_ok=True)
+
+
+DESIGN_DOCS = "docs/tech-design"
+
+
+def design_session(root):
+    """What a design session is made of, or None when this folder isn't on a `design/<slug>` branch (or has no git):
+    {"branch", "slug", "record", "doc_rel", "doc_text", "design", "touched"}. The yes record is
+    `.vela/design/<slug>.md` by `commands/record.design_record_path`'s rule, the doc `docs/tech-design/<slug>.md`;
+    either may not exist yet (a design just begun), and then it is empty text, not an error. `touched` is the pages
+    changed under docs/ and CONTEXT.md since the vault commit the doc cites, None when git could not say."""
+    from vela.commands import record as record_command
+    from vela.edge import vaultgit
+    from vela.explorer import design_data
+    root = pathlib.Path(root)
+    try:
+        branch = vaultgit.current_branch(root)
+    except vaultgit.GitUnavailable:
+        return None
+    record_rel = record_command.design_record_path(branch or "")
+    if not record_rel:
+        return None
+    slug = pathlib.Path(record_rel).stem
+    doc_rel = f"{DESIGN_DOCS}/{slug}.md"
+    record = _read_or_empty(root / record_rel)
+    doc_text = _read_or_empty(root / doc_rel)
+    design = _design_of(root / doc_rel, design_data, slug) if doc_text else _blank_design(slug)
+    commits = design["vault"]["commits"] if design.get("vault") else []
+    try:
+        changed = vaultgit.git_out(root, "diff", "--name-only", "--relative", commits[0] if commits else "HEAD", "--", ".")
+        fresh = vaultgit.git_out(root, "ls-files", "--others", "--exclude-standard")
+        found = {line.strip() for line in (changed + "\n" + fresh).split("\n") if line.strip()}
+        touched = tuple(sorted(rel for rel in found if rel.startswith("docs/") or rel == "CONTEXT.md"))
+    except vaultgit.GitUnavailable:
+        touched = None
+    return {"branch": branch, "slug": slug, "record": record, "doc_rel": doc_rel, "doc_text": doc_text,
+            "design": design, "touched": touched}
+
+
+def _read_or_empty(path):
+    """The file's text, "" when it isn't there yet. A file that is there and can't be read raises, never reads as empty."""
+    if not path.is_file():
+        return ""
+    try:
+        return path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as exc:
+        raise errors.ToolError(f"Cannot read {path.name}: {exc}") from exc
+
+
+def _design_of(path, design_data, slug):
+    try:
+        return design_data.read_design(path)
+    except design_data.DesignError as exc:
+        raise errors.ToolError(str(exc)) from exc
+
+
+def _blank_design(slug):
+    return {"title": "", "frontmatter": {"slug": slug, "gaps": [], "deferred": []}, "summary": {"text": "", "mermaid": []},
+            "open_questions": [], "vault": None, "problems": []}

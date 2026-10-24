@@ -15,7 +15,7 @@ import datetime
 import json
 import pathlib
 
-from vela import companionsession
+from vela import companiondesign, companionsession
 from vela.edge import companionstore, plans
 
 NO_SESSION = "No session is open in this folder."
@@ -79,9 +79,7 @@ def cmd_session(args, out):
     try:
         stub, notes, problems = companionstore.open_session(root)
     except companionstore.NoSession:
-        companionstore.clear_forms(root, "session")
-        print(NO_SESSION, file=out)
-        return 1
+        return design_or_nothing(args, out, root, today, now)
     except companionstore.Several as several:
         return said_several(args, out, several.records)
     if notes is None:
@@ -128,3 +126,16 @@ def said_several(args, out, records):
         for r in records:
             print(f"  {r.title}", file=out)
     return 3
+
+
+def design_or_nothing(args, out, root, today, now):
+    """No session record is open: on a `design/<slug>` branch the design session is the session (it opens no record);
+    anywhere else there is nothing to draw, and an old panel is removed so it can't keep showing a closed session."""
+    found = companionstore.design_session(root)
+    if found is None:
+        companionstore.clear_forms(root, "session")
+        print(NO_SESSION, file=out)
+        return 1
+    data = companiondesign.build(found["branch"], found["record"], found["doc_text"], found["design"], found["doc_rel"],
+                                 found["touched"], today, now)
+    return finish(args, out, root, data, 0)
