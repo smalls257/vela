@@ -119,7 +119,8 @@ def verdicts(args, out):
     notes = [n for n in (note, warning and f"The flow check's record could not be read, so flows read as not checked "
                                            f"({warning}).") if n]
     report = gates.report(vault, found, notes)
-    report.lines += size.announce(root, vault)  # a plan that grew since the last line gets its bigger band at once
+    # First, so the four-line cap never turns a line already recorded as said into "N more".
+    report.lines = size.announce(root, vault) + report.lines
     return commands.emit(report, args, out, say.Resolver(vault))
 
 

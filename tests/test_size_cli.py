@@ -71,3 +71,19 @@ def test_announce_says_it_once_and_records_it_on_the_open_stub(tmp_path):
     meta = privaterecord.stub_meta(session_files.stub_text(root, RECORD_ID))
     assert meta["size"] == "small; apps 2, capabilities 1, releases 1"
     assert run("size", "announce", "--vault", str(root), "--for-lead")[1].strip() == ""
+
+
+GROWN_STUB = {"id": "2026-10-01-grill-a", "status": "closed", "size": "small; apps 2, capabilities 1, releases 1"}
+
+
+def test_the_growth_line_comes_first_so_the_four_line_cap_never_hides_it(tmp_path):
+    # Recorded as said but cut into "N more; want them?" would mean the lead never heard it (a Black Box).
+    apps = [(s, "new") for s in ("scheduler", "jobs-api", "audit", "billing", "mailer")]
+    root = write_plan(tmp_path, apps=apps, capabilities=["new"], releases=["2027-01-15"], stubs=[GROWN_STUB])
+    open_session(root)
+    items = [arg for slug, _ in apps for arg in ("--item", f"APP-{slug}")]
+    code, out = run("check", "--vault", str(root), "--gate", "grill", *items, "--for-lead")
+    assert "The plan has grown" in out, out
+    assert "The plan has grown" in out.splitlines()[0] or "The plan has grown" in out.split("more;")[0], out
+    meta = privaterecord.stub_meta(session_files.stub_text(root, RECORD_ID))
+    assert meta["size"].startswith("medium")

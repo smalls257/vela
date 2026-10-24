@@ -2879,8 +2879,9 @@ def next_through_say(args, out):
     vault = load_vault(root)
     from vela.commands import size
     result = say.Result("next", exit=code, answer=f"Next I'd suggest this: {said[0]}" if said else "",
-                        lines=[say.Line(f"vela next: {line}", plain=f"Also: {words}" if n else "")
-                               for n, (line, words) in enumerate(zip(found, said))] + size.announce(root, vault),
+                        lines=size.announce(root, vault)  # first: recorded as said, so never behind a cap
+                        + [say.Line(f"vela next: {line}", plain=f"Also: {words}" if n else "")
+                           for n, (line, words) in enumerate(zip(found, said))],
                         data={"next": found})
     return commands.emit(result, args, out, say.Resolver(vault))
 
