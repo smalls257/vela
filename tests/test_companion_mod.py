@@ -10,6 +10,15 @@ from conftest import REPO
 PLUGIN = REPO / "plugin"
 
 
+@pytest.fixture(scope="module")
+def plugin_copy(tmp_path_factory):
+    """claude writes type declarations (and a tsconfig) beside a mod it loads; those are 700 KB of someone else's words, and
+    the sim's seal check scans plugin/ on disk, so everything claude runs happens in a copy."""
+    target = tmp_path_factory.mktemp("mod") / "plugin"
+    shutil.copytree(PLUGIN, target, ignore=shutil.ignore_patterns("__pycache__", "types", "tsconfig.json"))
+    return target
+
+
 def claude():
     found = shutil.which("claude")
     if found is None:
@@ -23,14 +32,14 @@ def test_the_hooks_file_keeps_every_settings_hook_and_adds_the_module():
     assert set(hooks["hooks"]) == {"SessionStart", "UserPromptSubmit", "PreToolUse", "PostToolUse"}
 
 
-def test_the_plugin_validates_with_the_mod():
-    done = subprocess.run([claude(), "plugin", "validate", str(PLUGIN)], capture_output=True, text=True, timeout=300)
+def test_the_plugin_validates_with_the_mod(plugin_copy):
+    done = subprocess.run([claude(), "plugin", "validate", str(plugin_copy)], capture_output=True, text=True, timeout=300)
     assert done.returncode == 0, done.stdout + done.stderr
     assert "companion.js hooks:" in done.stdout and "tool.call" in done.stdout
 
 
-def test_the_mods_own_tests_pass():
-    done = subprocess.run([claude(), "plugin", "test", "."], cwd=PLUGIN, capture_output=True, text=True, timeout=300)
+def test_the_mods_own_tests_pass(plugin_copy):
+    done = subprocess.run([claude(), "plugin", "test", "."], cwd=plugin_copy, capture_output=True, text=True, timeout=300)
     assert done.returncode == 0, done.stdout + done.stderr
 
 

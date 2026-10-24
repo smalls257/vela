@@ -45,7 +45,7 @@ def run(args, out):
     vela, never a finding about the vault."""
     try:
         return args.func(args, out)
-    except errors.Refusal as exc:
+    except errors.Declined as exc:
         print(str(exc), file=out)
         return 1
     except errors.ToolError as exc:

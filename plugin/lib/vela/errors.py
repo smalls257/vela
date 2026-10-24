@@ -9,6 +9,6 @@ class ToolError(Exception):
     """The tool failed: bad arguments, an unreadable vault, a missing catalog. Exit 2, the message printed after 'vela: '."""
 
 
-class Refusal(ToolError):
+class Declined(ToolError):
     """The tool stopped on purpose and says why in words for the person (exit 1, printed as written, no "vela: " in
     front): not a fault in the tool, so not exit 2."""

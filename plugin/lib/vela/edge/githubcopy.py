@@ -11,7 +11,7 @@ import subprocess
 from vela import githubsource
 from vela.edge import vaultgit
 
-CLONE_BASE = "https://github.com"  # tests point it at a folder of bare repos (file://...)
+CLONE_BASE = "https://github.com"  # tests replace it with a local address (file://...)
 
 
 class CloneFailed(Exception):

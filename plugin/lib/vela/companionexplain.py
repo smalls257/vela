@@ -66,7 +66,7 @@ def ask_item(ask):
 
 
 def verdict(digest, release, today):
-    """Never "on track": the plan can only say a date passed with nothing recorded, or what could make it late."""
+    """Never says the plan is fine: it can only say a date passed with nothing recorded, or what could make it late."""
     if any(s["overdue"] for s in digest["slices"]):
         return "Late: a due date passed with nothing recorded."
     could = len(digest["stuck"])

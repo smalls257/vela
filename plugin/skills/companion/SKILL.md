@@ -22,7 +22,7 @@ When a turn runs a vela command that writes (decide, record add, add, apply, map
 
 For a question about where the plan stands, pick the one view that fits:
 
-- track ("are we on track for the date?")
+- track ("will we make the date?")
 - stuck ("what's stuck?")
 - needs ("what do you need from me?")
 - left ("how much is left?")

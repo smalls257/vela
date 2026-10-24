@@ -26,7 +26,7 @@ from vela import allocation, capture, catalog, completeness, diagramcheck, docto
 from vela.edge import atomic, copies, githubcopy, machine, mermaidjs, replays, reviewgit, sessiongit, teamdocs, vaultgit
 from vela.edge import proposals as proposal_files
 from vela import commands, githubsource, guard, privaterecord, say
-from vela.errors import Refusal, ToolError
+from vela.errors import Declined, ToolError
 from vela.edge.vaultfiles import vault_files
 from vela.vaultpaths import page_kind
 
@@ -655,7 +655,7 @@ def copy_from_github(repo, today_flag):
     through. A failure is said in one plain sentence (git's own words go to stderr) and nothing ever opens an older
     copy instead (Silent Fallback ruled out)."""
     if not githubcopy.has_git():
-        raise Refusal(githubsource.message(githubsource.NO_GIT, githubsource.SOMEONE))
+        raise Declined(githubsource.message(githubsource.NO_GIT, githubsource.SOMEONE))
     today, _ = parse_today(today_flag)
     with tempfile.TemporaryDirectory() as scratch:
         clone = pathlib.Path(scratch) / "plan"
@@ -663,12 +663,12 @@ def copy_from_github(repo, today_flag):
             githubcopy.clone(repo, clone)
         except githubcopy.CloneFailed as exc:
             print(f"vela open: git said: {exc.detail}", file=sys.stderr)
-            raise Refusal(githubsource.message(exc.kind, githubsource.SOMEONE)) from exc
+            raise Declined(githubsource.message(exc.kind, githubsource.SOMEONE)) from exc
         try:
             files, _, _ = vaultgit.committed_files(clone)
             commit, short = vaultgit.head(clone)
             if ".vela.yaml" not in files:
-                raise Refusal("That GitHub repository doesn't hold a vela plan.")
+                raise Declined("That GitHub repository doesn't hold a vela plan.")
             config = load_config_text(files[".vela.yaml"])
             owner = githubsource.owner_of(config, repo)
             who = owner["name"] if config.get("owner_contact") else repo.owner
@@ -677,11 +677,11 @@ def copy_from_github(repo, today_flag):
                                                       from_=f"GitHub {repo.label}")
             except SecretsRefused as exc:
                 print(f"vela open: {exc}", file=sys.stderr)
-                raise Refusal(f"The plan on GitHub holds text that looks like a password or key, so I didn't open it. "
+                raise Declined(f"The plan on GitHub holds text that looks like a password or key, so I didn't open it. "
                                 f"Tell {who}; they can fix it, or send the plan as a file.") from exc
         except vaultgit.GitUnavailable as exc:
             print(f"vela open: git said: {exc}", file=sys.stderr)
-            raise Refusal(githubsource.message(githubsource.NO_ACCESS, githubsource.SOMEONE)) from exc
+            raise Declined(githubsource.message(githubsource.NO_ACCESS, githubsource.SOMEONE)) from exc
         except publish.PublishError as exc:
             raise ToolError(str(exc)) from exc
     return stamped, stamp
