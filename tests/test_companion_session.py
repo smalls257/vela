@@ -114,3 +114,23 @@ def test_the_skills_suffix_keeps_a_failed_writes_exit_code(tmp_path):
                           env={**__import__("os").environ, "CLAUDE_PLUGIN_ROOT": str(plugin)})
     assert done.returncode != 0
     assert "session.html" not in done.stdout
+
+
+def _with_rows(plan, *rows):
+    open_session(plan, text=notes(extra_rows=rows))
+    return session_json(plan)
+
+
+def test_a_reopened_item_is_no_longer_listed_as_decided(plan):
+    got = _with_rows(plan, f"| FLO-001 | decided | assumption | [[{SESSION}#^c11]] |")
+    assert [d["id"] for d in got["decided"]] == ["RUN-booking"]
+
+
+def test_a_question_resolved_later_in_the_session_is_not_new_and_open(plan):
+    got = _with_rows(plan, f"| UNK-009 | open | resolved | [[{SESSION}#^c11]] |")
+    assert not [o for o in got["open"] if o["id"] == "UNK-009" and o["new_this_session"]]
+
+
+def test_an_item_decided_twice_is_listed_once(plan):
+    got = _with_rows(plan, f"| FLO-001 | assumption | decided | [[{SESSION}#^c11]] |")
+    assert [d["id"] for d in got["decided"]].count("FLO-001") == 1

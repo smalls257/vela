@@ -89,10 +89,20 @@ def _capture_of(row):
     return int(row.capture_number) if row.capture_number else 0
 
 
+def folded(rows):
+    """{item: (first row, last row)} in table order. A reopened item is no longer decided and a resolved question is no
+    longer open, so every list reads the item's last row; reading each row alone is how a panel lists a decision twice
+    or keeps one the lead took back (Paper Tiger)."""
+    found = {}
+    for row in rows:
+        found[row.item] = (found[row.item][0] if row.item in found else row, row)
+    return found
+
+
 def decided_rows(rows, names, label):
-    return [{"id": row.item, "name": _name(names, row.item), "from": row.before, "to": row.after, "label": label,
-             "capture": _capture_of(row), "page": names[row.item].page if row.item in names else ""}
-            for row in rows if row.after == "decided"]
+    return [{"id": item, "name": _name(names, item), "from": last.before, "to": last.after, "label": label,
+             "capture": _capture_of(last), "page": names[item].page if item in names else ""}
+            for item, (_, last) in folded(rows).items() if last.after == "decided"]
 
 
 def said_yes_rows(notes, index, names):
@@ -120,8 +130,8 @@ def _open_entry(index, names, ident, new, today):
 
 
 def open_rows(rows, agenda_list, index, names, today):
-    found = [_open_entry(index, names, row.item, True, today) for row in rows
-             if row.item.startswith("UNK-") and row.after == "open"]
+    found = [_open_entry(index, names, item, True, today) for item, (first, last) in folded(rows).items()
+             if item.startswith("UNK-") and first.before == "-" and last.after == "open"]
     seen = {entry["id"] for entry in found}
     for item in agenda_list:
         if item["status"] == "decided":
@@ -149,10 +159,10 @@ def next_move(agenda_list, map_next, plan_next, today):
 
 def _change_of(rows, index, page):
     ids = set(index["pages"][page]["items"]) | {index["pages"][page]["page"]["id"]}
-    mine = [row for row in rows if row.item in ids]
-    if any(row.after == "decided" for row in mine):
+    mine = [(first, last) for item, (first, last) in folded(rows).items() if item in ids]
+    if any(last.after == "decided" for _, last in mine):
         return "decided"
-    if any(row.before == "-" and row.after == "open" for row in mine):
+    if any(first.before == "-" and last.after == "open" for first, last in mine):
         return "new question"
     return "changed"
 
