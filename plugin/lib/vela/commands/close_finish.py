@@ -396,7 +396,7 @@ def put_back(root, result):
 def restore_committed(root, path):
     """(exit code, git's words): HEAD's copy of `path` back in the index and on disk; a page HEAD doesn't have is
     removed, since vela wrote all of it."""
-    code, _, _ = vaultgit.run_git(root, "cat-file", "-e", f"HEAD:{path}")
+    code, _, _ = vaultgit.run_git(root, "cat-file", "-e", vaultgit.at("HEAD", path))
     if code != 0:
         vaultgit.run_git(root, "rm", "-q", "--cached", "--ignore-unmatch", "--", path)
         (root / path).unlink(missing_ok=True)
