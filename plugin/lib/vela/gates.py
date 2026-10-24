@@ -44,7 +44,7 @@ import re
 import shlex
 from dataclasses import dataclass
 
-from vela import cases, closegate, ladder, model, override, progress, questions, say, schema, sizing, slices
+from vela import allocation, cases, closegate, ladder, model, override, progress, questions, releases, say, schema, sizing, slices
 from vela.flowcheck import standing as flowstanding
 
 FLOW_CHECK, CASE_TABLE = "flow check", "case table"
@@ -445,5 +445,26 @@ def report(vault, verdicts, notes=()):
     for found in verdicts:
         lines += lines_for(found, resolver)
     lines += [say.Line(n, plain=resolver.plain(n)) for n in notes]
+    asked = release_date_ask(vault)
+    if asked:
+        lines.append(say.Line(asked, plain=asked))
     return say.Result("check --gate grill", exit=say.DONE if ready == len(verdicts) else say.REFUSED, lines=lines,
-                      data={"ready": ready == len(verdicts), "items": [v.as_json() for v in verdicts]})
+                      data={"ready": ready == len(verdicts), "items": [v.as_json() for v in verdicts],
+                            "release_date_ask": asked})
+
+
+def release_date_ask(vault):
+    """The one question that dates the releases when no Releases session will: below the size that needs one, a
+    release with no target, or none on a plan whose requirements are allocated, is asked in the grill. "" when it is
+    not due, so the skill never carries the condition (a second copy of it would drift)."""
+    if sizing.of(vault).needs(sizing.Need.RELEASES_SESSION):
+        return ""
+    found = releases.releases(vault)
+    undated = [r for r in found if not r.target]
+    if undated:
+        return (f"{undated[0].name} has no date yet. I'd ask you once when it should go out; your answer goes on the "
+                "releases page as its Target.")
+    if not found and allocation.due(vault):
+        return ("No release says when anyone gets any of this. I'd ask you once when the first one should go out; "
+                "your answer goes on the releases page as its Target.")
+    return ""

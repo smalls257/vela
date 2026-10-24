@@ -388,7 +388,7 @@ def test_decide_says_it_is_already_decided_and_offers_the_reopen():
 
 
 def test_grill_is_leaner_than_it_was():
-    assert len(text("skills/grill/SKILL.md").split()) <= 1480  # 2,342 before the first trim; 2,046 after it; 1,407 after the second; +24 for the one-option question and the release date
+    assert len(text("skills/grill/SKILL.md").split()) <= 1450  # 2,342 before the first trim; 2,046 after it; 1,407 after the second; +26 for the `ask` line
     # 415 before the first trim; 364 after it; step 0 (a reader stops, the review's fix for NEW-13) made it 396
     assert len(text("skills/grill/HANDOFF.md").split()) <= 410
 

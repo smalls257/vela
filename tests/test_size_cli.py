@@ -87,3 +87,19 @@ def test_the_growth_line_comes_first_so_the_four_line_cap_never_hides_it(tmp_pat
     assert "The plan has grown" in out.splitlines()[0] or "The plan has grown" in out.split("more;")[0], out
     meta = privaterecord.stub_meta(session_files.stub_text(root, RECORD_ID))
     assert meta["size"].startswith("medium")
+
+
+def test_the_gate_asks_the_release_date_itself_so_the_skill_carries_no_condition(tmp_path):
+    from sizing_vault import choose
+    from vela import cli, gates
+    undated = write_plan(tmp_path / "a", apps=[("scheduler", "new"), ("jobs-api", "new")], capabilities=["new"],
+                         releases=[""])
+    code, out = run("check", "--vault", str(undated), "--gate", "grill", "--item", "APP-scheduler", "--for-lead")
+    assert "no date yet" in out, out
+    assert "no date yet" in gates.release_date_ask(cli.load_vault(undated))
+    dated = write_plan(tmp_path / "b", apps=[("scheduler", "new"), ("jobs-api", "new")], capabilities=["new"],
+                       releases=["2027-01-15"])
+    assert gates.release_date_ask(cli.load_vault(dated)) == ""
+    large = write_plan(tmp_path / "c", apps=[("scheduler", "new"), ("jobs-api", "new")], capabilities=["new"],
+                       releases=[""], config=choose("large"))
+    assert gates.release_date_ask(cli.load_vault(large)) == "", "a Releases session dates it at this size"

@@ -37,7 +37,7 @@ Answering a challenge, START will take its "Answer a challenge" path (read the A
 
 Run `vela check-slice --changed --for-lead`, then `vela check --gate grill --item <ID> --for-lead`, repeating `--item` per item. Relay it in two or three sentences, never as a table: "The strategy page is ready. The three apps and their contracts aren't, because nobody knows yet when the registration request goes in and who builds consent and identity."
 
-If a verdict's reason has an `ask` (was anything else on the table?), ask that one question once, capture the answer, and file it with `vela decide <ID> --options-none ^cN`; don't send the lead to Shape for it. When the releases page holds a release with no target, or none on a plan with allocated requirements, ask its date here and file it as the release decision.
+If the gate gives an `ask`, ask it once, capture the answer, and file it with the route it names. Don't send the lead to Shape.
 
 Left to you: a concern cell passes when the lead says what the initiative does for the app under it; one they call `unchanged` or `n/a` is written as they say. For a missing case table, write it here one case at a time with your recommendation, as the gate offers, or go back to Boundary.
 

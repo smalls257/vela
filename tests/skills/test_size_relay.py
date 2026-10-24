@@ -25,9 +25,10 @@ def test_no_skill_types_a_stage(path):
     assert not re.search(r"\bstage:|\btyped stage\b", path.read_text(encoding="utf-8"), re.I)
 
 
-def test_grill_records_one_option_through_decide():
+def test_grill_asks_what_the_gate_asks_and_carries_no_vault_condition():
+    # The route (`vela decide --options-none`) and the release-date condition live in the gate's output, not the skill.
     grill = text("skills/grill/SKILL.md")
-    assert "--options-none" in grill and "anything else on the table" in grill
+    assert "gives an `ask`" in grill and "no target" not in grill
 
 
 def test_boundary_offers_one_alternative_only_when_real_and_reads_the_existence_lines_once():
