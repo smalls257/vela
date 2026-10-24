@@ -2,7 +2,7 @@
 
 Every test that pins this text lives here, so the rewrite that changes it edits this file and no other skill's.
 Each section is headed by the file it came from and that file's reason. Task 22c moved the gate table, the nine
-section-4 writes and the agenda grammar into `vela check --gate grill`, `vela decide` and the `agenda` kind; the
+section-4 writes and the agenda grammar into `vela check --gate decide`, `vela decide` and the `agenda` kind; the
 rule-deletion asserts below keep each moved rule from coming back as a second copy in the skill (Shield).
 """
 import re
@@ -183,9 +183,9 @@ def test_grill_leaves_the_pending_marker_to_decide():
 
 def test_grill_reads_the_blocking_questions_and_runs_the_checkpoint_on_the_agenda():
     grill = text("skills/grill/SKILL.md")
-    assert "vela check --gate grill --item <ID> --for-lead" in grill
+    assert "vela check --gate decide --item <ID> --for-lead" in grill
     assert "references/REVIEW.md" in grill and '"on the agenda"' in grill
-    assert grill.index("--gate grill") < grill.index("**The agenda.**")
+    assert grill.index("--gate decide") < grill.index("**The agenda.**")
 
 
 def test_grill_records_a_decision_over_an_open_blocking_question():
@@ -215,7 +215,7 @@ def test_grill_leaves_the_digest_to_review():
     assert "high and blocking lines in full" not in text("skills/grill/SKILL.md")
 
 
-def test_the_grill_gate_prose_carries_no_code():
+def test_the_decide_gate_prose_carries_no_code():
     grill = section_session_experience(text("skills/grill/SKILL.md"), "3. The gate and the agenda")
     assert "never as a table" in grill
     assert "Show the result as a table" not in grill
@@ -343,7 +343,7 @@ def test_grill_names_only_commands_that_exist():
             found.append(written)
             if not is_a_mention(parser, argv):
                 assert parse_error(parser, argv) is None, f"{name}:{line}: {written}"
-    for command in ("check --gate grill", "decide", "add unknown", "add adr", "handoff preview", "record add",
+    for command in ("check --gate decide", "decide", "add unknown", "add adr", "handoff preview", "record add",
                     "check-slice --changed", "apply"):
         assert any(command in w for w in found), command
 
@@ -388,7 +388,7 @@ def test_decide_says_it_is_already_decided_and_offers_the_reopen():
 
 
 def test_grill_is_leaner_than_it_was():
-    assert len(text("skills/grill/SKILL.md").split()) <= 1450  # 2,342 before the first trim; 2,046 after it; 1,407 after the second; +26 for the `ask` line
+    assert len(text("skills/grill/SKILL.md").split()) <= 1470  # 2,342 before the first trim; 2,046 after it; 1,407 after the second; +26 for the `ask` line; +20 for the description's settle offer and the 'Settle <name>' line
     # 415 before the first trim; 364 after it; step 0 (a reader stops, the review's fix for NEW-13) made it 396
     assert len(text("skills/grill/HANDOFF.md").split()) <= 410
 
@@ -403,7 +403,7 @@ def test_grill_reads_back_by_name_and_keeps_ids_out_of_its_own_wording():
 
 def test_grill_description_and_lower_case_name():
     grill = text("skills/grill/SKILL.md")
-    assert "the only session that sets decided. Offer it when" in grill.split("---", 2)[1]
+    assert "and decide what holds up. Offer it when" in grill.split("---", 2)[1]
     body = grill.split("---", 2)[2] + text("skills/grill/HANDOFF.md")
     for proper in ("A Grill", "a Grill", "the Grill", "Grill row", "a Grill's"):
         assert proper not in body, proper

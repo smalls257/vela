@@ -69,13 +69,13 @@ def test_the_leads_choice_sets_the_band_either_way(tmp_path):
     got = sized(tmp_path)
     assert (got.measured, got.band) == ("medium", "small")
     assert got.chosen == sizing.Choice("small", "[[2026-10-02-grill-a]] c14", "2026-10-02")
-    assert not got.needs(Need.OPTIONS_BEFORE_GRILL)
+    assert not got.needs(Need.OPTIONS_BEFORE_DECIDING)
 
 
 def test_needs_start_at_their_band(tmp_path):
     write_plan(tmp_path, config=choose("medium"))
     got = sized(tmp_path)
-    assert got.needs(Need.OPTIONS_BEFORE_GRILL) and got.needs(Need.READING_LOAD_SHOWN)
+    assert got.needs(Need.OPTIONS_BEFORE_DECIDING) and got.needs(Need.READING_LOAD_SHOWN)
     assert not got.needs(Need.REVIEW_EACH_MODE) and not got.needs(Need.DOMAIN_FIELD)
 
 

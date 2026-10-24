@@ -6,7 +6,7 @@ argument-hint: "[CAP-nnn, several, or none for every capability the strategy nee
 
 # Requirements
 
-Say what the business needs, once, before anyone decides which app does it. A requirement names no app: boundary and `/vela:allocate` come after. A requirements session never decides: what it writes is `assumption` (to the lead, "not decided yet") until a grill decides it.
+Say what the business needs, once, before anyone decides which app does it. A requirement names no app: boundary and `/vela:allocate` come after. What it writes is `assumption` (to the lead, "not decided yet") until the lead settles it.
 
 Vela is `sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela` (`START.md`, "Where vela runs from", covers a host that leaves the variable unexpanded). The format is `vela conventions "Requirements and allocation"`. When a command can't express what the lead wants, say so and stop.
 
@@ -53,11 +53,11 @@ Draft the paragraph each filed item owes now, as `START.md` says under "Draft th
 
 When the lead pauses after a capability, or every capability is done, run the review checkpoint in `${CLAUDE_PLUGIN_ROOT}/references/REVIEW.md`, with the checkpoint "after the requirements are written" and the capability pages written so far as its focus. Show the digest as REVIEW says and capture what the lead takes.
 
-When every capability is done, or the lead stops and says they are done, close as `${CLAUDE_PLUGIN_ROOT}/references/START.md` says under "Closing a session". Then a grill on each capability decides the requirements, and a boundary session cuts the apps against them. Say the one line the lead types by the capability's name, such as "/vela:grill Refund a canceled booking", or `/vela:boundary`.
+When every capability is done, or the lead stops and says they are done, close as `${CLAUDE_PLUGIN_ROOT}/references/START.md` says under "Closing a session". Then the lead settles the requirements, in a grill or whenever sure, and a boundary session cuts the apps against them. Say the one line the lead types by the capability's name, such as "/vela:grill Refund a canceled booking", or `/vela:boundary`.
 
 ## Never
 
 - Write an ID in a requirement's sentence or a criterion's: name the thing, and put the ID on a `- Trace:` line.
 - Name an app, a container, a technology or a team in a requirement or its criteria. That is boundary's and allocate's work, then the team's design.
-- Write `decided` or `fact`. Requirements state intent, and only a grill decides, unless the lead overrides it as `START.md` says.
+- Write `fact`.
 - Write a non-functional requirement as a functional one. A speed, an availability or a security rule is a concern: write it as a capture for the concern page it belongs to.

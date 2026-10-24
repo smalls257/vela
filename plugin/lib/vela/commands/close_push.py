@@ -55,6 +55,7 @@ from vela import closegate, commands, parse, planscope, prbody, privaterecord, s
 from vela.commands import close_gate, whoami
 from vela.decisions import consent as consents
 from vela.decisions import record as records
+from vela.decisions import settled
 from vela.edge import flowstore, ghcli, hostprobe, sessiongit, vaultgit
 
 PUSH, PR = "close push", "close pr"
@@ -413,7 +414,8 @@ def open_pr(root, vault, session, args):
             title = ""
         else:
             title = planscope.titled(vaultgit.plan_scope(root), prbody.title(
-                session.record.date, list(session.record.modes), session.record.title))
+                session.record.date, list(session.record.modes), session.record.title,
+                decided=len(settled.settled_ids(session.text))))
             sent = add_to_open_pr(root, session, body_file)
             if sent is None:
                 sent = ghcli.pr_create(root, session.branch, title, body_file, found,

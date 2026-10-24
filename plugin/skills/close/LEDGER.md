@@ -10,7 +10,7 @@ Ask it as one of close's leftovers: "You said the call recorder probably doesn't
 - assumed: `load_bearing` says whether the plan rests on it, and `signpost` points at what the lead said would show it wrong. Ask only when it's high severity and you can't tell.
 - unknown: it waits on an open question (`vela add unknown`).
 
-A grill's "decided with ... open" note records a decision, not an answer: write no row for those copies.
+A decision's "decided with ... open" note records a decision, not an answer: write no row for those copies.
 
 ### A question the catalog missed
 

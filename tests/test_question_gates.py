@@ -124,11 +124,11 @@ def test_the_shape_gate_warns_on_each_assumed_row(ub):
 
 # ------------------------------------------------------------------ grill
 
-def test_the_grill_gate_warns_at_the_item_for_each_open_question_that_blocks_it(ub):
+def test_the_decide_gate_warns_at_the_item_for_each_open_question_that_blocks_it(ub):
     edit(ub / LEDGER, DAT_02_ALL, "")
-    code, out = gate(ub, "--gate", "grill", "--item", "CON-001", "--item", "ADR-0001")
+    code, out = gate(ub, "--gate", "decide", "--item", "CON-001", "--item", "ADR-0001")
     assert code == 0
-    assert "Checking the open questions that hold up the items a grill will decide. Items: " in out.splitlines()[0]
+    assert "Checking the open questions that hold up the items you'd decide. Items: " in out.splitlines()[0]
     assert "Items: " in out.splitlines()[0] and "(ADR-0001)" in out.splitlines()[0] and "(CON-001)" in out.splitlines()[0]
     got = [line for line in out.splitlines() if " W807 " in line]
     assert len(got) == 3, "call center, kiosks and website block CON-001; nothing open blocks ADR-0001"
@@ -136,16 +136,16 @@ def test_the_grill_gate_warns_at_the_item_for_each_open_question_that_blocks_it(
     assert "A question that holds up" in out and "(CON-001) hasn't been dealt with yet" in out and "(Q-DAT-02@APP-kiosks)" in out
 
 
-def test_the_grill_gate_is_quiet_when_nothing_open_blocks_the_item(ub):
-    assert findings(gate(ub, "--gate", "grill", "--item", "CON-002")[1]) == []
+def test_the_decide_gate_is_quiet_when_nothing_open_blocks_the_item(ub):
+    assert findings(gate(ub, "--gate", "decide", "--item", "CON-002")[1]) == []
 
 
 @pytest.mark.parametrize("argv, said", [
-    (("--gate", "grill"), "--gate grill needs the items the grill will decide"),
-    (("--item", "CON-001"), "--item names what a grill will decide, so it goes with --gate grill."),
-    (("--gate", "grill", "--item", "CON-099"), "--item CON-099 is not an ID in this vault."),
+    (("--gate", "decide"), "--gate decide needs the items you'd decide"),
+    (("--item", "CON-001"), "--item names what you'd decide, so it goes with --gate decide."),
+    (("--gate", "decide", "--item", "CON-099"), "--item CON-099 is not an ID in this vault."),
 ])
-def test_grill_gate_arguments_that_cannot_work_exit_2(argv, said):
+def test_decide_gate_arguments_that_cannot_work_exit_2(argv, said):
     code, out = run("check", "--vault", str(FIXTURE), "--today", TODAY, *argv)
     assert code == 2 and said in out
 
@@ -208,7 +208,7 @@ def test_an_invalid_high_reviewer_row_fails_the_gate_and_an_override_clears_it(u
 
 
 def test_a_grill_item_no_question_can_block_is_said_not_passed_quietly(ub):
-    code, out = gate(ub, "--gate", "grill", "--item", "PTY-01")
+    code, out = gate(ub, "--gate", "decide", "--item", "PTY-01")
     assert code == 0
     assert "None of the standard questions applies to" in out and "(PTY-01)" in out
 

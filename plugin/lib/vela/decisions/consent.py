@@ -112,6 +112,16 @@ def not_bare_non_yes(capture):
                     f"Ask once more for a plain yes to the read-back; ^c{capture.n} holds only {capture.quote!r}.")
 
 
+def from_claude(readback):
+    """A read-back is Claude's reading of the wording to the lead. The lead's own remark filed as the read-back would
+    make "That's decided" its own proof that something was read back."""
+    if not readback.is_person:
+        return None
+    return _refusal("consent-readback-not-claudes", "I need to read it back to you myself before I can take your yes.",
+                    f"^c{readback.n} has origin {readback.origin!r}; the read-back is Claude's capture (origin claude) "
+                    "of the wording read to the lead, numbered before their yes.")
+
+
 def after_readback(yes, readback):
     if int(yes.n) > int(readback.n):
         return None
@@ -229,4 +239,4 @@ def a_yes(ref, record, readback=None):
         return found
     if record.capture(readback) is None:
         return exists(readback, record)
-    return after_readback(yes, record.capture(readback))
+    return after_readback(yes, record.capture(readback)) or from_claude(record.capture(readback))

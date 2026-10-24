@@ -74,7 +74,7 @@ def test_options_recorded_before_target_means_discover_for_gate_one():
     page = app_page("shop", state="decided", sources="[2026-01-01-dump]", body=contract("CON-001", "till", "assumption", options=True))
     row = only(vault_of(page, dump), "APP-shop")
     assert (row.rule, row.mode, row.subject) == (4, "discover", "CON-001")
-    assert "a grill needs the app at target or later" in row.reason
+    assert "deciding needs the app at target or later" in row.reason
 
 
 def test_options_recorded_at_target_means_grill():

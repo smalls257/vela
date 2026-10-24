@@ -1,23 +1,21 @@
-"""Ready to decide: a yes the lead gave in a session that cannot decide, kept so the next grill opens with it.
+"""Ready to decide: a yes the lead gave and didn't settle, kept so the next session opens with it.
 
-The Violation this exists to prevent is a Silent Fallback of consent. Shape, boundary, releases and the other
-building sessions save a picked option at `assumption` (MODES: only a grill sets `decided`), so a lead's plain yes
-there was recorded and then forgotten: the full3 run lost three decisions this way (D4, D7, D8), each with a yes on
-record and no grill ever offered. The rule is in code, not in each skill: `vela decide` run in such a session
-refuses, tells the model to offer the lead a short grill on that item, and writes one line under `## Ready to decide`
-in the session record. `vela session brief` reads those lines across the records and lists every item still not
-decided, so the grill that follows starts with them.
+The Violation this exists to prevent is a Silent Fallback of consent. A lead's plain yes to a pick used to be recorded
+and then forgotten: the full3 run lost three decisions this way (D4, D7, D8), each with a yes on record and nothing
+ever offering to settle it. Any session can settle now (`vela decide`), so the list holds what the lead said yes to and
+chose not to settle yet (`vela decide --later`), or what a plain yes kept at `assumption` left behind. `vela session
+brief` reads the lines across the records and lists every item still not decided, so the next session opens with them.
 
     ## Ready to decide
 
     - CON-003: the lead said yes in 2026-10-20-shape-booking (^c31)
 
-The line is a pointer, not a decision: the grill still reads the final wording back and gets its own yes.
+The line is a pointer, not a decision: settling still reads the final wording back and gets its own yes.
 
-Two writers fill it. `vela decide` does when the model runs it. But the rule "run `vela decide` on a plain yes" sat in
-the skills and was skipped (E81: ~20 yeses in two paid runs, none listed), so `vela apply` of a `marks` file also
-does, with no model step: a keep at `assumption` whose capture is the lead's own plain yes (`from_keep`). The mark
-already names the item and its state, so the yes is tied to the item mechanically.
+Two writers fill it. `vela decide --later` does when the lead declines the offer to settle. But the rule "run `vela
+decide` on a plain yes" sat in the skills and was skipped (E81: ~20 yeses in two paid runs, none listed), so `vela
+apply` of a `marks` file also does, with no model step: a keep at `assumption` whose capture is the lead's own plain
+yes (`from_keep`). The mark already names the item and its state, so the yes is tied to the item mechanically.
 """
 import re
 
@@ -25,26 +23,10 @@ from vela import privaterecord, say
 from vela.decisions import consent, textedit
 
 HEADING = privaterecord.READY_HEADING
-CANNOT_DECIDE = frozenset({"dump", "discover", "shape", "boundary", "requirements", "allocate", "releases"})
 LINE = privaterecord.READY_LINE
 YES_OPENERS = ("yes", "yeah", "yep", "yup", "agreed", "absolutely", "correct", "go ahead", "that's right",
                "thats right", "sounds good", "do it")
 KEPT_AT = "assumption"
-MODES = re.compile(r"^modes:\s*\[(?P<modes>[^\]]*)\]", re.M)
-
-
-def modes_of(stub_text):
-    found = MODES.search(stub_text)
-    return [m.strip() for m in found["modes"].split(",") if m.strip()] if found else []
-
-
-def can_decide(stub_text):
-    """False when every mode of the session is one that never sets `decided`; a session with no modes, or any mode
-    outside that list (grill, answer, epics inside a grill part), is left to the gate."""
-    if not stub_text.strip():
-        raise ValueError("no session header to read the modes from; an empty one would let a shape session decide")
-    modes = modes_of(stub_text)
-    return not modes or any(m not in CANNOT_DECIDE for m in modes)
 
 
 def mark(record_text, ident, session, yes=None):
@@ -100,18 +82,18 @@ def leads_own_yes(capture, lead):
     return said and not capture.is_bare_non_yes and is_yes(capture.quote)
 
 
-def from_keep(record_text, record_id, capture, ident, state, lead, stub_text):
+def from_keep(record_text, record_id, capture, ident, state, lead):
     """The record with `ident` listed as ready to decide when this keep is the lead's plain yes on an item left at
-    `assumption` in a session that can't decide (its modes are in `stub_text`); else unchanged."""
-    if state != KEPT_AT or can_decide(stub_text) or not leads_own_yes(capture, lead):
+    `assumption`, in any session; else unchanged."""
+    if state != KEPT_AT or not leads_own_yes(capture, lead):
         return record_text
     return mark(record_text, ident, record_id, f"^c{capture.n}")
 
 
 def sentence(names):
-    """What close tells the lead about their yeses still waiting for a grill, in their words (no IDs); "" when none."""
+    """What close tells the lead about their yeses still waiting to be settled, in their words (no IDs); "" when none."""
     if not names:
         return ""
     if len(names) == 1:
-        return f"One item you said yes to is ready for a short grill: {names[0]}."
-    return f"{say.count_words(len(names), capital=True)} items you said yes to are ready for a short grill: {say.names_said(names)}."
+        return f"One item you said yes to is waiting to be settled: {names[0]}."
+    return f"{say.count_words(len(names), capital=True)} items you said yes to are waiting to be settled: {say.names_said(names)}."

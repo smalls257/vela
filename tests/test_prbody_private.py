@@ -59,7 +59,7 @@ def test_show_pastes_only_the_leads_words(tmp_path):
     vault, _ = sent_session(tmp_path)
     other = add_yes(vault, words=OTHER_WORDS, origin="@cto-ana")
     before = tree_bytes(vault)
-    assert run("records", "show", RECORD, "c01", "--vault", str(vault)) == (0, f'"{YES_WORDS}"\n')
+    assert run("records", "show", RECORD, "c02", "--vault", str(vault)) == (0, f'"{YES_WORDS}"\n')
     code, out = run("records", "show", RECORD, other.lstrip("^"), "--vault", str(vault))
     assert code == 1 and "Those are someone else's words" in out and OTHER_WORDS not in out
     code, out = run("records", "show", RECORD, "2.c01", "--vault", str(vault))

@@ -11,8 +11,8 @@ TERMS = {
     # voice audit row 220: "every app release one needs" didn't parse, and "built" came twice
     "tracer": "The tracer is the first slice: one journey that runs through every app it touches, built first to "
               "prove the apps fit together.",
-    "grill": "A grill is a working session where Vela asks you questions one at a time until a part of the plan is "
-             "settled.",
+    "grill": "A grill is a working session where Vela tests part of the plan with hard questions, one at a time, "
+             "until it holds up.",
 }
 
 

@@ -245,12 +245,23 @@ class Finish:
         self.result.wrote += [private, self.record.path]
         self.say(f"vela close finish: {self.record.path}: status: closed; the summary is in {private}.",
                  None if self.reader else "I've closed the session record, with its summary.")
-        self.say_what_waits_for_a_grill()
+        self.say_what_was_settled()
+        self.say_what_waits_to_settle()
         return True
 
-    def say_what_waits_for_a_grill(self):
-        """The lead's yeses from this session that sit on items not yet decided, so they hear the next grill has them
-        (E81: a yes in a session that can't decide was recorded and then forgotten)."""
+    def say_what_was_settled(self):
+        """What the lead settled in this session, in words: a Black Box at close otherwise, since settling can happen in
+        any session and the lead would learn it only by opening a page."""
+        from vela.decisions import settled
+        ids = settled.settled_ids(self.notes)
+        self.result.data["settled"] = ids
+        if ids:
+            self.say("vela close finish: settled: " + ", ".join(ids),
+                     settled.sentence([self.vault.name_of(i) for i in ids]))
+
+    def say_what_waits_to_settle(self):
+        """The lead's yeses from this session that sit on items not yet decided, so they hear they are waiting (E81: a
+        yes the lead gave and didn't settle was recorded and then forgotten)."""
         from vela import decisions
         from vela.decisions import decide, ready, textedit
         from vela.edge import apply as disk

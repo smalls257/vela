@@ -5,7 +5,6 @@ Task 22j left MODES the conversation rules ("ask the lead first", "never draft a
 questions) and moved what the CLI enforces to it: `vela add unknown` numbers and dates an unknown, and a `resolve`
 decision through `vela apply` writes the answer.
 """
-import inspect
 import re
 
 from conftest import REPO
@@ -114,13 +113,7 @@ def test_modes_says_team_lead_and_grill_in_lower_case():
     assert not re.search(r"\bGrill\b", prose)
 
 
-def test_a_yes_in_a_session_that_cannot_decide_goes_through_vela_decide():
-    from conftest import REPO
-    modes = (REPO / "plugin/references/MODES.md").read_text(encoding="utf-8")
-    assert "run `vela decide` on it anyway" in modes and "says what to offer" in modes
-    assert "offer the lead a short grill" not in modes and "an assumption nobody sees again" not in modes
-    # the command says it, in the refusal's fix: offer a short grill now, or say it is marked and move on
-    from vela.commands import decide
-    source = inspect.getsource(decide.cannot_decide_here)
-    assert "Offer the lead a short grill on it now" in source and "say it is marked and move on" in source
+def test_no_mode_is_told_to_hold_a_yes_back_for_a_grill():
+    assert "session that can't decide" not in MODES and "decide anything outside a grill" not in MODES
+    assert "except an item the lead settles" in MODES
 

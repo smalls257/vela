@@ -149,7 +149,9 @@ def test_the_close_gate_counts_it_once_the_lead_has_confirmed(tmp_path, monkeypa
     vault, _ = unverified_yes(tmp_path, monkeypatch)
     assert run("record", "confirm", "--vault", str(vault), "^c01")[0] == 0
     line = next(l for l in session_files.record_text(vault, RECORD_ID).splitlines() if l.endswith("^c01"))
-    problems, consent = judged([line], [f"| CON-003 | assumption | decided | [[{RECORD}#^c01]] |"])
+    back = ("- [thought] (claude) Read back: consent records keep each choice → keep: "
+            "[[booking-building-blocks#CON-003 Consent records|CON-003]] (decided) ^c00")
+    problems, consent = judged([back, line], [f"| CON-003 | assumption | decided | [[{RECORD}#^c01]] |"])
     assert not problems and consent
 
 

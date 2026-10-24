@@ -51,7 +51,7 @@ summary: An import.
 
 ## Captures
 
-- [thought] (claude) Read back: Windows first, approved by the CIO, per the decision log ^c01
+- [thought] (claude) Read back: Windows first, approved by the CIO, per the decision log → keep: [[ADR-0001-windows-first#Decision|ADR-0001]] (decided) ^c01
 - [answer] (@sim-lead) "{yes}" ^c02
 
 ## Changes

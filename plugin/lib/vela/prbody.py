@@ -24,7 +24,7 @@ reads what the session did, not the mode's internal display name ("Dump & Diverg
 import re
 from dataclasses import dataclass, field
 
-from vela import schema, sessions
+from vela import say, schema, sessions
 
 # Plain names for PR titles. A mode not listed keeps its own name, capitalized.
 MODE_TITLES = {"dump": "Brainstorm", "discover": "Discovery", "shape": "Options", "boundary": "App boundaries",
@@ -50,9 +50,14 @@ def topic_of(record_title):
     return text
 
 
-def title(date, modes, record_title):
+def title(date, modes, record_title, decided=0):
+    """'2026-10-26 Options and one decision: booking jobs'. A session that settled something outside a grill says so,
+    so a reviewer scanning the list sees a decision was made; a grill's title ("Decisions") already says it."""
     mode = modes[0] if modes else ""
-    return f"{date} {MODE_TITLES.get(mode, mode.capitalize())}: {topic_of(record_title)}"
+    name = MODE_TITLES.get(mode, mode.capitalize())
+    if decided and mode != "grill":
+        name += f" and {say.count_words(decided)} decision{'' if decided == 1 else 's'}"
+    return f"{date} {name}: {topic_of(record_title)}"
 
 
 def handles(owner):

@@ -1,4 +1,4 @@
-"""The data the dashboard's Grills waiting view draws (explorer/grills_data.py): one row per grill, every ID a key the page knows.
+"""The data the dashboard's Waiting for a decision view draws (explorer/grills_data.py): one row per grill, every ID a key the page knows.
 
     python3 -m pytest -q tests/test_explorer_grills.py
 

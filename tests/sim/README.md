@@ -539,7 +539,7 @@ in plain words as a miss; it stays as a check for a case that wants the exact te
 
 `grill-decisions` could not tell a careful grill from a timid one: no heron snapshot held an item the gate finds
 ready, so deciding nothing passed. `grill-ready` starts from `heron-desk/grill-ready`, which is `after-full-1` with
-a Shape's options written for three of the prep note's requirements. `vela check --gate grill --item` finds two of
+a Shape's options written for three of the prep note's requirements. `vela check --gate decide --item` finds two of
 them ready and the third, and the other two, waiting on open questions only the DPO and Legal can answer;
 `tests/test_probe.py` checks the case's lists against the gate. `decided-items` reads each named item's own
 `**State:**` after every turn, so items that share a page are told apart.
@@ -694,7 +694,7 @@ How the material keeps the scale honest:
   hand the positions over, and a session hears one only by asking the right kind of question. No position's keyword
   is in a document or another fact.
 - A decision with `item:` names a requirement on the grill-ready snapshot; `blocked: true` ones are held there by an
-  open unknown, and the lead's `refuse_until` keeps them undecided. `vela check --gate grill` on the snapshot says
+  open unknown, and the lead's `refuse_until` keeps them undecided. `vela check --gate decide` on the snapshot says
   exactly the other eight are ready, and `tests/test_probe_scale.py` holds it to that.
 - A loose end counts in `scale-unsure` when its turn proposes who or by when and asks about it anywhere later in that
   turn, so one closing question can confirm a batch. Until 2026-10-16 the question had to sit within 200 characters

@@ -28,6 +28,6 @@ The user stops, or the pre-mortem and its review checkpoint are done. Commit wit
 ## Never
 
 - Never edit a page outside `sessions/` during a dump.
-- Never write `decided` or `fact`, and never mark captures (no `--mark`). Marks are close's job.
+- Never write `fact`, and never mark captures (no `--mark`); marks are close's job. An item the lead is sure of is settled (SETTLE.md).
 - Never present the checkpoint's digest as a verdict on an idea.
 - Never drop a wild idea. Close parks it or keeps it.

@@ -81,14 +81,14 @@ def test_shape_writes_options_considered_as_one_bullet():
 def test_shape_offers_two_or_three_and_never_decides():
     shape = text("skills/shape/SKILL.md")
     assert "never one and never more than three" in shape
-    assert "that's decided, grill to confirm" in shape
-    assert "Shape never decides" in shape
+    assert "grill to confirm" not in shape and "Shape never decides" not in shape
+    assert "unless the lead settles it" in shape
 
 
 def test_shape_fix_round():
     shape = text("skills/shape/SKILL.md")
     assert "`claude, from <name>`" in shape
-    assert "After close, run `/vela:grill <name>`" in shape and '"/vela:grill Desktop agent"' in shape
+    assert 'On "that\'s decided" or "settle it", settle it as `${CLAUDE_PLUGIN_ROOT}/references/SETTLE.md` says.' in shape
 
 
 # --- From tests/test_tracer_skills.py: The lead-side tracer guidance (S52, step 2): present in each skill, never a
@@ -133,7 +133,7 @@ def test_shape_captures_its_options_through_the_numbering_command():
 
 def test_shape_says_grill_lower_case_and_states_in_words():
     assert not re.search(r"\bGrill\b", SHAPE)
-    assert "keep the chosen one as not decided yet until a grill decides it" in SHAPE.split("---", 2)[1]
+    assert "keep the chosen one as not decided yet unless the lead settles it" in SHAPE.split("---", 2)[1]
     assert '"not decided yet"' in SHAPE
 
 
@@ -147,7 +147,8 @@ def test_shape_shows_an_option_by_name_with_a_pick_and_why():
 def test_shape_says_what_to_do_with_the_ready_to_decide_hand_off():
     from conftest import REPO
     text = (REPO / "plugin/skills/shape/SKILL.md").read_text(encoding="utf-8")
-    assert "run `vela decide` on it" in text and "ready to decide, offer the lead a short grill" in text
+    assert "On a plain yes to a pick, offer once to settle it (SETTLE.md)." in text
+    assert "except a pick the lead settles: `vela decide` files it then" in text
 
 
 def test_shape_drafts_the_paragraph_of_each_item_it_files_now():

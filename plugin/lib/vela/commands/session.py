@@ -1086,8 +1086,8 @@ def overdue_questions(result, vault, today):
 
 
 def ready_to_decide(result, root, vault, today):
-    """Items the lead said yes to in a session that can't decide (`decisions/ready.py`), not decided since: a grill
-    opens with them."""
+    """Items the lead said yes to and didn't settle (`decisions/ready.py`), not decided since: the next session opens
+    with them."""
     from vela import decisions
     from vela.decisions import decide, ready, textedit
     from vela.edge import apply as disk
@@ -1102,8 +1102,8 @@ def ready_to_decide(result, root, vault, today):
         one = len(found) == 1
         result.lines.append(say.Line(
             "ready to decide: " + ", ".join(f"{e['id']} (yes in {e['session']})" for e in found),
-            plain=f"The lead already said yes to {join_names(names)}; a short grill can make "
-                  f"{'it' if one else 'them'} decided, and a grill opens with {'it' if one else 'them'}."))
+            plain=f"The lead already said yes to {join_names(names)}; settle {'it' if one else 'them'} when they're "
+                  f"sure, or grill {'it' if one else 'them'} to test first."))
 
 
 def join_names(names):

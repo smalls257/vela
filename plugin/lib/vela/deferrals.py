@@ -11,6 +11,7 @@ DEFERS = re.compile(
     rf"\b{LEFT}\b[^.\n]{{0,50}}\bgrill\b"
     r"|\bfor (?:a|the|next|another|that) (?:later |next )?grill\b"
     r"|\b(?:a|the|next) grill\s+(?:will|should|can|must|to)\s+(?:decide|settle|confirm|resolve|answer)\b"
+    r"|\bsettle (?:it |this |that )?later\b"
     r"|\b(?:to be )?(?:decided|settled|confirmed|resolved|answered) (?:later|in a grill|at a grill|by a grill|in the next grill)\b",
     re.IGNORECASE)
 UNKNOWN_TOKEN = re.compile(r"\bUNK-\d{3}\b")

@@ -1,7 +1,11 @@
 """The pure part of `close gate` (overhaul Task 10a): a change into or out of decided needs the lead's quoted yes."""
-from vela import closegate, closestate, model, parse, say
+from vela import closegate, closestate, model, parse, say, schema
 
 RECORD = "2026-10-20-grill-consent"
+KEEP = "→ keep: [[booking-building-blocks#CON-003 Consent records|CON-003]]"
+READBACK = f"- [thought] (claude) Read back: consent records keep each choice with its time {KEEP} (decided) ^c03"
+YES = f'- [thought] (@lead) "Yes, decide it as read." says yes to consent records {KEEP} (decided) ^c04'
+SETTLED = f"| CON-003 | assumption | decided | [[{RECORD}#^c04]] |"
 
 
 def record(captures, rows):
@@ -48,9 +52,49 @@ def test_bare_ok_is_not_a_yes():
         assert problems and "Was that a yes" in problems[0].plain, words
 
 
+def test_a_yes_after_a_read_back_kept_on_the_item_passes():
+    problems, consent = judged([READBACK, YES], [SETTLED])
+    assert not problems and consent
+
+
+def test_a_confident_remark_with_no_read_back_is_asked_about():
+    problems, consent = judged(["- [thought] (@lead) \"That's decided, settle it.\" ^c04"], [SETTLED])
+    assert not consent and [p.kind for p in problems] == [closegate.CONSENT]
+    assert problems[0].plain == ("I never read Consent records back to you before writing it as decided. Shall I "
+                                 "read it back now?")
+    assert problems[0].clear == closegate.READBACK_CLEAR
+
+
+def test_a_read_back_after_the_yes_does_not_count():
+    later = READBACK.replace("^c03", "^c05")
+    assert judged([YES, later], [SETTLED])[0]
+
+
+def test_a_read_back_kept_on_another_item_does_not_count():
+    other = READBACK.replace("|CON-003]]", "|CON-004]]")
+    assert judged([other, YES], [SETTLED])[0]
+
+
+def test_a_read_back_an_earlier_mode_kept_at_assumption_does_not_count():
+    assert judged([READBACK.replace("(decided) ^c03", "(assumption) ^c03"), YES], [SETTLED])[0]
+
+
+def test_the_quoted_yes_override_still_lets_it_through():
+    bullet = f"- **Override:** {schema.QUOTED_YES_RULE} by @lead on 2026-10-20: wrote it straight from the minutes"
+    problems, consent = judged([], [], override=bullet)
+    assert not problems and consent
+
+
+def test_reopening_needs_no_read_back():
+    v = vault("assumption")
+    changes = closegate.consent_changes({"CON-003": "decided"}, closegate.states(v), v)
+    problems, _ = closegate.judge(changes, record(['- [thought] (@lead) "Yes, reopen it." ^c04'],
+                                  [f"| CON-003 | decided | assumption | [[{RECORD}#^c04]] |"]), RECORD, v)
+    assert not problems
+
+
 def test_a_quoted_yes_passes_and_is_judged_with_its_words():
-    problems, consent = judged(['- [thought] (@lead) "Yes, decide it as read." says yes to consent records ^c04'],
-                               [f"| CON-003 | assumption | decided | [[{RECORD}#^c04]] |"])
+    problems, consent = judged([READBACK, YES], [SETTLED])
     assert not problems
     (line,) = consent
     assert (line.name, line.change, line.words, line.link) == (
@@ -58,8 +102,7 @@ def test_a_quoted_yes_passes_and_is_judged_with_its_words():
 
 
 def test_the_consent_link_names_the_part_the_yes_is_in():
-    _, consent = judged(['- [thought] (@lead) "Yes, decide it as read." says yes to consent records ^c04'],
-                        [f"| CON-003 | assumption | decided | [[{RECORD}#^c04]] |"], part=2)
+    _, consent = judged([READBACK, YES], [SETTLED], part=2)
     assert consent[-1].link == f"[[{RECORD}]] 2.c04"
 
 
@@ -94,6 +137,7 @@ ROW = "| Q-DAT-01@APP-booking | not-applicable | reason: no personal data | @lea
 OVERRIDE = "- **Override:** E318 by @lead on 2026-10-01: the vendor tests it"
 MARKED = f'- [thought] (@lead) "Yes, decide it as read." → keep: [[booking-building-blocks#CON-003 Consent records|CON-003]] (decided) ^c04'
 YES_ROW = f"| CON-003 | assumption | decided | [[{RECORD}#^c04]] |"
+BACK = '- [thought] (claude) Read back: consent records keep each choice with its time → keep: [[booking-building-blocks#CON-003 Consent records|CON-003]] (decided) ^c03'
 
 
 def vault_of(rows=ROW, override_line="", state="decided"):
@@ -112,7 +156,7 @@ def seen(**kw):
     return closegate.Seen(**kw)
 
 
-def readied(captures=(MARKED,), rows=(YES_ROW,), now=None, **kw):
+def readied(captures=(BACK, MARKED), rows=(YES_ROW,), now=None, **kw):
     return closegate.ready(now or vault_of(), record(list(captures), list(rows)), RECORD, seen(**kw))
 
 
@@ -152,14 +196,14 @@ def test_override_removed_since_branch_point_blocks():
 
 def test_a_removal_the_lead_agreed_to_is_let_through():
     said = '- [thought] (@lead) "Drop that override, the vendor no longer tests it." → park ^c06'
-    result = readied(captures=(MARKED, said), rows=(YES_ROW, f"| CON-003 | override | removed | [[{RECORD}#^c06]] |"),
+    result = readied(captures=(BACK, MARKED, said), rows=(YES_ROW, f"| CON-003 | override | removed | [[{RECORD}#^c06]] |"),
                      before=vault_of(override_line=OVERRIDE, state="assumption"))
     assert result.ready, plains(result.problems)
 
 
 def test_a_removal_on_claudes_word_still_blocks():
     said = "- [thought] (claude) the override looks stale → park ^c06"
-    result = readied(captures=(MARKED, said), rows=(YES_ROW, f"| CON-003 | override | removed | [[{RECORD}#^c06]] |"),
+    result = readied(captures=(BACK, MARKED, said), rows=(YES_ROW, f"| CON-003 | override | removed | [[{RECORD}#^c06]] |"),
                      before=vault_of(override_line=OVERRIDE, state="assumption"))
     assert not result.ready
 

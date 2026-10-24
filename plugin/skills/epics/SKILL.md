@@ -6,7 +6,7 @@ argument-hint: "<team handle or APP-id, or 'every team'>"
 
 # Epics
 
-Turn the app's handoff list into epics a team can build from: not decided yet, until a grill decides it. Only the grill part of this session sets an epic to `decided`. The cuts, the criteria's wording, the read-backs and the questions are yours; the commands file them.
+Turn the app's handoff list into epics a team can build from: not decided yet, until the solution lead settles it, in this session's grill part or whenever sure. The cuts, the criteria's wording, the read-backs and the questions are yours; the commands file them.
 
 Run the steps in `${CLAUDE_PLUGIN_ROOT}/references/START.md` with modes `epics`, `shape` and `grill` and the team as the topic, and read those three rows of `${CLAUDE_PLUGIN_ROOT}/references/MODES.md`. The epic page is `vela conventions "Epics and traceability"`.
 
@@ -49,7 +49,7 @@ A question nobody present can answer is an unknown (`MODES.md`, "Unknowns"): `ve
 
 ## 5. Decide the criteria (the grill part)
 
-For each epic the lead wants decided, run `vela check --gate grill --item <EPC-id> --for-lead`. Say which are ready and which aren't, with the one thing that would make each ready, and file the agenda, one line per epic, as grill does. A reopened epic decides the same way. For a failed gate, offer "Decide it anyway (I'll note that the open question was skipped)", filed as an override with the lead's reason.
+For each epic the lead wants decided, run `vela check --gate decide --item <EPC-id> --for-lead`. Say which are ready and which aren't, with the one thing that would make each ready, and file the agenda, one line per epic, as grill does. A reopened epic decides the same way. For a failed gate, offer "Decide it anyway (I'll note that the open question was skipped)", filed as an override with the lead's reason.
 
 Read the criteria back in groups of about five, by their words:
 

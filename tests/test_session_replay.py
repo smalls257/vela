@@ -52,9 +52,10 @@ COMMIT_GRAMMAR += [re.compile("^" + re.escape(message).replace(re.escape("{id}")
 COMMIT_GRAMMAR += [re.compile("^" + re.escape(message).replace(re.escape("{id}"), r"(?P<id>\S+)")
                               .replace(re.escape("{app}"), r"\S+") + "$") for message in closefinish.MESSAGES]
 COMMIT_GRAMMAR += [re.compile("^" + re.escape(voice_settle.REWRITE_MESSAGE).replace(re.escape("{id}"), r"\S+") + "$")]
-# A decision names its item (a release by its heading, so any words), never the session.
-COMMIT_GRAMMAR += [re.compile("^" + re.escape(message).replace(re.escape("{id}"), r".+") + "$")
-                   for message in decide.MESSAGES.values()]
+# A decision starts with the session's first mode and names its item (a release by its heading, so any words), never
+# the session.
+COMMIT_GRAMMAR += [re.compile("^" + re.escape(message).replace(re.escape("{mode}"), r"\w+")
+                              .replace(re.escape("{id}"), r".+") + "$") for message in decide.MESSAGES.values()]
 
 
 def git(vault, *args):
@@ -68,7 +69,7 @@ def build(tmp_path):
     session_files.split_copy(SNAPSHOT, vault)
     git(tmp_path, "init", "-q", "-b", "main", str(vault))
     git(vault, "config", "user.name", "Replay Lead")
-    git(vault, "config", "user.email", "replay-lead@example.invalid")
+    git(vault, "config", "user.email", "sim-lead@example.invalid")
     session_files.ignore_private(vault)  # the snapshot predates the line the template's .gitignore now carries
     git(vault, "add", "-A")
     git(vault, "commit", "-q", "-m", "Vault from snapshot heron-desk/after-full-1")

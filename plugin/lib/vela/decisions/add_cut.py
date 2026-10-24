@@ -8,9 +8,9 @@ it names and its `**Options considered:**` bullet (boundary section 2; plan 2.13
   a later session can see what was weighed and why it lost. A pick with no rejected option is refused: boundary offers
   two or three cuts, never one.
 - **The capture of the pick** is marked at once, `→ keep: [[05-building-blocks#<cut>|cut]] (assumption)`: the cut is
-  believed, not decided, until a grill.
+  believed, not decided, until it's settled.
 """
-from vela.decisions import textedit
+from vela.decisions import options_line, textedit
 from vela.decisions.schema import Write
 
 PAGE = "05-building-blocks"
@@ -55,10 +55,9 @@ def validate(item, vault, record):
 def apply(item, vault, record):
     path = textedit.page_path(vault, PAGE)
     name = str(item["name"]).strip()
-    options = "; ".join([f"{textedit.inline(name)} (picked)"]
-                        + [f"{textedit.inline(cut)}: rejected, {textedit.inline(reason)}" for cut, reason in rejected(item)])
     lines = [f"- {textedit.inline(app)}: {change}" for app, change in apps(item)]
-    lines.append(f"- **Options considered:** {options}")
+    lines.append(options_line.picked(textedit.inline(name), [(textedit.inline(cut), textedit.inline(reason))
+                                                             for cut, reason in rejected(item)]))
     page = textedit.insert_block(vault.text(path), name, lines)
     rec = textedit.mark_if_unmarked(textedit.record_text(record, vault), item.get("capture"),
                                     textedit.keep_mark(PAGE, name, "cut", "assumption"))

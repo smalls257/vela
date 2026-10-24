@@ -92,5 +92,5 @@ The reviewer is the solution lead: the `owner:` of `01-goals.md`. Strip the lead
 ## Never
 
 - Never change the challenged item's state or text. Only the `**Dissent:**` line is added.
-- Never decide, resolve, reopen or set back anything. Only a grill decides, and the solution lead answers the challenge.
+- Never decide, resolve, reopen or set back anything. The solution lead answers the challenge, settling it or with a grill.
 - Never name anyone but the team lead as the open question's owner.

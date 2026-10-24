@@ -72,7 +72,7 @@ id: CAP-001
 type: capability
 title: Sell a basket
 state: assumption
-owner: "@mini-lead"
+owner: "@priya"
 authored: authored
 ---
 
@@ -97,7 +97,7 @@ type: epic
 title: Till sells through Shop
 initiative: INI-900
 state: draft
-owner: "@mini/till-team"
+owner: "@priya"
 authored: authored
 apps: [APP-till, APP-shop]
 ---
@@ -139,7 +139,7 @@ authored: authored
 The tracer: a till sells a basket through the Shop.
 
 - **Flows:** [[FLO-001-buy|FLO-001]]
-- **Owner:** @mini-lead
+- **Owner:** @priya
 
 ## History
 
@@ -151,7 +151,7 @@ type: initiative-section
 title: Releases
 initiative: INI-900
 state: assumption
-owner: "@mini-lead"
+owner: "@priya"
 authored: authored
 ---
 
@@ -171,7 +171,7 @@ title: Solution strategy
 initiative: INI-900
 arc42: "§4"
 state: assumption
-owner: "@mini-lead"
+owner: "@priya"
 authored: authored
 ---
 
@@ -367,13 +367,13 @@ def test_agenda_line_updated(tmp_path):
     assert writes[RECORD].count("- CON-002: ") == 1
 
 
-def test_commit_message_grill_id_decided(tmp_path):
+def test_commit_message_names_the_sessions_mode(tmp_path):
     root = make_vault(tmp_path)
     git_init(root)
     code, out = run("decide", "CON-002", "--vault", str(root), "--today", TODAY, "--readback", "^c01", "--yes", "^c02",
                     "--provider", "^c07", "--json")
     assert code == 0, out
-    assert git_log(root)[0] == "grill: CON-002 decided"
+    assert git_log(root)[0] == "grill: CON-002 decided", "the fixture session's first mode"
     shown = subprocess.run(["git", "show", "--name-only", "--format=", "HEAD"], cwd=root, check=True,
                            capture_output=True, text=True).stdout.split()
     assert sorted(shown) == [STOCK], "only the changed page, by exact path: the notes are never committed"
@@ -535,7 +535,7 @@ def test_dispatch_names_one_module_per_kind():
         assert module.KIND and callable(module.target) and callable(module.set_state), kind
 
 
-# --- a yes in a session that can't decide is kept, not lost (full3: D4, D7, D8 had a lead yes and stayed assumptions)
+# --- helpers for a decision filed in a session with a given mode (tests/test_settle.py holds the tests)
 def in_session_with_modes(root, modes):
     session_files.set_modes(root, RECORD_ID, modes)
 
@@ -543,67 +543,3 @@ def in_session_with_modes(root, modes):
 def decide_con_002(root):
     return run("decide", "CON-002", "--readback", "^c01", "--yes", "^c02", "--provider", "^c07", "--vault", str(root),
                "--today", TODAY, "--json")
-
-
-@pytest.mark.parametrize("mode", ["shape", "boundary", "releases", "shape, boundary"])
-def test_decide_in_a_session_that_cannot_decide_refuses_and_marks_it_ready(tmp_path, mode):
-    root = make_vault(tmp_path)
-    in_session_with_modes(root, mode)
-    before = (root / STOCK).read_text(encoding="utf-8")
-    code, output = decide_con_002(root)
-    assert code == 1, output
-    said = json.loads(output)
-    assert said["refusals"][0]["rule"] == "decide-not-in-this-session"
-    assert "short grill" in said["refusals"][0]["plain"] and "Offer the lead a short grill" in said["refusals"][0]["fix"]
-    assert (root / STOCK).read_text(encoding="utf-8") == before, "nothing was decided"
-    record = session_files.record_text(root, RECORD_ID)
-    assert f"## Ready to decide\n\n- CON-002: the lead said yes in {RECORD_ID} (^c02)" in record
-    assert decide_con_002(root)[0] == 1
-    assert session_files.record_text(root, RECORD_ID).count("- CON-002: the lead said yes") == 1, "marked once"
-
-
-@pytest.mark.parametrize("mode", ["grill", "answer, grill", "epics, grill", "shape, grill"])
-def test_decide_still_works_in_a_session_with_a_grill_part(tmp_path, mode):
-    root = make_vault(tmp_path)
-    in_session_with_modes(root, mode)
-    git_init(root)
-    code, output = decide_con_002(root)
-    assert code == 0, output
-    assert "Ready to decide" not in session_files.record_text(root, RECORD_ID)
-
-
-def test_the_next_session_brief_lists_what_the_lead_already_said_yes_to(tmp_path):
-    from vela.decisions import ready
-    root = make_vault(tmp_path)
-    in_session_with_modes(root, "shape")
-    decide_con_002(root)
-    code, output = run("session", "brief", "--vault", str(root), "--today", TODAY, "--json")
-    found = json.loads(output)["ready_to_decide"]
-    assert [(e["id"], e["session"]) for e in found] == [("CON-002", RECORD_ID)]
-    in_session_with_modes(root, "grill")
-    git_init(root)
-    code, output = decide_con_002(root)
-    assert code == 0, output
-    code, output = run("session", "brief", "--vault", str(root), "--today", TODAY, "--json")
-    assert json.loads(output)["ready_to_decide"] == [], "decided items drop off the list"
-    assert ready.can_decide("modes: [dump]\n") is False and ready.can_decide("no front matter") is True
-
-
-
-def test_an_unreadable_stub_refuses_the_decision_instead_of_letting_a_shape_session_decide(tmp_path):
-    root = make_vault(tmp_path)
-    in_session_with_modes(root, "shape")
-    rec = sessiongit.open_record(root)[0]
-    gone = types.SimpleNamespace(text=lambda path: None)
-    with pytest.raises(textedit.StubUnreadable, match=f"sessions/{RECORD_ID}.md"):
-        textedit.stub_text(rec, gone)
-    # the command path: the stub is open when found and gone when the modes are read
-    real = textedit.stub_text
-    textedit.stub_text = lambda record, view: real(record, gone)
-    try:
-        before = (root / STOCK).read_text(encoding="utf-8")
-        code, output = decide_con_002(root)
-    finally:
-        textedit.stub_text = real
-    assert code == 2 and f"sessions/{RECORD_ID}.md" in output, output
-    assert (root / STOCK).read_text(encoding="utf-8") == before

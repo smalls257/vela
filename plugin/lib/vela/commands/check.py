@@ -1,8 +1,8 @@
 """`vela check`: the parser, moved out of cli.py (Task 2) so tasks that extend it (13: `--for-lead` verdicts on
-`--gate grill`; 21b: `--fix W326`) edit this file and not cli.py. The command itself is `cli.cmd_check`.
+`--gate decide`; 21b: `--fix W326`) edit this file and not cli.py. The command itself is `cli.cmd_check`.
 
-Task 13: `check --gate grill --item X [--item Y] --for-lead|--json` prints each item's grill verdict from `gates.py`
-(ready, or not ready with the plain reason and the one fix) instead of the W807 list. The plain `--gate grill` output
+Task 13: `check --gate decide --item X [--item Y] --for-lead|--json` prints each item's decide verdict from `gates.py`
+(ready, or not ready with the plain reason and the one fix) instead of the W807 list. The plain `--gate decide` output
 and its exit codes stay exactly what the skills already read, so nothing that parses W807 moves. `--json` prints only
 those verdicts: on any other check it would be a flag that silently changes nothing (Silent Fallback), so it is refused.
 
@@ -29,16 +29,16 @@ AUTO = "AUTO"  # --fix auto runs every fixer in one pass
 
 
 def register(sub):
-    check = sub.add_parser("check", help="check the vault (it changes no page; --for-lead and --gate grill also record the size line on the open session)")
+    check = sub.add_parser("check", help="check the vault (it changes no page; --for-lead and --gate decide also record the size line on the open session)")
     check.add_argument("--vault", default=".", help="vault root (default: current directory)")
     check.add_argument("--today", help="the date to judge overdue questions by, YYYY-MM-DD (default: today)")
     check.add_argument("--gate", choices=schema.GATES,
                        help="epics: before calling the epics finished, fail on anything no epic builds and on high-priority "
                             "questions nobody has dealt with; shape: as shaping ends, warn on questions still answered by "
-                            "assumption; grill: before a grill, warn on open questions that hold up the items named with --item")
-    check.add_argument("--item", action="append", help="with --gate grill: the ID of an item the grill will decide; repeat for each")
+                            "assumption; decide: before deciding, warn on open questions that hold up the items named with --item")
+    check.add_argument("--item", action="append", help="with --gate decide: the ID of an item you'd decide; repeat for each")
     check.add_argument("--all", action="store_true",
-                       help="with --gate grill: gate every item still waiting to be decided (ready ones listed first), "
+                       help="with --gate decide: gate every item still waiting to be decided (ready ones listed first), "
                             "instead of naming each with --item")
     check.add_argument("--app", help="with --gate epics: check only this app and the things on its handoff list (give its ID, "
                                      "like APP-booking); other apps, and the check that every requirement has an app, are skipped")
@@ -50,11 +50,11 @@ def register(sub):
                        help="with --for-lead: only the wording notes, which a small plan keeps quiet until asked")
     group = check.add_mutually_exclusive_group()
     group.add_argument("--json", action="store_true",
-                       help="with --gate grill --item: each item's verdict as JSON (id, ready, reasons, fix, override, "
+                       help="with --gate decide --item: each item's verdict as JSON (id, ready, reasons, fix, override, "
                             "overridden, owed), for the skill to reason over; with --fix W326: what changed")
     group.add_argument("--for-lead", action="store_true",
                        help="plain lines for the lead: each finding by page title, with no codes, no IDs and no fix lines; "
-                            "with --gate grill --item, whether each item is ready to decide and the one thing that would "
+                            "with --gate decide --item, whether each item is ready to decide and the one thing that would "
                             "make it ready")
     say.add_more_flag(check)
     check.set_defaults(func=run)
@@ -66,13 +66,13 @@ def run(args, out):
         return fix(args, out)
     if args.all:
         everything(args)
-    grill_items = args.gate == "grill" and bool(args.item)
+    decide_items = args.gate == "decide" and bool(args.item)
     if args.wording and not args.for_lead:
         raise cli.ToolError("--wording lists the wording notes as the lead hears them, so it goes with --for-lead.")
-    if args.json and not grill_items:
+    if args.json and not decide_items:
         raise cli.ToolError("--json prints the grill verdicts (or, with --fix, what changed), so it goes with "
-                            "--gate grill --item <ID> or --fix W326, W358, W408 or auto.")
-    if grill_items and say.mode_of(args) != "default":
+                            "--gate decide --item <ID> or --fix W326, W358, W408 or auto.")
+    if decide_items and say.mode_of(args) != "default":
         return verdicts(args, out)
     return cli.cmd_check(args, out)
 
@@ -80,8 +80,8 @@ def run(args, out):
 def everything(args):
     """`--all`: fill --item with every candidate, so one call answers "what is ready to decide?"."""
     from vela import cli
-    if args.gate != "grill" or args.item:
-        raise cli.ToolError("--all gates every item waiting to be decided, so it goes with --gate grill and no --item.")
+    if args.gate != "decide" or args.item:
+        raise cli.ToolError("--all gates every item waiting to be decided, so it goes with --gate decide and no --item.")
     vault = cli.load_vault(pathlib.Path(args.vault).resolve())
     args.item = gates.candidates(vault)
     if not args.item:

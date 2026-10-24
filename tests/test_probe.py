@@ -884,7 +884,7 @@ def test_the_grill_ready_snapshot_holds_two_ready_items_and_blocked_ones():
     criterion = next(c for c in case["criteria"] if c["check"] == "decided-items")
     vault = SIM / "snapshots" / "heron-desk" / "grill-ready"
     for item in criterion["decidable"] + criterion["blocked"]:
-        done = subprocess.run([sys.executable, str(sim.VELA), "check", "--vault", str(vault), "--gate", "grill",
+        done = subprocess.run([sys.executable, str(sim.VELA), "check", "--vault", str(vault), "--gate", "decide",
                                "--item", item, "--for-lead"], capture_output=True, text=True, timeout=120)
         ready = "is ready to decide" in done.stdout
         assert ready is (item in criterion["decidable"]), (item, done.stdout[:200])

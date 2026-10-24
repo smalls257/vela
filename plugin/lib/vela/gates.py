@@ -3,7 +3,7 @@
 The Violation this module exists to prevent is a Distributed Monolith between the grill skill and the check: the skill
 told the model to search `11-unknowns-and-risks.md` for `**Blocks:**` itself to decide GATE-4, while E316 already does
 that search in `rules.py`. Two copies of one rule drift, and the model's copy is the one nobody tests. So (Shield) the
-conditions code can judge live here, read from the same functions the check rules read, and `vela check --gate grill
+conditions code can judge live here, read from the same functions the check rules read, and `vela check --gate decide
 --item X --for-lead|--json` prints the verdict (Filter): "ready", or "not ready" with the plain reason and the one thing
 that would make it ready.
 
@@ -13,7 +13,7 @@ What is judged, and why each rule is the grill skill's own (the why moves with t
   is at `target` or later (`progress.in_grill_stage`): before then the app's parts are not read back, so a decision
   would be about a shape nobody confirmed. Initiative-level items pass.
 - **GATE-2, a preferred option.** The item is at `assumption` with an `**Options considered:**` bullet, or an epic is at
-  `draft` or `reopened`: a Grill decides between options Shape wrote down, it does not invent them. An item already
+  `draft` or `reopened`: a decision picks between options Shape wrote down, it does not invent them. An item already
   `decided` (or a `fact`) is said so, since reopening is a change of mind the lead chooses. A concern page, a table row,
   an unknown or a risk carries no option bullet, so GATE-2 is left to the skill for those (a concern cell passes when the
   lead states what the initiative does for the app; code can't hear that).
@@ -27,7 +27,8 @@ What is judged, and why each rule is the grill skill's own (the why moves with t
   "not fully checked": a check that did not finish proved nothing to set aside. Flow-check findings are set aside by the
   dated overrides the checker itself reads, which its standing already applies.
 
-GATE-3 (the agenda's yes) and GATE-5 (the owner present) stay the skill's: code can't hear a yes.
+GATE-3 (the agenda's yes) stays the skill's: code can't hear a yes. GATE-5 (the owner present) is checked where the
+decision is written (`decide_writes.owner_refusals`), against the yes's speaker.
 
 The lead may override any rule. An `**Override:**` on the item naming the rule lets it through when `override.covers` it
 today, and the verdict lists it, never hides it (Sensor): a standing rule's override past its `until` covers nothing, and
@@ -128,7 +129,7 @@ UNDECIDED = ("inkling", "assumption", "draft")
 
 def candidates(vault):
     """IDs a grill could decide: contracts and requirements whose State is not yet decided or fact, and pages whose own
-    state is still a guess. `check --gate grill --all` gates every one on turn 1, so the grill can open with the ready
+    state is still a guess. `check --gate decide --all` gates every one on turn 1, so the grill can open with the ready
     one instead of reading the vault to find it (the reading spree is Computational Friction at the lead's expense)."""
     ids = [i.id for i in vault.contracts + vault.requirements if i.fact("State") in UNDECIDED]
     ids += [p.id for p in vault.pages if p.meta.get("state") in UNDECIDED and p.id]
@@ -186,7 +187,7 @@ def stage_reason(vault, found, name):
         return None
     stage = ladder.stage(vault, app)
     app_name = _say(vault, app.id)
-    return Reason("GATE-1", f"{app_name} is still at the {stage} stage, and a grill needs it at target or later.",
+    return Reason("GATE-1", f"{app_name} is still at the {stage} stage, and deciding needs it at target or later.",
                   f"I'd run a Discover session on {app_name} first. Or I can decide {name} now and note it as "
                   "your call.", f"/vela:discover {app.id}")
 
@@ -216,7 +217,7 @@ def option_reason(vault, found, name):
                       "/vela:epics")
     if state == "assumption" and options:
         return None
-    if not sizing.of(vault).needs(sizing.Need.OPTIONS_BEFORE_GRILL):
+    if not sizing.of(vault).needs(sizing.Need.OPTIONS_BEFORE_DECIDING):
         # Below medium the gate asks the one question; the lead's answer is recorded by `vela decide --options-none`,
         # so the skill never decides the route (the gate's reason carries it).
         return Reason("GATE-2", f"Nobody has said yet whether anything other than {name} was on the table.",
@@ -435,7 +436,7 @@ def lines_for(found, resolver):
 
 
 def report(vault, verdicts, notes=()):
-    """The say.Result for `check --gate grill --item ... --for-lead|--json`: exit 0 when every item is ready, else 1."""
+    """The say.Result for `check --gate decide --item ... --for-lead|--json`: exit 0 when every item is ready, else 1."""
     resolver = say.Resolver(vault)
     ready = sum(1 for v in verdicts if v.ready)
     head = (f"All {len(verdicts)} items are ready to decide." if ready == len(verdicts) and len(verdicts) > 1
@@ -448,7 +449,7 @@ def report(vault, verdicts, notes=()):
     asked = release_date_ask(vault)
     if asked:
         lines.append(say.Line(asked, plain=asked))
-    return say.Result("check --gate grill", exit=say.DONE if ready == len(verdicts) else say.REFUSED, lines=lines,
+    return say.Result("check --gate decide", exit=say.DONE if ready == len(verdicts) else say.REFUSED, lines=lines,
                       data={"ready": ready == len(verdicts), "items": [v.as_json() for v in verdicts],
                             "release_date_ask": asked})
 

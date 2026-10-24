@@ -50,7 +50,7 @@ def voice(tmp_path, turns, tools=None):
 
 
 def test_codes_and_ids_are_counted_by_the_lead_patterns_once_per_span(tmp_path):
-    assert scale.lead_codes("UNK-004 blocks CAP-001.FR2; run vela check --gate grill") >= 4
+    assert scale.lead_codes("UNK-004 blocks CAP-001.FR2; run vela check --gate decide") >= 4
     assert scale.lead_codes("Nothing here a lead can't read.") == 0
     found = voice(tmp_path, [("lead", "go"), ("assistant", "I filed UNK-004 for it."), ("assistant", "Who decides?")])
     assert found["voice: codes and IDs per turn"] == 0.5
@@ -384,7 +384,7 @@ def test_the_grill_ready_vaults_hold_exactly_the_ready_and_blocked_items_the_per
     for name in SPLITS:
         decisions = [d for d in persona(name)["decisions"] if d.get("item")]
         vault = SCALE / "snapshots" / name / "grill-ready"
-        argv = [sys.executable, str(sim.VELA), "check", "--gate", "grill", "--vault", str(vault), "--json"]
+        argv = [sys.executable, str(sim.VELA), "check", "--gate", "decide", "--vault", str(vault), "--json"]
         for d in decisions:
             argv += ["--item", d["item"]]
         found = json.loads(subprocess.run(argv, capture_output=True, text=True, timeout=120).stdout)

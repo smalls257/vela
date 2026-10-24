@@ -1,5 +1,5 @@
 # Decisions, on a scale of 8. Grill from a vault with one capability of eleven requirements, each at assumption with
-# the options a Shape weighed and the one it picked. Eight are ready (vela check --gate grill says so); three are held
+# the options a Shape weighed and the one it picked. Eight are ready (vela check --gate decide says so); three are held
 # by an open unknown, and the lead refuses to decide those until it is answered and overrides nothing. A ready item
 # counts when the final vault holds it decided and the lead said yes to it; a blocked one decided fails the run.
 snapshot_root: scale/snapshots

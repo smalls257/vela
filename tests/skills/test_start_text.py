@@ -256,9 +256,9 @@ def test_captures_are_numbered_by_record_add_and_keep_their_origins():
 
 def test_start_names_every_mode_that_marks_at_once():
     marks = START.split("Leave the mark off until close")[1].split("\n")[0]
-    for name in ("grill", "Discover", "Boundary", "Requirements", "Allocate", "Releases"):
+    for name in ("Discover", "Boundary", "Requirements", "Allocate", "Releases"):
         assert name in marks, name
-    assert "(decided)" in marks and "(fact)" in marks and "(assumption)" in marks
+    assert "(decided)" not in marks and "(fact)" in marks and "(assumption)" in marks
 
 
 # --- answer a challenge
@@ -268,7 +268,7 @@ def test_start_answers_a_challenge_on_its_own_branch():
     assert "ANSWER-A-CHALLENGE.md" in section("Answer a challenge")
     assert "`vela session start --mode answer --answer <PR number or the challenged ID> --for-lead`" in ANSWER
     assert "never starts on a guessed branch" in ANSWER
-    assert "never opening a new one" in ANSWER and "adds `grill` to the session's modes" in ANSWER
+    assert "never opening a new one" in ANSWER and "Add `grill` to the session's modes only when the lead wants it tested" in ANSWER
 
 
 def test_answer_a_challenge_lost_its_recipe_to_session_start():

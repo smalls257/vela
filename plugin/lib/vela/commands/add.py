@@ -136,7 +136,8 @@ def file_new(root, today, vault, item):
         return early
     reader = sessiongit.is_read_copy(root)
     try:
-        staged = textedit.attach(decisions.Staged(vault, disk.reader(root)), today, idgit.branch_texts(root))
+        staged = textedit.attach(decisions.Staged(vault, disk.reader(root)), today, idgit.branch_texts(root),
+                               lead=apply_command.lead_of(root))
     except GitUnavailable as exc:
         return failed(f"couldn't read the other branches' numbers: {exc}",
                       "I couldn't check which numbers other sessions hold, so I added nothing.")
@@ -158,8 +159,6 @@ def file_item(item, root, staged, record, reader):
         filed = decisions.applied_text(decision, writes, decisions.record_after(record, staged))
         path.parent.mkdir(parents=True, exist_ok=True)
         written = disk.write_all(root, writes, {path: filed})
-    except textedit.StubUnreadable as exc:
-        return failed(str(exc), str(exc))
     except disk.OutsideVault as exc:
         return say.Result(NAME, exit=say.REFUSED, refusals=[say.Refusal(
             "apply-outside-vault", "That would have changed a file outside the vault, so I added nothing.",

@@ -130,16 +130,17 @@ def test_decided_without_decision_bullet(mini):
     assert [c for c in codes(out) if c[0] != "W326"] == [("E303", GOALS)]  # W326 also says the page state lags
 
 
-def test_decided_by_a_session_that_is_not_a_grill(mini):
+def test_a_decision_linking_any_session_passes(mini):
     session_files.edit_stub(mini, "2026-01-10-shop-api", "modes: [grill]", "modes: [shape]")
     _, out = check(mini)
-    assert [c for c, _ in codes(out)] == ["E303", "E303", "E303"]
+    assert "E303" not in {c for c, _ in codes(out)}
 
 
-def test_requirements_session_cannot_decide(mini):
-    edit(mini / GOALS, "- **Decision:** [[2026-01-10-shop-api]]", "- **Decision:** [[2026-01-05-till-needs]]")
+def test_a_decision_link_to_a_page_that_is_not_a_session_is_e303(mini):
+    edit(mini / GOALS, "- **Decision:** [[2026-01-10-shop-api]]", "- **Decision:** [[01-goals]]")
     _, out = check(mini)
-    assert codes(out) == [("E317", GOALS)]
+    assert ("E303", GOALS) in codes(out)
+    assert "no **Decision:** bullet links the session that decided it" in out
 
 
 def test_gate_four_blocked_item_cannot_be_decided(mini):
@@ -230,12 +231,12 @@ def test_decision_linking_a_page_that_is_not_a_session(mini):
     assert ("E303", GOALS) in codes(out)
 
 
-def test_grill_session_with_numeric_modes(mini):
+def test_a_session_with_numeric_modes_is_e105_and_still_decides(mini):
     session_files.edit_stub(mini, "2026-01-10-shop-api", "modes: [grill]", "modes: 5")
     code, out = check(mini)
     assert code == 1, out
     got = codes(out)
-    assert ("E303", GOALS) in got
+    assert ("E303", GOALS) not in got
     assert ("E105", "sessions/2026-01-10-shop-api.md") in got
 
 

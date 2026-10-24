@@ -30,7 +30,7 @@ id: ADR-0001
 type: decision
 title: Nightly partner file
 state: proposed
-owner: "@mini-lead"
+owner: "@priya"
 authored: authored
 ---
 
@@ -222,15 +222,14 @@ def test_a_stated_decision_without_a_real_yes_is_refused_and_nothing_written(tmp
     assert path.read_text(encoding="utf-8") == ADR_TEXT
 
 
-def test_a_decided_page_citing_no_source_still_needs_a_grill(tmp_path, monkeypatch):
+def test_a_decided_page_needs_a_decision_link_to_a_session(tmp_path, monkeypatch):
     vault = started(tmp_path, monkeypatch, CAPTURES)
     path = with_adr(vault)
     path.write_text(ADR_TEXT.replace("state: proposed", "state: decided") + f"\n- **Decision:** [[{RECORD_ID}]]\n",
                     encoding="utf-8")
+    assert "E303" not in check_codes(vault)  # any session will do; the import's mode is no longer special
+    path.write_text(ADR_TEXT.replace("state: proposed", "state: decided"), encoding="utf-8")
     assert "E303" in check_codes(vault)
-    path.write_text(ADR_TEXT.replace("state: proposed", "state: decided")
-                    + f"\n- **Decision:** [[{RECORD_ID}]], as SRC-09 states\n", encoding="utf-8")
-    assert "E303" in check_codes(vault)  # a source that isn't in the register states nothing
 
 
 # --- the voice question: asked, recorded, applied per page --------------------------------------------------------------
@@ -241,7 +240,7 @@ id: context
 type: initiative-section
 title: Context
 state: fact
-owner: "@mini-lead"
+owner: "@priya"
 authored: authored
 sources: [SRC-02]
 ---

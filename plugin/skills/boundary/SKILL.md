@@ -6,7 +6,7 @@ argument-hint: "[the decided item, or an app]"
 
 # Boundary
 
-Turn a decided direction into apps a team lead can take. Until an app page exists, epics and handoff have nothing to work on. Boundary never decides: what it writes is "not decided yet", and a concern cell is never `addressed`.
+Turn a decided direction into apps a team lead can take. Until an app page exists, epics and handoff have nothing to work on. Unless the lead settles an item, what it writes is "not decided yet", and a concern cell is never `addressed`.
 
 Run the steps in `${CLAUDE_PLUGIN_ROOT}/references/START.md` with mode `boundary`, and read the Boundary row of `${CLAUDE_PLUGIN_ROOT}/references/MODES.md`. Page formats: `vela conventions "Fact bullets"` for contracts and case tables, `vela conventions "Fact tables"` for containers, `vela conventions "Concern cells and waivers"`, and `vela conventions "Flow check"` for the sequence diagram.
 
@@ -70,4 +70,4 @@ Then `vela render`, `vela check --for-lead` (fix what the new pages cause), and 
 
 Once every sheet is written, run the review checkpoint in `${CLAUDE_PLUGIN_ROOT}/references/REVIEW.md` "after the pages are written", with the new app, contract and runtime pages as its focus, and `vela questions --subject <ID>` for each new app and contract. Show the digest and capture what the lead takes.
 
-When the lead is done, close as `START.md` says under "Closing a session". The next step is a grill on each app and its contracts: say the line by name, such as `/vela:grill Desktop agent`.
+When the lead is done, close as `START.md` says under "Closing a session". Next, settle each app and its contracts, or grill them: name the line, such as `/vela:grill Desktop agent`.

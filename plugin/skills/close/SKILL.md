@@ -39,7 +39,7 @@ If the session touched prose and `vela close drafts` says a review is due, run t
 
 In this order, so the read-back covers the final words:
 
-1. **Still yes?** Run `vela close gate --json` and act only on its "Still yes" item (decisions made on the other machine); everything else it lists is section 4's. Ask once, in one message, with the names it gives: "These were decided on the other machine: the booking API, and one question taken off the finance page. Still yes?" Capture the answer and do what the gate's clear line says. On a no, run nothing; offer to reopen the item. Never reconfirm anything for them. If an item's owner is someone else and isn't here, their decision stays a name in the receipt with no words, and `close pr` lists it for them: don't chase their words now.
+1. **Still yes?** Run `vela close gate --json` and act only on its "Still yes" item (decisions made on the other machine); everything else it lists is section 4's. Ask once, in one message, with the names it gives: "These were decided on the other machine: the booking API, and one question taken off the finance page. Still yes?" Capture the question before the answer, then do what the gate's clear line says. On a no, run nothing; offer to reopen the item. Never reconfirm anything for them. If an item's owner is someone else and isn't here, their decision stays a name in the receipt with no words, and `close pr` lists it for them: don't chase their words now.
 2. **The read-back.** Run `vela close readback --for-lead` and read its sentences in groups of about five, by item name. For each, the lead keeps it, rewords it or cuts it (`vela close readback --help`); a decision's own receipt can be reworded, never cut, and new words must be theirs. Then `vela close readback --done`.
 
 ## 4. Check, then finish and send
@@ -59,7 +59,7 @@ Then send, in this order:
 
 Write the two or three sentences a reviewer reads first to `.vela/close/prose.md`, as `${CLAUDE_PLUGIN_ROOT}/skills/close/PR-BODY.md` says, then run `vela close pr --prose .vela/close/prose.md --for-lead` and show the URL it prints. Never say a PR exists unless `gh` printed its URL.
 
-End with three to six plain sentences: what was filed, by group; what waits on someone, with the date; the pull request link, or why there is none; and the dashboard line `close finish` gave. If the notes aren't backed up, add: "Your notes for this session are only on this computer. Want me to copy them somewhere safe?" On a yes, ask for a folder outside the plan and run `vela records backup --to <folder>`. For a switch, end with the line that starts the next mode, by name ("/vela:grill Desktop agent").
+End with three to six plain sentences: what was filed, by group; what was settled, as close finish says it; what waits on someone, with the date; the pull request link, or why there is none; and the dashboard line `close finish` gave. If the notes aren't backed up, add: "Your notes for this session are only on this computer. Want me to copy them somewhere safe?" On a yes, ask for a folder outside the plan and run `vela records backup --to <folder>`. For a switch, end with the line that starts the next mode, by name ("/vela:grill Desktop agent").
 
 ## 6. No session open
 

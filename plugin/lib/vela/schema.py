@@ -243,8 +243,7 @@ SUBJECT_LOOKALIKE_RE = re.compile(r"^(PTY|SV)(?![A-Za-z])", re.IGNORECASE)
 # cannot see (GATE-1, 2, 3, 5) turns nothing: the bullet is the record.
 OVERRIDE_RULES = {
     "GATE-1": (), "GATE-2": (), "GATE-3": (), "GATE-4": ("E316",), "GATE-5": (),
-    "grill": ("E303", "E317"),
-    "E303": ("E303",), "E304": ("E304",), "E316": ("E316",), "E317": ("E317",), "E318": ("E318",),
+    "E303": ("E303",), "E304": ("E304",), "E316": ("E316",), "E318": ("E318",),
     "E805": ("E805",),
 }
 # Two classes, because they end differently (plan 4.4). A standing rule guards a condition that stays true until
@@ -252,7 +251,7 @@ OVERRIDE_RULES = {
 # one it would cover the rule forever, a Silent Fallback with a signature on it. An event rule was met or not at the
 # moment of deciding (who was in the room, how many options a Shape weighed), so its override has nothing to end.
 # A quoted rule is standing when it is "case table" or a flow-check finding ("F<n> ..."), and an event otherwise.
-STANDING_RULES = ("GATE-4", "grill", "E303", "E304", "E316", "E317", "E318", "E805")
+STANDING_RULES = ("GATE-4", "E303", "E304", "E316", "E318", "E805")
 EVENT_RULES = ("GATE-1", "GATE-2", "GATE-3", "GATE-5")
 STANDING_QUOTED = ('"case table"',)
 # How far ahead the date a refusal offers sits when the item feeds no release with a Target still to come.
@@ -263,7 +262,7 @@ SUGGEST_UNTIL_DAYS = 30
 E805_OVERRIDE_HINT = ("Answer it now (vela questions --open --digest, capture the answer; close writes the row), defer it "
                       "to someone with a date (vela apply, kind defer), or override it (vela apply, kind override, "
                       "rule E805 on the unknowns page, with a reason and an end date).")
-OVERRIDE_CODES = {"E303": "W303", "E304": "W304", "E316": "W316", "E317": "W317", "E318": "W318", "E805": "W805"}
+OVERRIDE_CODES = {"E303": "W303", "E304": "W304", "E316": "W316", "E318": "W318", "E805": "W805"}
 # Codes only a gate reports. An override of one is judged idle (W323) only when its gate ran, so the
 # override that lets an epics gate pass never warns on the plain check of every PR.
 GATE_ONLY_CODES = {"E805": "epics"}
@@ -351,7 +350,7 @@ CODES = {
     "E210": "two rows claim one ID, or one app on a concern page",
     "E301": "concern cell is not valid",
     "E302": "unknown or risk is missing a required fact",
-    "E303": "decided without a Grill decision",
+    "E303": "decided with no Decision link to the session that decided it",
     "E304": "fact without a source",
     "E306": "fact table row is not valid",
     "E307": "library row has a type or stored path that is not valid",
@@ -363,7 +362,6 @@ CODES = {
     "E313": "library row names a stored file that is not in the vault",
     "E315": "a Decision or Dissent line is not in the receipt form",
     "E316": "decided while an open unknown blocks it",
-    "E317": "a requirements session cannot decide",
     "E318": "decided contract has no Tested by",
     "E320": "contract is missing a required fact",
     "E321": "override is malformed",
@@ -440,10 +438,9 @@ CODES = {
     "E331": "allocation row goes through no such contract",
     "E332": "allocation row has no valid state",
     "E333": "allocation row is a fact on a page with no sources",
-    "W303": "decided without a Grill, by override",
+    "W303": "decided with no session link, by override",
     "W304": "fact without a source, by override",
     "W316": "decided while an open unknown blocks it, by override",
-    "W317": "decided by a requirements session, by override",
     "W318": "decided contract has no Tested by, by override",
     "W323": "override not needed",
     "W324": "decided on the owner's behalf, not yet confirmed",
@@ -506,15 +503,15 @@ SIZE_SIGNALS = {
 }
 SIZE_MEANS = {
     "small": "That means fewer steps and quieter checks; say if it's bigger than it looks.",
-    "medium": "That means options written down before a grill and the wording notes at close; say if it's smaller than it looks.",
+    "medium": "That means options written down before deciding and the wording notes at close; say if it's smaller than it looks.",
     "large": "That means every step, a review after each mode, and every check said; say if it's smaller than it looks.",
 }
 # need -> (the band it starts at, what a smaller plan loses by skipping it)
 NEEDS = {
     "READING_LOAD_SHOWN": ("medium", "Wording notes wait until asked on a small plan, because a few pages are read by "
                                      "their owner anyway; from medium they are said."),
-    "OPTIONS_BEFORE_GRILL": ("medium", "One question settles one option on a small plan; from medium the options are "
-                                       "written down before a grill so the lead can compare them."),
+    "OPTIONS_BEFORE_DECIDING": ("medium", "One question settles one option on a small plan; from medium the options are "
+                                       "written down before deciding so the lead can compare them."),
     "REVIEW_EACH_MODE": ("large", "One review checkpoint a session covers what changed on a smaller plan; a large "
                                   "plan gets a fresh reader after each mode."),
     "VOICE_REVIEW_ALWAYS": ("medium", "A few drafted paragraphs are read back by the lead anyway; from medium a "
@@ -543,7 +540,7 @@ WEIGHT = {**dict.fromkeys(CODES, "decision"), **POLISH, **AUTO, **SCALE}
 # Rule -> (code in a plain check, code under --gate epics).
 TRACE_CODES = {"T1": ("W501", "E501"), "T2": ("W502", "E502"), "T4": ("W503", "E503"), "T6": ("W504", "E504"),
                "T7": ("W505", "E505")}
-GATES = ("epics", "shape", "grill")
+GATES = ("epics", "shape", "decide")
 TRACE_CONTRACT_CHANGES = ("new", "changed")  # contracts T2 needs an epic for
 OWNERSHIP_CONCERN = "concern-ownership"  # covered by an epic listing the app, not by a marker
 WAIVER_RE = re.compile(rf"^no work \({HANDLE}(?: {HANDLE})*, review \d{{4}}-\d{{2}}-\d{{2}}\): \S")

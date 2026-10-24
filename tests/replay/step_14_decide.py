@@ -20,12 +20,12 @@ WHY = '"Heron runs on the laptop because the pilot team won\'t send client files
 
 
 def run(ctx):
-    ctx.vela("whoami", "--set", "replay-lead")
+    ctx.vela("whoami", "--set", "sim-lead")
     numbers = []
     for origin, tag, words in (("claude", "thought", "Read back: Heron's runtime runs on the pilot user's laptop, "
                                                      "reading only the folder they choose"),
-                               ("@replay-lead", "thought", '"Yes, that is how Heron runs."'),
-                               ("@replay-lead", "thought", WHY)):
+                               ("@sim-lead", "thought", '"Yes, that is how Heron runs."'),
+                               ("@sim-lead", "thought", WHY)):
         if origin != "claude":
             ctx.typed(words)
         code, out = ctx.vela("record", "add", "--origin", origin, "--tag", tag, words, "--json")
@@ -37,7 +37,8 @@ def run(ctx):
     assert "Heron" in said and "decided" in said, said
     ctx.outputs["decide --for-lead"] = said
     subject = ctx.git("log", "-1", "--format=%s").strip()
-    assert subject == decide.MESSAGES["decided"].format(id=ID), subject
+    mode = subject.split(":")[0]  # the session's first mode
+    assert mode.isalpha() and subject == decide.MESSAGES["decided"].format(id=ID, mode=mode), subject
     shown = ctx.git("show", "--name-only", "--format=", "HEAD").split()
     assert sorted(shown) == [PAGE], shown  # the notes are never committed
     page = (ctx.vault / PAGE).read_text(encoding="utf-8")

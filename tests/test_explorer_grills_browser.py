@@ -1,4 +1,4 @@
-"""The Grills waiting view, driven in headless Chrome (assets/js/selftest-grills.js).
+"""The Waiting for a decision view, driven in headless Chrome (assets/js/selftest-grills.js).
 
     python3 -m pytest -q -m browser tests/test_explorer_grills_browser.py
 
@@ -54,7 +54,9 @@ WANTED = [
     "grills: the down arrow moves from one card to the next",
     "grills: after picking a card, focus stays on it",
     "grills: Escape returns the panel to the summary and unmarks the card",
-    "grills: the sidebar has a Grills waiting button",
+    "grills: the sidebar has a Waiting for a decision button",
+    "grills: the panel also has a settle prompt that starts Settle with the item's name and is plain words",
+    "grills: Copy settle prompt copies exactly the settle prompt shown",
 ]
 
 
@@ -103,4 +105,4 @@ def test_the_grills_view_passes_its_selftest(booking, size):
 def test_a_vault_with_nothing_waiting_has_no_grills_entry(decided):
     lines = report(find_chrome(), decided, "1440,900")
     assert not [x for x in lines if x.startswith("FAIL")], "\n".join(x for x in lines if x.startswith("FAIL"))
-    assert any(x.startswith("ok grills: a vault with nothing waiting has no Grills waiting entry and no badge") for x in lines)
+    assert any(x.startswith("ok grills: a vault with nothing waiting has no Waiting for a decision entry and no badge") for x in lines)

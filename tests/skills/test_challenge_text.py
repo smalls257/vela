@@ -64,7 +64,7 @@ def test_challenge_never_changes_the_item_and_never_decides():
     assert "Touch no other line of the item: a challenge records a dispute, it does not settle one." in text
     assert "Never touch the item's `state:`, `**State:**`, wording, criteria or any other line." not in text  # the Never list says it
     assert "Never change the challenged item's state or text. Only the `**Dissent:**` line is added." in text
-    assert "Never decide, resolve, reopen or set back anything. Only a grill decides" in text
+    assert "Never decide, resolve, reopen or set back anything. The solution lead answers the challenge, settling it or with a grill." in text
     assert "never argue the item's side" in text
 
 

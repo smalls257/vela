@@ -258,3 +258,58 @@ def test_main_returns_1_on_a_failed_grade_and_0_when_all_pass(monkeypatch, tmp_p
     assert run.main(ARGV) == 1
     fake_eval(monkeypatch, tmp_path, log=kept_workspaces(tmp_path, 2), graded=["- pass: x"])
     assert run.main(ARGV) == 0
+
+
+READ_BACK_RECORD = """---
+id: 2026-11-20-shape
+type: session
+---
+
+## Captures
+
+- [thought] (claude) Read back: the amend-or-cancel capability, as written. → keep: [[CAP-021-amend-or-cancel#CAP-021|CAP-021]] (decided) ^c01
+- [answer] (@priya) "Yes, still yes." → keep: [[CAP-021-amend-or-cancel#CAP-021|CAP-021]] (decided) ^c02
+
+## Changes
+
+| ID | From | To | Source |
+|---|---|---|---|
+| CAP-021 | assumption | decided | [[2026-11-20-shape#^c02]] |
+"""
+
+
+def decide_cap_021(workspace, record):
+    cap = workspace / "capabilities" / "CAP-021-amend-or-cancel.md"
+    cap.write_text(cap.read_text(encoding="utf-8").replace("state: assumption", "state: decided"), encoding="utf-8")
+    if record is not None:
+        (workspace / "sessions" / "private").mkdir(parents=True, exist_ok=True)
+        (workspace / "sessions" / "private" / "2026-11-20-shape.md").write_text(record, encoding="utf-8")
+    spec = {"today": "2026-11-20", "gate": False, "expect": [], "forbid": []}
+    return [line for line in run.decided_growth(workspace, spec.get("may_decide", 0))]
+
+
+@pytest.mark.skipif(shutil.which("git") is None, reason="git is not installed")
+def test_a_new_decided_with_a_read_back_and_a_yes_after_it_is_not_growth(tmp_path):
+    workspace = scaffolded(tmp_path, "grill-refused")
+    assert decide_cap_021(workspace, READ_BACK_RECORD)[0].startswith("pass")
+
+
+@pytest.mark.skipif(shutil.which("git") is None, reason="git is not installed")
+def test_a_new_decided_with_no_changes_row_is_growth(tmp_path):
+    workspace = scaffolded(tmp_path, "grill-refused")
+    assert decide_cap_021(workspace, None)[0].startswith("FAIL")
+
+
+@pytest.mark.skipif(shutil.which("git") is None, reason="git is not installed")
+def test_a_yes_that_comes_before_the_read_back_does_not_count(tmp_path):
+    workspace = scaffolded(tmp_path, "grill-refused")
+    swapped = READ_BACK_RECORD.replace("^c01", "^cXX").replace("^c02", "^c01").replace("^cXX", "^c02")
+    swapped = swapped.replace("#^c02]]", "#^c01]]")
+    assert decide_cap_021(workspace, swapped)[0].startswith("FAIL")
+
+
+@pytest.mark.skipif(shutil.which("git") is None, reason="git is not installed")
+def test_a_read_back_in_claudes_voice_alone_is_not_a_yes(tmp_path):
+    workspace = scaffolded(tmp_path, "grill-refused")
+    claude_yes = READ_BACK_RECORD.replace('(@priya) "Yes, still yes."', '(claude) "Yes, still yes."')
+    assert decide_cap_021(workspace, claude_yes)[0].startswith("FAIL")

@@ -244,7 +244,7 @@ def test_w807_fix_text_points_at_the_capture(tmp_path):
     page = vault / "11-unknowns-and-risks.md"
     page.write_text("".join(l for l in page.read_text(encoding="utf-8").splitlines(keepends=True)
                             if not l.startswith("| Q-OPS-01@APP-kiosks | answered")), encoding="utf-8")
-    out = run("check", "--gate", "grill", "--item", "APP-kiosks", "--vault", str(vault), "--today", "2026-11-20")[1]
+    out = run("check", "--gate", "decide", "--item", "APP-kiosks", "--vault", str(vault), "--today", "2026-11-20")[1]
     w807 = [l for l in out.splitlines() if " W807 " in l]
     assert w807 and all("stays in the check output" not in l for l in w807), out
     assert all("decided with <copy IDs> open (W807)" in l for l in w807), out

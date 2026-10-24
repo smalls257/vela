@@ -37,8 +37,9 @@ def session(tmp_path, sync=True):
 # A decided contract check has nothing to say about: the session it was decided in, and who tests it.
 DECIDED = f"- **State:** decided\n- **Decision:** [[{RECORD}]]\n- **Tested by:** the stock read test on both sides"
 MARK = " → keep: [[stock-building-blocks#CON-002 Stock level|CON-002]] (decided)"
-YES = f'- [thought] (@priya) "Yes, decide stock level as read." says yes{MARK} ^c01'
-YES_ROW = f"| CON-002 | fact | decided | [[{RECORD}#^c01]] |"
+BACK = f"- [thought] (claude) Read back: stock level is read on both sides{MARK} ^c01"
+YES = f'- [thought] (@priya) "Yes, decide stock level as read." says yes{MARK} ^c02'
+YES_ROW = f"| CON-002 | fact | decided | [[{RECORD}#^c02]] |"
 
 
 def decide_stock(vault, captures=(), rows=(), extra=""):
@@ -97,7 +98,7 @@ def test_bare_ok_is_not_a_yes(tmp_path):
 
 def test_a_quoted_yes_is_ready(tmp_path):
     vault = session(tmp_path)
-    decide_stock(vault, [YES], [YES_ROW])
+    decide_stock(vault, [BACK, YES], [YES_ROW])
     code, out = gate(vault, "--for-lead")
     assert code == 0 and "ready to finish" in out, out
     assert gate(vault, "--consent-block")[0] == 2  # the flag is gone: the PR carries receipts, not words
@@ -157,7 +158,7 @@ def hooks_ran(vault):
 
 def test_clean_session_passes(tmp_path):
     vault = session(tmp_path)
-    decide_stock(vault, [YES], [YES_ROW])
+    decide_stock(vault, [BACK, YES], [YES_ROW])
     hooks_ran(vault)
     code, out = gate(vault, "--for-lead", "--today", "2026-10-20")
     assert code == 0, out
@@ -167,7 +168,7 @@ def test_clean_session_passes(tmp_path):
 
 def test_unmarked_capture_blocks(tmp_path):
     vault = session(tmp_path)
-    decide_stock(vault, [YES, "- [idea] (claude) ask the till team about returns ^c02"], [YES_ROW])
+    decide_stock(vault, [BACK, YES, "- [idea] (claude) ask the till team about returns ^c03"], [YES_ROW])
     code, out = gate(vault, "--for-lead")
     assert code == 1, out
     assert "One thing said in the session isn't sorted yet: keep it, set it aside for later, or drop it?" in out
@@ -176,7 +177,7 @@ def test_unmarked_capture_blocks(tmp_path):
 
 def test_an_error_with_no_recorded_choice_blocks(tmp_path):
     vault = session(tmp_path)
-    decide_stock(vault, [YES], [YES_ROW])
+    decide_stock(vault, [BACK, YES], [YES_ROW])
     page = vault / STOCK
     page.write_text(page.read_text(encoding="utf-8").replace("- **Tested by:** the stock read test on both sides\n", ""),
                     encoding="utf-8")
@@ -261,7 +262,7 @@ def test_flowcheck_line_per_affected_slice(tmp_path):
 
 def test_reader_copy_checks_without_git(tmp_path, monkeypatch):
     vault = session(tmp_path)
-    decide_stock(vault, ['- [thought] (@priya) "Yes, decide stock level as read." ^c01'], [YES_ROW])
+    decide_stock(vault, [BACK, '- [thought] (@priya) "Yes, decide stock level as read." ^c02'], [YES_ROW])
     shutil.rmtree(vault / ".git")
     (vault / ".vela").mkdir(exist_ok=True)
     (vault / ".vela" / "workspace.json").write_text('{"author": "Sam"}', encoding="utf-8")

@@ -64,8 +64,8 @@ address it, or marked "conventions fix", or "none".
 ## Ship rule, per skill (06 section 4.2)
 
 On its own cases, the plugin arm beats the stub arm on structural defects or provenance in at least
-2 of 3 runs, and passes every invariant in 3 of 3: no `decided` outside a Grill and without an
-explicit yes, no invented ID, no write by `/ask`, `check` clean. A skill that fails is cut to a
+2 of 3 runs, and passes every invariant in 3 of 3: no `decided` without an
+explicit yes after a read-back, no invented ID, no write by `/ask`, `check` clean. A skill that fails is cut to a
 two-line pointer to `CONVENTIONS.md`.
 
 Rerun a skill's cases after any change to its `SKILL.md` or a reference it reads, and when the

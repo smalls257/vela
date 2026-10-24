@@ -82,7 +82,7 @@ def test_the_growth_line_comes_first_so_the_four_line_cap_never_hides_it(tmp_pat
     root = write_plan(tmp_path, apps=apps, capabilities=["new"], releases=["2027-01-15"], stubs=[GROWN_STUB])
     open_session(root)
     items = [arg for slug, _ in apps for arg in ("--item", f"APP-{slug}")]
-    code, out = run("check", "--vault", str(root), "--gate", "grill", *items, "--for-lead")
+    code, out = run("check", "--vault", str(root), "--gate", "decide", *items, "--for-lead")
     assert "The plan has grown" in out, out
     assert "The plan has grown" in out.splitlines()[0] or "The plan has grown" in out.split("more;")[0], out
     meta = privaterecord.stub_meta(session_files.stub_text(root, RECORD_ID))
@@ -94,7 +94,7 @@ def test_the_gate_asks_the_release_date_itself_so_the_skill_carries_no_condition
     from vela import cli, gates
     undated = write_plan(tmp_path / "a", apps=[("scheduler", "new"), ("jobs-api", "new")], capabilities=["new"],
                          releases=[""])
-    code, out = run("check", "--vault", str(undated), "--gate", "grill", "--item", "APP-scheduler", "--for-lead")
+    code, out = run("check", "--vault", str(undated), "--gate", "decide", "--item", "APP-scheduler", "--for-lead")
     assert "no date yet" in out, out
     assert "no date yet" in gates.release_date_ask(cli.load_vault(undated))
     dated = write_plan(tmp_path / "b", apps=[("scheduler", "new"), ("jobs-api", "new")], capabilities=["new"],

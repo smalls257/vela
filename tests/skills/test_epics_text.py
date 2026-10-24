@@ -298,7 +298,7 @@ def test_epics_description_is_the_plans():
 
 def test_epics_says_the_lead_facing_words():
     epics = EPICS.read_text(encoding="utf-8")
-    assert "the app's handoff list" in epics and "not decided yet, until a grill decides it" in epics
+    assert "the app's handoff list" in epics and "until the solution lead settles it, in this session's grill part or whenever sure" in epics
     assert "Decide it anyway (I'll note that the open question was skipped)" in epics
     assert "Grill" not in epics.replace("Grill rows", "").replace("## 6. Grill", "") and "the senior" not in epics  # grill lower case
     assert "Nobody has answered who carries the liability for points balances." in epics

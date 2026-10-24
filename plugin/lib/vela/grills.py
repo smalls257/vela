@@ -1,4 +1,4 @@
-"""The grills waiting: which items a Grill could run on now, who runs each, and what stands in the way. Pure.
+"""The grills waiting: which items could be settled or grilled now, who runs each, and what stands in the way. Pure.
 
 The Violation this exists to prevent is a Distributed Monolith between three readers of one question. "Is this ready
 to decide?" is `gates.verdict`; "did the lead already say yes?" is the Ready to decide lines in the session records;
@@ -9,8 +9,8 @@ dashboard's words, and the page only draws the result (Filter).
 A grill appears in one of three groups, and an item more than one thing away appears in none (a list of everything
 unsettled is the plan itself, not a queue):
 
-- `said-yes`: a session that could not decide kept the lead's yes (`## Ready to decide`) and the item is still not
-  decided. Only the date rides along; the words stay in the private file, so the grill opens by asking the lead to say it again.
+- `said-yes`: a yes the lead gave and didn't settle (`## Ready to decide`) and the item is still not decided. Only
+  the date rides along; the words stay in the private file, so settling opens by asking the lead to say it again.
 - `ready`: the grill gate passes.
 - `one-away`: the gate names exactly one missing thing. It says who owes it and by when, where the plan knows.
 

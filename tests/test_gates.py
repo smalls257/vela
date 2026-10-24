@@ -108,7 +108,7 @@ def test_the_asset_slot_rule_watches_the_explorer_where_it_lives_now():
 # module to tests/test_<module>.py, so its tests live here. The grill skill used to search the unknowns page for
 # `**Blocks:**` itself while E316 does the same search in code: one rule in two places (Distributed Monolith). These pin
 # the one place that now computes the stage, preferred-option, open-question, case-table and flow-check conditions per
-# item, and that the plain `--gate grill` output the skills already read did not move.
+# item, and that the plain `--gate decide` output the skills already read did not move.
 import json  # noqa: E402
 import shutil  # noqa: E402
 
@@ -250,7 +250,7 @@ def test_w807_answered_in_record_is_skipped(ub):
 
 def test_for_lead_reason_names_the_thing(ub):
     block_booking(ub)
-    code, out = run("check", "--vault", str(ub), "--today", TODAY, "--gate", "grill", "--item", "CON-001",
+    code, out = run("check", "--vault", str(ub), "--today", TODAY, "--gate", "decide", "--item", "CON-001",
                     "--item", "CON-007", "--for-lead")
     assert code == 1, out
     assert "Booking API" in out and "how long a hold lasts" in out, out
@@ -259,7 +259,7 @@ def test_for_lead_reason_names_the_thing(ub):
 
 def test_json_carries_each_verdict_for_decide(ub):
     block_booking(ub)
-    code, out = run("check", "--vault", str(ub), "--today", TODAY, "--gate", "grill", "--item", "CON-001", "--json")
+    code, out = run("check", "--vault", str(ub), "--today", TODAY, "--gate", "decide", "--item", "CON-001", "--json")
     assert code == 1
     found = json.loads(out)
     assert found["ready"] is False
@@ -270,7 +270,7 @@ def test_json_carries_each_verdict_for_decide(ub):
 
 
 def test_all_ready_exits_0(ub):
-    code, out = run("check", "--vault", str(ub), "--today", TODAY, "--gate", "grill", "--item", "CON-001", "--for-lead")
+    code, out = run("check", "--vault", str(ub), "--today", TODAY, "--gate", "decide", "--item", "CON-001", "--for-lead")
     assert code == 0 and "Booking API" in out and "ready" in out, out
 
 
@@ -292,13 +292,13 @@ def test_check_without_for_lead_unchanged(tmp_path):
     shutil.copytree(FIXTURE, vault)
     drop_dat_02(vault)
     run("render", "--vault", str(vault))
-    code, out = run("check", "--vault", str(vault), "--today", TODAY, "--gate", "grill", "--item", "CON-001",
+    code, out = run("check", "--vault", str(vault), "--today", TODAY, "--gate", "decide", "--item", "CON-001",
                     "--item", "ADR-0001")
     assert code == 0
-    assert "Checking the open questions that hold up the items a grill will decide. Items: " in out.splitlines()[0]
+    assert "Checking the open questions that hold up the items you'd decide. Items: " in out.splitlines()[0]
     assert len([line for line in out.splitlines() if " W807 " in line]) == 3
-    assert run("check", "--vault", str(vault), "--gate", "grill", "--item", "CON-099", "--for-lead")[0] == 2
-    assert run("check", "--vault", str(vault), "--json")[0] == 2, "--json goes with --gate grill --item"
+    assert run("check", "--vault", str(vault), "--gate", "decide", "--item", "CON-099", "--for-lead")[0] == 2
+    assert run("check", "--vault", str(vault), "--json")[0] == 2, "--json goes with --gate decide --item"
 
 
 # ------------------------------------------------------------------ --all: one call finds what is ready
@@ -307,7 +307,7 @@ def test_gate_all_lists_every_waiting_item_with_the_ready_ones_first(ub):
     ids = grill.candidates(cli.load_vault(ub))
     assert "CON-001" in ids and "CON-002" in ids
     block_booking(ub)
-    code, out = run("check", "--vault", str(ub), "--today", TODAY, "--gate", "grill", "--all", "--json")
+    code, out = run("check", "--vault", str(ub), "--today", TODAY, "--gate", "decide", "--all", "--json")
     data = json.loads(out)["items"]
     assert {i["id"] for i in data} == set(ids)
     flags = [i["ready"] for i in data]
@@ -315,6 +315,6 @@ def test_gate_all_lists_every_waiting_item_with_the_ready_ones_first(ub):
     assert any(not f for f in flags)
 
 
-def test_gate_all_refuses_a_named_item_and_a_non_grill_gate(ub):
-    assert run("check", "--vault", str(ub), "--gate", "grill", "--all", "--item", "CON-001")[0] == 2
+def test_gate_all_refuses_a_named_item_and_a_non_decide_gate(ub):
+    assert run("check", "--vault", str(ub), "--gate", "decide", "--all", "--item", "CON-001")[0] == 2
     assert run("check", "--vault", str(ub), "--gate", "shape", "--all")[0] == 2

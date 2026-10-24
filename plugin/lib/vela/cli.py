@@ -1333,7 +1333,7 @@ def check_lead_header(errors, warnings, pages):
 # What each gate checks, said in the summary line instead of the gate's bare name.
 GATE_WORDS = {"epics": "Checking whether the epics are ready to call finished.",
               "shape": "Checking for questions the plan still answers by assumption, as shaping ends.",
-              "grill": "Checking the open questions that hold up the items a grill will decide."}
+              "decide": "Checking the open questions that hold up the items you'd decide."}
 # The kept working words, matched whole and in any case, so output that uses one defines it once, at the end.
 TERM_WORD = re.compile(r"\b(grill|slice|tracer)s?\b", re.IGNORECASE)
 
@@ -1588,12 +1588,12 @@ def gate_app(vault, gate, app_id):
 
 
 def gate_items(vault, gate, items):
-    """The items a grill gate checks. A grill gate needs at least one, and only a grill gate takes any."""
+    """The items the decide gate checks. It needs at least one, and only it takes any."""
     items = list(items or ())
-    if gate == "grill" and not items:
-        raise ToolError("--gate grill needs the items the grill will decide: add --item <ID> for each, for example --item CON-001.")
-    if items and gate != "grill":
-        raise ToolError("--item names what a grill will decide, so it goes with --gate grill.")
+    if gate == "decide" and not items:
+        raise ToolError("--gate decide needs the items you'd decide: add --item <ID> for each, for example --item CON-001.")
+    if items and gate != "decide":
+        raise ToolError("--item names what you'd decide, so it goes with --gate decide.")
     missing = [i for i in items if i not in vault.known_ids()]
     if missing:
         raise ToolError(f"--item {', '.join(missing)} is not an ID in this vault.")
@@ -2847,9 +2847,9 @@ def first_step(vault):
         return ("for the whole plan: run a boundary session, with /vela:boundary. The solution strategy is decided and "
                 "no app page exists yet, so split the work into apps.")
     sources = strategy.meta.get("sources") if strategy is not None else None
-    if isinstance(sources, list) and sources and not sized.needs(sizing.Need.OPTIONS_BEFORE_GRILL):
-        return ("for the whole plan: grill the solution strategy, with /vela:grill 04-solution-strategy. Boundary waits "
-                "until the direction is decided; one question about other options is enough at this size.")
+    if isinstance(sources, list) and sources and not sized.needs(sizing.Need.OPTIONS_BEFORE_DECIDING):
+        return ("for the whole plan: settle the solution strategy when you're sure, in this session, or test it "
+                "first with /vela:grill 04-solution-strategy. Boundary waits until the direction is decided.")
     return ("for the whole plan: no app page exists yet, so start by getting everything known written down "
             "(/vela:dump, a brainstorm), or by reading the existing sources (/vela:discover).")
 

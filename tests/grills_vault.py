@@ -1,4 +1,4 @@
-"""A small vault with one grill in each group, for the tests of the Grills waiting list, its owner command and the page.
+"""A small vault with one grill in each group, for the tests of the Waiting for a decision list, its owner command and the page.
 
 On top of the mini shop: CON-010 is ready, CON-011 waits on one open question, CON-012 is two things away (no options,
 no case table), CON-013 is an item the lead said yes to in a shape session. EPC-001 waits on the shop's contracts.
