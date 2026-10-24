@@ -35,7 +35,7 @@ import json
 import pathlib
 import shutil
 
-from vela import commands, privaterecord, questions, reviewprep, say
+from vela import commands, privaterecord, questions, reviewprep, say, sizing
 from vela.commands import close_drafts, close_stage, record
 from vela.edge import copies, flowstore, sessiongit, vaultgit
 
@@ -149,6 +149,20 @@ def _clear(root, *folders):
         path.mkdir(parents=True)
 
 
+def _prepared(root, record_id):
+    """How many checkpoints this session has already prepared: the findings folders `prepare` makes for it."""
+    folder = root / ".vela" / "findings" / record_id
+    return sum(1 for child in folder.iterdir() if child.is_dir()) if folder.is_dir() else 0
+
+
+def _all_skipped(vault, n, args, reason):
+    """A checkpoint with no packets: every area listed as skipped with `reason`, nothing written or cleared."""
+    prep = reviewprep.Prep(n, reviewprep.heading(n, args.checkpoint, today_of(args), None, ()),
+                           f".vela/review/{n}", "", "")
+    prep.skipped += [reviewprep.Skipped(code, label, reason) for code, label in vault.catalog.areas]
+    return prep
+
+
 def prepare(root, args, reader, cli):
     vault = cli.load_vault(root)
     only = _check_args(args, vault.catalog.area_codes)
@@ -161,6 +175,10 @@ def prepare(root, args, reader, cli):
         held = reviewprep.checkpoints(text)
         raise Failed(f"--rerun {args.rerun}: the record has no checkpoint {args.rerun} under ## Reviews"
                      + (f" (it has {', '.join(map(str, held))})." if held else " (it has none yet)."))
+    if args.rerun is None:
+        reason = reviewprep.session_skip(text, sizing.of(vault), _prepared(root, record_id))
+        if reason:
+            return said(_all_skipped(vault, n, args, reason), args, [], None, reader, rel)
     changes = _changes(root, reader, cli)
     commit = None if reader else _commit(root, record_id, changes)
     now = {p.path: p.text for p in vault.pages}
@@ -224,7 +242,7 @@ def default_lines(prep, commit, reader):
                                                                            "changed pages were already committed."))
     lines += [f"- {p.area} {p.label}: {p.packet}" for p in prep.packets]
     lines += [f"skipped {s.area} {s.label}: {s.reason}" for s in prep.skipped]
-    if prep.n is not None:
+    if prep.n is not None and prep.packets:
         lines.append(f"Heading once merged: {prep.heading}")
         lines.append(f"Merge: {prep.merge_command()}")
     return [say.Line(text) for text in lines]
@@ -233,6 +251,10 @@ def default_lines(prep, commit, reader):
 def lead_lines(prep):
     """The one sentence the lead hears while the reviewers run, with each skipped angle named by its label."""
     count = len(prep.packets)
+    if not count and prep.skipped and all(s.reason == reviewprep.ONE_PER_SESSION for s in prep.skipped):
+        words = ("I've already had this session checked, and at this size one check covers what changed. "
+                 "Want me to run it again anyway?")
+        return [say.Line(words, plain=words)]
     words = f"Checking this against {COUNT_WORDS.get(count, count)} angle{'' if count == 1 else 's'}, about a minute."
     if prep.skipped:
         names = ", ".join(s.label.lower() for s in prep.skipped)

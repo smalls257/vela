@@ -26,6 +26,10 @@ The rules, each with its reason:
   no pending reviewer question in it, and no page this checkpoint reads closely (changed or focus) is the subject page
   of any copy in it. When in doubt it is reviewed. A skipped area is listed with its reason, never silently absent,
   and `--rerun N --areas` runs it later.
+- **One checkpoint a session below large** (`session_skip`): one checkpoint covers what changed, so a second `prepare` in
+  the same session lists every area as skipped, with the reason, unless the plan's size asks for a review after each
+  mode (`Need.REVIEW_EACH_MODE`). `--rerun N --areas` still runs any area, so the lead can always ask. A checkpoint
+  counts once it was prepared (its findings folder exists) or merged (its `### ` heading is in the record).
 - **The design checkpoint has five fixed reviewers** (`TEAM_AREAS`): a design opens no session record and touches no
   vault page, so it has no catalog areas; its reviewers each take one angle on the design doc.
 
@@ -36,6 +40,7 @@ import re
 from dataclasses import dataclass, field
 
 from vela import closegate
+from vela.sizing import Need
 
 REVIEWS = "## Reviews"
 LEDGER_HEADING = "## Question ledger"
@@ -49,6 +54,8 @@ _DIGEST_LINE = re.compile(r"^Digest shown:\s*(?P<ids>.*)$")
 _CHECKPOINT = re.compile(r"^### (?P<n>\d+)\.")
 _TAKEN_ID = re.compile(r"\bQ-[A-Z]{3}-\d{2,}@[\w.-]+\*?|\bR-[A-Z]{3}-\d{2,}\b")
 
+ONE_PER_SESSION = ("this session already had its review checkpoint, and at this plan's size one a session covers "
+                   "what changed; --rerun N --areas runs any area anyway")
 NOTHING_OWED = "nothing is owed in it and no page this checkpoint changed or focuses on is about a subject it covers"
 
 # REVIEW-CHECKPOINT section 1: the design's five angles. Each asks what the interview cannot surface, because nobody in
@@ -101,6 +108,15 @@ def checkpoint_number(record_text):
     if span is None:
         return 1
     return 1 + sum(1 for i in range(*span) if lines[i].startswith("### "))
+
+
+def session_skip(record_text, sized, prepared=0):
+    """"" when a checkpoint is due: none has run in this record yet (no `### ` heading under `## Reviews`, and none
+    `prepared` whose findings folder exists), or the plan's size asks for a review after each mode. Else why every
+    area is skipped."""
+    if sized.needs(Need.REVIEW_EACH_MODE):
+        return ""
+    return ONE_PER_SESSION if prepared or checkpoint_number(record_text) > 1 else ""
 
 
 def heading(n, checkpoint, today, rerun_of=None, areas=()):
