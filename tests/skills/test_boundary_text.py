@@ -261,5 +261,5 @@ def test_boundary_drafts_the_paragraph_of_each_item_it_files_now():
 
 def test_boundary_stays_lean():
     """Sensor against regrowth: 2,552 words before the trim (now 2,387); PAGES.md 1,001 before (now about 930)."""
-    assert len(text("skills/boundary/SKILL.md").split()) <= 1650  # 2,387 before the second trim; 1,598 after
+    assert len(text("skills/boundary/SKILL.md").split()) <= 1675  # 2,387 before the second trim; 1,598 after; plan sizing's existence read-back and requirements line add 46, lane groups 40
     assert len(text("skills/boundary/PAGES.md").split()) <= 960
