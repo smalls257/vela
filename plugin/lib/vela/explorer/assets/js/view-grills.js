@@ -1,7 +1,7 @@
-/* Grills waiting: the things the plan is ready to decide, or one answer away from ready, by who runs the grill. A card says
-   what the grill would settle, where the item stands, what it holds up and who owns it. Picking one opens it in the
-   right-hand panel with a prompt to hand to Claude (`/vela:grill <name>`), and a batch builds one prompt for several, in
-   the order that unblocks the most.
+/* Waiting for a decision: the things the plan is ready to decide, or one answer away from ready, by who runs the grill. A
+   card says what deciding it would settle, where the item stands, what it holds up and who owns it. Picking one opens it
+   in the right-hand panel with two prompts to hand to Claude: "Settle <name>" for a lead who is sure, and
+   `/vela:grill <name>` to test it first. A batch builds one grill prompt for several, in the order that unblocks the most.
 
    The Violation this exists to prevent is a Leaky Narrative on the page: whether an item is ready, whether the lead already
    said yes, who owns it and what it waits on are decided in vela/grills.py and arrive as fields. This file only filters
@@ -17,7 +17,7 @@ const Grills = (() => {
   for (const r of rows) if (!BY_KEY[r.key]) BY_KEY[r.key] = r;
   const keyOf = (r) => "grill:" + r.id;
   const GROUPS = [
-    ["said-yes", "You already said yes", "confirm in a grill", "yes", "Items you said yes to in a session that couldn't decide. The grill reads your words back and confirms."],
+    ["said-yes", "You already said yes", "settle it, or grill it", "yes", "Items you said yes to and didn't settle. Settle one when you're sure, or grill it to test it first."],
     ["ready", "Ready to decide", "nothing in the way", "ready", "Items with a preferred option and no open question in the way."],
     ["one-away", "One thing away", "not ready yet", "wait", "Items with exactly one thing in the way. Each says what it is and who owes it."],
   ];
@@ -86,6 +86,22 @@ const Grills = (() => {
     return parts.join(" ");
   }
   const prompt = (r) => `/vela:grill ${r.name}\n\n${promptBody(r)}`;
+  /* The settle prompt is the same facts without the grill's last sentences: no slash command, so with no session running
+     Claude opens whatever takes "settle an item" (the grill skill, for now: the owner's open question, answered by the
+     plan's default). To open a different skill, change SETTLE_OPENS_WITH and nothing else. */
+  const SETTLE_OPENS_WITH = (r) => `Settle ${r.name}. I'm sure of it.`;
+  function settleBody(r) {
+    const parts = [];
+    if (r.settles.length) parts.push(`It settles: ${listWords(r.settles.map((s) => settleLine(s).replace(/\.$/, "")), 3)}.`);
+    if (r.group === "said-yes") parts.push(`I said yes to this on ${dayYear(r.yes.date)}. Read it back to me before you write it.`);
+    else if (r.group === "ready") parts.push("Nothing is in the way, so it's ready to decide.");
+    else parts.push(`One thing is in the way: ${waitingSentence(r)} Ask me about it first.`);
+    if (r.holdsUp.length) parts.push(`It holds up ${listWords(holdsNames(r))}.`);
+    const joiners = r.join.map(personName);
+    if (joiners.length) parts.push(`${listWords(joiners)} ${joiners.length > 1 ? "have" : "has"} been asked to join, so check what they need to confirm.`);
+    return parts.join(" ");
+  }
+  const settlePrompt = (r) => `${SETTLE_OPENS_WITH(r)}\n\n${settleBody(r)}`;
   function byUnblocked(list) { return list.slice().sort((a, b) => b.holdsUp.length - a.holdsUp.length || GROUP_ORDER.indexOf(a.group) - GROUP_ORDER.indexOf(b.group) || cmp(a.name, b.name)); }
   function batchPrompt(list) {
     const ordered = byUnblocked(list);
@@ -221,10 +237,10 @@ const Grills = (() => {
         h("button", { class: "btn", type: "button", "data-act": "clear-batch", onclick: () => { st.batch = []; refresh(); repaintPanel(); } }, "Clear the batch")));
   }
   function render(main) {
-    main.append(h("div", { class: "view-head" }, h("div", {}, h("h1", {}, "Grills waiting"),
-      h("p", {}, "These are the things the plan is ready to decide, or nearly ready. Pick one to see what the grill would settle and what it holds up. Then copy the prompt into Claude to start the grill.")),
+    main.append(h("div", { class: "view-head" }, h("div", {}, h("h1", {}, "Waiting for a decision"),
+      h("p", {}, "These are the things the plan is ready to decide, or nearly ready. Pick one to see what deciding it would settle and what it holds up. Then copy a prompt into Claude: settle it if you're sure, or grill it to test it first.")),
       h("div", { class: "spacer" })));
-    if (!rows.length) { main.append(emptyState("No grill is waiting.", "An item shows here once it has a preferred option and nothing in the way, or you said yes to it in a session that couldn't decide.")); return; }
+    if (!rows.length) { main.append(emptyState("Nothing is waiting for a decision.", "An item shows here once it has a preferred option and nothing in the way, or you said yes to it and didn't settle it.")); return; }
     main.append(h("div", { class: "g-wrap" }, h("div", { class: "g-barhost" }, filterBar()), h("div", { class: "g-stage" })));
     paint();
   }
@@ -300,7 +316,7 @@ const Grills = (() => {
     return `Change who runs the grill on ${r.name}. ${listWords(r.owner.map(personName), 3) || "Nobody"} runs it now${r.join.length ? `, with ${listWords(r.join.map(personName))} asked to join` : ""}. Ask me who should run it and who to ask to join.`;
   }
   function nodes(key) {
-    const r = BY[key.slice(6)], [pillText, tone] = pillOf(r), inBatch = st.batch.includes(r.id), text = prompt(r);
+    const r = BY[key.slice(6)], [pillText, tone] = pillOf(r), inBatch = st.batch.includes(r.id), text = prompt(r), settle = settlePrompt(r);
     const head = h("div", { class: "p-head" }, h("div", { class: "kind" }, `${kindWord(r)} · ${r.group === "said-yes" ? "you said yes" : r.group === "ready" ? "ready to decide" : "one thing away"}`),
       h("h2", {}, r.name), h("div", { class: "p-meta" }, h("span", { class: `g-pill ${tone}` }, r.group === "ready" ? "nothing in the way" : pillText)));
     const ownerRows = [h("li", {}, listWords(r.owner.map((o) => (isYou(o) ? `You (${personName(o)})` : personName(o))), 3) || "Not recorded", ": runs it and decides ",
@@ -311,8 +327,12 @@ const Grills = (() => {
       Panel.section("What it holds up", r.holdsUp.length || null, r.holdsUp.length ? h("div", { class: "g-panelchips" }, r.holdsUp.map(chip)) : Panel.empty("Nothing is recorded as waiting on it.")),
       Panel.section("Owner", null, bulletList(ownerRows)),
       Panel.section("Asked to join", r.join.length || null, r.join.length ? bulletList(r.join.map((j) => (isYou(j) ? `You (${personName(j)})` : personName(j)))) : Panel.empty("Nobody is asked to join.")),
-      Panel.section("Prompt for Claude", null, h("pre", { class: "g-prompt", "data-prompt": "one" }, text),
-        h("div", { class: "g-btns" }, h("button", { class: "btn g-primary", type: "button", "data-act": "copy", onclick: () => copy(text, "the prompt") }, "Copy prompt"),
+      Panel.section("Prompt for Claude", null, h("p", { class: "p-note" }, "Sure of it? Settle it:"),
+        h("pre", { class: "g-prompt", "data-prompt": "settle" }, settle),
+        h("div", { class: "g-btns" }, h("button", { class: "btn g-primary", type: "button", "data-act": "copy-settle", onclick: () => copy(settle, "the settle prompt") }, "Copy settle prompt")),
+        h("p", { class: "p-note" }, "Want it tested first? Grill it:"),
+        h("pre", { class: "g-prompt", "data-prompt": "one" }, text),
+        h("div", { class: "g-btns" }, h("button", { class: "btn", type: "button", "data-act": "copy", onclick: () => copy(text, "the prompt") }, "Copy prompt"),
           h("button", { class: "btn", type: "button", "data-act": "batch", "aria-pressed": String(inBatch), onclick: () => toggleBatch(r.id) }, inBatch ? "In the batch (remove)" : "Add to a batch"),
           h("button", { class: "btn", type: "button", "data-act": "open-item", onclick: () => openItem(r) }, `Open the ${kindWord(r).toLowerCase()}`)),
         h("p", { class: "p-note" }, "Add to a batch builds one prompt that grills several items in one session, in the order that unblocks the most.")))];
@@ -323,22 +343,23 @@ const Grills = (() => {
     const r = BY_KEY[key];
     if (!r || r.group === "one-away") return null;
     return Panel.section("Ready for a grill", null, h("div", { class: "g-ready-line", "data-ready-for": r.id },
-      h("span", {}, r.group === "said-yes" ? "You said yes to this. A short grill confirms it." : "Nothing is in the way. Copy the prompt and paste it into Claude."),
-      h("button", { class: "btn tiny g-primary", type: "button", "data-act": "copy-ready", onclick: () => copy(prompt(r), "the prompt") }, "Copy prompt"),
-      h("button", { class: "btn tiny", type: "button", "data-act": "see-grill", onclick: () => { open(); select(keyOf(r)); } }, "See it in Grills waiting")));
+      h("span", {}, r.group === "said-yes" ? "You said yes to this. Settle it when you're sure, or copy the grill prompt to test it." : "Nothing is in the way. Settle it when you're sure, or copy the grill prompt to test it."),
+      h("button", { class: "btn tiny g-primary", type: "button", "data-act": "copy-ready-settle", onclick: () => copy(settlePrompt(r), "the settle prompt") }, "Copy settle prompt"),
+      h("button", { class: "btn tiny", type: "button", "data-act": "copy-ready", onclick: () => copy(prompt(r), "the prompt") }, "Copy grill prompt"),
+      h("button", { class: "btn tiny", type: "button", "data-act": "see-grill", onclick: () => { open(); select(keyOf(r)); } }, "See it in Waiting for a decision")));
   }
 
   /* ------------------------------------------------------------ the Details panel (detailspanel.js) */
   function summaryNodes() {
     const mine = forYou(), next = byUnblocked(mine.filter(readyNow))[0];
-    return [PlanDetails.head("Grills waiting", plural(rows.length, "grill")),
+    return [PlanDetails.head("Waiting for a decision", plural(rows.length, "item")),
       h("div", { class: "p-body" }, Panel.section(hasViewer() ? `For ${viewerName()}` : "For everyone", mine.length || null, mine.length
         ? PlanDetails.bullets(byUnblocked(mine).slice(0, 5).map((r) => PlanDetails.link(keyOf(r), r.name))) : PlanDetails.quiet("No grill is waiting for this person.")),
       next ? h("div", { class: "p-note" }, `Start with ${next.name}${next.holdsUp.length ? `: it holds up ${plural(next.holdsUp.length, "thing")}` : ""}.`) : null,
-      h("div", { class: "p-note" }, "Pick a grill to see what it would settle, then copy the prompt into Claude."))];
+      h("div", { class: "p-note" }, "Pick one to see what deciding it would settle, then copy a prompt into Claude."))];
   }
   DetailsPanel.register("grills", {
-    view: "grills", live: () => rows.length > 0, rootLabel: "Grills waiting", summary: summaryNodes,
+    view: "grills", live: () => rows.length > 0, rootLabel: "Waiting for a decision", summary: summaryNodes,
     owns: (k) => k.startsWith("grill:") || PlanDetails.owns(k), detail: (k) => (k.startsWith("grill:") ? nodes(k) : PlanDetails.detail(k, "grills")),
     label: (k) => (k.startsWith("grill:") ? (BY[k.slice(6)] || { name: k }).name : PlanDetails.label(k)), open: (k) => (k.startsWith("grill:") ? null : PlanDetails.openFor(k, "grills")),
     focus: (k) => { const was = st.open; st.open = k && k.startsWith("grill:") ? k : ""; if (was !== st.open && App.view === "grills") paint(); },
@@ -376,6 +397,6 @@ const Grills = (() => {
   readHash();  // a link names who is viewing (#s=grills&as=agent-lead), and the top bar and sidebar count for them from the first paint
   const entry = (key) => (BY[key.slice(6)] ? { key, kind: "grill", title: BY[key.slice(6)].name, id: "" } : null);
   return { rows, exists, count, forYou, badgeWords, badgeTip, open, boot, readHash, hashParts, entry, nodes, readyLine, render, select, st, visible, countOf, hasViewer, viewerHandles,
-    isMine, isAsked, prompt, batchPrompt, byUnblocked, setViewer, toggleBatch, keyOf, waitingSentence, from: null };
+    isMine, isAsked, prompt, settlePrompt, batchPrompt, byUnblocked, setViewer, toggleBatch, keyOf, waitingSentence, from: null };
 })();
-View("grills", { label: "Grills waiting", title: "What the plan is ready to decide, by who runs the grill", render: Grills.render, count: () => String(Grills.count()) });
+View("grills", { label: "Waiting for a decision", title: "What the plan is ready to decide, by who runs the grill", render: Grills.render, count: () => String(Grills.count()) });

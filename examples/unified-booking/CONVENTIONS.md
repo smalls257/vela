@@ -10,7 +10,7 @@ One vault holds one initiative. Pages are numbered by arc42 section.
 |---|---|
 | `README.md` | Home page: layout, reading paths, setup checklist |
 | `CLAUDE.md` | How Claude answers questions from this vault. A person writes it. |
-| `.vela.yaml` | `initiative` (`INI-nnn`), `title`, `stale_after_days` (default 60), and optionally `link_templates` (see Links out of the vault), `designs` (see Team design docs), `owner_contact` (who a published copy's readers write to), `roles` (who holds which role, see Onboarding), `grills` (who runs a grill and who is asked to join, see Grills waiting) and `role: reader` (see Roles and published copies), and `records_split` (the date `vela records split` moved the session records to private notes; receipts that link a stub dated earlier are exempt from the words rule) |
+| `.vela.yaml` | `initiative` (`INI-nnn`), `title`, `stale_after_days` (default 60), and optionally `link_templates` (see Links out of the vault), `designs` (see Team design docs), `owner_contact` (who a published copy's readers write to), `roles` (who holds which role, see Onboarding), `grills` (who runs a grill and who is asked to join, see Waiting for a decision) and `role: reader` (see Roles and published copies), and `records_split` (the date `vela records split` moved the session records to private notes; receipts that link a stub dated earlier are exempt from the words rule) |
 | `01-goals.md` | Goals table, and the `where-it-stands` and `progress-map` blocks |
 | `02-constraints.md` | Constraints table, `CST-n` |
 | `03-context-and-scope.md` | Systems today and after; apps in and out of scope |
@@ -278,9 +278,9 @@ Authority comes from access, not title and not config. An **owner** works inside
 
 `vela freshness [--json]` says whether anything has changed, and never updates anything. An owner's clone runs `git fetch` (8 seconds, `--timeout` to change) and reports commits behind and ahead of upstream and uncommitted files; offline is said plainly and local state is shown. A reader's workspace compares its baseline stamp with the stamp at the folder or zip it was opened from; an unreachable source is said plainly, and is not a failure.
 
-## Grills waiting
+## Waiting for a decision
 
-The dashboard's **Grills waiting** view lists what a Grill could decide now, in three groups: **You already said yes** (a session that could not decide kept your yes under `## Ready to decide`), **Ready to decide** (`vela check --gate grill` passes) and **One thing away** (the gate names exactly one missing thing, with who owes it and by when). An item more than one thing away is not listed. It is computed in `vela/grills.py` from those same three sources, so the view and the gate cannot disagree.
+The dashboard's **Waiting for a decision** view lists what could be decided now, in three groups: **You already said yes** (a yes you gave and didn't settle, kept under `## Ready to decide`), **Ready to decide** (`vela check --gate grill` passes) and **One thing away** (the gate names exactly one missing thing, with who owes it and by when). An item more than one thing away is not listed. It is computed in `vela/grills.py` from those same three sources, so the view and the gate cannot disagree. Each card carries two prompts for Claude: "Settle <name>", for a lead who is sure, and "/vela:grill <name>", to test it first.
 
 **Who runs a grill.** The item's own owner, unless someone sets the grill's owner. People **asked to join** see the grill under their own filter. Both are kept in `.vela.yaml`, keyed by the item's ID, and set only with the command, never by hand:
 

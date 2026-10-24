@@ -30,7 +30,7 @@ const Needs = (() => {
     },
     grill(l) {
       const g = grillOf(l.grill);
-      return ["✓", `Grill: ${g ? g.name : titleFor(l.key)}`, `${you() ? "Yours to run" : "Waiting to be run"} · ${l.standing === "said-yes" ? "the lead already said yes, confirm in a grill" : "ready, nothing in the way"}`, "ready", "ok"];
+      return ["✓", `Grill: ${g ? g.name : titleFor(l.key)}`, `${you() ? "Yours to run" : "Waiting to be run"} · ${l.standing === "said-yes" ? "the lead already said yes, settle it or grill it" : "ready, nothing in the way"}`, "ready", "ok"];
     },
     proposal(l) {
       const by = l.by ? personName(l.by) : "A reader";
@@ -52,7 +52,7 @@ const Needs = (() => {
   function joinLink() {
     const n = typeof Grills !== "undefined" && Grills.exists() && Grills.hasViewer() ? Grills.countOf("join") : 0;
     if (!n) return null;
-    return h("button", { class: "linkish ny-join", type: "button", onclick: () => { Grills.st.scope = "join"; Grills.open(); } }, `${plural(n, "more grill")} where you're asked to join → Grills waiting`);
+    return h("button", { class: "linkish ny-join", type: "button", onclick: () => { Grills.st.scope = "join"; Grills.open(); } }, `${plural(n, "more grill")} where you're asked to join → Waiting for a decision`);
   }
   function body(list) {
     const shown = st.all ? list : list.slice(0, SHOWN), rest = list.length - SHOWN;

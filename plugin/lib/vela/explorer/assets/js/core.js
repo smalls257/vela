@@ -315,7 +315,7 @@ function ent(key) {
     const at = +key.slice(8), s = D.releases.count && at > 0 ? D.releases.states[at] : null;  // 0 is Today, not a release
     return s ? { key, kind: "release", title: s.heading || s.name, id: "" } : null;
   }
-  if (key && key.startsWith("grill:")) return typeof Grills !== "undefined" ? Grills.entry(key) : null;  // a grill waiting, as the Grills waiting view lists it
+  if (key && key.startsWith("grill:")) return typeof Grills !== "undefined" ? Grills.entry(key) : null;  // a grill waiting, as the Waiting for a decision view lists it
   if (key && key.startsWith("lib:")) return typeof Library !== "undefined" ? Library.entry(key) : null;  // a Library row, whatever page cites it
   if (key && key.startsWith("gap:")) { const l = D.lanes[LANE_INDEX[key]]; return l ? { key, kind: "gap", title: l.name, id: "" } : null; }  // an end a flow step names that the plan doesn't know
   if (EXTERNAL[key]) return { key, kind: "external", title: EXTERNAL[key].title, id: "" };

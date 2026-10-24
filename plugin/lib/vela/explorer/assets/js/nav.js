@@ -166,7 +166,7 @@ const Nav = (() => {
   }
   const whereLabel = (w) => {
     if (!w) return "the front door";
-    if (w.section === "grills") return "Grills waiting";
+    if (w.section === "grills") return "Waiting for a decision";
     if (w.section.startsWith("role:")) return (Roles.ROLES.find(([id]) => id === w.section.slice(5)) || [0, "the front door"])[1];
     if (w.section.startsWith("onboard:")) return "Get up to speed";
     const s = SECTIONS[w.section];
@@ -366,7 +366,7 @@ const Nav = (() => {
     side.innerHTML = "";
     side.append(viewingAs(), h("div", { class: "side-group" }, h("div", { class: "side-h" }, "Start here"),
       Grills.exists() ? h("button", { class: "side-grills-door" + (App.section === "grills" ? " on" : ""), "aria-current": App.section === "grills" ? "page" : null, title: Grills.badgeTip(), onclick: () => Grills.open() },
-        h("span", { class: "side-label" }, "Grills waiting"), Grills.count() ? h("span", { class: "side-n lit caution", "data-grills-count": Grills.count() }, Grills.count()) : null) : null,
+        h("span", { class: "side-label" }, "Waiting for a decision"), Grills.count() ? h("span", { class: "side-n lit caution", "data-grills-count": Grills.count() }, Grills.count()) : null) : null,
       typeof Ask !== "undefined" && Ask.served() ? h("button", { class: "side-home side-ask" + (App.section === "ask" ? " on" : ""), "aria-current": App.section === "ask" ? "page" : null, title: "Ask Claude about the plan", onclick: () => Ask.open() },
         h("span", { class: "side-label" }, "Ask Claude"), Ask.count() ? h("span", { class: "side-n" }, Ask.count()) : null) : null));
     const vault = h("div", { class: "side-group" }, CapFocus.bar("side"), h("div", { class: "side-h" }, "Plan pages"));

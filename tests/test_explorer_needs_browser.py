@@ -3,7 +3,7 @@
     python3 -m pytest -q -m browser tests/test_explorer_needs_browser.py
 
 The page's own selftest opens every role overview and finds the block under its heading, cuts seven lines to five behind
-"2 more", checks the "N for you" badge, the block, Grills waiting and the question filter give one answer for each of the
+"2 more", checks the "N for you" badge, the block, Waiting for a decision and the question filter give one answer for each of the
 people the vault names (they all ask one Viewer), draws a late question in red with its date, says "Nothing needs you right
 now." with no badge when there is nothing, names the next date, never says "you" with nobody viewing, jumps from the badge
 to the block, and finds no What's waiting page, sidebar entry or "waiting" badge. A selftest that quietly skipped them would
@@ -27,7 +27,7 @@ WANTED = [
     "needs you: a line opens ",
     "needs you: the \"7 for you\" badge, clicked from another page, lands on the viewer's overview with Needs you focused",
     "needs you: a late question says \"due\" and its date in red, shows the question itself and says you were asked",
-    "the block, the badge, Grills waiting and the viewer give the same answer",
+    "the block, the badge, Waiting for a decision and the viewer give the same answer",
     "needs you: with nothing for the viewer it is one line, \"Nothing needs you right now.\", and there is no badge",
     "needs you: with a date on their side the empty line names it",
     "needs you: with nobody viewing the block says how to pick someone and does not say \"you\"",
