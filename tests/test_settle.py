@@ -254,6 +254,28 @@ def test_a_hand_set_decided_citing_that_s_decided_fails_close(tmp_path):
     assert any("never read" in p.get("plain", "") for p in gate.get("problems", [])), gate
 
 
+def test_the_read_back_has_to_be_claudes_words_not_the_leads_remark(tmp_path):
+    root = make_vault(tmp_path)
+    in_session_with_modes(root, "shape")
+    code, out = decide(root, "--readback", "^c02", "--yes", "^c03", "--provider", "^c07")  # ^c02 is the lead's
+    assert code == 1 and "consent-readback-not-claudes" in rules_of(out)
+
+
+def test_a_lead_capture_marked_decided_is_not_a_read_back_at_close(tmp_path):
+    keep = "[[stock-building-blocks#CON-002 Stock level|CON-002]] (decided)"
+    root = make_vault(tmp_path, captures=[f'- [thought] (@priya) "That\'s decided." → keep: {keep} ^c01',
+                                          '- [answer] (@priya) "Yes, go." ^c02'])
+    in_session_with_modes(root, "grill")
+    on_a_session_branch(root)
+    page = (root / STOCK).read_text(encoding="utf-8")
+    (root / STOCK).write_text(re.sub(r"(### CON-002[\s\S]*?- \*\*State:\*\* )assumption", r"\1decided", page, count=1),
+                              encoding="utf-8")
+    session_files.edit_record(root, RECORD_ID, "## Captures",
+                              f"## Changes\n\n| ID | From | To | Source |\n|---|---|---|---|\n"
+                              f"| CON-002 | assumption | decided | [[{RECORD_ID}#^c02]] |\n\n## Captures")
+    assert any("never read" in p["plain"] for p in consent_problems(root))
+
+
 # --- settling a pick writes its options
 
 PICK = CAPTURES + ['- [answer] (@priya) "One Shop API. That\'s decided." ^c16',

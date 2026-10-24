@@ -227,12 +227,12 @@ def judge_change(change, rows, said, vault, record_name, part=1):
 
 
 def read_back_before(capture, said, item, state):
-    """True when a capture numbered before `capture` keeps `item` at `state` (markrules.parse_mark: the read-back mark
-    `vela decide` writes on every capture it filed). A read-back an earlier mode marked at `assumption` does not count.
+    """True when a capture of Claude's numbered before `capture` keeps `item` at `state` (markrules.parse_mark: the
+    read-back mark `vela decide` writes on every capture it filed). The lead's own remarks never count, however marked. A read-back an earlier mode marked at `assumption` does not count.
     Imported inside the function: markrules imports closegate."""
     from vela import markrules
     for other in said.values():
-        if int(other.n) >= int(capture.n):
+        if int(other.n) >= int(capture.n) or other.is_person:
             continue
         mark = markrules.parse_mark(other.mark)
         if mark is not None and any(t.id == item and t.state == state for t in mark.targets):
