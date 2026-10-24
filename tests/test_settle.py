@@ -6,6 +6,7 @@ import pytest
 
 import session_files
 from conftest import REPO, run
+from vela import closegate, override, say, schema
 from test_decide import (RECORD_ID, STOCK, TODAY, block_con_002, decide_con_002, git_init, git_log,
                          in_session_with_modes, make_vault)
 
@@ -89,3 +90,23 @@ def test_nothing_reads_a_sessions_modes_to_decide():
     hits = [f"{p.relative_to(REPO)}:{n}" for p in LIB.rglob("*.py")
             for n, line in enumerate(p.read_text(encoding="utf-8").splitlines(), 1) if any(g in line for g in gone)]
     assert hits == []
+
+
+def test_the_grill_rule_and_e317_are_gone():
+    assert "E317" not in schema.CODES and "W317" not in schema.CODES
+    assert "grill" not in schema.OVERRIDE_RULES and "grill" not in schema.STANDING_RULES
+    assert "E317" not in schema.OVERRIDE_CODES and "grill" not in say.RULE_WORDS and "E317" not in say.RULE_WORDS
+
+
+def test_an_old_grill_override_is_an_unknown_rule():
+    parsed = override.parse("grill by @dana on 2026-10-24: the steering group decided it")
+    assert parsed.problem
+
+
+def test_close_says_which_session_in_plain_words():
+    class Named:
+        def name_of(self, ident):
+            return "Job due"
+    said = closegate._lead_message("CON-003 is decided, but no **Decision:** bullet links the session that decided it.",
+                                   Named())
+    assert said == "Job due is decided, but nothing says which session decided it."

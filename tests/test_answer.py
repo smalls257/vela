@@ -21,11 +21,11 @@ def test_answer_is_a_session_mode_the_check_knows(mini):
     assert findings(check(mini)[1]) == []
 
 
-def test_an_answer_session_without_a_grill_cannot_decide(mini):
+def test_an_answer_session_decides(mini):
     session_files.edit_stub(mini, SESSION_ID, "modes: [grill]", "modes: [answer]")
-    assert "E303" in {code for code, _ in findings(check(mini)[1])}
+    assert "E303" not in {code for code, _ in findings(check(mini)[1])}
 
 
 def test_conventions_accept_reopened_to_decided_for_an_epic():
     assert "| EPC-nnn | reopened | decided |" in read("plugin", "template", "CONVENTIONS.md")
-    assert "A Grill decides a `reopened` epic as it decides a `draft` one" in read("plugin", "template", "CONVENTIONS.md")
+    assert "A `reopened` epic is decided as a `draft` one is" in read("plugin", "template", "CONVENTIONS.md")

@@ -248,8 +248,8 @@ def test_a_confirmed_on_behalf_decision_names_the_confirmation_not_a_pending_one
 def test_an_override_reason_that_looks_like_a_formula_is_still_guarded(tmp_path):
     vault = tmp_path / "ub"
     shutil.copytree(FIXTURE, vault)
-    after_title(vault / "13-epics" / "EPC-031-holds-and-confirms.md", '- **Override:** grill by @a on 2026-11-20: =HYPERLINK("http://evil")\n')
+    after_title(vault / "13-epics" / "EPC-031-holds-and-confirms.md", '- **Override:** E303 by @a on 2026-11-20: =HYPERLINK("http://evil")\n')
     _, _, rows = exported(tmp_path, vault=vault)
-    assert rows[1][1].endswith('Override: grill by @a on 2026-11-20: =HYPERLINK("http://evil")')
+    assert rows[1][1].endswith('Override: E303 by @a on 2026-11-20: =HYPERLINK("http://evil")')
     guarded = export.to_csv([("s", "=cmd|x\nOverride: grill", "EPC-001", "", "l")])
     assert "'=cmd|x" in guarded

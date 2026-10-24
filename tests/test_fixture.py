@@ -145,12 +145,13 @@ def test_gate_four_cap_021_decided_while_unk_001_blocks_it(ub):
 
 
 def test_requirements_session_as_decider(ub):
+    """A requirements session that holds the lead's read-back and yes decides like any other session."""
     session_files.write_record(ub, "2026-11-10-amend-requirements",
         "---\nid: 2026-11-10-amend-requirements\ntype: session\ndate: 2026-11-10\nmodes: [requirements]\n"
         "status: closed\nsummary: Wrote amend and cancel requirements as assumptions.\n---\n\n# Requirements: amend\n")
     edit(ub / "capabilities" / "CAP-021-amend-or-cancel.md", "- **Decision:** [[2026-08-12-goals-and-data]]",
          "- **Decision:** [[2026-11-10-amend-requirements]]")
-    assert broken(ub) == [("E317", "capabilities/CAP-021-amend-or-cancel.md")]
+    assert broken(ub) == []
 
 
 def test_decided_with_no_grill_link(ub):

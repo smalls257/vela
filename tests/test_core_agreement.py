@@ -148,12 +148,12 @@ def test_c17_a_page_level_override_clears_a_decided_allocation_row(tmp_path):
                    encoding="utf-8")
     edit(app, "- **Decision:** [[2026-09-09-booking-containers]]\n", "Booking holds seats.\n")
     before = run("check", "--vault", str(vault), "--today", TODAY)[1]
-    row_line = [ln for ln in before.splitlines() if ln.startswith(APP) and " E303 " in ln and "@APP-booking" in ln]
+    row_line = [ln for ln in before.splitlines() if ln.startswith(APP) and ln.split()[1] == "E303" and "@APP-booking" in ln]
     assert row_line, before
-    edit(app, "Booking holds seats.\n", "- **Override:** grill by @hl-solution-lead on 2026-11-20: the lead accepted the share without a Grill\n")
+    edit(app, "Booking holds seats.\n", "- **Override:** E303 by @hl-solution-lead on 2026-11-20: the lead accepted the share without a session\n")
     after = run("check", "--vault", str(vault), "--today", TODAY)[1]
-    assert not [ln for ln in after.splitlines() if ln.startswith(APP) and " E303 " in ln and "@APP-booking" in ln], after
-    assert [ln for ln in after.splitlines() if ln.startswith(APP) and " W303 " in ln and "@APP-booking" in ln], after
+    assert not [ln for ln in after.splitlines() if ln.startswith(APP) and ln.split()[1] == "E303" and "@APP-booking" in ln], after
+    assert [ln for ln in after.splitlines() if ln.startswith(APP) and ln.split()[1] == "W303" and "@APP-booking" in ln], after
 
 
 def test_c19_a_retired_app_exists_today(tmp_path):

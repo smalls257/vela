@@ -76,7 +76,7 @@ def test_a_bad_until_is_malformed_never_ignored(value, problem):
 # ------------------------------------------------------------------ classes
 
 def test_the_two_classes():
-    for rule in ("GATE-4", "grill", "E303", "E304", "E316", "E317", "E318", "E805", '"case table"',
+    for rule in ("GATE-4", "E303", "E304", "E316", "E318", "E805", '"case table"',
                  '"F8 CON-020 declined until 2026-10-01"'):
         assert override.is_standing(rule), rule
     for rule in ("GATE-1", "GATE-2", "GATE-3", "GATE-5", '"Shape offers 2 or 3 options"'):

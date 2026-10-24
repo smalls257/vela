@@ -162,10 +162,10 @@ def test_an_unconfirmed_on_behalf_decision_gets_one_status_line(tmp_path):
 def test_every_override_on_a_page_gets_its_own_line_and_malformed_ones_get_none(tmp_path):
     vault = tmp_path / "ub"
     shutil.copytree(FIXTURE, vault)
-    edit(vault / "01-goals.md", "# Unified Booking\n", "# Unified Booking\n\n- **Override:** grill by @a on 2026-11-20: first\n"
+    edit(vault / "01-goals.md", "# Unified Booking\n", "# Unified Booking\n\n- **Override:** E303 by @a on 2026-11-20: first\n"
          "- **Override:** GATE-4 by @b on 2026-11-21: second\n- **Override:** nonsense\n")
     _, pages = pages_of(tmp_path, vault)
-    assert [(o["rules"], o["reason"]) for o in pages["01-goals"]["overrides"]] == [("grill", "first"), ("GATE-4", "second")]
+    assert [(o["rules"], o["reason"]) for o in pages["01-goals"]["overrides"]] == [("E303", "first"), ("GATE-4", "second")]
 
 
 def test_the_override_banner_is_built_from_escaped_text_and_adds_no_script(tmp_path):

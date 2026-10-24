@@ -102,9 +102,9 @@ GATE_WORDS = {"GATE-1": "the stage check", "GATE-2": "the preferred-option check
               "GATE-5": "the check that the owner said yes"}
 # The overridable check codes, said by what each protects (the October 14 voice audit, row 72), so one rule never has
 # two names: E316 and GATE-4 are both "the open-question check". A code not here is said by its schema meaning.
-RULE_WORDS = {"E316": "the open-question check", "E303": "the grill-decides check",
-              "E317": "the check that requirements alone can't decide", "E318": "the who-tests-it check",
-              "E304": "the needs-a-source check", "E805": "the urgent-questions check", "grill": "the grill-decides check"}
+RULE_WORDS = {"E316": "the open-question check", "E303": "the which-session-decided check",
+              "E318": "the who-tests-it check", "E304": "the needs-a-source check",
+              "E805": "the urgent-questions check"}
 _GATE = re.compile(r"\bGATE-\d\b")
 _CODE = re.compile(r"\b[EW]\d{3}\b")
 

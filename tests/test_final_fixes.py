@@ -145,11 +145,11 @@ def test_decided_fr_linking_a_grill_passes(mini):
     assert codes(out) == []
 
 
-def test_decided_fr_linking_a_requirements_session_is_e317(mini):
+def test_decided_fr_linking_a_requirements_session_passes(mini):
     session_files.edit_stub(mini, SESSION_ID, "modes: [grill]", "modes: [requirements]")
     add_cap(mini, CAP_PAGE.replace("- **State:** assumption", "- **State:** decided\n- **Decision:** [[2026-01-10-shop-api]]"))
     _, out = check(mini)
-    assert ("E317", CAP) in codes(out)
+    assert codes(out) == []
 
 
 def test_fact_fr_needs_a_source(mini):

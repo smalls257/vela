@@ -386,7 +386,7 @@ def _rows(page, table, id_re, col, allowed, what, example):
 
 def requirement_rules(vault, today):
     """A functional requirement (### CAP-nnn.FRn) carries a state like a contract does, so it
-    cannot be decided without a Grill."""
+    cannot be decided without a Decision that links the session that decided it."""
     for fr in vault.requirements:
         state = fr.fact("State")
         if not state:
@@ -660,26 +660,6 @@ def decided_units(vault):
         if release.state == "decided":
             page = releases.page(vault)
             yield f"release '{release.name}'", page, release.line, page.page_bullets("Decision")
-
-
-STATED_IN = re.compile(r"\bas (?P<src>SRC-\d+) states\b")
-
-
-def stated_in_source(vault, decisions):
-    """Whether a Decision bullet says a registered source states the decision (`as SRC-nn states`, which
-    `vela decide --stated-in` writes). A decision the documents already record isn't a grill's to weigh again: the
-    lead's yes to it is on the Changes row close's gate reads, and the source says who decided it and when."""
-    for bullet in decisions:
-        for found in STATED_IN.finditer(bullet.value or ""):
-            if found["src"] in vault.row_ids:
-                return True
-    return False
-
-
-def _modes(session):
-    """A session's modes, or nothing when the field is not a list (E105 reports that)."""
-    modes = session.meta.get("modes")
-    return modes if isinstance(modes, list) else []
 
 
 STATE_ORDER = ("inkling", "assumption", "fact", "decided")
@@ -1146,17 +1126,9 @@ def certainty_rules(vault, today):
     for unit_id, page, line, decisions in decided_units(vault):
         sessions = [vault.resolve(l, page) for b in decisions for l in b.links]
         sessions = [s for s in sessions if s is not None and s.type == "session"]
-        modes = [m for s in sessions for m in _modes(s)]
-        if "grill" in modes:
-            continue
-        if sessions and "requirements" not in modes and stated_in_source(vault, decisions):
-            continue  # an import confirmed a decision a registered source states, with the lead's yes (close gate)
-        if "requirements" in modes:
-            yield _f(page, line, "E317", f"{unit_id} is decided by a requirements session, which can only write assumptions.",
-                     "Run a Grill on it and link that session in **Decision:**, or set it back to assumption.")
-        else:
-            yield _f(page, line, "E303", f"{unit_id} is decided, but no **Decision:** bullet links a Grill session.",
-                     "Add '- **Decision:** [[<grill session>]]', or set the state back to assumption.")
+        if not sessions:
+            yield _f(page, line, "E303", f"{unit_id} is decided, but no **Decision:** bullet links the session that decided it.",
+                     "Add '- **Decision:** [[<session>]]', or set the state back to assumption.")
     for page in vault.pages:
         if readable(page) and page.meta.get("state") == "fact" and not page.meta.get("sources"):
             yield _f(page, meta_line(page, "state"), "E304", f"{page.id} is a fact but lists no sources.",

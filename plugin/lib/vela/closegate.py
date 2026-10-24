@@ -2,7 +2,7 @@
 
 The Violation this exists to prevent is a Silent Fallback in the record. Writing `state: decided` with the Edit tool and
 never asking the lead looks exactly like a decision the lead gave: E303 catches only a decided page with no
-`**Decision:**` link. So the gate looks at what changed since the branch point and asks the record for the lead's own
+`**Decision:**` link to a session. So the gate looks at what changed since the branch point and asks the record for the lead's own
 words behind every change into or out of `decided`:
 
 - the session record's `## Changes` table has a row with the item's ID and the same To (and From, when it names one);
@@ -382,14 +382,14 @@ def error_problems(errors, vault):
     return out
 
 
-_NO_GRILL = re.compile(r"^(?P<unit>\S+) is decided, but no \*\*Decision:\*\* bullet links a Grill session\.$")
+_NO_SESSION = re.compile(r"^(?P<unit>\S+) is decided, but no \*\*Decision:\*\* bullet links the session that decided it\.$")
 
 
 def _lead_message(message, vault):
     """A check's message where its own words are the page grammar (a bullet's markup), said the lead's way."""
-    found = _NO_GRILL.match(message)
+    found = _NO_SESSION.match(message)
     if found:
-        return f"{vault.name_of(found['unit'])} is decided, but nothing says which grill decided it."
+        return f"{vault.name_of(found['unit'])} is decided, but nothing says which session decided it."
     return message
 
 

@@ -59,13 +59,13 @@ def parse(value):
 # ------------------------------------------------------------------ grammar
 
 def test_a_well_formed_override_parses_every_part():
-    found = parse('GATE-4, grill, "Shape offers 2 or 3 options" by @hl-solution-lead on 2026-11-20: '
+    found = parse('GATE-4, E303, "Shape offers 2 or 3 options" by @hl-solution-lead on 2026-11-20: '
                   "the board meets Monday: UNK-001 cannot wait")
     assert found.problem == ""
-    assert found.rules == ("GATE-4", "grill", '"Shape offers 2 or 3 options"')
+    assert found.rules == ("GATE-4", "E303", '"Shape offers 2 or 3 options"')
     assert (found.by, found.date) == ("@hl-solution-lead", "2026-11-20")
     assert found.reason == "the board meets Monday: UNK-001 cannot wait"
-    assert found.codes == {"E316", "E303", "E317"}
+    assert found.codes == {"E316", "E303"}
 
 
 @pytest.mark.parametrize("value, problem", [
@@ -76,7 +76,7 @@ def test_a_well_formed_override_parses_every_part():
     ("GATE-4 by @hl-solution-lead on 2026-02-30: board meeting", "not a real date"),
     ("gate-4 by @hl-solution-lead on 2026-11-20: board meeting", "did you mean GATE-4?"),
     ("GATE-6 by @hl-solution-lead on 2026-11-20: board meeting", "'GATE-6'"),
-    ("GATE-4; grill by @hl-solution-lead on 2026-11-20: board meeting", "not names separated by ', '"),
+    ("GATE-4; E303 by @hl-solution-lead on 2026-11-20: board meeting", "not names separated by ', '"),
     ("by @hl-solution-lead on 2026-11-20: board meeting", "names no rule before 'by'"),
 ])
 def test_a_malformed_override_names_its_problem(value, problem):
@@ -134,19 +134,10 @@ def test_the_e316_code_itself_can_be_named(ub):
     assert codes(ub) == [("W316", CAP)]
 
 
-def test_grill_override_turns_e303_into_w303(ub):
-    edit(ub / CAP, DECISION, "- **Override:** grill by @hl-solution-lead on 2026-11-20: decided at the steering group, not in a Grill\n")
+def test_e303_override_turns_it_into_w303(ub):
+    edit(ub / CAP, DECISION, "- **Override:** E303 by @hl-solution-lead on 2026-11-20: decided at the steering group, no session\n")
     code, out = broken(ub)
     assert code == 0 and findings(out) == [("W303", CAP)]
-
-
-def test_grill_override_turns_e317_into_w317(ub):
-    session_files.write_record(ub, "2026-11-10-amend-requirements",
-        "---\nid: 2026-11-10-amend-requirements\ntype: session\ndate: 2026-11-10\nmodes: [requirements]\n"
-        "status: closed\nsummary: Wrote amend and cancel requirements as assumptions.\n---\n\n# Requirements: amend\n")
-    edit(ub / CAP, DECISION, "- **Decision:** [[2026-11-10-amend-requirements]]\n"
-         "- **Override:** grill by @hl-solution-lead on 2026-11-10: the lead decided FR1 in the requirements session\n")
-    assert codes(ub) == [("W317", CAP)]
 
 
 def test_e318_and_e304_overrides_on_contracts(ub):
@@ -173,10 +164,10 @@ def test_an_override_covers_only_its_own_scope(ub):
 # ------------------------------------------------------------- not needed
 
 def test_an_override_of_a_rule_the_item_keeps_is_not_needed(ub):
-    on_cap(ub, "- **Override:** GATE-4, grill by @hl-solution-lead on 2026-11-20: just in case")
+    on_cap(ub, "- **Override:** GATE-4, E303 by @hl-solution-lead on 2026-11-20: just in case")
     code, out = broken(ub)
     assert code == 0 and findings(out) == [("W323", CAP)]
-    assert "Override not needed: CAP-021 does not break GATE-4, grill" in out
+    assert "Override not needed: CAP-021 does not break GATE-4, E303" in out
 
 
 def test_gates_and_quoted_rules_the_check_cannot_see_are_never_not_needed(ub):
@@ -237,9 +228,9 @@ def test_query_get_marks_a_malformed_override_and_an_unconfirmed_decision(ub):
     _, answer = query(ub, "get", "CON-003")
     assert answer["override"][1]["malformed"] is True and "GATE-9" in answer["override"][1]["problem"]
     assert answer["decided_by"]["confirmed"] is False and answer["confirmed_by"] is None
-    on_cap(ub, "- **Override:** grill by @hl-solution-lead on 2026-11-20: steering group")
+    on_cap(ub, "- **Override:** E303 by @hl-solution-lead on 2026-11-20: steering group")
     _, page = query(ub, "get", "CAP-021")
-    assert page["override"][0]["rules"] == ["grill"]
+    assert page["override"][0]["rules"] == ["E303"]
 
 
 def test_progress_grid_counts_override_decisions_as_decided_and_says_so():
