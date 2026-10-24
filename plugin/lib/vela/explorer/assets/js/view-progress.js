@@ -7,7 +7,6 @@ const ProgressView = (() => {
   const step = (o) => bx({ y: 5, height: 6, rx: 2, width: 8, ...o });
   Legend.define("pg.done", [step({ x: 3, fill: "ink-3" }), step({ x: 13, fill: "ink-3" })], "Gray step: a stage the app has already passed");
   Legend.define("pg.cur", [step({ x: 12, fill: "ink" })], "Bright step: the stage the app is at");
-  Legend.define("pg.reach", [step({ x: 12, fill: "deck-3", stroke: "ink-2", w: 1.4 })], "Ringed step: how far its pages are already written, ahead of the recorded stage");
   Legend.define("pg.empty", [step({ x: 12, fill: "deck-3" })], "Empty step: a stage still to come");
   Legend.define("pg.off", [step({ x: 12, fill: "deck" })], "Dim steps: no planning stages apply to this app");
   const MIX_SAY = { inkling: "a hunch", assumption: "believed but not checked", fact: "has a source", decided: "settled in a working session" };
@@ -32,26 +31,25 @@ const ProgressView = (() => {
       h("div", { class: "shares" }, P.shares.map((x) => h("div", { class: "share" }, h("span", {}, x.name), h("div", { class: "bar" }, h("span", { style: `width:${x.total ? ((100 * x.done) / x.total).toFixed(1) : 100}%` })), h("span", { class: "v" }, `${x.done} of ${x.total}`)))),
       h("div", { class: "tiles" }, [3, 2, 1, 0].map((i) => h("div", { class: "tile" }, h("div", { class: "num" }, totals[i]), h("div", { class: "lab" }, h("i", { class: "sw", style: `background:${MIX[i][1]}` }), stateWord(MIX[i][0]))))),
       P.next ? h("div", { class: "note next" }, h("b", {}, "Suggested next step: "), modeEl(P.next.mode), " ", P.next.subject ? refChip(keyForId(P.next.subject)) : null, " ", P.next.reason) : null));
-    const tableKey = Legend.open("progress-table", { root: () => tableCard, probes: { "pg.done": ".ladder .done", "pg.cur": ".ladder .cur", "pg.reach": ".ladder .reach", "pg.empty": ".ladder:not(.off) span:not(.done):not(.cur):not(.reach)",
+    const tableKey = Legend.open("progress-table", { root: () => tableCard, probes: { "pg.done": ".ladder .done", "pg.cur": ".ladder .cur", "pg.empty": ".ladder:not(.off) span:not(.done):not(.cur):not(.reach)",
       "pg.off": ".ladder.off", ...Object.fromEntries(MIX.map(([state]) => ["pg.mix." + state, `.mix span[style*="--mix-${state}"]`])) } });
     const table = h("table", { class: "t" }, h("tr", {}, h("th", {}, "App"), h("th", {}, "Waiting"), h("th", {}, "Stage"), h("th", {}, "Next step"), h("th", {}, "Handoff")));
     for (const r of P.rows) {
-      const a = E[r.app], ad = D.apps[r.app], idx = P.stages.indexOf(r.stage), reach = P.stages.indexOf(ad.reached), lv = levelOf(r.app);
+      const a = E[r.app], idx = P.stages.indexOf(r.stage), lv = levelOf(r.app);
       if (r.stage) {
         if (idx > 0) tableKey.saw("pg.done");
         tableKey.saw("pg.cur");
-        if (reach > idx) tableKey.saw("pg.reach");
-        if (P.stages.some((x, i) => i > idx && !(i === reach && reach > idx))) tableKey.saw("pg.empty");
+        if (P.stages.some((x, i) => i > idx)) tableKey.saw("pg.empty");
       } else tableKey.saw("pg.off");
       r.mix.forEach((n, i) => { if (n) tableKey.saw("pg.mix." + MIX[i][0]); });
-      const caption = r.stage ? stageWord(r.stage) + (reach > idx ? `; pages written up to ${stageWord(ad.reached)}` : "") : `${a.change ? stateWord(a.change) : "No change"}: no planning stages apply`;
+      const caption = r.stage ? stageWord(r.stage) : `${a.change ? stateWord(a.change) : "No change"}: no planning stages apply`;
       // 89: "3 not decided yet", the state's own words, not "3 assumption"
       const settled = [3, 2, 1, 0].filter((i) => r.mix[i]).map((i) => `${r.mix[i]} ${stateWord(MIX[i][0]).toLowerCase()}`).join(", ") || "nothing yet";
       const howSettled = `How settled: ${settled}${r.byOverride ? ` (${r.byOverride} decided by skipping a check)` : ""}`;
       table.append(h("tr", { class: "click", onclick: () => go(r.app, { reset: true }) },
         h("td", {}, h("b", {}, a.title), h("div", { class: "muted" }, a.change ? stateWord(a.change) : "")),
         h("td", {}, lampEl(lv), " ", h("span", { class: "muted" }, LIGHT[lv].word)),
-        h("td", { title: howSettled }, h("div", { class: "ladder" + (r.stage ? "" : " off") }, P.stages.map((x, i) => h("span", { class: r.stage ? (i < idx ? "done" : i === idx ? "cur" : "") + (i === reach && reach > idx ? " reach" : "") : "", title: stageWord(x) }))), h("div", { class: "muted small" }, caption),
+        h("td", { title: howSettled }, h("div", { class: "ladder" + (r.stage ? "" : " off") }, P.stages.map((x, i) => h("span", { class: r.stage ? (i < idx ? "done" : i === idx ? "cur" : "") : "", title: stageWord(x) }))), h("div", { class: "muted small" }, caption),
           h("div", { class: "mix" }, r.mix.map((n, i) => (n ? h("span", { style: `flex:${n};background:${MIX[i][1]}` }) : null)))),
         h("td", { class: "wide" }, h("b", {}, modeEl(r.mode)), h("div", { class: "muted small" }, r.reason), r.oldest ? h("div", { class: "small" }, h("span", { class: "muted" }, "oldest blocker: "), refChip(r.oldest)) : null),
         h("td", { class: "small" }, handoff(r.handoff), Inside.statusCell(r.app))));

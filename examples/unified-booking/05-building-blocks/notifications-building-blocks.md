@@ -7,7 +7,6 @@ arc42: "§5"
 c4: container
 state: decided
 change: changed
-stage: epics
 owner: "@harborline/platform-team"
 authored: mixed
 sources: ["Platform lead review of CON-002", "UNK-005 event bus readiness 2026-11-03"]

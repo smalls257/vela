@@ -44,7 +44,7 @@ import re
 import shlex
 from dataclasses import dataclass
 
-from vela import cases, closegate, model, override, progress, questions, say, schema, slices
+from vela import cases, closegate, ladder, model, override, progress, questions, say, schema, slices
 from vela.flowcheck import standing as flowstanding
 
 FLOW_CHECK, CASE_TABLE = "flow check", "case table"
@@ -181,9 +181,9 @@ def route(vault, item_id, rules, today):
 
 def stage_reason(vault, found, name):
     app = app_of(vault, found)
-    if app is None or app.meta.get("change") not in schema.LADDERED_CHANGES or progress.in_grill_stage(app):
+    if app is None or app.meta.get("change") not in schema.LADDERED_CHANGES or progress.in_grill_stage(vault, app):
         return None
-    stage = progress.text(app.meta.get("stage")) or "no"
+    stage = ladder.stage(vault, app)
     app_name = _say(vault, app.id)
     return Reason("GATE-1", f"{app_name} is still at the {stage} stage, and a grill needs it at target or later.",
                   f"I'd run a Discover session on {app_name} first. Or I can decide {name} now and note it as "

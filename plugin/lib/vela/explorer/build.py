@@ -246,14 +246,14 @@ def link_rows(found):
     return [{"label": x.label, "url": x.url, "kind": link_kind(x.label)} for x in found]
 
 
-def page_entity(page, keys, config=None):
+def page_entity(page, keys, config=None, stage=""):
     prose_html, prose_text, cut = page_opening(page, keys)
     meta = page.meta
     owner = meta.get("owner") if isinstance(meta.get("owner"), str) else ""
     return {
         "key": keys.page(page), "id": page.id, "kind": page_kind(page), "title": title_of(page),
         "path": page.path, "state": str(meta.get("state") or ""), "change": str(meta.get("change") or ""),
-        "stage": str(meta.get("stage") or ""), "owner": owner, "ownerKey": owner_handle(owner),
+        "stage": stage, "owner": owner, "ownerKey": owner_handle(owner),
         "prose": prose_html, "text": prose_text, "cut": cut,
         "facts": [{"label": b.label, "html": inline_html(b.value, keys, page), "text": plain(keys.without_sessions(b.value, page)),
                    "refs": refs_in(b.value, keys, page)} for b in page.bullets if not b.item and not b.generated],
@@ -335,7 +335,7 @@ def system_map(vault, keys):
             "change": c.fact("Change"), "crosses": inline_html(crosses.value, keys, c.page) if crosses else "",
         })
     apps = [{"key": keys.page(a), "id": a.id, "title": title_of(a), "change": str(a.meta.get("change") or ""),
-             "state": str(a.meta.get("state") or ""), "stage": str(a.meta.get("stage") or ""),
+             "state": str(a.meta.get("state") or ""), "stage": ladder.stage(vault, a),
              "domain": str(a.meta.get("domain") or "").strip()} for a in vault.apps]
     with_contract = {c["provider"] for c in contracts}
     parties = [{"key": p.id, "title": p.name, "hasContract": p.id in with_contract} for p in vault.parties]
@@ -453,7 +453,7 @@ def progress_data(vault, root, keys, today):
     percent, shares = completeness.measure(vault)
     awaiting, recorded = overrides_awaiting(vault, keys)
     best = progress.best(progress.grid(vault, today))
-    return {"rows": rows, "stages": list(schema.ENUMS["stage"]), "percent": percent,
+    return {"rows": rows, "stages": list(schema.STAGES), "percent": percent,
             "shares": [{"name": s.name, "done": s.done, "total": s.total} for s in shares],
             "awaiting": awaiting, "overrides": recorded,
             "next": {"app": keys.page(best.app), "mode": best.mode, "subject": best.subject, "reason": said(best.reason) if best.reason else best.reason} if best else None}
@@ -588,7 +588,8 @@ def extract(vault, root, today, pins_path=None, designs=None, seed=None, plans=N
     for page in vault.pages:
         if page.path.startswith("voice/") or page.type == "session":
             continue  # voice examples are writing samples, not plan content; the dashboard shows the plan, not its session records
-        entity = page_entity(page, keys, vault.config)
+        entity = page_entity(page, keys, vault.config,
+                             ladder.stage(vault, page) if page.type == "app-building-blocks" else "")
         entities[entity["key"]] = entity
     for found in vault.items.values():
         if found[0].page.type == "session":

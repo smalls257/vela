@@ -5,7 +5,6 @@ title: Shop
 initiative: INI-900
 state: decided
 change: new
-stage: contracts
 owner: "@mini/shop-team"
 authored: mixed
 ---

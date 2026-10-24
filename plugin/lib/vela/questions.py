@@ -79,7 +79,7 @@ def subjects(vault):
     for app in vault.apps:
         meta = app.meta
         add(Subject(app.id, "app", title(app), app, meta_line(app, "change"),
-                    _facts(change=meta.get("change"), state=meta.get("state"), stage=meta.get("stage"))))
+                    _facts(change=meta.get("change"), state=meta.get("state"))))
     for contract in vault.contracts:
         add(Subject(contract.id, "contract", contract.name, contract.page, contract.line,
                     _facts(change=contract.fact("Change"), state=contract.fact("State"),

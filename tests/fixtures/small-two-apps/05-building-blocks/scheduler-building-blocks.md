@@ -4,7 +4,6 @@ type: app-building-blocks
 title: Scheduler
 state: assumption
 change: new
-stage: target
 owner: "@mo"
 authored: authored
 sources: [SRC-01]

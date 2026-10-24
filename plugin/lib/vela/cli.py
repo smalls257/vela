@@ -2627,13 +2627,6 @@ def oldest_text(row, today):
     return f"{name}, open {days_between(row.opened, today)} days (since {row.opened})"
 
 
-def ladder_note(vault, app):
-    """" | pages reach <stage>" when the app's pages meet a later stage's entry list than its typed stage, else "".
-    Said once, here and in close's report, never asked: the lead types the stage, or leaves it."""
-    reached = ladder.ahead_of_stage(vault, app)
-    return f" (its pages already meet the {reached} stage)" if reached else ""
-
-
 def without_subject(reason, subject):
     """The reason with its opening subject said as "It", when the line has just named that subject."""
     for lead in (subject, f"The open question {subject}"):
@@ -2650,10 +2643,9 @@ def status_line(row, today, vault=None):
     inkling, assumption, fact, decided = row.mix
     subject = vault.named(row.subject) if vault is not None and row.subject else row.subject
     next_text = f"{NEXT_MODE_WORDS.get(row.mode, row.mode)} {subject}".strip() if row.mode != "none" else "nothing"
-    note = ladder_note(vault, row.app) if vault is not None else ""
     name = vault.named(row.app.id) if vault is not None else row.app.id
     reason = without_subject(row.reason, subject)
-    return (f"{name} | stage: {row.stage or 'none'}{note} | {counted(inkling, 'early idea')}, {counted(assumption, 'assumption')}, {counted(fact, 'fact')}, "
+    return (f"{name} | stage: {row.stage or 'none'} | {counted(inkling, 'early idea')}, {counted(assumption, 'assumption')}, {counted(fact, 'fact')}, "
             f"{progress.decided_text(row)} decided | oldest open question: {oldest_text(row, today)} | next: {next_text}. {reason}")
 
 
@@ -2691,15 +2683,14 @@ def cmd_style(args, out):
 
 
 def cmd_ladder(args, out):
-    """For each app on the ladder: its typed stage, the stage its pages reach, and what the next stage still needs."""
+    """For each app on the ladder: the stage its pages reach, and what the next stage still needs."""
     root = pathlib.Path(args.vault).resolve()
     vault = load_vault(root)
     apps = [a for a in vault.apps if a.meta.get("change") in schema.LADDERED_CHANGES]
-    print(f"vela ladder: {len(apps)} apps being built or changed, each with the stage it is marked at and the stage its pages meet.", file=out)
+    print(f"vela ladder: {len(apps)} apps being built or changed, each with the stage its pages reach.", file=out)
     for app in apps:
         reached, gaps = ladder.allows(vault, app)
-        typed = app.meta.get("stage") or "none"
-        head = f"{vault.named(app.id)} | marked at stage: {typed} | pages meet stage: {reached}"
+        head = f"{vault.named(app.id)} | stage: {reached}"
         if gaps:
             shown = "; ".join(gaps[:3]) + (f"; and {len(gaps) - 3} more" if len(gaps) > 3 else "")
             head += f" | held back from the next stage by: {shown}"
@@ -2891,7 +2882,7 @@ def handoff_steps(vault):
     lead hears it before the senior accepts the app."""
     out = []
     for app in vault.apps:
-        if not handoffwarn.at_handoff(app):
+        if not handoffwarn.at_handoff(vault, app):
             continue
         found = handoffwarn.gaps(vault, app)
         if not found:

@@ -7,7 +7,6 @@ arc42: "§5"
 c4: container
 state: decided
 change: changed
-stage: epics
 owner: "@harborline/port-systems"
 authored: mixed
 sources: ["Port Systems senior container review", "UNK-004 kiosk authentication 2026-09-23"]

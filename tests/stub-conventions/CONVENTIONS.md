@@ -42,11 +42,11 @@ One vault holds one initiative. Pages are numbered by arc42 section.
 
 ## Areas and stages
 
-An area is an app whose `change` is `new` or `changed`, or one of `initiative`, `capabilities`, `concern-<name>` and `epics`. Only apps move through stages. The initiative is at Frame while no app has a stage. Frame is never typed.
+An area is an app whose `change` is `new` or `changed`, or one of `initiative`, `capabilities`, `concern-<name>` and `epics`. Only apps move through stages. The initiative is at Frame while no app is on the ladder. Frame is never typed.
 
-`stage` sits on the app's building-blocks page and means "in this stage now". It is typed by hand. `vela ladder` shows, for each app on the ladder, the latest stage whose entry list its pages already meet, with every stage below it, and what the next stage still needs; `vela status` adds `pages reach <stage>` when that is later than the typed stage. Neither changes the stage. The `where-it-stands` block shows counts beside it, so a stage the counts contradict is easy to see. Apps whose `change` is `integrated`, `unchanged` or `retired` sit outside the ladder and take no `stage`.
+An app's stage is worked out from its pages and typed nowhere: it is the latest stage whose entry list its pages meet, with every stage below it. `vela ladder` shows it for each app on the ladder, with what the next stage still needs, and `vela status`, `vela next`, the `where-it-stands` and `progress-map` blocks and the dashboard all read the same one. Apps whose `change` is `integrated`, `unchanged` or `retired` sit outside the ladder and have no stage.
 
-The ladder checklist. Before typing a stage, check its entry list:
+The ladder checklist. Each stage's entry list is what the pages must hold for the app to be at it:
 
 | Stage | Enter when |
 |---|---|
@@ -65,7 +65,7 @@ Every page starts with a YAML block. Quote any value that holds a colon or start
 |---|---|---|---|
 | `index` | `id`, `type`, `title`, `authored` | `initiative`, `arc42`, `c4`, `owner`, `sources` | none |
 | `initiative-section` | `id`, `type`, `title`, `state`, `owner`, `authored` | `initiative`, `arc42`, `c4`, `sources` | `inkling`, `assumption`, `fact`, `decided` |
-| `app-building-blocks` | as above, plus `change` | `stage`, `stub`, `initiative`, `arc42`, `c4`, `sources`, `handed_off`, `handed_off_pr`, `domain`, `icon`, `design` | `inkling`, `assumption`, `fact`, `decided` |
+| `app-building-blocks` | as above, plus `change` | `stub`, `initiative`, `arc42`, `c4`, `sources`, `handed_off`, `handed_off_pr`, `domain`, `icon`, `design` | `inkling`, `assumption`, `fact`, `decided` |
 | `app-runtime` | `id`, `type`, `title`, `state`, `owner`, `authored` | `initiative`, `arc42`, `sources` | `inkling`, `assumption`, `fact`, `decided` |
 | `flow` | `id`, `type`, `title`, `state`, `owner`, `authored` | `initiative`, `arc42`, `sources`, `capabilities` | `inkling`, `assumption`, `fact`, `decided` |
 | `concern` | `id`, `type`, `title`, `owner`, `authored` | `initiative`, `arc42`, `sources` | none: the cells hold the states |
@@ -87,7 +87,6 @@ Field values:
 - `c4`: `landscape`, `context` or `container`. `arc42`: the section, for example `"§5"`.
 - `sources`: a list. Use `SRC-nn` IDs for documents. Free text, such as a session name, is allowed as a summary.
 - `change` on an app page: `new`, `changed`, `integrated`, `unchanged` or `retired`.
-- `stage`: `baseline`, `target`, `boundaries`, `contracts`, `handoff`, `epics`. Required when `change` is `new` or `changed`, absent otherwise.
 - `last_verified`: the date someone last reread the page against its sources, `YYYY-MM-DD`. `verified_by`: that person's handle, `"@handle"`. Set both together. A page without them is never judged stale.
 - `handed_off`: set once a senior takes the app. Form: `"<name>, <date>"`. `handed_off_pr`: the pull request that hands it over, `pending` until the PR exists, then its number (`41`); W325 warns until the number is written. A `handed_off_pr` with no `handed_off` is E105.
 - `stub`: `boundary` on an app page `vela add app-stub` wrote and nobody has read back yet. `vela next` sends such a page (with no containers table) to Boundary. Boundary removes the field when the lead has said yes to the page. State lives in this field, never in a sentence on the page, so rewriting the prose cannot lose it.
@@ -380,7 +379,7 @@ Code decides which questions the vault owes. The skills decide only how to ask t
 
 **The catalog.** `catalog/questions.yaml` in the plugin ships with the plugin and carries a `version`. Each entry has an `id` such as `Q-FIN-01`, a focus `area`, a `scope`, a `trigger`, the `question`, a `why` (the regulation, practice or simulation miss that earned it a place) and a `severity`, `high` or `normal`. `blocks` lists the kinds of unit an open copy holds up: `app`, `contract`, `requirement`, `capability`, `decision` and `epic`. An initiative-scope entry may say which subject a yes `creates`, `party` or `stored-value`, and list the words that suggest that subject in `mentions`. Each mention is a group of forms such as `license/licenses`, and `mention_why` gives each group its reason. `mention_except` lists phrases such as `credit card*` that use the word for something else and are not read as the subject; a `*` ends a word at any suffix. The five focus areas are `FIN` Finance and liabilities, `DAT` Data and lawful basis, `PTN` Partners and contracts, `REG` Regulation and liability and `OPS` Operations and people. They are labels for readers, and they are not the areas of "Areas and stages". The catalog's `kinds` are the kinds of thing every plan needs: `goals`, `people`, `systems`, `data`, `rules`, `dates`, `money`, `risks` and `owners`. Each has a `means`, the focus `areas` whose questions fall under it (every area sits under at least one kind), and `near`, the kinds a talk on it tends to lead to, read both ways. A session's topic map tags what the lead says to them (see Sessions).
 
-**Subjects and copies.** A scope names the kind of subject an entry applies to: `initiative` (the initiative in `.vela.yaml`), `app`, `contract`, `capability`, `party` or `stored-value`. A trigger is `exists`, or conditions joined by ` and `, each `<field>: <value>` or `<field> in [<value>, <value>]`. An app has the fields `change`, `state` and `stage`. A contract has `change`, `state` and `provider`, which is `external` when the contract has a `**Provider:**` bullet and `app` otherwise. A capability has `change`, `state`, `origin` and `domain`, and a party has `relationship`. The initiative and a stored value have none, so their entries use `exists`. Values are compared in lower case, and a missing field never matches. Code reads a trigger; it never runs one.
+**Subjects and copies.** A scope names the kind of subject an entry applies to: `initiative` (the initiative in `.vela.yaml`), `app`, `contract`, `capability`, `party` or `stored-value`. A trigger is `exists`, or conditions joined by ` and `, each `<field>: <value>` or `<field> in [<value>, <value>]`. An app has the fields `change` and `state`. A contract has `change`, `state` and `provider`, which is `external` when the contract has a `**Provider:**` bullet and `app` otherwise. A capability has `change`, `state`, `origin` and `domain`, and a party has `relationship`. The initiative and a stored value have none, so their entries use `exists`. Values are compared in lower case, and a missing field never matches. Code reads a trigger; it never runs one.
 
 `vela questions` applies each entry once to each subject of its scope that its trigger matches. Each result is a copy, with the ID `<entry>@<subject>`, for example `Q-DAT-02@APP-booking`. The ID follows the subject's ID, so renaming a file keeps it. A subject that is removed takes its copies with it, and a ledger row for one of them is reported as orphaned, never dropped.
 
@@ -534,7 +533,7 @@ The `sha` is the first 8 hex digits of SHA-256 over the block's text, with trail
 
 | Block | Page | What it shows |
 |---|---|---|
-| `where-it-stands` | `01-goals.md` | Apps with their typed stage, and beside it the counts of blocking unknowns, `unexamined` cells and contracts `decided` or `fact`; every open unknown with owner, ask-by and what it blocks; the last session date; once epics exist, "Delivery status: not tracked in this vault" |
+| `where-it-stands` | `01-goals.md` | Apps with the stage their pages reach, and beside it the counts of blocking unknowns, `unexamined` cells and contracts `decided` or `fact`; every open unknown with owner, ask-by and what it blocks; the last session date; once epics exist, "Delivery status: not tracked in this vault" |
 | `concern-matrix` | `08-concerns.md` | One row per app, one column per concern, each cell's state |
 | `unknowns-index` | `11-unknowns-and-risks.md` | Every unknown and risk with owner, state and ask-by |
 | `contracts-consumed` | each app page | Every contract whose `**Consumers:**` links this app |
@@ -565,7 +564,7 @@ For each app the first rule that matches picks the mode. `vela next` takes the a
 | 2 | Discover | the app page lists no `sources` |
 | 3 | Discover | the app is `integrated` or `unchanged`, and one of its items no open unknown blocks is at `inkling` or `assumption`: what exists needs a source to reach `fact` |
 | 3 | Shape, or below medium a grill that asks one question (see Size) | one of its items is at `inkling`, or at `assumption` with no `**Options considered:**` |
-| 4 | Discover | an item has options recorded, but the app's `stage` is before `target`, so it fails GATE-1 |
+| 4 | Discover | an item has options recorded, but the app's pages reach only `baseline`, so it fails GATE-1 |
 | 5 | Grill | an item at `assumption` has options recorded and no open unknown blocks it |
 | 6 | Probe | an open unknown blocks one of its items |
 | 7 | none, waits | a contract it provides or consumes is not `decided` or `fact` |
@@ -645,7 +644,7 @@ Run `vela check` from the vault root. It reads, never writes, and never stops at
 
 The table is generated from the codes `vela check` uses, so it cannot drift from them, and each finding's fix line says how to put it right. `vela upgrade` brings a vault's copy up to date.
 
-<!-- generated:check-codes sha=08956284: do not edit, run vela render -->
+<!-- generated:check-codes sha=06187a08: do not edit, run vela render -->
 | Code | Finding |
 |---|---|
 | E101 | page has no frontmatter |
@@ -684,7 +683,6 @@ The table is generated from the codes `vela check` uses, so it cannot drift from
 | W317 | decided by a requirements session, by override |
 | E318 | decided contract has no Tested by |
 | W318 | decided contract has no Tested by, by override |
-| E319 | stage does not fit the app's change |
 | E320 | contract is missing a required fact |
 | E321 | override is malformed |
 | E322 | decided-by or confirmed-by is malformed |

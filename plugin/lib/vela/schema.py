@@ -25,7 +25,7 @@ PAGE_TYPES = {
     },
     "app-building-blocks": {
         "required": ("id", "type", "title", "state", "owner", "authored", "change"),
-        "optional": ("stage", "initiative", "arc42", "c4", "sources", "handed_off", "handed_off_pr", "domain", "stub"),
+        "optional": ("initiative", "arc42", "c4", "sources", "handed_off", "handed_off_pr", "domain", "stub"),
         "states": STATE_ITEM,
     },
     "app-runtime": {
@@ -105,14 +105,15 @@ ENUMS = {
     "change@app-building-blocks": ("new", "changed", "integrated", "unchanged", "retired"),
     "change@capability": ("new", "extend", "replace", "narrow", "retire", "unchanged"),
     "origin": ("proposed", "imported"),
-    "stage": ("baseline", "target", "boundaries", "contracts", "handoff", "epics"),
     "stub": ("boundary",),
     "status": ("open", "closed"),
 }
 LIST_FIELDS = ("sources", "apps", "delivers", "consumes", "flows", "depends_on", "modes", "capabilities")
 DOMAIN_MIN_APPS = 6  # W352 applies from this many apps
 SESSION_MODES = ("dump", "discover", "shape", "boundary", "allocate", "releases", "grill", "requirements", "epics", "challenge", "answer")
-LADDERED_CHANGES = ("new", "changed")  # app pages with these carry `stage`
+LADDERED_CHANGES = ("new", "changed")  # app pages with these sit on the stage ladder (ladder.stage)
+# The ladder's order. Nobody types a stage: it is what an app's pages reach (ladder.stage).
+STAGES = ("baseline", "target", "boundaries", "contracts", "handoff", "epics")
 
 # A GitHub login: letters, digits and hyphens, and an underscore too, since an Enterprise Managed User's login is
 # `name_shortcode`. Every handle pattern in vela is built from this one, so a login that works here works everywhere.
@@ -365,7 +366,6 @@ CODES = {
     "E316": "decided while an open unknown blocks it",
     "E317": "a requirements session cannot decide",
     "E318": "decided contract has no Tested by",
-    "E319": "stage does not fit the app's change",
     "E320": "contract is missing a required fact",
     "E321": "override is malformed",
     "E322": "decided-by or confirmed-by is malformed",

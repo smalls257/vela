@@ -118,7 +118,7 @@ def frontmatter_rules(vault, today):
 def _enum_findings(vault, page, page_type, spec):
     meta = page.meta
     checks = [("authored", schema.ENUMS["authored"]), ("c4", schema.ENUMS["c4"]),
-              ("origin", schema.ENUMS["origin"]), ("stage", schema.ENUMS["stage"]), ("stub", schema.ENUMS["stub"]),
+              ("origin", schema.ENUMS["origin"]), ("stub", schema.ENUMS["stub"]),
               ("status", schema.ENUMS["status"])]
     if spec["states"]:
         checks.append(("state", spec["states"]))
@@ -461,7 +461,7 @@ def handoff_rules(vault, today):
     """Sensor for the app handed over on an override: every item still short of a yes is named before the senior accepts it.
     A contract with no case table is W380 already, and the read-back lists it with the rest."""
     for app in vault.apps:
-        if not handoffwarn.at_handoff(app):
+        if not handoffwarn.at_handoff(vault, app):
             continue
         for gap in handoffwarn.gaps(vault, app):
             if gap.kind == "unfirm":
@@ -1187,21 +1187,6 @@ def _gate_four(vault):
                          f"Resolve {unknown.id} first, or {back}.")
 
 
-# --------------------------------------------------------------------- stage
-
-def stage_rules(vault, today):
-    for app in vault.apps:
-        change, stage = app.meta.get("change"), app.meta.get("stage")
-        if change not in schema.ENUMS["change@app-building-blocks"]:
-            continue  # E103 or E105 already reports it
-        if change in schema.LADDERED_CHANGES and not stage:
-            yield _f(app, meta_line(app, "change"), "E319", f"{app.id} is {change} but has no stage.",
-                     "Add stage: baseline (or the stage the app is in now).")
-        if change and change not in schema.LADDERED_CHANGES and stage:
-            yield _f(app, meta_line(app, "stage"), "E319", f"{app.id} is {change}, so it sits outside the ladder and takes no stage.",
-                     "Remove the stage field, or set change: changed if the app now changes.")
-
-
 # ------------------------------------------------------------------ concerns
 
 STRATEGY_SECTION = re.compile(r"^## Strategy[ \t]*\n(?P<body>.*?)(?=^## |\Z)", re.M | re.S)
@@ -1505,5 +1490,5 @@ def session_note_rules(vault, today):
 
 
 RULES = (parse_errors, frontmatter_rules, duplicate_rules, link_rules, reference_rules, table_rules,
-         history_rules, page_state_rules, stale_mention_rules, allocation_rules, release_rules, slice_rules, flow_sender_rules, flow_end_rules, flow_capability_rules, domain_rules, ask_rules, requirement_coverage_rules, contract_rules, case_table_rules, handoff_rules, deferral_rules, why_rules, wording_rules, requirement_rules, unknown_rules, risk_rules, subject_rules, question_rules, certainty_rules, stage_rules, concern_rules,
+         history_rules, page_state_rules, stale_mention_rules, allocation_rules, release_rules, slice_rules, flow_sender_rules, flow_end_rules, flow_capability_rules, domain_rules, ask_rules, requirement_coverage_rules, contract_rules, case_table_rules, handoff_rules, deferral_rules, why_rules, wording_rules, requirement_rules, unknown_rules, risk_rules, subject_rules, question_rules, certainty_rules, concern_rules,
          diagram_rules, block_rules, trace_rules, freshness_rules, link_field_rules, link_pipe_rules, reading_load_rules, session_note_rules, receipts.receipt_rules)

@@ -28,8 +28,7 @@ PHRASE_RE = re.compile(r"^[a-z]+\*?( [a-z]+\*?)*$")
 # The fields a trigger may test, per scope, and the values each may take. None: any text.
 TRIGGER_FIELDS = {
     "initiative": {},
-    "app": {"change": schema.ENUMS["change@app-building-blocks"], "state": schema.STATE_ITEM,
-            "stage": schema.ENUMS["stage"]},
+    "app": {"change": schema.ENUMS["change@app-building-blocks"], "state": schema.STATE_ITEM},
     "contract": {"change": schema.CONTRACT_CHANGES, "state": schema.CONTRACT_STATES, "provider": ("external", "app")},
     "capability": {"change": schema.ENUMS["change@capability"], "state": schema.PAGE_TYPES["capability"]["states"],
                    "origin": schema.ENUMS["origin"], "domain": None},

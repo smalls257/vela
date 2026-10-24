@@ -10,7 +10,8 @@ def test_status_prints_one_line_per_app_with_ages(mini):
     assert code == 0, out
     lines = out.splitlines()
     assert lines[0] == "vela status: 3 apps, as of 2026-02-03 (the date you gave)."
-    assert lines[1].startswith("Till (APP-till) | stage: baseline | 0 early ideas, 1 assumption, 0 facts, 0 decided | "
+    till = next(line for line in lines if line.startswith("Till (APP-till)"))
+    assert till.startswith("Till (APP-till) | stage: baseline | 0 early ideas, 1 assumption, 0 facts, 0 decided | "
                                "oldest open question: Till test rig (UNK-001), open 24 days (since 2026-01-10) | "
                                "next: ask about Till test rig (UNK-001). It was due an answer by 2026-02-01")
 
@@ -18,7 +19,7 @@ def test_status_prints_one_line_per_app_with_ages(mini):
 def test_next_names_one_app_and_mode(mini):
     code, out = run("next", "--vault", str(mini), "--today", "2026-01-15")
     assert code == 0
-    assert out == "vela next: Till: find sources for Till (APP-till). Till lists no sources yet. As of 2026-01-15 (the date you gave).\n"
+    assert out == "vela next: Shop: find sources for Shop (APP-shop). Shop lists no sources yet. As of 2026-01-15 (the date you gave).\n"
 
 
 def test_next_on_an_empty_vault_suggests_a_dump(tmp_path):

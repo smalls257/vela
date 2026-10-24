@@ -23,7 +23,7 @@ Every light carries its reasons, in words, so a page can say why something is li
 import datetime
 from dataclasses import dataclass, field
 
-from vela import model, override, pending, plainwords, progress, say, slices, trace
+from vela import ladder, model, override, pending, plainwords, progress, say, slices, trace
 
 LEVELS = ("warning", "caution", "pending", "unexamined", "override", "dark")
 SETTLED = ("decided", "fact")
@@ -144,7 +144,9 @@ def lights(vault, as_of):
             if app.id in trace.listed(epic, "apps"):
                 for unknown in blockers.get(epic.id, []):
                     hold(light, unknown, as_of, via=epic.id)
-        cells = [c for c in vault.cells if c.app.lower() == app.name.lower() and c.state == "unexamined"]
+        # Concern cells are examined at Boundary; an app whose pages have not reached it is not yet owed them.
+        owed = ladder.rank(ladder.stage(vault, app)) >= ladder.rank("boundaries")
+        cells = [c for c in vault.cells if owed and c.app.lower() == app.name.lower() and c.state == "unexamined"]
         settle(light, str(app.meta.get("state") or ""), [str(c.concern.meta.get("title") or c.concern.id) for c in cells], override.valid_overrides(app),
                pending.pending_for(app))
     for contract in vault.contracts:
