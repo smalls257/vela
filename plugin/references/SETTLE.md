@@ -1,6 +1,6 @@
 # Settling an item
 
-Read this when the lead is sure ("that's decided", "settle it", "lock that in"), in any mode. A plain yes to a pick is a pick, not a settle: offer once, "Want to settle that now, or keep it as not decided yet?" If they keep it, run `vela decide <ID> --later --yes ^cM` and don't offer it again this session.
+Read this when the lead is sure ("that's decided", "settle it", "lock that in"), in any mode. A plain yes to a pick is a pick, not a settle: offer once, "Want to settle that now, or keep it as not decided yet?" If they keep it, run `vela decide <ID> --later --yes ^cM` (add the step 1 options to keep their reasons) and don't offer it again this session.
 
 1. **What it beat.** If the item has no options written down yet (a pick made in this session), ask once for each option set aside without a reason: "Why not <option>, in a few words?" Capture the answer; a reason they won't give is `declined`. Pass them as `--picked "<option>=^cP" --rejected "<option>=^cR"`.
 2. **What holds it up.** Run `vela check --gate decide --item <ID> --for-lead`. Say each reason in one sentence, with the one thing that clears it. Ask that thing now when the lead can answer it here. When a reason asks one question, ask it once and pass the answer as `--options-none ^cN`. For anything else: "Settle it anyway? I'll note that <what> was still open." That's an override: ask the reason once.

@@ -87,9 +87,8 @@ const Grills = (() => {
   }
   const prompt = (r) => `/vela:grill ${r.name}\n\n${promptBody(r)}`;
   /* The settle prompt is the same facts without the grill's last sentences: no slash command, so with no session running
-     Claude opens whatever takes "settle an item" (the grill skill, for now: the owner's open question, answered by the
-     plan's default). To open a different skill, change SETTLE_OPENS_WITH and nothing else. */
-  const SETTLE_OPENS_WITH = (r) => `Settle ${r.name}. I'm sure of it.`;
+     Claude opens whatever takes "settle an item" (the grill skill; the owner said to keep that default). To open a different skill, change SETTLE_OPENS_WITH and nothing else. */
+  const SETTLE_OPENS_WITH = (r) => `Settle ${r.name}.`;
   function settleBody(r) {
     const parts = [];
     if (r.settles.length) parts.push(`It settles: ${listWords(r.settles.map((s) => settleLine(s).replace(/\.$/, "")), 3)}.`);

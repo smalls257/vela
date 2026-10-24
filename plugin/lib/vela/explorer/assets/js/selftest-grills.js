@@ -117,7 +117,7 @@
     click($("#panel-body [data-act=copy]")); await tick();
     ok(Grills.st.copied === prompt, "grills: Copy prompt copies exactly the prompt shown", `grills: copied "${Grills.st.copied.slice(0, 80)}"`);
     const settle = $("#panel-body [data-prompt=settle]").textContent;
-    ok(settle.startsWith(`Settle ${pick.name}. I'm sure of it.\n`) && !IDLIKE.test(settle) && !/grill/i.test(settle) && settle === Grills.settlePrompt(pick),
+    ok(settle.startsWith(`Settle ${pick.name}.\n`) && !IDLIKE.test(settle) && !/grill/i.test(settle) && settle === Grills.settlePrompt(pick),
        "grills: the panel also has a settle prompt that starts Settle with the item's name and is plain words", `grills: settle "${settle.slice(0, 120)}"`);
     click($("#panel-body [data-act=copy-settle]")); await tick();
     ok(Grills.st.copied === settle, "grills: Copy settle prompt copies exactly the settle prompt shown", "grills: the settle copy differs");

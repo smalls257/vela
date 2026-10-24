@@ -16,6 +16,10 @@ EVERY_MODE = ["dump", "discover", "shape", "boundary", "requirements", "allocate
               "answer", "shape, boundary"]
 
 
+def decide_item(root, ident, *flags):
+    return run("decide", ident, *flags, "--vault", str(root), "--today", TODAY, "--json")
+
+
 def decide(root, *flags):
     return run("decide", "CON-002", *flags, "--vault", str(root), "--today", TODAY, "--json")
 
@@ -40,7 +44,7 @@ def test_outside_a_grill_the_read_back_and_the_yes_are_still_needed(tmp_path):
     code, out = decide(root, "--readback", "^c03", "--yes", "^c02", "--provider", "^c07")
     assert code == 1 and "consent-yes-before-readback" in [r["rule"] for r in json.loads(out)["refusals"]]
     code, out = decide(root, "--readback", "^c01", "--yes", "^c04", "--provider", "^c07")  # ^c04 is a bare "ok"
-    assert code == 1
+    assert code == 1 and "consent-bare-non-yes" in [r["rule"] for r in json.loads(out)["refusals"]]
 
 
 def test_outside_a_grill_the_gate_still_runs_and_the_lead_can_set_it_aside(tmp_path):
@@ -137,7 +141,7 @@ def test_later_says_it_writes_no_reasons_or_options_and_does_not_drop_them_silen
     root = make_vault(tmp_path)
     in_session_with_modes(root, "shape")
     before = session_files.record_text(root, RECORD_ID)
-    for flags in (["--picked", "A=^c01", "--rejected", "B=^c02"], ["--why", "^c03"], ["--dissent", "^c03"]):
+    for flags in (["--why", "^c03"], ["--dissent", "^c03"]):
         code, out = decide(root, "--later", "--yes", "^c02", *flags)
         assert code == 1 and rules_of(out) == ["decide-later-writes-nothing"], flags
     code, out = run("decide", "--reopen", "CON-002", "--later", "--yes", "^c02", "--vault", str(root), "--today", TODAY,
@@ -330,6 +334,11 @@ def test_a_pick_naming_a_capture_the_record_lacks_is_refused(tmp_path):
     assert "decide-options-capture" in [r.rule for r in refusals]
 
 
+def test_the_capture_where_the_pick_was_made_must_be_a_persons(tmp_path):
+    _, refusals = plan(pick_vault(tmp_path), [settle_strategy(picked="One Shop API=^c08")])
+    assert "decide-options-pick-not-theirs" in [r.rule for r in refusals]
+
+
 def test_options_already_written_are_left_as_they_are(tmp_path):
     root = make_vault(tmp_path, captures=PICK)
     in_session_with_modes(root, "shape")
@@ -351,3 +360,29 @@ def test_one_gate_name_for_deciding():
     assert "decide" in schema.GATES and "grill" not in schema.GATES
     code, _ = run("check", "--gate", "grill", "--item", "CON-001", "--vault", str(REPO / "tests" / "fixtures" / "mini"))
     assert code != 0  # argparse refuses the old name; no alias
+
+
+def test_later_files_the_pick_and_its_options_at_assumption(tmp_path):
+    root = pick_vault(tmp_path)
+    git_init(root)
+    code, out = decide_item(root, "solution-strategy", "--later", "--yes", "^c02", "--picked", "One Shop API=^c16",
+                            "--rejected", "The till calls Stock itself=^c17")
+    assert code == 0, out
+    page = (root / STRATEGY).read_text(encoding="utf-8")
+    assert ('- **Options considered:** One Shop API (picked); The till calls Stock itself: rejected, "Two places to '
+            'change for every price rule."') in page
+    assert "state: decided" not in page
+    record = session_files.record_text(root, RECORD_ID)
+    assert "solution-strategy: the lead said yes" in record and "(assumption) ^c16" in record
+    assert git_log(root)[0] == "shape: solution-strategy options kept"
+    code, out = decide_item(root, "solution-strategy", "--later", "--yes", "^c02", "--picked", "One Shop API=^c16",
+                            "--rejected", "The till calls Stock itself=^c17")
+    assert code == 1 and "decide-options-written" in out  # the bullet stays as written
+
+
+def test_later_with_half_a_pick_files_nothing(tmp_path):
+    root = pick_vault(tmp_path)
+    before = (root / STRATEGY).read_text(encoding="utf-8")
+    code, out = decide_item(root, "solution-strategy", "--later", "--yes", "^c02", "--picked", "One Shop API=^c16")
+    assert code == 1 and "decide-options-one" in out
+    assert (root / STRATEGY).read_text(encoding="utf-8") == before

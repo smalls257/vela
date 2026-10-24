@@ -10,10 +10,11 @@ DECIDED = closegate.CONSENT_STATE
 
 
 def settled_ids(record_text):
-    """IDs with a `## Changes` row into `decided` in this record, first-seen order, once each."""
+    """IDs with a `## Changes` row into `decided` in this record, first-seen order, once each. A row filed by `close
+    reconfirm` is the lead saying yes again, not settling, so it is left out."""
     found = []
     for row in closegate.change_rows(record_text):
-        if row.after == DECIDED and row.item not in found:
+        if row.after == DECIDED and not row.reconfirmed and row.item not in found:
             found.append(row.item)
     return found
 

@@ -80,7 +80,8 @@ def reconfirm(args, root, vault, before, record, lead):
     was_read_back = _read_back(root, vault, record, lead)
     notes, pages = record.text, {}
     for ident in dict.fromkeys(args.ids):
-        notes = textedit.add_change(notes, ident, asked[ident].before, asked[ident].after, source)
+        notes = textedit.add_change(notes, ident, asked[ident].before, asked[ident].after,
+                                    f"{source} {closegate.RECONFIRMED}")
         _repoint(vault, root, pages, ident, record, lead, yes)
     notes = _marked(notes, vault, root, [asked[i] for i in dict.fromkeys(args.ids)], args)
     wrote = [sessiongit.write_text(root, rel, text) for rel, text in pages.items()]

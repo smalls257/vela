@@ -2797,8 +2797,8 @@ def first_step(vault):
                 "no app page exists yet, so split the work into apps.")
     sources = strategy.meta.get("sources") if strategy is not None else None
     if isinstance(sources, list) and sources and not sized.needs(sizing.Need.OPTIONS_BEFORE_DECIDING):
-        return ("for the whole plan: grill the solution strategy, with /vela:grill 04-solution-strategy. Boundary waits "
-                "until the direction is decided; one question about other options is enough at this size.")
+        return ("for the whole plan: settle the solution strategy when you're sure, in this session, or test it "
+                "first with /vela:grill 04-solution-strategy. Boundary waits until the direction is decided.")
     return ("for the whole plan: no app page exists yet, so start by getting everything known written down "
             "(/vela:dump, a brainstorm), or by reading the existing sources (/vela:discover).")
 

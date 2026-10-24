@@ -474,6 +474,12 @@ def options_refusals(item, view, record, target):
                                  f"{spec!r}: use <option>=^cN with a capture in this record, or <option>=declined for "
                                  "a reason the lead declined to give.", override="none: drop --picked and --rejected",
                                  audience=say.MODEL))
+    picked_ref = option_ref(item["picked"]) if item.get("picked") else ""
+    if picked_ref and consent.exists(picked_ref, record) is None and not record.capture(picked_ref).is_person:
+        found.append(refusal("decide-options-pick-not-theirs", "The pick has to be in the lead's own words, not mine.",
+                             f"Capture where the lead picked it with them as origin (^c{record.capture(picked_ref).n} is "
+                             "Claude's), then use that capture in --picked.",
+                             override="none: drop --picked and --rejected", audience=say.MODEL))
     if options_written(view, target):
         found.append(refusal("decide-options-written", "That item already has its options written down, so I left "
                                                         "them as they are.",

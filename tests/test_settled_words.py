@@ -32,3 +32,8 @@ def test_the_pr_title_counts_the_decisions_a_session_settled():
 def test_a_grill_is_for_testing():
     assert terms.define("grill") == ("A grill is a working session where Vela tests part of the plan with hard "
                                      "questions, one at a time, until it holds up.")
+
+
+def test_a_reconfirmed_decision_is_not_counted_as_settled_in_this_session():
+    record = RECORD + "| CON-009 | assumption | decided | [[r#^c60]] (reconfirmed) |\n"
+    assert settled.settled_ids(record) == ["solution-strategy", "CON-003"]

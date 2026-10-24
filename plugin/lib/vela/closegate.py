@@ -78,6 +78,11 @@ class Capture:
         return re.sub(r"[^\w\s]", "", self.quote).strip().lower() in BARE_NON_YES
 
 
+# Written after the source of a Changes row that `close reconfirm` filed: the lead said yes again to a decision made in
+# another part of the session, so this part did not settle it.
+RECONFIRMED = "(reconfirmed)"
+
+
 @dataclass(frozen=True)
 class ChangeRow:
     item: str
@@ -90,6 +95,10 @@ class ChangeRow:
     def capture_number(self):
         found = CAPTURE_LINK_RE.search(self.source)
         return found.group("n") if found else ""
+
+    @property
+    def reconfirmed(self):
+        return self.source.rstrip().endswith(RECONFIRMED)
 
 
 @dataclass(frozen=True)

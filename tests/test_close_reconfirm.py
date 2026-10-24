@@ -94,7 +94,7 @@ def test_reconfirm_repoints_the_receipt_to_part_two(tmp_path):
     code, out = reconfirm(vault, "--readback", "^c02", "--yes", "^c03", "CON-002")
     assert code == 0, out
     assert f'[[{RID}]] 2.c03, @priya: "Yes, still one till API for everything."' in text_of(vault, STOCK)
-    assert f"| CON-002 | fact | decided | [[{RID}#^c03]] |" in text_of(vault, privaterecord.private_path(RID))
+    assert f"| CON-002 | fact | decided | [[{RID}#^c03]] (reconfirmed) |" in text_of(vault, privaterecord.private_path(RID))
     assert not elsewhere(vault)
     assert not [p for p in gate(vault) if p["kind"] in (closegate.CONSENT, closegate.RECEIPT)]
 
@@ -151,7 +151,7 @@ def test_a_ledger_row_taken_off_on_the_other_machine_is_asked_about_and_reconfir
     assert not [p for p in gate(vault) if p["kind"] == closegate.REMOVED_ROW]
     code, out = reconfirm(vault, "--readback", "^c02", "--yes", "^c03", "CON-002", copy)
     assert code == 0, out
-    assert f"| {copy} | ledger row | removed | [[{RID}#^c03]] |" in text_of(vault, privaterecord.private_path(RID))
+    assert f"| {copy} | ledger row | removed | [[{RID}#^c03]] (reconfirmed) |" in text_of(vault, privaterecord.private_path(RID))
     assert not elsewhere(vault)
     assert not [p for p in gate(vault) if p["kind"] == closegate.REMOVED_ROW]
 

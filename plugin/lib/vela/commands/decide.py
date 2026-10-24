@@ -22,7 +22,8 @@ rule, GATE-1, 2, 3 or 5, has nothing to end).
 
 Any session can decide: the rule is that `vela decide` filed it, with the lead's yes to a read-back, and nothing here
 reads the session's modes. `--later --yes ^cM` is the other answer to an offer to settle: it keeps the lead's yes under
-`## Ready to decide` and decides nothing.
+`## Ready to decide` and decides nothing; with `--picked` and `--rejected` it also writes the pick's options on the
+page, so the reasons the lead gave are kept.
 
 The gate (`gates.verdict`) runs first, with the flow check's recorded standings for a slice or a flow: a reason
 the lead didn't set aside refuses the decision, with the override line that would decide it anyway.
@@ -48,13 +49,14 @@ import pathlib
 from vela import commands, decisions, gates, privaterecord, receipts, say, sessions
 from vela import override as overrides
 from vela.commands import apply as apply_command, whoami
-from vela.decisions import consent, decide, ready, schema, textedit
+from vela.decisions import consent, decide, decide_writes, ready, schema, textedit
 from vela.edge import apply as disk
 from vela.edge import atomic, sessiongit, stagegit
 from vela.edge.vaultgit import GitUnavailable
 
 NAME = "decide"
 MESSAGES = {"decided": "{mode}: {id} decided", "planned": "{mode}: {id} planned", "reopened": "{mode}: {id} reopened"}
+OPTIONS_KEPT = "{mode}: {id} options kept"
 NO_MODE = "decide"
 STATED_MESSAGE = "import: {id} decided, as {source} states"
 
@@ -63,7 +65,7 @@ def register(sub):
     parser = sub.add_parser("decide", help="write one decision the lead gave: state, Decision, Why in their words, "
                                            "Changes row, mark and commit, after the gate")
     parser.add_argument("--later", action="store_true",
-                        help="the lead said yes but isn't settling it now: keep it on the list (needs --yes)")
+                        help="the lead said yes but isn't settling it now: keep it on the list (needs --yes; --picked and --rejected also write the options)")
     parser.add_argument("id", nargs="?", help="the item: an ID, CAP-nnn.FRn@APP-<slug> for an allocation row, or a "
                                               "release's heading")
     parser.add_argument("--reopen", metavar="ID", help="reopen a decided item (a change of mind), with --why")
@@ -195,12 +197,44 @@ def keep_for_later(root, record, staged, args):
     early = later_refusals(args, record, staged, ident)
     if early is not None:
         return early
+    if args.picked or args.rejected:
+        return keep_pick_for_later(root, record, staged, args, ident)
     marked = ready.mark(record.text, ident, record.id, args.yes.strip())
     wrote = sessiongit.write_notes(root, record, marked)
     return say.Result(NAME, wrote=wrote, data={"id": ident, "ready_to_decide": True},
                       lines=[say.Line(f"{ident} kept as ready to decide in {record.id}",
                                       plain="I've kept it as not decided yet. It's on the list of things you said yes "
                                             "to, for when you're sure.")])
+
+
+def keep_pick_for_later(root, record, staged, args, ident):
+    """`--later` with `--picked` and `--rejected`: the lead picked and then kept the item open, so the pick's options
+    go on the page at the item's own state, with their captures kept on it, and the yes is listed as for any `--later`.
+    Without this the answer to "Why not <option>?" would be lost on the way to a settle (a Silent Fallback)."""
+    pick = {"picked": args.picked, "rejected": list(args.rejected or [])}
+    _, target = decide.locate(staged, ident)
+    found = decide_writes.options_refusals(pick, staged, record, target)
+    if found:
+        return refused(found)
+    page = decide_writes.add_history(staged.text(target.path), [decide_writes.options_bullet(pick, staged, record)], target)
+    mark = textedit.keep_mark(textedit.basename(target.path), target.anchor, target.id, target.state)
+    notes = textedit.record_text(record, staged)
+    for ref in decide_writes.consumed(pick):
+        notes = textedit.mark_if_unmarked(notes, ref, mark)
+    notes = ready.mark(notes, ident, record.id, args.yes.strip())
+    writes = [schema.Write(target.path, page)] + textedit.record_writes(record, staged, notes)
+    try:
+        written = disk.write_all(root, writes, {})
+        commit = None if sessiongit.is_read_copy(root) else stagegit.commit(
+            root, OPTIONS_KEPT.format(id=ident, mode=commit_mode(staged.text(record.stub))),
+            [p for p in written if not privaterecord.is_private(p)])
+    except (disk.OutsideVault, atomic.WriteFailed, GitUnavailable) as exc:
+        return failed(f"the options were not kept ({exc})", "The disk refused that, so I kept nothing.")
+    return say.Result(NAME, wrote=written, data={"id": ident, "ready_to_decide": True},
+                      lines=[say.Line(f"{ident} options written and kept as ready to decide in {record.id}"
+                                      + (f"; commit {commit}" if commit else ""),
+                                      plain=f"I've written down what you picked and what it beat, and kept {target.name} "
+                                            "as not decided yet.")])
 
 
 def later_refusals(args, record, staged, ident):
@@ -215,14 +249,14 @@ def later_refusals(args, record, staged, ident):
             "decide-later-with-readback", "I can't both keep this for later and settle it.",
             "a read-back means the lead is settling, so drop --later", audience=say.MODEL,
             override="none: drop --later to settle, or --readback to keep it for later")])
-    unwritten = [flag for flag, given in (("--picked", args.picked), ("--rejected", args.rejected), ("--why", args.why),
-                                          ("--dissent", args.dissent), ("--reopen", args.reopen)) if given]
+    unwritten = [flag for flag, given in (("--why", args.why), ("--dissent", args.dissent), ("--reopen", args.reopen))
+                 if given]
     if unwritten:
         return refused([textedit.refusal(
             "decide-later-writes-nothing", "Keeping this for later writes down only your yes, not the reasons or the "
                                            "options, so I haven't kept anything.",
-            f"--later writes none of {', '.join(unwritten)}; file the pick and its reasons first (settle it), or drop "
-            "those flags and keep only the yes", audience=say.MODEL,
+            f"--later writes none of {', '.join(unwritten)}; settle it to file them, or drop those flags and keep "
+            "only the yes (--picked and --rejected it does write)", audience=say.MODEL,
             override="none: drop the flags, or settle it with a read-back")])
     module, target = decide.locate(staged, ident)
     if target is None:

@@ -34,7 +34,9 @@ def test_small_undecided_strategy_with_a_source_goes_to_its_grill(tmp_path):
     root = from_template(tmp_path)
     write_plan(root, capabilities=["new"])
     edit(root / "04-solution-strategy.md", "state: inkling", "state: inkling\nsources: [SRC-01]")
-    assert "/vela:grill 04-solution-strategy" in next_line(root)
+    line = next_line(root)
+    assert "/vela:grill 04-solution-strategy" in line
+    assert "settle the solution strategy when you're sure" in line
 
 
 def test_small_rule_three_suggests_a_grill_and_medium_a_shape(tmp_path):
