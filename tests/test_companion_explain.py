@@ -87,8 +87,8 @@ def test_a_passed_date_is_late_and_never_sits_beside_nothing_says_its_late():
 
 def test_about_names_the_release_even_when_it_shipped():
     got = track(dated_digest(), "Pilot")
-    assert got["headline"][0].startswith("Pilot is due September 1, 53 days ago.")
-    assert got["headline"][1] == "Of 2 slices, 2 are on."
+    assert got["headline"] == ["Pilot shipped: every slice tied to it is on.", "Of 2 slices, 2 are on."]
+    assert "late" not in " ".join(got["headline"]).lower() and "ago" not in " ".join(got["headline"])
 
 
 def test_a_release_with_no_stuck_question_reaching_it_has_nothing_recorded_saying_late():
@@ -101,6 +101,25 @@ def test_when_every_dated_release_shipped_it_says_so():
     digest = dated_digest()
     digest["slices"] = [slice_row(k, "on") for k in ("SLC-001", "SLC-002", "SLC-003", "SLC-004")]
     assert track(digest)["headline"] == ["Every dated release has shipped."]
+
+
+def test_a_stuck_question_blocking_the_releases_own_epic_and_decision_is_counted(tmp_path):
+    root = tmp_path / "plan"
+    shutil.copytree(EXAMPLE, root)
+    (root / "04b-releases.md").write_text(
+        "---\nid: releases\ntype: initiative-section\ntitle: Releases\nstate: assumption\nowner: \"@hl-solution-lead\"\n"
+        "authored: authored\n---\n\n# Releases\n\nOne date.\n\n## Release one: website\n\n- **Target:** 2026-12-01\n"
+        "- **State:** assumption\n- **Slices:** SLC-001\n", encoding="utf-8")
+    page = root / "11-unknowns-and-risks.md"
+    text = page.read_text(encoding="utf-8")
+    start = text.index("### UNK-006")
+    end = text.index("- **Ask by:** 2027-03-01", start)
+    block = text[start:end].replace("- **State:** open\n", "- **State:** open\n- **Blocks:** [[EPC-031-holds-and-confirms|EPC-031]], [[ADR-0002-ferrymaster-ledger-of-record|ADR-0002]]\n")
+    page.write_text(text[:start] + block + "- **Ask by:** 2026-10-10" + text[end + len("- **Ask by:** 2027-03-01"):], encoding="utf-8")
+    assert run("companion", "prepare", "--vault", str(root), "--today", "2026-10-24")[0] == 0
+    code, got = explain(root, "--view", "track", "--about", "Release one")
+    assert code == 0, got
+    assert got["headline"][2] == "1 thing could make it late."
 
 
 def numbers_in(sentence):

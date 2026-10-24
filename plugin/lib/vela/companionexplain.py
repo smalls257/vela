@@ -87,7 +87,8 @@ def release_named(digest, about):
 def could_hold_up(digest, slices):
     """The stuck questions whose holds reach one of these slices."""
     reached = {key for s in slices for key in s["reach"]}
-    return [a for a in digest["stuck"] if reached & set(a["hold_keys"])]
+    pages = {page for s in slices for page in s.get("reach_pages", [])}
+    return [a for a in digest["stuck"] if reached & set(a["hold_keys"]) or pages & set(a.get("hold_pages", []))]
 
 
 def verdict(digest, release, mine, out):
@@ -114,9 +115,12 @@ def view_track(digest, about, viewer, today):
     if release is None:
         return ["Every dated release has shipped."], [], []
     out = days_out(release["target"], today)
+    mine = [s for s in digest["slices"] if s["key"] in release["slices"]]
+    if is_shipped(release, digest["slices"]):
+        headline = [f"{release['name']} shipped: every slice tied to it is on.", status_sentence(mine)]
+        return headline, [{"id": release["name"], "name": release["name"], "target": release["target"], "days_out": out}], []
     when = f"{out} days out" if out >= 0 else f"{-out} days ago"
     headline = [f"{release['name']} is due {date_words(release['target'], today)}, {when}."]
-    mine = [s for s in digest["slices"] if s["key"] in release["slices"]]
     headline.append(status_sentence(mine) if mine else "No slice is tied to it yet.")
     headline.append(verdict(digest, release, mine, out))
     items = [{"id": release["name"], "name": release["name"], "target": release["target"], "days_out": out}]

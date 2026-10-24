@@ -101,19 +101,25 @@ def test_the_core_reads_no_clock():
     assert got["as_of"] == "2026-10-24T09:00"
 
 
-def test_the_skills_suffix_keeps_a_failed_writes_exit_code(tmp_path):
+@pytest.mark.parametrize("write,companion", [(0, 1), (0, 3), (2, 0), (4, 1), (0, 0)])
+def test_the_skills_suffix_gives_the_writes_exit_code_whatever_the_redraw_does(tmp_path, write, companion):
+    """Runs the shell line the skill tells Claude to run, with a fake vela whose write and companion exit as told."""
+    import os
     import re
     import subprocess
     from conftest import REPO
     text = (REPO / "plugin" / "skills" / "companion" / "SKILL.md").read_text(encoding="utf-8")
-    suffix = re.search(r"put `([^`]*companion session --html)` at the end", text).group(1)
-    assert not suffix.startswith(";")
-    plugin = REPO / "plugin"
-    command = "sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela no-such-command " + suffix
-    done = subprocess.run(["sh", "-c", command], cwd=tmp_path, capture_output=True, text=True,
-                          env={**__import__("os").environ, "CLAUDE_PLUGIN_ROOT": str(plugin)})
-    assert done.returncode != 0
-    assert "session.html" not in done.stdout
+    suffix = re.search(r"put `([^`]*companion session --html[^`]*)` at the end", text).group(1)
+    scripts = tmp_path / "plugin" / "scripts"
+    scripts.mkdir(parents=True)
+    (scripts / "run-vela").write_text('#!/bin/sh\nif [ "$1" = companion ]; then touch "$MARK"; exit $COMPANION_CODE; fi\nexit $WRITE_CODE\n',
+                                      encoding="utf-8")
+    command = "sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela decide X " + suffix
+    env = {**os.environ, "CLAUDE_PLUGIN_ROOT": str(tmp_path / "plugin"), "WRITE_CODE": str(write), "COMPANION_CODE": str(companion),
+           "MARK": str(tmp_path / "redrawn")}
+    done = subprocess.run(["sh", "-c", command], cwd=tmp_path, capture_output=True, text=True, env=env)
+    assert done.returncode == write
+    assert (tmp_path / "redrawn").exists() == (write == 0)  # a failed write is never redrawn
 
 
 def _with_rows(plan, *rows):

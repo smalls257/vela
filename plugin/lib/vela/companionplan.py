@@ -8,7 +8,7 @@ never served as current.
 """
 import datetime
 
-VERSION = 2
+VERSION = 3
 STUCK_LEVELS = ("warning", "caution")  # the lamp colors that mean something is held up; "override" is a lead's choice
 
 
@@ -28,6 +28,12 @@ def name(names, key):
     return names[key]["name"] if key in names else key
 
 
+def pages_of_keys(names, keys):
+    """The pages that hold these keys: a question holds an epic or a decision by its ID, a release reaches an app or
+    a flow by its key, and only the page they sit on is the same thing on both sides."""
+    return sorted({names[k]["page"] for k in keys if k in names and names[k]["page"]})
+
+
 def asks_of(data, names):
     holds = {u["id"]: [name(names, h) for h in u.get("holds", [])] for u in data["unknowns"]}
     hold_keys = {u["id"]: u.get("holds", []) for u in data["unknowns"]}
@@ -37,7 +43,8 @@ def asks_of(data, names):
                       "who_key": ask["ask"]["key"], "state": ask["state"], "ask_by": ask["askBy"],
                       "opened": ask["opened"], "light": ask["light"]["level"], "urgency": ask["light"]["urgency"],
                       "open_days": days_between(ask["opened"], data["today"]) if ask["opened"] else None,
-                      "holds": holds.get(ask["id"], []), "hold_keys": list(hold_keys.get(ask["id"], []))})
+                      "holds": holds.get(ask["id"], []), "hold_keys": list(hold_keys.get(ask["id"], [])),
+                      "hold_pages": pages_of_keys(names, hold_keys.get(ask["id"], []))})
     return found
 
 
@@ -76,10 +83,17 @@ def reach_of(slice_row):
     return sorted({k for k in keys if k})
 
 
-def slices_of(data):
+def epics_for(data, slice_row):
+    """The epics that build the flows this slice proves: a question holding one of them holds the slice."""
+    flows = {f.get("id") for f in slice_row.get("flows", [])}
+    return [e["id"] for e in data.get("trace", {}).get("epics", []) if flows & set(e.get("flows", []))]
+
+
+def slices_of(data, names):
     return [{"key": s["key"], "name": s["name"], "status": s["status"] or "planned", "journey_due": s["journeyDue"],
              "milestone": s["milestone"], "milestones": list(s.get("milestones", [])), "overdue": s["overdue"],
-             "reach": reach_of(s)} for s in data["slicePlan"]["list"]]
+             "reach": reach_of(s),
+             "reach_pages": pages_of_keys(names, reach_of(s) + epics_for(data, s))} for s in data["slicePlan"]["list"]]
 
 
 def progress_of(data, names):
@@ -115,7 +129,7 @@ def digest(data, made, fingerprint, next_line):
     """The digest (version 1). `made` is {"date", "commit", "from"}; `next_line` is vela next's first line."""
     names = names_of(data)
     asks = asks_of(data, names)
-    slices = slices_of(data)
+    slices = slices_of(data, names)
     return {"version": VERSION, "made": made, "fingerprint": fingerprint, "title": data["title"],
             "initiative": data["initiative"], "today": data["today"], "names": names, "asks": asks,
             "stuck": stuck_of(asks), "needs": needs_of(data, names), "releases": releases_of(data, slices),
