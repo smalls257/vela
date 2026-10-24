@@ -21,3 +21,9 @@ It takes about ten minutes.
 ## What to send back
 
 Paste the `/probe-report` text and your notes for each numbered question into the "Proof results" table of the plan, or just tell me and I will fill it in.
+
+## What the reference says about the band on the desktop
+
+`AbovePrompt` is raised on the terminal surface only. On the desktop Code tab a pane that is not placed means no band
+at all, so the companion mod says once, in a toast, that the panel is ready and `/vela-companion` opens it. Check on your
+row whether the pane is placed there, and whether the toast shows.

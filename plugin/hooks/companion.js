@@ -19,7 +19,11 @@ let session = null
 let plan = null
 let problem = ''
 let timer = null
-let planWanted = false
+let planWanted = false  // keep the plan panel's text current
+let planNeedsOpen = false  // open its pane once, when the person asks; a person's close ends it until they ask again
+let toldNotPlaced = false
+let startCwd = ''
+let inVault // undefined = not looked at yet, true or false once looked at; a vela tool call clears it
 let sessionOpened = false
 let shown = { session: false, plan: false }
 let views = { session: null, plan: null }
@@ -64,6 +68,7 @@ async function refreshSession($) {
       sessionOpened = true
       const placed = await $.ui.open({ id: SESSION_PANE, title: views.session.title })
       shown.session = placed.isPlaced
+      if (!placed.isPlaced) notePanelIsHidden($)
     }
     return
   }
@@ -89,8 +94,32 @@ async function refreshPlan($) {
   if (done.code === 0 && done.found && done.found.files) {
     plan = done.found
     views.plan = await viewOf($, { ...done.found, session: { title: done.found.copy ? done.found.copy.title : '' } })
-    const placed = await $.ui.open({ id: PLAN_PANE, title: views.plan.title })
-    shown.plan = placed.isPlaced
+    if (planNeedsOpen) {
+      planNeedsOpen = false
+      const placed = await $.ui.open({ id: PLAN_PANE, title: views.plan.title })
+      shown.plan = placed.isPlaced
+      if (!placed.isPlaced) notePanelIsHidden($)
+    }
+  }
+}
+
+// A pane that could not be placed (a narrow terminal, the desktop app) must not leave the panel silently absent.
+function notePanelIsHidden($) {
+  if (toldNotPlaced) return
+  toldNotPlaced = true
+  $.ui.toast('The panel is ready: type /vela-companion to open it.')
+}
+
+// Is there a plan at or above the folder the session started in? Looked at once, not on every turn: Python starts
+// only in a folder that holds a vela plan.
+async function findVault($) {
+  if (!startCwd) return true  // can't tell where we are; vela itself answers "no plan here"
+  let dir = startCwd
+  for (;;) {
+    if (await $.fs.exists(`${dir}/.vela.yaml`)) return true
+    const parent = dir.replace(/\/[^/]*$/, '')
+    if (!parent || parent === dir) return false
+    dir = parent
   }
 }
 
@@ -103,6 +132,11 @@ async function refresh($) {
     problem = `vela didn't run: ${error && error.message ? error.message : error}`
   }
   $.ui.invalidate('ui.render')
+}
+
+async function scheduleIfVault($) {
+  if (inVault === undefined) inVault = await findVault($)
+  if (inVault) schedule($)
 }
 
 function schedule($) {
@@ -120,27 +154,30 @@ export function register(on) {
   on('session.start', async ($, e, next) => {
     await $.command.register({ name: 'vela-companion', description: "Show this session's companion", immediate: true })
     await $.command.register({ name: 'vela-plan', description: 'Show the plan companion', immediate: true })
-    $.clock.after(0, () => { void refresh($) })
+    startCwd = e.cwd || ''
+    inVault = await findVault($)
+    if (inVault) $.clock.after(0, () => { void refresh($) })
     return next(e)
   })
 
   on('tool.call', async ($, e, next) => {
     const result = await next(e)
     if (touchesPlan(e)) {
-      if (e.tool === 'Bash' && EXPLAINS_PLAN.test(e.command || '')) planWanted = true
+      if (e.tool === 'Bash' && EXPLAINS_PLAN.test(e.command || '')) { planWanted = true; planNeedsOpen = true }
+      inVault = undefined  // a vela call may have just made the plan
       schedule($)
     }
     return result
   })
 
   on('turn.complete', async ($, e, next) => {
-    schedule($)
+    await scheduleIfVault($)
     return next(e)
   })
 
   on('ui.close', async ($, e, next) => {
     if (e.origin === 'person' && e.id === SESSION_PANE) shown.session = false
-    if (e.origin === 'person' && e.id === PLAN_PANE) shown.plan = false
+    if (e.origin === 'person' && e.id === PLAN_PANE) { shown.plan = false; planWanted = false; planNeedsOpen = false }
     return next(e)
   })
 
@@ -155,6 +192,7 @@ export function register(on) {
 
   on('command.run', { command: 'vela-plan' }, async ($) => {
     planWanted = true
+    planNeedsOpen = true
     await refreshPlan($)
     return {}
   })
@@ -174,6 +212,7 @@ export function register(on) {
   })
 
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
+    if (e.props.hasSurvey) return next(e)  // a survey holds the band; a hook yields to it
     const { Text } = $.ui.resolve(e)
     if (problem) return Text({ children: [problem] })
     if (session && session.band && !shown.session) return Text({ children: [session.band] })
