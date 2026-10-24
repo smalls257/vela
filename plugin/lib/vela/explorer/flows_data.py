@@ -9,8 +9,9 @@ vela's own parser and model. Two things the record does not say directly, each l
   two lanes (read once, by the flow checker's parser; a contract drawn between several pairs is picked by the lanes
   the sentence names, else not at all), and that pair is "stated". Last comes a guess, marked "inferred", that follows
   the contract's style: a request (an API a consumer calls) goes consumer to provider, because the consumer calls;
-  a push (an event or a webhook, `c["push"]`, read from the contract's Delivery bullet or its own words) goes provider to
-  consumer. When a contract has several consumers and the step names some of them, only those are drawn; when it
+  an event (`c["push"]`, read from the contract's own words) goes provider to consumer, and so does a webhook
+  (`c["inbound"]`, the contract's Delivery or Order bullet) when its provider is the outside party calling in; a webhook recorded the
+  other way (the vault's app as provider, the outside party the caller) is a request. A diagram never turns an event around. When a contract has several consumers and the step names some of them, only those are drawn; when it
   names none, every consumer is drawn, because the record does not say which.
 - Arrow words. One arrow, one label: the diagram's own words for that call ("Capacity check") or else the contract's
   title. The step's sentence shows once, on the step, never again under each of its arrows.
@@ -168,10 +169,12 @@ class Drawing:
         return mine[min(k, len(mine) - 1)]
 
     def pair(self, item, named):
-        """(from, to) the diagram draws item between, when it draws one pair, or one pair among several that the
-        sentence's lanes single out; None otherwise."""
+        """(from, to) the diagram draws item between, or None. `named` is the lanes the sentence names that are parties of
+        the contract: when it names any, only a pair that has one of them applies (both of them is preferred), so a step that
+        says "Call center desktop gets the booking" is never drawn as the website's call because that is all the diagram draws.
+        With none named, the pair is used only when the diagram draws just one."""
         pairs = list(dict.fromkeys((f, t) for f, t, _ in self.calls.get(item, ())))
-        if len(pairs) > 1:
+        if named:
             pairs = [p for p in pairs if p[0] in named and p[1] in named] or [p for p in pairs if p[0] in named or p[1] in named]
         return pairs[0] if len(pairs) == 1 else None
 
@@ -199,19 +202,33 @@ def message(sentence, c, words, pair=(), drawing=None):
     return inferred(c, [lane for _, lane in named], drawing)
 
 
+def outward(c):
+    """True when this contract's message goes provider to consumer: an event the provider publishes (`push`), or a webhook
+    (`inbound`) whose provider is the outside party calling into the vault. A webhook whose provider is a vault app is
+    recorded the checker's way (the outside party is the caller), so it reads as a request."""
+    return bool(c.get("push") or (c.get("inbound") and c.get("providerKind", "app") != "app"))
+
+
 def inferred(c, named, drawing=None):
     """What the step leaves unsaid. The diagram's pair when it draws one ("stated"); else a guess that follows the
-    contract's style: a push goes provider to consumers, a request goes consumers to provider."""
+    contract's style: an outward message (an event, a webhook from an outside party) goes provider to consumers, a request
+    goes consumers to provider. The diagram's direction is never taken for an outward contract (the checker reads `A->>B`
+    with B as provider, which for an event is backwards); its words and the member it names are."""
     drawing = drawing or Drawing()
-    drawn = drawing.pair(c["id"], set(named))
-    if drawn:
-        return [{"from": drawn[0], "to": drawn[1], "contract": c["id"], "direction": "stated", "kind": "send",
+    parties = [c["provider"]] + c["consumers"]
+    drawn = drawing.pair(c["id"], set(named) & set(parties))
+    if drawn and not outward(c):
+        return [{"from": drawn[0], "to": drawn[1], "contract": c["id"], "direction": "stated", "kind": "request",
                  "words": drawing.words(c["id"], *drawn)}]
+    if drawn and c["provider"] in drawn:
+        words = drawing.words(c["id"], *drawn)
+        return [{"from": c["provider"], "to": k, "contract": c["id"], "direction": "inferred", "kind": "send", "words": words}
+                for k in drawn if k != c["provider"]]
     consumers = [k for k in c["consumers"] if k != c["provider"]]
     if not consumers:
         return []
     chosen = [k for k in consumers if k in named] or consumers
-    if c.get("push"):
+    if outward(c):
         return [{"from": c["provider"], "to": k, "contract": c["id"], "direction": "inferred", "kind": "send", "words": ""} for k in chosen]
     return [{"from": k, "to": c["provider"], "contract": c["id"], "direction": "inferred", "kind": "send", "words": ""} for k in chosen]
 
@@ -428,8 +445,8 @@ def flows(vault, keys, contracts, pins, names, catalog=None):
         drawing = Drawing(starts_data.drawn_calls(vault, keys, catalog, page, by_name)) if catalog is not None else Drawing()
         record = flow_record(vault, keys, page, by_id, lanes, words, blockers, names, outside, drawing)
         record["domain"] = domain_of(record["steps"], app_domains)
-        record["groups"] = (starts_data.default_groups(vault, keys, catalog, page, by_name, {l["id"] for l in lanes})
-                            if catalog is not None else [])
+        record["groups"], record["groupNotes"] = (starts_data.default_groups(vault, keys, catalog, page, by_name, {l["id"] for l in lanes})
+                                                   if catalog is not None else ([], []))
         record["hops"], record["segments"] = journey(record["steps"], by_id)
         out.append(record)
     return {"lanes": lanes, "flows": out}

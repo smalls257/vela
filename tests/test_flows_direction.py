@@ -19,8 +19,8 @@ DATA = re.compile(r'<script type="application/json" id="data">(.*?)</script>', r
 WEB, DESK, KIOSK, BOOKING, SCHEDULE, TIDEPAY = "APP-website", "APP-call-center", "APP-kiosks", "APP-booking", "APP-vessel-schedule", "PTY-01"
 
 
-def contract(push, consumers=(WEB, DESK), provider=BOOKING):
-    return {"id": "CON-1", "title": "Booking API", "provider": provider, "consumers": list(consumers), "push": push}
+def contract(push, consumers=(WEB, DESK), provider=BOOKING, **more):
+    return {"id": "CON-1", "title": "Booking API", "provider": provider, "consumers": list(consumers), "push": push, **more}
 
 
 def test_a_request_goes_from_each_consumer_to_the_provider():
@@ -43,10 +43,42 @@ def test_a_contract_with_no_kind_is_read_as_a_request():
     assert flows_data.inferred({"id": "C", "title": "T", "provider": BOOKING, "consumers": [WEB]}, [])[0]["from"] == WEB
 
 
-def test_the_diagrams_pair_is_stated_and_beats_the_guess_even_for_a_push():
+def test_the_diagrams_pair_is_stated_and_beats_the_guess_for_a_request_and_it_is_a_request():
     drawing = Drawing([(SCHEDULE, BOOKING, "CON-1", "capacity check")])
-    (m,) = flows_data.inferred(contract(push=True), [], drawing)
-    assert (m["from"], m["to"], m["direction"], m["words"]) == (SCHEDULE, BOOKING, "stated", "capacity check")
+    (m,) = flows_data.inferred(contract(push=False), [], drawing)
+    assert (m["from"], m["to"], m["direction"], m["words"], m["kind"]) == (SCHEDULE, BOOKING, "stated", "capacity check", "request")  # so a fold can see it answered
+
+
+def test_a_push_drawn_in_a_strict_diagram_takes_its_words_and_member_but_keeps_provider_to_consumer():
+    """The checker reads only `A->>B: CON` with B as provider, so an event recorded as a CON has to be drawn consumer first.
+    Taking that arrow as drawn would show Notifications calling Booking, marked stated."""
+    drawing = Drawing([("APP-notifications", BOOKING, "CON-1", "booking state changed")])
+    (m,) = flows_data.inferred(contract(push=True, consumers=("APP-notifications", WEB)), [], drawing)
+    assert (m["from"], m["to"], m["direction"], m["words"]) == (BOOKING, "APP-notifications", "inferred", "booking state changed")
+
+
+def test_a_webhook_from_an_outside_provider_goes_from_it_to_the_vault_app():
+    got = flows_data.inferred(contract(push=False, provider=TIDEPAY, consumers=(BOOKING,), inbound=True, providerKind="party"), [])
+    assert [(m["from"], m["to"]) for m in got] == [(TIDEPAY, BOOKING)]
+
+
+def test_a_webhook_recorded_the_checkers_way_goes_from_the_outside_party_to_the_vault_app():
+    """Provider Booking, consumer Carrier (outside): the caller is the consumer, so the arrow goes Carrier to Booking, never Booking to Carrier."""
+    got = flows_data.inferred(contract(push=False, provider=BOOKING, consumers=("APP-carrier",), inbound=True, providerKind="app"), [])
+    assert [(m["from"], m["to"]) for m in got] == [("APP-carrier", BOOKING)]
+    worded = flows_data.inferred(contract(push=True, provider=BOOKING, consumers=("APP-carrier",), inbound=True, providerKind="app"), [])
+    assert [(m["from"], m["to"]) for m in worded] == [(BOOKING, "APP-carrier")]  # an event the provider publishes still goes out; only Delivery/Order marks a webhook
+
+
+def test_one_drawn_pair_does_not_override_the_lane_the_sentence_names():
+    """The diagram draws only the website's call; the step says the call center gets it. The arrow shows the call center, dashed."""
+    drawing = Drawing([(WEB, BOOKING, "CON-1", "hold a seat")])
+    (m,) = flows_data.inferred(contract(push=False), [DESK], drawing)
+    assert (m["from"], m["to"], m["direction"]) == (DESK, BOOKING, "inferred")
+    (kept,) = flows_data.inferred(contract(push=False), [WEB], Drawing([(WEB, BOOKING, "CON-1", "hold a seat")]))
+    assert (kept["from"], kept["direction"]) == (WEB, "stated")
+    (unnamed,) = flows_data.inferred(contract(push=False), [], Drawing([(WEB, BOOKING, "CON-1", "hold a seat")]))
+    assert unnamed["direction"] == "stated"
 
 
 def test_a_contract_drawn_between_several_pairs_is_picked_by_the_lanes_the_sentence_names_else_guessed():
@@ -80,6 +112,7 @@ def test_the_example_marks_its_event_and_its_webhook_as_pushes_and_its_apis_as_r
     data, _ = example
     assert {c["id"]: c["push"] for c in data["map"]["contracts"]} == {
         "CON-001": False, "CON-002": True, "CON-003": False, "CON-004": False, "CON-005": False, "CON-006": False, "CON-007": True}
+    assert not any(c["inbound"] for c in data["map"]["contracts"])  # none of them records a Delivery or Order bullet (CON-007 says "webhook" in words only)
 
 
 def test_the_example_flows_without_a_strict_diagram_draw_callers_to_providers_and_pushes_the_other_way(example):
@@ -119,3 +152,12 @@ def test_step_two_of_the_old_hold_flow_no_longer_repeats_its_sentence_under_six_
     holding = next(s for s in flows["FLO-001"]["steps"] if s["n"] == 4)
     says = [m["says"] for m in holding["messages"]]
     assert len(says) == 4 and len(set(says)) == 4 and holding["text"] not in says
+
+
+def test_a_delivery_or_order_bullet_marks_a_contract_inbound_and_is_no_longer_what_makes_it_a_push():
+    from types import SimpleNamespace
+    from vela.explorer import build
+    only = lambda **facts: SimpleNamespace(facts={k: SimpleNamespace(value=v) for k, v in facts.items()})
+    assert build.inbound(only(Delivery="at-least-once")) and build.inbound(only(Order="per booking")) and not build.inbound(only(Auth="key"))
+    assert not build.pushes(only(Delivery="at-least-once"))  # the words decide a push: "event", "webhook", "publishes"
+    assert build.pushes(only(**{"Crosses the boundary": "A webhook when the payment settles"}))

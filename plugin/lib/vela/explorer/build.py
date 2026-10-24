@@ -327,11 +327,15 @@ PUSH_WORDS = re.compile(r"\b(events?|webhooks?|publish(?:es|ed)?)\b", re.I)
 
 
 def pushes(contract):
-    """True when the provider sends this contract to its consumers (an event, a webhook) rather than the consumers calling it.
-    The vault has no kind field; the signs it does record are a Delivery or Order bullet (an outside party calling in) and
-    the contract's own words in "Crosses the boundary". A contract with neither is read as a request (consumers call the provider)."""
+    """True when the contract's own words in "Crosses the boundary" say the provider sends it out (an event, a webhook, "publishes").
+    A contract with no such words is read as a request (consumers call the provider). The vault has no kind field."""
     crosses = contract.facts.get("Crosses the boundary")
-    return bool(contract.facts.get("Delivery") or contract.facts.get("Order") or (crosses and PUSH_WORDS.search(plain(crosses.value))))
+    return bool(crosses and PUSH_WORDS.search(plain(crosses.value)))
+
+
+def inbound(contract):
+    """True for a contract an outside party calls into the vault (a webhook): CONVENTIONS gives only these a Delivery or Order bullet."""
+    return bool(contract.facts.get("Delivery") or contract.facts.get("Order"))
 
 
 def system_map(vault, keys):
@@ -346,7 +350,7 @@ def system_map(vault, keys):
             "id": c.id, "title": c.name, "provider": pkey, "providerKind": pkind, "keptOn": keys.page(c.page),
             "consumers": [keys.page(p) for p in vault.consumers(c)], "state": c.fact("State"),
             "change": c.fact("Change"), "crosses": inline_html(crosses.value, keys, c.page) if crosses else "",
-            "push": pushes(c),
+            "push": pushes(c), "inbound": inbound(c),
         })
     apps = [{"key": keys.page(a), "id": a.id, "title": title_of(a), "change": str(a.meta.get("change") or ""),
              "state": str(a.meta.get("state") or ""), "stage": str(a.meta.get("stage") or ""),
