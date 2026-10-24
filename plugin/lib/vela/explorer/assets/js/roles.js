@@ -59,8 +59,7 @@ const Roles = (() => {
     const kpi = (n, label, quantity, title) => h("div", {}, h("b", { "data-quantity": quantity, "data-n": n }, n), h("span", title ? { title } : {}, label));
     grid.append(card("What is decided", ["Decisions", () => Nav.open("decisions")],
       h("div", { class: "kpi-row" }, kpi(C.decided, "decided", "decisions.decided"), kpi(C.proposed, "proposed", "decisions.proposed"),
-        C.overridden ? kpi(C.overridden, "decided before the usual checks", "decisions.overridden") : null,
-        h("div", {}, h("b", {}, `${D.progress.shares.reduce((n, x) => n + x.done, 0)} of ${D.progress.shares.reduce((n, x) => n + x.total, 0)}`), h("span", { title: D.progress.shares.map((x) => `${x.name}: ${x.done} of ${x.total}`).join("; ") }, "things written down"))),
+        C.overridden ? kpi(C.overridden, "decided before the usual checks", "decisions.overridden") : null),
       list(decided, 4, (e) => h("li", {}, h("a", { "data-ref": e.key, title: e.id }, shorten(e.name, 60), idTag(e.id))))));
     const risks = D.riskList;
     grid.append(card("Top risks", ["Unknowns and risks", () => Nav.open("unknowns")], risks.length ? list(risks, 4, (r) => {
