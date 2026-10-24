@@ -302,11 +302,28 @@ def copy_source(root):
     return str(given) if given else "a published copy"
 
 
+def made_of(root, today, made_commit):
+    """{"date", "commit", "from"} of the copy. A reader's copy is dated and numbered by its stamp (the owner's publish
+    day and short commit), not by today and a git it doesn't have: every draft the reader saves changes the files, and
+    stamping today on each re-prepare would roll "since last time" without a new copy (plan ruling 16)."""
+    made = {"date": today, "commit": made_commit, "from": copy_source(root)}
+    if not sessiongit.is_read_copy(root):
+        return made
+    try:
+        stamp = json.loads((pathlib.Path(root) / ".vela" / "published.json").read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, ValueError):  # no readable stamp: the copy can't be told apart, today it is
+        return made
+    if isinstance(stamp, dict):
+        made["date"] = str(stamp.get("date") or today)
+        made["commit"] = str(stamp.get("short") or "")
+    return made
+
+
 def prepare_digest(vault, root, today, data, made_commit=""):
     """Cut the digest from the dashboard's own `data` and write it. `vault` is the loaded plan (for vela's own next
     line). The fingerprint is of the files as they are now."""
     from vela import cli, companionplan
-    made = {"date": today, "commit": made_commit, "from": copy_source(root)}
+    made = made_of(root, today, made_commit)
     digest = companionplan.digest(data, made, vaultfiles.fingerprint(root), cli.next_step_text(vault, today))
     write_plan_digest(root, digest)
     return digest

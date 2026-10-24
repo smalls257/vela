@@ -95,3 +95,20 @@ def test_freshness_asks_github_and_says_a_newer_plan_is_there(tmp_path, github, 
     monkeypatch.setattr(githubcopy, "remote_head", lambda repo, timeout: "f" * 40)
     code, text = run("freshness", "--vault", str(tmp_path / "ws"), "--for-lead")
     assert "newer plan on GitHub" in text and "get the newer plan" in text
+
+
+def test_a_readers_drafts_do_not_roll_since_last_time(tmp_path, github):
+    """Every draft a reader saves changes the files and so the fingerprint; the copy is still the one made on the
+    owner's publish day, so the baseline holds until a new copy is opened."""
+    from companion_vault import run_companion
+    ws = tmp_path / "ws"
+    assert run("open", "https://github.com/harborline/booking-plan", "--into", str(ws), "--author", "Dana",
+               "--today", "2026-10-20")[0] == 0
+    stamp = json.loads((ws / ".vela" / "published.json").read_text(encoding="utf-8"))
+    assert run_companion(ws, "explain", "--json", "--view", "stuck", today="2026-10-21")[0] == 0
+    page = next(p for p in ws.glob("*.md") if p.name[0].isdigit())
+    page.write_text(page.read_text(encoding="utf-8") + "\nA reader's note.\n", encoding="utf-8")
+    assert run_companion(ws, "explain", "--json", "--view", "stuck", today="2026-10-27")[0] == 0
+    seen = json.loads((ws / ".vela" / "companion" / "seen.json").read_text(encoding="utf-8"))
+    assert seen["current"]["made"]["date"] == stamp["date"] and seen["current"]["made"]["commit"] == stamp["short"]
+    assert not seen.get("previous")
