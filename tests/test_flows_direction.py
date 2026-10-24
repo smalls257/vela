@@ -67,7 +67,12 @@ def test_a_webhook_recorded_the_checkers_way_goes_from_the_outside_party_to_the_
     got = flows_data.inferred(contract(push=False, provider=BOOKING, consumers=("APP-carrier",), inbound=True, providerKind="app"), [])
     assert [(m["from"], m["to"]) for m in got] == [("APP-carrier", BOOKING)]
     worded = flows_data.inferred(contract(push=True, provider=BOOKING, consumers=("APP-carrier",), inbound=True, providerKind="app"), [])
-    assert [(m["from"], m["to"]) for m in worded] == [(BOOKING, "APP-carrier")]  # an event the provider publishes still goes out; only Delivery/Order marks a webhook
+    assert [(m["from"], m["to"]) for m in worded] == [("APP-carrier", BOOKING)]  # "webhook" in the Crosses line never outvotes the Delivery/Order bullet
+
+
+def test_an_event_with_no_delivery_bullet_still_goes_out_from_its_provider():
+    got = flows_data.inferred(contract(push=True, provider=BOOKING, consumers=("APP-carrier",)), [])
+    assert [(m["from"], m["to"]) for m in got] == [(BOOKING, "APP-carrier")]
 
 
 def test_one_drawn_pair_does_not_override_the_lane_the_sentence_names():

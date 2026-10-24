@@ -205,8 +205,11 @@ def message(sentence, c, words, pair=(), drawing=None):
 def outward(c):
     """True when this contract's message goes provider to consumer: an event the provider publishes (`push`), or a webhook
     (`inbound`) whose provider is the outside party calling into the vault. A webhook whose provider is a vault app is
-    recorded the checker's way (the outside party is the caller), so it reads as a request."""
-    return bool(c.get("push") or (c.get("inbound") and c.get("providerKind", "app") != "app"))
+    recorded the checker's way (the outside party is the caller), so it reads as a request. The Delivery/Order bullet
+    decides alone: a webhook's "webhook" or "event" wording never flips it back."""
+    if c.get("inbound"):
+        return c.get("providerKind", "app") != "app"
+    return bool(c.get("push"))
 
 
 def inferred(c, named, drawing=None):
