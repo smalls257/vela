@@ -548,7 +548,7 @@ def test_owed_copies_disposed_passes_when_every_copy_has_a_valid_row(tmp_path):
     shutil.copytree(FIXTURE, vault)
     passed, summary, detail = probe.owed_copies_disposed(fake_run(vault), {"severity": "any"})
     assert passed and detail == []
-    assert summary == ("owed copies (any) with a disposition: 57 of 57; ledger rows vela check flags: 0 "
+    assert summary == ("owed copies (any) with a disposition: 56 of 56; ledger rows vela check flags: 0 "
                        "(need every copy disposed and no flagged row)")
 
 
@@ -562,7 +562,7 @@ def test_owed_copies_disposed_fails_on_an_undisposed_copy_or_a_flagged_row(tmp_p
                       encoding="utf-8")
     passed, summary, detail = probe.owed_copies_disposed(fake_run(vault), {"severity": "any"})
     assert not passed
-    assert "with a disposition: 56 of 57; ledger rows vela check flags: 2" in summary
+    assert "with a disposition: 55 of 56; ledger rows vela check flags: 2" in summary
     assert "- Q-REG-01@INI-002: open" in detail and any(" E801 " in line for line in detail)
     assert probe.owed_copies_disposed(fake_run(vault), {"severity": "high"})[1].startswith(
         "owed copies (high) with a disposition: 15 of 15")

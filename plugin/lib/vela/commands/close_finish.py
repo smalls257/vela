@@ -28,7 +28,7 @@ import io
 import json
 import pathlib
 
-from vela import closefinish, closegate, explorereport, handoffpreview, handoffwarn, planscope, privaterecord, say, schema, sessions
+from vela import closefinish, closegate, explorereport, handoffpreview, handoffwarn, planscope, privaterecord, say, schema, sessions, sizing
 from vela.edge import atomic, mergegit, sessiongit, stagegit, vaultgit
 
 # The explore report lines the lead hears after the dashboard line (close's "No session open"): what the build went on without.
@@ -193,6 +193,7 @@ def finish_session(root, today, summary, args, out):
         raise cli.ToolError(f"close finish: {exc}") from exc
     notes = privaterecord.with_summary(text, summary)
     closed = privaterecord.with_part(closed, privaterecord.part_of(text), privaterecord.fingerprint(notes))
+    closed = privaterecord.with_size(closed, size=sizing.of(vault).stub_value())  # the shape band and counts, no names
     handoffs = due_handoffs(root, vault, seen.before, text)
     plan = closefinish.plan(seen.reader, handoffs, args.replace)
     if plan.needs_lead:

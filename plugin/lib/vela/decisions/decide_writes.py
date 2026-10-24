@@ -190,6 +190,10 @@ def words_refusals(item, view, record):
         why = consent.why_in_their_words(item["why"], record, lead)
         if why is not None:
             found.append(why)
+    if item.get("options_none"):
+        missing = consent.exists(item["options_none"], record)
+        if missing is not None:
+            found.append(missing)
     if item.get("dissent"):
         missing = consent.exists(item["dissent"], record)
         capture = record.capture(item["dissent"])
@@ -281,8 +285,8 @@ def gate_refusals(item, view, record, target):
         route = gates.ROUTE_NAMES.get(reason.rule)
         if route is not None and route in named:
             continue
-        if item.get("stated_in") and reason.rule == STATED_SKIPS:
-            continue  # a source states the decision: there were options, weighed where it was made, not here
+        if (item.get("stated_in") or item.get("options_none")) and reason.rule == STATED_SKIPS:
+            continue  # a source states the decision, or the lead said there was only this one: nothing to weigh here
         override = found.route if route is not None else \
             "none from decide: settle each finding, or the dated flow-check override the checker reads"
         # The gate's fix is my recommendation to the lead; an event rule is set aside with a reason and no end date.
@@ -329,10 +333,22 @@ def receipt(item, view, record):
                                    speaker(capture, view.lead), words, item.get("stated_in"))
 
 
+def options_bullet(ref, view, record):
+    """`- **Options considered:** only this one: <the lead's words> ([[<record>]] c14)`: the words only when the person
+    said they may be quoted; otherwise the reference alone, so the bullet never carries words nobody agreed to."""
+    capture = record.capture(ref)
+    cite = privaterecord.citation(record.id, record.part, int(capture.n))
+    if consent.may_quote(capture, record, view.lead):
+        return f"- **Options considered:** only this one: {textedit.inline(capture.quote)} ({cite})"
+    return f"- **Options considered:** only this one ({cite})"
+
+
 def history_bullets(item, view, record, target, decision=True):
     """The bullets a decision adds under `## History`, in CONVENTIONS' order."""
     today = textedit.today(view)
     out = [f"- **Decision:** {receipt(item, view, record)}"] if decision else []
+    if item.get("options_none"):
+        out.insert(0, options_bullet(item["options_none"], view, record))
     if item.get("why"):
         out.append(f"- **Why:** {textedit.inline(record.capture(item['why']).quote)}")
     if item.get("dissent"):
@@ -357,7 +373,7 @@ def add_history(text, bullets, target):
 def consumed(item):
     """Every capture the decision filed, the cited one first: each is kept on the item it went into, so close finds
     nothing of this decision left to place."""
-    refs = [item.get(name) for name in ("yes", "why", "readback", "dissent", "provider")]
+    refs = [item.get(name) for name in ("yes", "why", "readback", "dissent", "provider", "options_none")]
     refs += [group.get(name) for group in item.get("groups") or [] for name in ("readback", "yes")]
     refs += [group.get("reason") for group in item.get("overrides") or []]
     return list(dict.fromkeys(ref for ref in refs if ref))

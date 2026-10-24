@@ -9,7 +9,7 @@ const Rehearse = (() => {
   const wire = { sag: 40, v: 0, lastX: 0 };
   const plucks = {};
   let root = null, drag = null, raf = 0;
-  const flow = () => FlowKit.flowOf(st.key);
+  const flow = () => FlowKit.flowOf(st.key, { plain: true });  // the flow whole: a rehearsal asks for every app, whatever the stage groups or folds
   const storeKey = (id) => `rehearse:${D.vaultId}:${id}`;
   const tries = (id) => Settings.readJson(storeKey(id), [], "your rehearsal tries");
   const q = (sel) => root.querySelector(sel);

@@ -18,23 +18,23 @@ def copy(tmp_path):
     return vault
 
 
-def test_a_vault_that_records_none_of_it_counts_zero_and_fails_both_standing_checks():
+def test_a_vault_that_records_no_domains_counts_zero_and_fails_the_domain_check_while_its_hold_flow_names_every_sender():
     found = capture.counts(cli.load_vault(FIXTURE))
     assert (found["apps_with_domain"], found["releases"], found["requirements"], found["allocation_rows"]) == (0, 0, 0, 0)
-    assert found["flow_steps_with_sender"] == 0
-    assert not any(ok for _, ok, _ in capture.verdict(found))
+    assert (found["flow_steps_crossing"], found["flow_steps_with_sender"]) == (4, 4)  # FLO-001 steps 1, 2, 3 and 7 say who sends
+    assert [ok for _, ok, _ in capture.verdict(found)] == [False, True]
 
 
 def test_domains_pairs_and_asks_are_counted_and_the_verdict_reads_them(tmp_path):
     vault = copy(tmp_path)
     set_domains(vault, {slug: "Area" for slug in ("website", "kiosks", "call-center", "booking", "pricing", "notifications",
                                                   "vessel-schedule", "customer-identity", "ferrymaster")})
-    edit(vault / FLOW, STEP5, f"6. {WEBSITE} → {BOOKING}: asks to hold the seat over {CON1}.\n{STEP5}")
+    edit(vault / FLOW, STEP5, f"8. {WEBSITE} → {BOOKING}: asks to hold the seat over {CON1}.\n{STEP5}")
     owner = "- **Owner:** @hl-booking-senior (Booking senior)\n"
     edit(vault / "11-unknowns-and-risks.md", owner, owner + "- **Ask:** outside counsel\n")
     found = capture.counts(cli.load_vault(vault))
     assert found["apps_with_domain"] == found["apps"] == 9
-    assert (found["flow_steps_crossing"], found["flow_steps_with_sender"]) == (1, 1)
+    assert (found["flow_steps_crossing"], found["flow_steps_with_sender"]) == (5, 5)
     assert found["asks"] == ["outside counsel"]
     checks = capture.verdict(found, release_date="2027-01-15", ask_phrase="Outside Counsel")
     assert [ok for _, ok, _ in checks] == [True, True, False, True]  # no release is dated yet

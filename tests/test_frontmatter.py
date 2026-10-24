@@ -34,7 +34,7 @@ def test_session_mode_and_date(mini):
 
 
 def test_handed_off_format(mini):
-    edit(mini / SHOP, "stage: contracts\n", "stage: contracts\nhanded_off: Shop senior\n")
+    edit(mini / SHOP, "change: new\n", "change: new\nhanded_off: Shop senior\n")
     _, out = check(mini)
     assert findings(out) == [("E105", SHOP)]
 

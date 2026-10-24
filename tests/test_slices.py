@@ -163,9 +163,12 @@ def test_the_slices_an_app_takes_part_in(example):
     kiosks = next(a for a in vault.apps if a.id == "APP-kiosks")
     booking = next(a for a in vault.apps if a.id == "APP-booking")
     website = next(a for a in vault.apps if a.id == "APP-website")
-    assert [s.id for s in slices.for_app(vault, found, kiosks)] == ["SLC-003"]
-    assert [s.id for s in slices.for_app(vault, found, booking)] == ["SLC-003"]  # it provides a contract the slice joins
-    assert slices.for_app(vault, found, website) == []  # the example's own flows name no step pairs, so no joins
+    # FLO-001 names who sends in each of its three starts, so the website, the call center and the kiosks are in the slices that hold it
+    assert [s.id for s in slices.for_app(vault, found, kiosks)] == ["SLC-001", "SLC-002", "SLC-003"]
+    assert [s.id for s in slices.for_app(vault, found, booking)] == ["SLC-001", "SLC-002", "SLC-003"]  # it provides a contract the slices join
+    assert [s.id for s in slices.for_app(vault, found, website)] == ["SLC-001", "SLC-002"]
+    pricing = next(a for a in vault.apps if a.id == "APP-pricing")
+    assert slices.for_app(vault, found, pricing) == []  # FLO-002 names no step pairs, so no joins
 
 
 # --- the vault rules ---------------------------------------------------------------------------------------------
@@ -365,7 +368,7 @@ def test_the_handoff_lists_the_slices_an_app_takes_part_in_and_verify_sees_a_cha
     with_kiosk_flow(example)
     code, out = run("handoff", "APP-kiosks", "--vault", str(example), "--today", TODAY, "--commit", "abc1234", "--replace")
     assert code == 0, out
-    assert "Port kiosks is part of 1 slice: SLC-003 Kiosks book through Booking in the March image (not planned yet)." in out
+    assert "Port kiosks is part of 3 slices: SLC-001 " in out and "SLC-003 Kiosks book through Booking in the March image (not planned yet)." in out
     assert 'What "slice" means' not in out  # definitions come from `vela terms`, not every run
     manifest = (example / "handoffs" / "APP-kiosks.md").read_text(encoding="utf-8")
     assert "| SLC-003 | slice | slices/SLC-003-kiosks-book-in-the-march-image.md |" in manifest and "TRACER-1" not in manifest

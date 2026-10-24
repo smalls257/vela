@@ -5,9 +5,16 @@ vela's own parser and model. Two things the record does not say directly, each l
 
 - Direction. A step that starts "Sender -> Receiver:" records it, and is "stated". Otherwise a step names a
   contract, not who sends to whom. A sentence such as "Rider app sends Dock service the code"
-  names both ends, so the direction is "stated". Otherwise the sender is the contract's provider and the receivers
-  its consumers, marked "inferred". When a contract has several consumers and the step names some of them, only
-  those receive; when it names none, every consumer is drawn, because the record does not say which.
+  names both ends, so the direction is "stated". Otherwise the page's own sequence diagram may draw the contract between
+  two lanes (read once, by the flow checker's parser; a contract drawn between several pairs is picked by the lanes
+  the sentence names, else not at all), and that pair is "stated". Last comes a guess, marked "inferred", that follows
+  the contract's style: a request (an API a consumer calls) goes consumer to provider, because the consumer calls;
+  an event (`c["push"]`, read from the contract's own words) goes provider to consumer, and so does a webhook
+  (`c["inbound"]`, the contract's Delivery or Order bullet) when its provider is the outside party calling in; a webhook recorded the
+  other way (the vault's app as provider, the outside party the caller) is a request. A diagram never turns an event around. When a contract has several consumers and the step names some of them, only those are drawn; when it
+  names none, every consumer is drawn, because the record does not say which.
+- Arrow words. One arrow, one label: the diagram's own words for that call ("Capacity check") or else the contract's
+  title. The step's sentence shows once, on the step, never again under each of its arrows.
 - Steps that link no contract in their text. A flow's "Contracts used" table can give a step its contracts; those
   messages are always "inferred", and the step says the contracts came from the table.
 
@@ -34,6 +41,7 @@ only reads them:
 import re
 
 from vela import flows as flow_steps, model
+from . import starts_data
 from .record import STEP, inline_html, link_label, plain, refs_in
 
 SEND_VERB = re.compile(r"\b(sends|asks|calls|reports|writes|publishes|tells)\b")
@@ -140,14 +148,48 @@ def outside_lanes(vault, keys, lanes, words):
     return sorted(made.values(), key=lambda l: (l["kind"] != "partner", l["name"].lower(), l["id"])), index
 
 
-def message(sentence, c, words, pair=()):
+class Drawing:
+    """The calls a flow page's sequence diagram draws, as {contract: [(from lane, to lane, words)]}, with a count of how
+    many times each pair has been used so a contract drawn twice between the same lanes ("BKHOLD" then "BKCONF") hands its words
+    out in the order the steps use it."""
+
+    def __init__(self, calls=None):
+        self.calls, self.used = {}, {}
+        for frm, to, item, words in calls or ():
+            if frm and to:
+                self.calls.setdefault(item, []).append((frm, to, words))
+
+    def words(self, item, frm, to):
+        """The diagram's words for the next use of item between these two lanes (either way round), or ""."""
+        mine = [w for f, t, w in self.calls.get(item, ()) if {f, t} == {frm, to}]
+        if not mine:
+            return ""
+        k = self.used.get((item, frm, to), 0)
+        self.used[(item, frm, to)] = k + 1
+        return mine[min(k, len(mine) - 1)]
+
+    def pair(self, item, named):
+        """(from, to) the diagram draws item between, or None. `named` is the lanes the sentence names that are parties of
+        the contract: when it names any, only a pair that has one of them applies (both of them is preferred), so a step that
+        says "Call center desktop gets the booking" is never drawn as the website's call because that is all the diagram draws.
+        With none named, the pair is used only when the diagram draws just one."""
+        pairs = list(dict.fromkeys((f, t) for f, t, _ in self.calls.get(item, ())))
+        if named:
+            pairs = [p for p in pairs if p[0] in named and p[1] in named] or [p for p in pairs if p[0] in named or p[1] in named]
+        return pairs[0] if len(pairs) == 1 else None
+
+
+def message(sentence, c, words, pair=(), drawing=None):
     """One or more messages for contract c cited in a sentence. A recorded sender and receiver (`pair`) wins over
-    the verb, so a step that writes its arrow is always "stated"."""
+    the verb, so a step that writes its arrow is always "stated"; then the verb; then the page's diagram; then a guess."""
+    drawing = drawing or Drawing()
     parties = [c["provider"]] + c["consumers"]
+
+    def stated(frm, to, kind):
+        return [{"from": frm, "to": to, "contract": c["id"], "direction": "stated", "kind": kind, "words": drawing.words(c["id"], frm, to)}]
     if pair and pair[0] != pair[1] and pair[0] in parties and pair[1] in parties:
         verb = SEND_VERB.search(sentence)
-        kind = "request" if verb and verb.group(1) in REQUEST_VERBS else "send"
-        return [{"from": pair[0], "to": pair[1], "contract": c["id"], "direction": "stated", "kind": kind}]
+        return stated(pair[0], pair[1], "request" if verb and verb.group(1) in REQUEST_VERBS else "send")
     named = mentions(sentence, words)
     verb = SEND_VERB.search(sentence)
     if verb:
@@ -156,17 +198,49 @@ def message(sentence, c, words, pair=()):
         sender = before[0] if before else None
         receiver = next((lane for lane in after if lane != sender), None)
         if sender and receiver:
-            kind = "request" if verb.group(1) in REQUEST_VERBS else "send"
-            return [{"from": sender, "to": receiver, "contract": c["id"], "direction": "stated", "kind": kind}]
-    return inferred(c, [lane for _, lane in named])
+            return stated(sender, receiver, "request" if verb.group(1) in REQUEST_VERBS else "send")
+    return inferred(c, [lane for _, lane in named], drawing)
 
 
-def inferred(c, named):
+def outward(c):
+    """True when this contract's message goes provider to consumer: an event the provider publishes (`push`), or a webhook
+    (`inbound`) whose provider is the outside party calling into the vault. A webhook whose provider is a vault app is
+    recorded the checker's way (the outside party is the caller), so it reads as a request. The Delivery/Order bullet
+    decides alone: a webhook's "webhook" or "event" wording never flips it back."""
+    if c.get("inbound"):
+        return c.get("providerKind", "app") != "app"
+    return bool(c.get("push"))
+
+
+def inferred(c, named, drawing=None):
+    """What the step leaves unsaid. The diagram's pair when it draws one ("stated"); else a guess that follows the
+    contract's style: an outward message (an event, a webhook from an outside party) goes provider to consumers, a request
+    goes consumers to provider. The diagram's direction is never taken for an outward contract (the checker reads `A->>B`
+    with B as provider, which for an event is backwards); its words and the member it names are."""
+    drawing = drawing or Drawing()
+    parties = [c["provider"]] + c["consumers"]
+    drawn = drawing.pair(c["id"], set(named) & set(parties))
+    if drawn and not outward(c):
+        return [{"from": drawn[0], "to": drawn[1], "contract": c["id"], "direction": "stated", "kind": "request",
+                 "words": drawing.words(c["id"], *drawn)}]
+    if drawn and c["provider"] in drawn:
+        words = drawing.words(c["id"], *drawn)
+        return [{"from": c["provider"], "to": k, "contract": c["id"], "direction": "inferred", "kind": "send", "words": words}
+                for k in drawn if k != c["provider"]]
     consumers = [k for k in c["consumers"] if k != c["provider"]]
     if not consumers:
         return []
     chosen = [k for k in consumers if k in named] or consumers
-    return [{"from": c["provider"], "to": k, "contract": c["id"], "direction": "inferred", "kind": "send"} for k in chosen]
+    if outward(c):
+        return [{"from": c["provider"], "to": k, "contract": c["id"], "direction": "inferred", "kind": "send", "words": ""} for k in chosen]
+    return [{"from": k, "to": c["provider"], "contract": c["id"], "direction": "inferred", "kind": "send", "words": ""} for k in chosen]
+
+
+def labeled(m, c):
+    """The message as the page reads it: the words under its arrow are the diagram's own for that call, else the contract's
+    title, never the step's sentence. The diagram's words are consumed here."""
+    words = m["words"]
+    return {**{k: v for k, v in m.items() if k != "words"}, "says": (words[:1].upper() + words[1:]) if words else c["title"], "answer": ""}
 
 
 def short_caption(text, tokens, contracts, limit=130):
@@ -242,7 +316,8 @@ def domain_of(steps, app_domains):
     return min(counts, key=lambda d: (-counts[d], d)) if counts else ""
 
 
-def flow_record(vault, keys, flow, contracts_by_id, lanes, words, blockers, names, outside=None):
+def flow_record(vault, keys, flow, contracts_by_id, lanes, words, blockers, names, outside=None, drawing=None):
+    drawing = drawing or Drawing()
     steps_heading = next((h for h in flow.headings if h.level == 2 and h.text.strip().lower() == "steps"), None)
     lines = flow.text.split("\n")
     from_table = table_contracts(flow, keys)
@@ -265,16 +340,16 @@ def flow_record(vault, keys, flow, contracts_by_id, lanes, words, blockers, name
                     item = vault.item(key) if key else None
                     if key in contracts_by_id:
                         cited.append(key)
-                        says, answer = arrow_words(sentence, tokens, contracts_by_id)
-                        messages += [{**m, "says": says, "answer": answer} for m in message(sentence, contracts_by_id[key], words, pair)]
+                        messages += [labeled(m, contracts_by_id[key])
+                                     for m in message(sentence, contracts_by_id[key], words, pair, drawing)]
                     elif item is not None and item.kind == "unknown" and key not in [p["id"] for p in pins]:
                         pins.append({"id": key, "why": "cited", "textSaysOpen": bool(OPEN_WORDS.search(sentence))})
             named_here = [lane for _, lane in mentions(text, words)]
             lanes_named = list(dict.fromkeys(named_here))
             table_only = [k for k in dict.fromkeys(from_table.get(number, [])) if k in contracts_by_id and k not in cited]
-            first_says, first_answer = arrow_words(text, tokens, contracts_by_id)
+            first_says, _ = arrow_words(text, tokens, contracts_by_id)
             for key in table_only:
-                messages += [{**m, "says": first_says, "answer": first_answer} for m in inferred(contracts_by_id[key], named_here)]
+                messages += [labeled(m, contracts_by_id[key]) for m in inferred(contracts_by_id[key], named_here, drawing)]
             seen, unique = set(), []
             for m in messages:
                 sig = (m["from"], m["to"], m["contract"])
@@ -357,19 +432,24 @@ def journey(steps, contracts_by_id):
     return hops, [{"a": a, "b": b, "contract": cid} for a, b, cid in segments]
 
 
-def flows(vault, keys, contracts, pins, names):
-    """{"lanes": [...], "flows": [...]} for every FLO page, with each flow's journey for the line map."""
+def flows(vault, keys, contracts, pins, names, catalog=None):
+    """{"lanes": [...], "flows": [...]} for every FLO page, with each flow's journey for the line map. `catalog` is the
+    flow checker's read of the vault: with it, a contract the page's sequence diagram draws gets the diagram's sender and receiver."""
     by_id = {c["id"]: c for c in contracts}
     lanes = lanes_of(vault, keys, contracts, pins, names)
     extra, outside = outside_lanes(vault, keys, lanes, aliases(lanes, contracts))
     lanes += extra
     words = aliases(lanes, contracts)
     blockers = model.blockers(vault)
+    by_name = {l["name"].lower(): l["id"] for l in lanes}
     app_domains = {keys.page(a): str(a.meta.get("domain") or "").strip() for a in vault.apps}
     out = []
     for page in sorted(vault.of_type("flow"), key=lambda p: p.id):
-        record = flow_record(vault, keys, page, by_id, lanes, words, blockers, names, outside)
+        drawing = Drawing(starts_data.drawn_calls(vault, keys, catalog, page, by_name)) if catalog is not None else Drawing()
+        record = flow_record(vault, keys, page, by_id, lanes, words, blockers, names, outside, drawing)
         record["domain"] = domain_of(record["steps"], app_domains)
+        record["groups"], record["groupNotes"] = (starts_data.default_groups(vault, keys, catalog, page, by_name, {l["id"] for l in lanes})
+                                                   if catalog is not None else ([], []))
         record["hops"], record["segments"] = journey(record["steps"], by_id)
         out.append(record)
     return {"lanes": lanes, "flows": out}

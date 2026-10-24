@@ -20,10 +20,10 @@ No questions or risks yet.
 
 ## Question ledger
 
-<!-- generated:undisposed-questions sha=9ceea065: do not edit, run vela render -->
+<!-- generated:undisposed-questions sha=c31d787a: do not edit, run vela render -->
 _Kept up to date by vela from the pages it reads._
 
-**Questions:** 12 owed, 12 undisposed, against catalog v1.
+**Questions:** 11 owed, 11 undisposed, against catalog v1.
 
 | Ref | Status | Area | How serious | About | Question |
 |---|---|---|---|---|---|
@@ -38,7 +38,6 @@ _Kept up to date by vela from the pages it reads._
 | Q-PTN-01@INI-001 | no row | Partners and contracts | high | INI-001 | Does ownership, operation or payment change for anything, such as a system, an agreement, a team or a service? |
 | Q-REG-01@INI-001 | no row | Regulation and liability | normal | INI-001 | Will any product be sold or promised across parties, such as a bundle or a joint offer? |
 | Q-REG-02@INI-001 | no row | Regulation and liability | normal | INI-001 | Is anything in scope regulated or licensed, such as a product, an activity, a data set or a system? |
-| Q-REG-05@INI-001 | no row | Regulation and liability | normal | INI-001 | When one part of a product sold across parties fails, who is liable to the customer? |
 <!-- /generated:undisposed-questions -->
 
 | Copy | State | Evidence | By | Date |

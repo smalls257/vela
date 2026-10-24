@@ -139,10 +139,10 @@ Kiosk images ship in March and September. If March slips, kiosks wait six months
 
 Catalog v1 owes these questions. Each row says where one stands. A wildcard row answers every copy it matches, and a copy with its own row is an exception to it.
 
-<!-- generated:undisposed-questions sha=75a848d9: do not edit, run vela render -->
+<!-- generated:undisposed-questions sha=7c66772f: do not edit, run vela render -->
 _Kept up to date by vela from the pages it reads._
 
-**Questions:** 57 owed, 0 undisposed, 1 asked, 1 open reviewer question, against catalog v1.
+**Questions:** 56 owed, 0 undisposed, 1 asked, 1 open reviewer question, against catalog v1.
 
 | Ref | Status | Area | How serious | About | Question |
 |---|---|---|---|---|---|

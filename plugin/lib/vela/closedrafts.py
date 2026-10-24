@@ -45,7 +45,7 @@ import re
 from collections import OrderedDict
 from dataclasses import dataclass, field
 
-from vela import closegate, drafts, model, parse, query, wording
+from vela import closegate, drafts, model, parse, query, schema, sizing, wording
 
 DECIDED, RESOLVED = "decided", "resolved"
 LONG_LIST = 7  # "more than about seven" (close's "Write the items and the prose")
@@ -512,6 +512,17 @@ def settle(entries, history, after):
         else:
             done.append(entry)
     return owing, done
+
+
+def voice_review(sized, paragraphs):
+    """({"due": bool, "why": str}): whether a fresh reader should check the drafts' voice. From the plan's size, never
+    from a number in skill prose (Forensic Coding): always from medium, else from `VOICE_REVIEW_MIN_PARAGRAPHS`."""
+    if sized.needs(sizing.Need.VOICE_REVIEW_ALWAYS):
+        return {"due": True, "why": "this plan's size always sends the drafts to a fresh reader"}
+    if paragraphs >= schema.VOICE_REVIEW_MIN_PARAGRAPHS:
+        return {"due": True, "why": f"{paragraphs} paragraphs is enough to send to a fresh reader"}
+    return {"due": False, "why": f"only {paragraphs} paragraph{'' if paragraphs == 1 else 's'} (a fresh reader comes "
+                                 f"from {schema.VOICE_REVIEW_MIN_PARAGRAPHS}), so the lead's own read-back covers it"}
 
 
 def owed(before, after, changes, modes=(), history=None):

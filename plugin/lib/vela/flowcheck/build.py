@@ -142,7 +142,7 @@ class Builder:
             self.trees[index] = (flow, tree)
             self.participants[index] = {name: self.cat.app_named(title) for name, (title, _) in tree.participants.items()}
         for index, (flow, tree) in sorted(self.trees.items()):
-            for node in _walk(tree.nodes):
+            for node in _walk(tree.all_nodes()):
                 for name in _names(node):
                     app = self.app_of(index, name)
                     if app is not None:
@@ -269,7 +269,8 @@ class Builder:
         return len(self.code) - 1
 
     def compile_flow(self, index, flow, tree):
-        givens, nodes = {}, list(tree.nodes)
+        forked = len(tree.starts) > 1
+        givens, nodes = {}, list(tree.head if forked else tree.nodes)
         while nodes and nodes[0].kind in ("given", "human") and nodes[0].kind == "given":
             node = nodes.pop(0)
             entity = self.entity(flow, node.line, node.parts[1], node.parts[2])
@@ -277,9 +278,28 @@ class Builder:
                 givens[entity.slug] = node.parts[2]
         start = len(self.code)
         ctx = Context(index, "main", (flow.id,))
-        self.seq(nodes, ctx)
+        if forked:
+            self.fork(index, flow, tree, ctx)
+        else:
+            self.seq(nodes, ctx)
         self.emit(Ins("done", flow.path, index, data={"thread": "main"}))
         self.flows.append((flow, start, givens))
+
+    def fork(self, index, flow, tree, ctx):
+        """An opening alt names the flow's starts: one of them happens, so the walk forks once, takes each start's own steps,
+        and every start goes on to the steps after the alt (the shared tail), compiled once."""
+        where = self.where(flow, tree.starts[0].line)
+        at = self.emit(Ins("fork", where, index, data={"targets": [], "labels": [b.label for b in tree.starts]}))
+        gotos = []
+        for branch in tree.starts:
+            self.code[at].data["targets"].append(len(self.code))
+            inner = ctx.child()
+            self.seq(branch.body, inner)
+            ctx.last_timer = inner.last_timer if inner.last_timer is not None else ctx.last_timer  # a timer a start armed is the one the shared steps await
+            gotos.append(self.emit(Ins("goto", self.where(flow, branch.line), index)))
+        for g in gotos:
+            self.code[g].data["target"] = len(self.code)
+        self.seq(tree.tail, ctx)
 
     def compile_handler(self, index, hid, node, item, title, subscriber_name, retries, cause_item):
         flow = self.trees[index][0]

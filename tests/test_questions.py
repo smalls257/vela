@@ -19,14 +19,14 @@ def load(root):
     return cli.load_vault(root)
 
 
-def test_the_fixture_owes_fifty_seven_copies_in_copy_id_order():
+def test_the_fixture_owes_fifty_six_copies_in_copy_id_order():
     vault = load(FIXTURE)
     ids = owed_ids(vault)
-    assert len(ids) == 57 and ids == sorted(ids)
+    assert len(ids) == 56 and ids == sorted(ids)
     by_scope = {}
     for copy in questions.owed(vault):
         by_scope[copy.entry.scope] = by_scope.get(copy.entry.scope, 0) + 1
-    assert by_scope == {"initiative": 12, "app": 12, "contract": 14, "capability": 6, "party": 8, "stored-value": 5}
+    assert by_scope == {"initiative": 11, "app": 12, "contract": 14, "capability": 6, "party": 8, "stored-value": 5}
     for expected in ("Q-FIN-01@INI-002", "Q-DAT-02@APP-booking", "Q-OPS-02@CON-006",
                      "Q-OPS-03@CAP-023", "Q-PTN-02@PTY-02", "Q-FIN-03@SV-01"):
         assert expected in ids

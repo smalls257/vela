@@ -20,7 +20,11 @@ def test_the_slices_view_reads_the_slice_pages(booking):  # noqa: F811
     assert all(E[x["key"]]["kind"] == "slice" for x in P["list"])
     assert [f["id"] for f in rows["SLC-001"]["flows"]] == ["FLO-001", "FLO-003"]
     assert all(E[f["key"]]["kind"] == "flow" for f in rows["SLC-001"]["flows"])
-    assert all(x["joins"] == [] and x["apps"] == [] for x in P["list"])  # the example's flow steps name no pairs, so no joins
+    # FLO-001's steps name the pairs that cross Booking (CON-001 from each channel, CON-002 to Notifications); FLO-002 and FLO-003 name none
+    hold = ["APP-booking", "APP-call-center", "APP-kiosks", "APP-notifications", "APP-website"]
+    assert {x["id"]: ([j["id"] for j in x["joins"]], x["apps"]) for x in P["list"]} == {
+        "SLC-001": (["CON-001", "CON-002"], hold), "SLC-002": (["CON-001", "CON-002"], hold),
+        "SLC-003": (["CON-001", "CON-002"], hold), "SLC-004": ([], [])}
     assert all(x["check"]["status"] == "not fully checked" and x["check"]["open"] == ["unreadable or undeclared"] and x["overdue"] == "" for x in P["list"])  # as W391 says
     assert rows["SLC-003"]["notIn"][0]["text"].startswith("Amend and cancel at a kiosk")
     section = next(s for s in data["sections"] if s["id"] == "slices")

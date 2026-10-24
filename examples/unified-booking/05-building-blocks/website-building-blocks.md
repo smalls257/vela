@@ -7,7 +7,6 @@ arc42: "§5"
 c4: container
 state: decided
 change: changed
-stage: epics
 owner: "@harborline/digital-team"
 authored: mixed
 sources: ["Digital senior container review", "rollout plan with solution lead"]

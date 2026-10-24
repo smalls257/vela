@@ -281,7 +281,8 @@ def test_already_decided_item_is_said_so(ub):
 
 
 def test_app_below_target_stage_fails_the_stage_condition(ub):
-    edit(ub / BOOKING, "stage: epics\n", "stage: baseline\n")
+    # no source at all: the app's pages reach only baseline
+    edit(ub / BOOKING, 'sources: ["Booking senior container review", "UNK-001 ledger latency measurement 2026-09-02", SRC-04, SRC-05]', "sources: []")
     found = judge(ub, "CON-001")
     assert not found.ready and "GATE-1" in rules_of(found)
 

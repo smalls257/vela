@@ -19,6 +19,8 @@ def rich(tmp_path):
         "- **State:** assumption\n", "- **State:** assumption\n- **Slices:** SLC-001\n", 1))
     add_flows(vault)
     flows = vault / "06-runtime" / "flows"
+    # FLO-001 now names every sender, so it would out-rank the four drawn flows these tests are about; its own counting is covered below
+    next(flows.glob("FLO-001-*.md")).unlink()
     (flows / "FLO-904-booking-api-to-pricing.md").write_text(
         flow_page(904, f"{BOOKING} → {PRICING}: books the fare, over {CON1}."), encoding="utf-8")
     first = flows / "FLO-901-site-to-booking.md"
@@ -40,13 +42,21 @@ def test_tracer_candidates_rank_by_apps_and_new_contracts(tmp_path):
     # 901 crosses three apps; 904 and 903 two each, and 904 wins the tie on its new contract; 902's outside payment
     # page is not an app, so it crosses one. Quote a fare (CON-003) is a changed contract, not a new one.
     assert ranked[:4] == [("FLO-901", 3, 1), ("FLO-904", 2, 1), ("FLO-903", 2, 0), ("FLO-902", 1, 0)], ranked
-    # The example's own flows were drawn before steps named a sender and receiver: listed last, said uncounted.
-    assert [c["countable"] for c in data["candidates"][4:]] == [False, False, False]
+    # The example's other flows were drawn before steps named a sender and receiver: listed last, said uncounted.
+    assert [c["countable"] for c in data["candidates"][4:]] == [False, False]
     assert data["candidates"][0]["new_contracts"] == ["CON-001"]
     assert data["candidates"][0]["recorded_first_path"] is True
     assert data["recommended"] == "FLO-901"
     code, out = run("releases", "tracer-candidates", "--vault", str(rich(tmp_path / "again")))
     assert code == 0 and out.index("FLO-901") < out.index("FLO-904") < out.index("FLO-903") < out.index("FLO-902")
+
+
+def test_the_example_hold_flow_is_counted_now_that_its_steps_name_who_sends(tmp_path):
+    vault = tmp_path / "v"
+    shutil.copytree(FIXTURE, vault)
+    code, data = as_json("releases", "tracer-candidates", "--vault", str(vault))
+    first = data["candidates"][0]
+    assert code == 0 and first["flow"] == "FLO-001" and first["countable"] is True and len(first["apps"]) == 5 and data["recommended"] == "FLO-001"
 
 
 def test_tracer_candidates_say_a_tie_is_the_leads_call(tmp_path):
@@ -121,7 +131,7 @@ def test_for_lead_passes_the_leak_check(tmp_path):
     assert "Release one: pilot" in out and "A customer books on the website through Booking" in out
     code, out = run("releases", "tracer-candidates", "--vault", str(vault), "--for-lead", "--more")
     assert "Tracer flow 901" in out and "Public website" in out and "Booking API" in out
-    assert "Hold, pay, confirm: not counted" in out
+    assert "Amend or cancel: not counted" in out
 
 
 def test_an_unreadable_vault_is_exit_2(tmp_path):

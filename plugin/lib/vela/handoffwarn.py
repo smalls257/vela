@@ -6,7 +6,7 @@ read-back, close's manifest, `vela next` and `vela check`, so none of them can t
 """
 from dataclasses import dataclass
 
-from vela import cases, criteria, handoff, model, progress, schema, trace
+from vela import cases, criteria, handoff, ladder, model, progress, schema, trace
 
 UNFIRM_STATES = ("inkling", "assumption", "draft")
 KINDS_THAT_NEED_A_YES = ("app", "runtime", "provides", "consumes", "requirement", "epic")
@@ -21,9 +21,11 @@ class Gap:
     sentence: str
 
 
-def at_handoff(app):
-    """An app that is handed off, or whose pages have reached the handoff stage."""
-    return bool(app.meta.get("handed_off")) or app.meta.get("stage") == "handoff"
+def at_handoff(vault, app):
+    """An app that is handed off, or whose pages reach the handoff stage or later: its handoff list is settled, so
+    a gap still in it speaks even when the app was handed over on an override."""
+    reached = ladder.stage(vault, app)
+    return bool(app.meta.get("handed_off")) or (bool(reached) and ladder.rank(reached) >= ladder.rank("handoff"))
 
 
 def designed(vault, app):

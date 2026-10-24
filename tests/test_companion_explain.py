@@ -170,8 +170,10 @@ def test_needs_lists_what_waits_on_the_viewer(plan):
 
 
 def test_a_flow_view_draws_its_steps(plan):
+    from vela.edge import companionstore
+    steps = len(next(f for f in companionstore.plan_digest(plan)["flows"] if f["name"] == "Hold, pay, confirm")["steps"])
     code, got = explain(plan, "--view", "flow", "--about", "Hold, pay, confirm")
-    assert code == 0 and got["headline"] == ["Hold, pay, confirm has 5 steps."] and got["diagram"]["svg"].startswith("<svg")
+    assert code == 0 and got["headline"] == [f"Hold, pay, confirm has {steps} steps."] and got["diagram"]["svg"].startswith("<svg")
 
 
 def test_an_unknown_subject_is_refused_with_close_names(plan):

@@ -589,12 +589,13 @@ def start_in_copy(root, args, today, modes, plain, said):
     record_id = sessions.new_id(today, args.topic, lambda i: (root / "sessions" / f"{i}.md").exists())
     title = sessions.title_for(modes, args.topic)
     rel = privaterecord.private_path(record_id)
-    wrote = [sessiongit.write_text(root, privaterecord.stub_path(record_id),
-                                   privaterecord.new_stub(record_id, title, today, modes, title_override=override)),
+    stub, size_lines = with_size_said(root, privaterecord.new_stub(record_id, title, today, modes, title_override=override))
+    wrote = [sessiongit.write_text(root, privaterecord.stub_path(record_id), stub),
              sessiongit.write_text(root, rel, privaterecord.new_private(record_id, title, today, 1))]
     wrote.append(write_state(root, record_id, None, modes, today))
     lines.append(say.Line(f"started: {record_id} in this folder, modes: {', '.join(modes)}",
                           plain=f"I've opened the session: {plain(sessions.title_for(modes, args.topic))}."))
+    lines += size_lines
     return say.Result(START, lines=lines, wrote=wrote, data={"id": record_id, "path": rel, "branch": None,
                                                              "modes": modes, "reader": True})
 
@@ -839,8 +840,9 @@ def open_record(root, args, today, modes, challenged, on_branch, lines, carried,
     title = sessions.title_for(modes, args.topic, challenged)
     began = sessiongit.head_commit(root)
     challenges = [args.topic] if "challenge" in modes else []
-    wrote = [sessiongit.write_text(root, rel, privaterecord.new_stub(record_id, title, today, modes, branch, began,
-                                                                     challenges, title_override)),
+    stub, size_lines = with_size_said(root, privaterecord.new_stub(record_id, title, today, modes, branch, began,
+                                                                   challenges, title_override))
+    wrote = [sessiongit.write_text(root, rel, stub),
              sessiongit.write_text(root, privaterecord.private_path(record_id),
                                    privaterecord.new_private(record_id, title, today, 1))]
     committed = [rel] + keep_notes_out_of_git(root, wrote)
@@ -859,9 +861,22 @@ def open_record(root, args, today, modes, challenged, on_branch, lines, carried,
     elif args.unnamed:
         lines.append(say.Line("unnamed: the lead declined to name the initiative",
                               plain='The dashboard will read "New initiative" until you give it a name.'))
+    lines += size_lines
     wrote.append(write_state(root, record_id, branch, modes, today))
     return say.Result(START, lines=lines, wrote=wrote, data={"id": record_id, "path": rel, "branch": branch,
                                                              "modes": modes, "reader": False})
+
+
+def with_size_said(root, stub):
+    """(the new stub carrying the plan's size, the size line to say). The size is read before the stub exists and
+    recorded in it, so it travels in the opening commit and is said once."""
+    from vela import cli
+    from vela.commands import size
+    due = size.due(cli.load_vault(root))
+    if due is None:
+        return stub, []
+    line, value, kept = due
+    return privaterecord.with_size(stub, size=value, kept=kept), [line]
 
 
 def keep_notes_out_of_git(root, wrote):

@@ -132,7 +132,7 @@ def test_open_lists_an_asked_copy_and_an_asked_reviewer_question(tmp_path):
     assert [c["id"] for c in answer["copies"]] == [ASKED] and answer["copies"][0]["state"] == "asked"
     assert [r["id"] for r in answer["reviewer"]] == ["R-FIN-01"] and answer["reviewer"][0]["state"] == "asked"
     assert answer["undisposed"] == 0 and answer["asked"] == 2
-    assert answer["coverage"] == "57 owed, 0 undisposed, 2 asked, against catalog v1"
+    assert answer["coverage"] == "56 owed, 0 undisposed, 2 asked, against catalog v1"
     out = run("questions", "--open", "--vault", str(vault))[1]
     assert any(l.startswith(f"{ASKED} | FIN | normal | asked |") for l in out.splitlines()), out
 
@@ -142,12 +142,12 @@ def test_the_digest_and_the_block_show_asked_copies_labeled_asked(tmp_path):
     answer = json.loads(run("questions", "--digest", "--json", "--vault", str(vault))[1])
     fin = next(g for g in answer["groups"] if g["entry"] == "Q-FIN-02")
     assert fin["copies"] == [ASKED] and fin["why"] == {"asked": 1}
-    assert answer["coverage"] == "57 owed, 0 undisposed, 1 asked, 1 open reviewer question, against catalog v1"
+    assert answer["coverage"] == "56 owed, 0 undisposed, 1 asked, 1 open reviewer question, against catalog v1"
     out = run("questions", "--digest", "--vault", str(vault))[1]
     assert f"   (asked) {ASKED}" in out
     run("render", "--vault", str(vault))
     page = (vault / "11-unknowns-and-risks.md").read_text(encoding="utf-8")
-    assert "**Questions:** 57 owed, 0 undisposed, 1 asked, 1 open reviewer question, against catalog v1." in page
+    assert "**Questions:** 56 owed, 0 undisposed, 1 asked, 1 open reviewer question, against catalog v1." in page
     assert f"| {ASKED} | asked | Finance and liabilities | normal | INI-002 |" in page
 
 
@@ -219,7 +219,7 @@ def test_a_ledger_page_without_its_heading_warns_in_a_plain_check(tmp_path):
     assert code == 0
     w813 = [l for l in out.splitlines() if " W813 " in l]
     assert w813 == ["11-unknowns-and-risks.md:1: W813 11-unknowns-and-risks.md has no ## Question ledger heading; "
-                    "12 owed copies have nowhere to be recorded. Fix: Add ## Question ledger after ## Risks, "
+                    "11 owed copies have nowhere to be recorded. Fix: Add ## Question ledger after ## Risks, "
                     "as CONVENTIONS.md shows under \"Questions and the ledger\"."], out
     gate = run("check", "--gate", "epics", "--vault", str(vault), "--today", "2026-11-20")[1]
     assert any(" E805 " in l and "The page has no ## Question ledger heading." in l for l in gate.splitlines()), gate

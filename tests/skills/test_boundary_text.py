@@ -70,7 +70,7 @@ def test_boundary_marks_its_own_captures():
 
 def test_boundary_turns_a_decided_direction_into_apps_and_decides_nothing():
     b = text("skills/boundary/SKILL.md")
-    assert "Offer 2 or 3 ways to cut the direction into apps, never one and never more than three" in b
+    assert "Offer the cut the lead described and, only when there is a real alternative, one more" in b
     assert "a correction needs its own yes" in b
     # the yes rule lives in START once, for every mode (tests/skills/test_start_text.py pins it there)
     assert "write a line only after the yes `START.md` defines" not in b
@@ -261,5 +261,5 @@ def test_boundary_drafts_the_paragraph_of_each_item_it_files_now():
 
 def test_boundary_stays_lean():
     """Sensor against regrowth: 2,552 words before the trim (now 2,387); PAGES.md 1,001 before (now about 930)."""
-    assert len(text("skills/boundary/SKILL.md").split()) <= 1650  # 2,387 before the second trim; 1,598 after
+    assert len(text("skills/boundary/SKILL.md").split()) <= 1675  # 2,387 before the second trim; 1,598 after; plan sizing's existence read-back and requirements line add 46, lane groups 40
     assert len(text("skills/boundary/PAGES.md").split()) <= 960

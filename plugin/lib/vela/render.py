@@ -6,7 +6,7 @@ holds links and numbers, dates and never ages, so two runs give equal bytes.
 import hashlib
 import re
 
-from vela import allocation, diagrams, parse, plainwords, progress, questions, say, schema, trace
+from vela import allocation, diagrams, ladder, parse, plainwords, progress, questions, say, schema, trace
 from vela.model import Finding, blocking_unknowns
 
 OPEN = "<!-- generated:{name} sha={sha}: " + parse.MARKER_TEXT + " -->"
@@ -126,15 +126,9 @@ def settled_contracts(vault, app):
     return len(settled), len(mine)
 
 
-def _stage_rank(app, order):
-    stage = app.meta.get("stage")
-    return order.get(stage, len(order)) if isinstance(stage, str) else len(order)
-
-
 def where_it_stands(vault, page):
-    order = {stage: i for i, stage in enumerate(schema.ENUMS["stage"])}
     laddered = [a for a in vault.apps if a.meta.get("change") in schema.LADDERED_CHANGES]
-    laddered.sort(key=lambda a: (_stage_rank(a, order), a.id))
+    laddered.sort(key=lambda a: (ladder.rank(ladder.stage(vault, a)), a.id))
     out = []
     if laddered:
         out += ["**Where each app has got to**", "",
@@ -142,7 +136,7 @@ def where_it_stands(vault, page):
                 "|---|---|---|---|---|"]
         for app in laddered:
             done, total = settled_contracts(vault, app)
-            out.append(row(link(app.name, title(app)), plainwords.stage_word(app.meta.get("stage", "")),
+            out.append(row(link(app.name, title(app)), plainwords.stage_word(ladder.stage(vault, app)),
                            str(len(blocking_unknowns(vault, app))), str(unexamined_cells(vault, app)), f"{done} of {total}"))
     else:
         out.append("**Where each app has got to:** no app is being built or changed yet")
