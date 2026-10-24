@@ -13,7 +13,7 @@ AFTER = ("- **Change:** new\n- **State:** decided\n"
          "### CON-003 Call tool records")
 CAPTURE = ("- [thought] (claude) Read back: Heron reads only the folder the person points it at "
            "→ keep: [[heron-building-blocks#CON-002 Chosen folder|CON-002]] (decided) ^c01\n"
-           '- [decision] (@replay-lead) "Yes, Heron reads only the folder I point it at, as read back." '
+           '- [decision] (@sim-lead) "Yes, Heron reads only the folder I point it at, as read back." '
            "→ keep: [[heron-building-blocks#CON-002 Chosen folder|CON-002]] (decided) ^c02\n")
 QUOTE = "Heron reads only the folder I point it at"
 

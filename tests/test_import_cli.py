@@ -30,7 +30,7 @@ id: ADR-0001
 type: decision
 title: Nightly partner file
 state: proposed
-owner: "@mini-lead"
+owner: "@priya"
 authored: authored
 ---
 
@@ -240,7 +240,7 @@ id: context
 type: initiative-section
 title: Context
 state: fact
-owner: "@mini-lead"
+owner: "@priya"
 authored: authored
 sources: [SRC-02]
 ---

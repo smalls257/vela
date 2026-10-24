@@ -10,10 +10,10 @@ ID = "UNK-029"  # the snapshot's highest is UNK-028, on main
 
 def run(ctx):
     ctx.typed(QUESTION)
-    code, out = ctx.vela("record", "add", "--origin", "@replay-lead", "--tag", "unknown", QUESTION, "--json")
+    code, out = ctx.vela("record", "add", "--origin", "@sim-lead", "--tag", "unknown", QUESTION, "--json")
     number = json.loads(out)["number"]
     code, said = ctx.vela("add", "unknown", "--today", ctx.today, "--name", "Pilot laptop sign-off",
-                          "--capture", number, "--owner", "@replay-lead", "--blocks", "CON-003", "--for-lead")
+                          "--capture", number, "--owner", "@sim-lead", "--blocks", "CON-003", "--for-lead")
     assert "Pilot laptop sign-off" in said, said
     ctx.outputs["add unknown --for-lead"] = said
     page = (ctx.vault / "11-unknowns-and-risks.md").read_text(encoding="utf-8")

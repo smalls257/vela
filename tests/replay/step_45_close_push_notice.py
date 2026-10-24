@@ -4,7 +4,7 @@ commit carries it. The lead's handle comes first (`vela whoami --set`): the sim'
 
 
 def run(ctx):
-    ctx.vela("whoami", "--set", "replay-lead")
+    ctx.vela("whoami", "--set", "sim-lead")
     head = ctx.git("rev-parse", "HEAD")
     code, out = ctx.vela("close", "push", "--today", ctx.today, "--for-lead", check=False)
     assert code == 3 and out.strip().startswith("I'll send this for review") and out.strip().endswith("OK?"), out
@@ -12,6 +12,6 @@ def run(ctx):
     assert not ctx.git("ls-remote", "--heads", "origin", f"session/{ctx.record_id}").strip(), "sent before a yes"
     ctx.outputs["close push --for-lead (notice)"] = out
     ctx.typed("Yes, send it for review.")
-    code, number = ctx.vela("record", "add", "--origin", "@replay-lead", "--tag", "decision", "--mark",
+    code, number = ctx.vela("record", "add", "--origin", "@sim-lead", "--tag", "decision", "--mark",
                             "drop: the yes to send this for review", "Yes, send it for review.")
     ctx.outputs["push yes"] = number.strip()

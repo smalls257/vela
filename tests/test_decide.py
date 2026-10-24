@@ -72,7 +72,7 @@ id: CAP-001
 type: capability
 title: Sell a basket
 state: assumption
-owner: "@mini-lead"
+owner: "@priya"
 authored: authored
 ---
 
@@ -97,7 +97,7 @@ type: epic
 title: Till sells through Shop
 initiative: INI-900
 state: draft
-owner: "@mini/till-team"
+owner: "@priya"
 authored: authored
 apps: [APP-till, APP-shop]
 ---
@@ -139,7 +139,7 @@ authored: authored
 The tracer: a till sells a basket through the Shop.
 
 - **Flows:** [[FLO-001-buy|FLO-001]]
-- **Owner:** @mini-lead
+- **Owner:** @priya
 
 ## History
 
@@ -151,7 +151,7 @@ type: initiative-section
 title: Releases
 initiative: INI-900
 state: assumption
-owner: "@mini-lead"
+owner: "@priya"
 authored: authored
 ---
 
@@ -171,7 +171,7 @@ title: Solution strategy
 initiative: INI-900
 arc42: "§4"
 state: assumption
-owner: "@mini-lead"
+owner: "@priya"
 authored: authored
 ---
 

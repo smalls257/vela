@@ -69,7 +69,7 @@ def build(tmp_path):
     session_files.split_copy(SNAPSHOT, vault)
     git(tmp_path, "init", "-q", "-b", "main", str(vault))
     git(vault, "config", "user.name", "Replay Lead")
-    git(vault, "config", "user.email", "replay-lead@example.invalid")
+    git(vault, "config", "user.email", "sim-lead@example.invalid")
     session_files.ignore_private(vault)  # the snapshot predates the line the template's .gitignore now carries
     git(vault, "add", "-A")
     git(vault, "commit", "-q", "-m", "Vault from snapshot heron-desk/after-full-1")

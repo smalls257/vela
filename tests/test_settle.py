@@ -55,6 +55,37 @@ def test_outside_a_grill_the_gate_still_runs_and_the_lead_can_set_it_aside(tmp_p
     assert code == 0, out
 
 
+def owned_by_the_stock_team(root):
+    edit(root / STOCK, "- **Tested by:** consumer tests in the shop pipeline.",
+         "- **Owner:** @stock-team\n- **Tested by:** consumer tests in the shop pipeline.")
+
+
+def test_the_owners_yes_outside_a_grill_is_checked_in_code_and_deciding_for_them_is_on_their_behalf(tmp_path):
+    """GATE-5 was the grill skill's alone; now any session decides, so decide refuses a yes that isn't the owner's
+    unless the lead decides on their behalf, which is noted (W324) until they confirm."""
+    root = make_vault(tmp_path)
+    in_session_with_modes(root, "boundary")
+    owned_by_the_stock_team(root)
+    git_init(root)
+    code, out = decide(root, "--readback", "^c01", "--yes", "^c02", "--provider", "^c07")
+    refusal = json.loads(out)["refusals"][0]
+    assert code == 1 and refusal["rule"] == "GATE-5" and "on their behalf" in refusal["plain"], out
+    code, out = decide(root, "--readback", "^c01", "--yes", "^c02", "--provider", "^c07", "--on-behalf", "@stock-team",
+                       "--override", "GATE-5", "--reason-from", "^c06")
+    assert code == 0, out
+    assert "- **Decided by:** @priya, on behalf of @stock-team" in (root / STOCK).read_text(encoding="utf-8")
+
+
+def test_the_owners_own_yes_needs_no_on_behalf(tmp_path):
+    root = make_vault(tmp_path, captures=CAPTURES + ['- [answer] (@stock-team) "Yes, as read." ^c13'])
+    in_session_with_modes(root, "boundary")
+    owned_by_the_stock_team(root)
+    git_init(root)
+    code, out = decide(root, "--readback", "^c01", "--yes", "^c13", "--provider", "^c07")
+    assert code == 0, out
+    assert "on behalf" not in (root / STOCK).read_text(encoding="utf-8")
+
+
 def test_later_lists_the_yes_and_decides_nothing(tmp_path):
     root = make_vault(tmp_path)
     in_session_with_modes(root, "shape")

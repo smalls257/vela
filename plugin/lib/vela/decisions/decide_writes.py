@@ -269,15 +269,52 @@ def by_refusals(item):
                     "as origin.", override="none: a decision names who made it", audience=say.MODEL)]
 
 
+OWNER_HANDLES = re.compile(r"@[\w][\w./-]*")
+
+
+def owners_of(view, target):
+    """The handles on the target's `**Owner:**` bullet (an item) or `owner:` field (a page); () when it names none."""
+    found = view.model.item(target.id)
+    if found is not None:
+        text = found.fact("Owner")
+    else:
+        pages = view.model.by_id.get(target.id) or []
+        text = str(pages[0].meta.get("owner") or "") if pages else ""
+    return tuple(OWNER_HANDLES.findall(text))
+
+
+def owner_refusals(item, view, record, target):
+    """GATE-5, the owner present, as a check: it was the grill skill's alone while only a grill decided, and now any
+    session decides (a Sensor in place of the room that carried it). The yes must be the owner's own, or the lead says
+    they decide on the owner's behalf: `--on-behalf` with the GATE-5 override, which `override_refusals` then holds to
+    its reason and the check keeps warning about until the owner confirms (W324)."""
+    owners = owners_of(view, target)
+    if not owners or item.get("reopen") or not item.get("yes") or consent.exists(item["yes"], record) is not None:
+        return []
+    if GATE_5 in rules_set_aside(item) or item.get("on_behalf_of"):
+        return []
+    who = speaker(record.capture(item["yes"]), getattr(view, "lead", None))
+    if any(consent.same_handle(who, owner) for owner in owners):
+        return []
+    names = " and ".join(owners)
+    return [textedit.refusal(GATE_5, f"{target.name} is {names}'s to decide, and the yes isn't theirs. Shall I decide it on "
+                            "their behalf and note your reason? They can confirm it later, or challenge it if they "
+                            "disagree.",
+                    f"Either capture the owner's own yes (origin {owners[0]}) and decide with that, or decide on their "
+                    f"behalf: --on-behalf {' '.join(owners)} --override GATE-5 --reason-from <the lead's reason>.",
+                    override="the lead's override of GATE-5, with their reason, deciding on the owner's behalf",
+                    waiver=EVENT_WAIVER)]
+
+
 def gate_refusals(item, view, record, target):
     """The grill gate's verdict on the target, each reason the lead didn't set aside refused. A flow check that did
     not pass is never set aside here: its findings are covered by the dated overrides the checker itself reads
     (`vela conventions "Flow check"`), which its standing already applies, and "not fully checked" has none."""
+    out = owner_refusals(item, view, record, target)
     if not target.gate:
-        return []
+        return out
     found = gates.verdict(view.model, record.text, target.gate, textedit.today(view), getattr(view, "flows", None))
     named = rules_set_aside(item)
-    out = []
     for reason in found.reasons:
         route = gates.ROUTE_NAMES.get(reason.rule)
         if route is not None and route in named:
