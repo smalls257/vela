@@ -23,3 +23,6 @@ docs/blueprint.html
 docs/mockups.html
 prototypes/
 .worktrees/
+
+# a mod's generated type declarations (Claude Code writes them beside the mod)
+tools/probes/**/.claude-plugin/types/
