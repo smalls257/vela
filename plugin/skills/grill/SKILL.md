@@ -29,13 +29,13 @@ Not: "CON-003 (Dock unlock): decided, GATE-5 overridden, see UNK-012." An app's 
 
 ## 2. Open with a ready item
 
-Items the brief lists as ready to decide come first. Open the agenda with them, and still read each wording back for its own yes. On turn 1 run `vela check --gate grill --all --for-lead` and open with a ready item as a proposal: "I'd decide <item> as <answer>, because <reason>. OK?" Recaps and reading come after that, or only if needed. If nothing is ready, say so in one line and ask the question that would make the nearest item ready. When an answer settles an item that isn't ready, offer to decide it anyway in that same turn, with its read-back: "That settles <item>. It isn't ready because <reason>. Decide it anyway?" Never file a settling answer as a note without that offer.
+Items the brief lists as ready to decide come first. Open the agenda with them, and still read each wording back for its own yes. On turn 1 run `vela check --gate decide --all --for-lead` and open with a ready item as a proposal: "I'd decide <item> as <answer>, because <reason>. OK?" Recaps and reading come after that, or only if needed. If nothing is ready, say so in one line and ask the question that would make the nearest item ready. When an answer settles an item that isn't ready, offer to decide it anyway in that same turn, with its read-back: "That settles <item>. It isn't ready because <reason>. Decide it anyway?" Never file a settling answer as a note without that offer.
 
 Answering a challenge, START will take its "Answer a challenge" path (read the Answer row too): resolve its unknown with the team lead as owner, with the `resolve` kind; if the answer changes the item, reopen it (`vela decide --reopen <ID> --why ^cN`) and decide it again.
 
 ## 3. The gate and the agenda
 
-Run `vela check-slice --changed --for-lead`, then `vela check --gate grill --item <ID> --for-lead`, repeating `--item` per item. Relay it in two or three sentences, never as a table: "The strategy page is ready. The three apps and their contracts aren't, because nobody knows yet when the registration request goes in and who builds consent and identity."
+Run `vela check-slice --changed --for-lead`, then `vela check --gate decide --item <ID> --for-lead`, repeating `--item` per item. Relay it in two or three sentences, never as a table: "The strategy page is ready. The three apps and their contracts aren't, because nobody knows yet when the registration request goes in and who builds consent and identity."
 
 If the gate gives an `ask`, ask it once, capture the answer, and file it with the route it names. Don't send the lead to Shape.
 

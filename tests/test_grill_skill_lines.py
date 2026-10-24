@@ -1,7 +1,7 @@
 """The grill skill's opening rules, kept short and pinned by name.
 
 The Violation these lines prevent is a Paper Tiger session: 14 turns of reading, reviewers and "nothing ready, has X
-happened?" that meet the grill's form and decide nothing. The rules that can live in code do (`check --gate grill
+happened?" that meet the grill's form and decide nothing. The rules that can live in code do (`check --gate decide
 --all`, the agenda's yes order, the lead's display name); these are the ones only the model can follow.
 """
 from conftest import REPO
@@ -10,7 +10,7 @@ SKILL = (REPO / "plugin" / "skills" / "grill" / "SKILL.md").read_text(encoding="
 
 
 def test_the_grill_opens_with_one_gate_call_and_a_ready_item_as_a_proposal():
-    assert "vela check --gate grill --all --for-lead" in SKILL
+    assert "vela check --gate decide --all --for-lead" in SKILL
     assert "I'd decide <item> as <answer>, because <reason>. OK?" in SKILL
     assert "Recaps and reading come after that, or only if needed." in SKILL
     assert "ask the question that would make the nearest item ready" in SKILL

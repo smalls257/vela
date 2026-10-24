@@ -25,7 +25,7 @@ _DAY = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 class Need(enum.Enum):
     READING_LOAD_SHOWN = "READING_LOAD_SHOWN"
-    OPTIONS_BEFORE_GRILL = "OPTIONS_BEFORE_GRILL"
+    OPTIONS_BEFORE_DECIDING = "OPTIONS_BEFORE_DECIDING"
     REVIEW_EACH_MODE = "REVIEW_EACH_MODE"
     VOICE_REVIEW_ALWAYS = "VOICE_REVIEW_ALWAYS"
     DOMAIN_FIELD = "DOMAIN_FIELD"
@@ -226,5 +226,5 @@ def announcement(sized):
     return None
 
 
-_GROWN = {"medium": "Options get written down before a grill.",
+_GROWN = {"medium": "Options get written down before deciding.",
           "large": "Every step is in, with a review after each mode."}

@@ -345,3 +345,9 @@ def test_the_flags_reach_the_command(tmp_path):
                     "--vault", str(root), "--today", TODAY, "--json")
     assert code == 0, out
     assert git_log(root)[0] == "shape: solution-strategy decided"
+
+
+def test_one_gate_name_for_deciding():
+    assert "decide" in schema.GATES and "grill" not in schema.GATES
+    code, _ = run("check", "--gate", "grill", "--item", "CON-001", "--vault", str(REPO / "tests" / "fixtures" / "mini"))
+    assert code != 0  # argparse refuses the old name; no alias

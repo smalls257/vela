@@ -279,7 +279,7 @@ Authority comes from access, not title and not config. An **owner** works inside
 
 ## Waiting for a decision
 
-The dashboard's **Waiting for a decision** view lists what could be decided now, in three groups: **You already said yes** (a yes you gave and didn't settle, kept under `## Ready to decide`), **Ready to decide** (`vela check --gate grill` passes) and **One thing away** (the gate names exactly one missing thing, with who owes it and by when). An item more than one thing away is not listed. It is computed in `vela/grills.py` from those same three sources, so the view and the gate cannot disagree. Each card carries two prompts for Claude: "Settle <name>", for a lead who is sure, and "/vela:grill <name>", to test it first.
+The dashboard's **Waiting for a decision** view lists what could be decided now, in three groups: **You already said yes** (a yes you gave and didn't settle, kept under `## Ready to decide`), **Ready to decide** (`vela check --gate decide` passes) and **One thing away** (the gate names exactly one missing thing, with who owes it and by when). An item more than one thing away is not listed. It is computed in `vela/grills.py` from those same three sources, so the view and the gate cannot disagree. Each card carries two prompts for Claude: "Settle <name>", for a lead who is sure, and "/vela:grill <name>", to test it first.
 
 **Who runs a grill.** The item's own owner, unless someone sets the grill's owner. People **asked to join** see the grill under their own filter. Both are kept in `.vela.yaml`, keyed by the item's ID, and set only with the command, never by hand:
 
@@ -408,10 +408,10 @@ Three gates read it too. Each names a moment, and a skill runs it then:
 | Gate | When | What it reports |
 |---|---|---|
 | `vela check --gate shape` | the end of a Shape | W806 for each row still `assumed`. An assumption clears into a decision, a requirement or a constraint before Shape closes. |
-| `vela check --gate grill --item <ID>` | a Grill, once per agenda item | W807 for each copy with no row, or an `open`, `asked` or invalid row, that blocks the item. A warning: the lead may decide anyway. An item no catalog question can block gets one W807 saying so. |
+| `vela check --gate decide --item <ID>` | a Grill, once per agenda item | W807 for each copy with no row, or an `open`, `asked` or invalid row, that blocks the item. A warning: the lead may decide anyway. An item no catalog question can block gets one W807 saying so. |
 | `vela check --gate epics` | before epics are called complete | E805 for each high-severity copy or reviewer question with no row, or an `open`, `asked` or invalid row. An `asked` question is still waiting for its answer. A gate that passes while `assumed` rows with `load-bearing: yes` dispose of high-severity questions prints one note naming them. |
 
-`--item` repeats, once per agenda item, and goes only with `--gate grill`, which needs at least one. An ID the vault does not hold exits 2.
+`--item` repeats, once per agenda item, and goes only with `--gate decide`, which needs at least one. An ID the vault does not hold exits 2.
 
 A question only fires on a subject someone typed. So W809 warns, "possibly an untyped subject", where a fact bullet or a table row says one of the words an existence question lists in `mentions` (points, balances, credits, vouchers or deposits for stored value; a clause or a license for a party), the page neither holds nor links a subject of that kind, and that existence question has no row yet or an `open` one. It warns once per page and question. Prose, session records, `sources.md` (a source's title names a document, not a subject), generated blocks and the ledger are not read for it. Type the subject and link it, or answer the existence question, and the warning goes.
 

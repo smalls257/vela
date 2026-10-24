@@ -65,7 +65,7 @@ def copy_of(tmp_path, source, name):
 
 READ_ONLY = [
     (HERON, ("check", "--today", TODAY, "--for-lead")),
-    (HERON, ("check", "--gate", "grill", "--item", "CON-001", "--today", TODAY, "--for-lead")),
+    (HERON, ("check", "--gate", "decide", "--item", "CON-001", "--today", TODAY, "--for-lead")),
     (HERON, ("check-slice", "FLO-001", "--today", TODAY, "--for-lead")),
     (HERON, ("check-slice", "--all", "--today", TODAY, "--for-lead")),
     (HERON, ("handoff", "preview", "APP-heron", "--today", TODAY, "--for-lead")),

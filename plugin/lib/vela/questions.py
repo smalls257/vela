@@ -994,9 +994,9 @@ def can_be_blocked(vault, unit_id):
     return any(uid == unit_id for kind in kinds for uid, _page, _item in _units(vault)[kind])
 
 
-def grill_gate(vault, items):
+def decide_gate(vault, items):
     """W807 for each copy still open, asked or with no row that blocks an item on the Grill's agenda.
-    A warning, never an error: the lead may decide anyway. It prints only under --gate grill --item, so the
+    A warning, never an error: the lead may decide anyway. It prints only under --gate decide --item, so the
     Grill's capture "decided with <copy IDs> open (W807)" is what records that it was open."""
     for unit_id in items:
         where = unit_location(vault, unit_id)

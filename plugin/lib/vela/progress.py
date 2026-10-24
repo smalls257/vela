@@ -145,14 +145,14 @@ def suggest(vault, app, as_of, blocked):
             return 3, "discover", unit.id, (f"{named(unit.id)} {handoffwarn_phrase(unit.state)}, and {app_name} isn't being changed, so it "
                                             f"needs a source that shows it as fact.")
         if laddered and (unit.state == "inkling" or (unit.state == "assumption" and not unit.options)):
-            if sizing.of(vault).needs(sizing.Need.OPTIONS_BEFORE_GRILL):
+            if sizing.of(vault).needs(sizing.Need.OPTIONS_BEFORE_DECIDING):
                 return 3, "shape", unit.id, f"{named(unit.id)} {handoffwarn_phrase(unit.state)} and has no options written down."
             return 3, "grill", unit.id, (f"{named(unit.id)} {handoffwarn_phrase(unit.state)}, and nobody has said yet whether anything "
-                                         "else was on the table; one question in a grill settles that.")
+                                         "else was on the table; one question settles that, whenever you're sure, or in a grill.")
     ready = [u for u in mine if u.state == "assumption" and u.options and u.id not in blocked]
     if ready and not in_grill_stage(vault, app):
         stage = ladder.stage(vault, app) or "no stage"
-        return 4, "discover", ready[0].id, f"{named(ready[0].id)} is ready to decide, but {app_name} is still at the {stage} stage; a grill needs the app at target or later."
+        return 4, "discover", ready[0].id, f"{named(ready[0].id)} is ready to decide, but {app_name} is still at the {stage} stage; deciding needs the app at target or later."
     if ready:
         return 5, "grill", ready[0].id, f"{named(ready[0].id)} is ready to decide: settle it when you're sure, or grill it to test it first."
     for unit in mine:

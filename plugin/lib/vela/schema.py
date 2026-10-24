@@ -503,15 +503,15 @@ SIZE_SIGNALS = {
 }
 SIZE_MEANS = {
     "small": "That means fewer steps and quieter checks; say if it's bigger than it looks.",
-    "medium": "That means options written down before a grill and the wording notes at close; say if it's smaller than it looks.",
+    "medium": "That means options written down before deciding and the wording notes at close; say if it's smaller than it looks.",
     "large": "That means every step, a review after each mode, and every check said; say if it's smaller than it looks.",
 }
 # need -> (the band it starts at, what a smaller plan loses by skipping it)
 NEEDS = {
     "READING_LOAD_SHOWN": ("medium", "Wording notes wait until asked on a small plan, because a few pages are read by "
                                      "their owner anyway; from medium they are said."),
-    "OPTIONS_BEFORE_GRILL": ("medium", "One question settles one option on a small plan; from medium the options are "
-                                       "written down before a grill so the lead can compare them."),
+    "OPTIONS_BEFORE_DECIDING": ("medium", "One question settles one option on a small plan; from medium the options are "
+                                       "written down before deciding so the lead can compare them."),
     "REVIEW_EACH_MODE": ("large", "One review checkpoint a session covers what changed on a smaller plan; a large "
                                   "plan gets a fresh reader after each mode."),
     "VOICE_REVIEW_ALWAYS": ("medium", "A few drafted paragraphs are read back by the lead anyway; from medium a "
@@ -540,7 +540,7 @@ WEIGHT = {**dict.fromkeys(CODES, "decision"), **POLISH, **AUTO, **SCALE}
 # Rule -> (code in a plain check, code under --gate epics).
 TRACE_CODES = {"T1": ("W501", "E501"), "T2": ("W502", "E502"), "T4": ("W503", "E503"), "T6": ("W504", "E504"),
                "T7": ("W505", "E505")}
-GATES = ("epics", "shape", "grill")
+GATES = ("epics", "shape", "decide")
 TRACE_CONTRACT_CHANGES = ("new", "changed")  # contracts T2 needs an epic for
 OWNERSHIP_CONCERN = "concern-ownership"  # covered by an epic listing the app, not by a marker
 WAIVER_RE = re.compile(rf"^no work \({HANDLE}(?: {HANDLE})*, review \d{{4}}-\d{{2}}-\d{{2}}\): \S")

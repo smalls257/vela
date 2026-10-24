@@ -15,7 +15,7 @@ def check(vault, today, gate=None, items=(), app=None):
     `gate="epics"` is the moment epics are called complete: every trace gap
     becomes an error, even in a vault that has no epic yet, and so does every
     high-severity question not yet disposed. `gate="shape"` is the end of a
-    Shape: each assumed question still unresolved warns. `gate="grill"` with
+    Shape: each assumed question still unresolved warns. `gate="decide"` with
     `items` is a Grill on those items: each open question that blocks one warns.
     `app` narrows the epics gate to one app page and what it carries (scope_to_app), so a multi-app
     initiative can call one app's epics complete while another app's are still draft.
@@ -34,8 +34,8 @@ def check(vault, today, gate=None, items=(), app=None):
                         if question_is_theirs is None or question_is_theirs(f.message.split(" ", 1)[0]))
     elif gate == "shape":
         findings.extend(questions.shape_gate(vault))
-    elif gate == "grill":
-        findings.extend(questions.grill_gate(vault, items))
+    elif gate == "decide":
+        findings.extend(questions.decide_gate(vault, items))
     return sorted(set(override.apply(vault, findings, today, gate) + pending.findings(vault)))
 
 

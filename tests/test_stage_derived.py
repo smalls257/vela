@@ -30,7 +30,7 @@ def test_a_stray_stage_line_is_read_by_nothing(tmp_path):
     assert ladder.stage(vault, vault.apps[0]) == "contracts"
 
 
-def test_grill_gate_one_reads_the_derived_stage(tmp_path):
+def test_decide_gate_one_reads_the_derived_stage(tmp_path):
     write_app(tmp_path, "assumption", sources="[]")
     vault = cli.load_vault(tmp_path)
     found = gates.verdict(vault, None, "APP-coach", "2026-01-15")
