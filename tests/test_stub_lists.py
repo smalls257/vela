@@ -10,7 +10,7 @@ import json
 from conftest import run
 from grills_vault import TODAY as GRILLS_TODAY, make as make_grills_vault
 from sharing import git
-from test_decide import RECORD_ID, decide_con_002, in_session_with_modes, make_vault as make_decide_vault
+from test_decide import RECORD_ID, TODAY as DECIDE_TODAY, in_session_with_modes, make_vault as make_decide_vault
 from test_session_cli import TODAY, no_gh, owner, start
 from test_voice_cli import PAGE, SESSION, harvest, harvest_list, voice  # noqa: F401 (harvest is a fixture)
 from vela import cli, grills, privaterecord, voiceplan
@@ -18,10 +18,15 @@ from vela.edge import voicegit
 import session_files
 
 
+def decide_con_002(root):
+    """The lead said yes and isn't settling it now: the line `--later` keeps."""
+    return run("decide", "CON-002", "--later", "--yes", "^c02", "--vault", str(root), "--today", DECIDE_TODAY, "--json")
+
+
 def test_a_kept_yes_lands_in_the_ready_list(tmp_path):
     root = make_decide_vault(tmp_path)
     in_session_with_modes(root, "shape")
-    assert decide_con_002(root)[0] == 1
+    assert decide_con_002(root)[0] == 0
     meta = privaterecord.stub_meta(session_files.stub_text(root, RECORD_ID))
     assert privaterecord.listed(meta, "ready") == ("CON-002",)
     decide_con_002(root)

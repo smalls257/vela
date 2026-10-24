@@ -11,6 +11,7 @@ asks "Why this one, in your words?" and captures the answer; code copies it.
     vela decide ID --readback ^cN --yes ^cM [--why ^cK] [--dissent ^cJ]
                    [--override RULE ... --reason-from ^cR [--until YYYY-MM-DD]] [--on-behalf @owner]
                    [--provider ^cP] [--group CRITERIA READBACK YES ...] [--vault V] [--today D] [--json|--for-lead]
+    vela decide ID --later --yes ^cM [--vault V] [--today D] [--json|--for-lead]
     vela decide --reopen ID --why ^cN [--vault V] [--today D] [--json|--for-lead]
 
 ID is a page's or item's ID, an allocation row as `CAP-nnn.FRn@APP-<slug>`, or a release's heading. `--provider` is a
@@ -18,7 +19,11 @@ contract's (where the provider stands), `--group` an epic's (one per criterion g
 says why. `--override` may repeat; its rules share one reason, and `--until` goes on the standing ones only (an event
 rule, GATE-1, 2, 3 or 5, has nothing to end).
 
-The grill gate (`gates.verdict`) runs first, with the flow check's recorded standings for a slice or a flow: a reason
+Any session can decide: the rule is that `vela decide` filed it, with the lead's yes to a read-back, and nothing here
+reads the session's modes. `--later --yes ^cM` is the other answer to an offer to settle: it keeps the lead's yes under
+`## Ready to decide` and decides nothing.
+
+The gate (`gates.verdict`) runs first, with the flow check's recorded standings for a slice or a flow: a reason
 the lead didn't set aside refuses the decision, with the override line that would decide it anyway.
 
 Exit codes (plan 3.1):
@@ -32,13 +37,14 @@ Exit codes (plan 3.1):
    mind) or leaving it (`needs_lead`). Also: several sessions are open, or the lead's GitHub handle is unknown
    (`vela whoami` asks for it once; a decision puts the lead's name on record, so it is never guessed).
 
-Commits `grill: <ID> decided` (`planned` for a slice, `reopened` for a change of mind) with only the changed pages and
+Commits `<mode>: <ID> decided` (`planned` for a slice, `reopened` for a change of mind), `<mode>` being the session's
+first mode (`commit_mode`) with only the changed pages and
 the record, by exact path. In a reader copy no git runs at all, and the marker says the owner sees it before it counts.
 """
 import datetime
 import pathlib
 
-from vela import commands, decisions, gates, privaterecord, receipts, say
+from vela import commands, decisions, gates, privaterecord, receipts, say, sessions
 from vela import override as overrides
 from vela.commands import apply as apply_command, whoami
 from vela.decisions import decide, ready, schema, textedit
@@ -47,13 +53,16 @@ from vela.edge import atomic, sessiongit, stagegit
 from vela.edge.vaultgit import GitUnavailable
 
 NAME = "decide"
-MESSAGES = {"decided": "grill: {id} decided", "planned": "grill: {id} planned", "reopened": "grill: {id} reopened"}
+MESSAGES = {"decided": "{mode}: {id} decided", "planned": "{mode}: {id} planned", "reopened": "{mode}: {id} reopened"}
+NO_MODE = "decide"
 STATED_MESSAGE = "import: {id} decided, as {source} states"
 
 
 def register(sub):
     parser = sub.add_parser("decide", help="write one decision the lead gave: state, Decision, Why in their words, "
-                                           "Changes row, mark and commit, after the grill gate")
+                                           "Changes row, mark and commit, after the gate")
+    parser.add_argument("--later", action="store_true",
+                        help="the lead said yes but isn't settling it now: keep it on the list (needs --yes)")
     parser.add_argument("id", nargs="?", help="the item: an ID, CAP-nnn.FRn@APP-<slug> for an allocation row, or a "
                                               "release's heading")
     parser.add_argument("--reopen", metavar="ID", help="reopen a decided item (a change of mind), with --why")
@@ -150,13 +159,8 @@ def run(args, out):
     # A decision numbers nothing, so no branch is read for IDs; the view still carries the (empty) list `attach` gives.
     staged = textedit.attach(decisions.Staged(vault, disk.reader(root)), today, [], lead=apply_command.lead_of(root))
     _, target = decide.locate(staged, ident)
-    if not (args.reopen or args.stated_in) and target is not None:
-        try:
-            may_decide = ready.can_decide(textedit.stub_text(record, staged))
-        except textedit.StubUnreadable as exc:
-            return commands.emit(failed(str(exc), str(exc)), args, out, resolver)
-        if not may_decide:
-            return commands.emit(cannot_decide_here(root, record, ident, args), args, out, resolver)
+    if args.later:
+        return commands.emit(keep_for_later(root, record, ident, args.yes, args.readback), args, out, resolver)
     if target is not None and target.gate:
         keys = gates.flow_keys(vault, target.gate)
         staged.flows = cli.recorded_standings(root, vault, keys, today)[0] if keys else {}
@@ -169,20 +173,33 @@ def run(args, out):
     return commands.emit(result, args, out, resolver)
 
 
-def cannot_decide_here(root, record, ident, args):
-    """A yes in a shape, boundary, releases (...) session is kept, not lost: the item is listed as ready to decide in
-    this record, `vela session brief` shows it to the next grill, and the model is told to offer the lead one now."""
-    marked = ready.mark(record.text, ident, record.id, (args.yes or "").strip() or None)
+def keep_for_later(root, record, ident, yes, readback=None):
+    """`--later --yes ^cM`: the lead's yes is kept under Ready to decide and nothing is decided. A declined offer to
+    settle is still on record (a Silent Fallback of consent otherwise). No gate, no page, no commit: the notes and the
+    stub only."""
+    if not (yes or "").strip():
+        return refused([textedit.refusal(
+            "decide-later-needs-yes", "I need the lead's yes before I can keep this for later.",
+            "give --yes: the capture holding the lead's yes to the pick", audience=say.MODEL,
+            override="none: without the lead's yes there is nothing to keep")])
+    if readback:
+        return refused([textedit.refusal(
+            "decide-later-with-readback", "I can't both keep this for later and settle it.",
+            "a read-back means the lead is settling, so drop --later", audience=say.MODEL,
+            override="none: drop --later to settle, or --readback to keep it for later")])
+    marked = ready.mark(record.text, ident, record.id, yes.strip())
     wrote = sessiongit.write_notes(root, record, marked)
-    return say.Result(NAME, exit=say.REFUSED, wrote=wrote, data={"id": ident, "ready_to_decide": True},
-                      refusals=[textedit.refusal(
-                          "decide-not-in-this-session",
-                          "Only a grill sets something as decided, so this stays an idea for now. Want a short "
-                          "grill on it, here and now?",
-                          f"This session can't decide. {ident} is marked ready to decide (the lead said yes in "
-                          f"{record.id}), so the next grill opens with it. Offer the lead a short grill on it now "
-                          "(/vela:grill); if they decline, say it is marked and move on. Nothing was decided.",
-                          override="none: a grill decides it, and the lead can take it later")])
+    return say.Result(NAME, wrote=wrote, data={"id": ident, "ready_to_decide": True},
+                      lines=[say.Line(f"{ident} kept as ready to decide in {record.id}",
+                                      plain="I've kept it as not decided yet. It's on the list of things you said yes "
+                                            "to, for when you're sure.")])
+
+
+def commit_mode(stub_text):
+    """The session's first mode, the label before the colon in the commit message. A header that names no mode gets
+    `decide`. Nothing reads the label back, so the default hides no failure."""
+    modes = sessions.modes_of(privaterecord.stub_meta(stub_text or ""))
+    return modes[0] if modes else NO_MODE
 
 
 def already_result(target):
@@ -211,8 +228,6 @@ def file_item(item, root, staged, record, reader):
         filed = decisions.applied_text(decision, writes, decisions.record_after(record, staged))
         path.parent.mkdir(parents=True, exist_ok=True)
         written = disk.write_all(root, writes, {path: filed})
-    except textedit.StubUnreadable as exc:
-        return failed(str(exc), str(exc))
     except disk.OutsideVault as exc:
         return refused([say.Refusal("apply-outside-vault", "That would have changed a file outside the vault, so I "
                                                            "decided nothing.", f"{exc}.",
@@ -223,7 +238,8 @@ def file_item(item, root, staged, record, reader):
                       "The disk refused part of that; I've listed which files changed.")
     commit = None
     if not reader:
-        message = MESSAGES[state if not item.get("reopen") else "reopened"].format(id=item["id"])
+        message = MESSAGES[state if not item.get("reopen") else "reopened"].format(
+            id=item["id"], mode=commit_mode(staged.text(record.stub)))
         if item.get("stated_in") and not item.get("reopen"):
             message = STATED_MESSAGE.format(id=item["id"], source=item["stated_in"])
         try:

@@ -234,13 +234,5 @@ def test_releases_leaves_what_the_commands_enforce_to_them():
     assert "A bad date fails" not in SKILL and "W349 notes it" not in SKILL
 
 
-def test_a_stale_branch_decision_still_names_its_fix():
-    """The skill no longer pre-explains `vela decide` outside a grill; the command's refusal must carry the offer."""
-    from vela.commands import decide
-    import inspect
-    source = inspect.getsource(decide.cannot_decide_here)
-    assert "Offer the lead a short grill on it now" in source and "Nothing was decided" in source
-
-
 def test_releases_stays_under_its_word_cap():
     assert len(SKILL.split()) <= 1390  # 2,041 before the first trim; 1,767 after it; 1,349 after the second

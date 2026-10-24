@@ -52,9 +52,10 @@ COMMIT_GRAMMAR += [re.compile("^" + re.escape(message).replace(re.escape("{id}")
 COMMIT_GRAMMAR += [re.compile("^" + re.escape(message).replace(re.escape("{id}"), r"(?P<id>\S+)")
                               .replace(re.escape("{app}"), r"\S+") + "$") for message in closefinish.MESSAGES]
 COMMIT_GRAMMAR += [re.compile("^" + re.escape(voice_settle.REWRITE_MESSAGE).replace(re.escape("{id}"), r"\S+") + "$")]
-# A decision names its item (a release by its heading, so any words), never the session.
-COMMIT_GRAMMAR += [re.compile("^" + re.escape(message).replace(re.escape("{id}"), r".+") + "$")
-                   for message in decide.MESSAGES.values()]
+# A decision starts with the session's first mode and names its item (a release by its heading, so any words), never
+# the session.
+COMMIT_GRAMMAR += [re.compile("^" + re.escape(message).replace(re.escape("{mode}"), r"\w+")
+                              .replace(re.escape("{id}"), r".+") + "$") for message in decide.MESSAGES.values()]
 
 
 def git(vault, *args):

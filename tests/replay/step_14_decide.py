@@ -37,7 +37,8 @@ def run(ctx):
     assert "Heron" in said and "decided" in said, said
     ctx.outputs["decide --for-lead"] = said
     subject = ctx.git("log", "-1", "--format=%s").strip()
-    assert subject == decide.MESSAGES["decided"].format(id=ID), subject
+    mode = subject.split(":")[0]  # the session's first mode
+    assert mode.isalpha() and subject == decide.MESSAGES["decided"].format(id=ID, mode=mode), subject
     shown = ctx.git("show", "--name-only", "--format=", "HEAD").split()
     assert sorted(shown) == [PAGE], shown  # the notes are never committed
     page = (ctx.vault / PAGE).read_text(encoding="utf-8")

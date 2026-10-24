@@ -1,10 +1,10 @@
-"""E81: a lead's yes in a session that can't decide reaches the next grill without the model remembering to.
+"""E81: a lead's yes that wasn't settled reaches the next session without the model remembering to.
 
 The Violation this guards is a Silent Fallback of consent. `vela decide` was the only thing that listed an item under
 `## Ready to decide`, and in two paid runs the model said yes ~20 times in shape and requirements and never ran it, so
-the next grill opened without any of them. The mark `vela apply` writes already names the item and its state, so the
-list is filled there, in code. Each test is one rule: a lead's yes on an item kept at `assumption`, in a session that
-can't decide, is listed; nothing else is.
+the next session opened without any of them. The mark `vela apply` writes already names the item and its state, so the
+list is filled there, in code. Each test is one rule: a lead's yes on an item kept at `assumption`, in any session, is
+listed; nothing else is.
 """
 import json
 import re
@@ -79,10 +79,10 @@ def test_a_yes_kept_below_assumption_is_not_listed(tmp_path):
     assert "Ready to decide" not in record_text(root)
 
 
-def test_a_grill_session_lists_nothing(tmp_path):
+def test_a_grill_session_lists_it_too(tmp_path):
     root = lead_vault(tmp_path, [YES], "grill")
     keep(root)
-    assert "Ready to decide" not in record_text(root)
+    assert f"- CON-002: the lead said yes in {RECORD_ID} (^c01)" in record_text(root)
 
 
 def test_an_item_decided_since_is_not_listed(tmp_path):

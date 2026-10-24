@@ -420,20 +420,6 @@ def record_text(record, view):
     return view.text(record.path) or record.text
 
 
-def stub_text(record, view):
-    """The committed header of the record: where a session's modes are kept. A header that can't be read raises
-    StubUnreadable: with no modes, `ready.can_decide` would say a shape session may decide (a Silent Fallback)."""
-    text = view.text(record.stub)
-    if not text:
-        raise StubUnreadable(f"I can't read the session's header, {record.stub}, so I can't tell which modes this "
-                             "session is in. Nothing was decided.")
-    return text
-
-
-class StubUnreadable(ValueError):
-    pass
-
-
 def yaml_value(text):
     """A frontmatter value, quoted when it holds a character YAML would read as syntax (CONVENTIONS "Frontmatter":
     quote any value that holds a colon or starts with `@`)."""

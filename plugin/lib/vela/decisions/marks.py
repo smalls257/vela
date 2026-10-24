@@ -29,10 +29,10 @@ The rules, with their reasons:
   `repo` (`resolve.fact_source_refusal`): a capture becomes a fact only when the lead named its source and it has a
   row in `sources.md`.
 
-- **A lead's yes kept at `assumption` is listed as ready to decide.** A shape, boundary or requirements session can't
-  set `decided`, and the rule "run `vela decide` on a plain yes" was skipped in the paid runs (E81), so the yes was
-  recorded and forgotten (a Silent Fallback of consent). The keep names the item and the state, so this kind lists it
-  under `## Ready to decide` itself (`ready.from_keep`); the next grill opens with it.
+- **A lead's yes kept at `assumption` is listed as ready to decide.** A yes kept at `assumption` wasn't settled, and
+  the rule "run `vela decide` on a plain yes" was skipped in the paid runs (E81), so the yes was recorded and
+  forgotten (a Silent Fallback of consent). The keep names the item and the state, so this kind lists it under
+  `## Ready to decide` itself (`ready.from_keep`); the next session opens with it.
 
 Fields the drafter writes for the record and the PR body (`rule`, `reason`, `lifted`, `recommend`, `deferral`, ...)
 are taken and not written: they say why the default was chosen.
@@ -185,9 +185,7 @@ def apply(item, vault, record):
         return add_unknown.apply(unknown, vault, record)  # writes the unknown and marks the capture
     text = textedit.write_mark(textedit.record_text(record, vault), item["capture"], mark_text(item, vault, record))
     if item["mark"] == "keep":
-        # the header is read only for a keep that could be a ready-to-decide yes (from_keep ignores the rest)
-        stub = textedit.stub_text(record, vault) if item["state"] == ready.KEPT_AT else ""
         for ident in ids_of(item):
             text = ready.from_keep(text, record.id, record.capture(item["capture"]), ident, item["state"],
-                                   getattr(vault, "lead", None), stub)
+                                   getattr(vault, "lead", None))
     return textedit.record_writes(record, vault, text)
