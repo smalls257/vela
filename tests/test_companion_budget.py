@@ -32,7 +32,22 @@ def test_the_session_panel_after_a_page_write_is_under_budget(stress):
     page = next((stress["vault"] / "06-runtime").rglob("*.md"))
     page.write_text(page.read_text(encoding="utf-8") + "\n", encoding="utf-8")
     got = companion(stress, "session", "--json")
-    assert got["cpu"] < BUDGET, got
+    assert set(got["codes"]) == {0} and got["cpu"] < BUDGET, got
+
+
+def test_the_hook_that_checks_the_published_panel_is_under_budget(stress):
+    """`hook said` runs before every message; with a published panel it also reads the session and its notes."""
+    import json
+    companion(stress, "session", "--html")
+    marker = stress["vault"] / ".vela" / "companion" / "published.json"
+    held = json.loads(marker.read_text(encoding="utf-8"))
+    held["capture"] = 1   # far behind the notes, so the staleness line is built too
+    marker.write_text(json.dumps(held), encoding="utf-8")
+    payload = json.dumps({"cwd": str(stress["vault"]), "prompt": "yes, go on", "session_id": "s1"})
+    got = measure(stress["plugin"], ["hook", "said"], stress["env"], stdin=payload)
+    print(f"hook said with a stale panel: {got['cpu']:.3f} s CPU, {got['wall']:.3f} s wall")
+    assert set(got["codes"]) == {0} and "behind" in got["out"], got   # the staleness path was the one timed
+    assert got["cpu"] < 0.25, got
 
 
 def test_the_session_command_never_imports_the_whole_cli(stress):
