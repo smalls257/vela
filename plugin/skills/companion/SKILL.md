@@ -16,7 +16,7 @@ vela draws it. You publish the file vela wrote, exactly as written, to the same 
 
 ## The session panel rides on a vela write
 
-When a turn runs a vela command that writes (decide, record add, add, apply, map, a page edit through vela), put `&& sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela companion session --html` at the end of that same Bash command (`&&`, so a refused write keeps its own exit code and the panel is only redrawn after a write that worked), and in the same message, after that Bash call, publish `.vela/companion/session.html`. Never publish in a message of its own, and never in a turn that wrote nothing: an extra round costs the lead seconds every turn.
+When a turn runs a vela command that writes (decide, record add, add, apply, map, a page edit through vela), put `&& sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela companion session --html` at the end of that same Bash command (`&&`, so a write that fails keeps its own exit code and nothing is redrawn), and in the same message, after that Bash call, publish `.vela/companion/session.html`. Never publish in a message of its own, and never in a turn that wrote nothing: an extra round costs the lead seconds every turn.
 
 ## The plan panel comes with the answer
 
