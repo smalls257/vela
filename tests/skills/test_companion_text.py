@@ -50,7 +50,7 @@ def test_the_description_has_no_tag():
 def test_it_names_only_commands_that_exist():
     from vela import cli
     parser = cli.build_parser()
-    calls = re.findall(r"scripts/run-vela (companion [^`;]*)", text())
+    calls = re.findall(r"scripts/run-vela (companion [^`;>]*)", text())
     assert calls
     for call in calls:
         _, extras = parser.parse_known_args(shlex.split(re.sub(r"<[^>]*>", "X", call)))
