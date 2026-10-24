@@ -105,7 +105,7 @@ def _is_date(value):
 
 
 # Rules an old vault may still name: deciding is no longer limited to a grill, so there is nothing left to override.
-RETIRED_RULES = ("grill", "E317", "W317")
+RETIRED_RULES = tuple("grill E317 W317".split())
 
 
 def _rule_problem(names):
