@@ -240,7 +240,7 @@ The person using the skills may override any rule in them: a grill gate, "only a
 
 - **Until.** Rules come in two kinds, because they end differently. A **standing** rule guards a condition that stays true until someone acts: `GATE-4`, `grill`, `E303`, `E304`, `E316`, `E317`, `E318`, `E805`, `"case table"` and the flow check's findings. Its override says the day it ends, `until YYYY-MM-DD`, because one with no end would cover the rule long after the reason for it stopped holding. An **event** rule was met or not at the moment of deciding: `GATE-1`, `GATE-2`, `GATE-3`, `GATE-5` and any other quoted rule. Its override has nothing to end and writes no `until`. When the lead has not said a date, the skill offers one, the next release `**Target:**` the item feeds, else 30 days from today, and writes it only once the lead agrees. A flow-check override keeps its end inside the quotes, `"F8 CON-020 declined until 2026-10-01"` (see Flow check). An override written before end dates, with no `until`, still reads and still covers.
 - **Where it sits.** Under an item's heading, or under `#### <ID>` in the page's `## History`, it covers that contract or functional requirement. At page level, which is directly under `## History`, it covers the page and its goal rows, not the items under its headings. A rule that belongs to no item, such as how a session ran, goes at page level in the session record. An override of `E805` goes at page level under `## Question ledger` on `11-unknowns-and-risks.md`, and covers every E805 there; each one still prints, as W805.
-- **Decided by.** When someone other than the item's owner decided it: the decider's handle, `, on behalf of ` and the owner's handle or handles. Deciding on the owner's behalf is how a Grill passes GATE-5 with the owner absent, and it goes with `**Override:** GATE-5`. A bare handle, `- **Decided by:** @owner`, is the owner's own decision: it is what accepting a reader's proposal writes, and it needs no confirmation.
+- **Decided by.** When someone other than the item's owner decided it: the decider's handle, `, on behalf of ` and the owner's handle or handles. The lead's yes settles any item, so `vela decide` writes this line itself whenever the yes isn't the owner's own, with no override and no reason asked; nothing warns, and the owner can add a `**Confirmed by:**` line or challenge it. A bare handle, `- **Decided by:** @owner`, is the owner's own decision: it is what accepting a reader's proposal writes, and it needs no confirmation.
 - **Confirmed by.** The owner adds it later: their handle, ` on ` and the date. A team owner is confirmed by one of its people. A confirmation by the person who decided does not count.
 - **An owner who disagrees** with a decision made on their behalf raises `/vela:challenge` on the item, as a senior does after handoff. Confirming and challenging are the only two answers.
 
@@ -249,7 +249,6 @@ The person using the skills may override any rule in them: a grill gate, "only a
 - A well-formed override that names the rule an error enforces turns that error into its warning, and the warning quotes the override. Nothing else changes: the warning stays until the rule is met or the bullet goes.
 - A malformed override is E321: no rule, an unknown rule name, no handle, no date, a date that is not real, an `until` that is not a real date or comes before the date it was written, or no reason. A malformed `**Decided by:**` or `**Confirmed by:**` is E322. So is a label one typo away from one of the three, such as `**Overide:**`. A typo never silently fails to override.
 - W323: an override names a rule the check can test, and the item does not break it, so the override sets nothing aside. A rule only a gate tests, such as `E805`, is judged only when that gate runs, so a plain check never calls its override idle.
-- W324: an item carries `**Decided by:** ... on behalf of @owner` and no `**Confirmed by:**`, until the owner confirms.
 - E398: a standing override is past its `until`. It covers nothing, so the error it named prints as an error again. Fix the cause and delete the bullet, or renew it with a new `until` and why it moved.
 
 ## Pending approval
@@ -561,7 +560,6 @@ The table is generated from the codes `vela check` uses, so it cannot drift from
 | E322 | decided-by or confirmed-by is malformed |
 | E323 | a History heading names no item on its page |
 | W323 | override not needed |
-| W324 | decided on the owner's behalf, not yet confirmed |
 | W325 | app is handed off but its PR number is not recorded |
 | W326 | page is less settled than its rows |
 | W327 | reader's decisions pending approval |

@@ -15,13 +15,13 @@ def test_start_points_every_mode_to_settle():
 
 def test_settle_keeps_the_read_back_the_yes_and_the_why():
     for kept in ("Still yes?", "--readback ^cN --yes ^cM --why ^cK", "with no `--mark`", "Why this one, in your words?",
-                 "aren't a yes", "--later --yes ^cM", "--gate decide --item <ID> --for-lead", "--on-behalf"):
+                 "aren't a yes", "--later --yes ^cM", "--gate decide --item <ID> --for-lead"):
         assert kept in SETTLE, kept
 
 
-def test_the_owners_yes_is_checked_in_every_session_and_a_stand_in_carries_the_leads_reason():
-    assert "owner's yes is checked in every session" in SETTLE
-    assert "`--on-behalf`, with the lead's reason recorded" in SETTLE
+def test_someone_elses_item_is_settled_by_the_leads_yes_with_no_flag_or_reason():
+    assert "The lead's yes settles it" in SETTLE
+    assert "--on-behalf" not in SETTLE and "owner's yes is checked" not in SETTLE
 
 
 def test_a_one_option_answer_goes_through_options_none():

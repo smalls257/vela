@@ -27,6 +27,6 @@ def test_auto_and_scale_are_the_named_few():
 
 
 @pytest.mark.parametrize("code", ["W370", "W720", "W327", "W604", "W388", "E361", "W345", "W705", "W389", "W334",
-                                  "W380", "W385", "W390", "W391", "W324", "W807"])
+                                  "W380", "W385", "W390", "W391", "W807"])
 def test_what_can_change_a_decision_is_said(code):
     assert schema.WEIGHT[code] == "decision"

@@ -27,8 +27,8 @@ What is judged, and why each rule is the grill skill's own (the why moves with t
   "not fully checked": a check that did not finish proved nothing to set aside. Flow-check findings are set aside by the
   dated overrides the checker itself reads, which its standing already applies.
 
-GATE-3 (the agenda's yes) stays the skill's: code can't hear a yes. GATE-5 (the owner present) is checked where the
-decision is written (`decide_writes.owner_refusals`), against the yes's speaker.
+GATE-3 (the agenda's yes) stays the skill's: code can't hear a yes. The owner's yes is no gate: the lead's yes settles
+any item, and a yes that isn't the owner's is written as `Decided by ... on behalf of` (`decide_writes.stand_in_owners`).
 
 The lead may override any rule. An `**Override:**` on the item naming the rule lets it through when `override.covers` it
 today, and the verdict lists it, never hides it (Sensor): a standing rule's override past its `until` covers nothing, and

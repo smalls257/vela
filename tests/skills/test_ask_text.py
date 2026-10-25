@@ -65,7 +65,7 @@ def test_ask_resolves_every_id_before_citing_it():
 
 def test_ask_reports_an_override_and_an_unconfirmed_decision():
     ask = read("skills", "ask", "SKILL.md")
-    assert '"(decided by override: <rule>, by @x)"' in ask and '"(decided by @x without the owner present, not yet confirmed)"' in ask
+    assert '"(decided by override: <rule>, by @x)"' in ask and '"(settled by @x for @owner)"' in ask
 
 
 # --- From tests/test_session_experience.py: What the skills make a lead go through (the constraints the skills put on a lead's session).

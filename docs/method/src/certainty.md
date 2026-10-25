@@ -94,7 +94,7 @@ A rule that can't be broken pushes people to work around the tool, which is wors
 If the lead decides for someone absent, the page says `**Decided by:** @lead, on behalf of @owner` until that person confirms or challenges. The demo plan's Desktop agent was handed over before its contracts were decided, because "the team can't sit idle while the contracts are decided." Both lines are on the page.
 
 ::: fold Where this is stated and enforced
-Stated in [Overrides][c-over] and the "user can override" rule in [START.md][start]. Enforced by E321, E322, E398, W323, W324 ([override.py][override-py]). Pinned by [`test_override.py`][t-override] and [`test_override_until.py`][t-override_until].
+Stated in [Overrides][c-over] and the "user can override" rule in [START.md][start]. Enforced by E321, E322, E398, W323 ([override.py][override-py]). Pinned by [`test_override.py`][t-override] and [`test_override_until.py`][t-override_until].
 :::
 
 ## How the dashboard shows it

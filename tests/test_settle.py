@@ -64,30 +64,39 @@ def owned_by_the_stock_team(root):
          "- **Owner:** @stock-team\n- **Tested by:** consumer tests in the shop pipeline.")
 
 
-def test_the_owners_yes_outside_a_grill_is_checked_in_code_and_deciding_for_them_is_on_their_behalf(tmp_path):
-    """GATE-5 was the grill skill's alone; now any session decides, so decide refuses a yes that isn't the owner's
-    unless the lead decides on their behalf, which is noted (W324) until they confirm."""
+def test_the_leads_yes_settles_an_item_someone_else_owns_and_says_it_was_for_them(tmp_path):
+    """The owner's yes is no gate: any session's lead settles any item. The page says it was on the owner's behalf
+    (nothing warns) and the answer says so once, with nothing refused or overridden."""
     root = make_vault(tmp_path)
     in_session_with_modes(root, "boundary")
     owned_by_the_stock_team(root)
     git_init(root)
-    code, out = decide(root, "--readback", "^c01", "--yes", "^c02", "--provider", "^c07")
-    refusal = json.loads(out)["refusals"][0]
-    assert code == 1 and refusal["rule"] == "GATE-5" and "on their behalf" in refusal["plain"], out
-    code, out = decide(root, "--readback", "^c01", "--yes", "^c02", "--provider", "^c07", "--on-behalf", "@stock-team",
-                       "--override", "GATE-5", "--reason-from", "^c06")
+    code, out = run("decide", "CON-002", "--readback", "^c01", "--yes", "^c02", "--provider", "^c07",
+                    "--vault", str(root), "--today", TODAY, "--for-lead")
     assert code == 0, out
-    assert "- **Decided by:** @priya, on behalf of @stock-team" in (root / STOCK).read_text(encoding="utf-8")
+    assert "Stock level is stock team's; I noted you settled it for them. They can confirm it or challenge it." in out
+    page = (root / STOCK).read_text(encoding="utf-8")
+    assert "- **Decided by:** @priya, on behalf of @stock-team" in page and "**Override:**" not in page
 
 
-def test_the_owners_own_yes_needs_no_on_behalf(tmp_path):
+def test_the_on_behalf_flag_is_gone(tmp_path):
+    root = make_vault(tmp_path)
+    in_session_with_modes(root, "boundary")
+    git_init(root)
+    code, out = decide(root, "--readback", "^c01", "--yes", "^c02", "--provider", "^c07", "--on-behalf", "@stock-team")
+    assert code != 0 and "on-behalf" in out
+
+
+def test_the_owners_own_yes_is_theirs_with_no_on_behalf_line(tmp_path):
     root = make_vault(tmp_path, captures=CAPTURES + ['- [answer] (@stock-team) "Yes, as read." ^c13'])
     in_session_with_modes(root, "boundary")
     owned_by_the_stock_team(root)
     git_init(root)
-    code, out = decide(root, "--readback", "^c01", "--yes", "^c13", "--provider", "^c07")
-    assert code == 0, out
+    code, decide_out = run("decide", "CON-002", "--readback", "^c01", "--yes", "^c13", "--provider", "^c07",
+                           "--vault", str(root), "--today", TODAY, "--for-lead")
+    assert code == 0, decide_out
     assert "on behalf" not in (root / STOCK).read_text(encoding="utf-8")
+    assert "I noted you settled it for them" not in decide_out
 
 
 def test_later_lists_the_yes_and_decides_nothing(tmp_path):

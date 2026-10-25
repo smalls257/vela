@@ -5,8 +5,8 @@ it names and its `**Options considered:**` bullet (boundary section 2; plan 2.13
   the stubs that follow have a list to come from.
 - **`- **Options considered:** <picked cut> (picked); <cut>: rejected, <reason>; ...`**, the page-level form
   CONVENTIONS gives: a cut is a choice between ways to split the direction, and the rejected ones keep their reasons so
-  a later session can see what was weighed and why it lost. A pick with no rejected option is refused: boundary offers
-  two or three cuts, never one.
+  a later session can see what was weighed and why it lost. A pick with no rejected option is written without
+  rejected cuts: a plan may need only the one cut the lead described, and nothing is padded to a number.
 - **The capture of the pick** is marked at once, `→ keep: [[05-building-blocks#<cut>|cut]] (assumption)`: the cut is
   believed, not decided, until it's settled.
 """
@@ -18,9 +18,9 @@ CHANGES = ("new", "changed", "integrated", "unchanged", "retired")
 
 FIELDS = {"name": "the picked cut's name: its heading",
           "apps": "each app the cut names, as \"<app name>=<change>\"",
-          "rejected": "each rejected cut, as \"<cut>: <the reason it lost>\"",
+          "rejected": "each rejected cut, when there were any, as \"<cut>: <the reason it lost>\"",
           "capture": "the capture where the lead picked it"}
-REQUIRED = ("name", "apps", "rejected")
+REQUIRED = ("name", "apps")
 EXAMPLE = {"name": "Desk beside the till", "apps": ["Desk=new", "Till=changed"],
            "rejected": ["One till app: the desk team ships on its own schedule"], "capture": "^c12"}
 

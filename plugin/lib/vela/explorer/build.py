@@ -212,6 +212,7 @@ def item_facts(item, keys):
     for bullet in item.page.bullets:
         if bullet.item == item.id and not bullet.generated and bullet.line > item.line:
             value = (override_said(bullet) if bullet.label == schema.OVERRIDE_LABEL
+                     else people_said(settled_said(bullet.value)) if bullet.label == "Decided by"
                      else people_said(bullet.value) if bullet.label in (*schema.OVERRIDE_LABELS, schema.PENDING_LABEL) else bullet.value)
             out.append({"label": bullet.label, "html": inline_html(value, keys, item.page),
                         "text": plain(keys.without_sessions(value, item.page)), "refs": refs_in(bullet.value, keys, item.page)})
@@ -222,6 +223,11 @@ def people_said(value):
     """"@sam, 2026-10-12" as a reader says it: "sam, October 12, 2026". Decided by, Confirmed by and Pending approval are who and when."""
     value = say.LEAD_PATTERNS["handle"].sub(lambda m: say.person_words(m.group(0)), value)
     return say.LEAD_PATTERNS["ISO date"].sub(lambda m: say.date_words(m.group(0)), value)
+
+
+def settled_said(value):
+    """"@lead, on behalf of @owner" as a reader says it: "settled by @lead for @owner"."""
+    return re.sub(r"^(\S+), on behalf of ", r"settled by \1 for ", value)
 
 
 def override_said(bullet):
@@ -417,9 +423,9 @@ def unknowns(vault, keys):
 
 # --------------------------------------------------------------------------- progress
 
-def overrides_awaiting(vault, keys):
-    """Decisions made on someone's behalf that the owner has not yet confirmed, plus every override, by scope."""
-    awaiting, recorded = [], []
+def recorded_overrides(vault, keys):
+    """Every override, by scope."""
+    recorded = []
     for page in dashboard_pages(vault):
         scopes = []
         for bullet in page.bullets:
@@ -428,13 +434,11 @@ def overrides_awaiting(vault, keys):
         for scope in scopes:
             key = scope if scope else keys.page(page)
             behalf = override.on_behalf(page, scope)
-            if behalf is not None and not behalf.confirmed_by:
-                awaiting.append({"key": key, "by": behalf.by, "owners": list(behalf.owners)})
             for o in override.valid_overrides(page, scope):
                 recorded.append({"key": key, "rules": list(o.rules), "skipped": [attention.skipped_check(r) for r in o.rules],
                                  "by": o.by, "date": o.date, "reason": keys.without_sessions(o.reason, page),
                                  "confirmed": bool(behalf and behalf.confirmed_by)})
-    return awaiting, recorded
+    return recorded
 
 
 def handoff_status(vault, root, keys, app):
@@ -469,11 +473,11 @@ def progress_data(vault, root, keys, today):
                      "subject": r.subject, "reason": said(r.reason) if r.reason else r.reason,
                      "handoff": handoff_status(vault, root, keys, r.app)})
     percent, shares = completeness.measure(vault)
-    awaiting, recorded = overrides_awaiting(vault, keys)
+    recorded = recorded_overrides(vault, keys)
     best = progress.best(progress.grid(vault, today))
     return {"rows": rows, "stages": list(schema.STAGES), "percent": percent,
             "shares": [{"name": s.name, "done": s.done, "total": s.total} for s in shares],
-            "awaiting": awaiting, "overrides": recorded,
+            "overrides": recorded,
             "next": {"app": keys.page(best.app), "mode": best.mode, "subject": best.subject, "reason": said(best.reason) if best.reason else best.reason} if best else None}
 
 

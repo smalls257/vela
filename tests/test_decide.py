@@ -470,17 +470,17 @@ def test_bare_ok_and_claudes_yes_are_refused(tmp_path):
     assert "consent-not-a-person" in rules(plan(root, [item(yes="^c08")])[1])
 
 
-def test_dissent_decided_by_and_override_bullets(tmp_path):
+def test_dissent_and_decided_by_bullets(tmp_path):
     root = make_vault(tmp_path)
-    writes = filed(root, [item(dissent="^c05", on_behalf_of="@stock-team",
-                               overrides=[{"rules": ["GATE-5"], "reason": "^c06"}])])
+    edit(root / STOCK, "- **Tested by:** consumer tests in the shop pipeline.",
+         "- **Owner:** @stock-team\n- **Tested by:** consumer tests in the shop pipeline.")
+    writes = filed(root, [item(dissent="^c05")])
     bullets = history_of(writes[STOCK], "CON-002")
     assert "- **Dissent:** @stock-team, 2026-10-20" in bullets
     assert not any("lag by a minute" in b for b in bullets), "@stock-team gave no yes to being quoted"
-    assert "- **Override:** GATE-5 by @priya on 2026-10-20: Go ahead; the owner answers by Friday." in bullets
+    assert not any(b.startswith("- **Override:**") for b in bullets), "the lead's yes needs no override"
     assert "- **Decided by:** @priya, on behalf of @stock-team" in bullets
-    _, refusals = plan(root, [item(on_behalf_of="@stock-team")])
-    assert "decide-on-behalf-needs-gate-5" in rules(refusals), "deciding for an absent owner goes with GATE-5"
+    assert plan(root, [item()])[1] == [], "a yes that isn't the owner's is never refused"
 
 
 def test_fr_page_and_release_kinds(tmp_path):

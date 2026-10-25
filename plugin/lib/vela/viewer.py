@@ -131,12 +131,16 @@ def override_lines(page):
     """One entry per well-formed Override on the page, page level and items alike. The
     parser is vela.override's, so the viewer cannot disagree with `vela check`."""
     lines = []
-    for found, behalf in override.decisions(page):
-        pending = behalf is not None and not behalf.confirmed_by
+    for found, _ in override.decisions(page):
         for item in found:
-            lines.append({"rules": ", ".join(item.rules), "by": item.by, "date": item.date, "reason": item.reason,
-                          "pending_for": " ".join(behalf.owners) if pending else ""})
+            lines.append({"rules": ", ".join(item.rules), "by": item.by, "date": item.date, "reason": item.reason})
     return lines
+
+
+def settled_lines(page):
+    """"settled by @lead for @owner" for each decision made on someone's behalf: it reads as decided, with who stood in."""
+    return [f"settled by {behalf.by} for {' '.join(behalf.owners)}"
+            for _, behalf in override.decisions(page) if behalf is not None]
 
 
 def wiki_to(entry):
@@ -204,7 +208,7 @@ def page_data(page, names=None, vault=None):
         "headings": [h.text for h in page.headings],
         "draft": state in DRAFT_STATES,
         "state": state,
-        "overrides": override_lines(page),
+        "overrides": override_lines(page), "settled": settled_lines(page),
     }
 
 
@@ -541,14 +545,13 @@ async function show() {
   current = p.name;
   document.title = p.title + ' · ' + DATA.title;
   ui.crumb.textContent = p.path;
-  const pending = p.overrides.filter(o => o.pending_for).map(o => o.pending_for);
-  ui.banner.innerHTML = (p.draft ? `<div class="status-line">${esc(p.state)}: not agreed yet</div>` : '') +
-    (pending.length ? `<div class="status-line">decided on behalf of ${esc([...new Set(pending)].join(', '))}, not yet confirmed</div>` : '');
+  ui.banner.innerHTML = p.draft ? `<div class="status-line">${esc(p.state)}: not agreed yet</div>` : '';
   const art = ui.page;
   art.replaceChildren(toNodes(p.body));
   art.querySelectorAll('h1,h2,h3,h4').forEach(h => h.id = 'h-' + slug(h.textContent));
   await drawDiagrams(art);
-  const props = Object.entries(p.meta).map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(Array.isArray(v) ? v.join(', ') : v)}</dd>`).join('');
+  const props = Object.entries(p.meta).map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(Array.isArray(v) ? v.join(', ') : v)}</dd>`).join('')
+    + p.settled.map(s => `<dt>Decision</dt><dd>${esc(s)}</dd>`).join('');
   ui.props.innerHTML = props || '<dd>none</dd>';
   const bl = [...(backlinks.get(p.name.toLowerCase()) || [])].filter(n => n !== p.name).map(n => pageNamed(n)).filter(Boolean)
     .sort((x, y) => x.title.localeCompare(y.title));

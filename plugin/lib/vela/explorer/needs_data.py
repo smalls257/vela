@@ -14,14 +14,11 @@ def owner_of(entities, key):
     return found.get("ownerKey") or (entities.get(found.get("pageKey")) or {}).get("ownerKey", "")
 
 
-def proposals(pending, awaiting, entities):
-    """Decisions waiting on an owner's yes: a reader's pending approval goes to the owner of what it is on; a decision
-    made on someone's behalf goes to the owners it names."""
-    out = [{"key": p["key"], "by": p["by"], "date": p["date"], "owners": [owner_of(entities, p["key"])]} for p in pending]
-    out += [{"key": a["key"], "by": a["by"], "date": "", "owners": list(a["owners"])} for a in awaiting]
-    return out
+def proposals(pending, entities):
+    """Decisions waiting on an owner's yes: a reader's pending approval goes to the owner of what it is on."""
+    return [{"key": p["key"], "by": p["by"], "date": p["date"], "owners": [owner_of(entities, p["key"])]} for p in pending]
 
 
 def extract(data, entities, handed, today):
     """{"lines": [...], "dates": [...]}: see needsyou.extract. `handed` is [{"key": app key, "handed_off": the app's field}]."""
-    return needsyou.extract(data["asks"], data["grills"]["rows"], proposals(data["pending"], data["progress"]["awaiting"], entities), handed, today)
+    return needsyou.extract(data["asks"], data["grills"]["rows"], proposals(data["pending"], entities), handed, today)

@@ -71,11 +71,10 @@ const Roles = (() => {
     const asked = [...new Set(D.above.map((a) => a.unknown))].filter((u) => UNKNOWN[u]).map((u) => ({ kind: "question", key: u, say: `is holding up ${Queue.say(D.above.filter((a) => a.unknown === u).map((a) => a.key))}` }));
     const owed = [...asked,
       ...proposed.map((e) => ({ kind: "decision", key: e.key, say: e.state === "pending" ? "decided by a reader, the owner hasn't confirmed it" : "proposed, not decided" })),
-      ...D.progress.awaiting.map((a) => ({ kind: "override", key: a.key, say: `decided for ${a.owners.join(", ")}, waiting for them to confirm` })),
       ...Releases.STATES.slice(1).filter((x) => !x.fromChange && x.state !== "decided").map((x) => ({ kind: "release", key: null, name: x.heading || x.name, say: `release ${releaseState(x.state)}` }))];
     grid.append(card("Waiting on a decision", null, owed.length ? list(owed, 5, (x) => h("li", {}, x.key ? lampEl(levelForKey(x.key) || "caution") : lampEl("caution"),
       x.kind === "question" ? h("a", { "data-ref": x.key, title: x.key }, titleOf(x.key)) : x.key ? refChip(x.key) : h("b", {}, x.name), h("span", { class: "muted small" }, " " + x.say))) : empty("Nothing is waiting on an executive decision."),
-      rule("Waiting on a decision: questions that hold up a goal or the strategy, decisions still proposed or not yet confirmed, and releases nobody has agreed. Open one to settle it.")));
+      rule("Waiting on a decision: questions that hold up a goal or the strategy, decisions still proposed, and releases nobody has agreed. Open one to settle it.")));
   }
 
   /* ------------------------------------------------------------ product */

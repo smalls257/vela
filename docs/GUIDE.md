@@ -411,7 +411,6 @@ A product owner with git access is an owner. A sponsor with only OneDrive is a r
 | E316 | decided too early: an item is marked decided while an open question blocks it | answer the question, or set the item back; a challenge leaves this red on purpose until answered |
 | E105 | a link could not be read | fix the link; the dashboard leaves it out |
 | W327 | decisions waiting for the owner's approval | owners: review them. Readers: expected |
-| W324 | decided on the owner's behalf, and the owner hasn't confirmed it | the owner adds `Confirmed by:` or challenges |
 | W325 | handed off, but the pull request number isn't recorded | close writes it once the PR exists |
 | W329 | a `[[link\|label]]` in a table has a bare `\|` | write `\|` |
 | W402 | an auto-filled section is out of date | run `vela render` |
