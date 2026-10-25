@@ -143,20 +143,20 @@ def test_an_item_override_is_listed_and_no_page_gets_an_override_banner(tmp_path
     shutil.copytree(FIXTURE, vault)
     html, pages = pages_of(tmp_path, vault)
     assert pages["pricing-building-blocks"]["overrides"] == [{
-        "rules": "GATE-5", "by": "@hl-solution-lead", "date": "2026-07-28", "pending_for": "",
+        "rules": "GATE-5", "by": "@hl-solution-lead", "date": "2026-07-28",
         "reason": pages["pricing-building-blocks"]["overrides"][0]["reason"]}]
     assert pages["pricing-building-blocks"]["overrides"][0]["reason"].startswith("the Revenue team was in its fare review")
     assert pages["01-goals"]["overrides"] == []
     assert "override-banner" not in html  # the Override bullet is in the folded History, not a box up top
 
 
-def test_an_unconfirmed_on_behalf_decision_gets_one_status_line(tmp_path):
+def test_an_unconfirmed_on_behalf_decision_reads_as_decided_with_no_status_line(tmp_path):
     vault = tmp_path / "ub"
     shutil.copytree(FIXTURE, vault)
     edit(vault / "05-building-blocks" / "pricing-building-blocks.md", "- **Confirmed by:** @hl-pricing-senior on 2026-08-12\n", "")
     html, pages = pages_of(tmp_path, vault)
-    assert [o["pending_for"] for o in pages["pricing-building-blocks"]["overrides"]] == ["@harborline/revenue-team"]
-    assert "decided on behalf of ${esc([...new Set(pending)].join(', '))}, not yet confirmed" in html
+    assert pages["pricing-building-blocks"]["settled"] == ["settled by @hl-solution-lead for @harborline/revenue-team"]
+    assert "not yet confirmed" not in html and "pending_for" not in html
 
 
 def test_every_override_on_a_page_gets_its_own_line_and_malformed_ones_get_none(tmp_path):
@@ -172,7 +172,7 @@ def test_the_override_banner_is_built_from_escaped_text_and_adds_no_script(tmp_p
     vault = tmp_path / "ub"
     shutil.copytree(FIXTURE, vault)
     html, _ = pages_of(tmp_path, vault)
-    assert "innerHTML = (p.draft" in html and "esc([...new Set(pending)]" in html
+    assert "ui.banner.innerHTML = p.draft" in html and "esc(s)" in html
     csp = re.search(r'Content-Security-Policy" content="([^"]*)"', html).group(1)
     scripts = re.findall(r"<script>(.*?)</script>", html, re.S)
     assert csp.count("sha256-") == len(scripts) == 3, "the banner is inside the existing APP script, so no new hash"
@@ -572,8 +572,8 @@ def test_override_banner_shows_the_text_in_the_browser_and_escapes_a_hostile_rea
     sensor.requests.clear()
     dom = dump_dom(out, "19-overridden")
     assert sensor.requests == []
-    status = re.search(r'<div class="status-line">(decided on behalf.*?)</div>', dom, re.S).group(1)
-    assert status == "decided on behalf of @owner, not yet confirmed"
+    assert "not yet confirmed" not in dom
+    assert re.search(r"<dt>Decision</dt><dd>settled by @a for @owner</dd>", dom)
     history = re.search(r"<details>(.*?)</details>", dom, re.S).group(1)
     assert "&lt;script&gt;alert(1)&lt;/script&gt; &lt;img src=" in history
     tags = [t for t, _ in audit(dom).tags]

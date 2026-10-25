@@ -46,7 +46,7 @@ Put a flag in brackets after any claim that rests on something not settled:
 - "(contested: see <the unknown's name>)", for an item that `blocked_by` lists;
 - "(<name> disagrees)", for an item with `dissent`;
 - "(decided by override: <rule>, by @x)", for each `override` entry, its rules said in words, with its reason. One marked `malformed` overrides nothing: "(the override on this can't be read: <problem>)".
-- "(decided by @x without the owner present, not yet confirmed)", when `decided_by` is set and not `confirmed`; once confirmed, "(decided by @x on behalf of @owner, confirmed by @y)".
+- "(settled by @x for @owner)", when `decided_by` is set and not `confirmed`; once confirmed, "(decided by @x on behalf of @owner, confirmed by @y)".
 
 When two pages disagree, cite both and say which owns the value.
 

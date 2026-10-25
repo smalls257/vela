@@ -245,6 +245,18 @@ def test_add_cut_writes_options_considered(tmp_path):
     assert "→ keep: [[05-building-blocks#Desk beside the till|cut]] (assumption) ^c03" in writes[RECORD]
 
 
+def test_add_cut_accepts_the_only_cut_with_no_rejected_alternative(tmp_path):
+    root = make_vault(tmp_path)
+    write(root, "05-building-blocks/05-building-blocks.md", "---\nid: building-blocks\ntype: index\ntitle: Building "
+                                                             "blocks\nauthored: mixed\n---\n\n# Building blocks\n\n"
+                                                             "One page per app.\n")
+    writes = filed(root, "add", [{"type": "cut", "name": "Desk beside the till", "capture": "^c03",
+                                  "apps": ["Desk=new", "Till=changed"]}])
+    page = writes["05-building-blocks/05-building-blocks.md"]
+    assert "## Desk beside the till\n\n- Desk: new\n- Till: changed\n" in page
+    assert "- **Options considered:** Desk beside the till (picked)\n" in page and "rejected" not in page
+
+
 def test_fr_numbered_after_the_highest(tmp_path):
     root = make_vault(tmp_path)
     write(root, "capabilities/CAP-001-sell.md", "---\nid: CAP-001\ntype: capability\ntitle: Sell\nstate: assumption\n"
