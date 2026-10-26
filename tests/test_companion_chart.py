@@ -5,24 +5,25 @@ from companion_flow import STEPS
 from vela import companionchart as chart
 
 GOLDEN_60 = """\
-╭Public w…╮ ╭ Booking ╮ ╭Call cen…╮ ╭Port kio…╮ ╭Notifica…╮
+╭─Public──╮ ╭─Booking─╮ ╭──Call───╮ ╭──Port───╮ ╭Notifica…╮
+│ website │ │         │ │center d…│ │ kiosks  │ │         │
 ╰────┬────╯ ╰────┬────╯ ╰────┬────╯ ╰────┬────╯ ╰────┬────╯
-     │asks to ho…│           │           │           │
+     1. asks to hold a seat, over Booking API.
      ├──────────▶│           │           │           │
      │           │           │           │           │
-     │           │asks to ho…│           │           │
+     │           2. asks to hold a seat, over Booking API.
      │           │◀──────────┤           │           │
      │           │           │           │           │
-     │           │asks to hold a seat, o…│           │
+     │           3. asks to hold a seat, over Booking API.
      │           │◀──────────────────────┤           │
      │           │           │           │           │
-     │           ◆ 4. Hold the seat.     │           │
+     │           ◆ 4. Hold the seat.
      │           │           │           │           │
-     │           ◆ 5. Take payment.      │           │
+     │           ◆ 5. Take payment.
      │           │           │           │           │
-     │           ◆ 6. Confirm booking.   │           │
+     │           ◆ 6. Confirm booking.
      │           │           │           │           │
-     │           │publishes the state change, over B…│
+     │           7. publishes the state change, over Bookin…
      │           ├──────────────────────────────────▶│"""
 
 
@@ -98,8 +99,8 @@ def test_a_flow_with_no_lanes_is_a_plain_list_of_steps():
 
 def test_a_lane_name_longer_than_its_lane_is_cut_with_an_ellipsis_and_stays_in_its_box():
     steps = [message(1, "A very long application name indeed", "B")]
-    top = text(steps, 48)[0]
-    assert "…" in top and wide(top) <= 48
+    header = "\n".join(text(steps, 48)[:3])
+    assert "…" in header and all(wide(line) <= 48 for line in header.split("\n"))
 
 
 def test_markdown_and_wikilinks_in_a_step_read_as_plain_words():
@@ -109,3 +110,40 @@ def test_markdown_and_wikilinks_in_a_step_read_as_plain_words():
 
 def test_the_drawing_is_deterministic_and_empty_for_no_steps():
     assert chart.drawing(STEPS, 72) == chart.drawing(STEPS, 72) and chart.drawing([], 60) == []
+
+
+def test_a_label_has_its_own_row_and_reads_whole_to_the_panels_right_edge():
+    shown = text(STEPS, 60)
+    assert "     1. asks to hold a seat, over Booking API." in shown
+    assert "     │           2. asks to hold a seat, over Booking API." in shown
+    assert not any("…" in line and "asks to hold" in line for line in shown)
+
+
+def test_the_lifelines_on_a_label_row_stop_where_the_label_starts():
+    row = next(line for line in text(STEPS, 60) if "3. asks" in line)
+    assert row == "     │           3. asks to hold a seat, over Booking API."
+
+
+def test_every_step_shows_its_own_number_message_or_not():
+    shown = "\n".join(text(STEPS, 96))
+    for n in range(1, 8):
+        assert f"{n}. " in shown
+    odd = [message(5, "A", "B"), message(9, "B", "A")]
+    assert "5. does a thing." in "\n".join(text(odd, 60)) and "9. does a thing." in "\n".join(text(odd, 60))
+
+
+def test_lane_names_wrap_at_spaces_and_center_over_two_lines():
+    header = text(STEPS, 96)[:3]
+    assert "Call center" in header[0] and "desktop" in header[1] and header[2].startswith("╰")
+    narrow = text(STEPS, 60)[:2]
+    assert "Public" in narrow[0] and "website" in narrow[1]
+
+
+def test_when_every_name_fits_on_a_line_the_header_stays_two_rows():
+    shown = text([message(1, "A", "B")], 60)
+    assert shown[0].startswith("╭") and shown[1].startswith("╰")
+
+
+def test_a_single_word_longer_than_the_box_is_cut_and_a_third_line_is_never_drawn():
+    assert chart.wrap("Notifications", 9) == ["Notifica…"]
+    assert len(chart.wrap("one two three four five six seven", 9)) == 2
