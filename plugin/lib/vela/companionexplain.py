@@ -17,7 +17,7 @@ VERSION = 1
 VIEWS = ("track", "stuck", "needs", "left", "who", "flow", "page", "none")  # closed: a view not here is refused
 NOT_RECORDED = {
     "track": "The plan doesn't track build progress; the team leads do.",
-    "stuck": "Not in the plan: how far the teams have built. Ask the team leads for that.",
+    "stuck": "How far the teams have built. Ask the team leads for that.",
     "needs": "The plan only knows what was asked of you in it; anything asked in a meeting isn't here.",
     "left": "Story and task progress isn't in the plan; tickets go out to Jira and nothing comes back.",
     "who": "Only questions written into the plan are here.",
@@ -239,11 +239,19 @@ def diagram_of(digest, view, about, items):
     if view == "flow":
         flow = find(digest["flows"], about)
         return {"kind": "sequence", "of": flow["key"], "name": flow["name"], "steps": flow["steps"],
-                "svg": companionsvg.sequence(flow["steps"], flow["name"]), "text": companionsvg.text_of(flow["steps"])}
+                "svg": companionsvg.sequence(flow["steps"], flow["name"])}
     if view == "stuck" and any(level in ("warning", "caution", "unexamined") for level in digest["app_lights"].values()):  # a map with nothing lit says nothing
         return {"kind": "map", "of": "", "name": "Where they sit", "steps": [],
-                "svg": companionsvg.lit_map(digest["apps"], digest["app_lights"]), "text": ""}
+                "svg": companionsvg.lit_map(digest["apps"], digest["app_lights"])}
     return None
+
+
+def views_that_answer(digest, viewer):
+    """The views worth offering as "also ask": the ones that have something to say for this plan and this reader. The
+    plan's own dates make "when is it due?" answerable, a known reader makes "what do you need from me?" answerable."""
+    answers = {"stuck": True, "left": bool(digest["progress"]), "who": any(a["state"] == "open" for a in digest["asks"]),
+               "needs": bool(viewer.handle), "track": any(r["target"] for r in digest["releases"])}
+    return [view for view, yes in answers.items() if yes]
 
 
 def explain(digest, view, about, viewer, since, today):
@@ -254,5 +262,6 @@ def explain(digest, view, about, viewer, since, today):
             "copy": {"title": digest["title"], "made": digest["made"]},
             "viewer": {"handle": viewer.handle, "role": viewer.role}, "headline": headline, "since": since,
             "items": items, "groups": groups, "diagram": diagram_of(digest, view, about, items),
+            "also": [v for v in views_that_answer(digest, viewer) if v != view],
             "dashboard": dashboard if view != "none" else "dashboard.html",
             "not_recorded": [NOT_RECORDED[view]] if NOT_RECORDED[view] else [], "files": {}, "vault": "", "warnings": []}

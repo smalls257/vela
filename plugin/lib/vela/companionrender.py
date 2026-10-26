@@ -1,77 +1,53 @@
 """One session or explain dict, drawn three ways: terminal Markdown, a one-line band, a self-contained HTML page. Pure.
 
 Every surface draws the same dict, so they can't drift (Distributed Monolith ruled out), and none of them holds a plan
-rule: the words and the counts come from the dict. The panels only show; nothing here sends anything back to Claude
-(owner's ruling of October 24, 2026), so there are no buttons. Vault text reaches the HTML only escaped.
+rule: the words and the counts come from the dict. The Markdown and the terminal pane both draw the dict's blocks
+(`companionblocks.py`), so the fallback a person reads when the pane can't draw is the pane's own content in plain
+text. The panels only show; nothing here sends anything back to Claude (owner's ruling of October 24, 2026). Vault text
+reaches the HTML only escaped.
 """
 import datetime
 import re
 from html import escape as _escape
 
-from vela import companionsvg, say
+from vela import companionblocks, companionsvg, say
+from vela.companionblocks import DASHBOARD_LINE, NEXT_SOURCE, UNREADABLE
 
 def escape(text):
     """Text for an HTML text node: markup is escaped; quotes are safe there and stay readable."""
     return _escape(str(text), quote=False)
 
 
-BAND_WIDTH = 100  # why: the band shows below 110 columns, beside the prompt's own margins
-OPEN_HINT = "/vela-companion to open"
-DASHBOARD_LINE = "Full dashboard: dashboard.html in this folder"
-UNREADABLE = "I can't read this session's notes on this machine."
-NEXT_SOURCE = {"agenda": "from the agenda", "map": "from your topic map", "design order": "the next section of the design"}
-NONE_NEXT = "Say *what's next* to hear vela's suggestion."
+BAR_CELLS = 20
+MARKDOWN_DRAWING = "60"  # why: the pane is 64 columns wide and a Markdown code block is indented four
 
 
 def with_renders(data):
-    """The dict with its band and its diagram's drawings filled in, so the JSON carries what the surfaces show."""
+    """The dict with its blocks, its band and its diagram's drawings filled in, so the JSON carries what the surfaces
+    show."""
+    data["blocks"] = companionblocks.blocks_of(data)
+    data["band_spans"] = companionblocks.band_spans(data)
     if data.get("kind") == "session":
         data["band"] = band(data)
         diagram = data.get("diagram")
         if diagram:
             diagram["svg"] = companionsvg.sequence(diagram["steps"], diagram["name"])
-            diagram["text"] = companionsvg.text_of(diagram["steps"])
     return data
 
 
-def time_of(data):
-    return data["as_of"].split("T")[-1]
-
-
 def header_line(data):
-    return f"as of {time_of(data)} · capture {data['capture']}"
-
-
-def count_words(data):
-    return len(data["decided"] or ()), len(data["open"] or ())
-
-
-def short(text, limit):
-    return text if len(text) <= limit else text[:limit - 1].rstrip() + "…"
+    return f"as of {companionblocks.time_of(data)} · capture {data['capture']}"
 
 
 def band(data):
     """One line for a narrow window: "Grill: hold, pay, confirm · 2 decided · 1 open · next: Pricing runtime · /vela-companion to open"."""
-    title = data["session"]["title"]
-    if data["notes"] == "unreadable":
-        middle = "notes can't be read here"
-    else:
-        decided, opened = count_words(data)
-        middle = f"{decided} decided · {opened} open"
-        if data["next"]["text"]:
-            middle += " · next: " + data["next"]["text"].split(" (vela's")[0]
-    tail = f" · {OPEN_HINT}"
-    room = BAND_WIDTH - len(tail)
-    head = f"{title} · {middle}"
-    if len(head) > room:
-        head = short(title, 30) + " · " + short(middle, room - len(short(title, 30)) - 3)
-    return head + tail
+    return "".join(piece["t"] for piece in companionblocks.session_band(data))
 
 
 def next_lines(data):
     move = data["next"]
     if not move["text"]:
-        return [NONE_NEXT]
+        return [companionblocks.NONE_NEXT]
     lines = [move["text"]]
     source = NEXT_SOURCE.get(move["source"], "")
     if source:
@@ -99,11 +75,12 @@ def session_sections(data):
     """[(title, count or None, [lines])] in the order the panels show them, shared by Markdown and HTML."""
     sections = []
     decided = data["decided"]
-    sections.append(("Decided this session", len(decided),
-                     [f"{row['name']} · {row['label']}" for row in decided] or ["Nothing decided yet."]))
+    sections.append((companionblocks.TITLE_DECIDED, len(decided),
+                     [f"{row['name']} · {row['label']}" for row in decided] or [companionblocks.NOTHING_DECIDED]))
     if data["said_yes"]:
-        sections.append(("Said yes, waiting", len(data["said_yes"]), [yes_line(row) for row in data["said_yes"]]))
-    sections.append(("Still open", len(data["open"]), [open_line(row) for row in data["open"]] or ["Nothing open."]))
+        sections.append((companionblocks.TITLE_WAITING, len(data["said_yes"]), [yes_line(row) for row in data["said_yes"]]))
+    sections.append((companionblocks.TITLE_OPEN, len(data["open"]),
+                     [open_line(row) for row in data["open"]] or [companionblocks.NOTHING_OPEN]))
     sections.append(("Next", None, next_lines(data)))
     if data["touched"] is not None:
         sections.append(("Pages changed", len(data["touched"]), [row["name"] for row in data["touched"]] or ["None yet."]))
@@ -140,7 +117,7 @@ def item_line(view, item, today):
     return " \u00b7 ".join(b for b in bits if b)
 
 
-def explain_blocks(data):
+def explain_groups(data):
     """[(heading or "", [lines])]: the groups when the view has them, else the items; never the page's own opening."""
     view, today = data["view"], datetime.date.fromisoformat(data["as_of"])
     if view in ("none", "page"):
@@ -151,43 +128,54 @@ def explain_blocks(data):
     return [("", lines)] if lines else []
 
 
-def explain_markdown(data):
-    out = [f"**{data['copy']['title']}**   {explain_header(data)}", ""]
-    out += [*data["headline"], ""]
-    if data["since"]:
-        out += [data["since"], ""]
-    for heading, lines in explain_blocks(data):
-        if heading:
-            out.append(f"**{heading}**")
-        out += [f"- {line}" for line in lines]
-        out.append("")
-    if data["diagram"] and data["diagram"]["text"]:
-        out += ["    " + line for line in data["diagram"]["text"].split("\n")] + [""]
-    out += [*data["not_recorded"]]
-    out += [f"Full picture: {data['dashboard']} in this folder", ""]
-    out += [f"Note: {w}" for w in data["warnings"]]
-    return "\n".join(out).rstrip("\n") + "\n"
+def line_text(line):
+    """A Line as plain text: its spans in order, a bar as filled and empty cells."""
+    out = []
+    for piece in line:
+        if "bar" in piece:
+            done, total = piece["bar"]
+            full = round(BAR_CELLS * done / total) if total else 0
+            out.append("█" * full + "░" * (BAR_CELLS - full))
+        else:
+            out.append(piece["t"])
+    return "".join(out)
+
+
+def row_text(row):
+    chip = f"[{row['chip']['t']}]" if row["chip"] else ""
+    bits = [b for b in (f"{row['mark']} {row['name']}".strip(), row["id"], row["note"], chip) if b]
+    lines = ["- " + "  ".join(bits)]
+    if row["sub"]:
+        lines.append("    " + line_text(row["sub"]))
+    return lines
+
+
+def block_text(block):
+    kind = block["type"]
+    if kind == "card":
+        head = f"**{block['title']}**" + (f"   {block['right']}" if block["right"] else "")
+        return [head] + [line_text(line) for line in block["lines"]]
+    if kind == "next":
+        head = f"{block['chip']}  {block['text']}" + (f"  {block['id']}" if block["id"] else "")
+        return [head] + ([f"      {block['note']}"] if block["note"] else [])
+    if kind == "section":
+        head = (f"**{block['title']}**" + (f" ({block['count']})" if block["count"] else "")) if block["title"] else ""
+        return ([head] if head else []) + [line for row in block["rows"] for line in row_text(row)]
+    if kind == "bars":
+        room = max(len(r["label"]) for r in block["rows"])
+        return [f"**{block['title']}**"] + [
+            f"  {r['label'].ljust(room)}  " + line_text([{"bar": [r["value"], r["max"]]}]) + f"  {r['text']}" for r in block["rows"]]
+    if kind == "diagram":
+        drawing = block["drawings"][MARKDOWN_DRAWING]
+        return [f"**{block['title']}**", ""] + ["    " + line_text(line) for line in drawing]
+    return [line_text(line) for line in block["lines"]]
 
 
 def markdown(data):
-    if data["kind"] == "explain":
-        return explain_markdown(data)
-    title = data["session"]["title"]
-    out = [f"**{title}**   {header_line(data)}", ""]
-    if data["notes"] == "unreadable":
-        return "\n".join(out + [UNREADABLE] + [""] + [f"Note: {w}" for w in data["warnings"]] + [""]) .rstrip("\n") + "\n"
-    out += [data["about"] or "No summary yet", ""]
-    for name, count, lines in session_sections(data):
-        out.append(f"**{name}**" + (f" ({count})" if count is not None else ""))
-        out += [("  " if name == "Next" else "- ") + line for line in lines]
-        out.append("")
-    if data["diagram"]:
-        out += [f"**{data['diagram']['name']}, as decided**", ""]
-        out += ["    " + line for line in data["diagram"]["text"].split("\n")]
-        out.append("")
-    out += [f"Note: {w}" for w in data["warnings"]]
-    out += [DASHBOARD_LINE, ""]
-    return "\n".join(out)
+    """The blocks as plain text, in the panel's order: what a terminal that can't draw them shows."""
+    blocks = data.get("blocks") or companionblocks.blocks_of(data)
+    parts = ["\n".join(block_text(block)) for block in blocks]
+    return "\n\n".join(part for part in parts if part).rstrip("\n") + "\n"
 
 
 STYLE = """body{margin:0;background:var(--room);color:var(--ink);font:14px/1.45 system-ui,sans-serif}
@@ -218,7 +206,7 @@ def explain_html(data, palette):
     body += [f"<p class=\"{'lead' if n == 0 else 'about'}\">{escape(line)}</p>" for n, line in enumerate(data["headline"])]
     if data["since"]:
         body.append(f"<p class=\"since\">{escape(data['since'])}</p>")
-    for heading, lines in explain_blocks(data):
+    for heading, lines in explain_groups(data):
         body.append((f"<h2>{escape(heading)} ({len(lines)})</h2>" if heading else "") + html_list(lines))
     if data["diagram"]:
         body.append(inline(data["diagram"]["svg"]))

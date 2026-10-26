@@ -191,7 +191,7 @@ def diagram_of(decided, touched, index, names):
 
 
 def _diagram(ident, name, steps):
-    return {"kind": "sequence", "of": ident, "name": name, "steps": steps, "svg": "", "text": ""}
+    return {"kind": "sequence", "of": ident, "name": name, "steps": steps, "svg": ""}
 
 
 def build(inputs):

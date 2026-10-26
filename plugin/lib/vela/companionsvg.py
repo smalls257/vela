@@ -1,4 +1,4 @@
-"""Two small SVG shapes the companion panels draw, and the terminal's text rendition of a flow. Pure.
+"""Two small SVG shapes the companion panels draw, and the words a flow step is drawn with. Pure.
 
 The design suggested Mermaid inside the Cowork artifact. vela's Mermaid bundle is 3.2 MB and the panel is republished
 after every write, so that would be Computational Friction on the chat path. These shapes are a few KB, the same SVG
@@ -23,8 +23,17 @@ def label(text, limit=34):
     return text if len(text) <= limit else text[:limit - 1].rstrip() + "…"
 
 
-def _first_sentence(text):
-    return label(re.split(r"(?<=[.!?])\s", WIKILINK.sub(lambda m: m.group(2) or m.group(1), str(text or "")))[0], 44)
+# The steps' text opens "Sender → Receiver: ..." for a paired step; the lanes already say who, so a label drops it (E133).
+LANE_PREFIX = re.compile(r"^[^→:]{1,80}→[^:]{1,80}:\s+")
+
+
+def step_words(step, limit=44):
+    """What a step does, as one short plain sentence: its links as words and, for a step between two lanes, without the
+    "Sender → Receiver:" it opens with."""
+    text = WIKILINK.sub(lambda m: m.group(2) or m.group(1), str(step.get("text") or ""))
+    if step.get("from") and step.get("to"):
+        text = LANE_PREFIX.sub("", text, count=1)
+    return label(re.split(r"(?<=[.!?])\s", text)[0], limit)
 
 
 def _lanes(steps):
@@ -53,7 +62,7 @@ def sequence(steps, title):
     for row, step in enumerate(shown):
         y = TOP + row * ROW_HEIGHT
         sender, receiver = label(step.get("from", "")), label(step.get("to", ""))
-        words = escape(_first_sentence(step.get("text", "")))
+        words = escape(step_words(step))
         if sender in x and receiver in x and sender != receiver:
             a, b = x[sender], x[receiver]
             head = f"{b - 6},{y - 4} {b},{y} {b - 6},{y + 4}" if b > a else f"{b + 6},{y - 4} {b},{y} {b + 6},{y + 4}"
@@ -82,17 +91,3 @@ def lit_map(apps, lights):
                    f'<text x="{x + 59}" y="{y + 20}" text-anchor="middle" fill="#e8eef0">{escape(label(app["name"], 18))}</text>')
     out.append("</svg>")
     return "".join(out)
-
-
-def text_of(steps):
-    """The terminal's rendition: "Website -hold seat-> Booking" for a paired step, "1. <text>" for the rest."""
-    lines = []
-    for step in steps[:MAX_STEPS]:
-        words = _first_sentence(step.get("text", ""))
-        if step.get("from") and step.get("to"):
-            lines.append(f"{label(step['from'])} ─{words}─▶ {label(step['to'])}")
-        else:
-            lines.append(f"{step.get('n', len(lines) + 1)}. {words}")
-    if len(steps) > MAX_STEPS:
-        lines.append(f"and {len(steps) - MAX_STEPS} more")
-    return "\n".join(lines)

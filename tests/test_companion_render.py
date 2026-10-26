@@ -5,7 +5,7 @@ import re
 import pytest
 
 from companion_vault import grill_session, run_companion
-from vela import companionrender, companionsvg, say
+from vela import companionblocks, companionrender, companionsvg, say
 
 
 @pytest.fixture
@@ -25,19 +25,23 @@ def test_the_markdown_has_no_html_tables_or_mermaid(data):
     _, got = data
     md = companionrender.markdown(got)
     assert "<" not in md and not re.search(r"^\|", md, re.M) and "```mermaid" not in md
-    assert "Hold, pay, confirm" in md and "decided today" in md and "Pricing runtime" in md
+    assert "Hold, pay, confirm" in md and "Decided this session" in md and "Pricing runtime" in md
 
 
 def test_lead_text_names_things_and_holds_no_ids_or_paths(data):
     root, got = data
+    ids = {row["id"] for block in got["blocks"] if block["type"] == "section" for row in block["rows"]}
+    ids |= {got["next"]["id"], got["blocks"][-2]["id"]}   # the panel shows ids on purpose, as chips beside the names
     for text in (companionrender.markdown(got), visible(companionrender.html(got, "")), companionrender.band(got)):
+        for ident in ids:
+            text = text.replace(ident, "")
         assert say.leak_in(text) is None, say.leak_in(text)
 
 
 def test_the_band_fits_a_narrow_window_and_names_the_command(data):
     _, got = data
     line = companionrender.band(got)
-    assert len(line) <= companionrender.BAND_WIDTH and line.endswith("/vela-companion to open")
+    assert len(line) <= companionblocks.BAND_WIDTH and line.endswith("/vela-companion to open")
     assert "2 decided" in line and "1 open" in line
 
 
