@@ -243,6 +243,10 @@ def run_chrome(cmd, timeout):
     given (seen: a renderer alive, nothing happening). A healthy launch takes seconds, so `timeout` is split into
     ATTEMPTS equal shares: a stalled share is killed, printed to stderr, and the launch tried again. When every share
     stalls this raises TimeoutError naming the command and each stall; it never returns empty output."""
+    # The selftest drives the page through every section in virtual time, so a page with more sections makes more history
+    # entries in less than a second, and Chrome's flooding protection then ignores the later ones ("Throttling navigation",
+    # crbug.com/1038223) and a deep-link check reads a stale address. No user clicks that fast; the protection is off here.
+    cmd = [cmd[0], "--disable-ipc-flooding-protection", *cmd[1:]]
     share = timeout / ATTEMPTS
     stalls = []
     for attempt in range(1, ATTEMPTS + 1):

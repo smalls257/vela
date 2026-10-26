@@ -820,10 +820,7 @@ def release_rules(vault, today):
                          f"{problem or ', '.join(f'AC{n}' for n in over)} of {row.requirement}, which lists {count} criteria.",
                          "Write all, or ACn for the nth acceptance criterion under the requirement.")
     delivered = {row.requirement for r in found for row in r.rows}
-    left_out = {i: (left, "Not in the tracer") for left in found[0].not_in_tracer for i in left.ids}
-    for s in slices.read_slices(vault) if slices.on_pages(vault) else ():
-        for left in s.not_in:
-            left_out.update({i: (left, f"the slice {s.id}, in what it leaves out,") for i in left.ids if i not in left_out})
+    left_out = slices.left_out(vault)
     for req in allocation.due(vault):
         if req.id not in delivered:
             why, where = left_out.get(req.id, (None, ""))
