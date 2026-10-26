@@ -83,6 +83,7 @@ entries:
       voucher: A voucher is value a customer holds until they spend it.
       deposit: A deposit is money held for a customer until the booking completes or is refunded.
     mention_except: [credit card*, balance the load, load balanc*, story point*, touch point*, data point*]
+    group: existence
 
   - id: Q-FIN-02
     area: FIN
@@ -138,6 +139,7 @@ entries:
     severity: high
     blocks: [decision, contract, epic]
     creates: party
+    group: existence
 
   - id: Q-DAT-05
     area: DAT
@@ -147,6 +149,7 @@ entries:
     why: The ICO asks for the purposes the data was originally obtained for, and a lawful basis for any new one. A new purpose needs its own basis even when no new party appears.
     severity: high
     blocks: [decision, contract, epic]
+    group: existence
 
   - id: Q-DAT-02
     area: DAT
@@ -188,6 +191,7 @@ entries:
     mentions: [clause/clauses]
     mention_why:
       clause: A change-of-control or assignment clause lives in an agreement, so a clause in a fact points at a counterparty nobody typed.
+    group: existence
 
   - id: Q-PTN-02
     area: PTN
@@ -243,6 +247,7 @@ entries:
     why: Some sectors make parties jointly answerable for a product sold across them, e.g. EU 2021/782 for rail. The simulated runs missed liability for combined products.
     severity: normal
     blocks: [decision, epic]
+    group: existence
 
   - id: Q-REG-05
     area: REG
@@ -252,6 +257,7 @@ entries:
     why: A customer deals with the seller, not with the party that failed, so liability has to be placed before the product is sold. The simulated runs never asked who answers to the customer.
     severity: normal
     blocks: [decision, epic]
+    follows: Q-REG-01
 
   - id: Q-REG-02
     area: REG
@@ -266,6 +272,7 @@ entries:
     mention_why:
       licence: The British spelling of license; both are matched.
       license: A license names a regulator or a licensor, and that body is a party. The verb forms count too, such as a licensed activity or a product being licensed.
+    group: existence
 
   - id: Q-REG-03
     area: REG

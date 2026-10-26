@@ -96,10 +96,14 @@ def owner_contact(config, git_name, git_email, name_flag="", contact_flag=""):
     return {"name": name, "contact": contact}
 
 
-def build_stamp(config, commit, short, date, dirty, owner, counts, files):
-    return {"format": STAMP_FORMAT, "initiative": config["initiative"], "title": config["title"],
-            "commit": commit, "short": short, "date": date, "dirty": dirty, "owner": owner,
-            "check": {"errors": counts[0], "warnings": counts[1]}, "tree_hash": tree_hash(files)}
+def build_stamp(config, commit, short, date, dirty, owner, counts, files, from_=""):
+    """`from_` says where the copy was made when that isn't the owner's own machine ("GitHub owner/repo")."""
+    stamp = {"format": STAMP_FORMAT, "initiative": config["initiative"], "title": config["title"],
+             "commit": commit, "short": short, "date": date, "dirty": dirty, "owner": owner,
+             "check": {"errors": counts[0], "warnings": counts[1]}, "tree_hash": tree_hash(files)}
+    if from_:
+        stamp["from"] = from_
+    return stamp
 
 
 def stamp_bytes(stamp):

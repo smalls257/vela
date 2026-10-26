@@ -1,5 +1,5 @@
 """`vela close finish --summary "..." [--replace]` and `vela close dashboard [--branch]` (overhaul Task 11): file the
-session in the one order close sections 7 and 9 name, and rebuild the dashboard with no session open.
+session in the one order close's "Check, then finish and send" and "No session open" name, and rebuild the dashboard with no session open.
 
 The Violation this module's shape prevents is a God Method rebuilt inside the CLI: finishing a close touches the gate,
 the allow-list staging, the handoff manifest and the explorer, and porting those mechanics here would give each of
@@ -15,7 +15,7 @@ isn't ready (run `vela close gate`), or no session is open; 2 the tool failed (g
 already filed is said); 3 needs the lead, nothing written: several sessions are open, or a handoff record exists and
 replacing it needs `--replace` and the app's team's own yes in the record.
 
-`close dashboard` is the no-session path of close section 9: it rebuilds `dashboard.html` and never commits to main.
+`close dashboard` is the no-session path of close's "No session open": it rebuilds `dashboard.html` and never commits to main.
 With no session open in an owner's copy and the page changed, it exits 3 offering a `dashboard/<date>` branch; nothing
 is committed or pushed (the rebuilt page is the lead's view on this machine, not a change to the plan, so it is not in
 `wrote`). `--branch` takes that offer: it creates `dashboard/<date>` from here and commits only `dashboard.html` on it
@@ -28,10 +28,10 @@ import io
 import json
 import pathlib
 
-from vela import closefinish, closegate, explorereport, handoffpreview, handoffwarn, planscope, privaterecord, say, schema, sessions
+from vela import closefinish, closegate, explorereport, handoffpreview, handoffwarn, planscope, privaterecord, say, schema, sessions, sizing
 from vela.edge import atomic, mergegit, sessiongit, stagegit, vaultgit
 
-# The explore report lines the lead hears after the dashboard line (close section 9): what the build went on without.
+# The explore report lines the lead hears after the dashboard line (close's "No session open"): what the build went on without.
 RELAYED_KINDS = ("warning", "no design", "gitignore")
 # The lead's answer to `close dashboard`'s branch offer (no answer yet: None, and the offer is made).
 BRANCH, PUT_BACK = "branch", "put-back"
@@ -193,6 +193,7 @@ def finish_session(root, today, summary, args, out):
         raise cli.ToolError(f"close finish: {exc}") from exc
     notes = privaterecord.with_summary(text, summary)
     closed = privaterecord.with_part(closed, privaterecord.part_of(text), privaterecord.fingerprint(notes))
+    closed = privaterecord.with_size(closed, size=sizing.of(vault).stub_value())  # the shape band and counts, no names
     handoffs = due_handoffs(root, vault, seen.before, text)
     plan = closefinish.plan(seen.reader, handoffs, args.replace)
     if plan.needs_lead:
@@ -244,12 +245,23 @@ class Finish:
         self.result.wrote += [private, self.record.path]
         self.say(f"vela close finish: {self.record.path}: status: closed; the summary is in {private}.",
                  None if self.reader else "I've closed the session record, with its summary.")
-        self.say_what_waits_for_a_grill()
+        self.say_what_was_settled()
+        self.say_what_waits_to_settle()
         return True
 
-    def say_what_waits_for_a_grill(self):
-        """The lead's yeses from this session that sit on items not yet decided, so they hear the next grill has them
-        (E81: a yes in a session that can't decide was recorded and then forgotten)."""
+    def say_what_was_settled(self):
+        """What the lead settled in this session, in words: a Black Box at close otherwise, since settling can happen in
+        any session and the lead would learn it only by opening a page."""
+        from vela.decisions import settled
+        ids = settled.settled_ids(self.notes)
+        self.result.data["settled"] = ids
+        if ids:
+            self.say("vela close finish: settled: " + ", ".join(ids),
+                     settled.sentence([self.vault.name_of(i) for i in ids]))
+
+    def say_what_waits_to_settle(self):
+        """The lead's yeses from this session that sit on items not yet decided, so they hear they are waiting (E81: a
+        yes the lead gave and didn't settle was recorded and then forgotten)."""
         from vela import decisions
         from vela.decisions import decide, ready, textedit
         from vela.edge import apply as disk
@@ -396,7 +408,7 @@ def put_back(root, result):
 def restore_committed(root, path):
     """(exit code, git's words): HEAD's copy of `path` back in the index and on disk; a page HEAD doesn't have is
     removed, since vela wrote all of it."""
-    code, _, _ = vaultgit.run_git(root, "cat-file", "-e", f"HEAD:{path}")
+    code, _, _ = vaultgit.run_git(root, "cat-file", "-e", vaultgit.at("HEAD", path))
     if code != 0:
         vaultgit.run_git(root, "rm", "-q", "--cached", "--ignore-unmatch", "--", path)
         (root / path).unlink(missing_ok=True)

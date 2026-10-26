@@ -2,7 +2,7 @@
 
 The Violation this exists to prevent is a Silent Fallback in the record. Writing `state: decided` with the Edit tool and
 never asking the lead looks exactly like a decision the lead gave: E303 catches only a decided page with no
-`**Decision:**` link. So the gate looks at what changed since the branch point and asks the record for the lead's own
+`**Decision:**` link to a session. So the gate looks at what changed since the branch point and asks the record for the lead's own
 words behind every change into or out of `decided`:
 
 - the session record's `## Changes` table has a row with the item's ID and the same To (and From, when it names one);
@@ -10,7 +10,10 @@ words behind every change into or out of `decided`:
   (CONVENTIONS' captures grammar: a person's origin means "words quoted verbatim"; `claude, from <name>` is Claude's
   summary of them);
 - and whose words are not a bare non-yes ("ok", "okay", "sure", "next", "fine", or nothing), which START already says
-  is not a yes.
+  is not a yes;
+- and, for a change into `decided`, the yes comes after a read-back: an earlier capture kept on the same item at
+  `decided`, the mark `vela decide` writes on every capture it files. Without it, the lead's offhand "that's decided"
+  would read on the page as a verified yes, now that E303 no longer reads a session's modes (a Silent Fallback).
 
 What this proves is limited, and said plainly (plan 4.3, a Sensor, not a Shield): the model writes every field these
 checks read, so the gate shows a missing or malformed yes; it cannot prove the lead said the words. That is why
@@ -34,6 +37,10 @@ from vela.said import confirmed, is_unverified
 
 CONSENT_CLEAR = ("The lead's own yes, quoted in the session record with a Changes row citing it, clears it; so does "
                  "their override with a reason.")
+READBACK_FIRST = "I never read {name} back to you before writing it as decided. Shall I read it back now?"
+READBACK_CLEAR = ("Reading the final wording back, capturing it, and capturing the lead's yes after it clears it "
+                  "(vela decide for a new decision; vela close reconfirm --readback for one the other machine made); "
+                  "so does the lead's override of the quoted-yes rule, with their reason.")
 BARE_NON_YES = ("", "ok", "okay", "sure", "next", "fine")
 CONSENT_STATE = "decided"
 
@@ -71,6 +78,11 @@ class Capture:
         return re.sub(r"[^\w\s]", "", self.quote).strip().lower() in BARE_NON_YES
 
 
+# Written after the source of a Changes row that `close reconfirm` filed: the lead said yes again to a decision made in
+# another part of the session, so this part did not settle it.
+RECONFIRMED = "(reconfirmed)"
+
+
 @dataclass(frozen=True)
 class ChangeRow:
     item: str
@@ -83,6 +95,10 @@ class ChangeRow:
     def capture_number(self):
         found = CAPTURE_LINK_RE.search(self.source)
         return found.group("n") if found else ""
+
+    @property
+    def reconfirmed(self):
+        return self.source.rstrip().endswith(RECONFIRMED)
 
 
 @dataclass(frozen=True)
@@ -211,8 +227,26 @@ def judge_change(change, rows, said, vault, record_name, part=1):
     if capture.is_bare_non_yes:
         return Problem(f"You said '{capture.quote or 'ok'}' on {change.name}. Was that a yes to {moving(change)}?",
                        f"{change.item}: ^c{capture.n} says only '{capture.quote}'", kind=CONSENT), None
+    if change.after == CONSENT_STATE and not read_back_before(capture, said, change.item, CONSENT_STATE):
+        return Problem(READBACK_FIRST.format(name=change.name),
+                       f"{change.item}: ^c{capture.n} is the first capture kept on it at {CONSENT_STATE}; no earlier "
+                       "capture is its read-back", clear=READBACK_CLEAR, kind=CONSENT), None
     return None, Consent(change.item, change.name, f"{change.before} to {change.after}", capture.quote,
                          privaterecord.citation(record_name, part, int(capture.n)))
+
+
+def read_back_before(capture, said, item, state):
+    """True when a capture of Claude's numbered before `capture` keeps `item` at `state` (markrules.parse_mark: the
+    read-back mark `vela decide` writes on every capture it filed). The lead's own remarks never count, however marked. A read-back an earlier mode marked at `assumption` does not count.
+    Imported inside the function: markrules imports closegate."""
+    from vela import markrules
+    for other in said.values():
+        if int(other.n) >= int(capture.n) or other.is_person:
+            continue
+        mark = markrules.parse_mark(other.mark)
+        if mark is not None and any(t.id == item and t.state == state for t in mark.targets):
+            return True
+    return False
 
 
 def change_row(change, rows):
@@ -240,7 +274,7 @@ def judge(changes, record_text, record_name, vault, part=1):
     for change in changes:
         named = StateChange(change.item, vault.name_of(change.item), change.before, change.after)
         problem, line = judge_change(named, rows, said, vault, record_name, part)
-        problems += [replace(problem, clear=CONSENT_CLEAR)] if problem else []
+        problems += [replace(problem, clear=problem.clear or CONSENT_CLEAR)] if problem else []
         consent += [line] if line else []
     return problems, consent
 
@@ -382,14 +416,14 @@ def error_problems(errors, vault):
     return out
 
 
-_NO_GRILL = re.compile(r"^(?P<unit>\S+) is decided, but no \*\*Decision:\*\* bullet links a Grill session\.$")
+_NO_SESSION = re.compile(r"^(?P<unit>\S+) is decided, but no \*\*Decision:\*\* bullet links the session that decided it\.$")
 
 
 def _lead_message(message, vault):
     """A check's message where its own words are the page grammar (a bullet's markup), said the lead's way."""
-    found = _NO_GRILL.match(message)
+    found = _NO_SESSION.match(message)
     if found:
-        return f"{vault.name_of(found['unit'])} is decided, but nothing says which grill decided it."
+        return f"{vault.name_of(found['unit'])} is decided, but nothing says which session decided it."
     return message
 
 
@@ -453,7 +487,7 @@ def removal_problems(before, after, rows, said):
 # ------------------------------------------------------------------ Task 12: what the other machine decided
 
 STILL_YES = "These were decided on the other machine: {names}. Still yes?"
-STILL_YES_CLEAR = ("The lead's yes in this part, recorded with vela close reconfirm --yes ^cNN and the IDs, clears it. "
+STILL_YES_CLEAR = ("The lead's yes in this part, recorded with vela close reconfirm --readback ^cQ --yes ^cNN and the IDs, clears it. "
                    "A no leaves the item as it is, and the lead may reopen it.")
 LEDGER_ROW, OVERRIDE_ROW = "ledger row", "override"  # the From cell of a removal's Changes row
 
@@ -627,11 +661,16 @@ def receipt_problems(vault, before, record_id, part, record_text, lead):
         if _speaker_is_lead(who, lead):
             if bullet.label == "Decision" and not words:
                 out.append(Problem(NO_WORDS.format(name=name), f"{where}: the receipt names {who} and holds no words",
-                                   "Quoting the lead's own words in the receipt clears it.", kind=RECEIPT))
+                                   "Quoting the lead's own words in the receipt clears it: vela close readback --reword "
+                                   f"{bullet.item or '<ID>'} --line decision --words \"<their words>\" --approved ^cNN, where "
+                                   "^cNN is a yes they gave in the session. With no such yes, ask for one now and capture it.",
+                                   kind=RECEIPT))
         elif words and not _may_quote(held, who, lead):
             out.append(Problem(UNQUOTED.format(name=name), f"{where}: {who}'s words, with no quote-yes from {who}",
-                               f"Asking {who}, in the session, whether they may be quoted clears it; so does taking "
-                               "their words out of the line.", kind=RECEIPT))
+                               f"Asking {who}, in the session, whether they may be quoted clears it: capture their answer "
+                               f"with them as origin and the tag quote-yes (a yes the lead relays doesn't count). So does "
+                               "taking their words out of the line at the read-back, by cutting or rewording it.",
+                               kind=RECEIPT))
     return out
 
 

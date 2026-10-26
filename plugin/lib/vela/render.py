@@ -6,7 +6,7 @@ holds links and numbers, dates and never ages, so two runs give equal bytes.
 import hashlib
 import re
 
-from vela import allocation, diagrams, parse, plainwords, progress, questions, say, schema, trace
+from vela import allocation, diagrams, ladder, parse, plainwords, progress, questions, say, schema, trace
 from vela.model import Finding, blocking_unknowns
 
 OPEN = "<!-- generated:{name} sha={sha}: " + parse.MARKER_TEXT + " -->"
@@ -126,15 +126,9 @@ def settled_contracts(vault, app):
     return len(settled), len(mine)
 
 
-def _stage_rank(app, order):
-    stage = app.meta.get("stage")
-    return order.get(stage, len(order)) if isinstance(stage, str) else len(order)
-
-
 def where_it_stands(vault, page):
-    order = {stage: i for i, stage in enumerate(schema.ENUMS["stage"])}
     laddered = [a for a in vault.apps if a.meta.get("change") in schema.LADDERED_CHANGES]
-    laddered.sort(key=lambda a: (_stage_rank(a, order), a.id))
+    laddered.sort(key=lambda a: (ladder.rank(ladder.stage(vault, a)), a.id))
     out = []
     if laddered:
         out += ["**Where each app has got to**", "",
@@ -142,7 +136,7 @@ def where_it_stands(vault, page):
                 "|---|---|---|---|---|"]
         for app in laddered:
             done, total = settled_contracts(vault, app)
-            out.append(row(link(app.name, title(app)), plainwords.stage_word(app.meta.get("stage", "")),
+            out.append(row(link(app.name, title(app)), plainwords.stage_word(ladder.stage(vault, app)),
                            str(len(blocking_unknowns(vault, app))), str(unexamined_cells(vault, app)), f"{done} of {total}"))
     else:
         out.append("**Where each app has got to:** no app is being built or changed yet")
@@ -261,11 +255,11 @@ def node_link(node):
     return link(node.page.name, cell(diagrams.safe_label(title(node.page), node.page.name)))
 
 
-def left_out_table(count, header, rows):
-    """The table under a diagram that lists what the budget kept out of it."""
+def left_out_table(count, header, rows, kept_note=""):
+    """The table under a diagram that lists what the budget kept out of it. `kept_note` says how the diagram chose."""
     if not rows:
         return []
-    return ["", f"**Not drawn, to keep the diagram readable (at most {schema.FLOWCHART_BUDGET} boxes):** {count}", "",
+    return ["", f"**Not drawn, to keep the diagram readable (at most {schema.FLOWCHART_BUDGET} boxes{kept_note}):** {count}", "",
             f"| Not drawn | {header} |", "|---|---|", *rows]
 
 
@@ -278,10 +272,10 @@ def skipped_table(skipped):
 
 
 def graph_block(graph, direction="LR", groups=(), reserved=0):
-    drawn, left_out = diagrams.fit(graph, schema.FLOWCHART_BUDGET, reserved)
+    drawn, left_out = diagrams.fit_with_others(graph, schema.FLOWCHART_BUDGET, reserved)
     rows = [row(node_link(n), cell(", ".join(diagrams.overflow_contracts(graph, n)) or "none")) for n in left_out]
     fence = mermaid_fence(diagrams.flowchart(drawn, direction, groups)) + ["", diagrams.key_line(drawn)] if graph.nodes else []
-    return fence + left_out_table(len(left_out), "Contracts", rows) + skipped_table(graph.skipped)
+    return fence + left_out_table(len(left_out), "Contracts", rows, ", keeping the most connected") + skipped_table(graph.skipped)
 
 
 def context_map(vault, page):

@@ -1,5 +1,5 @@
 """The `resolve` apply kind: an open unknown answered, written resolved (MODES "Unknowns", discover step 6, grill's
-answer path, close section 2). Pure.
+answer path, close's "Write the items and the prose"). Pure.
 
 The Violation this exists to prevent is a Silent Fallback in the register of what nobody knows: an answer heard in a
 session but never written back leaves the question open (and its owner chasing it), while one written back without its
@@ -19,7 +19,7 @@ What it refuses, and why:
   stays open, with what the plan says in its `**Notes:**`.
 - **Only an open unknown** is resolved; one already resolved keeps its Outcome.
 
-What it blocked is not changed here: a grill decides, and Discover writes the fact, each in its own mode.
+What it blocked is not changed here: a decision settles it (vela decide), and Discover writes the fact, each in its own mode.
 """
 import re
 

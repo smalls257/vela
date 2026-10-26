@@ -45,6 +45,15 @@
     ok(App.view === was && !!open, "details panel (flows): the first click only shows; Open is the second click", "details panel (flows): no Open button on the contract");
     esc(); await tick();
     ok(head() === title && !$("#panel-body .dp-trail"), "details panel (flows): Escape returns to the flow's summary", `details panel (flows): Escape left "${head()}"`);
+    // a second click on what is picked puts it down: a contract in the list, a step and a lane on the stage
+    click(node); await tick(); const once = head(); click(node); await tick();
+    const hitClick = (t) => { const c = $(".stage-canvas"), r = c.getBoundingClientRect(); c.dispatchEvent(new MouseEvent("click", { bubbles: true, clientX: r.left + t.x + t.w / 2, clientY: r.top + t.y + t.h / 2 })); };
+    const stepHit = () => Flows.player().hits.find((t) => t.si === si), laneHit = () => Flows.player().hits.find((t) => t.type === "lane");
+    const drawn = () => { const p = Flows.player(); if (p && p.canvas.isConnected) p.draw(performance.now()); };  // requestAnimationFrame does not run in a headless page
+    const twice = async (find) => { drawn(); const t = find(); if (!t) return ["", ""]; hitClick(t); await tick(); const a = head(); drawn(); hitClick(find()); await tick(); return [a, head()]; };
+    const [stepOnce, stepTwice] = await twice(stepHit), [laneOnce, laneTwice] = await twice(laneHit);
+    ok(once === conTitle && head() === title && stepOnce && stepOnce !== title && stepTwice === title && laneOnce && laneOnce !== title && laneTwice === title,
+      "details panel (flows): a second click on the picked contract, step or lane returns to the flow's summary", `details panel (flows): second clicks left contract "${once}", step "${stepOnce}" then "${stepTwice}", lane "${laneOnce}" then "${laneTwice}"`);
     // an open question lights the steps and lanes it holds up
     const held = D.flows.flatMap((f) => f.steps.flatMap((s) => s.unknowns.filter((u) => ASK[u.id] && isOpen(ASK[u.id])).map((u) => ({ flow: f.key, id: u.id }))))[0];
     if (held) {
@@ -87,6 +96,16 @@
     ok(head() === "Needs you" && !$("#panel-body .dp-trail"), "details panel (map): Escape returns to the summary", `details panel (map): Escape left "${head()}"`);
     await pickCon(); click($("#board")); await tick();
     ok(head() === "Needs you", "details panel (map): a click on empty space returns to the summary", `details panel (map): empty space left "${head()}"`);
+    const box = () => byName(titleOf(app));
+    click(box()); await tick(); const appOnce = head(); click(box()); await tick();
+    const conBox = () => $$("#board [data-opens]").find((el) => CONTRACT[el.dataset.opens]), conKey = conBox() ? conBox().dataset.opens : "";
+    let traced = false, wasTraced = false, conOnce = "";
+    if (conKey) { click(conBox()); await tick(); conOnce = head(); wasTraced = !!Motion.active; click(conBox()); await tick(); traced = !!Motion.active || !!$("#motion-legend"); }
+    const fl = D.flows[0] ? D.flows[0].key : "";  // a flow picked on the map is traced; picked again, the trace goes with it
+    let flowTraced = false, flowAfter = false;
+    if (fl) { DetailsPanel.toggle(fl, { reset: true }); await tick(); flowTraced = !!Motion.active && !!$("#motion-legend"); DetailsPanel.toggle(fl, { reset: true }); await tick(); flowAfter = !!Motion.active || !!$("#motion-legend"); }
+    ok(appOnce.endsWith(titleOf(app)) && head() === "Needs you" && (!conKey || (conOnce === CONTRACT[conKey].title && wasTraced && !traced)) && (!fl || (flowTraced && !flowAfter && head() === "Needs you")),
+      `details panel (map): a second click on the picked box returns to the summary${conKey ? ` and takes the trace of ${CONTRACT[conKey].title} away` : ""}${fl ? `; a flow picked again takes its trace away` : ""}`, `details panel (map): second clicks left app "${appOnce}", contract "${conOnce}", "${head()}", traced ${wasTraced} then ${traced}, flow traced ${flowTraced} then ${flowAfter}`);
     const q = Object.keys(UNKNOWN).find((id) => isOpen(UNKNOWN[id]) && PlanDetails.held(id).apps.size && Queue.items().some((x) => x.id === id && PlanDetails.NEEDS.includes(x.level)));
     if (q) {
       DetailsPanel.show(q, { reset: true }); await tick();

@@ -100,8 +100,7 @@ def decision_lines(epic):
         if behalf is None:
             continue
         who = f"Decided by {behalf.by} on behalf of {' '.join(behalf.owners)}"
-        lines.append(who + (f" (confirmed by {behalf.confirmed_by} on {behalf.confirmed_on})" if behalf.confirmed_by
-                            else " (not yet confirmed)"))
+        lines.append(who + (f" (confirmed by {behalf.confirmed_by} on {behalf.confirmed_on})" if behalf.confirmed_by else ""))
     return lines
 
 

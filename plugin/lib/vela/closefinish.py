@@ -1,13 +1,13 @@
 """What `vela close finish` does, in order, decided before anything is written (overhaul Task 11). Pure.
 
-The Violation this module's shape prevents is a Distributed Monolith of order: close section 7 (status closed, then
+The Violation this module's shape prevents is a Distributed Monolith of order: close's "Check, then finish and send" (status closed, then
 the close commit, then the handoff manifest, then the manifest's own commit) and section 9 (rebuild the dashboard, then
 commit it alone) were sentences a model followed in three skills, and nothing stopped it writing the manifest before
 the commit it is meant to name. Here the order is one tuple, `STEPS`, built by `plan`, and the command walks it (Shield).
 Each rule keeps its reason:
 
 - **The close commit comes first**, so the handoff manifest's `Commit` line names a commit that holds the session's
-  work, and not "with uncommitted changes" (close section 7).
+  work, and not "with uncommitted changes" (close's "Check, then finish and send").
 - **The manifest is committed alone**, `Handoff manifest for <APP-id>`, so the team's review of what they take on is
   one commit they can read by itself.
 - **An existing manifest is the one the app's team accepted.** Replacing it needs `--replace` *and* a yes from that

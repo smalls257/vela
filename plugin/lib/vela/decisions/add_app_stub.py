@@ -1,5 +1,4 @@
-"""`add app-stub`: a stub page for an app of the picked cut, `05-building-blocks/<slug>-building-blocks.md` (boundary
-section 2).
+"""`add app-stub`: a stub page for an app of the picked cut, `05-building-blocks/<slug>-building-blocks.md` (boundary's "Find the seams, then offer the cuts").
 
 - **Every later link has a page to point at.** A stub is written for each `new` or `changed` app of the cut before any
   sheet is read back, so a link to it never dangles and an app the session doesn't reach is never lost: `vela next`
@@ -8,7 +7,7 @@ section 2).
   body holds the title and nothing the tool wrote. `vela next` reads the field, so a model rewriting the page's prose
   can never lose the state (Forensic Coding and Silent Fallback: code that recovers state from a sentence).
 - **Frontmatter** as CONVENTIONS "Frontmatter" requires for `app-building-blocks`, at `state: inkling` and
-  `stage: boundaries` (a new or changed app needs a stage), with `domain` when the lead named one.
+  no stage (the stage is what the pages reach), with `domain` when the lead named one.
 - **No concern page is touched.** An app with no row on a concern page is unexamined; render and the checker read it
   from the rows. The boundary session adds the app's real row when the lead said yes to its state.
 - **A `## Changes` row** `| APP-<slug> | - | inkling | ... |` citing the capture of the picked cut.
@@ -56,7 +55,7 @@ def page_text(item, vault):
     lines = ["---", f"id: APP-{item['slug']}", "type: app-building-blocks", f"title: {textedit.yaml_value(item['name'])}"]
     if config.get("initiative"):
         lines.append(f"initiative: {config['initiative']}")
-    lines += ["state: inkling", f"change: {item['change']}", "stage: boundaries", "stub: boundary",
+    lines += ["state: inkling", f"change: {item['change']}", "stub: boundary",
               f'owner: "{item["owner"]}"', "authored: authored"]
     if item.get("domain"):
         lines.append(f"domain: {textedit.yaml_value(item['domain'])}")

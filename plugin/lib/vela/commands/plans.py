@@ -88,7 +88,8 @@ def no_plan():
 def which_plan(rows):
     choices = [{"folder": row["folder"], "title": row["title"], "said": said_name(row)} for row in rows]
     line = say.Line("vela plans: several plans here and none named: " + "; ".join(
-        f"{row['folder']} ({row['title']})" for row in rows) + ". Run again with --vault <folder>.",
+        f"{row['folder']} ({row['title']})" for row in rows) + ". Ask the lead which one (never guess or take the first), "
+        "then run again with --vault <folder>.",
                     plain=f"There's more than one plan here: {names(rows)}. Which one are we working on?")
     return say.Result(NAME, exit=say.NEEDS_LEAD, lines=[line], needs_lead=[{
         "ask": "which plan", "question": "Which plan are we working on?", "choices": choices,

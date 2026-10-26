@@ -8,7 +8,7 @@ carries its questions with it. The same vault always gives the same copies in th
 import re
 from dataclasses import dataclass
 
-from vela import catalog, ledger, privaterecord, schema
+from vela import catalog, ladder, ledger, privaterecord, schema
 from vela.model import Finding, meta_line
 from vela.parse import CODE_SPAN, WIKILINK, links_in, split_frontmatter
 
@@ -79,7 +79,7 @@ def subjects(vault):
     for app in vault.apps:
         meta = app.meta
         add(Subject(app.id, "app", title(app), app, meta_line(app, "change"),
-                    _facts(change=meta.get("change"), state=meta.get("state"), stage=meta.get("stage"))))
+                    _facts(change=meta.get("change"), state=meta.get("state"))))
     for contract in vault.contracts:
         add(Subject(contract.id, "contract", contract.name, contract.page, contract.line,
                     _facts(change=contract.fact("Change"), state=contract.fact("State"),
@@ -102,19 +102,36 @@ def subject(vault, subject_id):
     return next((s for s in subjects(vault) if s.id == subject_id), None)
 
 
+# A follow-up question (catalog `follows`) is owed once its parent's copy on the same subject says yes. The ledger has
+# no "yes" state: a no is `not-applicable`, which keeps the follow-up off the ledger.
+FOLLOW_ON_STATES = ("answered", "assumed")
+
+
 def owed(vault):
     """Every owed copy, sorted by copy ID: each catalog entry applied once per subject of its
-    scope whose facts its trigger matches."""
+    scope whose facts its trigger matches. An entry that `follows` another is owed on a subject only when the
+    other's copy there is answered or assumed (two passes: the plain copies, then the ones waiting on them)."""
     if "owed" in vault.cache:
         return vault.cache["owed"]
     by_kind = {}
     for found in subjects(vault):
         by_kind.setdefault(found.kind, []).append(found)
-    copies = [Copy(f"{entry.id}@{found.id}", entry, found)
-              for entry in vault.catalog.entries
-              for found in by_kind.get(entry.scope, [])
-              if entry.trigger.matches(found.fact_map())]
-    vault.cache["owed"] = tuple(sorted(copies, key=lambda c: c.id))
+
+    def copies_of(entries):
+        return [Copy(f"{entry.id}@{found.id}", entry, found)
+                for entry in entries for found in by_kind.get(entry.scope, [])
+                if entry.trigger.matches(found.fact_map())]
+
+    plain = copies_of(e for e in vault.catalog.entries if not e.follows)
+    held = {c.id: c for c in plain}
+    readable = [r for r in rows(vault) if r.kind in ("copy", "wildcard") and r.state in ledger.STATES]
+    waiting = []
+    for copy in copies_of(e for e in vault.catalog.entries if e.follows):
+        parent = held.get(f"{copy.entry.follows}@{copy.subject.id}")
+        row = _best_row(vault, readable, parent)[0] if parent is not None else None
+        if row is not None and row.state in FOLLOW_ON_STATES:
+            waiting.append(copy)
+    vault.cache["owed"] = tuple(sorted(plain + waiting, key=lambda c: c.id))
     return vault.cache["owed"]
 
 
@@ -308,6 +325,16 @@ def _covers(vault, row, copy):
     return 0
 
 
+def _best_row(vault, readable, copy):
+    """(the row that covers `copy` best, how well): its own row, else the longest wildcard, else an initiative row."""
+    best, rank = None, 0
+    for row in readable:
+        score = _covers(vault, row, copy)
+        if score and (score > rank or (score == rank == 2 and len(row.subject) > len(best.subject))):
+            best, rank = row, score
+    return best, rank
+
+
 def _assignments(vault):
     """(copy, row, rank) for each owed copy: its own row, else the wildcard with the longest prefix, else an
     initiative row that `covers:` its scope. Exceptions take their own row. A broken row is still the one
@@ -315,14 +342,7 @@ def _assignments(vault):
     if "assignments" in vault.cache:
         return vault.cache["assignments"]
     readable = [r for r in rows(vault) if r.kind in ("copy", "wildcard") and r.state in ledger.STATES]
-    out = []
-    for copy in owed(vault):
-        best, rank = None, 0
-        for row in readable:
-            score = _covers(vault, row, copy)
-            if score and (score > rank or (score == rank == 2 and len(row.subject) > len(best.subject))):
-                best, rank = row, score
-        out.append((copy, best, rank))
+    out = [(copy, *_best_row(vault, readable, copy)) for copy in owed(vault)]
     vault.cache["assignments"] = tuple(out)
     return vault.cache["assignments"]
 
@@ -590,9 +610,22 @@ def _copy_problem(vault, row):
     if found is None:
         return "W804", f"{row.copy} is orphaned: {row.subject} is no longer in the vault. The row stays as a record."
     if not any(c.id == row.copy for c in owed(vault)):
+        if entry.follows and entry.trigger.matches(found.fact_map()):
+            return _held_by_parent(vault, row, entry)
         return "W804", (f"{row.copy} is no longer owed: {row.subject} no longer matches the trigger "
                         f"'{entry.trigger.text}'. The row stays as a record.")
     return None
+
+
+def _held_by_parent(vault, row, entry):
+    """The trigger matches but the entry `follows` another whose copy is not yet a yes: the row waits, whether the
+    parent is still pending or was answered no. Nothing to remove, so no finding; one only when the parent is itself
+    not owed on the subject, which the lead should hear."""
+    parent = f"{entry.follows}@{row.subject}"
+    if any(c.id == parent for c in owed(vault)):
+        return None
+    return "W804", (f"{row.copy} follows {entry.follows}, which is not owed on {row.subject}, so this copy is not "
+                    "owed either. The row stays as a record.")
 
 
 def _row_findings(vault):
@@ -750,6 +783,40 @@ def consequential(group):
     return group["severity"] == "high" or bool(group["blocks"])
 
 
+# Q-OPS-02 asks what happens to each CONSUMER when the provider is down or slow. The provider's case table answers a
+# different question (how the provider answers a failed call), so only a consumer's own runtime page can answer this one.
+CONSUMER_FAILURE_ENTRY = "Q-OPS-02"
+
+
+def failure_answers(vault, copy):
+    """For a Q-OPS-02 copy: one "<runtime page>#<heading>" for each consumer of the contract whose runtime page has a
+    failure section (a `##` heading matching ladder.FAILURE) that links or names the contract. () unless every consumer
+    has one, and for a contract nobody consumes. Read back to the lead, never filed as the answer."""
+    contract = vault.item(copy.subject.id)
+    consumers = vault.consumers(contract) if contract is not None else []
+    anchors = []
+    for app in consumers:
+        runtime = ladder.runtime_page(vault, app)
+        found = _failure_section(vault, runtime, contract) if runtime is not None else ""
+        if not found:
+            return ()
+        anchors.append(found)
+    return tuple(dict.fromkeys(anchors))
+
+
+def _failure_section(vault, runtime, contract):
+    for heading in runtime.headings:
+        if heading.level != 2 or not ladder.FAILURE.search(heading.text):
+            continue
+        first, last = _section_span(runtime, heading.text)
+        body = "\n".join(runtime.text.split("\n")[first:last])
+        links_it = any(first < link.line <= last and vault.resolve(link, runtime) is contract.page
+                       and link.anchor.startswith(contract.id) for link in runtime.links)
+        if links_it or re.search(rf"\b{re.escape(contract.id)}\b", body):
+            return f"{runtime.name}#{heading.text}"
+    return ""
+
+
 def digest(vault, area=None, subject_id=None):
     """The pending copies (undisposed, or asked and still waiting) grouped by entry, so one answer can serve
     many, and the pending reviewer questions, ranked: high severity that blocks something first, then high,
@@ -767,9 +834,16 @@ def digest(vault, area=None, subject_id=None):
         why = {}
         for d in found:
             why[d.label] = why.get(d.label, 0) + 1
-        out.append({"band": _band(entry.severity, blocked), "entry": entry_id, "area": entry.area,
-                    "severity": entry.severity, "question": entry.question, "copies": [d.copy.id for d in found],
-                    "why": why, "blocks": blocked})
+        group = {"band": _band(entry.severity, blocked), "entry": entry_id, "area": entry.area,
+                 "severity": entry.severity, "question": entry.question, "copies": [d.copy.id for d in found],
+                 "why": why, "blocks": blocked}
+        if entry_id == CONSUMER_FAILURE_ENTRY:
+            answers = {d.copy.id: failure_answers(vault, d.copy) for d in found}
+            read = [copy for copy, anchors in answers.items() if anchors]
+            if read:  # the copies a consumer's runtime page already answers, read back to the lead: never filed
+                group["on_page"] = list(dict.fromkeys(a for copy in read for a in answers[copy]))
+                group["on_page_copies"] = read
+        out.append(group)
     reviewers = [r for r in reviewer_rows(vault) if area is None or r.area == area] if subject_id is None else []
     for row in reviewers:
         if not reviewer_pending(vault, row):
@@ -826,7 +900,6 @@ def stats(vault, area=None):
 
 # ------------------------------------------------------------------ the gates
 
-DISPOSE = "Answer it, rule it out with a reason, or log it as an open question with an owner, or as an assumption."
 # A ledger state in a sentence. The state names are the ledger's own column values; a reader sees what they mean.
 STANDING_WORDS = {"open": "is still open", "asked": "has been asked but not answered", "assumed": "is answered by an assumption",
                   "answered": "is answered", "not-applicable": "is ruled out", "unknown": "is logged as an open question"}
@@ -871,14 +944,14 @@ def epics_gate(vault):
         message = f"A high-priority question {_standing(d)}, so the epics can't be called finished: {d.copy.entry.question} ({d.copy.id})"
         yield Finding(path, d.row.line if d.row else heading, "E805",
                       f"{message} {gap}".strip() if d.row is None else message,
-                      f"{adding}{DISPOSE} {schema.E805_OVERRIDE_HINT}")
+                      f"{adding}{schema.E805_OVERRIDE_HINT}")
     for row in reviewer_rows(vault):
         if row.get("severity") == "high" and reviewer_pending(vault, row):
             said = (STANDING_WORDS.get(row.state, f"is {row.state}") if row_valid(vault, row)
                     else f"has a ledger row that can't be read ({row.state})")
             yield Finding(path, row.line, "E805", f"A high-priority reviewer question {said}, so the epics can't be called finished: "
                           f"{row.get('question')} ({row.copy})",
-                          f"{DISPOSE} {schema.E805_OVERRIDE_HINT}")
+                          schema.E805_OVERRIDE_HINT)
 
 
 def load_bearing_assumptions(vault):
@@ -921,9 +994,9 @@ def can_be_blocked(vault, unit_id):
     return any(uid == unit_id for kind in kinds for uid, _page, _item in _units(vault)[kind])
 
 
-def grill_gate(vault, items):
+def decide_gate(vault, items):
     """W807 for each copy still open, asked or with no row that blocks an item on the Grill's agenda.
-    A warning, never an error: the lead may decide anyway. It prints only under --gate grill --item, so the
+    A warning, never an error: the lead may decide anyway. It prints only under --gate decide --item, so the
     Grill's capture "decided with <copy IDs> open (W807)" is what records that it was open."""
     for unit_id in items:
         where = unit_location(vault, unit_id)
@@ -1023,5 +1096,53 @@ def untyped_mentions(vault):
                 yield Finding(page.path, line, "W809",
                               f"'{hits[0]}' may be an untyped subject: this page holds or links no {kind}, and {copy} "
                               f"has no answer yet ({entry.question})",
-                              f"Type it as ### {SUBJECT_PREFIX[entry.creates]}nn on 03-context-and-scope.md and link it "
-                              f"from here, or answer {copy} in the question ledger.")
+                              f"Ask the lead: type it with vela add subject from the facts they give, and link it from "
+                              f"here, or answer {copy} in the question ledger.")
+
+
+# ------------------------------------------------------------------ the six existence questions, read back together
+
+@dataclass(frozen=True)
+class ExistenceLine:
+    copy: str        # "Q-FIN-01@INI-001"
+    question: str
+    recommend: str   # "no" or ""
+    why: str         # the evidence for the no, in plain words; "" when there is no recommendation
+
+
+NO_STORED_VALUE = "nothing on the pages mentions it"
+NO_PARTY = "the pages type no party and nothing hands data or work to an outside provider"
+RETIRES = ("retire", "replace")  # a capability change that moves ownership, operation or payment (PTN-01)
+
+
+def recommends_no(vault, entry):
+    """The why for a recommended "no" to an existence question, or "". A "no" is recommended only on the plan's
+    evidence, so the lead's answer is never the model's guess filed under their name: the entry creates a subject kind
+    and none is typed, and no untyped mention of it fires (W809). An entry that creates a party also needs no contract
+    with a `**Provider:**` (data or work handed to an outside provider is what those questions ask about), and
+    PTN-01 needs no app or capability retired or replaced."""
+    if not entry.creates:
+        return ""
+    typed = vault.stored_values if entry.creates == "stored-value" else vault.parties
+    if typed or any(f"{entry.id}@" in f.message for f in untyped_mentions(vault)):
+        return ""
+    if entry.creates == "stored-value":
+        return NO_STORED_VALUE
+    if any(c.fact("Provider") for c in vault.contracts):
+        return ""
+    if entry.id == "Q-PTN-01" and (any(a.meta.get("change") == "retired" for a in vault.apps) or any(
+            c.meta.get("change") in RETIRES for c in vault.of_type("capability"))):
+        return ""
+    return NO_PARTY
+
+
+def existence_lines(vault):
+    """The pending copies of the existence entries, in area order then ID: one line each, to read back together."""
+    order = {code: n for n, code in enumerate(vault.catalog.area_codes)}
+    pending = [d.copy for d in dispositions(vault) if d.pending and d.copy.entry.group == "existence"]
+    pending.sort(key=lambda c: (order.get(c.entry.area, len(order)), c.entry.id, c.id))
+    lines = []
+    for copy in pending:
+        why = recommends_no(vault, copy.entry)
+        lines.append(ExistenceLine(copy.id, copy.entry.question, "no" if why else "", why))
+    return tuple(lines)

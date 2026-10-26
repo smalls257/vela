@@ -112,6 +112,16 @@ def not_bare_non_yes(capture):
                     f"Ask once more for a plain yes to the read-back; ^c{capture.n} holds only {capture.quote!r}.")
 
 
+def from_claude(readback):
+    """A read-back is Claude's reading of the wording to the lead. The lead's own remark filed as the read-back would
+    make "That's decided" its own proof that something was read back."""
+    if not readback.is_person:
+        return None
+    return _refusal("consent-readback-not-claudes", "I need to read it back to you myself before I can take your yes.",
+                    f"^c{readback.n} has origin {readback.origin!r}; the read-back is Claude's capture (origin claude) "
+                    "of the wording read to the lead, numbered before their yes.")
+
+
 def after_readback(yes, readback):
     if int(yes.n) > int(readback.n):
         return None
@@ -172,6 +182,15 @@ def may_quote(capture, record, lead):
     return from_the_lead(capture, handle, names) is None or quote_yes(record, capture.origin) is not None
 
 
+WHY_OVERRIDE = ("leave the reason out (the item is filed with no why), or an override citing the lead's words for "
+                "going ahead")
+
+
+def _is_the_lead(origin, lead):
+    handle, names = lead
+    return same_handle(origin, handle) or origin.strip().casefold() in {n.casefold() for n in names}
+
+
 def why_in_their_words(ref, record, lead):
     missing = exists(ref, record)
     if missing is not None:
@@ -179,12 +198,16 @@ def why_in_their_words(ref, record, lead):
     capture = record.capture(ref)
     if capture.is_person and may_quote(capture, record, lead):
         return None
+    if lead is not None and capture.is_person and capture.unverified and _is_the_lead(confirmed(capture.origin), lead):
+        return _refusal("consent-why-not-theirs", "Were those your words? I couldn't check who typed them.",
+                        f"^c{capture.n} is the lead's, but marked unverified (nothing logged what was typed). Ask "
+                        f"whether those were their words; on a yes run vela record confirm {capture.n}, then decide "
+                        "again.", override=WHY_OVERRIDE)
     return _refusal("consent-why-not-theirs", "Why this one, in your words?",
                     f"Ask the lead why, in their words, and capture that (^c{capture.n} is not the lead's words, and "
                     f"{capture.origin!r} gave no quote-yes). Someone else's reason goes on a page only after they "
                     "say, in this session, that they may be quoted.",
-                    override="leave the reason out (the item is filed with no why), or an "
-                             "override citing the lead's words for going ahead")
+                    override=WHY_OVERRIDE)
 
 
 def after_send_notice(yes, notice_count):
@@ -216,4 +239,4 @@ def a_yes(ref, record, readback=None):
         return found
     if record.capture(readback) is None:
         return exists(readback, record)
-    return after_readback(yes, record.capture(readback))
+    return after_readback(yes, record.capture(readback)) or from_claude(record.capture(readback))

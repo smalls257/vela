@@ -1,5 +1,5 @@
 """`vela grill owner <ID> [--owner @handle] [--join @handle ...] | --clear`: who runs the grill on an item, and who is
-asked to join it. The dashboard's Grills waiting view reads this.
+asked to join it. The dashboard's Waiting for a decision view reads this.
 
 Why a command and not a hand edit: the answer lives in `.vela.yaml`'s `grills:` block, keyed by the item's ID (an
 item of any shape: a heading, a table row, a whole page). A model or a person typing that block by hand gets the

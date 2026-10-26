@@ -12,7 +12,7 @@ for, in the order a person should meet them, and the page filters without reorde
 - question: an open question the person was asked, with its ask-by date (late, soon, later or undated)
 - proposal: a decision a reader made, or one made on someone's behalf, that waits on the owner's yes
 - handed: an app recently handed to the person
-- grill: a grill the person runs that is ready to decide, or that the lead already said yes to
+- grill: an item the person could settle or grill that is ready to decide, or that the lead already said yes to
 
 A question the person owns but someone else was asked is not a line (it does not need them), but its date is the
 person's next date, so it is listed under `dates` for the empty state to name.

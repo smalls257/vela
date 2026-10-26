@@ -1,4 +1,4 @@
-"""`vela decide SLC-nnn`: a slice planned, not decided (grill section 2; CONVENTIONS "Slices"). Pure.
+"""`vela decide SLC-nnn`: a slice planned, not decided (grill's "The gate and the agenda"; CONVENTIONS "Slices"). Pure.
 
 The Violation this kind exists to prevent is a Paper Tiger slice: planned while its flows have never been shown to run,
 so teams build to a journey that breaks at the first join. So a slice goes to `planned` only when its recorded flow

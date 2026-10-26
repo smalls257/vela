@@ -44,6 +44,19 @@ it and the local default branch goes back to where the session began.
 candidate captures, in `--json`), the overdue open questions, `vela next`, and how much is still open. A `gh` failure
 is a printed line and exit 2, and `review_comments` is null, never an empty list that reads as "no comments"
 (Silent Fallback). Everything else in the brief still runs.
+
+Where START.md's old prose went (the October 22 trim; START keeps one line, "on exit 3 ask what it asks, one at a time,
+and run it again"): the choice a lead must make is printed here, every time, so it survives compaction.
+- Which plan: a repository root that holds several plans exits 3 with `plans.which_plan` (the question, each plan by
+  title, `--vault <folder>`). Never guess, never pick the first.
+- No plan yet: `no_plan_yet` names `vela new`, says never to set a plan up by hand (no copied files, no `git init`) and
+  to run `session start` again. A plan can go in a subfolder of a repository that holds others (`vela new --vault`).
+  Documents that were in the folder land in the plan's inbox, where Discover reads them. `vela new` asks for the GitHub
+  handle itself (`--handle`) and for the title (`--title`).
+- Open sessions: resume (`--resume <id>`), close (`/vela:close`) or start another (`--new`); never close one the
+  user hasn't asked to close.
+- The initiative's name: asked once; `--title` answers it and `--unnamed` records that the lead declined (the
+  dashboard then reads "New initiative").
 """
 import argparse
 import dataclasses
@@ -286,8 +299,11 @@ def no_plan_yet():
     the lead), so the start stops first and names the way forward: `vela new` starts one."""
     question = "There's no plan in this folder yet. Want me to start one? I'll need the initiative's name."
     return say.Result(START, exit=say.NEEDS_LEAD, needs_lead=[{
-        "ask": "start a plan", "question": question, "answer_with": 'vela new --title "<initiative name>"'}], lines=[
-        say.Line("vela: no plan here yet; `vela new` starts one.", plain=question)])
+        "ask": "start a plan", "question": question, "answer_with": 'vela new --title "<initiative name>"',
+        "then": "run session start again"}], lines=[
+        say.Line("vela: no plan here yet; `vela new` starts one, never a plan set up by hand (no copied files, no git "
+                 "init). In a subfolder of a repository that holds other plans: `vela new --vault <folder>`. Then run "
+                 "session start again.", plain=question)])
 
 
 def start(root, args, today, plain):
@@ -573,12 +589,13 @@ def start_in_copy(root, args, today, modes, plain, said):
     record_id = sessions.new_id(today, args.topic, lambda i: (root / "sessions" / f"{i}.md").exists())
     title = sessions.title_for(modes, args.topic)
     rel = privaterecord.private_path(record_id)
-    wrote = [sessiongit.write_text(root, privaterecord.stub_path(record_id),
-                                   privaterecord.new_stub(record_id, title, today, modes, title_override=override)),
+    stub, size_lines = with_size_said(root, privaterecord.new_stub(record_id, title, today, modes, title_override=override))
+    wrote = [sessiongit.write_text(root, privaterecord.stub_path(record_id), stub),
              sessiongit.write_text(root, rel, privaterecord.new_private(record_id, title, today, 1))]
     wrote.append(write_state(root, record_id, None, modes, today))
     lines.append(say.Line(f"started: {record_id} in this folder, modes: {', '.join(modes)}",
                           plain=f"I've opened the session: {plain(sessions.title_for(modes, args.topic))}."))
+    lines += size_lines
     return say.Result(START, lines=lines, wrote=wrote, data={"id": record_id, "path": rel, "branch": None,
                                                              "modes": modes, "reader": True})
 
@@ -745,7 +762,8 @@ def start_owner(root, args, today, modes, plain, said, host):
 
 def review_needs_branch(current):
     """Said once, when a session starts on the default branch: close can't open a pull request from it."""
-    return say.Line(f"on {current}: a review needs a branch; `session start --new-branch` makes one",
+    return say.Line(f"on {current}: a review needs its own branch; with the lead's yes, run vela session branch "
+                    "(the session is open now)",
                     plain=f"We're on {current}, and a review needs its own branch. If you want one for this session, "
                           "say so and I'll make it; otherwise the work stays here.")
 
@@ -822,8 +840,9 @@ def open_record(root, args, today, modes, challenged, on_branch, lines, carried,
     title = sessions.title_for(modes, args.topic, challenged)
     began = sessiongit.head_commit(root)
     challenges = [args.topic] if "challenge" in modes else []
-    wrote = [sessiongit.write_text(root, rel, privaterecord.new_stub(record_id, title, today, modes, branch, began,
-                                                                     challenges, title_override)),
+    stub, size_lines = with_size_said(root, privaterecord.new_stub(record_id, title, today, modes, branch, began,
+                                                                   challenges, title_override))
+    wrote = [sessiongit.write_text(root, rel, stub),
              sessiongit.write_text(root, privaterecord.private_path(record_id),
                                    privaterecord.new_private(record_id, title, today, 1))]
     committed = [rel] + keep_notes_out_of_git(root, wrote)
@@ -842,9 +861,22 @@ def open_record(root, args, today, modes, challenged, on_branch, lines, carried,
     elif args.unnamed:
         lines.append(say.Line("unnamed: the lead declined to name the initiative",
                               plain='The dashboard will read "New initiative" until you give it a name.'))
+    lines += size_lines
     wrote.append(write_state(root, record_id, branch, modes, today))
     return say.Result(START, lines=lines, wrote=wrote, data={"id": record_id, "path": rel, "branch": branch,
                                                              "modes": modes, "reader": False})
+
+
+def with_size_said(root, stub):
+    """(the new stub carrying the plan's size, the size line to say). The size is read before the stub exists and
+    recorded in it, so it travels in the opening commit and is said once."""
+    from vela import cli
+    from vela.commands import size
+    due = size.due(cli.load_vault(root))
+    if due is None:
+        return stub, []
+    line, value, kept = due
+    return privaterecord.with_size(stub, size=value, kept=kept), [line]
 
 
 def keep_notes_out_of_git(root, wrote):
@@ -1054,8 +1086,8 @@ def overdue_questions(result, vault, today):
 
 
 def ready_to_decide(result, root, vault, today):
-    """Items the lead said yes to in a session that can't decide (`decisions/ready.py`), not decided since: a grill
-    opens with them."""
+    """Items the lead said yes to and didn't settle (`decisions/ready.py`), not decided since: the next session opens
+    with them."""
     from vela import decisions
     from vela.decisions import decide, ready, textedit
     from vela.edge import apply as disk
@@ -1070,8 +1102,8 @@ def ready_to_decide(result, root, vault, today):
         one = len(found) == 1
         result.lines.append(say.Line(
             "ready to decide: " + ", ".join(f"{e['id']} (yes in {e['session']})" for e in found),
-            plain=f"The lead already said yes to {join_names(names)}; a short grill can make "
-                  f"{'it' if one else 'them'} decided, and a grill opens with {'it' if one else 'them'}."))
+            plain=f"The lead already said yes to {join_names(names)}; settle {'it' if one else 'them'} when they're "
+                  f"sure, or grill {'it' if one else 'them'} to test first."))
 
 
 def join_names(names):

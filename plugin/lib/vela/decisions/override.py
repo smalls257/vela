@@ -1,5 +1,5 @@
 """The `override` apply kind: the lead setting a rule aside, written on the item in their own words (plan 4.4;
-CONVENTIONS "Overrides"; close section 3, grill section 2, epics' E805 route). Pure.
+CONVENTIONS "Overrides"; close's "Find the session and mark the captures", grill's "The gate and the agenda", epics' E805 route). Pure.
 
     - **Override:** <rule>[, <rule>] by @handle on YYYY-MM-DD[ until YYYY-MM-DD]: <the lead's words>
 
@@ -13,7 +13,7 @@ is invisible or endless:
   back unchanged.
 - **`by` is the capture's origin handle** and **`on` is today**: who chose, and when, are facts the record already
   holds, so nobody is asked for them.
-- **A standing rule needs `until`** (`override.is_standing`: GATE-4, grill, E303, E304, E316, E317, E318, E805, the case
+- **A standing rule needs `until`** (`override.is_standing`: GATE-4, E303, E304, E316, E318, E805, the case
   table, a flow-check finding): it guards a condition that stays true until someone acts, so without an end it would
   cover the rule long after the lead's reason stopped holding. A missing date is refused with the date to offer
   (`override.suggest_until`: the next release target the item feeds, else 30 days on), which the lead agrees to

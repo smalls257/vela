@@ -1,6 +1,6 @@
-"""`vela decide CAP-nnn.FRn`: a functional requirement decided, on its capability page (grill section 4). Pure.
+"""`vela decide CAP-nnn.FRn`: a functional requirement decided, on its capability page (grill's "File each decision as its branch closes"). Pure.
 
-A requirements session writes a requirement at `assumption` only; only a Grill makes it `decided`, through the same
+A requirements session writes a requirement at `assumption` only; a lead settles it to `decided`, through the same
 gate as any item (an open unknown that lists it in `**Blocks:**` fails GATE-4 for it). The Violation this kind's shape
 prevents is a Leaky Narrative between the kinds: a requirement has nothing of its own beyond where its state lives, so
 it adds no flag, and a flag another kind takes (a provider capture, criterion groups) is refused by the dispatcher

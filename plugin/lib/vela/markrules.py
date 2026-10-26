@@ -355,7 +355,7 @@ LEFTOVER_ORDER = tuple(r.name for r in RULES if r.leftover)
 MODEL_HINTS = {
     "mark": "keep, park or drop, from the lead's answer",
     "lead_answer": "the capture holding the lead's answer (\"^c31\"), never their words",
-    "page": "the page the inkling belongs on",
+    "page": "the ID of the item or page the inkling belongs on, such as RUN-heron",
     "options_considered": "the options the session weighed, each rejected one with its reason",
     "owner": "the lead's handle: run vela whoami",
     "state": "the ledger row's state from the lead's words; ask them only if the words leave it unclear",
@@ -479,6 +479,12 @@ def _untaken_review_rows(found, ctx):
     return rows
 
 
+def _unfilled_keep(item):
+    """A default keep that names no item, page or new unknown yet: the model's to fill, not a question for the lead."""
+    return (item["mark"] == "keep" and item.get("to") != "ledger"
+            and not (item.get("id") or item.get("page") or item.get("name")))
+
+
 def plan(record_text, ctx):
     """Every default applied to the record's captures. `ctx.reviews` is read from the record when not given."""
     if not ctx.reviews:
@@ -493,7 +499,7 @@ def plan(record_text, ctx):
         result.items.append(item)
         if rule.leftover:
             result.leftovers.append(leftover_entry(note, rule, item, ctx))
-        elif item["mark"] is None or (item.get("to") == "ledger" and item.get("state") is None):
+        elif item["mark"] is None or _unfilled_keep(item) or (item.get("to") == "ledger" and item.get("state") is None):
             result.for_model.append({"capture": note.ref, "rule": item["rule"], "words": note.words})
         if item.get("to") == "ledger":
             result.ledger += _ledger_rows_from(note, item, ctx)

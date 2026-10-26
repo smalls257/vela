@@ -166,7 +166,7 @@ const Nav = (() => {
   }
   const whereLabel = (w) => {
     if (!w) return "the front door";
-    if (w.section === "grills") return "Grills waiting";
+    if (w.section === "grills") return "Waiting for a decision";
     if (w.section.startsWith("role:")) return (Roles.ROLES.find(([id]) => id === w.section.slice(5)) || [0, "the front door"])[1];
     if (w.section.startsWith("onboard:")) return "Get up to speed";
     const s = SECTIONS[w.section];
@@ -245,13 +245,14 @@ const Nav = (() => {
     if (App.view === "slices" && typeof Slices !== "undefined") p.push(...Slices.hashParts());
     if (App.view === "grills") p.push(...Grills.hashParts());
     if (App.view === "flows" && typeof Branches !== "undefined" && Flows.st.key) { const b = Branches.hashPart(Flows.st.key); if (b) p.push(b.slice(1)); }
+    if (App.view === "flows" && typeof FlowView !== "undefined" && Flows.st.key) { const b = FlowView.hashPart(Flows.st.key); if (b) p.push(b.slice(1)); }
     setHash("#" + p.join("&"), !!(opts && opts.replace));
   }
   function boot() {
     if (typeof Slices !== "undefined") Slices.readHash();  // a link to the slices brings its filters; one without clears them
     const hs = HASH.get("s"), legacy = VIEWS.find((v) => (HASH.has(v.id) || (v.alias && HASH.has(v.alias))) && !["role", "doc"].includes(v.id));
     if (HASH.get("lens")) MapView.st.lens = HASH.get("lens");
-    if (HASH.get("group")) MapView.st.group = HASH.get("group");
+    if (MapView.GROUP_IDS.includes(HASH.get("group"))) MapView.st.group = HASH.get("group");  // only a grouping the map has: a stray value once broke its Group menu
     if (HASH.has("onboard")) { onboard(HASH.get("onboard"), HASH.get("m")); return true; }
     if (HASH.has("role")) { role(HASH.get("role")); return true; }
     if (HASH.has("overview")) { overview(); return true; }  // #overview: the front page of whoever is viewing, without naming a role
@@ -366,7 +367,7 @@ const Nav = (() => {
     side.innerHTML = "";
     side.append(viewingAs(), h("div", { class: "side-group" }, h("div", { class: "side-h" }, "Start here"),
       Grills.exists() ? h("button", { class: "side-grills-door" + (App.section === "grills" ? " on" : ""), "aria-current": App.section === "grills" ? "page" : null, title: Grills.badgeTip(), onclick: () => Grills.open() },
-        h("span", { class: "side-label" }, "Grills waiting"), Grills.count() ? h("span", { class: "side-n lit caution", "data-grills-count": Grills.count() }, Grills.count()) : null) : null,
+        h("span", { class: "side-label" }, "Waiting for a decision"), Grills.count() ? h("span", { class: "side-n lit caution", "data-grills-count": Grills.count() }, Grills.count()) : null) : null,
       typeof Ask !== "undefined" && Ask.served() ? h("button", { class: "side-home side-ask" + (App.section === "ask" ? " on" : ""), "aria-current": App.section === "ask" ? "page" : null, title: "Ask Claude about the plan", onclick: () => Ask.open() },
         h("span", { class: "side-label" }, "Ask Claude"), Ask.count() ? h("span", { class: "side-n" }, Ask.count()) : null) : null));
     const vault = h("div", { class: "side-group" }, CapFocus.bar("side"), h("div", { class: "side-h" }, "Plan pages"));

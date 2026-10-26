@@ -1,5 +1,5 @@
-"""The `decide` apply kind: one decision filed, sent to the module of its target kind (overhaul Task 16, plan 4.3; grill
-section 4). Pure.
+"""The `decide` apply kind: one decision filed, sent to the module of its target kind (overhaul Task 16, plan 4.3; grill's
+"File each decision as its branch closes"). Pure.
 
 **A dispatcher, and only that** (review S1, Shield). Grill section 4 is nine writes per decision; the seven every target
 shares live in `decide_writes`, and what is a target's own (where its state lives, what else it needs before it is
@@ -21,7 +21,7 @@ other (`field_refusals`), never ignored, because an ignored answer looks filed.
 An item:
 
     {"id": "CON-003", "to": "decided", "readback": "^c30", "yes": "^c31", "why": "^c33", "dissent": null,
-     "overrides": [{"rules": ["GATE-4"], "reason": "^c35", "until": "2026-11-30"}], "on_behalf_of": null,
+     "overrides": [{"rules": ["GATE-4"], "reason": "^c35", "until": "2026-11-30"}],
      "by": "@lead", "reader": false}
 
 `by` (the lead's handle) and `reader` (whether this is a reader copy) are computed by the drafter, never asked;
@@ -51,12 +51,16 @@ SHARED = {"id": "the item's ID (a release by its heading, an allocation row as C
           "dissent": "the capture holding a disagreement, in the dissenter's words",
           "overrides": "the rules the lead set aside: [{\"rules\": [\"GATE-4\"], \"reason\": \"^c35\", \"until\": "
                        "\"YYYY-MM-DD\"}]; until only for a standing rule",
-          "on_behalf_of": "the owner's handle when the lead decides for an owner who isn't here (with GATE-5)",
           "by": "the lead's handle; computed",
           "reader": "true in a reader copy; computed",
           "reopen": "true to reopen a decided item (a change of mind), with why",
-          "stated_in": "the source (SRC-nn) that states the decision, when an import confirms it: no options needed"}
-JUDGMENT = ("readback", "yes", "why", "dissent", "overrides", "on_behalf_of")
+          "stated_in": "the source (SRC-nn) that states the decision, when an import confirms it: no options needed",
+          "picked": "the option the lead picked and the capture where they picked it: \"<option>=^cP\"",
+          "rejected": "each option set aside: [\"<option>=^cR\"] (the capture holding the lead's reason) or "
+                      "[\"<option>=declined\"]",
+          "options_none": "the capture holding the lead's answer that this was the only option (no Shape session); "
+                          "written as the options considered, in their words when they may be quoted"}
+JUDGMENT = ("readback", "yes", "why", "dissent", "overrides", "picked", "rejected", "options_none")
 
 
 def kind_module(kind):
@@ -176,6 +180,7 @@ def validate(item, view, record):
     found += stated_refusals(item, view)
     found += decide_writes.yes_refusals(item, record)
     found += decide_writes.words_refusals(item, view, record)
+    found += decide_writes.options_refusals(item, view, record, target)
     found += decide_writes.override_refusals(item, view, record, target)
     found += decide_writes.gate_refusals(item, view, record, target)
     return found + list(module.refusals(item, view, record, target))

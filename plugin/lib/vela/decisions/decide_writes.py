@@ -1,4 +1,4 @@
-"""What every decision writes and checks, whatever it decides (overhaul Task 16; grill section 4). Pure.
+"""What every decision writes and checks, whatever it decides (overhaul Task 16; grill's "File each decision as its branch closes"). Pure.
 
 The Violation this exists to prevent is a Distributed Monolith across the target kinds. Grill section 4 is nine writes
 per decision, and seven of them are the same whether the target is a page, a contract, a requirement, an epic, a
@@ -26,8 +26,8 @@ Why each write, and why it is code's:
 - **An Override** is written by the `override` kind's own grammar (`decisions.override.bullet_value`), parsed back with
   check's parser before it is returned; a standing rule needs `until`, an event rule takes none, so the rules a lead
   sets aside are split into one bullet of each.
-- **Decided by ... on behalf of** goes with a GATE-5 override, as CONVENTIONS "Overrides" says: that is how GATE-5
-  passes with the owner away, and the check keeps warning until the owner confirms.
+- **Decided by ... on behalf of** is written whenever the yes isn't the owner's own (`stand_in_owners`): the lead's yes
+  settles any item, with no refusal, no override and no warning.
 - **Pending approval** in a reader copy: a reader's decision is a proposal that looks settled until an owner has seen
   it (`vela.pending`). Role is known to code, so the marker never depends on the model remembering it.
 """
@@ -35,21 +35,21 @@ import re
 from dataclasses import dataclass
 
 from vela import gates, override as overrides, privaterecord, receipts, said, say, schema as vault_schema
-from vela.decisions import agenda, consent, override as override_kind, schema, textedit
+from vela.decisions import agenda, consent, options_line, override as override_kind, schema, textedit
 
 HANDLE = re.compile(rf"^{vault_schema.HANDLE}$")
 STATE_BULLET = re.compile(r"^- \*\*State:\*\*\s*(?P<state>\S*)")
 FRONTMATTER_STATE = re.compile(r"^state:\s*(?P<state>.*?)\s*$")
-GATE_5 = "GATE-5"
 # What the lead hears once when a gate rule that takes no end date (the stage, the options, the agenda's or the owner's
 # yes) could be set aside: it holds at the moment of deciding, so an exception is a reason, not a period.
 EVENT_WAIVER = "It's your call: I can decide it anyway and note your reason."
 GATE_3 = "GATE-3"
-# The one grill rule a decision a source states skips: a Grill picks between options Shape wrote down, and the
+# The one grill rule a decision a source states skips: a decision picks between options Shape wrote down, and the
 # document records a choice already made. Every other reason (the stage, an open question, a contract's case table)
 # still holds, because a stated decision can still be blocked or unfinished.
 STATED_SKIPS = "GATE-2"
 REOPENED = "reopened"
+DECLINED = "declined"
 
 
 @dataclass(frozen=True)
@@ -190,6 +190,10 @@ def words_refusals(item, view, record):
         why = consent.why_in_their_words(item["why"], record, lead)
         if why is not None:
             found.append(why)
+    if item.get("options_none"):
+        missing = consent.exists(item["options_none"], record)
+        if missing is not None:
+            found.append(missing)
     if item.get("dissent"):
         missing = consent.exists(item["dissent"], record)
         capture = record.capture(item["dissent"])
@@ -243,20 +247,6 @@ def override_refusals(item, view, record, target):
                                  override="none: an override always carries the lead's reason"))
             continue
         found += override_kind.validate(one, view, record)
-    owners = item.get("on_behalf_of")
-    if owners:
-        bad = [o for o in str(owners).split() if not HANDLE.match(o)]
-        if bad:
-            found.append(refusal("decide-on-behalf-handle", "I need the owner's handle to say whose decision this was.",
-                                 f"--on-behalf takes handles such as @owner; {', '.join(bad)} is not one.",
-                                 override="none: name the owner by handle", audience=say.MODEL))
-        if GATE_5 not in rules_set_aside(item):
-            found.append(refusal("decide-on-behalf-needs-gate-5",
-                                 "The owner isn't here, so I'll note this as your call on their behalf. What's your "
-                                 "reason?",
-                                 "Add --override GATE-5 --reason-from <the lead's reason>: deciding on the owner's "
-                                 "behalf is how GATE-5 passes with them away (CONVENTIONS \"Overrides\").",
-                                 override="none: the GATE-5 override is the record of it"))
     return found + by_refusals(item)
 
 
@@ -268,21 +258,49 @@ def by_refusals(item):
                     "as origin.", override="none: a decision names who made it", audience=say.MODEL)]
 
 
+OWNER_HANDLES = re.compile(r"@[\w][\w./-]*")
+
+
+def owners_of(view, target):
+    """The handles on the target's `**Owner:**` bullet (an item) or `owner:` field (a page); () when it names none."""
+    found = view.model.item(target.id)
+    if found is not None:
+        text = found.fact("Owner")
+    else:
+        pages = view.model.by_id.get(target.id) or []
+        text = str(pages[0].meta.get("owner") or "") if pages else ""
+    return tuple(OWNER_HANDLES.findall(text))
+
+
+def stand_in_owners(item, view, record, target):
+    """The owners' handles when the lead's yes settles an item someone else owns, else (): the lead's yes settles any
+    item, so nothing is refused, but a decision that isn't the owner's own is never filed as if it were (Silent
+    Fallback of consent otherwise). It is written as `Decided by ... on behalf of`, which the owner can confirm or
+    challenge later."""
+    owners = owners_of(view, target)
+    if not owners or item.get("reopen") or not item.get("yes") or consent.exists(item["yes"], record) is not None:
+        return ()
+    who = speaker(record.capture(item["yes"]), getattr(view, "lead", None))
+    if any(consent.same_handle(who, owner) for owner in owners):
+        return ()
+    return owners
+
+
 def gate_refusals(item, view, record, target):
     """The grill gate's verdict on the target, each reason the lead didn't set aside refused. A flow check that did
     not pass is never set aside here: its findings are covered by the dated overrides the checker itself reads
     (`vela conventions "Flow check"`), which its standing already applies, and "not fully checked" has none."""
+    out = []
     if not target.gate:
-        return []
+        return out
     found = gates.verdict(view.model, record.text, target.gate, textedit.today(view), getattr(view, "flows", None))
     named = rules_set_aside(item)
-    out = []
     for reason in found.reasons:
         route = gates.ROUTE_NAMES.get(reason.rule)
         if route is not None and route in named:
             continue
-        if item.get("stated_in") and reason.rule == STATED_SKIPS:
-            continue  # a source states the decision: there were options, weighed where it was made, not here
+        if (item.get("stated_in") or options_given(item)) and reason.rule == STATED_SKIPS:
+            continue  # a source states it, the pick is written with it, or the lead said there was only this one
         override = found.route if route is not None else \
             "none from decide: settle each finding, or the dated flow-check override the checker reads"
         # The gate's fix is my recommendation to the lead; an event rule is set aside with a reason and no end date.
@@ -332,7 +350,8 @@ def receipt(item, view, record):
 def history_bullets(item, view, record, target, decision=True):
     """The bullets a decision adds under `## History`, in CONVENTIONS' order."""
     today = textedit.today(view)
-    out = [f"- **Decision:** {receipt(item, view, record)}"] if decision else []
+    out = [options_bullet(item, view, record)] if options_given(item) else []
+    out += [f"- **Decision:** {receipt(item, view, record)}"] if decision else []
     if item.get("why"):
         out.append(f"- **Why:** {textedit.inline(record.capture(item['why']).quote)}")
     if item.get("dissent"):
@@ -341,11 +360,109 @@ def history_bullets(item, view, record, target, decision=True):
         see = record.id if words else ""
         out.append(f"- **Dissent:** {receipts.dissent_value(speaker(capture, view.lead), today, words, see=see)}")
     out += _override_bullets(item, view, record, target)
-    if item.get("on_behalf_of"):
-        out.append(f"- **Decided by:** {item['by']}, on behalf of {item['on_behalf_of']}")
+    owners = stand_in_owners(item, view, record, target)
+    if owners:
+        out.append(f"- **Decided by:** {item['by']}, on behalf of {' '.join(owners)}")
     if item.get("reader"):
         out.append(f"- **Pending approval:** {item['by']}, {today}")
     return out
+
+
+# --- a settled pick's options (--picked, --rejected)
+
+def pick_given(item):
+    """--picked or --rejected is on the item."""
+    return bool(item.get("picked") or item.get("rejected"))
+
+
+def options_given(item):
+    """The options come with the decision (a pick, or the lead's "only this one"), so GATE-2 has nothing to ask."""
+    return pick_given(item) or bool(item.get("options_none"))
+
+
+def options_specs(item):
+    """The `<option>=<^cN or declined>` strings, the pick first."""
+    return ([item["picked"]] if item.get("picked") else []) + list(item.get("rejected") or [])
+
+
+def option_parts(spec):
+    """(option, what follows the last '='), or (spec, "") when there is no '='."""
+    name, _, rest = str(spec).rpartition("=")
+    return (name.strip(), rest.strip()) if name else (str(spec).strip(), "")
+
+
+def option_ref(spec):
+    """The capture a spec cites, or "" for a declined reason."""
+    rest = option_parts(spec)[1]
+    return "" if rest == DECLINED else rest
+
+
+def options_bullet(item, view, record):
+    """The `**Options considered:**` line for this decision, in the form the lead's words call for (options_line).
+    A reason goes on in words only when that person may be quoted; else the bullet points at the notes."""
+    if item.get("options_none"):
+        capture = record.capture(item["options_none"])
+        cite = privaterecord.citation(record.id, record.part, int(capture.n))
+        words = textedit.inline(capture.quote) if consent.may_quote(capture, record, view.lead) else None
+        return options_line.only_this_one(cite, words)
+    rejected = []
+    for spec in item.get("rejected") or []:
+        name, rest = option_parts(spec)
+        if rest == DECLINED:
+            why = options_line.DECLINED_REASON
+        else:
+            capture = record.capture(rest)
+            why = (f'"{textedit.inline(capture.quote).replace(chr(34), chr(39))}"'
+                   if consent.may_quote(capture, record, view.lead)
+                   else f"the reason is in {textedit.capture_ref(record, rest)}")
+        rejected.append((textedit.inline(name), why))
+    return options_line.picked(textedit.inline(option_parts(item["picked"])[0]), rejected)
+
+
+def options_written(view, target):
+    """Whether the item (or page) already carries an `**Options considered:**` bullet."""
+    found = view.model.item(target.id)
+    if found is not None:
+        return vault_schema.OPTIONS_LABEL in found.facts
+    pages = view.model.by_id.get(target.id) or []
+    return bool(pages and pages[0].page_bullets(vault_schema.OPTIONS_LABEL))
+
+
+def options_refusals(item, view, record, target):
+    """A pick is whole: the option picked, at least one set aside, each citing a capture the record holds, and not
+    written already. Each refusal names the way round it (the audience is the model)."""
+    if item.get("options_none") and pick_given(item):
+        return [refusal("decide-options-both", "An item has one answer to what else was on the table, not two.",
+                        "Give --options-none (the only option) or --picked with --rejected, not both.",
+                        override="none: one options line per item", audience=say.MODEL)]
+    if not pick_given(item):
+        return []
+    gate_two = "the lead's override of GATE-2, with their reason, instead of --picked and --rejected"
+    if not item.get("picked") or not item.get("rejected"):
+        return [refusal("decide-options-one", "A pick needs something it was picked over before I can write it down.",
+                        "Give both --picked \"<option>=^cP\" and --rejected \"<option>=^cR\" (or =declined) for each "
+                        "option set aside; one option alone is not a choice.", override=gate_two, audience=say.MODEL)]
+    found = []
+    for spec in options_specs(item):
+        name, rest = option_parts(spec)
+        problem = None if rest == DECLINED else consent.exists(rest, record) if rest else True
+        if problem is not None:
+            found.append(refusal("decide-options-capture", "I can't find where that option was picked or set aside.",
+                                 f"{spec!r}: use <option>=^cN with a capture in this record, or <option>=declined for "
+                                 "a reason the lead declined to give.", override="none: drop --picked and --rejected",
+                                 audience=say.MODEL))
+    picked_ref = option_ref(item["picked"]) if item.get("picked") else ""
+    if picked_ref and consent.exists(picked_ref, record) is None and not record.capture(picked_ref).is_person:
+        found.append(refusal("decide-options-pick-not-theirs", "The pick has to be in the lead's own words, not mine.",
+                             f"Capture where the lead picked it with them as origin (^c{record.capture(picked_ref).n} is "
+                             "Claude's), then use that capture in --picked.",
+                             override="none: drop --picked and --rejected", audience=say.MODEL))
+    if options_written(view, target):
+        found.append(refusal("decide-options-written", "That item already has its options written down, so I left "
+                                                        "them as they are.",
+                             "Drop --picked and --rejected; the bullet stays as written.",
+                             override="none: the options are already on the page", audience=say.MODEL))
+    return found
 
 
 def add_history(text, bullets, target):
@@ -357,7 +474,8 @@ def add_history(text, bullets, target):
 def consumed(item):
     """Every capture the decision filed, the cited one first: each is kept on the item it went into, so close finds
     nothing of this decision left to place."""
-    refs = [item.get(name) for name in ("yes", "why", "readback", "dissent", "provider")]
+    refs = [item.get(name) for name in ("yes", "why", "readback", "dissent", "provider", "options_none")]
+    refs += [option_ref(spec) for spec in options_specs(item)]
     refs += [group.get(name) for group in item.get("groups") or [] for name in ("readback", "yes")]
     refs += [group.get("reason") for group in item.get("overrides") or []]
     return list(dict.fromkeys(ref for ref in refs if ref))

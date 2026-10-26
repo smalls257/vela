@@ -25,7 +25,7 @@ PAGE_TYPES = {
     },
     "app-building-blocks": {
         "required": ("id", "type", "title", "state", "owner", "authored", "change"),
-        "optional": ("stage", "initiative", "arc42", "c4", "sources", "handed_off", "handed_off_pr", "domain", "stub"),
+        "optional": ("initiative", "arc42", "c4", "sources", "handed_off", "handed_off_pr", "domain", "stub"),
         "states": STATE_ITEM,
     },
     "app-runtime": {
@@ -75,7 +75,7 @@ PAGE_TYPES = {
     "session": {
         "required": ("id", "type", "date", "modes", "status"),
         "optional": ("title", "summary", "branch", "start_commit", "captures_sha256", "ready", "challenges",
-                     "harvest_declined", "title_override"),
+                     "harvest_declined", "title_override", "size", "size_kept"),
         "states": None,
     },
     "sources": {
@@ -105,14 +105,14 @@ ENUMS = {
     "change@app-building-blocks": ("new", "changed", "integrated", "unchanged", "retired"),
     "change@capability": ("new", "extend", "replace", "narrow", "retire", "unchanged"),
     "origin": ("proposed", "imported"),
-    "stage": ("baseline", "target", "boundaries", "contracts", "handoff", "epics"),
     "stub": ("boundary",),
     "status": ("open", "closed"),
 }
 LIST_FIELDS = ("sources", "apps", "delivers", "consumes", "flows", "depends_on", "modes", "capabilities")
-DOMAIN_MIN_APPS = 6  # W352 applies from this many apps
 SESSION_MODES = ("dump", "discover", "shape", "boundary", "allocate", "releases", "grill", "requirements", "epics", "challenge", "answer")
-LADDERED_CHANGES = ("new", "changed")  # app pages with these carry `stage`
+LADDERED_CHANGES = ("new", "changed")  # app pages with these sit on the stage ladder (ladder.stage)
+# The ladder's order. Nobody types a stage: it is what an app's pages reach (ladder.stage).
+STAGES = ("baseline", "target", "boundaries", "contracts", "handoff", "epics")
 
 # A GitHub login: letters, digits and hyphens, and an underscore too, since an Enterprise Managed User's login is
 # `name_shortcode`. Every handle pattern in vela is built from this one, so a login that works here works everywhere.
@@ -243,8 +243,7 @@ SUBJECT_LOOKALIKE_RE = re.compile(r"^(PTY|SV)(?![A-Za-z])", re.IGNORECASE)
 # cannot see (GATE-1, 2, 3, 5) turns nothing: the bullet is the record.
 OVERRIDE_RULES = {
     "GATE-1": (), "GATE-2": (), "GATE-3": (), "GATE-4": ("E316",), "GATE-5": (),
-    "grill": ("E303", "E317"),
-    "E303": ("E303",), "E304": ("E304",), "E316": ("E316",), "E317": ("E317",), "E318": ("E318",),
+    "E303": ("E303",), "E304": ("E304",), "E316": ("E316",), "E318": ("E318",),
     "E805": ("E805",),
 }
 # Two classes, because they end differently (plan 4.4). A standing rule guards a condition that stays true until
@@ -252,17 +251,18 @@ OVERRIDE_RULES = {
 # one it would cover the rule forever, a Silent Fallback with a signature on it. An event rule was met or not at the
 # moment of deciding (who was in the room, how many options a Shape weighed), so its override has nothing to end.
 # A quoted rule is standing when it is "case table" or a flow-check finding ("F<n> ..."), and an event otherwise.
-STANDING_RULES = ("GATE-4", "grill", "E303", "E304", "E316", "E317", "E318", "E805")
+STANDING_RULES = ("GATE-4", "E303", "E304", "E316", "E318", "E805")
 EVENT_RULES = ("GATE-1", "GATE-2", "GATE-3", "GATE-5")
 STANDING_QUOTED = ('"case table"',)
 # How far ahead the date a refusal offers sits when the item feeds no release with a Target still to come.
 SUGGEST_UNTIL_DAYS = 30
 # Error -> the warning it becomes when an Override on the same item names it.
 # The sentence an E805 fix ends with. An overridden E805 prints as W805 without it, so the way to end an
-# override never suggests writing another one.
-E805_OVERRIDE_HINT = ("To finish the epics anyway, record an exception under the Question ledger heading: "
-                      "- **Override:** E805 by @handle on YYYY-MM-DD until YYYY-MM-DD: <why>.")
-OVERRIDE_CODES = {"E303": "W303", "E304": "W304", "E316": "W316", "E317": "W317", "E318": "W318", "E805": "W805"}
+# override never suggests making another one. It names commands, never the Override bullet's grammar.
+E805_OVERRIDE_HINT = ("Answer it now (vela questions --open --digest, capture the answer; close writes the row), defer it "
+                      "to someone with a date (vela apply, kind defer), or override it (vela apply, kind override, "
+                      "rule E805 on the unknowns page, with a reason and an end date).")
+OVERRIDE_CODES = {"E303": "W303", "E304": "W304", "E316": "W316", "E318": "W318", "E805": "W805"}
 # Codes only a gate reports. An override of one is judged idle (W323) only when its gate ran, so the
 # override that lets an epics gate pass never warns on the plain check of every PR.
 GATE_ONLY_CODES = {"E805": "epics"}
@@ -350,7 +350,7 @@ CODES = {
     "E210": "two rows claim one ID, or one app on a concern page",
     "E301": "concern cell is not valid",
     "E302": "unknown or risk is missing a required fact",
-    "E303": "decided without a Grill decision",
+    "E303": "decided with no Decision link to the session that decided it",
     "E304": "fact without a source",
     "E306": "fact table row is not valid",
     "E307": "library row has a type or stored path that is not valid",
@@ -362,9 +362,7 @@ CODES = {
     "E313": "library row names a stored file that is not in the vault",
     "E315": "a Decision or Dissent line is not in the receipt form",
     "E316": "decided while an open unknown blocks it",
-    "E317": "a requirements session cannot decide",
     "E318": "decided contract has no Tested by",
-    "E319": "stage does not fit the app's change",
     "E320": "contract is missing a required fact",
     "E321": "override is malformed",
     "E322": "decided-by or confirmed-by is malformed",
@@ -440,19 +438,19 @@ CODES = {
     "E331": "allocation row goes through no such contract",
     "E332": "allocation row has no valid state",
     "E333": "allocation row is a fact on a page with no sources",
-    "W303": "decided without a Grill, by override",
+    "W303": "decided with no session link, by override",
     "W304": "fact without a source, by override",
     "W316": "decided while an open unknown blocks it, by override",
-    "W317": "decided by a requirements session, by override",
     "W318": "decided contract has no Tested by, by override",
     "W323": "override not needed",
-    "W324": "decided on the owner's behalf, not yet confirmed",
     "E401": "generated block was edited by hand",
     "W402": "generated block is out of date",
     "E403": "generated block not allowed here",
     "E404": "generated block markers are broken",
     "W405": "a slice page still has a Joins line, which is no longer read: joins come from its flows",
     "W406": "two or more slices name no After, or none does: the tracer is the one slice with no After",
+    "W407": "a box on a flow page's sequence diagram cannot be drawn as a lane group in the Flows view",
+    "W408": "a page still has a stage line, which is no longer read: vela works the stage out from the pages",
     "E601": "flowchart over its element budget",
     "E602": "sequence diagram over its participant budget",
     "E603": "diagram type not supported",
@@ -490,12 +488,58 @@ CODES = {
     "W821": "design gap acknowledged_by cannot be checked: no said log",
 }
 
+# ------------------------------------------------------------- the plan's size (sizing.py is the only reader)
+
+SIZE_BANDS = ("small", "medium", "large")
+# signal -> ((the most a small plan has, the most a medium plan has), why)
+SIZE_SIGNALS = {
+    "apps": ((2, 5), "Two apps are one conversation, one team each; from three, the hand-offs between apps need "
+                     "their own sessions; from six, the dashboard needs domains to stay readable (once W352's line)."),
+    "capabilities": ((2, 5), "Up to two changing capabilities fit on one boundary sheet; from three, their "
+                             "requirements need their own session; from six, dividing them among apps does too."),
+    "releases": ((1, 2), "One release is one date, asked in a grill; a second needs a releases session to order "
+                         "them; from three, slices carry the order."),
+}
+SIZE_MEANS = {
+    "small": "That means fewer steps and quieter checks; say if it's bigger than it looks.",
+    "medium": "That means options written down before deciding and the wording notes at close; say if it's smaller than it looks.",
+    "large": "That means every step, a review after each mode, and every check said; say if it's smaller than it looks.",
+}
+# need -> (the band it starts at, what a smaller plan loses by skipping it)
+NEEDS = {
+    "READING_LOAD_SHOWN": ("medium", "Wording notes wait until asked on a small plan, because a few pages are read by "
+                                     "their owner anyway; from medium they are said."),
+    "OPTIONS_BEFORE_DECIDING": ("medium", "One question settles one option on a small plan; from medium the options are "
+                                       "written down before deciding so the lead can compare them."),
+    "REVIEW_EACH_MODE": ("large", "One review checkpoint a session covers what changed on a smaller plan; a large "
+                                  "plan gets a fresh reader after each mode."),
+    "VOICE_REVIEW_ALWAYS": ("medium", "A few drafted paragraphs are read back by the lead anyway; from medium a "
+                                      "fresh reader checks the voice whatever the count."),
+    "DOMAIN_FIELD": ("large", "Domains group nothing below six apps, so a smaller plan has no use for a domain "
+                              "field on each app page."),
+    "REQUIREMENTS_SESSION": ("medium", "One or two capabilities' requirements fit on the Boundary sheet; from medium "
+                                       "they need a session of their own."),
+    "ALLOCATE_SESSION": ("medium", "One or two capabilities' shares fit on the Boundary sheet; from medium dividing "
+                                   "them among apps needs its own session."),
+    "RELEASES_SESSION": ("medium", "One release's date is one grill question; from medium ordering the releases "
+                                   "needs a session of its own."),
+}
+VOICE_REVIEW_MIN_PARAGRAPHS = 5  # why: a fresh reader is worth its cost from about five drafted paragraphs
+WEIGHTS = ("decision", "polish", "auto")
+POLISH = dict.fromkeys(("W353", "W360", "W361", "W362", "W363", "W364", "W365", "W366", "W367", "W368",
+                        "W369", "W371", "W372", "W373"), "polish")
+AUTO = dict.fromkeys(("W326", "W358", "W402", "W408"), "auto")
+SCALE = {"W352": "scale:DOMAIN_FIELD"}
+# The one weight of every finding code: decision (said at every size), polish (quiet in --for-lead and at close,
+# counted, listed in plain check), auto (close fixes it when it can) or scale:<NEED> (fires from that need's band).
+WEIGHT = {**dict.fromkeys(CODES, "decision"), **POLISH, **AUTO, **SCALE}
+
 # ------------------------------------------------------------- traceability
 
 # Rule -> (code in a plain check, code under --gate epics).
 TRACE_CODES = {"T1": ("W501", "E501"), "T2": ("W502", "E502"), "T4": ("W503", "E503"), "T6": ("W504", "E504"),
                "T7": ("W505", "E505")}
-GATES = ("epics", "shape", "grill")
+GATES = ("epics", "shape", "decide")
 TRACE_CONTRACT_CHANGES = ("new", "changed")  # contracts T2 needs an epic for
 OWNERSHIP_CONCERN = "concern-ownership"  # covered by an epic listing the app, not by a marker
 WAIVER_RE = re.compile(rf"^no work \({HANDLE}(?: {HANDLE})*, review \d{{4}}-\d{{2}}-\d{{2}}\): \S")

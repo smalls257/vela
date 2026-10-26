@@ -47,7 +47,7 @@ class Slice:
     after: tuple = ()  # keys of the slices it comes after; a release's slice comes after the release before it
     joins: tuple = ()  # contract ids its flows' steps cross, in flow and step order
     sides: tuple = ()  # (contract id, sender, receiver) for each join, as the first step that crosses it names its ends
-    status: str = ""  # one of STATUSES, or "" until a grill plans it (or for a slice read from the releases page)
+    status: str = ""  # one of STATUSES, or "" until it is planned (or for a slice read from the releases page)
     status_raw: str = ""  # as written, so a misspelled status is reported, never read as "not planned yet"
     journey: Journey = None
     journey_due: str = ""  # the Journey due bullet as written: the date the team expects the journey to run

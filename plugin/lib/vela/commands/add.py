@@ -6,13 +6,13 @@ applied decision file under `.vela/decisions/<session>/`, so what was filed can 
 Types (`vela add TYPE --help` lists each one's fields, and `vela.decisions.add_<type>` says why each rule holds):
 unknown, constraint, subject, adr, epic, slice, app-stub, contract, fr, source, cut.
 
-Why a command and not only a file: grill section 5 ("a new unknown mid-grill"), boundary, releases and requirements
+Why a command and not only a file: grill's "File each decision as its branch closes" ("a new unknown mid-grill"), boundary, releases and requirements
 write one item at a time while the lead is talking, and drafting a file for one item is a step a model skips. "New
 IDs come from vela next-id, so an open session branch never hands out the same number twice": this command reads
 `main` and every session branch (`edge/idgit.py`) and says the ID it took, so nothing is numbered by hand.
 
 `vela add unknown --blocks X` also takes each agenda item the unknown now holds up off the agenda, and says which
-(grill section 5: "take that item off the agenda ... re-run GATE-4 for every other agenda item it blocks").
+(grill's "File each decision as its branch closes": "take that item off the agenda ... re-run GATE-4 for every other agenda item it blocks").
 
 A missing `--owner` is the lead's handle (`.vela/handle`, as `vela whoami` keeps it): never asked for.
 
@@ -122,6 +122,9 @@ def run(args, out):
     except cli.ToolError as exc:
         return commands.emit(failed(str(exc), "I couldn't read the vault, so I added nothing."), args, out)
     result = file_new(root, today, vault, item_from(args, root))
+    if args.add_type == "app-stub" and result.exit == say.DONE:
+        from vela.commands import size
+        result.lines += size.announce(root, cli.load_vault(root))  # a new app may be the one that grows the plan
     return commands.emit(result, args, out, say.Resolver(vault))
 
 
@@ -133,7 +136,8 @@ def file_new(root, today, vault, item):
         return early
     reader = sessiongit.is_read_copy(root)
     try:
-        staged = textedit.attach(decisions.Staged(vault, disk.reader(root)), today, idgit.branch_texts(root))
+        staged = textedit.attach(decisions.Staged(vault, disk.reader(root)), today, idgit.branch_texts(root),
+                               lead=apply_command.lead_of(root))
     except GitUnavailable as exc:
         return failed(f"couldn't read the other branches' numbers: {exc}",
                       "I couldn't check which numbers other sessions hold, so I added nothing.")
@@ -155,8 +159,6 @@ def file_item(item, root, staged, record, reader):
         filed = decisions.applied_text(decision, writes, decisions.record_after(record, staged))
         path.parent.mkdir(parents=True, exist_ok=True)
         written = disk.write_all(root, writes, {path: filed})
-    except textedit.StubUnreadable as exc:
-        return failed(str(exc), str(exc))
     except disk.OutsideVault as exc:
         return say.Result(NAME, exit=say.REFUSED, refusals=[say.Refusal(
             "apply-outside-vault", "That would have changed a file outside the vault, so I added nothing.",

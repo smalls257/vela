@@ -129,7 +129,8 @@ def find_record(root):
     if not opened.several:
         why = f" ({'; '.join(opened.problems)})" if opened.problems else ""
         return None, say.Result(NAME, exit=say.FAILED if opened.problems else say.REFUSED, lines=[say.Line(
-            f"No session is open, so there is nothing to file into{why}.",
+            f"No session is open, so there is nothing to file into{why}. Start one with "
+            "`vela session start --mode <mode> --topic \"<topic>\" --for-lead`.",
             plain="No session is open, so there's nowhere to file your answers.")])
     choices = [{"id": r.id, "topic": r.title, "date": r.date} for r in opened.records]
     return None, say.Result(NAME, exit=say.NEEDS_LEAD, needs_lead=choices, lines=[say.Line(
@@ -147,8 +148,6 @@ def file_decision(decision, path, root, vault, record, reader, context=None):
             return refused(refusals)
         new_file = decisions.applied_text(decision, writes, decisions.record_after(record, staged))
         written = disk.write_all(root, writes, {path.resolve(): new_file})
-    except textedit.StubUnreadable as exc:
-        return failed(str(exc), str(exc))
     except disk.OutsideVault as exc:
         return refused([say.Refusal("apply-outside-vault", "One of those would have changed a file outside the vault, "
                                                            "so I filed nothing.",

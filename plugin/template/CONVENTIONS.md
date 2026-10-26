@@ -10,7 +10,7 @@ One vault holds one initiative. Pages are numbered by arc42 section.
 |---|---|
 | `README.md` | Home page: layout, reading paths, setup checklist |
 | `CLAUDE.md` | How Claude answers questions from this vault. A person writes it. |
-| `.vela.yaml` | `initiative` (`INI-nnn`), `title`, `stale_after_days` (default 60), and optionally `link_templates` (see Links out of the vault), `designs` (see Team design docs), `owner_contact` (who a published copy's readers write to), `roles` (who holds which role, see Onboarding), `grills` (who runs a grill and who is asked to join, see Grills waiting) and `role: reader` (see Roles and published copies), and `records_split` (the date `vela records split` moved the session records to private notes; receipts that link a stub dated earlier are exempt from the words rule) |
+| `.vela.yaml` | `initiative` (`INI-nnn`), `title`, `stale_after_days` (default 60), and optionally `link_templates` (see Links out of the vault), `designs` (see Team design docs), `owner_contact` (who a published copy's readers write to), `roles` (who holds which role, see Onboarding), `grills` (who runs a grill and who is asked to join, see Waiting for a decision) and `role: reader` (see Roles and published copies), and `records_split` (the date `vela records split` moved the session records to private notes; receipts that link a stub dated earlier are exempt from the words rule) |
 | `01-goals.md` | Goals table, and the `where-it-stands` and `progress-map` blocks |
 | `02-constraints.md` | Constraints table, `CST-n` |
 | `03-context-and-scope.md` | Systems today and after; apps in and out of scope |
@@ -42,11 +42,11 @@ One vault holds one initiative. Pages are numbered by arc42 section.
 
 ## Areas and stages
 
-An area is an app whose `change` is `new` or `changed`, or one of `initiative`, `capabilities`, `concern-<name>` and `epics`. Only apps move through stages. The initiative is at Frame while no app has a stage. Frame is never typed.
+An area is an app whose `change` is `new` or `changed`, or one of `initiative`, `capabilities`, `concern-<name>` and `epics`. Only apps move through stages. The initiative is at Frame while no app is on the ladder. Frame is never typed.
 
-`stage` sits on the app's building-blocks page and means "in this stage now". It is typed by hand. `vela ladder` shows, for each app on the ladder, the latest stage whose entry list its pages already meet, with every stage below it, and what the next stage still needs; `vela status` adds `pages reach <stage>` when that is later than the typed stage. Neither changes the stage. The `where-it-stands` block shows counts beside it, so a stage the counts contradict is easy to see. Apps whose `change` is `integrated`, `unchanged` or `retired` sit outside the ladder and take no `stage`.
+An app's stage is worked out from its pages and typed nowhere: it is the latest stage whose entry list its pages meet, with every stage below it. `vela ladder` shows it for each app on the ladder, with what the next stage still needs, and `vela status`, `vela next`, the `where-it-stands` and `progress-map` blocks and the dashboard all read the same one. Apps whose `change` is `integrated`, `unchanged` or `retired` sit outside the ladder and have no stage.
 
-The ladder checklist. Before typing a stage, check its entry list:
+The ladder checklist. Each stage's entry list is what the pages must hold for the app to be at it:
 
 | Stage | Enter when |
 |---|---|
@@ -65,7 +65,7 @@ Every page starts with a YAML block. Quote any value that holds a colon or start
 |---|---|---|---|
 | `index` | `id`, `type`, `title`, `authored` | `initiative`, `arc42`, `c4`, `owner`, `sources` | none |
 | `initiative-section` | `id`, `type`, `title`, `state`, `owner`, `authored` | `initiative`, `arc42`, `c4`, `sources` | `inkling`, `assumption`, `fact`, `decided` |
-| `app-building-blocks` | as above, plus `change` | `stage`, `stub`, `initiative`, `arc42`, `c4`, `sources`, `handed_off`, `handed_off_pr`, `domain`, `icon`, `design` | `inkling`, `assumption`, `fact`, `decided` |
+| `app-building-blocks` | as above, plus `change` | `stub`, `initiative`, `arc42`, `c4`, `sources`, `handed_off`, `handed_off_pr`, `domain`, `icon`, `design` | `inkling`, `assumption`, `fact`, `decided` |
 | `app-runtime` | `id`, `type`, `title`, `state`, `owner`, `authored` | `initiative`, `arc42`, `sources` | `inkling`, `assumption`, `fact`, `decided` |
 | `flow` | `id`, `type`, `title`, `state`, `owner`, `authored` | `initiative`, `arc42`, `sources`, `capabilities` | `inkling`, `assumption`, `fact`, `decided` |
 | `concern` | `id`, `type`, `title`, `owner`, `authored` | `initiative`, `arc42`, `sources` | none: the cells hold the states |
@@ -87,7 +87,6 @@ Field values:
 - `c4`: `landscape`, `context` or `container`. `arc42`: the section, for example `"§5"`.
 - `sources`: a list. Use `SRC-nn` IDs for documents. Free text, such as a session name, is allowed as a summary.
 - `change` on an app page: `new`, `changed`, `integrated`, `unchanged` or `retired`.
-- `stage`: `baseline`, `target`, `boundaries`, `contracts`, `handoff`, `epics`. Required when `change` is `new` or `changed`, absent otherwise.
 - `last_verified`: the date someone last reread the page against its sources, `YYYY-MM-DD`. `verified_by`: that person's handle, `"@handle"`. Set both together. A page without them is never judged stale.
 - `handed_off`: set once a senior takes the app. Form: `"<name>, <date>"`. `handed_off_pr`: the pull request that hands it over, `pending` until the PR exists, then its number (`41`); W325 warns until the number is written. A `handed_off_pr` with no `handed_off` is E105.
 - `stub`: `boundary` on an app page `vela add app-stub` wrote and nobody has read back yet. `vela next` sends such a page (with no containers table) to Boundary. Boundary removes the field when the lead has said yes to the page. State lives in this field, never in a sentence on the page, so rewriting the prose cannot lose it.
@@ -95,7 +94,7 @@ Field values:
 - `domain` on a capability page: a short name for the business area it belongs to, such as `Booking`. The `capability-map` block groups capabilities by it. A capability with no `domain` is drawn under "No domain".
 - `capabilities` on a flow page: a list of `CAP-` IDs, the capability or capabilities the journey serves, the first one primary. The explorer's flow picker groups a long list of flows by the primary one; without the field it guesses from the capabilities the steps link and says so. The capability views read the same field: the first capability depends on the others the flow lists (see How capabilities depend on each other). Leave it out while the initiative has no capability pages. W358 warns when a flow has none and capability pages exist; E359 fails an ID that is not a capability page.
 - Epic lists, all of IDs: `apps` (the `APP-` pages it touches), `delivers` (what it builds or changes: capabilities, contracts on the provider side, goals), `consumes` (contracts it builds a client for), `flows`, `depends_on` (other epics). A contract relied on unchanged goes in neither `delivers` nor `consumes`.
-- `modes` on a session: a list of `dump`, `discover`, `shape`, `boundary`, `allocate`, `releases`, `grill`, `requirements`, `epics`, `challenge`, `answer`. A `challenge` session is a senior's challenge after handoff, written by `/vela:challenge`. An `answer` session is the solution lead's answer to one, opened by START on the challenge's own branch. Like every mode but `grill`, neither can decide: an answer that decides adds `grill` to its `modes`. A session also records `branch` (the branch it runs on, whichever one the lead was on) and `start_commit` (the commit it began at, so a second session on the same branch owes only its own paragraphs); both are optional. A session also lists, in its frontmatter, `ready` (the IDs of items the lead said yes to in a session that cannot decide, until a grill decides them), `challenges` (the ID a `challenge` session was opened on) and `harvest_declined` (the voice-harvest paragraphs the lead declined, each as `PR <number> <page> <12-character hash>`); all three are optional and are kept in step with the record by vela, not edited by hand. `captures_sha256` holds one fingerprint per part of the session's private notes (`pending` while a part is open), and `summary` is optional because the one-line summary lives in the private notes file, not in the committed record.
+- `modes` on a session: a list of `dump`, `discover`, `shape`, `boundary`, `allocate`, `releases`, `grill`, `requirements`, `epics`, `challenge`, `answer`. A `challenge` session is a senior's challenge after handoff, written by `/vela:challenge`. An `answer` session is the solution lead's answer to one, opened by START on the challenge's own branch. A session also records `branch` (the branch it runs on, whichever one the lead was on) and `start_commit` (the commit it began at, so a second session on the same branch owes only its own paragraphs); both are optional. A session also lists, in its frontmatter, `ready` (the IDs of items the lead said yes to and didn't settle, until they're decided), `challenges` (the ID a `challenge` session was opened on) and `harvest_declined` (the voice-harvest paragraphs the lead declined, each as `PR <number> <page> <12-character hash>`); all three are optional and are kept in step with the record by vela, not edited by hand. `captures_sha256` holds one fingerprint per part of the session's private notes (`pending` while a part is open), and `summary` is optional because the one-line summary lives in the private notes file, not in the committed record.
 
 ## IDs
 
@@ -119,9 +118,9 @@ IDs are never reused or renumbered. A file's basename is frozen once anything li
 
 Every item has a state. `inkling` is a hunch. `assumption` is believed but not checked. `fact` has a source. `decided` came out of a Grill. `unknown` is a question with an owner, and a list of what it blocks when it blocks anything.
 
-- **Only a Grill decides,** unless the user overrides it (see Overrides). A `decided` page carries a page-level `- **Decision:**` bullet, and a `decided` contract or functional requirement carries one under its heading. The bullet is a receipt: it names the session, the capture where the yes was given, and who said it, as in `[[2026-10-22-booking-api]] c07, @maria: "Yes, one booking API for the web and the kiosks."`. The linked session's `modes` must include `grill`, or an `**Override:**` on the item names `grill`, and then the bullet is the bare link. The words after the colon are there only when a person may be quoted (see Whose words go on a page). Goal rows take their decision from the Goals page's bullet.
+- **Only `vela decide` decides.** An item is `decided` when the lead said yes to its read-back, in any session. A `decided` page carries a page-level `- **Decision:**` bullet, and a `decided` contract or functional requirement carries one under its heading. The bullet is a receipt: it names the session, the capture where the yes was given, and who said it, as in `[[2026-10-22-booking-api]] c07, @maria: "Yes, one booking API for the web and the kiosks."`. The bullet links the session the decision was made in. The words after the colon are there only when a person may be quoted (see Whose words go on a page). Goal rows take their decision from the Goals page's bullet.
 - **A decision a document states** is the one exception. When a registered source records a decision ("approved by the CTO on March 3") and the lead says yes to it in an import, it is `decided` with a receipt that ends in `as SRC-nn states`, such as `[[2026-10-22-booking-api]] c07, @maria, as SRC-04 states`, which `vela decide --stated-in SRC-nn` writes. The lead's yes is on the session's Changes row, as for any decision. What the lead isn't sure of stays an `assumption`, with the document noted.
-- **A decision keeps its why.** When a Grill sets an item to `decided`, it asks the lead why in one question, and writes the answer in the lead's own words as `- **Why:** <the lead's words>` beside the `**Decision:**` bullet: under the item's heading, or under its `#### <ID>` in `## History`, or directly under `## History` for a page. A decision that shapes the whole design (the strategy, an app, a flow) also gets a decision record stub for close to fill. `vela check` warns W390 on a decided item with no Why; it is a warning, never an error, and a decision record is exempt because it is the reasoning. A page and the rows it decides (goals, allocation, releases) share one page-level Why.
+- **A decision keeps its why.** When an item is set to `decided`, vela asks the lead why in one question, and writes the answer in the lead's own words as `- **Why:** <the lead's words>` beside the `**Decision:**` bullet: under the item's heading, or under its `#### <ID>` in `## History`, or directly under `## History` for a page. A decision that shapes the whole design (the strategy, an app, a flow) also gets a decision record stub for close to fill. `vela check` warns W390 on a decided item with no Why; it is a warning, never an error, and a decision record is exempt because it is the reasoning. A page and the rows it decides (goals, allocation, releases) share one page-level Why.
 - **A requirements session cannot decide.** It writes at most `assumption`.
 - **A fact needs a source.** A `fact` page lists `sources`. A `fact` contract or functional requirement carries `- **Source:** SRC-nn`. A goal row at `fact` needs its page to list `sources`.
 - **What counts as a source.** A document describing what exists gives a fact. A document stating intent gives an assumption. A person's first-hand knowledge gives a fact. Claude's general knowledge is never a source.
@@ -135,7 +134,7 @@ Every item has a state. `inkling` is a hunch. `assumption` is believed but not c
 
 A fact bullet is a list line `- **Label:** value`, one label per line. Unknown labels are prose. A `- Trace:` line under a criterion is not a fact bullet; see Pages. Bullets under a `### <ID> <name>` heading belong to that item. Bullets elsewhere belong to the page.
 
-Page level: `**Decision:**` (a receipt: `[[<session>]] c07, @who`, naming the deciding Grill, the capture of the yes and who gave it, with `: "<their words>"` after it only when that person may be quoted), `**Dissent:**` (`@who, <date>`, with `: "<their words>"` and `(see [[<session>]])` only when that person gave their own yes to being quoted; a Dissent without words says who disagreed and when, and the reason is on the challenge's unknown) and `**Options considered:**` (what a Shape weighed: `<picked option> (picked); <option>: rejected, <reason>; ...`). `**Override:**`, `**Decided by:**` and `**Confirmed by:**` may go on any page or under any item heading; see Overrides. So may `**Pending approval:**`; see Pending approval.
+Page level: `**Decision:**` (a receipt: `[[<session>]] c07, @who`, naming the deciding session, the capture of the yes and who gave it, with `: "<their words>"` after it only when that person may be quoted), `**Dissent:**` (`@who, <date>`, with `: "<their words>"` and `(see [[<session>]])` only when that person gave their own yes to being quoted; a Dissent without words says who disagreed and when, and the reason is on the challenge's unknown) and `**Options considered:**` (what a Shape weighed: `<picked option> (picked); <option>: rejected, <reason>; ...`). Shape writes it at close, or `vela decide --picked ... --rejected ...` writes it when the lead settles the pick; a reason goes on in the lead's words only when they may be quoted. `**Override:**`, `**Decided by:**` and `**Confirmed by:**` may go on any page or under any item heading; see Overrides. So may `**Pending approval:**`; see Pending approval.
 
 Contract, under `### CON-nnn <name>` on the provider's building-blocks page:
 
@@ -152,7 +151,7 @@ Contract, under `### CON-nnn <name>` on the provider's building-blocks page:
 | `**Why:**` | Written when `decided`: the lead's own reasons, in their words. See Certainty and sources. |
 | `**Provider:**` | Only for an external provider with no page. The contract then lives on the consumer's page. |
 | `**Dissent:**` | Optional. |
-| `**Options considered:**` | Optional. What a Shape weighed, in the page-level form. |
+| `**Options considered:**` | Optional. What a Shape weighed, in the page-level form. Below a medium plan, deciding may record `only this one: <the lead's words> ([[<session>]] c14)` instead (`vela decide <ID> --options-none ^cN`), with the words only when the person may be quoted. A pick settled with `--picked` and `--rejected` reads `<pick> (picked); <option>: rejected, <reason>`, and `reason declined` when the lead gave none. |
 | `**Links:**` | Optional. Where the contract is written down outside the vault, such as its API spec. See Links out of the vault. |
 | `**Auth:**` | Optional, but a stub needs it. How a caller proves who it is, in a few words. |
 | `**Can time out:**` | Optional. `yes` or `no`: whether a caller can be left waiting with no answer. The flow check needs it on every contract a slice calls. |
@@ -189,7 +188,7 @@ A worked example, with the bullets that go beside it:
 
 Leave a column blank rather than drop it. Timeouts and giving up after the retries are not rows: `**Can time out:**` and `**Retries:**` say them once, and the checker adds those cases itself. A contract that is `decided` has an error case, because a contract that says nothing about failure has not been decided. A grill does not decide a contract without its case table.
 
-Functional requirement, under `### CAP-nnn.FRn <what it does>` on the capability page. It carries `**State:**` (`inkling`, `assumption`, `fact` or `decided`) and is checked like a contract. `decided` needs `**Decision:**` linking a Grill session, `fact` needs `**Source:**`, and an open unknown that lists it in `**Blocks:**` stops it being `decided`.
+Functional requirement, under `### CAP-nnn.FRn <what it does>` on the capability page. It carries `**State:**` (`inkling`, `assumption`, `fact` or `decided`) and is checked like a contract. `decided` needs `**Decision:**` linking the session that decided it, `fact` needs `**Source:**`, and an open unknown that lists it in `**Blocks:**` stops it being `decided`.
 
 Unknown, under `### UNK-nnn <short name>` on `11-unknowns-and-risks.md`:
 
@@ -224,7 +223,7 @@ Parties and stored value carry no `**State:**`. A stored value's `**Owner:**` is
 
 ## Overrides
 
-The person using the skills may override any rule in them: a grill gate, "only a Grill decides", a blocking open unknown, an absent owner, or any other skill rule. The lead may decide on others' behalf. An override is never refused and never hidden. It is written on the item it sets a rule aside for, where reviewers, `vela check`, `/vela:ask` and the progress views all read it.
+The person using the skills may override any rule in them: a gate, a blocking open unknown, an absent owner, or any other skill rule. The lead may decide on others' behalf. An override is never refused and never hidden. It is written on the item it sets a rule aside for, where reviewers, `vela check`, `/vela:ask` and the progress views all read it.
 
 ```
 - **Override:** <rule>, <rule> by @handle on YYYY-MM-DD until YYYY-MM-DD: <reason>
@@ -238,14 +237,13 @@ The person using the skills may override any rule in them: a grill gate, "only a
   |---|---|---|
   | `GATE-1`, `GATE-2`, `GATE-3`, `GATE-5` | that grill gate | none: the check cannot see these gates, so the bullet is the record |
   | `GATE-4` | an open unknown blocks the item | E316 to W316 |
-  | `grill` | "only a Grill decides" | E303 to W303, and E317 to W317 |
-  | `E303`, `E304`, `E316`, `E317`, `E318` | that check rule alone | E303 to W303, E304 to W304, E316 to W316, E317 to W317, E318 to W318 |
+  | `E303`, `E304`, `E316`, `E318` | that check rule alone | E303 to W303, E304 to W304, E316 to W316, E318 to W318 |
   | `E805` | the epics gate's rule that high-severity questions are disposed | E805 to W805 |
   | `"<the rule's words>"`, in double quotes | a skill rule with no name above, for example `"Shape offers 2 or 3 options"` | none |
 
-- **Until.** Rules come in two kinds, because they end differently. A **standing** rule guards a condition that stays true until someone acts: `GATE-4`, `grill`, `E303`, `E304`, `E316`, `E317`, `E318`, `E805`, `"case table"` and the flow check's findings. Its override says the day it ends, `until YYYY-MM-DD`, because one with no end would cover the rule long after the reason for it stopped holding. An **event** rule was met or not at the moment of deciding: `GATE-1`, `GATE-2`, `GATE-3`, `GATE-5` and any other quoted rule. Its override has nothing to end and writes no `until`. When the lead has not said a date, the skill offers one, the next release `**Target:**` the item feeds, else 30 days from today, and writes it only once the lead agrees. A flow-check override keeps its end inside the quotes, `"F8 CON-020 declined until 2026-10-01"` (see Flow check). An override written before end dates, with no `until`, still reads and still covers.
+- **Until.** Rules come in two kinds, because they end differently. A **standing** rule guards a condition that stays true until someone acts: `GATE-4`, `E303`, `E304`, `E316`, `E318`, `E805`, `"case table"` and the flow check's findings. Its override says the day it ends, `until YYYY-MM-DD`, because one with no end would cover the rule long after the reason for it stopped holding. An **event** rule was met or not at the moment of deciding: `GATE-1`, `GATE-2`, `GATE-3`, `GATE-5` and any other quoted rule. Its override has nothing to end and writes no `until`. When the lead has not said a date, the skill offers one, the next release `**Target:**` the item feeds, else 30 days from today, and writes it only once the lead agrees. A flow-check override keeps its end inside the quotes, `"F8 CON-020 declined until 2026-10-01"` (see Flow check). An override written before end dates, with no `until`, still reads and still covers.
 - **Where it sits.** Under an item's heading, or under `#### <ID>` in the page's `## History`, it covers that contract or functional requirement. At page level, which is directly under `## History`, it covers the page and its goal rows, not the items under its headings. A rule that belongs to no item, such as how a session ran, goes at page level in the session's notes. An override of `E805` goes at page level under `## Question ledger` on `11-unknowns-and-risks.md`, and covers every E805 there; each one still prints, as W805.
-- **Decided by.** When someone other than the item's owner decided it: the decider's handle, `, on behalf of ` and the owner's handle or handles. Deciding on the owner's behalf is how a Grill passes GATE-5 with the owner absent, and it goes with `**Override:** GATE-5`. A bare handle, `- **Decided by:** @owner`, is the owner's own decision: it is what accepting a reader's proposal writes, and it needs no confirmation.
+- **Decided by.** When someone other than the item's owner decided it: the decider's handle, `, on behalf of ` and the owner's handle or handles. The lead's yes settles any item, so `vela decide` writes this line itself whenever the yes isn't the owner's own, with no override and no reason asked; nothing warns, and the owner can add a `**Confirmed by:**` line or challenge it. A bare handle, `- **Decided by:** @owner`, is the owner's own decision: it is what accepting a reader's proposal writes, and it needs no confirmation.
 - **Confirmed by.** The owner adds it later: their handle, ` on ` and the date. A team owner is confirmed by one of its people. A confirmation by the person who decided does not count.
 - **An owner who disagrees** with a decision made on their behalf raises `/vela:challenge` on the item, as a senior does after handoff. Confirming and challenging are the only two answers.
 
@@ -254,7 +252,6 @@ The person using the skills may override any rule in them: a grill gate, "only a
 - A well-formed override that names the rule an error enforces turns that error into its warning, and the warning quotes the override. Nothing else changes: the warning stays until the rule is met or the bullet goes.
 - A malformed override is E321: no rule, an unknown rule name, no handle, no date, a date that is not real, an `until` that is not a real date or comes before the date it was written, or no reason. A malformed `**Decided by:**` or `**Confirmed by:**` is E322. So is a label one typo away from one of the three, such as `**Overide:**`. A typo never silently fails to override.
 - W323: an override names a rule the check can test, and the item does not break it, so the override sets nothing aside. A rule only a gate tests, such as `E805`, is judged only when that gate runs, so a plain check never calls its override idle.
-- W324: an item carries `**Decided by:** ... on behalf of @owner` and no `**Confirmed by:**`, until the owner confirms.
 - E398: a standing override is past its `until`. It covers nothing, so the error it named prints as an error again. Fix the cause and delete the bullet, or renew it with a new `until` and why it moved.
 
 ## Pending approval
@@ -275,13 +272,13 @@ The bullet goes where `**Override:**` goes: under the item's heading, or under `
 
 Authority comes from access, not title and not config. An **owner** works inside the vault's git work tree and can commit. A **reader** has a published copy: no `.git`, a `.vela/workspace.json`. `vela role` prints which you are. `.vela.yaml` may say `role: reader` to downgrade an owner who wants to browse safely; `role: owner` is ignored with a warning, because the file ships in published copies and honoring it would let a reader promote themselves.
 
-`vela publish --out <folder|.zip>` writes a read copy of the committed files at HEAD, never the working tree. It leaves out `.git`, generated `.vela/` output (the committed `explorer-pins.json` stays in, so a reader's map matches the owner's), `voice/local/` and the vendored plugin copy, and adds `.vela/published.json`: the initiative, title, full and short commit, date, whether the vault had uncommitted changes (`dirty`), the owner's contact (`owner_contact` in `.vela.yaml`, else `git config`), the `vela check` counts, and a `tree_hash` of the contents. A dirty vault is never refused; the stamp says so. A zip has one top folder, forward-slash names and fixed timestamps, so the same input gives the same zip. A reader cannot publish.
+`vela publish --out <folder|.zip>` writes a read copy of the committed files at HEAD, never the working tree. It leaves out `.git`, generated `.vela/` output (the committed `explorer-pins.json` stays in, so a reader's map matches the owner's), `voice/local/` and the vendored plugin copy, and adds `.vela/published.json`: the initiative, title, full and short commit, date, whether the vault had uncommitted changes (`dirty`), the owner's contact (`owner_contact` in `.vela.yaml`, else `git config`), the `vela check` counts, and a `tree_hash` of the contents. A dirty vault is never refused; the stamp says so. A zip has one top folder, forward-slash names and fixed timestamps, so the same input gives the same zip. A reader cannot publish. A published copy can also be opened from a GitHub link, which runs the same publish steps on what was committed there and stamps the copy "from GitHub <repository>".
 
 `vela freshness [--json]` says whether anything has changed, and never updates anything. An owner's clone runs `git fetch` (8 seconds, `--timeout` to change) and reports commits behind and ahead of upstream and uncommitted files; offline is said plainly and local state is shown. A reader's workspace compares its baseline stamp with the stamp at the folder or zip it was opened from; an unreachable source is said plainly, and is not a failure.
 
-## Grills waiting
+## Waiting for a decision
 
-The dashboard's **Grills waiting** view lists what a Grill could decide now, in three groups: **You already said yes** (a session that could not decide kept your yes under `## Ready to decide`), **Ready to decide** (`vela check --gate grill` passes) and **One thing away** (the gate names exactly one missing thing, with who owes it and by when). An item more than one thing away is not listed. It is computed in `vela/grills.py` from those same three sources, so the view and the gate cannot disagree.
+The dashboard's **Waiting for a decision** view lists what could be decided now, in three groups: **You already said yes** (a yes you gave and didn't settle, kept under `## Ready to decide`), **Ready to decide** (`vela check --gate decide` passes) and **One thing away** (the gate names exactly one missing thing, with who owes it and by when). An item more than one thing away is not listed. It is computed in `vela/grills.py` from those same three sources, so the view and the gate cannot disagree. Each card carries two prompts for Claude: "Settle <name>", for a lead who is sure, and "/vela:grill <name>", to test it first.
 
 **Who runs a grill.** The item's own owner, unless someone sets the grill's owner. People **asked to join** see the grill under their own filter. Both are kept in `.vela.yaml`, keyed by the item's ID, and set only with the command, never by hand:
 
@@ -378,9 +375,9 @@ A waiver records that an `addressed` cell needs no epic work. The cell text star
 
 Code decides which questions the vault owes. The skills decide only how to ask them, and the ledger records how each one ended.
 
-**The catalog.** `catalog/questions.yaml` in the plugin ships with the plugin and carries a `version`. Each entry has an `id` such as `Q-FIN-01`, a focus `area`, a `scope`, a `trigger`, the `question`, a `why` (the regulation, practice or simulation miss that earned it a place) and a `severity`, `high` or `normal`. `blocks` lists the kinds of unit an open copy holds up: `app`, `contract`, `requirement`, `capability`, `decision` and `epic`. An initiative-scope entry may say which subject a yes `creates`, `party` or `stored-value`, and list the words that suggest that subject in `mentions`. Each mention is a group of forms such as `license/licenses`, and `mention_why` gives each group its reason. `mention_except` lists phrases such as `credit card*` that use the word for something else and are not read as the subject; a `*` ends a word at any suffix. The five focus areas are `FIN` Finance and liabilities, `DAT` Data and lawful basis, `PTN` Partners and contracts, `REG` Regulation and liability and `OPS` Operations and people. They are labels for readers, and they are not the areas of "Areas and stages". The catalog's `kinds` are the kinds of thing every plan needs: `goals`, `people`, `systems`, `data`, `rules`, `dates`, `money`, `risks` and `owners`. Each has a `means`, the focus `areas` whose questions fall under it (every area sits under at least one kind), and `near`, the kinds a talk on it tends to lead to, read both ways. A session's topic map tags what the lead says to them (see Sessions).
+**The catalog.** `catalog/questions.yaml` in the plugin ships with the plugin and carries a `version`. Each entry has an `id` such as `Q-FIN-01`, a focus `area`, a `scope`, a `trigger`, the `question`, a `why` (the regulation, practice or simulation miss that earned it a place) and a `severity`, `high` or `normal`. `blocks` lists the kinds of unit an open copy holds up: `app`, `contract`, `requirement`, `capability`, `decision` and `epic`. An initiative-scope entry may say which subject a yes `creates`, `party` or `stored-value`, and list the words that suggest that subject in `mentions`. Each mention is a group of forms such as `license/licenses`, and `mention_why` gives each group its reason. `mention_except` lists phrases such as `credit card*` that use the word for something else and are not read as the subject; a `*` ends a word at any suffix. `follows` names another entry of the same scope (one level only): the follow-up is owed on a subject only once that entry's row there is `answered` or `assumed`, so a `not-applicable` (the no) keeps it off the ledger. Q-REG-05 follows Q-REG-01. A `group` of `existence` marks the six entries that ask whether a subject exists at all (FIN-01, DAT-01, DAT-05, PTN-01, REG-01, REG-02): `vela questions --existence` reads the ones still pending back as one numbered turn of yes-or-no lines, each answer its own capture, and recommends a no only where the plan has evidence (the entry creates a subject kind, none is typed, no untyped mention fires; for a party, no contract has a `**Provider:**` either; PTN-01 also needs no app or capability retired or replaced). That read-back is the one place several questions are asked at once; the other views keep to three or four at a time. The five focus areas are `FIN` Finance and liabilities, `DAT` Data and lawful basis, `PTN` Partners and contracts, `REG` Regulation and liability and `OPS` Operations and people. They are labels for readers, and they are not the areas of "Areas and stages". The catalog's `kinds` are the kinds of thing every plan needs: `goals`, `people`, `systems`, `data`, `rules`, `dates`, `money`, `risks` and `owners`. Each has a `means`, the focus `areas` whose questions fall under it (every area sits under at least one kind), and `near`, the kinds a talk on it tends to lead to, read both ways. A session's topic map tags what the lead says to them (see Sessions).
 
-**Subjects and copies.** A scope names the kind of subject an entry applies to: `initiative` (the initiative in `.vela.yaml`), `app`, `contract`, `capability`, `party` or `stored-value`. A trigger is `exists`, or conditions joined by ` and `, each `<field>: <value>` or `<field> in [<value>, <value>]`. An app has the fields `change`, `state` and `stage`. A contract has `change`, `state` and `provider`, which is `external` when the contract has a `**Provider:**` bullet and `app` otherwise. A capability has `change`, `state`, `origin` and `domain`, and a party has `relationship`. The initiative and a stored value have none, so their entries use `exists`. Values are compared in lower case, and a missing field never matches. Code reads a trigger; it never runs one.
+**Subjects and copies.** A scope names the kind of subject an entry applies to: `initiative` (the initiative in `.vela.yaml`), `app`, `contract`, `capability`, `party` or `stored-value`. A trigger is `exists`, or conditions joined by ` and `, each `<field>: <value>` or `<field> in [<value>, <value>]`. An app has the fields `change` and `state`. A contract has `change`, `state` and `provider`, which is `external` when the contract has a `**Provider:**` bullet and `app` otherwise. A capability has `change`, `state`, `origin` and `domain`, and a party has `relationship`. The initiative and a stored value have none, so their entries use `exists`. Values are compared in lower case, and a missing field never matches. Code reads a trigger; it never runs one.
 
 `vela questions` applies each entry once to each subject of its scope that its trigger matches. Each result is a copy, with the ID `<entry>@<subject>`, for example `Q-DAT-02@APP-booking`. The ID follows the subject's ID, so renaming a file keeps it. A subject that is removed takes its copies with it, and a ledger row for one of them is reported as orphaned, never dropped.
 
@@ -410,10 +407,10 @@ Three gates read it too. Each names a moment, and a skill runs it then:
 | Gate | When | What it reports |
 |---|---|---|
 | `vela check --gate shape` | the end of a Shape | W806 for each row still `assumed`. An assumption clears into a decision, a requirement or a constraint before Shape closes. |
-| `vela check --gate grill --item <ID>` | a Grill, once per agenda item | W807 for each copy with no row, or an `open`, `asked` or invalid row, that blocks the item. A warning: the lead may decide anyway. An item no catalog question can block gets one W807 saying so. |
+| `vela check --gate decide --item <ID>` | a Grill, once per agenda item | W807 for each copy with no row, or an `open`, `asked` or invalid row, that blocks the item. A warning: the lead may decide anyway. An item no catalog question can block gets one W807 saying so. |
 | `vela check --gate epics` | before epics are called complete | E805 for each high-severity copy or reviewer question with no row, or an `open`, `asked` or invalid row. An `asked` question is still waiting for its answer. A gate that passes while `assumed` rows with `load-bearing: yes` dispose of high-severity questions prints one note naming them. |
 
-`--item` repeats, once per agenda item, and goes only with `--gate grill`, which needs at least one. An ID the vault does not hold exits 2.
+`--item` repeats, once per agenda item, and goes only with `--gate decide`, which needs at least one. An ID the vault does not hold exits 2.
 
 A question only fires on a subject someone typed. So W809 warns, "possibly an untyped subject", where a fact bullet or a table row says one of the words an existence question lists in `mentions` (points, balances, credits, vouchers or deposits for stored value; a clause or a license for a party), the page neither holds nor links a subject of that kind, and that existence question has no row yet or an `open` one. It warns once per page and question. Prose, session records, `sources.md` (a source's title names a document, not a subject), generated blocks and the ledger are not read for it. Type the subject and link it, or answer the existence question, and the warning goes.
 
@@ -464,7 +461,7 @@ Every mermaid block on a page and in any Markdown file under `docs/` (the team's
 
 A session is two files with the same name. The stub, `sessions/YYYY-MM-DD-<topic>.md`, is committed and has a header and no body. The notes, `sessions/private/YYYY-MM-DD-<topic>.md`, hold every word that was said and stay on the lead's machine. The plan's `.gitignore` lists `sessions/private/`, `vela records split` adds the line to a plan that lacks it, and `vela check` warns W720 when notes are committed anyway.
 
-**The stub** has `id`, `type`, `date`, `modes`, `status` (`open` or `closed`) and `title` in its frontmatter, with `branch`, `start_commit`, `captures_sha256` and the three lists `ready`, `challenges` and `harvest_declined`. The lists hold item IDs, page names and hashes, never words. The title is the topic, with no one's name in it: `vela session start` checks its words against the handles the plan knows (page and item owners, grill owners and joins in `.vela.yaml`, the lead's `vela whoami` handle and display names, and the people in this machine's notes), matches whole handles and display-name words only, skips team handles, and asks for a reword. The lead may keep the name anyway: saying the same name a second time goes ahead, and the stub records the day as `title_override`.
+**The stub** has `id`, `type`, `date`, `modes`, `status` (`open` or `closed`) and `title` in its frontmatter, with `branch`, `start_commit`, `captures_sha256`, `size` and `size_kept` (see Size) and the three lists `ready`, `challenges` and `harvest_declined`. The lists hold item IDs, page names and hashes, never words. The title is the topic, with no one's name in it: `vela session start` checks its words against the handles the plan knows (page and item owners, grill owners and joins in `.vela.yaml`, the lead's `vela whoami` handle and display names, and the people in this machine's notes), matches whole handles and display-name words only, skips team handles, and asks for a reword. The lead may keep the name anyway: saying the same name a second time goes ahead, and the stub records the day as `title_override`.
 
 **The notes** have `part` and `summary` in their frontmatter. The body has `## Captures` and `## Changes`. A session that ran a review checkpoint also has `## Reviews` after `## Captures`: per checkpoint, a `### <n>. <checkpoint>, <date>` heading, a `- **Coverage:**` line copied from `vela findings merge`, a `- **Dropped:**` line, and a table `| Finding | Area | Severity | Copy | Question | Quote |` with one row per kept finding, `F<n>.1` and on. Reviews stay in the notes: a checkpoint commits the stub only. The notes may also hold `## Agenda`, `## Ready to decide` and `## Catalog proposals`, a YAML block of new catalog entries the user approved.
 
@@ -493,6 +490,8 @@ A capture line, inside the notes:
 **Backup.** The notes live nowhere else. `vela records backup --to <folder or .zip>` copies every session's notes to a place outside the plan, and never overwrites a copy that is already there.
 
 **The topic map.** While a session is open, `vela map` keeps its running topic map in `.vela/map/<session>.json`: what the lead said, each tagged to one of the catalog's `kinds`; the groups named, with where each stands on a topic (`stated`, or the lead's `guess`); and the waiting items, a `gap`, `conflict`, `belief` or `fact` to raise later, each `waiting` until closed as `settled`, `recorded` or `set-aside`. The map is the session's working state, never part of the plan: like the rest of `.vela/` it stays on this machine and a close never stages it. What it settles reaches the plan only as captures in the record. Nobody edits the file by hand; one vela can't read is an error, never an empty map.
+
+**The companions.** `vela companion session` and `vela companion explain` draw what this session decided and what a question about the plan needs, from the notes and the plan. Their files live in `.vela/companion/`: the JSON a mod reads, the Markdown a terminal shows, the HTML Cowork publishes, the page index, the plan digest and what a reader saw last. Like the rest of `.vela/` they stay on this machine and a close never stages them; nobody edits them by hand; one vela can't read is said, never read as empty. A panel only shows: nothing in it sends anything back to Claude.
 
 ## Voice examples
 
@@ -534,7 +533,7 @@ The `sha` is the first 8 hex digits of SHA-256 over the block's text, with trail
 
 | Block | Page | What it shows |
 |---|---|---|
-| `where-it-stands` | `01-goals.md` | Apps with their typed stage, and beside it the counts of blocking unknowns, `unexamined` cells and contracts `decided` or `fact`; every open unknown with owner, ask-by and what it blocks; the last session date; once epics exist, "Delivery status: not tracked in this vault" |
+| `where-it-stands` | `01-goals.md` | Apps with the stage their pages reach, and beside it the counts of blocking unknowns, `unexamined` cells and contracts `decided` or `fact`; every open unknown with owner, ask-by and what it blocks; the last session date; once epics exist, "Delivery status: not tracked in this vault" |
 | `concern-matrix` | `08-concerns.md` | One row per app, one column per concern, each cell's state |
 | `unknowns-index` | `11-unknowns-and-risks.md` | Every unknown and risk with owner, state and ask-by |
 | `contracts-consumed` | each app page | Every contract whose `**Consumers:**` links this app |
@@ -564,8 +563,8 @@ For each app the first rule that matches picks the mode. `vela next` takes the a
 | 2 | Boundary | the app page is a Boundary stub: its frontmatter says `stub: boundary` and it has no containers table |
 | 2 | Discover | the app page lists no `sources` |
 | 3 | Discover | the app is `integrated` or `unchanged`, and one of its items no open unknown blocks is at `inkling` or `assumption`: what exists needs a source to reach `fact` |
-| 3 | Shape | one of its items is at `inkling`, or at `assumption` with no `**Options considered:**` |
-| 4 | Discover | an item has options recorded, but the app's `stage` is before `target`, so it fails GATE-1 |
+| 3 | Shape, or below medium one question when deciding (see Size) | one of its items is at `inkling`, or at `assumption` with no `**Options considered:**` |
+| 4 | Discover | an item has options recorded, but the app's pages reach only `baseline`, so it fails GATE-1 |
 | 5 | Grill | an item at `assumption` has options recorded and no open unknown blocks it |
 | 6 | Probe | an open unknown blocks one of its items |
 | 7 | none, waits | a contract it provides or consumes is not `decided` or `fact` |
@@ -573,6 +572,41 @@ For each app the first rule that matches picks the mode. `vela next` takes the a
 | 9 | none | nothing is open |
 
 Requirements cut across apps, so two steps are the initiative's, not any app's, and `vela next` names them ahead of every app rule but rule 1: `initiative, allocate CAP-nnn` while a functional requirement at `assumption`, `fact` or `decided` has no row carrying it, and, before the first epic, `initiative, requirements CAP-nnn` while a changing capability has no functional requirements. While no app page exists, `vela next` suggests `initiative, requirements` once `04-solution-strategy.md` is `decided` and no capability has functional requirements, then `initiative, boundary`, and `initiative, dump` before the strategy is decided.
+
+## Size
+
+vela measures how big the plan is from what it already holds, in one place, and every step that varies with size asks that one place. Three signals each read small, medium or large, and the highest one wins:
+
+| Signal | Small | Medium | Large | Why |
+|---|---|---|---|---|
+| Apps (new or changed) | up to 2 | 3 to 5 | 6 or more | Two apps are one conversation, one team each; from three, the hand-offs between apps need their own sessions; from six, the dashboard needs domains to stay readable. |
+| Capabilities (changing) | up to 2 | 3 to 5 | 6 or more | Up to two fit on one boundary sheet; from three, their requirements need their own session; from six, dividing them among apps does too. |
+| Releases | 1 | 2 | 3 or more | One release is one date, asked in a grill; a second needs a releases session to order them; from three, slices carry the order. |
+
+Parties and provider contracts never move the band. They bring their own catalog questions at every size, and letting the same fact also move the band would make two mechanisms disagree.
+
+**The band does not drop on its own.** Each session stub records `size` (the band the plan read, with counts and no names, such as `small; apps 2, capabilities 1, releases 1`), and the plan keeps the highest it has recorded. A plan that shrinks stays at its higher reading until the lead sets the size. The lead's choice lives in `.vela.yaml` as `size: {band, because, date}`, with `because` a committed capture reference such as `[[2026-10-02-grill-a]] c14`. `vela size` shows the size, the counts and the reasons. `vela size set <band> --because ^cN` records a choice and asks for the capture first if there is none; it never refuses the choice. `vela size clear` goes back to the measured shape. `vela size announce` says the size line if it is due. The line is said once, by whichever step reads it first: session start, `vela next --for-lead`, `vela check --for-lead`, `vela add` or close. It names apps, capabilities and releases, never people, and is recorded on the open stub (`size`, and `size_kept` when the lead kept a size below the shape) so it is not said twice. A plan that grows mid-session gets the bigger band at once.
+
+**What the size changes.** Eight things start at a band:
+
+| Need | Starts at | What a smaller plan does instead |
+|---|---|---|
+| Reading-load notes shown | medium | Wording notes wait until asked. |
+| Options before a grill | medium | One question settles one option (below). |
+| A review after each mode | large | One review checkpoint a session, covering what changed. |
+| Voice review always | medium | A fresh reader reads drafts only from five paragraphs. |
+| A domain on each app | large | W352 does not fire. |
+| A requirements session | medium | Requirements ride on the Boundary sheet. |
+| An allocate session | medium | Shares ride on the Boundary sheet. |
+| A releases session | medium | The date is asked in the grill. |
+
+Nothing that can ship a wrong decision changes with size. The direction gate, the grill gates, every error, the read-back at close, the quote-yes for someone else's words and the send notice are the same at every size.
+
+**Weights.** Every finding code has one weight. `decision` is said at every size. `polish` is reading load (wording and look); it is not said in `--for-lead` or at close, but is counted in one line and always listed in plain `vela check` and CI. `auto` is fixed by close when it can fix it, and said when it can't; `vela check --fix auto` runs every such fix. `scale:<need>` fires only from that need's band; W352 is the one. No error is ever polish or auto. Plain `vela check` is the same at every size except for W352.
+
+**One option below medium.** Below medium, deciding an item with no options recorded asks one question instead of sending the lead to Shape, in any session. The lead's answer is recorded with `vela decide <ID> --options-none ^cN`, as `- **Options considered:** only this one: <the lead's words> ([[<record>]] cNN)`, with the words only when the person said they may be quoted. At large it still points to Shape. The lead may use `--options-none` at any size.
+
+**Review and completeness.** The review checkpoint runs once a session below large; a second one in the same session lists every area as skipped, and `--rerun N --areas` still runs any area. Completeness leaves out an unwritten releases page or slices page while the size needs no Releases session.
 
 ## Keeping the vault fresh
 
@@ -610,7 +644,7 @@ Run `vela check` from the vault root. It reads, never writes, and never stops at
 
 The table is generated from the codes `vela check` uses, so it cannot drift from them, and each finding's fix line says how to put it right. `vela upgrade` brings a vault's copy up to date.
 
-<!-- generated:check-codes sha=08956284: do not edit, run vela render -->
+<!-- generated:check-codes sha=16e90298: do not edit, run vela render -->
 | Code | Finding |
 |---|---|
 | E101 | page has no frontmatter |
@@ -630,8 +664,8 @@ The table is generated from the codes `vela check` uses, so it cannot drift from
 | E210 | two rows claim one ID, or one app on a concern page |
 | E301 | concern cell is not valid |
 | E302 | unknown or risk is missing a required fact |
-| E303 | decided without a Grill decision |
-| W303 | decided without a Grill, by override |
+| E303 | decided with no Decision link to the session that decided it |
+| W303 | decided with no session link, by override |
 | E304 | fact without a source |
 | W304 | fact without a source, by override |
 | E306 | fact table row is not valid |
@@ -645,17 +679,13 @@ The table is generated from the codes `vela check` uses, so it cannot drift from
 | E315 | a Decision or Dissent line is not in the receipt form |
 | E316 | decided while an open unknown blocks it |
 | W316 | decided while an open unknown blocks it, by override |
-| E317 | a requirements session cannot decide |
-| W317 | decided by a requirements session, by override |
 | E318 | decided contract has no Tested by |
 | W318 | decided contract has no Tested by, by override |
-| E319 | stage does not fit the app's change |
 | E320 | contract is missing a required fact |
 | E321 | override is malformed |
 | E322 | decided-by or confirmed-by is malformed |
 | E323 | a History heading names no item on its page |
 | W323 | override not needed |
-| W324 | decided on the owner's behalf, not yet confirmed |
 | W325 | app is handed off but its PR number is not recorded |
 | W326 | page is less settled than its rows |
 | W327 | reader's decisions pending approval |
@@ -729,6 +759,8 @@ The table is generated from the codes `vela check` uses, so it cannot drift from
 | E404 | generated block markers are broken |
 | W405 | a slice page still has a Joins line, which is no longer read: joins come from its flows |
 | W406 | two or more slices name no After, or none does: the tracer is the one slice with no After |
+| W407 | a box on a flow page's sequence diagram cannot be drawn as a lane group in the Flows view |
+| W408 | a page still has a stage line, which is no longer read: vela works the stage out from the pages |
 | E501 | no epic delivers a capability that changes |
 | W501 | no epic delivers a capability that changes |
 | E502 | no epic delivers a new or changed contract |
@@ -778,7 +810,7 @@ Codes are stable. A retired code is never reused.
 
 ## Requirements and allocation
 
-Requirements come in two levels, both in the vault. A capability's functional requirements say what the business needs and name no app: `### CAP-nnn.FRn <short name>` under `## Functional requirements` on its capability page, with a paragraph of what it does, `**State:**`, and its acceptance criteria as bullets, each followed by an indented `- Trace:` line when it cites another item (the line is not a criterion, and AC numbers skip it). `/vela:requirements` writes them at `assumption`, after the strategy is decided and before boundary, so boundary can test each cut against them, and a Grill decides them.
+Requirements come in two levels, both in the vault. A capability's functional requirements say what the business needs and name no app: `### CAP-nnn.FRn <short name>` under `## Functional requirements` on its capability page, with a paragraph of what it does, `**State:**`, and its acceptance criteria as bullets, each followed by an indented `- Trace:` line when it cites another item (the line is not a criterion, and AC numbers skip it). `/vela:requirements` writes them at `assumption`, after the strategy is decided and before boundary, so boundary can test each cut against them, and they are decided as any other item is.
 
 Allocation divides each requirement among the apps and contracts that deliver it. `/vela:allocate`, after boundary and before epics, writes each app page's share in one table under `## Requirements allocated`:
 
@@ -790,7 +822,7 @@ Allocation divides each requirement among the apps and contracts that deliver it
 - A contract's obligation is a row on its provider's table that names it in **Through**. A contract with an outside provider takes the row on its consumer's page.
 - When dividing a requirement shows two apps must talk in a way no contract covers, allocation writes that contract at `assumption` on the provider's page with every required bullet, and raises it.
 
-`vela check` reports E330 for a row that names no functional requirement of this vault, E331 for a **Through** that names no contract, E332 for a State outside the four, and E333 for a `fact` row on a page with no sources. A `decided` row answers to the decision rules as `CAP-nnn.FRn@APP-<slug>`: E303 when the page's Decision links no Grill, E317 when it links only a requirements session. T7 is a trace gap: a requirement at `assumption`, `fact` or `decided` that no row at `assumption` or later carries. It warns, and is an error under `--gate epics`. The `allocation` block on `04a-capability-delta.md` shows every requirement against every app.
+`vela check` reports E330 for a row that names no functional requirement of this vault, E331 for a **Through** that names no contract, E332 for a State outside the four, and E333 for a `fact` row on a page with no sources. A `decided` row answers to the decision rules as `CAP-nnn.FRn@APP-<slug>`: E303 when the page's Decision links no session that decided it. T7 is a trace gap: a requirement at `assumption`, `fact` or `decided` that no row at `assumption` or later carries. It warns, and is an error under `--gate epics`. The `allocation` block on `04a-capability-delta.md` shows every requirement against every app.
 
 An app's allocated rows are its team's input. Epics take their acceptance criteria from them, and the team's `tech-design-grill` traces its components to them.
 
@@ -833,7 +865,7 @@ Nothing else records a release. What the system looks like after each one is wor
 
 `/vela:releases` writes this page, after allocate and before epics, in a session with mode `releases`. A requirement the user places on no release ("later, no date") stays out of the file; W343 lists it.
 
-`vela check` reports E340 for a row that names no functional requirement of this vault, E341 for a criterion the requirement does not list, E342 for a release with no valid State, and E344 for a Target that is not a real YYYY-MM-DD date. A release at `inkling` may have no Target ("a later release, no date yet"): W349 notes it, and it stays off the timeline until someone gives a date. A release at `assumption` or `decided` with no Target is E344. Once any release exists, W343 warns for a requirement at `assumption`, `fact` or `decided` that no release delivers. If Not in the tracer, or a slice's Not in this slice, lists that requirement, W343 quotes the reason. Without slice pages, W345 warns when release one has no Tracer bullet; any Tracer bullet quiets it, including `none, <reason>` and plain words with no link. W347 warns when a tracer flow passes through an app or contract of this vault that release one delivers no share of; listing that app or contract by ID under Not in the tracer quiets it, an app or contract whose change is `unchanged` already runs and never counts, and neither do outside parties. With slice pages, the same two ask the same of the slices (see Slices). W348 warns when a release's Slices names a slice with no page. A Grill decides a release, as it decides any other item: the release's `**State:**` becomes `decided` and the Grill's `- **Decision:** [[<session id>]]` goes directly under the releases page's `## History`. A release set to `decided` with no such Decision is E303, reported on the release's heading, and an Override on the page clears it like any other.
+`vela check` reports E340 for a row that names no functional requirement of this vault, E341 for a criterion the requirement does not list, E342 for a release with no valid State, and E344 for a Target that is not a real YYYY-MM-DD date. A release at `inkling` may have no Target ("a later release, no date yet"): W349 notes it, and it stays off the timeline until someone gives a date. A release at `assumption` or `decided` with no Target is E344. Once any release exists, W343 warns for a requirement at `assumption`, `fact` or `decided` that no release delivers. If Not in the tracer, or a slice's Not in this slice, lists that requirement, W343 quotes the reason. Without slice pages, W345 warns when release one has no Tracer bullet; any Tracer bullet quiets it, including `none, <reason>` and plain words with no link. W347 warns when a tracer flow passes through an app or contract of this vault that release one delivers no share of; listing that app or contract by ID under Not in the tracer quiets it, an app or contract whose change is `unchanged` already runs and never counts, and neither do outside parties. With slice pages, the same two ask the same of the slices (see Slices). W348 warns when a release's Slices names a slice with no page. A release is decided as any other item is: the release's `**State:**` becomes `decided` and the deciding session's `- **Decision:** [[<session id>]]` goes directly under the releases page's `## History`. A release set to `decided` with no such Decision is E303, reported on the release's heading, and an Override on the page clears it like any other.
 
 ## Slices
 
@@ -988,9 +1020,11 @@ The strict sequence diagram is the flow page's first ` ```mermaid ` block that s
 | Line | Means |
 |---|---|
 | `participant S as Shop` | `S` stands for the app titled Shop. |
+| `box Channels` ... `participant` lines ... `end` | A named group of lanes, written where the participants are declared. Only participants go inside. The dashboard's Flows view opens the flow with each box drawn as one lane (the reader can ungroup it), and GitHub draws the box too. A box colored with `rgb(...)` or `transparent` reads the same; its name is the words after the color. A box that cannot be drawn as a group (a name an earlier box took, a participant that is no app or party, a lane already in an earlier box, or fewer than two lanes left) warns W407, and the Flows view says the same on the flow. |
 | `S->>I: CON-010 place a hold` | Shop calls Inventory's CON-010. The words after the ID read as the step in a trace. |
 | `I-->>S: 409 unavailable` | Inventory's answer: inside Inventory's drawn handling it returns the call; as the first line of a branch it labels it. |
 | `alt placed` ... `else unavailable, timeout` ... `end` | Branches on the call just before, one per answer. `timeout` and `gave_up` are the answers the check adds from Can time out and Retries. |
+| `alt The customer books on the website` ... `else The customer calls in` ... `end` | As the diagram's first statement, before any call: the flow's starts, one per option, named in plain words. The dashboard's Flows view offers them under "Starts from" and marks which numbered steps belong to which. The check walks every start, each on to the steps after the alt; GIVEN notes may come before the alt. |
 | `S-)B: EVT-008 order placed` | Shop publishes the event for Billing. |
 | `par Billing takes the payment` ... `end` | Right after an event line, a call from an outside party, or a TIMER: what the receiver does when it arrives, or when the timer fires. |
 | `Note over S: SET hold held` | Shop changes an entity's state. |
@@ -1063,7 +1097,7 @@ Findings, each with the step it sits on, a trace in plain words, the owners of t
 
 ## Domains
 
-An app page may say which domain it belongs to, as `domain: <name>` in its frontmatter, such as `domain: Channels`. Views of the system group apps by it, so a map of twenty apps opens as a handful of domains. Boundary asks for it once, for all the apps of the cut together, offering the domains already in the vault first so spellings converge. An app with no domain is shown under "No domain". `vela check` warns (W352) when some app has a domain and, in an initiative of 6 or more apps, another has none, and (W353) when two domains differ only by case or a trailing s.
+An app page may say which domain it belongs to, as `domain: <name>` in its frontmatter, such as `domain: Channels`. Views of the system group apps by it, so a map of twenty apps opens as a handful of domains. Boundary asks for it once, for all the apps of the cut together, offering the domains already in the vault first so spellings converge. An app with no domain is shown under "No domain". `vela check` warns (W352) when some app has a domain and, in a large initiative (see Size), another has none, and (W353) when two domains differ only by case or a trailing s.
 
 An app page may also name the picture views draw for it, as `icon: <word>`, one short lower-case word such as `icon: payments`. Without it a view picks one from the app's title, domain and opening words. Anything else is E105.
 
@@ -1160,4 +1194,4 @@ In the PR that sets `handed_off`, run `vela handoff <APP-id>`. It writes `handof
 
 `vela handoff verify <APP-id>` lists every item changed, added or removed since. A changed slice, the tracer included, is a changed item, so it reaches the senior. It exits 1 when something the senior accepted changed or left the handoff list, and 0 when the only news is an added item.
 
-A senior who disputes a boundary or contract after handoff, or an owner who disputes a decision made on their behalf, raises a challenge: an open unknown with the senior as owner that blocks the item, and a `**Dissent:**` line on it. The item's state and text stay as they are, so the check fails with E316 until the solution lead answers. To reopen an epic, set it to `reopened`. A `reopened` epic counts as not decided until a Grill decides it again. A Grill decides a `reopened` epic as it decides a `draft` one, and its `## Changes` row in the session's notes reads `| EPC-nnn | reopened | decided | [[<session id>#^cNN]] |`. The red check is deliberate: `vela check` fails until the lead answers, so a challenge should not merge while `main` still reads `decided` with an open blocker. The solution lead answers on the challenge branch, by resolving the unknown with a Grill or by setting the item back, and then the check turns green. START's "Answer a challenge" path opens that answer session on the branch, and close pushes to it and comments on the challenge PR instead of opening a second one.
+A senior who disputes a boundary or contract after handoff, or an owner who disputes a decision made on their behalf, raises a challenge: an open unknown with the senior as owner that blocks the item, and a `**Dissent:**` line on it. The item's state and text stay as they are, so the check fails with E316 until the solution lead answers. To reopen an epic, set it to `reopened`. A `reopened` epic counts as not decided until it's decided again. A `reopened` epic is decided as a `draft` one is, and its `## Changes` row in the session's notes reads `| EPC-nnn | reopened | decided | [[<session id>#^cNN]] |`. The red check is deliberate: `vela check` fails until the lead answers, so a challenge should not merge while `main` still reads `decided` with an open blocker. The solution lead answers on the challenge branch, by resolving the unknown with a Grill or by setting the item back, and then the check turns green. START's "Answer a challenge" path opens that answer session on the branch, and close pushes to it and comments on the challenge PR instead of opening a second one.

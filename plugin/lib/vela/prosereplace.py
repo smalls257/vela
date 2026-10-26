@@ -2,7 +2,7 @@
 Task 21d).
 
 Why: merged prose belongs to the people who edited it. When a session makes a merged paragraph wrong as a whole,
-house-voice ("Merged prose") and close section 4 say to rewrite it, and first to keep the old paragraph word for word
+house-voice ("Merged prose") and close's "Write the items and the prose" say to rewrite it, and first to keep the old paragraph word for word
 in the session record under `## Replaced prose`, with the page and the date, so whoever wrote it can find it. Copying
 verbatim is what code does best and a model does worst: asked to copy, it tidies (a dropped `**`, a relabeled link, a
 trailing space gone). The Violation this module's shape prevents is Forensic Coding of the owner's own words: a

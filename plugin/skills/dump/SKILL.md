@@ -10,7 +10,7 @@ The user has a hunch, a one-liner or nothing yet. Collect everything as captures
 
 ## Steps
 
-1. Run the steps in `${CLAUDE_PLUGIN_ROOT}/references/START.md` with mode `dump`, including its step that asks once for the initiative's short name. With no plan yet, offer `vela new` as its "No plan here yet" says. Read the Dump & Diverge row of `${CLAUDE_PLUGIN_ROOT}/references/MODES.md`.
+1. Run the steps in `${CLAUDE_PLUGIN_ROOT}/references/START.md` with mode `dump`; `session start` asks once for the initiative's short name, and with no plan yet it says to offer `vela new`. Read the Dump & Diverge row of `${CLAUDE_PLUGIN_ROOT}/references/MODES.md`.
 2. Read `01-goals.md`, `11-unknowns-and-risks.md` and the parked captures in the earlier session notes on this machine (`→ park`), to build on what is there. Notes from another machine aren't here; ask the lead what was parked. Do not repeat a parked idea as new.
 3. Let the user talk. Capture each point as its own line, in their words, with their name or role as the origin and a tag of `idea`, `thought`, `unknown`, `worry` or `wild`: `sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela record add --origin "<name>" --tag idea "<their words>"`. It numbers the line; never number one yourself. If it stops, say why in plain words and stop.
 4. Build on what they say. For each idea, offer one "what if" that removes a constraint, borrows from another domain, or turns it around. Capture each with origin `claude`; tag the far-fetched ones `wild`. Never judge an idea, and never say one will not work.
@@ -28,6 +28,6 @@ The user stops, or the pre-mortem and its review checkpoint are done. Commit wit
 ## Never
 
 - Never edit a page outside `sessions/` during a dump.
-- Never write `decided` or `fact`, and never mark captures (no `--mark`). Marks are close's job.
+- Never write `fact`, and never mark captures (no `--mark`); marks are close's job. An item the lead is sure of is settled (SETTLE.md).
 - Never present the checkpoint's digest as a verdict on an idea.
 - Never drop a wild idea. Close parks it or keeps it.

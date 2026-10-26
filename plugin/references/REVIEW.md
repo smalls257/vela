@@ -4,7 +4,7 @@ A review checkpoint finds the questions the plan owes and nobody has asked. Code
 
 ## 1 and 2. Prepare the checkpoint
 
-Make sure everything said so far is in the session's notes as captures: a reviewer sees only what is written. Then run `vela reviewers prepare --checkpoint "<the checkpoint and its focus>" --focus <the pages its focus touches>`. Give only the pages the focus touches; every reviewer reads them, and each page is paid for again on each of its turns. It numbers the checkpoint from the notes, commits the stub and the changed pages (never the notes), writes one packet per area to review into `.vela/review/<n>/<AREA>.md` with that area's owed questions beside it, clears the findings folder, lists each area it skipped with the reason, and prints the heading and the merge command for later. In a reader copy it commits nothing and says so. While the reviewers run, say the one line `--for-lead` gives ("Checking this against five angles, about a minute.", naming any angle left out) and nothing more until the digest is ready.
+Make sure everything said so far is in the session's notes as captures: a reviewer sees only what is written. Then run `vela reviewers prepare --checkpoint "<the checkpoint and its focus>" --focus <the pages its focus touches>`. Give only the pages the focus touches; every reviewer reads them, and each page is paid for again on each of its turns. It writes one packet per area to `.vela/review/<n>/<AREA>.md` and prints the areas it skipped and why (relay each; a later checkpoint in the same session may skip every area, and you run one only when the lead asks, with `--rerun N --areas`), the heading, and the merge command for later. While the reviewers run, say the one line `--for-lead` gives ("Checking this against five angles, about a minute.", naming any angle left out) and nothing more until the digest is ready.
 
 ## 3. One reviewer per area
 
@@ -20,7 +20,7 @@ Then run `git status --porcelain` again and compare it with the baseline. If a t
 
 ## 4. Merge
 
-Run the merge command `reviewers prepare` printed: `vela findings merge .vela/findings/<session id>/<n> --changed <paths>`, with `--areas` and `--skipped` when it named them. A new question about a page this session didn't change is dropped: it was owed when that page was written, and raising it again every session is what makes a digest grow faster than a lead can answer it. The merge keeps the union, folds the same question from several areas into one finding, and drops every finding whose quote isn't on the page it cites. A finding may address an owed copy, an open reviewer question by its `R-` id, or `new`. Exit 1 means an area didn't run or a finding was dropped, and the output says which. Exit 2 means the tool failed: record the checkpoint with every area as `did not run (merge failed: <error>)` and no table rows.
+Run the merge command `reviewers prepare` printed: `vela findings merge .vela/findings/<session id>/<n> --changed <paths>`, with `--areas` and `--skipped` when it named them. It drops what it can't back and folds repeats; its output says which areas didn't run. If the tool itself fails: record the checkpoint with every area as `did not run (merge failed: <error>)` and no table rows.
 
 Write the result into the session's notes, `sessions/private/<session id>.md`, under `## Reviews` after `## Captures`, with the heading `reviewers prepare` printed. Add `## Reviews` if the notes have none. Reviews stay private: they hold the reviewers' own words about what the lead said, so they are never committed.
 
@@ -45,13 +45,12 @@ Give the coverage in one sentence ("All five angles found something", or "Four a
 
 ## 5. The digest
 
-Run `vela questions --digest --session <session id> --for-lead`. It gives the next three lines for this session's lead, high and blocking first, never one already shown or taken this session, and writes what it showed into the notes. Nothing is dropped: every line stays in `vela questions --open` and in the ledger.
+Run `vela questions --digest --session <session id> --for-lead`. Nothing is dropped: every line stays in `vela questions --open`.
 
 What the lead is shown is small, so they can answer it.
 
 - **Once per session, at a pause.** A mode may run its checkpoint more than once; each result goes in `## Reviews`. But the lead sees one digest per session, at the natural pause after a topic or at the end, never in the middle of their own line of thought. Shape is the exception: its checkpoint comes before the options, and its findings go with the options as "what must be true" (the Shape skill says how); what's left goes in the one digest.
 - **At most three questions.** Say each as one plain sentence with one question mark, as a colleague would across a desk, naming the thing and the person who would know, with your recommended answer. No copy ID, finding ID, area code, severity or command in what the lead hears; those go in the notes.
-- **Never twice, never ruled out.** The command keeps count, so a question shown once this session isn't shown again, and one the lead answered or ruled out isn't asked.
 - **The rest, in one line, by what they're about.** "Six more are about cost and four about who sees client data; want the next three?" On "more", run it again.
 
 For example, instead of "Q-PTN-02@PTY-01 and @PTY-03: does the agreement permit transfer of data to a new owner or user? One answer for all?", say:
@@ -64,6 +63,6 @@ A turn of 50 questions is a dump, not an interview, and the lead answers none of
 
 ## 6. Record what the lead does
 
-The lead sets the pace. What they take, capture as `START.md` says, starting the words with the copy ID or the finding ID, for example `- [thought] (Head of Finance) Q-FIN-03@SV-01: finance carries the balance today ^c14`. A yes to an existence question, one whose entry `creates` a party or stored value, also ends with the subject note, `type at close: PTY` or `type at close: SV`, as `dump/SKILL.md` shows, so close types the subject and writes the row in one go. A ruling-out is a capture with its reason. When the lead says a group of lines all wait on one open unknown, such as "all of these wait on the Platform team, UNK-050", capture it once, naming every ID: `- [thought] (<name>) waits on UNK-050: Q-DAT-02@APP-account-link-service, R-OPS-12, F2.4 ^c21`. Close writes one `unknown` row per ID linking that unknown, so the whole group leaves the digest and comes back when the unknown is resolved. If the group waits on something no unknown asks yet, write that unknown first. A belief the lead states without a source is a capture tagged `thought` that says it is a belief, and close asks whether it is load-bearing.
+The lead sets the pace. What they take, capture as `START.md` says, starting the words with the copy ID or the finding ID, for example `- [thought] (Head of Finance) Q-FIN-03@SV-01: finance carries the balance today ^c14`. A yes to an existence question, one whose entry `creates` a party or stored value, also ends with the subject note, `type at close: PTY` or `type at close: SV`, as `dump/SKILL.md` shows, so close types the subject and writes the row in one go. A ruling-out is a capture with its reason. When the lead says a group of lines all wait on one open unknown, such as "all of these wait on the Platform team, UNK-050", capture it once, naming every ID: `- [thought] (<name>) waits on UNK-050: Q-DAT-02@APP-account-link-service, R-OPS-12, F2.4 ^c21`. If the group waits on something no unknown asks yet, write that unknown first. A belief the lead states without a source is a capture tagged `thought` that says it is a belief, and close asks whether it is load-bearing.
 
-Write nothing to a page because of a finding, beyond what the mode itself writes. Close writes the ledger rows from these captures and from the `## Reviews` tables, so every copy taken and every finding ends in a row. Whatever the lead doesn't take stays open and visible, in the ledger and in `vela questions`.
+Write nothing to a page because of a finding, beyond what the mode itself writes. Whatever the lead doesn't take stays open and visible, in the ledger and in `vela questions`.

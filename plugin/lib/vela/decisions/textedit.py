@@ -340,6 +340,18 @@ def write_mark(record_text, ref, mark_text):
     return _join(lines)
 
 
+def add_keep_target(record_text, ref, page, heading, ident, state):
+    """The record with `<ident> (<state>)` added to the keep mark capture `ref` already carries (several targets are
+    joined by "; "), or unchanged when it carries no keep mark."""
+    index, line = capture_line(record_text, ref)
+    mark = existing_mark(line) if index is not None else None
+    if mark is None or not mark.startswith("keep:"):
+        return record_text
+    lines = _lines(record_text)
+    lines[index] = line.replace(f"→ {mark} ", f"→ {mark}; [[{page}#{heading}|{ident}]] ({state}) ", 1)
+    return _join(lines)
+
+
 def keep_mark(page, heading, ident, state):
     return f"keep: [[{page}#{heading}|{ident}]] ({state})"
 
@@ -418,20 +430,6 @@ def record_writes(record, view, new_text):
 
 def record_text(record, view):
     return view.text(record.path) or record.text
-
-
-def stub_text(record, view):
-    """The committed header of the record: where a session's modes are kept. A header that can't be read raises
-    StubUnreadable: with no modes, `ready.can_decide` would say a shape session may decide (a Silent Fallback)."""
-    text = view.text(record.stub)
-    if not text:
-        raise StubUnreadable(f"I can't read the session's header, {record.stub}, so I can't tell which modes this "
-                             "session is in. Nothing was decided.")
-    return text
-
-
-class StubUnreadable(ValueError):
-    pass
 
 
 def yaml_value(text):

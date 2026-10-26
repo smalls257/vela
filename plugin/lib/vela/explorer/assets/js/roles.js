@@ -59,8 +59,7 @@ const Roles = (() => {
     const kpi = (n, label, quantity, title) => h("div", {}, h("b", { "data-quantity": quantity, "data-n": n }, n), h("span", title ? { title } : {}, label));
     grid.append(card("What is decided", ["Decisions", () => Nav.open("decisions")],
       h("div", { class: "kpi-row" }, kpi(C.decided, "decided", "decisions.decided"), kpi(C.proposed, "proposed", "decisions.proposed"),
-        C.overridden ? kpi(C.overridden, "decided before the usual checks", "decisions.overridden") : null,
-        h("div", {}, h("b", {}, `${D.progress.shares.reduce((n, x) => n + x.done, 0)} of ${D.progress.shares.reduce((n, x) => n + x.total, 0)}`), h("span", { title: D.progress.shares.map((x) => `${x.name}: ${x.done} of ${x.total}`).join("; ") }, "things written down"))),
+        C.overridden ? kpi(C.overridden, "decided before the usual checks", "decisions.overridden") : null),
       list(decided, 4, (e) => h("li", {}, h("a", { "data-ref": e.key, title: e.id }, shorten(e.name, 60), idTag(e.id))))));
     const risks = D.riskList;
     grid.append(card("Top risks", ["Unknowns and risks", () => Nav.open("unknowns")], risks.length ? list(risks, 4, (r) => {
@@ -72,11 +71,10 @@ const Roles = (() => {
     const asked = [...new Set(D.above.map((a) => a.unknown))].filter((u) => UNKNOWN[u]).map((u) => ({ kind: "question", key: u, say: `is holding up ${Queue.say(D.above.filter((a) => a.unknown === u).map((a) => a.key))}` }));
     const owed = [...asked,
       ...proposed.map((e) => ({ kind: "decision", key: e.key, say: e.state === "pending" ? "decided by a reader, the owner hasn't confirmed it" : "proposed, not decided" })),
-      ...D.progress.awaiting.map((a) => ({ kind: "override", key: a.key, say: `decided for ${a.owners.join(", ")}, waiting for them to confirm` })),
       ...Releases.STATES.slice(1).filter((x) => !x.fromChange && x.state !== "decided").map((x) => ({ kind: "release", key: null, name: x.heading || x.name, say: `release ${releaseState(x.state)}` }))];
     grid.append(card("Waiting on a decision", null, owed.length ? list(owed, 5, (x) => h("li", {}, x.key ? lampEl(levelForKey(x.key) || "caution") : lampEl("caution"),
       x.kind === "question" ? h("a", { "data-ref": x.key, title: x.key }, titleOf(x.key)) : x.key ? refChip(x.key) : h("b", {}, x.name), h("span", { class: "muted small" }, " " + x.say))) : empty("Nothing is waiting on an executive decision."),
-      rule("Waiting on a decision: questions that hold up a goal or the strategy, decisions still proposed or not yet confirmed, and releases nobody has agreed. Open one to settle it.")));
+      rule("Waiting on a decision: questions that hold up a goal or the strategy, decisions still proposed, and releases nobody has agreed. Open one to settle it.")));
   }
 
   /* ------------------------------------------------------------ product */

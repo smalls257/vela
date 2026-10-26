@@ -1,5 +1,5 @@
 """`add unknown`: a question nobody present can answer, as `### UNK-nnn <name>` on `11-unknowns-and-risks.md`
-(CONVENTIONS "Fact bullets", MODES "Unknowns", close section 2, grill section 5).
+(CONVENTIONS "Fact bullets", MODES "Unknowns", close's "Write the items and the prose", grill's "File each decision as its branch closes").
 
 The rules, each with the reason the skills gave:
 
@@ -15,7 +15,7 @@ The rules, each with the reason the skills gave:
 - **Blocks** links each item it blocks by its heading (an open unknown that lists an item stops it being decided), or
   names an owed question's copy ID as written (an E805 deferral blocks the question). An unknown that blocks nothing
   has no `**Blocks:**` line: the missing line is the state, not a sentinel word.
-- **The agenda follows** (grill section 5): every agenda item it blocks comes off the agenda, `off-agenda: UNK-nnn`,
+- **The agenda follows** (grill's "File each decision as its branch closes"): every agenda item it blocks comes off the agenda, `off-agenda: UNK-nnn`,
   unless the lead overrode GATE-4 for it, and `now_blocks` says which so the CLI can tell the lead by name.
 - **No second copy of an open question** (a Silent Fallback of the ledger: two owners chase one answer, and the page
   counts one question twice). A new question whose words overlap an open one's by `SAME_QUESTION` or more is

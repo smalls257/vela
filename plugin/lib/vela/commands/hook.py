@@ -105,9 +105,31 @@ def cmd_session_start(args, out):
     return 0
 
 
+def staleness_line(root):
+    """One line for Claude when the session panel published for Cowork (`companion session --html`) is behind the
+    notes, "" otherwise: nothing was ever published here, no session is open, or the panel is current. The sensor lives
+    in the hook so it doesn't depend on Claude remembering to republish (Black Box ruled out). A terminal user who never
+    published hears nothing, and the mod's own `session.json` can't set it off."""
+    if not (root / ".vela" / "companion" / "published.json").is_file():
+        return ""  # checked first and cheaply: this hook runs before every message
+    from vela import companionsession
+    from vela.edge import companionstore
+    try:
+        marker = companionstore.published(root)
+        stub, notes, _ = companionstore.open_session(root)
+    except (companionstore.NoSession, companionstore.Several):
+        return ""
+    if notes is None or "capture" not in marker or marker.get("session") != str(stub.get("id", "")):
+        return ""
+    if not isinstance(marker["capture"], int) or isinstance(marker["capture"], bool):
+        raise ValueError("the published marker's capture is not a number")
+    return companionsession.behind(marker["capture"], companionsession.highest_capture(notes))
+
+
 def cmd_said(args, out):
-    """UserPromptSubmit: log what the person typed. Prints nothing (UserPromptSubmit stdout reaches the model's
-    context), always exits 0, and leaves the log in `.vela/`, which is never staged."""
+    """UserPromptSubmit: log what the person typed, always exit 0, and leave the log in `.vela/`, which is never
+    staged. It prints nothing (UserPromptSubmit stdout reaches the model's context) except one line for Claude when the
+    session panel published to Cowork is behind the notes (`staleness_line`); a failure to read that goes to stderr."""
     from vela import said
     from vela.edge import saidlog, vaultgit
     payload = read_payload(sys.stdin, "said")
@@ -121,7 +143,20 @@ def cmd_said(args, out):
             saidlog.append(root, name, when, prompt)
         except OSError as exc:
             warn(f"couldn't log the message under {root / saidlog.FOLDER}: {exc}; `vela record add` will mark yeses unverified", "said")
+    say_if_behind(payload, out)  # after the log: nothing it meets can cost the person's words or block the message
     return 0
+
+
+def say_if_behind(payload, out):
+    """Print the staleness line for the plan above the hook's folder, if there is one; never fail the hook."""
+    try:  # nosemgrep: broad-except-not-reraised -- exit 2 here would block and erase the person's message; the warning goes to stderr
+        above = vault_for(marker_folder(payload))
+        line = staleness_line(above) if above is not None else ""
+    except Exception as exc:  # a UserPromptSubmit hook that exits 2 blocks and erases the person's message
+        warn(f"couldn't tell whether the session panel is behind: {exc}", "said")
+        return
+    if line:
+        print(line, file=out)
 
 
 # --------------------------------------------------------------------------- PreToolUse and PostToolUse

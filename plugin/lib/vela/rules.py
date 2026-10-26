@@ -5,7 +5,7 @@ Every rule runs on every page it can read. No rule stops the others.
 import datetime
 import re
 
-from vela import allocation, cases, deferrals, flows, handoffwarn, links, override, parse, pending, privaterecord, progress, questions, receipts, readability, readload, releases, render, schema, slices, sourcerows, trace, wording
+from vela import allocation, cases, deferrals, flows, handoffwarn, links, override, parse, pending, privaterecord, progress, questions, receipts, readability, readload, releases, render, schema, sizing, slices, sourcerows, trace, wording
 from vela.model import Finding, blocked_units, decided_goal_rows, goal_rows_at, meta_line
 
 
@@ -15,7 +15,7 @@ def check(vault, today, gate=None, items=(), app=None):
     `gate="epics"` is the moment epics are called complete: every trace gap
     becomes an error, even in a vault that has no epic yet, and so does every
     high-severity question not yet disposed. `gate="shape"` is the end of a
-    Shape: each assumed question still unresolved warns. `gate="grill"` with
+    Shape: each assumed question still unresolved warns. `gate="decide"` with
     `items` is a Grill on those items: each open question that blocks one warns.
     `app` narrows the epics gate to one app page and what it carries (scope_to_app), so a multi-app
     initiative can call one app's epics complete while another app's are still draft.
@@ -34,8 +34,8 @@ def check(vault, today, gate=None, items=(), app=None):
                         if question_is_theirs is None or question_is_theirs(f.message.split(" ", 1)[0]))
     elif gate == "shape":
         findings.extend(questions.shape_gate(vault))
-    elif gate == "grill":
-        findings.extend(questions.grill_gate(vault, items))
+    elif gate == "decide":
+        findings.extend(questions.decide_gate(vault, items))
     return sorted(set(override.apply(vault, findings, today, gate) + pending.findings(vault)))
 
 
@@ -118,7 +118,7 @@ def frontmatter_rules(vault, today):
 def _enum_findings(vault, page, page_type, spec):
     meta = page.meta
     checks = [("authored", schema.ENUMS["authored"]), ("c4", schema.ENUMS["c4"]),
-              ("origin", schema.ENUMS["origin"]), ("stage", schema.ENUMS["stage"]), ("stub", schema.ENUMS["stub"]),
+              ("origin", schema.ENUMS["origin"]), ("stub", schema.ENUMS["stub"]),
               ("status", schema.ENUMS["status"])]
     if spec["states"]:
         checks.append(("state", spec["states"]))
@@ -386,7 +386,7 @@ def _rows(page, table, id_re, col, allowed, what, example):
 
 def requirement_rules(vault, today):
     """A functional requirement (### CAP-nnn.FRn) carries a state like a contract does, so it
-    cannot be decided without a Grill."""
+    cannot be decided without a Decision that links the session that decided it."""
     for fr in vault.requirements:
         state = fr.fact("State")
         if not state:
@@ -461,12 +461,12 @@ def handoff_rules(vault, today):
     """Sensor for the app handed over on an override: every item still short of a yes is named before the senior accepts it.
     A contract with no case table is W380 already, and the read-back lists it with the rest."""
     for app in vault.apps:
-        if not handoffwarn.at_handoff(app):
+        if not handoffwarn.at_handoff(vault, app):
             continue
         for gap in handoffwarn.gaps(vault, app):
             if gap.kind == "unfirm":
                 yield _f(gap.page, gap.line, "W386", f"{gap.sentence} {handing(app)}",
-                         "Decide it in a grill before the app's team accepts the app, or tell them it isn't settled.")
+                         "Settle it before the app's team accepts the app (vela decide, in any session), or tell them it isn't settled.")
             elif gap.kind == "no-designer":
                 yield _f(gap.page, gap.line, "W387", f"{gap.sentence} {handing(app)}",
                          "Hand the app that provides those calls to a team too, or warn this app's team that the calls have no design behind them yet.")
@@ -660,26 +660,6 @@ def decided_units(vault):
         if release.state == "decided":
             page = releases.page(vault)
             yield f"release '{release.name}'", page, release.line, page.page_bullets("Decision")
-
-
-STATED_IN = re.compile(r"\bas (?P<src>SRC-\d+) states\b")
-
-
-def stated_in_source(vault, decisions):
-    """Whether a Decision bullet says a registered source states the decision (`as SRC-nn states`, which
-    `vela decide --stated-in` writes). A decision the documents already record isn't a grill's to weigh again: the
-    lead's yes to it is on the Changes row close's gate reads, and the source says who decided it and when."""
-    for bullet in decisions:
-        for found in STATED_IN.finditer(bullet.value or ""):
-            if found["src"] in vault.row_ids:
-                return True
-    return False
-
-
-def _modes(session):
-    """A session's modes, or nothing when the field is not a list (E105 reports that)."""
-    modes = session.meta.get("modes")
-    return modes if isinstance(modes, list) else []
 
 
 STATE_ORDER = ("inkling", "assumption", "fact", "decided")
@@ -1088,13 +1068,24 @@ def flow_capability_rules(vault, today):
                          "Use the ID of a capability page, such as CAP-013, or take it out.")
 
 
+def old_stage_rules(vault, today):
+    """W408. Nobody types a stage: vela works it out from the pages an app reaches. A page that still carries a
+    `stage:` line says a second thing next to the plan, so check says the line is not read and `--fix auto` removes it."""
+    for page in vault.pages:
+        if "stage" in page.meta:
+            yield _f(page, meta_line(page, "stage"), "W408",
+                     f"{vault.named(page.id) if page.id else page.name} still has a stage line, and vela now works the stage out "
+                     "from the pages, so the line is not read.",
+                     "Delete the stage line, or run vela check --fix auto.")
+
+
 def domain_rules(vault, today):
-    """W352 and W353. Once any app names a domain, a large initiative's other apps should; two spellings of one
+    """W352 and W353. Once any app names a domain, a large plan's (sizing) other apps should; two spellings of one
     domain split the Group: Domain view in two."""
     named = [p for p in vault.apps + vault.of_type("capability") if isinstance(p.meta.get("domain"), str) and p.meta["domain"].strip()]
     if not named:
         return
-    if len(vault.apps) >= schema.DOMAIN_MIN_APPS and any(p in named for p in vault.apps):
+    if sizing.of(vault).needs(sizing.Need.DOMAIN_FIELD) and any(p in named for p in vault.apps):
         for app in vault.apps:
             if app not in named:
                 yield _f(app, 1, "W352", f"{app.id} has no domain, but other apps in this {len(vault.apps)}-app initiative do.",
@@ -1146,17 +1137,9 @@ def certainty_rules(vault, today):
     for unit_id, page, line, decisions in decided_units(vault):
         sessions = [vault.resolve(l, page) for b in decisions for l in b.links]
         sessions = [s for s in sessions if s is not None and s.type == "session"]
-        modes = [m for s in sessions for m in _modes(s)]
-        if "grill" in modes:
-            continue
-        if sessions and "requirements" not in modes and stated_in_source(vault, decisions):
-            continue  # an import confirmed a decision a registered source states, with the lead's yes (close gate)
-        if "requirements" in modes:
-            yield _f(page, line, "E317", f"{unit_id} is decided by a requirements session, which can only write assumptions.",
-                     "Run a Grill on it and link that session in **Decision:**, or set it back to assumption.")
-        else:
-            yield _f(page, line, "E303", f"{unit_id} is decided, but no **Decision:** bullet links a Grill session.",
-                     "Add '- **Decision:** [[<grill session>]]', or set the state back to assumption.")
+        if not sessions:
+            yield _f(page, line, "E303", f"{unit_id} is decided, but no **Decision:** bullet links the session that decided it.",
+                     "Add '- **Decision:** [[<session>]]', or set the state back to assumption.")
     for page in vault.pages:
         if readable(page) and page.meta.get("state") == "fact" and not page.meta.get("sources"):
             yield _f(page, meta_line(page, "state"), "E304", f"{page.id} is a fact but lists no sources.",
@@ -1185,21 +1168,6 @@ def _gate_four(vault):
                 back = "set it to reopened" if page.meta.get("type") == "epic" else "set it back to assumption"
                 yield _f(page, line, "E316", f"{unit_id} is decided, but open unknown {unknown.id} blocks it.",
                          f"Resolve {unknown.id} first, or {back}.")
-
-
-# --------------------------------------------------------------------- stage
-
-def stage_rules(vault, today):
-    for app in vault.apps:
-        change, stage = app.meta.get("change"), app.meta.get("stage")
-        if change not in schema.ENUMS["change@app-building-blocks"]:
-            continue  # E103 or E105 already reports it
-        if change in schema.LADDERED_CHANGES and not stage:
-            yield _f(app, meta_line(app, "change"), "E319", f"{app.id} is {change} but has no stage.",
-                     "Add stage: baseline (or the stage the app is in now).")
-        if change and change not in schema.LADDERED_CHANGES and stage:
-            yield _f(app, meta_line(app, "stage"), "E319", f"{app.id} is {change}, so it sits outside the ladder and takes no stage.",
-                     "Remove the stage field, or set change: changed if the app now changes.")
 
 
 # ------------------------------------------------------------------ concerns
@@ -1505,5 +1473,5 @@ def session_note_rules(vault, today):
 
 
 RULES = (parse_errors, frontmatter_rules, duplicate_rules, link_rules, reference_rules, table_rules,
-         history_rules, page_state_rules, stale_mention_rules, allocation_rules, release_rules, slice_rules, flow_sender_rules, flow_end_rules, flow_capability_rules, domain_rules, ask_rules, requirement_coverage_rules, contract_rules, case_table_rules, handoff_rules, deferral_rules, why_rules, wording_rules, requirement_rules, unknown_rules, risk_rules, subject_rules, question_rules, certainty_rules, stage_rules, concern_rules,
+         history_rules, page_state_rules, stale_mention_rules, allocation_rules, release_rules, slice_rules, flow_sender_rules, flow_end_rules, flow_capability_rules, old_stage_rules, domain_rules, ask_rules, requirement_coverage_rules, contract_rules, case_table_rules, handoff_rules, deferral_rules, why_rules, wording_rules, requirement_rules, unknown_rules, risk_rules, subject_rules, question_rules, certainty_rules, concern_rules,
          diagram_rules, block_rules, trace_rules, freshness_rules, link_field_rules, link_pipe_rules, reading_load_rules, session_note_rules, receipts.receipt_rules)

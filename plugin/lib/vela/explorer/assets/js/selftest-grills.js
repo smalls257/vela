@@ -1,9 +1,9 @@
-/* ------------------------------------------------------------ Grills waiting (view-grills.js), driven as a person would:
+/* ------------------------------------------------------------ Waiting for a decision (view-grills.js), driven as a person would:
    the three groups in their order, who is viewing and what each person sees (the chips, the sidebar
    count and the ready ones in Needs you must all give the same number), every filter, the "more belong to other owners" link, a card
    opening in the right-hand panel, the prompt for Claude and its Copy button, the batch in the order that unblocks the
    most, the small "Ready for a grill" line on an item's own details, and the keyboard reaching everything. A vault with
-   no grill waiting has no Grills waiting entry, and these checks say so and stop. A block of its own after the details
+   no grill waiting has no Waiting for a decision entry, and these checks say so and stop. A block of its own after the details
    checks, so it merges apart from them. */
 (() => {
   const base = SelfTest.run, tick = () => new Promise((r) => setTimeout(r, 30));
@@ -20,7 +20,7 @@
 
   async function grills(ok) {
     const rows = Grills.rows;
-    if (!rows.length) { ok(!$$("#side .side-grills-door").length && !$("#grills-badge"), "grills: a vault with nothing waiting has no Grills waiting entry and no badge", "grills: an empty list still shows an entry"); return; }
+    if (!rows.length) { ok(!$$("#side .side-grills-door").length && !$("#grills-badge"), "grills: a vault with nothing waiting has no Waiting for a decision entry and no badge", "grills: an empty list still shows an entry"); return; }
     Nav.home(); Viewer.set(""); Grills.st.scope = "mine"; Grills.st.owner = ""; Grills.st.app = ""; Grills.st.holds = ""; Grills.st.readyOnly = false; Grills.st.batch = [];
     const everyone = () => { Grills.setViewer("*"); };
 
@@ -116,6 +116,11 @@
     ok(prompt.startsWith(`/vela:grill ${pick.name}\n`) && !IDLIKE.test(prompt) && prompt === Grills.prompt(pick), "grills: the prompt starts /vela:grill with the item's name and is plain words, no IDs or handles", `grills: prompt "${prompt.slice(0, 120)}"`);
     click($("#panel-body [data-act=copy]")); await tick();
     ok(Grills.st.copied === prompt, "grills: Copy prompt copies exactly the prompt shown", `grills: copied "${Grills.st.copied.slice(0, 80)}"`);
+    const settle = $("#panel-body [data-prompt=settle]").textContent;
+    ok(settle.startsWith(`Settle ${pick.name}.\n`) && !IDLIKE.test(settle) && !/grill/i.test(settle) && settle === Grills.settlePrompt(pick),
+       "grills: the panel also has a settle prompt that starts Settle with the item's name and is plain words", `grills: settle "${settle.slice(0, 120)}"`);
+    click($("#panel-body [data-act=copy-settle]")); await tick();
+    ok(Grills.st.copied === settle, "grills: Copy settle prompt copies exactly the settle prompt shown", "grills: the settle copy differs");
     const open = $("#panel-body [data-act=open-item]");
     ok(!!open && /^Open the /.test(open.textContent), `grills: the panel has "${open && open.textContent}" to go to the item itself`, "grills: no Open the item button");
     const held = $$("#panel-body .g-panelchips a.ref-chip");
@@ -178,7 +183,7 @@
     key(document.body, "Escape"); await tick();
     ok(!$("#panel-body .dp-trail") && !$(".g-card.on"), "grills: Escape returns the panel to the summary and unmarks the card", `grills: after Escape the trail is ${!!$("#panel-body .dp-trail")} and a card is marked ${!!$(".g-card.on")}`);
     const door = $(".side-grills-door");
-    ok(!!door && door.tagName === "BUTTON" && /Grills waiting/.test(door.textContent), "grills: the sidebar has a Grills waiting button", "grills: no sidebar entry");
+    ok(!!door && door.tagName === "BUTTON" && /Waiting for a decision/.test(door.textContent), "grills: the sidebar has a Waiting for a decision button", "grills: no sidebar entry");
     Grills.setViewer(""); Nav.home(); go("lights", { reset: true });
   }
 

@@ -1,4 +1,4 @@
-"""`vela decide CAP-nnn.FRn@APP-<slug>`: one row of an app's `## Requirements allocated` set decided (grill section 4;
+"""`vela decide CAP-nnn.FRn@APP-<slug>`: one row of an app's `## Requirements allocated` set decided (grill's "File each decision as its branch closes";
 CONVENTIONS "Requirements and allocation"). Pure.
 
 A Grill on an app page takes its allocated rows with it: each row is read back as part of the app's agenda and set

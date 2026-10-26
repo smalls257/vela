@@ -40,12 +40,16 @@ def register(sub):
     ques.add_argument("--session", metavar="ID",
                       help="with --digest: the next three lines for this session's lead, never one already shown or "
                            "taken this session; what it shows is written under the record's ## Reviews")
+    view_of.add_argument("--existence", action="store_true",
+                         help="the six existence questions as one numbered read-back, a no recommended only on the plan's evidence")
     view_of.add_argument("--stats", action="store_true", help="how often each entry ends not-applicable in this vault")
     ques.set_defaults(func=cmd_questions)
 
 
 def cmd_questions(args, out):
     from vela import cli
+    if args.existence:
+        return existence(args, out)
     if args.for_lead and (args.session is None or not args.digest or args.json):
         raise cli.ToolError("--for-lead goes with --digest --session ID, and not with --json.")
     if args.session is None:
@@ -87,6 +91,53 @@ def cmd_questions(args, out):
     return 0
 
 
+def existence(args, out):
+    from vela import cli, commands
+    if args.session is not None or args.area or args.subject or args.open or args.all:
+        raise cli.ToolError("--existence reads back the six existence questions together, so it takes no --session, "
+                            "--area, --subject, --open or --all.")
+    vault = cli.load_vault(pathlib.Path(args.vault).resolve())
+    found = questions.existence_lines(vault)
+    if args.json:
+        print(json.dumps({"lines": [{"copy": l.copy, "question": l.question, "recommend": l.recommend, "why": l.why}
+                                    for l in found]}, indent=2, ensure_ascii=False), file=out)
+        return 0
+    if args.for_lead:
+        # A named exception to DIGEST_AT_A_TIME and say.LEAD_LIMIT: the existence read-back is one turn of six yes-or-no
+        # lines; each answer is its own capture, so the lead's reason is their own for every one.
+        args.more = True
+        return commands.emit(lead_existence(found), args, out, say.Resolver(vault))
+    print(f"vela questions --existence: {len(found)} existence question{'' if len(found) == 1 else 's'} still to answer.", file=out)
+    for n, line in enumerate(found, start=1):
+        extra = f" (I'd say no: {line.why})" if line.recommend else ""
+        print(f"{n}. {line.copy}: {line.question}{extra}", file=out)
+    return 0
+
+
+def lead_existence(found):
+    """The six as the lead hears them, in one turn: numbered yes-or-no lines, then which ones vela would say no to."""
+    if not found:
+        return say.Result("questions --existence", answer="Every existence question has an answer already.")
+    lines = [say.Line("", plain=f"{n}. {line.question.strip()}") for n, line in enumerate(found, start=1)]
+    head = "These decide what else I'll ask. Answer yes or no to each:"
+    closing = "Which are yes?" + recommended_noes(found)
+    return say.Result("questions --existence", answer=head, lines=lines, closing=closing,
+                      data={"lines": len(found)})
+
+
+def recommended_noes(found):
+    """" I'd say no to 1 and 2: <reason>." with each recommended no under its own reason, so a stored value and a party
+    never share the other's evidence; "" when none is recommended."""
+    by_reason = {}
+    for n, line in enumerate(found, start=1):
+        if line.recommend:
+            by_reason.setdefault(line.why, []).append(str(n))
+    parts = [f"{say.names_said(numbers)}: {reason}" for reason, numbers in by_reason.items()]
+    if len(parts) <= 1:
+        return f" I'd say no to {parts[0]}." if parts else ""
+    return " I'd say no to " + "; and to ".join(parts) + "."
+
+
 def lead_digest(answer, area_names):
     """The session digest as the lead hears it: the answer, each question by its area, then how many wait."""
     count = len(answer["groups"])
@@ -95,12 +146,21 @@ def lead_digest(answer, area_names):
                           answer="That's every question for this session; the rest are listed if you want them.")
     lines = []
     for group in answer["groups"]:
-        said = f"{area_names.get(group['area'], 'Another area')}: {group['question'].strip()}"
+        area = area_names.get(group["area"], "Another area")
+        read = group.get("on_page_copies", [])
+        if read and len(read) == len(group["copies"]):
+            lines.append(say.Line("", plain=f"{area}: the runtime pages already say what happens when these fail: "
+                                            f"{say.names_said([c.split('@', 1)[1] for c in read])}. Is that the answer?"))
+            continue
+        said = f"{area}: {group['question'].strip()}"
         if group["blocks"]:
             said += f" It holds up {say.names_said(group['blocks'][:3])}" + (
                 f" and {say.count_words(len(group['blocks']) - 3)} more." if len(group["blocks"]) > 3 else ".")
         if len(group["copies"]) > 1:
             said += f" It comes up in {say.count_words(len(group['copies']))} places; one answer for all?"
+        if read:
+            said += (" The runtime pages already say what happens for "
+                     f"{say.names_said([c.split('@', 1)[1] for c in read])}; is that the answer there?")
         lines.append(say.Line("", plain=said))
     held = answer["held"]
     head = ("One question for today:" if count == 1 else

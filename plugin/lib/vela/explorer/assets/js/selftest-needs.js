@@ -1,5 +1,5 @@
 /* ------------------------------------------------------------ Needs you (needs.js, viewer.js), driven as a person would:
-   every role overview opens with the block; the block, the "N for you" badge and Grills waiting ("Mine") agree for each
+   every role overview opens with the block; the block, the "N for you" badge and Waiting for a decision ("Mine") agree for each
    person because they all ask Viewer; the first five lines show and "N more" opens the rest; a vault with nothing for
    the viewer says so in one line and has no badge; nobody viewing is never called "you"; a line opens its item in the
    panel; the badge jumps to the block; the What's waiting page, its sidebar entry and its "waiting" badge are gone.
@@ -63,7 +63,7 @@
       lines.shift();
     }
 
-    // 6. one viewer for the block, the badge, Grills waiting and the question filter
+    // 6. one viewer for the block, the badge, Waiting for a decision and the question filter
     const people = [...new Set(lines.flatMap((l) => l.for).concat(Grills.rows.flatMap((r) => r.owner)))].filter((p) => p !== FAKE);
     const disagree = [];
     for (const p of people) {
@@ -76,7 +76,7 @@
         disagree.push(`${p}: block ${blockN}, want ${want}, badge ${badgeN()}, grills ${Grills.count()} want ${mine}`);
       }
     }
-    ok(!disagree.length, `needs you: for each of ${people.length} people the block, the badge, Grills waiting and the viewer give the same answer`, `needs you: ${disagree.join(" | ")}`);
+    ok(!disagree.length, `needs you: for each of ${people.length} people the block, the badge, Waiting for a decision and the viewer give the same answer`, `needs you: ${disagree.join(" | ")}`);
 
     // 7. nothing for the viewer: one line, no badge, the next date when there is one
     Viewer.set(EMPTY); Nav.role("exec"); await tick();

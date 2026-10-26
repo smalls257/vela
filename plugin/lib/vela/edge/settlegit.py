@@ -19,7 +19,7 @@ def differs_from_head(root, page):
 
 def head_blob(root, page):
     """The blob HEAD holds for `page`, or None when HEAD has no such file."""
-    code, out, err = vaultgit.run_git(root, "rev-parse", "--verify", "--quiet", f"HEAD:{page}")
+    code, out, err = vaultgit.run_git(root, "rev-parse", "--verify", "--quiet", vaultgit.at("HEAD", page))
     if code == 0:
         return out
     if code == 1 and not err:
@@ -29,7 +29,7 @@ def head_blob(root, page):
 
 def head_text(root, page):
     """`page` as HEAD holds it, exactly, or None when HEAD has no such file."""
-    code, out, err = vaultgit.run_git(root, "show", f"HEAD:{page}", binary=True)
+    code, out, err = vaultgit.run_git(root, "show", vaultgit.at("HEAD", page), binary=True)
     if code == 0:
         return out.decode("utf-8", "replace")
     if "does not exist" in err or "exists on disk, but not in" in err:

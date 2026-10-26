@@ -45,10 +45,9 @@ An unknown that blocks an FR links the FR's heading:
 
 ## Certainty
 
-- Vault mode is a Shape, not a Grill. It writes at most `assumption`.
+- Vault mode is a Shape, not a Grill. It writes at most `assumption`, unless the lead settles an item.
 - It never writes `fact`. Requirements state intent.
-- If the user says "decide FR1", say once: "Requirements are recorded as assumptions, so a Grill can test them before anyone builds to them." Offer `/vela:grill CAP-NNN.FRn`. If they still want it decided here, that is an override of `grill`: write it `decided`, with the bare link `- **Decision:** [[<session id>]]` and `- **Override:** grill by @<handle> on <today>: <their reason>` under its heading, as `START.md` says. The check then reports W317 instead of E317 for it.
-- The check enforces this: a session whose `modes` include only `requirements` cannot be the `**Decision:**` behind a `decided` item.
+- If the user says "decide FR1", settle it as `SETTLE.md` says.
 - If the capability page is already `decided`, an open unknown that blocks one of its FRs makes the check fail with E316, because the capability was decided before the question was answered. Say so before writing the unknown, and let the user choose: keep the unknown and take the capability back to `assumption` in a Grill, or record the question as not blocking (`**Blocks:** nothing`) with the reason in `**Notes:**`.
 
 ## Completion

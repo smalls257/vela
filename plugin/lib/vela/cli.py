@@ -19,14 +19,16 @@ import subprocess
 import sys
 import tempfile
 import time
-import traceback
 
 import yaml
 
-from vela import allocation, capture, catalog, completeness, diagramcheck, doctor, drafts, search, export, freshness, handoff, handoffwarn, health, ids, ladder, model, onboardpath, opening, pending, pluginroot, proposal, reading, parse, progress, publish, query, questions, releases, render, replay, review, reviews, roles, rules, schema, secretscan, slices, sourcerows, terms, tickets, untrusted, viewer, voicecheck, voicescore
-from vela.edge import atomic, copies, machine, mermaidjs, replays, reviewgit, sessiongit, teamdocs, vaultgit
+from vela import allocation, capture, catalog, completeness, diagramcheck, doctor, drafts, search, export, freshness, handoff, handoffwarn, health, ids, ladder, leadview, model, onboardpath, opening, pending, pluginroot, proposal, reading, parse, progress, publish, query, questions, releases, render, replay, review, reviews, roles, rules, schema, secretscan, sizing, slices, sourcerows, terms, tickets, untrusted, viewer, voicecheck, voicescore
+from vela.edge import atomic, copies, githubcopy, machine, mermaidjs, replays, reviewgit, sessiongit, teamdocs, vaultgit
 from vela.edge import proposals as proposal_files
-from vela import commands, guard, privaterecord, say
+from vela import commands, githubsource, guard, privaterecord, say
+from vela.errors import Declined, ToolError
+from vela.edge.vaultfiles import vault_files
+from vela.vaultpaths import page_kind
 
 ASSETS = pathlib.Path(__file__).resolve().parent / "assets"
 CATALOG = pathlib.Path(__file__).resolve().parent.parent.parent / "catalog" / "questions.yaml"
@@ -35,10 +37,6 @@ TEMPLATE_LINES = pathlib.Path(__file__).resolve().parent.parent.parent / "catalo
 # Lines older templates wrote and the current one no longer does, such as the file-name patterns the index pages
 # opened with. A vault made from that template still opens with them, so W368 has to keep knowing they were template text.
 TEMPLATE_LINES_RETIRED = TEMPLATE_LINES.with_name("template-lines-retired.txt")
-
-
-class ToolError(Exception):
-    """The tool cannot run: bad arguments, no vault config, unreadable files."""
 
 
 def load_config(root):
@@ -64,6 +62,10 @@ def load_config(root):
         raise ToolError(f".vela.yaml has stale_after_days: {days!r}. Write a whole number of days, such as 60.")
     if "records_split" in config:
         config["records_split"] = records_split_date(config["records_split"])
+    try:
+        sizing.read_choice(config)
+    except ValueError as exc:
+        raise ToolError(f".vela.yaml has size: ...: {exc}. Run vela size set <band> --because ^cN, or vela size clear.") from exc
     return config
 
 
@@ -111,34 +113,6 @@ def load_template_lines(path=None):
                             "one. Restore it from the toolkit repo.") from exc
         lines += [line for line in text.split("\n") if line.strip() and line not in lines]
     return lines
-
-
-def vault_files(root):
-    """(pages to parse, basenames of other Markdown files) under the vault root."""
-    pages, others = [], []
-    for path in sorted(root.rglob("*.md")):
-        rel = path.relative_to(root)
-        kind = page_kind(rel.as_posix())
-        if kind == "ignored":
-            continue
-        if path.is_symlink():
-            raise ToolError(str(untrusted.link_refusal(rel.as_posix())))
-        if kind == "other":
-            others.append(path.stem)
-            continue
-        pages.append(path)
-    return pages, others
-
-
-def page_kind(rel):
-    """"page", "other" (Markdown the vault skips, such as README.md) or "ignored" for a vault-relative path ending
-    .md: the one rule vault_files and the flow check's view of an earlier version share."""
-    parts = pathlib.PurePosixPath(rel).parts
-    if any(p.startswith(".") for p in parts[:-1]) or replay.is_mine_file(rel) or privaterecord.is_private(rel):
-        return "ignored"
-    if (len(parts) == 1 and parts[0] in schema.SKIP_FILES) or parts[0] in schema.SKIP_DIRS:
-        return "other"
-    return "page"
 
 
 def load_vault(root):
@@ -448,18 +422,14 @@ def cmd_publish(args, out):
         commit, short = vaultgit.head(root)
         dirty_files = vaultgit.uncommitted(root)
         git_name, git_email = vaultgit.user_identity(root)
-        files = publish.selected(files)
-        secret_notes = check_secrets(files, args.allow_secrets)
-        if ".vela.yaml" not in files:
-            raise ToolError("HEAD has no .vela.yaml, so there is no initiative to publish. Commit it first.")
-        files[publish.DASHBOARD_PATH] = publish_dashboard(files, {"date": vaultgit.commit_date(root, "HEAD") or today, "commit": short}, today)
-        config = load_config_text(files[".vela.yaml"])
-        owner = publish.owner_contact(config, git_name, git_email, args.owner_name or "", args.owner_contact or "")
-        counts = check_counts(files, today)
-        stamp = publish.build_stamp(config, commit, short, today, bool(dirty_files), owner, counts, files)
-        stamped = publish.with_stamp(files, stamp)
+        stamped, stamp, secret_notes, counts = published_copy(
+            files, commit, short, today,
+            lambda config: publish.owner_contact(config, git_name, git_email, args.owner_name or "", args.owner_contact or ""),
+            mode=PUBLISH_ALLOWING_SECRETS if args.allow_secrets else PUBLISH, uncommitted=len(dirty_files),
+            built_date=vaultgit.commit_date(root, "HEAD"))
+        owner = stamp["owner"]
         if target.suffix.lower() == ".zip":
-            copies.write_zip(publish.zip_bytes(stamped, publish.copy_name(config["title"], short),
+            copies.write_zip(publish.zip_bytes(stamped, publish.copy_name(stamp["title"], short),
                                                {p for p in executable if executable[p] and p in stamped}), target)
         else:
             copies.write_folder(stamped, target, {p for p in executable if executable[p] and p in stamped})
@@ -481,6 +451,36 @@ def cmd_publish(args, out):
     return 0
 
 
+# How `published_copy` is asked to work: one mode value, never a pile of switches at each call site.
+PUBLISH, PUBLISH_ALLOWING_SECRETS, FROM_GITHUB = "publish", "publish-allowing-secrets", "from-github"
+
+
+def published_copy(files, commit, short, today, owner_of, mode=PUBLISH, uncommitted=0, from_="", built_date=""):
+    """(stamped files, stamp, secret notes, (errors, warnings)): the publish steps on a committed tree. `vela publish`
+    and a GitHub open both call it, so a copy from GitHub is made by the same code, with the same exclusions, as a
+    copy the owner sends (Distributed Monolith ruled out). `owner_of(config)` gives the stamp's owner; `uncommitted` is
+    how many files the owner's work tree holds beyond what was committed. FROM_GITHUB skips building the page: a GitHub
+    open builds it once, in the reader's own workspace, not twice."""
+    files = publish.selected(files)
+    secret_notes = check_secrets(files, mode == PUBLISH_ALLOWING_SECRETS)
+    if ".vela.yaml" not in files:
+        raise ToolError("HEAD has no .vela.yaml, so there is no initiative to publish. Commit it first.")
+    if mode != FROM_GITHUB:
+        files[publish.DASHBOARD_PATH] = publish_dashboard(files, {"date": built_date or today, "commit": short}, today)
+    config = load_config_text(files[".vela.yaml"])
+    counts = check_counts(files, today)
+    stamp = publish.build_stamp(config, commit, short, today, bool(uncommitted), owner_of(config), counts, files, from_)
+    return publish.with_stamp(files, stamp), stamp, secret_notes, counts
+
+
+class SecretsRefused(ToolError):
+    """The pages look like they hold a credential; `hits` say where, for whoever may tell the owner."""
+
+    def __init__(self, hits):
+        super().__init__(secretscan.refusal(hits))
+        self.hits = hits
+
+
 def check_secrets(files, allowed):
     """Refuse a publish whose pages look like they hold a credential; with --allow-secrets, go on and say what was let through."""
     texts = {path: data.decode("utf-8", "replace") for path, data in files.items() if path != publish.DASHBOARD_PATH and not drafts.is_binary(data)}
@@ -488,7 +488,7 @@ def check_secrets(files, allowed):
     if not hits:
         return []
     if not allowed:
-        raise ToolError(secretscan.refusal(hits))
+        raise SecretsRefused(hits)
     return [f"--allow-secrets: published with {len(hits)} possible secret(s) in it ({hits[0].path} line {hits[0].line} and others); the copy carries them to every reader."]
 
 
@@ -536,6 +536,13 @@ def reader_freshness(root, checked_at):
         return freshness.Report("reader", freshness.UNKNOWN, checked_at, f"{exc}",
                                 lead="I can't read the note of where this copy came from, so I can't tell whether a "
                                      "newer one is out.")
+    repo = githubsource.parse(workspace.get("source_path") or "")
+    if repo is not None:  # opened from a GitHub link: ask GitHub, never a folder
+        try:
+            return freshness.github_report(workspace, githubcopy.remote_head(repo, vaultgit.FETCH_TIMEOUT), "", checked_at)
+        except githubcopy.CloneFailed as exc:
+            print(f"vela freshness: git said: {exc.detail}", file=sys.stderr)
+            return freshness.github_report(workspace, "", githubsource.message(exc.kind, githubsource.SOMEONE), checked_at)
     stamp, unreachable, unreadable = None, "", ""
     try:
         stamp = copies.read_source_stamp(workspace.get("source_path") or "")
@@ -637,20 +644,68 @@ def workspace_folder(slug, into, env, in_cowork):
     return folder
 
 
+def read_source_copy(args):
+    """(files, stamp, source name, source path) of what the person named: a GitHub link, a published folder or a zip."""
+    repo = githubsource.parse(args.source)
+    if repo is not None:
+        files, stamp = copy_from_github(repo, args.today)
+        return files, stamp, repo.url, repo.url
+    files, stamp = copies.read_published(args.source)
+    return files, stamp, pathlib.Path(args.source).name, os.path.abspath(os.path.expanduser(args.source))
+
+
+def copy_from_github(repo, today_flag):
+    """(files, stamp) of the plan as last committed on GitHub, made by the same publish steps a folder or zip goes
+    through. A failure is said in one plain sentence (git's own words go to stderr) and nothing ever opens an older
+    copy instead (Silent Fallback ruled out)."""
+    if repo.inside:
+        raise Declined(githubsource.points_inside_message(repo))
+    if not githubcopy.has_git():
+        raise Declined(githubsource.message(githubsource.NO_GIT, githubsource.SOMEONE))
+    today, _ = parse_today(today_flag)
+    with tempfile.TemporaryDirectory() as scratch:
+        clone = pathlib.Path(scratch) / "plan"
+        try:
+            githubcopy.clone(repo, clone)
+        except githubcopy.CloneFailed as exc:
+            print(f"vela open: git said: {exc.detail}", file=sys.stderr)
+            raise Declined(githubsource.message(exc.kind, githubsource.SOMEONE)) from exc
+        try:
+            files, _, _ = vaultgit.committed_files(clone)
+            commit, short = vaultgit.head(clone)
+            if ".vela.yaml" not in files:
+                raise Declined("That GitHub repository doesn't hold a vela plan.")
+            config = load_config_text(files[".vela.yaml"])
+            owner = githubsource.owner_of(config, repo)
+            who = owner["name"] if config.get("owner_contact") else repo.owner
+            try:
+                stamped, stamp, _, _ = published_copy(files, commit, short, today, lambda _config: owner, mode=FROM_GITHUB,
+                                                      from_=f"GitHub {repo.label}")
+            except SecretsRefused as exc:
+                print(f"vela open: {exc}", file=sys.stderr)
+                raise Declined(f"The plan on GitHub holds text that looks like a password or key, so I didn't open it. "
+                                f"Tell {who}; they can fix it, or send the plan as a file.") from exc
+        except vaultgit.GitUnavailable as exc:
+            print(f"vela open: git said: {exc}", file=sys.stderr)
+            raise Declined(githubsource.message(githubsource.NO_ACCESS, githubsource.SOMEONE)) from exc
+        except publish.PublishError as exc:
+            raise ToolError(str(exc)) from exc
+    return stamped, stamp
+
+
 def cmd_open(args, out):
     env = os.environ
     try:
-        files, stamp = copies.read_published(args.source)
+        files, stamp, source_name, source_path = read_source_copy(args)
         opening.verify_tree(files, stamp)
         admitted, left_out = opening.admit(files)
         in_cowork = bool(env.get("VELA_COWORK") or env.get("CLAUDE_COWORK"))
         folder = workspace_folder(publish.slug(stamp["title"]), args.into, env, in_cowork)
         existing = copies.read_existing_workspace(folder)
         today, _ = parse_today(args.today)
-        source_path = os.path.abspath(os.path.expanduser(args.source))
         if existing is not None:
-            return reopen_workspace(folder, existing, (admitted, stamp), (pathlib.Path(args.source).name, source_path), (args.author, args.newer), today, out)
-        record = opening.workspace_record(stamp, pathlib.Path(args.source).name, source_path,
+            return reopen_workspace(folder, existing, (admitted, stamp), (source_name, source_path), (args.author, args.newer), today, out)
+        record = opening.workspace_record(stamp, source_name, source_path,
                                           today, reader_author(args.author, pathlib.Path.cwd()),
                                           str(VELA_PROGRAM))
         copies.write_workspace(folder, admitted, record)
@@ -1197,7 +1252,10 @@ def cmd_check(args, out):
     errors = sum(1 for f in findings if f.is_error)
     warnings = len(findings) - errors
     if getattr(args, "for_lead", False):
-        return check_for_lead(vault, findings, errors, out, more=getattr(args, "more", False))
+        from vela.commands import size
+        return check_for_lead(vault, findings, errors, out, more=getattr(args, "more", False),
+                              listing="wording" if getattr(args, "wording", False) else "said",
+                              announced=size.announce(root, vault))
     elapsed = time.perf_counter() - started
     print(f"vela check: {errors} errors, {warnings} warnings in {len(vault.pages)} pages, judged as of {today} ({origin}). "
           f"Took {elapsed:.2f} s." + (f" {GATE_WORDS[args.gate]}" if args.gate else "")
@@ -1214,19 +1272,40 @@ def cmd_check(args, out):
     return 1 if errors else 0
 
 
-def check_for_lead(vault, findings, errors, out, more=False):
+def check_for_lead(vault, findings, errors, out, more=False, listing="said", announced=()):
     """`check --for-lead`: the count first, then each finding as the lead would hear it, what must be fixed before what
     is worth a look, by page title and with no code, ID or fix line. The fix lines are for the model; the lead hears
-    what is wrong. `say` keeps it to about four and raises on a leak."""
+    what is wrong. What the lead hears follows each finding's weight (`leadview.split`): a decision is always said;
+    wording notes wait, counted, below the size that shows them; close's own fixes are counted. Nothing is hidden:
+    plain `vela check` lists every finding, and each quiet group is named in one line with the way to ask for it.
+    `listing="wording"` lists only the wording notes. `say` keeps it to about four and raises on a leak."""
     resolver = say.Resolver(vault)
-    lines = []
-    for finding in sorted(findings, key=lambda f: not f.is_error):
+    wording = listing == "wording"
+    if wording:
+        notes = [f for f in findings if schema.WEIGHT.get(f.code) == "polish"]
+        view = leadview.LeadView(tuple(notes), (), ())
+    else:
+        view = leadview.split(vault, findings, sizing.of(vault))
+    lines = list(announced)
+    for finding in view.said:
         page = vault.page(pathlib.PurePosixPath(finding.path).stem)
         where = resolver.page_title(page.name) if page is not None else None
         lines.append(say.Line(f"{where or finding.path}: {finding.message}",
                               plain=f"{where or file_words(finding.path)}: {finding.message}"))
-    result = say.Result("check --for-lead", exit=1 if errors else 0, lines=lines,
-                        answer=check_lead_header(errors, len(findings) - errors, len(vault.pages)))
+    said_errors = sum(1 for f in view.said if f.is_error)
+    answer = (check_wording_header(len(view.said), len(vault.pages)) if wording
+              else check_lead_header(said_errors, len(view.said) - said_errors, len(vault.pages)))
+    quiet = []
+    if view.wording:
+        n = len(view.wording)
+        quiet.append(f"There {'is' if n == 1 else 'are'} also {say.count_words(n)} wording note{'' if n == 1 else 's'} "
+                     f"on the pages; want {'it' if n == 1 else 'them'}?")
+        lines.append(say.Line(f"{n} wording notes kept quiet at this size: vela check --for-lead --wording lists them", audience=say.MODEL))
+    if view.fixed:
+        n = len(view.fixed)
+        quiet.append(f"I'll fix {say.count_words(n)} more myself when we close.")
+        lines.append(say.Line(f"{n} findings close fixes itself (vela check --fix auto does it now)", audience=say.MODEL))
+    result = say.Result("check --for-lead", exit=1 if errors else 0, lines=lines, answer=answer, closing=" ".join(quiet))
     return commands.emit(result, argparse.Namespace(for_lead=True, more=more), out, resolver)
 
 
@@ -1235,6 +1314,12 @@ def file_words(path):
     if path == ".vela.yaml":
         return "The plan's settings"
     return path if say.leak_in(path) is None else "A file in the plan"
+
+
+def check_wording_header(notes, pages):
+    if not notes:
+        return f"No wording notes on the {pages} pages."
+    return f"{notes} wording note{'' if notes == 1 else 's'} across the {pages} pages."
 
 
 def check_lead_header(errors, warnings, pages):
@@ -1248,7 +1333,7 @@ def check_lead_header(errors, warnings, pages):
 # What each gate checks, said in the summary line instead of the gate's bare name.
 GATE_WORDS = {"epics": "Checking whether the epics are ready to call finished.",
               "shape": "Checking for questions the plan still answers by assumption, as shaping ends.",
-              "grill": "Checking the open questions that hold up the items a grill will decide."}
+              "decide": "Checking the open questions that hold up the items you'd decide."}
 # The kept working words, matched whole and in any case, so output that uses one defines it once, at the end.
 TERM_WORD = re.compile(r"\b(grill|slice|tracer)s?\b", re.IGNORECASE)
 
@@ -1357,7 +1442,9 @@ def slice_findings(root, vault, today):
     boundary session is where it gets drawn. The checker runs here, in milliseconds a slice, so check judges the
     result itself rather than trusting a recorded one."""
     from vela.flowcheck import readers, verdicts
-    return verdicts.findings(readers.read_catalog(vault, spec_texts(root)), today, CHECK_SLICE_STATES)
+    catalog = readers.read_catalog(vault, spec_texts(root))
+    return (verdicts.findings(catalog, today, CHECK_SLICE_STATES)
+            + verdicts.box_findings(catalog, {p.name.lower() for p in vault.parties}))  # W407: a box the Flows view cannot draw
 
 
 def cmd_check_slice(args, out):
@@ -1501,12 +1588,12 @@ def gate_app(vault, gate, app_id):
 
 
 def gate_items(vault, gate, items):
-    """The items a grill gate checks. A grill gate needs at least one, and only a grill gate takes any."""
+    """The items the decide gate checks. It needs at least one, and only it takes any."""
     items = list(items or ())
-    if gate == "grill" and not items:
-        raise ToolError("--gate grill needs the items the grill will decide: add --item <ID> for each, for example --item CON-001.")
-    if items and gate != "grill":
-        raise ToolError("--item names what a grill will decide, so it goes with --gate grill.")
+    if gate == "decide" and not items:
+        raise ToolError("--gate decide needs the items you'd decide: add --item <ID> for each, for example --item CON-001.")
+    if items and gate != "decide":
+        raise ToolError("--item names what you'd decide, so it goes with --gate decide.")
     missing = [i for i in items if i not in vault.known_ids()]
     if missing:
         raise ToolError(f"--item {', '.join(missing)} is not an ID in this vault.")
@@ -2623,13 +2710,6 @@ def oldest_text(row, today):
     return f"{name}, open {days_between(row.opened, today)} days (since {row.opened})"
 
 
-def ladder_note(vault, app):
-    """" | pages reach <stage>" when the app's pages meet a later stage's entry list than its typed stage, else "".
-    Said once, here and in close's report, never asked: the lead types the stage, or leaves it."""
-    reached = ladder.ahead_of_stage(vault, app)
-    return f" (its pages already meet the {reached} stage)" if reached else ""
-
-
 def without_subject(reason, subject):
     """The reason with its opening subject said as "It", when the line has just named that subject."""
     for lead in (subject, f"The open question {subject}"):
@@ -2646,10 +2726,9 @@ def status_line(row, today, vault=None):
     inkling, assumption, fact, decided = row.mix
     subject = vault.named(row.subject) if vault is not None and row.subject else row.subject
     next_text = f"{NEXT_MODE_WORDS.get(row.mode, row.mode)} {subject}".strip() if row.mode != "none" else "nothing"
-    note = ladder_note(vault, row.app) if vault is not None else ""
     name = vault.named(row.app.id) if vault is not None else row.app.id
     reason = without_subject(row.reason, subject)
-    return (f"{name} | stage: {row.stage or 'none'}{note} | {counted(inkling, 'early idea')}, {counted(assumption, 'assumption')}, {counted(fact, 'fact')}, "
+    return (f"{name} | stage: {row.stage or 'none'} | {counted(inkling, 'early idea')}, {counted(assumption, 'assumption')}, {counted(fact, 'fact')}, "
             f"{progress.decided_text(row)} decided | oldest open question: {oldest_text(row, today)} | next: {next_text}. {reason}")
 
 
@@ -2687,15 +2766,14 @@ def cmd_style(args, out):
 
 
 def cmd_ladder(args, out):
-    """For each app on the ladder: its typed stage, the stage its pages reach, and what the next stage still needs."""
+    """For each app on the ladder: the stage its pages reach, and what the next stage still needs."""
     root = pathlib.Path(args.vault).resolve()
     vault = load_vault(root)
     apps = [a for a in vault.apps if a.meta.get("change") in schema.LADDERED_CHANGES]
-    print(f"vela ladder: {len(apps)} apps being built or changed, each with the stage it is marked at and the stage its pages meet.", file=out)
+    print(f"vela ladder: {len(apps)} apps being built or changed, each with the stage its pages reach.", file=out)
     for app in apps:
         reached, gaps = ladder.allows(vault, app)
-        typed = app.meta.get("stage") or "none"
-        head = f"{vault.named(app.id)} | marked at stage: {typed} | pages meet stage: {reached}"
+        head = f"{vault.named(app.id)} | stage: {reached}"
         if gaps:
             shown = "; ".join(gaps[:3]) + (f"; and {len(gaps) - 3} more" if len(gaps) > 3 else "")
             head += f" | held back from the next stage by: {shown}"
@@ -2727,11 +2805,17 @@ def initiative_step(vault, row):
     partly filled vault is not nagged again and again."""
     if row is not None and row.rule <= 1:
         return None
+    sized = sizing.of(vault)
     loose = allocation.unallocated(vault)
-    if loose:
+    if loose and sized.needs(sizing.Need.ALLOCATE_SESSION):
         return (f"for the whole plan: decide which app owns {vault.named(loose[0].id)}, with /vela:allocate. "
                 f"It {handoffwarn.state_phrase(loose[0].fact('State'))} and no app has taken it, so no team owns it yet.")
-    if allocation.due(vault) and not releases.releases(vault) and not vault.of_type("epic"):
+    if loose:
+        return (f"for the whole plan: say which app owns {vault.named(loose[0].id)}, on that app's boundary sheet (/vela:boundary). "
+                f"It {handoffwarn.state_phrase(loose[0].fact('State'))} and no app has taken it, so no team owns it yet.")
+    # Below medium the release's date is one question in an app's grill, so this step stays quiet and the frontier wins.
+    if (allocation.due(vault) and not releases.releases(vault) and not vault.of_type("epic")
+            and sized.needs(sizing.Need.RELEASES_SESSION)):
         return ("for the whole plan: date the releases, with /vela:releases. Every requirement has an app, but no release "
                 "says when anyone gets any of it, so date them before the epics are written.")
     have = {r.id.split(".")[0] for r in allocation.requirements(vault)}
@@ -2739,8 +2823,11 @@ def initiative_step(vault, row):
             if c.meta.get("change") in schema.ENUMS["change@capability"] and c.meta.get("change") != "unchanged"
             and c.id not in have]
     if bare and (not vault.of_type("epic") or not have):
-        return (f"for the whole plan: write the requirements for {vault.named(bare[0].id)}, with /vela:requirements. "
-                f"The capability is {bare[0].meta['change']} and has no requirements yet, so there's nothing to divide among the apps for it.")
+        words = f"The capability is {bare[0].meta['change']} and has no requirements yet, so there's nothing to divide among the apps for it."
+        if sized.needs(sizing.Need.REQUIREMENTS_SESSION):
+            return f"for the whole plan: write the requirements for {vault.named(bare[0].id)}, with /vela:requirements. {words}"
+        return (f"for the whole plan: write the requirements for {vault.named(bare[0].id)} on the boundary sheet, with "
+                f"/vela:boundary. {words}")
     return None
 
 
@@ -2748,12 +2835,21 @@ def first_step(vault):
     """What to do while no app page exists. Once a Grill has decided the solution strategy, the direction is set
     and only a Boundary session turns it into apps; before that, the work is still finding out and shaping."""
     strategy = vault.page("04-solution-strategy")
-    if strategy is not None and strategy.meta.get("state") == "decided" and not allocation.requirements(vault):
+    sized = sizing.of(vault)
+    decided = strategy is not None and strategy.meta.get("state") == "decided"
+    if decided and not allocation.requirements(vault):
+        if not sized.needs(sizing.Need.REQUIREMENTS_SESSION):
+            return ("for the whole plan: run a boundary session, with /vela:boundary. The solution strategy is decided, so "
+                    "split the work into apps; the requirements and each app's share go on the boundary sheet.")
         return ("for the whole plan: write the requirements, with /vela:requirements. The solution strategy is decided "
                 "and no capability has requirements yet, so write them before the boundary session splits the work into apps.")
-    if strategy is not None and strategy.meta.get("state") == "decided":
+    if decided:
         return ("for the whole plan: run a boundary session, with /vela:boundary. The solution strategy is decided and "
                 "no app page exists yet, so split the work into apps.")
+    sources = strategy.meta.get("sources") if strategy is not None else None
+    if isinstance(sources, list) and sources and not sized.needs(sizing.Need.OPTIONS_BEFORE_DECIDING):
+        return ("for the whole plan: settle the solution strategy when you're sure, in this session, or test it "
+                "first with /vela:grill 04-solution-strategy. Boundary waits until the direction is decided.")
     return ("for the whole plan: no app page exists yet, so start by getting everything known written down "
             "(/vela:dump, a brainstorm), or by reading the existing sources (/vela:discover).")
 
@@ -2784,6 +2880,22 @@ NEXT_MODE_WORDS = {"probe": "ask about", "discover": "find sources for", "bounda
                    "shape": "shape the options for", "grill": "grill", "epics": "write the epics for"}
 
 
+def next_step_text(vault, today):
+    """The first thing `vela next` says, without its prefix and its as-of tail: what the companions quote as vela's
+    suggestion, so a panel never disagrees with the command."""
+    if not vault.apps:
+        return first_step(vault)
+    row = progress.best(progress.grid(vault, today))
+    step = initiative_step(vault, row)
+    if step:
+        return step
+    if row is None:
+        return "nothing to do. Every app's decisions are made and its epics agreed."
+    subject = vault.named(row.subject)
+    reason = without_subject(row.reason, subject)
+    return f"{vault.name_of(row.app.id)}: {NEXT_MODE_WORDS.get(row.mode, row.mode)} {subject}. {reason}"
+
+
 def cmd_next(args, out):
     if getattr(args, "for_lead", False) or getattr(args, "json", False):
         return next_through_say(args, out)
@@ -2793,20 +2905,9 @@ def cmd_next(args, out):
     when = f"As of {today} ({origin})."
     lines = []
     if not vault.apps:
-        line = f"vela next: {first_step(vault)} {when}"
-        print(line, file=out)
+        print(f"vela next: {next_step_text(vault, today)} {when}", file=out)
         return 0
-    row = progress.best(progress.grid(vault, today))
-    step = initiative_step(vault, row)
-    if step:
-        lines.append(f"vela next: {step} {when}")
-    elif row is None:
-        lines.append(f"vela next: nothing to do. Every app's decisions are made and its epics agreed. {when}")
-    else:
-        subject = vault.named(row.subject)
-        reason = without_subject(row.reason, subject)
-        lines.append(f"vela next: {vault.name_of(row.app.id)}: {NEXT_MODE_WORDS.get(row.mode, row.mode)} "
-                     f"{subject}. {reason} {when}")
+    lines.append(f"vela next: {next_step_text(vault, today)} {when}")
     slice_step = slices.next_step(slices.read_slices(vault)) if slices.on_pages(vault) else ""
     if slice_step:
         lines.append(f"vela next: for the slices: {slice_step}")
@@ -2832,10 +2933,15 @@ def next_through_say(args, out):
     found = [line[len("vela next: "):] if line.startswith("vela next: ") else line.strip()
              for line in printed.getvalue().splitlines() if line.strip()]
     said = [_AS_OF.sub("", line).strip() for line in found]
+    root = pathlib.Path(args.vault).resolve()
+    vault = load_vault(root)
+    from vela.commands import size
     result = say.Result("next", exit=code, answer=f"Next I'd suggest this: {said[0]}" if said else "",
-                        lines=[say.Line(f"vela next: {line}", plain=f"Also: {words}" if n else "")
-                               for n, (line, words) in enumerate(zip(found, said))], data={"next": found})
-    return commands.emit(result, args, out, say.Resolver(load_vault(pathlib.Path(args.vault).resolve())))
+                        lines=size.announce(root, vault)  # first: recorded as said, so never behind a cap
+                        + [say.Line(f"vela next: {line}", plain=f"Also: {words}" if n else "")
+                           for n, (line, words) in enumerate(zip(found, said))],
+                        data={"next": found})
+    return commands.emit(result, args, out, say.Resolver(vault))
 
 
 def find_plan(root):
@@ -2887,7 +2993,7 @@ def handoff_steps(vault):
     lead hears it before the senior accepts the app."""
     out = []
     for app in vault.apps:
-        if not handoffwarn.at_handoff(app):
+        if not handoffwarn.at_handoff(vault, app):
             continue
         found = handoffwarn.gaps(vault, app)
         if not found:
@@ -2976,8 +3082,8 @@ def build_parser():
     say.add_output_flags(fresh)
     fresh.add_argument("--timeout", type=int, default=vaultgit.FETCH_TIMEOUT, help="seconds an owner's git fetch may take (default 8)")
     fresh.set_defaults(func=cmd_freshness)
-    opn = sub.add_parser("open", help="make a private reader workspace from a published folder or zip; the source is never written")
-    opn.add_argument("source", help="the published folder or .zip")
+    opn = sub.add_parser("open", help="make a private reader workspace from a published folder, a zip or a GitHub link; the source is never written")
+    opn.add_argument("source", help="the published folder, the .zip, or the plan's GitHub link")
     opn.add_argument("--into", help="the workspace folder (default: $VELA_WORKSPACES/<slug>, else ~/VelaWorkspaces/<slug>); folders OneDrive, SharePoint, Dropbox, iCloud Drive, Google Drive or Box sync are refused")
     opn.add_argument("--author", help="your name for the drafts (default: git user.name)")
     opn.add_argument("--today", help="the date to record, YYYY-MM-DD (default: system date)")
@@ -3173,15 +3279,4 @@ def main(argv=None, out=None):
     if extras:
         print(unrecognized_message(args, extras), file=out)
         return 2
-    try:
-        return args.func(args, out)
-    except ToolError as exc:
-        print(f"vela: {exc}", file=out)
-        return 2
-    except say.LeadLeak as exc:  # a leak fails loudly at its source, never reaches the lead as a quiet code
-        print(str(exc), file=out)
-        return 2
-    except Exception as exc:  # the tool failed; never report this as a vault finding
-        print(f"vela: internal error: {exc!r}. This is a bug in vela, not in the vault.", file=out)
-        traceback.print_exc(file=out)
-        return 2
+    return commands.run(args, out)

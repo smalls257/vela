@@ -11,7 +11,7 @@ listed and why. Close order (controller ruling C7): "Still yes?" reconfirm first
   cites, or the words of a lead capture that approves them (`--approved ^cNN`, which re-points a decision receipt to it).
 - `--cut ITEM --line why|quote`: drop the line. A decision's words can be reworded, never cut.
 - `--pick ^cNN`: add a quote of the lead's own words (or of someone with their own quote-yes) to
-  `.vela/close/<id>.quotes.json`, which the PR body's "In their words" reads.
+  `.vela/close/<id>.quotes.json`. The PR body no longer prints picked quotes; the pick is still read back and gated.
 - `--done`: store the digest of what stands now in `.vela/close/<id>.readback.json`.
 
 Exit codes: 0 done; 1 refused (said in plain words); 2 the tool failed; 3 several sessions are open.
@@ -167,8 +167,11 @@ def reword(args, root, vault, record, listing, picked, lead):
             return _write_quote(root, record, picked, sentence, args.words)
         page = pathlib.Path(root) / sentence.page
         new = closereadback.reword(page.read_text(encoding="utf-8"), sentence, args.words, approved, cited)
-    except ValueError as exc:
-        return _refused(f"{exc}", "Those words aren't ones you said, and you haven't said yes to them. What should it say?")
+    except ValueError:
+        return say.Result(NAME, exit=say.REFUSED, refusals=[say.Refusal(
+            "readback-words-not-yours", "Those words aren't yours yet. Shall I read the new wording back to you?",
+            "Read the new wording to the lead, capture their yes in their words, and run again with --approved ^cNN.", override="none: a page sentence in the lead's name carries only words they said or "
+                                         "said yes to")])
     wrote = sessiongit.write_text(root, sentence.page, new)
     return _done([wrote], f"close readback: reworded the {sentence.line} line for {sentence.item}.",
                  "Changed. I'll read it back to you again.")

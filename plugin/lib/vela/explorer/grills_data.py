@@ -1,4 +1,4 @@
-"""The Grills waiting view's data (D.grills): `vela.grills.waiting`, with every ID turned into the key the page names it by.
+"""The Waiting for a decision view's data (D.grills): `vela.grills.waiting`, with every ID turned into the key the page names it by.
 
 The Violation this exists to prevent is a Leaky Narrative on the page: if view-grills.js had to know that an epic's
 key is its page's ID, that a source is a Library row and that a grill owner lives in `.vela.yaml`, each rule would

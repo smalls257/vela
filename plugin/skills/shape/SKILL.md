@@ -1,12 +1,12 @@
 ---
 name: shape
-description: "Lay out 2 or 3 options with trade-offs, record the rejected ones, keep the chosen one as not decided yet until a grill decides it. Offer it when someone roughly knows what they want; start it only on a yes."
+description: "Lay out 2 or 3 options with trade-offs, record the rejected ones, keep the chosen one as not decided yet unless the lead settles it. Offer it when someone roughly knows what they want; start it only on a yes."
 argument-hint: "<area, app or item>"
 ---
 
 # Shape
 
-Give the user something concrete to react to. Shape never decides: what it settles stays an `assumption` (to the lead, "not decided yet") until a grill decides it.
+Give the user something concrete to react to. What it settles stays an `assumption` (to the lead, "not decided yet") unless the lead settles it.
 
 1. Run the steps in `${CLAUDE_PLUGIN_ROOT}/references/START.md` with mode `shape`. Read the Shape row of `${CLAUDE_PLUGIN_ROOT}/references/MODES.md`.
 2. Read the area's pages, its ADRs and parked captures.
@@ -21,7 +21,7 @@ Give the user something concrete to react to. Shape never decides: what it settl
 6. Capture the user's reaction to each option, with their name as origin.
 7. When the user picks one, capture it. If they accept your preferred option as it stands, the origin is `claude, from <name>`. Each rejected option gets a capture with its reason. If they reject all, capture why and offer new options.
    For the picked option, take each line of its "what must be true" set in turn. The user says it is known, with a source; is a belief, and whether the plan rests on it; or is an open question for someone. Capture each answer starting with its finding ID. Close writes a belief as an `assumed` ledger row with `load-bearing:` and a signpost.
-8. On "that's decided", capture `[thought] (<name>) that's decided, grill to confirm`. The item stays at `assumption`. Tell the user a grill decides it: "After close, run `/vela:grill <name>`" by the item's name ("/vela:grill Desktop agent").
-9. When the lead says a plain yes to a pick, run `vela decide` on it: if it answers that this session can't decide and marks the item ready to decide, offer the lead a short grill on it now, as it says.
-10. Write nothing to a page during the session. At close the picked option becomes an `assumption` item with an `**Options considered:**` bullet naming the picked option and each rejected one with its reason.
+8. On "that's decided" or "settle it", settle it as `${CLAUDE_PLUGIN_ROOT}/references/SETTLE.md` says.
+9. On a plain yes to a pick, offer once to settle it (SETTLE.md).
+10. Write nothing to a page during the session, except a pick the lead settles: `vela decide` files it then. At close the picked option becomes an `assumption` item with an `**Options considered:**` bullet naming the picked option and each rejected one with its reason. When the lead picks an option, draft the paragraph its item will carry now, as `START.md` says under "Draft the paragraph when the item is filed", and show it with the pick; close writes it to the page.
 11. When the lead says they are done, close as `${CLAUDE_PLUGIN_ROOT}/references/START.md` says under "Closing a session". Close runs `vela check --gate shape`; tell the lead only that close will list what is still assumed.
