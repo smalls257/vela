@@ -15,9 +15,7 @@ from dataclasses import dataclass
 from vela import closegate, pageindex, privaterecord, say
 from vela.decisions import agenda
 
-VERSION = 1
-LABEL_TODAY, LABEL_SESSION = "decided today", "decided this session"
-NO_SUMMARY = "No summary yet"
+VERSION = 2  # 2: the JSON carries `blocks`; a file without them is a version-1 file
 PLACEHOLDER_SUMMARY = "In progress."  # what privaterecord.new_private writes: read as no summary
 FOLDER = ".vela/companion"
 FILES = {"json": FOLDER + "/session.json", "md": FOLDER + "/session.md", "html": FOLDER + "/session.html"}
@@ -99,8 +97,8 @@ def folded(rows):
     return found
 
 
-def decided_rows(rows, names, label):
-    return [{"id": item, "name": _name(names, item), "from": last.before, "to": last.after, "label": label,
+def decided_rows(rows, names):
+    return [{"id": item, "name": _name(names, item), "from": last.before, "to": last.after,
              "capture": _capture_of(last), "page": names[item].page if item in names else ""}
             for item, (_, last) in folded(rows).items() if last.after == "decided" and not last.reconfirmed]
             # a reconfirmed item was decided on another machine; close's "You settled" leaves it out too
@@ -191,19 +189,18 @@ def diagram_of(decided, touched, index, names):
 
 
 def _diagram(ident, name, steps):
-    return {"kind": "sequence", "of": ident, "name": name, "steps": steps, "svg": "", "text": ""}
+    return {"kind": "sequence", "of": ident, "name": name, "steps": steps, "svg": ""}
 
 
 def build(inputs):
-    """The session JSON (version 1). Raises ValueError when the notes' header can't be read: the caller turns that
+    """The session JSON (version 2). Raises ValueError when the notes' header can't be read: the caller turns that
     into `unreadable`, never into an empty panel."""
     notes, index, today = inputs.notes, inputs.index, inputs.today
     names = pageindex.names(index)
     rows = closegate.change_rows(notes)
-    resumed = str(inputs.stub.get("date", today)) != today
     summary = privaterecord.summary_of(notes)
     agenda_list = agenda_rows(notes, names)
-    decided = decided_rows(rows, names, LABEL_SESSION if resumed else LABEL_TODAY)
+    decided = decided_rows(rows, names)
     touched = touched_rows(inputs.touched, rows, index) if inputs.touched is not None else None
     warnings = []
     if inputs.touched is None:

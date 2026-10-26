@@ -13,11 +13,11 @@ from dataclasses import dataclass
 
 from vela import companionsvg, say
 
-VERSION = 1
+VERSION = 2  # 2: the JSON carries `blocks`; a file without them is a version-1 file
 VIEWS = ("track", "stuck", "needs", "left", "who", "flow", "page", "none")  # closed: a view not here is refused
 NOT_RECORDED = {
     "track": "The plan doesn't track build progress; the team leads do.",
-    "stuck": "Not in the plan: how far the teams have built. Ask the team leads for that.",
+    "stuck": "How far the teams have built. Ask the team leads for that.",
     "needs": "The plan only knows what was asked of you in it; anything asked in a meeting isn't here.",
     "left": "Story and task progress isn't in the plan; tickets go out to Jira and nothing comes back.",
     "who": "Only questions written into the plan are here.",
@@ -118,7 +118,8 @@ def view_track(digest, about, viewer, today):
     mine = [s for s in digest["slices"] if s["key"] in release["slices"]]
     if is_shipped(release, digest["slices"]):
         headline = [f"{release['name']} shipped: every slice tied to it is on.", status_sentence(mine)]
-        return headline, [{"id": release["name"], "name": release["name"], "target": release["target"], "days_out": out}], []
+        return headline, [{"id": release["name"], "name": release["name"], "target": release["target"], "days_out": out,
+                           "shipped": True}], []
     when = f"{out} days out" if out >= 0 else f"{-out} days ago"
     headline = [f"{release['name']} is due {date_words(release['target'], today)}, {when}."]
     headline.append(status_sentence(mine) if mine else "No slice is tied to it yet.")
@@ -235,24 +236,40 @@ READERS = {"track": view_track, "stuck": view_stuck, "needs": view_needs, "left"
            "flow": view_flow, "page": view_page, "none": view_none}
 
 
+def lit_map_words(digest):
+    """The lit map in words, for a pane that cannot draw a picture: which apps have questions and how urgent."""
+    lit = [f"{app['name']} ({digest['app_lights'][app['key']]})" for app in digest["apps"]
+           if digest["app_lights"].get(app["key"]) in ("warning", "caution", "unexamined")]
+    return "Apps with open questions: " + ", ".join(lit) + "."
+
+
 def diagram_of(digest, view, about, items):
     if view == "flow":
         flow = find(digest["flows"], about)
         return {"kind": "sequence", "of": flow["key"], "name": flow["name"], "steps": flow["steps"],
-                "svg": companionsvg.sequence(flow["steps"], flow["name"]), "text": companionsvg.text_of(flow["steps"])}
+                "svg": companionsvg.sequence(flow["steps"], flow["name"])}
     if view == "stuck" and any(level in ("warning", "caution", "unexamined") for level in digest["app_lights"].values()):  # a map with nothing lit says nothing
-        return {"kind": "map", "of": "", "name": "Where they sit", "steps": [],
-                "svg": companionsvg.lit_map(digest["apps"], digest["app_lights"]), "text": ""}
+        return {"kind": "map", "of": "", "name": "Where the questions sit", "steps": [], "alt": lit_map_words(digest),
+                "svg": companionsvg.lit_map(digest["apps"], digest["app_lights"])}
     return None
 
 
+def views_that_answer(digest, viewer):
+    """The views worth offering as "also ask": the ones that have something to say for this plan and this reader. The
+    plan's own dates make "when is it due?" answerable, a known reader makes "what do you need from me?" answerable."""
+    answers = {"stuck": True, "left": bool(digest["progress"]), "who": any(a["state"] == "open" for a in digest["asks"]),
+               "needs": bool(viewer.handle), "track": any(r["target"] for r in digest["releases"])}
+    return [view for view, yes in answers.items() if yes]
+
+
 def explain(digest, view, about, viewer, since, today):
-    """The explain JSON (version 1). Raises Unknown for flow/page naming nothing, NeedsViewer for needs with no handle."""
+    """The explain JSON (version 2). Raises Unknown for flow/page naming nothing, NeedsViewer for needs with no handle."""
     headline, items, groups = READERS[view](digest, about, viewer, today)
     dashboard = "dashboard.html" + (ROUTES[view] if view != "flow" else "#flows&open=" + find(digest["flows"], about)["key"])
-    return {"version": VERSION, "kind": "explain", "view": view, "as_of": today,
+    return {"version": VERSION, "kind": "explain", "view": view, "about": about, "as_of": today,
             "copy": {"title": digest["title"], "made": digest["made"]},
             "viewer": {"handle": viewer.handle, "role": viewer.role}, "headline": headline, "since": since,
             "items": items, "groups": groups, "diagram": diagram_of(digest, view, about, items),
+            "also": [v for v in views_that_answer(digest, viewer) if v != view],
             "dashboard": dashboard if view != "none" else "dashboard.html",
             "not_recorded": [NOT_RECORDED[view]] if NOT_RECORDED[view] else [], "files": {}, "vault": "", "warnings": []}

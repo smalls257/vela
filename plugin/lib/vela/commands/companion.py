@@ -19,6 +19,9 @@ from vela import companiondesign, companionexplain, companionplan, companionrend
 from vela.edge import companionstore, plans, vaultfiles
 
 NO_SESSION = "No session is open in this folder."
+NOT_EXPLAINED = "Nothing has been explained yet."
+OLD_ANSWER = "The last answer was written by an older vela and can't be redrawn. Ask the question again."
+NO_VIEW_GIVEN = "Say which view answers it, with --view."
 
 
 def register(sub):
@@ -29,10 +32,10 @@ def register(sub):
     common(session)
     session.set_defaults(func=cmd_session)
     explain = verbs.add_parser("explain", help="a question about the plan, answered from vela's own numbers, with what the plan doesn't know")
-    explain.add_argument("--view", required=True, choices=companionexplain.VIEWS, help="which view answers it")
+    explain.add_argument("--view", choices=companionexplain.VIEWS, help="which view answers it (not needed with --last)")
     explain.add_argument("--about", default="", help="the flow or page it is about, by name (with --view flow or page)")
     explain.add_argument("--as", dest="as_handle", default="", metavar="@HANDLE", help="who is asking, when vela can't tell")
-    explain.add_argument("--last", action="store_true", help="print the last answer written, unchanged")
+    explain.add_argument("--last", action="store_true", help="answer the last question asked again, with today's code and numbers")
     common(explain)
     explain.set_defaults(func=cmd_explain)
     prepare = verbs.add_parser("prepare", help="make the plan digest the explain views read, without drawing the dashboard")
@@ -205,6 +208,30 @@ def explain_files():
     return {"json": f"{base}/explain.json", "md": f"{base}/explain.md", "html": f"{base}/explain.html"}
 
 
+def ask_again(args, root):
+    """Sets the view, flow or page and asker of the last question on `args` and returns "", or returns why it can't. The
+    stored answer is never replayed: a file an older vela wrote has no blocks, and a panel drawn from it would be blank
+    with nothing to say why (Silent Fallback). Asking again with the current code always gives current blocks."""
+    last = companionstore.folder(root) / "explain.json"
+    if not last.is_file():
+        return NOT_EXPLAINED
+    try:
+        held = json.loads(last.read_text(encoding="utf-8"))
+    except ValueError:
+        return OLD_ANSWER
+    if not isinstance(held, dict) or held.get("version") != companionexplain.VERSION or held.get("view") not in companionexplain.VIEWS:
+        return OLD_ANSWER
+    args.view, args.about = held["view"], held.get("about", "")
+    args.as_handle = args.as_handle or held["viewer"]["handle"]
+    return ""
+
+
+def said_message(args, out, message):
+    """A sentence from vela and nothing to draw (exit 1); with --json it is the `message` the mod shows as its problem."""
+    print(json.dumps({"message": message}, indent=1, ensure_ascii=False) if args.json else message, file=out)
+    return 1
+
+
 def since_of(root, digest, today, warnings):
     """The "Since ..." line, and the rolled record written back. A record that can't be read starts over, and says so."""
     try:
@@ -222,12 +249,11 @@ def cmd_explain(args, out):
     root = root_of(args)
     today = clock(args)[0]
     if args.last:
-        last = companionstore.folder(root) / "explain.json"
-        if not last.is_file():
-            print("Nothing has been explained yet.", file=out)
-            return 1
-        print(last.read_text(encoding="utf-8"), end="", file=out)
-        return 0
+        refused = ask_again(args, root)
+        if refused:
+            return said_message(args, out, refused)
+    elif not args.view:
+        return said_message(args, out, NO_VIEW_GIVEN)
     digest, warnings = current_digest(root, today)
     handle, role = companionstore.viewer(root)
     viewer = companionexplain.Viewer(("@" + args.as_handle.lstrip("@")) if args.as_handle else handle, role)
