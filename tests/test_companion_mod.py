@@ -50,7 +50,9 @@ def test_the_mod_holds_no_panel_wording():
 
 
 def test_the_mod_sends_nothing_back_to_claude():
-    """The owner's ruling of October 24, 2026: the panels only show. No Button, no prompt submission, in any companion."""
+    """The owner's ruling of October 24, 2026: the panels only show. The one button the mod draws folds a section (it
+    changes what the panel shows, nothing else); no prompt submission, no process started from a press."""
     source = (PLUGIN / "hooks" / "companion.js").read_text(encoding="utf-8")
-    for word in ("Button", "prompt.submit", "buttons"):
-        assert word not in source, word
+    assert "prompt.submit" not in source
+    assert source.count("onPress") == 1, "the fold toggle is the only press handler"
+    assert "toggleFold(id, fold.redraw)" in source
