@@ -67,7 +67,10 @@ def test_a_requirement_on_no_release_with_its_only_story_put_off_says_both_in_wo
     assert row["stories"][1]["putOff"] and row["stories"][1]["stories"] == ["S-11"]
     long = {c["k"]: c["long"] for c in row["checks"]}
     assert long["release"] == "on no release, so nothing says when it ships"
-    assert long["stories"] == "every story for it is put off in Desktop agent's breakdown and no review date is recorded"
+    # one app put it off and the other two have no breakdown at all: the sentence covers each carrying app (S2)
+    assert long["stories"] == ("put off in the breakdown of Desktop agent, and no review date is recorded; "
+                               "no breakdown yet from Consent and identity or Summarizer")
+    assert row["checks"][4]["short"] == "put off"
     assert sorted(row["questions"]) == ["UNK-059", "UNK-064", "UNK-072"]
 
 
@@ -77,18 +80,25 @@ def test_a_requirement_designed_by_one_of_three_apps_is_part_and_names_who_has_n
     assert [d["designed"] for d in row["designs"]] == [False, True, False]
     assert row["designs"][1]["components"] == ["ConsentGate", "NoteClient"]
     long = {c["k"]: c["long"] for c in row["checks"]}
-    assert long["designed"] == "no tech design yet from Consent and identity or Summarizer (the others trace it)"
+    assert long["designed"] == "no tech design yet from Consent and identity or Summarizer; Desktop agent traces it"
     assert long["stories"] == "no breakdown yet from Consent and identity or Summarizer"
     assert row["questions"] == ["UNK-064"]
-    assert row["release"]["short"] == "February pilot" and row["release"]["date"] == "February 2, 2027"
+    assert row["release"]["short"] == "February pilot, Client Delivery London" and row["release"]["date"] == "February 2, 2027"
+    assert row["release"]["key"] == "release:1"
+    # the name is the lead's heading, quoted, never a guessed article ("delivered in the the rest"), and the unknown a note names is said as a question
+    release = {c["k"]: c["long"] for c in row["checks"]}["release"]
+    assert release == ("delivered in “Release one: February pilot, Client Delivery London”, February 2, 2027; "
+                       "dropped if the answer to “Digest as client record” says the digest is a client record")
     assert row["epics"] == [{"key": "EPC-033", "criteria": 1}]
 
 
 def test_the_criteria_come_with_the_ids_their_trace_lines_name(heron):
     first = rows_of(heron)["CAP-003.FR1"]["criteria"][0]
-    assert first["trace"] == ["CAP-001.FR1"] and first["text"].startswith("The digest draws only on")
+    assert [t["id"] for t in first["trace"]] == ["CAP-001.FR1"] and first["text"].startswith("The digest draws only on")
+    assert first["trace"][0]["key"] == "CAP-001.FR1" and not first["trace"][0]["waits"]
     held = rows_of(heron)["CAP-003.FR2"]["criteria"]
-    assert any("UNK-074" in c["trace"] for c in held)
+    waiting = [t for c in held for t in c["trace"] if t["waits"]]
+    assert [t["id"] for t in waiting] == ["UNK-074"] and waiting[0]["said"].startswith("waits on: ")
 
 
 def test_an_open_question_named_only_on_a_criterion_still_holds_the_requirement(heron):
@@ -133,10 +143,103 @@ def test_a_requirement_left_out_of_the_tracer_keeps_the_reason_the_check_quotes(
     assert release["v"] == "no" and "Not in the tracer says why: waits on the CISO review of December 4" in release["long"]
 
 
-def test_a_criterion_counts_the_same_for_the_release_check_and_the_page():
-    """releases.criteria_count and the requirement's criteria list are one reader."""
+def test_each_requirement_lists_the_criteria_it_always_did():
+    """The counts vela-next's own bullet counter gave on this plan before the reader moved (measured there), not derived from it."""
     from vela import allocation, cli
     vault = cli.load_vault(HERON)
-    for req in allocation.requirements(vault):
-        assert releases.criteria_count(req) == len(releases.requirement_criteria(req))
-    assert len(releases.requirement_criteria(vault.item("CAP-003.FR2"))) == 5
+    counts = {r.id: releases.criteria_count(r) for r in allocation.requirements(vault)}
+    assert counts == {"CAP-001.FR1": 5, "CAP-001.FR2": 5, "CAP-002.FR1": 8, "CAP-002.FR2": 8, "CAP-003.FR1": 5, "CAP-003.FR2": 5,
+                      "CAP-004.FR1": 5, "CAP-005.FR1": 7, "CAP-005.FR2": 4}
+
+
+# --------------------------------------------------------------------------- the review's scenario vaults
+
+def changed(tmp_path, page, old, new, name="vault"):
+    vault = tmp_path / name
+    shutil.copytree(HERON, vault)
+    edit(vault / page, old, new)
+    return vault
+
+
+CAP1 = "capabilities/CAP-001-read-calendar-and-transcripts.md"
+FIRST_FR2_CRITERION = "- Reads only the signed-in person's own calendar.\n"
+
+
+def own_criterion_trace(tmp_path, unknown):
+    page = (HERON / CAP1).read_text(encoding="utf-8")
+    first = next(l for l in page.split("### CAP-001.FR2")[1].splitlines() if l.startswith("- ") and "**" not in l)
+    return changed(tmp_path, CAP1, first + "\n", first + f"\n  - Trace: {unknown}\n")
+
+
+def test_an_open_question_on_the_requirements_own_criterion_holds_it_and_the_chip_says_the_same(tmp_path):
+    """M1: the check and the panel's chip are one answer, from Python."""
+    row = rows_of(dashboard(own_criterion_trace(tmp_path, "UNK-071")))["CAP-001.FR2"]
+    assert "UNK-071" in row["questions"] and verdicts(row)["open"] == "no" and "held" in row["in"]
+    chips = [t for c in row["criteria"] for t in c["trace"] if t["id"] == "UNK-071"]
+    assert len(chips) == 1 and chips[0]["waits"] and chips[0]["said"].startswith("waits on: ")
+
+
+def test_a_resolved_question_on_the_requirements_own_criterion_holds_nothing(tmp_path):
+    row = rows_of(dashboard(own_criterion_trace(tmp_path, "UNK-053")))["CAP-001.FR2"]
+    assert "UNK-053" not in row["questions"] and verdicts(row)["open"] == "yes"
+    chip = next(t for c in row["criteria"] for t in c["trace"] if t["id"] == "UNK-053")
+    assert not chip["waits"] and chip["key"] == "UNK-053"
+
+
+def test_a_trace_line_of_words_makes_no_chips_a_constraint_opens_its_page_and_a_missing_id_says_so(tmp_path, heron):
+    rows = rows_of(heron)
+    assert all(c["trace"] == [] for c in rows["CAP-002.FR1"]["criteria"] if "none that morning" in c["text"])  # "Trace: the Summarizer runtime page" is prose
+    cst = next(t for c in rows["CAP-001.FR1"]["criteria"] for t in c["trace"] if t["id"] == "CST-008")
+    assert cst["key"] == "read:constraints" and cst["said"].startswith("Teams transcripts exist only where")
+    row = rows_of(dashboard(own_criterion_trace(tmp_path, "CAP-999")))["CAP-001.FR2"]
+    lost = next(t for c in row["criteria"] for t in c["trace"] if t["id"] == "CAP-999")
+    assert lost["key"] == "" and lost["said"] == "not in this plan"
+
+
+def test_a_design_that_does_not_trace_it_is_not_a_missing_design(tmp_path):
+    """S1: Desktop agent has a design; it just lacks the row. The words and the next step say so."""
+    vault = changed(tmp_path, "docs/tech-design/desktop-agent.md", "| CAP-003.FR2@APP-desktop-agent | NoteClient |\n", "")
+    row = rows_of(dashboard(vault))["CAP-003.FR2"]
+    designed = next(c for c in row["checks"] if c["k"] == "designed")
+    assert designed["v"] == "no"
+    assert designed["long"] == "no tech design yet from Summarizer; Desktop agent's tech design does not trace it"
+    assert "Add it to the Trace table of the tech design of Desktop agent." in designed["next"]
+    assert [(d["title"], d["say"]) for d in row["designs"]] == [("Design does not trace it", "Desktop agent: its tech design does not trace it"),
+                                                              ("No design yet", "Summarizer: no tech design yet")]
+
+
+def test_a_design_entry_for_another_apps_share_does_not_count_for_this_app(tmp_path):
+    """N5."""
+    vault = changed(tmp_path, "docs/tech-design/desktop-agent.md", "| CAP-003.FR2@APP-desktop-agent | NoteClient |", "| CAP-003.FR2@APP-summarizer | NoteClient |")
+    row = rows_of(dashboard(vault))["CAP-003.FR2"]
+    assert [d["designed"] for d in row["designs"]] == [False, False]
+
+
+def test_a_requirement_is_grouped_by_the_page_it_is_written_on_not_by_its_id_prefix(tmp_path):
+    """S5: CAP-005's page has a mistyped id; its requirements still sit under their own page, with its title."""
+    vault = changed(tmp_path, "capabilities/CAP-005-record-persons-consent.md", "id: CAP-005\n", "id: CAP-055\n")
+    rows = rows_of(dashboard(vault))
+    assert rows["CAP-005.FR1"]["capabilityKey"] == "CAP-055" and rows["CAP-005.FR1"]["capabilityTitle"] == "Record a person's consent"
+    assert rows["CAP-004.FR1"]["capabilityKey"] == "CAP-004"
+
+
+def test_a_requirement_whose_capability_page_is_gone_is_named_and_not_dropped_in_silence(tmp_path):
+    """N10: the allocation and the release still name CAP-005.FR1 and FR2."""
+    vault = tmp_path / "vault"
+    shutil.copytree(HERON, vault)
+    (vault / "capabilities" / "CAP-005-record-persons-consent.md").unlink()
+    data = dashboard(vault)["requirements"]
+    assert len(data["rows"]) == 7
+    assert [o["id"] for o in data["orphans"]] == ["CAP-005.FR1", "CAP-005.FR2"]
+    assert "named by" in data["orphans"][0]["said"] and "no requirement of that ID is written" in data["orphans"][0]["said"]
+
+
+def test_a_release_row_of_some_criteria_says_which_in_words(tmp_path):
+    vault = changed(tmp_path, "04b-releases.md", "CAP-004.FR1 Write a prep note for one meeting\\|Write a prep note for one meeting]] | all |", "CAP-004.FR1 Write a prep note for one meeting\\|Write a prep note for one meeting]] | AC1, AC2 |")
+    long = next(c["long"] for c in rows_of(dashboard(vault))["CAP-004.FR1"]["checks"] if c["k"] == "release")
+    assert "only criteria 1 and 2 of it" in long
+
+
+def test_what_to_do_is_said_with_session_names_never_slash_commands(heron):
+    words = [c["next"] for r in heron["requirements"]["rows"] for c in r["checks"]] + [heron["requirements"]["lede"]]
+    assert not [w for w in words if "/vela:" in w]

@@ -527,6 +527,8 @@ function go(key, opts = {}) {
   const e = ent(key);
   // a capability picked on the map, or revealed from a chip, narrows the map and the sidebar to what it touches
   if (e && e.kind === "capability" && !opts.quiet && (["map", "capmap", "capmatrix"].includes(App.view) || opts.reveal) && !CapFocus.isIt(key)) { Nav.open("capabilities", key, { stay: App.view === "capmatrix" }); return; }
+  // a requirement picked anywhere but its own section, or the pages that keep their own panel, opens on the Requirements section
+  if (e && e.kind === "requirement" && !opts.quiet && typeof Nav !== "undefined" && Nav.SECTIONS.requirements && !["reqs", "inside", "flows"].includes(App.view)) { Nav.open("requirements", key); return; }
   if (opts.reveal && e) {
     const target = revealView(e);
     if (target && target !== App.view) { showView(target); afterReveal(key, e); Minimap.refresh(); return; }

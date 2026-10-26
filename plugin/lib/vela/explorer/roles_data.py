@@ -181,20 +181,9 @@ def epic_criteria(vault, keys):
 
 
 def requirement_criteria(vault, keys):
-    """{requirement id: [criterion html]}: the plain bullets under its heading, after its facts."""
-    out = {}
-    for r in allocation.requirements(vault):
-        lines = r.page.text.split("\n")
-        found = []
-        for line in lines[r.line:]:
-            if line.startswith("#"):
-                break
-            if re.match(r"^- (?!\*\*[^*]+:\*\*)", line):
-                found.append(inline_html(line[2:], keys, r.page))
-            elif found and readability.is_trace(line):
-                found[-1] += chips_html(readability.trace_ids(line), keys)
-        out[r.id] = found
-    return out
+    """{requirement id: [criterion html]}: releases.requirement_criteria is the one reader of a requirement's criteria."""
+    return {r.id: [inline_html(text, keys, r.page) + chips_html(list(ids), keys) for text, ids in releases.requirement_criteria(r)]
+            for r in allocation.requirements(vault)}
 
 
 def failure(vault, keys):

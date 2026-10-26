@@ -44,6 +44,27 @@
     }
   }
 
+  /* The app writes at most one history entry for a user action. The selftest itself makes thousands in a burst, which is why its
+     Chrome runs with the flooding protection off, so this is the check that notices an app that starts to spam history. */
+  async function historyWrites(ok) {
+    const push = history.pushState, replace = history.replaceState;
+    let n = 0;
+    history.pushState = function (...a) { n++; return push.apply(this, a); };
+    history.replaceState = function (...a) { n++; return replace.apply(this, a); };
+    const per = {};
+    const act = async (name, run) => { n = 0; run(); await tick(); per[name] = n; };
+    try {
+      const r = ROWS[0];
+      await act("open the section", () => Nav.open("requirements"));
+      await act("pick a row", () => $(`#main .rv-row[data-req="${r.key}"]`).click());
+      const box = $$("#main .rv-cols .rv-main").find((b) => b.dataset.key && !ReqView.isReq(b.dataset.key));
+      if (box) await act("click a box", () => box.click());
+      await act("List", () => $('#main [data-rv="list"]').click());
+    } finally { history.pushState = push; history.replaceState = replace; }
+    const worst = Object.entries(per).filter(([, c]) => c > 1);
+    ok(!worst.length, `requirements: each user action writes at most one history entry (${Object.entries(per).map(([k, c]) => `${k}: ${c}`).join(", ")})`, `requirements: history writes per action ${JSON.stringify(per)}`);
+  }
+
   async function focusView(ok) {
     const r = ROWS.find((x) => x.checks.some((c) => c.v !== "yes")) || ROWS[0];
     Nav.open("requirements"); await tick();
@@ -58,6 +79,8 @@
     ok(drawn === (r.apps.length ? gaps : 1), `requirements focus: ${drawn} red dashed box${drawn === 1 ? "" : "es"} for the apps with no design`, `requirements focus: ${drawn} dashed design boxes, the data has ${gaps}`);
     const boxes = $$("#main .rv-cols .rv-main, #main .rv-cols .rv-comp"), loose = boxes.filter((b) => b.tagName !== "BUTTON" || b.tabIndex < 0 || !b.dataset.key);
     ok(boxes.length >= 6 && !loose.length, `requirements focus: all ${boxes.length} boxes and chips are buttons the keyboard reaches`, `requirements focus: ${loose.length} are not`);
+    const chips = $$("#panel-body .rv-crit button"), lost = $$("#panel-body .rv-crit .rv-lost"), traced = r.criteria.reduce((n, c) => n + c.trace.length, 0);
+    ok(chips.every((b) => b.tabIndex >= 0 && b.dataset.key) && chips.length + lost.length === traced, `requirements focus: the ${traced} Trace chips in the panel are buttons the keyboard reaches, and an ID the plan lacks says so`, `requirements focus: ${chips.length} buttons and ${lost.length} lost for ${traced} Trace IDs`);
     const target = $$("#main .rv-cols .rv-main").find((b) => ent(b.dataset.key) && !isReq(b.dataset.key));
     if (target) {
       target.click(); await tick();
@@ -67,6 +90,9 @@
     function isReq(k) { return ReqView.isReq(k); }
     const q = $("#main .rv-cols ~ .rv-before, #main .rv-before");
     ok(r.checks.every((c) => c.v === "yes") ? !q : !!q && $$("li", q).length === r.checks.filter((c) => c.v !== "yes").length, "requirements focus: it lists what is missing, one line for each check not met", "requirements focus: the missing list is wrong");
+    Nav.open("capabilities"); await tick();
+    go(r.key); await tick();
+    ok(App.view === "reqs" && Nav.st.child === r.key && !!$("#main .rv-hero"), "requirements: a requirement chip on another page opens the Requirements section on that requirement", `requirements: chip landed on ${App.view}, child ${Nav.st.child}`);
     $('#main [data-rv="list"]').click(); await tick();
     ok(App.view === "reqs" && !Nav.st.child && $$("#main .rv-row").length === ROWS.length, "requirements focus: List returns to the list", "requirements focus: List did not return");
   }
@@ -81,7 +107,7 @@
     const report = await base(), lines = [], errors = window.__errors.length;
     const ok = (cond, good, bad) => { lines.push(cond ? "ok " + good : "FAIL " + (bad || good)); if (HASH.has("trace")) console.log("[selftest] " + lines[lines.length - 1]); };
     try {
-      if (ROWS.length) { reasons(ok); await sidebar(ok); await listView(ok); await focusView(ok); } else ok(true, "skip requirements: no functional requirements in this vault");
+      if (ROWS.length) { reasons(ok); await sidebar(ok); await listView(ok); await focusView(ok); await historyWrites(ok); } else ok(true, "skip requirements: no functional requirements in this vault");
     } catch (e) { lines.push(`FAIL the requirements check threw: ${e.message} ${(e.stack || "").split("\n")[1]}`); }
     if (window.__errors.length > errors) lines.push("FAIL JS ERRORS in the requirements checks: " + window.__errors.slice(errors).join(" | "));
     const body = report.slice(1).concat(lines), fails = body.filter((l) => l.startsWith("FAIL")).length;

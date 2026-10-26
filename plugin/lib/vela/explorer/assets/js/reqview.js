@@ -21,7 +21,6 @@ const ReqView = (() => {
   const FILTERS = [["all", "All"], ["gap", "Has a gap"], ["held", "Waits on a question"], ["design", "No design yet"]];
   const GROUPS = [["capability", "Capability"], ["release", "Release"], ["app", "App"], ["none", "None"]];
   const check = (r, k) => r.checks.find((c) => c.k === k);
-  const capKey = (r) => (D.trace.capabilities.find((c) => c.id === r.capability) || { key: "" }).key;
   const isReq = (k) => !!BY[k];
   const picked = () => Nav.st.child;
   const pick = (key) => DetailsPanel.show(key);
@@ -51,8 +50,8 @@ const ReqView = (() => {
     const out = new Map();
     const put = (id, title, key, tag, r) => { if (!out.has(id)) out.set(id, { id, title, key, tag, rows: [] }); out.get(id).rows.push(r); };
     for (const r of rows) {
-      if (st.group === "capability") put(r.capability, titleOf(capKey(r)), capKey(r), r.capability, r);
-      else if (st.group === "release") put(r.release ? r.release.name : "~", r.release ? r.release.short : "On no release", r.release ? "release:" + r.release.index : "", "", r);
+      if (st.group === "capability") put(r.capabilityKey, r.capabilityTitle, r.capabilityKey, r.capability, r);
+      else if (st.group === "release") put(r.release ? r.release.name : "~", r.release ? r.release.short : "On no release", r.release ? r.release.key : "", "", r);
       else if (r.apps.length) r.apps.forEach((a) => put(a.key, a.name, a.key, "", r));
       else put("~", "No app carries it yet", "", "", r);
     }
@@ -60,7 +59,7 @@ const ReqView = (() => {
   }
   function row(r) {
     const cells = r.checks.slice(0, 5).map((c) => h("td", {}, h("div", { class: "rv-cell" }, dot(c.v), h("span", { title: c.long }, c.short))));
-    const qs = r.questions.length ? r.questions.map((u) => questionChip(u, "rv-q")) : h("span", { class: "rv-cell" }, dot("yes"), h("span", {}, "none"));
+    const qs = r.questions.length ? r.questions.map((u) => questionChip(u, "rv-q")) : h("span", { class: "rv-cell" }, dot(check(r, "open").v), h("span", {}, check(r, "open").short));
     const go1 = () => Nav.open("requirements", r.key);
     const tr = h("tr", { class: "rv-row" + (App.trail.includes(r.key) ? " picked" : ""), tabindex: "0", role: "link", "data-key": r.key, "data-req": r.key, "aria-label": `${r.name}, ${metWords(r)}. Open everything it touches.`, onclick: go1 },
       h("td", {}, h("span", { class: "rv-name" }, r.name), idTag(r.id)), h("td", {}, statePill(r.state)), ...cells, h("td", {}, h("div", { class: "rv-qs" }, qs)));
@@ -80,6 +79,10 @@ const ReqView = (() => {
     const key = (v, text) => h("span", { class: "rv-cell" }, dot(v), h("span", {}, text));
     return h("div", { class: "rv-legend" }, key("yes", "done"), key("part", "some apps, not all"), key("no", "missing"), h("span", { class: "rv-known" }, R.notKnown));
   }
+  function orphans() {
+    if (!R.orphans.length) return null;
+    return h("div", { class: "rv-orphans p-note" }, h("b", {}, "Named in the plan, not written: "), R.orphans.map((o) => h("span", { class: "rv-orphan" }, idTag(o.id), ` ${o.said}. `)));
+  }
   function list(main) {
     head(main, "list", R.lede);
     const sc = h("div", { class: "scroll pages rv-scroll" });
@@ -90,7 +93,7 @@ const ReqView = (() => {
       h("span", { class: "lbl" }, "Group by"),
       h("select", { "aria-label": "Group by", onchange: (ev) => { st.group = ev.target.value; rerender(); } }, GROUPS.map(([id, label]) => h("option", { value: id, selected: st.group === id ? true : null }, label)))));
     const rows = ROWS.filter((r) => r.in.includes(st.filter));
-    sc.append(rows.length ? table(rows) : h("p", { class: "rv-none" }, "No requirement matches this filter."), legend());
+    sc.append(rows.length ? table(rows) : h("p", { class: "rv-none" }, "No requirement matches this filter."), legend(), ...(R.orphans.length ? [orphans()] : []));
   }
 
   /* ------------------------------------------------------------ the focus on one requirement */
@@ -109,14 +112,14 @@ const ReqView = (() => {
   }
   function releaseColumn(r) {
     const c = check(r, "release");
-    return column("Ships in", "release", r.release ? node("release:" + r.release.index, r.release.short, [r.release.date, r.release.note ? h("br") : null, r.release.note], r.release.note ? "warn" : "") : node(D.releases.page || r.key, "No release", c.long, "gap"));
+    return column("Ships in", "release", r.release ? node(r.release.key, r.release.short, [r.release.date, r.release.note ? h("br") : null, r.release.note], r.release.note ? "warn" : "") : node(D.releases.page || r.key, "No release", c.long, "gap"));
   }
   function epicColumn(r) {
     return column("Epics", "criteria that trace to it", r.epics.length ? r.epics.map((e) => node(e.key, titleOf(e.key), [plural(e.criteria, "criterion", "criteria"), " · ", idTag(E[e.key].id)])) : node(r.key, "No epic", check(r, "epic").long, "gap"));
   }
   function designColumn(r) {
     const boxes = r.designs.map((d) => {
-      if (!d.designed) return node(d.app, "No design yet", d.say, "gap");
+      if (!d.designed) return node(d.app, d.title, d.say, "gap");
       const chips = h("div", { class: "rv-comps" }, d.components.map((c) => h("button", { class: "rv-comp", type: "button", "data-key": Inside.kit.key(d.app, "c", c), onclick: () => pick(Inside.kit.key(d.app, "c", c)) }, c)));
       return node(Inside.kit.key(d.app, "sec", "overview"), `${titleOf(d.app)} design`, d.doc, "", chips);
     });
@@ -124,7 +127,7 @@ const ReqView = (() => {
   }
   function storyColumn(r) {
     const boxes = r.stories.map((s) => {
-      if (!s.stories.length || s.putOff) return node(s.stories.length ? Inside.kit.key(s.app, "story", s.stories[0]) : s.app, s.stories.length ? s.stories.map((i) => `${i} (put off)`).join(", ") : "No stories yet", s.say, "gap");
+      if (!s.stories.length || s.putOff) return node(s.stories.length ? Inside.kit.key(s.app, "story", s.stories[0]) : s.app, s.stories.length ? s.stories.map((i) => `${i} (put off)`).join(", ") : s.title, s.say, "gap");
       return node(Inside.kit.key(s.app, "story", s.stories[0]), s.stories.join(", "), `${titleOf(s.app)} breakdown`);
     });
     return column("Built by", "stories, per app", boxes.length ? boxes : node(r.key, "No stories yet", check(r, "stories").long, "gap"));
@@ -162,11 +165,12 @@ const ReqView = (() => {
 
   /* ------------------------------------------------------------ the panel */
   const quiet = (text) => Panel.empty(text);
-  function waits(id) {
-    const lv = unknownLevel(id), tone = lv === "resolved" || lv === "dark" ? "" : lv;
-    return h("button", { class: `rv-waits ${tone}`, type: "button", "data-key": keyForId(id), onclick: () => pick(keyForId(id)) }, `waits on: ${titleOf(keyForId(id))}`);
+  /* One ID on a criterion's Trace line, as the data says it: the words, whether it waits, and what a click opens. */
+  function traceChip(t) {
+    if (!t.key) return h("span", { class: "rv-lost", title: t.said }, t.id, h("small", {}, ` ${t.said}`));
+    const lv = t.waits ? unknownLevel(t.id) : "", tone = lv === "resolved" || lv === "dark" ? "" : lv;
+    return h("button", { class: (t.waits ? `rv-waits ${tone}` : "rv-ref"), type: "button", "data-key": t.key, onclick: () => pick(t.key) }, t.said, t.waits ? null : h("small", {}, ` ${t.id}`));
   }
-  const traceChip = (id) => (UNKNOWN[id] && isOpen(UNKNOWN[id]) ? waits(id) : refChip(keyForId(id)));
   function summary() {
     return [h("div", { class: "p-head" }, h("div", { class: "kind" }, "Requirements"), h("h2", {}, "Is each one met so far?"),
         h("p", { class: "p-lede" }, "Six checks for each requirement, from the plan alone: carried by an app, on a release, in an epic, designed, with stories, and nothing open holding it. Pick a row to see what it touches.")),
@@ -178,8 +182,8 @@ const ReqView = (() => {
       h("span", {}, LABEL[c.k], h("small", {}, upFirst(c.long) + (c.v !== "yes" && c.next ? `. ${c.next}` : ""))))));
   }
   function detail(k) {
-    const r = BY[k], cap = capKey(r);
-    return [h("div", { class: "p-head" }, h("div", { class: "kind" }, `Requirement · ${cap ? titleOf(cap) : r.capability}`), h("h2", {}, r.name),
+    const r = BY[k];
+    return [h("div", { class: "p-head" }, h("div", { class: "kind" }, `Requirement · ${r.capabilityTitle}`), h("h2", {}, r.name),
         h("div", { class: "p-meta" }, idTag(r.id), " ", statePill(r.state), ` ${metWords(r)}`)),
       h("div", { class: "p-body" }, h("p", {}, r.text),
         Panel.section("Is it met so far?", null, checklist(r)),

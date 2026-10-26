@@ -46,7 +46,7 @@ EXPECTED = ["requirements: 9 rows, six checks each in order", "requirements: the
             "requirements list: grouped by release", "requirements list: grouped by app", "requirements list: grouped by none", "requirements list: grouped by capability",
             "requirements focus: Enter on", "requirements focus: the panel opens the requirement with the six checks and Decided", "requirements focus: the hero says how many of six checks are met",
             "requirements focus: 2 red dashed boxes", "requirements focus: all ", "requirements focus: clicking", "requirements focus: the picked box is marked",
-            "requirements focus: it lists what is missing", "requirements focus: List returns to the list"]
+            "requirements: a requirement chip on another page opens", "requirements: each user action writes at most one history entry", "requirements focus: the ", "requirements focus: it lists what is missing", "requirements focus: List returns to the list"]
 
 
 def test_the_list_and_the_focus_pass_the_selftest_with_nothing_skipped(chrome_path):
