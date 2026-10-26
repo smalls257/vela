@@ -59,7 +59,7 @@ def test_the_html_draws_the_blocks(data):
     assert page.count("<details open>") == sum(1 for b in got["blocks"] if b["type"] == "section" and b["title"])
     assert "<summary>Decided this session" in page and "chip c-accent" in page and "box-info" in page
     assert page.count("<svg") == 1 and "FLO-001" in page
-    assert 'href="../../' in page and "%23" not in page   # a decided page links to the page file from .vela/companion/
+    assert "<a " not in page and 'title="06-runtime/flows/FLO-001-hold-pay-confirm.md"' in page  # no link that leads nowhere in Cowork
 
 
 def test_a_hostile_name_in_a_row_a_chip_or_a_link_is_escaped():
@@ -70,7 +70,8 @@ def test_a_hostile_name_in_a_row_a_chip_or_a_link_is_escaped():
            "blocks": [companionblocks.card(evil, evil, "info", [[companionblocks.span(evil, page='"onload=1')]]),
                       companionblocks.section("k", evil, evil, [row])]}
     page = companionrender.html(got, "")
-    assert "<script" not in page and "<i>" not in page and 'onload=1"' not in page and "&lt;script&gt;" in page
+    assert "<script" not in page and "<i>" not in page and "&lt;script&gt;" in page
+    assert 'title="&quot;onload=1"' in page and 'title="x&quot;&gt;&lt;script&gt;.md"' in page  # the quote can't close the attribute
 
 
 def test_an_explain_page_draws_its_bars_and_its_diagram(tmp_path):

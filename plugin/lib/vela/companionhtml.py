@@ -8,12 +8,10 @@ page holds no script and no outside reference, so nothing a plan says can run or
 `<details>`; nothing here sends anything back to Claude (owner's ruling of October 24, 2026).
 """
 from html import escape as _escape
-from urllib.parse import quote
 
 from vela import companionblocks
 
 BAR_TRACK = "var(--deck-3)"
-VAULT_ROOT = "../../"  # why: the page is written to <vault>/.vela/companion/, and a block's page path is vault-relative
 
 # tone -> (text color, chip background, chip ink): every color is a variable of the dashboard's palette
 TONES = {
@@ -62,7 +60,7 @@ details{margin:0 0 12px}summary{cursor:pointer;font-weight:600;padding:2px 0;bor
 summary .count{color:var(--ink-3);font-weight:400;margin-left:4px}
 .row{display:flex;gap:8px;padding:3px 0 3px 4px}.mark{flex:0 0 1.2em;text-align:center}.what{min-width:0}
 .id{color:var(--unexamined-text);margin-left:6px}.note,.sub{color:var(--ink-3)}.note{margin-left:6px}.sub{display:block;font-size:12px}
-.dimmed{color:var(--ink-3)}
+.dimmed{color:var(--ink-3)}.page{text-decoration:underline dotted;text-underline-offset:2px}
 h2{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);margin:0 0 4px}
 .bars{margin:0 0 12px}.brow{display:grid;grid-template-columns:minmax(0,9em) 1fr auto;gap:8px;align-items:center;padding:2px 0}
 .brow .bar{width:100%}.label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -75,7 +73,9 @@ def tone_of(tone):
 
 
 def link(page, body):
-    return f"<a href=\"{attr(VAULT_ROOT + quote(page, safe='/#'))}\">{body}</a>"
+    """A page name, with its path on hover. Not a link: the panel is also published to Cowork, where a path into the
+    vault leads nowhere, and a link that goes nowhere is worse than none."""
+    return f"<span class=\"page\" title=\"{attr(page)}\">{body}</span>"
 
 
 def span_html(piece):
