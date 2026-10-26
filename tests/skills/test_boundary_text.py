@@ -261,5 +261,13 @@ def test_boundary_drafts_the_paragraph_of_each_item_it_files_now():
 
 def test_boundary_stays_lean():
     """Sensor against regrowth: 2,552 words before the trim (now 2,387); PAGES.md 1,001 before (now about 930)."""
-    assert len(text("skills/boundary/SKILL.md").split()) <= 1675  # 2,387 before the second trim; 1,598 after; plan sizing's existence read-back and requirements line add 46, lane groups 40
+    assert len(text("skills/boundary/SKILL.md").split()) <= 1760  # the spec question adds 79; 2,387 before the second trim; 1,598 after; plan sizing's existence read-back and requirements line add 46, lane groups 40
     assert len(text("skills/boundary/PAGES.md").split()) <= 960
+
+
+def test_boundary_asks_for_each_contracts_spec_and_files_a_missing_one_as_a_question_that_blocks_nothing():
+    body = text("skills/boundary/SKILL.md")
+    assert "A spec for each contract in item 4" in body
+    assert "who writes it and by when" in body and "no `**Blocks:**` line" in body
+    assert '"No spec" is a fine answer' in body
+
