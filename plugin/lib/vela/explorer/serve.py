@@ -28,6 +28,7 @@ import hmac
 import http.cookies
 import http.server
 import json
+import os
 import pathlib
 import re
 import secrets
@@ -217,6 +218,52 @@ def body_length(header):
     return length
 
 
+KEY_FILE = ".vela/explorer-key"  # beside the pins file; the plan's .gitignore keeps .vela/ out of git
+KEY_SHAPE = re.compile(r"[A-Za-z0-9_-]{32,}")
+NEEDS_LINK_PAGE = """<!doctype html>
+<meta charset="utf-8">
+<title>This dashboard needs its link</title>
+<body style="font-family: system-ui, sans-serif; max-width: 34em; margin: 4em auto; padding: 0 1em">
+<h1>This dashboard needs its link</h1>
+<p>Open the link vela printed when the dashboard started, or ask Claude to open the dashboard again.</p>
+</body>
+"""
+
+
+def key_from_text(text):
+    """The key a key file holds, or None when it is missing or not shaped like one we wrote. Pure, so the choice
+    between keeping and replacing a key is testable without a disk."""
+    match = KEY_SHAPE.fullmatch((text or "").strip())
+    return match.group(0) if match else None
+
+
+def load_or_make_key(vault, log):
+    """The vault's key. The port is the same every run so the browser keeps its layout, which means a tab opened last
+    run still holds last run's cookie: a key that changed each run would lock that tab out. So the key lives in the
+    vault, readable by its owner only, and a file we cannot trust is replaced out loud."""
+    path = pathlib.Path(vault) / KEY_FILE
+    try:
+        text = path.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        text, why = None, None
+    except (OSError, UnicodeDecodeError) as exc:
+        text, why = None, f"could not read {path} ({exc})"
+    else:
+        why = None if key_from_text(text) else f"{path} does not hold a key"
+    key = key_from_text(text)
+    if key:
+        return key
+    key = secrets.token_urlsafe(24)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+        handle.write(key + "\n")
+    os.chmod(path, 0o600)  # an older file keeps its mode through O_CREAT
+    if why:
+        log(f"made a new key: {why}; a dashboard tab left open from an earlier run needs the new link")
+    return key
+
+
 def cookie_name(port):
     """Cookies are shared across ports on one host, so the port is in the name: two helpers do not overwrite each other's key."""
     return f"vela_key_{port}"
@@ -379,8 +426,20 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return False
         if key_allowed(self.headers.get("Cookie"), self.server.server_port, self.server.key):
             return True
-        self.send_json(403, {"error": "this helper wants the link vela printed when it started; it carries a key. Open that link."})
+        if self.path in ("/", "/index.html") or self.path.startswith("/?"):
+            self.send_needs_link_page()  # a person typed or reloaded this address; bare JSON tells them nothing
+        else:
+            self.send_json(403, {"error": "this helper wants the link vela printed when it started; it carries a key. Open that link."})
         return False
+
+    def send_needs_link_page(self):
+        data = NEEDS_LINK_PAGE.encode("utf-8")
+        self.send_response(403)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(data)))
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        self.wfile.write(data)
 
     def hand_over_key(self):
         """GET /?k=<key>, the printed link: the key moves into a cookie only this browser sends, and the page is served at /."""
@@ -545,7 +604,7 @@ class Server(http.server.ThreadingHTTPServer):
         self.pins = pathlib.Path(pins) if pins else None  # the file POST /pins saves to
         self.pins_lock = threading.Lock()  # two saves at once must not interleave their writes
         self.asks = threading.BoundedSemaphore(MAX_CONCURRENT_ASKS)  # claude processes running at once
-        self.key = secrets.token_urlsafe(24)  # in the link vela prints; the browser keeps it as a cookie
+        self.key = load_or_make_key(self.vault, log)  # in the link vela prints; the browser keeps it as a cookie
 
     @property
     def url(self):
