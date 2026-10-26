@@ -540,6 +540,19 @@ def test_a_key_file_that_cannot_be_trusted_gets_a_new_key_and_a_log_line(helper,
         again.server_close()
 
 
+def test_a_plan_where_the_key_cannot_be_saved_still_serves_and_says_so(tmp_path):
+    lines = []
+    folder = tmp_path / "read-only"
+    folder.mkdir()
+    folder.chmod(0o500)
+    try:
+        key = serve.load_or_make_key(folder, lines.append)
+    finally:
+        folder.chmod(0o700)
+    assert serve.key_from_text(key) == key
+    assert any("could not save the dashboard key" in line for line in lines)
+
+
 def test_the_key_from_file_text_is_pure():
     assert serve.key_from_text("abcdefghijklmnopqrstuvwxyz0123456789-_\n") == "abcdefghijklmnopqrstuvwxyz0123456789-_"
     assert serve.key_from_text("nope") is None and serve.key_from_text(None) is None

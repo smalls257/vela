@@ -254,11 +254,15 @@ def load_or_make_key(vault, log):
     if key:
         return key
     key = secrets.token_urlsafe(24)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-    with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
-        handle.write(key + "\n")
-    os.chmod(path, 0o600)  # an older file keeps its mode through O_CREAT
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+            handle.write(key + "\n")
+        os.chmod(path, 0o600)  # an older file keeps its mode through O_CREAT
+    except OSError as exc:  # a read-only copy of a plan still gets its dashboard, said out loud
+        log(f"could not save the dashboard key to {path} ({exc}); this run's link works, and the next run makes a new one")
+        return key
     if why:
         log(f"made a new key: {why}; a dashboard tab left open from an earlier run needs the new link")
     return key
