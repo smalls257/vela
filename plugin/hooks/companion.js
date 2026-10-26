@@ -13,6 +13,9 @@ const REFRESH_AFTER_MS = 400
 const VELA_TIMEOUT_MS = 5000
 const WRITES_PLAN = /scripts\/(run-)?vela\b/
 const EXPLAINS_PLAN = /companion explain/
+// A mod's process.run looks no command up on PATH (Claude Code refuses a bare `sh` as "not found or in an unsafe
+// location"), so the shell is named by its full path; /bin/sh is on every Mac and Linux.
+const SHELL = '/bin/sh'
 
 // What the last refresh stored. Drawing reads these and starts nothing.
 let session = null
@@ -40,9 +43,10 @@ function jsonOf(text) {
 }
 
 async function runVela($, args) {
-  const done = await $.process.run(['sh', `${$.plugin.root}/scripts/run-vela`, 'companion', ...args, '--json', '--find-up'], { timeoutMs: VELA_TIMEOUT_MS })
+  const done = await $.process.run([SHELL, `${$.plugin.root}/scripts/run-vela`, 'companion', ...args, '--json', '--find-up'], { timeoutMs: VELA_TIMEOUT_MS })
   const parsed = jsonOf(done.stdout)
-  return { code: done.exitCode, text: done.stdout, found: parsed.unreadable ? null : parsed, why: parsed.unreadable || '' }
+  const why = parsed.unreadable ? (String(done.stderr || '').trim().split('\n')[0] || parsed.unreadable) : ''  // vela says why on stderr
+  return { code: done.exitCode, text: done.stdout, found: parsed.unreadable ? null : parsed, why }
 }
 
 // The panel's own text and diagram, from the files vela wrote beside its JSON (never made here).
@@ -55,7 +59,7 @@ async function viewOf($, found) {
 function firstLine(done) {
   if (done.found && Array.isArray(done.found.warnings) && done.found.warnings.length > 0) return done.found.warnings[0]
   if (done.found && typeof done.found.message === 'string') return done.found.message
-  return done.text.split('\n')[0] || done.why
+  return done.why || done.text.split('\n')[0]
 }
 
 async function refreshSession($) {

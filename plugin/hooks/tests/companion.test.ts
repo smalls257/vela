@@ -9,6 +9,28 @@ const SESSION = {
 const ran = (stdout: unknown, exitCode = 0) => ({ exitCode, stdout: JSON.stringify(stdout), stderr: '', isStdoutTruncated: false, isStderrTruncated: false })
 const WRITE = { tool: 'Bash', command: 'sh /p/scripts/run-vela decide CON-007 --yes ^c12' } as never
 
+test('vela is started through the shell by its full path, never a bare name', async ($, on) => {
+  const clock = mock.clock(on)
+  const argvs: string[][] = []
+  on('process.run', (_$, e) => { argvs.push([...(e as { argv: string[] }).argv]); return { value: ran(SESSION) } })
+  on('fs.read', () => ({ value: '# This session' }))
+  on('tool.call', () => ({ result: 'ok' }))
+  await $.tool.call(WRITE)
+  await clock.advance(500)
+  expect(argvs.length).toBe(1)
+  expect(argvs[0][0]).toBe('/bin/sh')
+})
+
+test("when vela can't start, the band says vela's own reason", async ($, on) => {
+  const clock = mock.clock(on)
+  on('process.run', () => ({ value: { exitCode: 2, stdout: '', stderr: 'vela: no Python 3.9 or later found as python3, python or py on the PATH.\n', isStdoutTruncated: false, isStderrTruncated: false } }))
+  on('tool.call', () => ({ result: 'ok' }))
+  await $.tool.call(WRITE)
+  await clock.advance(1000)
+  const band = await $.ui.mount({ plugin: 'vela', surface: 'terminal', component: 'AbovePrompt', props: { hasSurvey: false, isWorking: false, maxRows: 10 } as never })
+  expect(await band.find({ type: 'Text', text: 'vela: no Python 3.9 or later found as python3, python or py on the PATH.' })).toBeDefined()
+})
+
 test("a vela call's result comes back before vela's refresh finishes", async ($, on) => {
   const clock = mock.clock(on)
   let release: (v: unknown) => void = () => {}
