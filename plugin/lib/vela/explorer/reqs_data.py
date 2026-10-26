@@ -109,7 +109,7 @@ def release_of(vault, req):
 
 
 def release_short(name):
-    """"Release one: February pilot, Client Delivery London" as a table cell says it: "February pilot"."""
+    """"Release one: February pilot, Eastside docks" as a table cell says it: "February pilot"."""
     return re.sub(r"^[^:]*:\s*", "", name).split(",")[0].strip() or name
 
 
