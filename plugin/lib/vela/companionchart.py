@@ -139,25 +139,52 @@ def folded_lanes(steps, columns):
     return fit(steps[:companionsvg.MAX_STEPS], columns)[1]
 
 
+def wrap(name, room):
+    """The name as one or two lines of at most `room` cells, broken at spaces. A word wider than the box is cut with an
+    ellipsis, and so is whatever would need a third line."""
+    one = cut(name, room)
+    if width_of(name) <= room:
+        return [one]
+    first, rest = "", name.split()
+    while rest and width_of((first + " " + rest[0]).strip()) <= room:
+        first = (first + " " + rest.pop(0)).strip()
+    if not first:  # the first word alone is wider than the box
+        return [cut(rest[0], room)] if len(rest) == 1 else [cut(rest[0], room), cut(" ".join(rest[1:]), room)]
+    return [first, cut(" ".join(rest), room)] if rest else [first]
+
+
+def centered(text, room):
+    pad = room - width_of(text)
+    return " " * (pad // 2) + text + " " * (pad - pad // 2)
+
+
 def header(lanes, columns):
-    """Two rows: each lane's name in a box, and the box's foot where its lifeline starts."""
-    top, foot = Canvas(columns), Canvas(columns)
+    """Each lane's name in a box (wrapped to two lines when a name needs it) and the box's foot, where its lifeline
+    starts. Two rows when every name fits on one line, else three."""
+    names = {name: wrap(name, lanes.box - 2) for name in lanes.names}
+    tall = any(len(lines) > 1 for lines in names.values())
+    top, low, foot = Canvas(columns), Canvas(columns), Canvas(columns)
     for number, name in enumerate(lanes.names):
         start, inner, middle = number * lanes.size, lanes.box - 2, lanes.box // 2
-        shown = cut(name, inner)
-        shown = f" {shown} " if width_of(shown) <= inner - 2 else shown
-        pad = inner - width_of(shown)
-        top.put(start, "\u256d" + "\u2500" * (pad // 2), "dim")
-        top.put(start + 1 + pad // 2, shown, "strong")
-        top.put(start + 1 + pad // 2 + width_of(shown), "\u2500" * (pad - pad // 2) + "\u256e", "dim")
+        lines = names[name] + [""] * (1 + tall - len(names[name]))
+        fill = inner - width_of(lines[0])
+        top.put(start, "\u256d" + "\u2500" * (fill // 2), "dim")
+        top.put(start + 1 + fill // 2, lines[0], "strong")
+        top.put(start + 1 + fill // 2 + width_of(lines[0]), "\u2500" * (fill - fill // 2) + "\u256e", "dim")
+        if tall:
+            low.put(start, "\u2502", "dim")
+            low.put(start + 1, centered(lines[1], inner), "strong")
+            low.put(start + inner + 1, "\u2502", "dim")
         foot.put(start, "\u2570" + "\u2500" * (middle - 1) + "\u252c" + "\u2500" * (lanes.box - middle - 2) + "\u256f", "dim")
-    return [top.line(), foot.line()]
+    return [row.line() for row in ((top, low, foot) if tall else (top, foot))]
 
 
-def lifelines(lanes, columns):
+def lifelines(lanes, columns, before=None):
+    """The lifelines, only those left of column `before` when a label or a step's words take the rest of the row."""
     row = Canvas(columns)
     for name in lanes.names:
-        row.put(lanes.center(name), "│", "dim")
+        if before is None or lanes.center(name) < before:
+            row.put(lanes.center(name), "\u2502", "dim")
     return row
 
 
@@ -166,15 +193,16 @@ def lane_of(name, kept):
 
 
 def arrow_row(lanes, columns, sender, receiver):
-    """(label row, arrow row) with the label's room: the cells between the two lifelines."""
+    """(label row, arrow row, the column the label starts at): the label runs from the arrow's left end to the right edge
+    of the panel, so the lifelines on its row stop where it starts."""
     a, b = lanes.center(sender), lanes.center(receiver)
-    left, right = min(a, b), max(a, b)
-    label, arrow = lifelines(lanes, columns), lifelines(lanes, columns)
+    left = min(a, b)
+    arrow = lifelines(lanes, columns)
     if a < b:
-        arrow.put(a, "├" + "─" * (b - a - 2) + "▶", "info")
+        arrow.put(a, "\u251c" + "\u2500" * (b - a - 2) + "\u25b6", "info")
     else:
-        arrow.put(b + 1, "◀" + "─" * (a - b - 2) + "┤", "info")
-    return label, arrow, left + 1, right - left - 1
+        arrow.put(b + 1, "\u25c0" + "\u2500" * (a - b - 2) + "\u2524", "info")
+    return lifelines(lanes, columns, before=left), arrow, left
 
 
 def drawing(steps, columns):
@@ -192,16 +220,16 @@ def drawing(steps, columns):
         if names and number:
             out.append(lifelines(lanes, columns).line())
         if sender and receiver and sender != receiver:
-            label, arrow, room_from, room = arrow_row(lanes, columns, sender, receiver)
-            label.put(room_from, cut(words, room), "plain")
+            label, arrow, start = arrow_row(lanes, columns, sender, receiver)
+            label.put(start, cut(f"{step.get('n', number + 1)}. {words}", columns - start), "plain")
             out += [label.line(), arrow.line()]
             current = receiver
             continue
         current = sender or current
         text = cut(f"◆ {step.get('n', number + 1)}. {words}", columns)
-        row = lifelines(lanes, columns) if names else Canvas(columns)
-        start = lanes.center(current) if names else 0
-        row.put(max(0, min(start, columns - width_of(text))), text, "strong")
+        start = max(0, min(lanes.center(current) if names else 0, columns - width_of(text)))
+        row = lifelines(lanes, columns, before=start) if names else Canvas(columns)
+        row.put(start, text, "strong")
         out.append(row.line())
     if more:
         tail = Canvas(columns)
