@@ -50,7 +50,37 @@ def test_the_html_stands_alone_and_stays_small(data):
     page = companionrender.html(got, ":root { --room: #0d1317; }")
     assert "<script" not in page and "http://" not in page and "https://" not in page
     assert len(page.encode("utf-8")) < 200_000
-    assert "as of 10:41" in page and "capture 14" in page and "dashboard.html in this folder" in page
+    assert "14 notes \u00b7 10:41" in page and "dashboard.html in this folder" in page
+
+
+def test_the_html_draws_the_blocks(data):
+    _, got = data
+    page = companionrender.html(got, ":root { --room: #0d1317; }")
+    assert page.count("<details open>") == sum(1 for b in got["blocks"] if b["type"] == "section" and b["title"])
+    assert "<summary>Decided this session" in page and "chip c-accent" in page and "box-info" in page
+    assert page.count("<svg") == 1 and "FLO-001" in page
+    assert 'href="../../' in page and "%23" not in page   # a decided page links to the page file from .vela/companion/
+
+
+def test_a_hostile_name_in_a_row_a_chip_or_a_link_is_escaped():
+    evil = "<script>alert(1)</script>"
+    row = companionblocks.row("<", "good", evil, "<i>", evil, chip={"t": evil, "tone": "bad"}, sub=[companionblocks.span(evil)],
+                              page='x"><script>.md')
+    got = {"kind": "session", "session": {"title": evil}, "diagram": None,
+           "blocks": [companionblocks.card(evil, evil, "info", [[companionblocks.span(evil, page='"onload=1')]]),
+                      companionblocks.section("k", evil, evil, [row])]}
+    page = companionrender.html(got, "")
+    assert "<script" not in page and "<i>" not in page and 'onload=1"' not in page and "&lt;script&gt;" in page
+
+
+def test_an_explain_page_draws_its_bars_and_its_diagram(tmp_path):
+    root = grill_session(tmp_path)
+    code, out = run_companion(root, "explain", "--view", "stuck", "--json")
+    assert code == 0, out
+    got = json.loads(out)
+    page = companionrender.html(got, "")
+    assert "<script" not in page and "box-bad" in page and "<details open>" in page
+    assert ("class=\"bar\"" in page) == any(b["type"] == "bars" for b in got["blocks"])
 
 
 def test_vault_text_is_escaped_everywhere():
