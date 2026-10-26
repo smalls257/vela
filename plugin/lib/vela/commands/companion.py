@@ -149,7 +149,7 @@ def design_or_nothing(args, out, root, today, now):
     found = companionstore.design_session(root)
     if found is None:
         companionstore.clear_forms(root, "session")
-        print(NO_SESSION, file=out)
+        print(f"{NO_SESSION} {companionstore.why_no_design(root)}", file=out)
         return 1
     data = companiondesign.build(found["branch"], found["record"], found["doc_text"], found["design"], found["doc_rel"],
                                  found["touched"], today, now)

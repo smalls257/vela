@@ -31,6 +31,7 @@ let toldNotPlaced = false
 let startCwd = ''
 let inVault // undefined = not looked at yet, true or false once looked at; a vela tool call clears it
 let sessionOpened = false
+let sessionAsked = false  // the person typed /vela-companion: with nothing to show, the pane says why instead of staying shut
 let shown = { session: false, plan: false }
 let views = { session: null, plan: null }
 const toldUnknown = new Set()  // block types already logged as unknown, so a refresh doesn't repeat the line
@@ -97,7 +98,7 @@ function viewOf(found) {
 }
 
 // A pane that holds only vela's sentence, for a question vela could not answer.
-const messageView = (text) => ({ blocks: [{ type: 'lines', lines: [[{ t: text, tone: 'warn' }]] }], vault: '', diagramSvg: '', title: '' })
+const messageView = (text, tone = 'warn') => ({ blocks: [{ type: 'lines', lines: [[{ t: text, tone }]] }], vault: '', diagramSvg: '', title: '' })
 
 const toneProps = (tone) => TONES[tone] || TONES.plain
 const cells = (n) => Math.max(0, Math.round(n))
@@ -311,8 +312,13 @@ async function refreshSession($) {
   }
   if (done.code === 1) {
     session = null
-    views.session = null
     problem = ''
+    if (sessionAsked) {
+      // vela's sentence says why nothing is open here (no git, not on a design branch, a reader's copy)
+      views.session = messageView(done.text.trim() || done.why, 'plain')
+      return
+    }
+    views.session = null
     await $.ui.close({ id: SESSION_PANE })
     shown.session = false
     sessionOpened = false
@@ -425,13 +431,14 @@ export function register(on) {
   })
 
   on('ui.close', async ($, e, next) => {
-    if (e.origin === 'person' && e.id === SESSION_PANE) shown.session = false
+    if (e.origin === 'person' && e.id === SESSION_PANE) { shown.session = false; sessionAsked = false }
     if (e.origin === 'person' && e.id === PLAN_PANE) { shown.plan = false; planWanted = false; planNeedsOpen = false }
     return next(e)
   })
 
   on('command.run', { command: 'vela-companion' }, async ($) => {
-    if (!views.session) await refreshSession($)
+    sessionAsked = true
+    if (!views.session || !session) await refreshSession($)
     if (views.session) {
       const placed = await $.ui.open({ id: SESSION_PANE, title: views.session.title })
       shown.session = placed.isPlaced

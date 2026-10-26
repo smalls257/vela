@@ -104,3 +104,17 @@ def test_a_reader_copy_inside_another_repo_on_a_design_branch_draws_no_design_se
     (workspace / ".vela" / "workspace.json").write_text("{}", encoding="utf-8")
     assert companionstore.design_session(workspace) is None
     assert companionstore.design_session(outer) is not None   # the same branch is a design session for its owner
+
+
+def test_with_nothing_open_it_says_why_a_design_isnt_showing(tmp_path):
+    from vela.edge import companionstore
+    import subprocess
+    bare = tmp_path / "bare"
+    bare.mkdir()
+    assert "isn't in git" in companionstore.why_no_design(bare)
+    subprocess.run(["git", "init", "-q", "-b", "main", str(bare)], check=True)
+    assert "this folder is on main" in companionstore.why_no_design(bare)
+    root = grill_session(tmp_path / "plan")
+    (root / "sessions" / f"{SESSION}.md").unlink()
+    code, out = run_companion(root, "session", "--json")
+    assert code == 1 and "design/<app> branch" in out

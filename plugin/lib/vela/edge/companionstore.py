@@ -245,6 +245,24 @@ def design_session(root):
             "design": design, "touched": touched}
 
 
+def why_no_design(root):
+    """The sentence that says why `design_session` found no design here, so an empty panel is never silent: a reader's
+    copy, a folder with no git, or a branch that isn't `design/<slug>`. Said to the person, so it names no code."""
+    from vela.edge import vaultgit
+    root = pathlib.Path(root)
+    if sessiongit.is_read_copy(root):
+        return "This is a reader's copy of the plan, and no session runs in one."
+    try:
+        in_git = vaultgit.run_git(root, "rev-parse", "--is-inside-work-tree")[0] == 0
+        branch = vaultgit.current_branch(root) if in_git else ""
+    except vaultgit.GitUnavailable as exc:
+        return f"I couldn't ask git which branch this folder is on ({exc}), so I can't tell whether a design is under way."
+    if not in_git:
+        return "This folder isn't in git, so a design can't show here: a design runs on its own design/<app> branch."
+    where = f"this folder is on {branch}" if branch else "this folder isn't on a branch"
+    return (f"A planning session shows here once it starts, and a design shows here on its design/<app> branch; {where}.")
+
+
 def _read_or_empty(path):
     """The file's text, "" when it isn't there yet. A file that is there and can't be read raises, never reads as empty."""
     if not path.is_file():
