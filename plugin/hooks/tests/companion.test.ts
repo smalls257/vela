@@ -6,6 +6,20 @@ const SESSION = {
   session: { title: 'Grill: hold, pay, confirm' }, files: { md: '.vela/companion/session.md' },
   diagram: { svg: '', text: '1. Find a crossing' }, warnings: [],
 }
+const line = (t: string, tone = 'plain') => [{ t, tone }]
+const DRAW = (w: number) => [[{ t: `drawn at ${w}`, tone: 'info' }]]
+const BLOCKS = [
+  { type: 'card', title: 'Grill: hold, pay, confirm', right: '14 notes · 10:11', tone: 'info', lines: [line('Settle how a crossing is held.', 'dim'), [{ t: 'Agenda  ', tone: 'plain' }, { bar: [3, 4] }, { t: '  3 of 4 done', tone: 'dim' }]] },
+  { type: 'next', chip: 'NEXT', text: 'Pricing runtime', id: 'RUN-pricing', note: 'last item on the agenda' },
+  { type: 'section', key: 'decided', title: 'Decided this session', count: '2', rows: [
+    { mark: '✔', tone: 'good', name: 'Hold, pay, confirm', id: 'FLO-001', note: 'was assumption', chip: null, sub: null, page: 'flows/FLO-001.md' },
+    { mark: '?', tone: 'new', name: 'Tidepay outcome wording', id: 'UNK-009', note: 'Booking senior', chip: { t: 'NEW', tone: 'new' }, sub: [{ t: 'held by ', tone: 'dim' }, { t: 'Tidepay outcome wording', tone: 'info', page: 'x/11-unknowns.md' }], page: null },
+  ] },
+  { type: 'bars', title: 'Waiting', rows: [{ label: 'Booking senior', value: 19, max: 19, tone: 'bad', text: '19' }, { label: 'Finance', value: 5, max: 19, tone: 'warn', text: '5' }] },
+  { type: 'diagram', title: 'Flow: Hold, pay, confirm', id: 'FLO-001', alt: 'a flow', drawings: { '48': DRAW(48), '60': DRAW(60), '72': DRAW(72), '96': DRAW(96) } },
+  { type: 'lines', lines: [line('Pages changed FLO-001')] },
+]
+const RICH = { ...SESSION, blocks: BLOCKS, band_spans: [{ t: 'Grill', tone: 'strong' }, { t: ' · 1 open', tone: 'warn' }] }
 const ran = (stdout: unknown, exitCode = 0) => ({ exitCode, stdout: JSON.stringify(stdout), stderr: '', isStdoutTruncated: false, isStderrTruncated: false })
 const WRITE = { tool: 'Bash', command: 'sh /p/scripts/run-vela decide CON-007 --yes ^c12' } as never
 
@@ -90,17 +104,97 @@ test('the band is the text vela wrote when no pane is showing', async ($, on) =>
   expect(await band.find({ type: 'Text', text: SESSION.band })).toBeDefined()
 })
 
-test('the pane draws the Markdown vela wrote and has no buttons', async ($, on) => {
+type Found = { type: string, props: Record<string, unknown>, text: string }
+type Mounted = { find: (q: unknown) => Promise<Found | undefined>, findAll: (q: unknown) => Promise<Found[]>, press: (a: unknown) => Promise<void> }
+// find matches by inclusion, so an outer Text holding the words matches first; the leaf is the one that shows exactly them.
+const leaf = async (m: Mounted, text: string) => (await m.findAll({ type: 'Text', text })).find((n) => n.text === text)
+const PANE_PROPS = (cols: number) => ({ title: 'x', isFocused: false, bodyColumns: cols, placement: 'dock' }) as never
+
+async function paneAfterWrite($: never, on: never, found: unknown = RICH, surface: 'terminal' | 'desktop' = 'terminal', cols = 64) {
+  const d = $ as never as { tool: { call: (e: never) => Promise<unknown> }, ui: { mount: (a: never) => Promise<never> } }
+  const hook = on as never as (n: string, f: (...a: never[]) => unknown) => void
+  hook('process.run', () => ({ value: ran(found) }))
+  hook('ui.open', () => ({ value: { isPlaced: true } }))
+  hook('tool.call', () => ({ result: 'ok' }))
+  await d.tool.call(WRITE)
+  return { mount: () => d.ui.mount({ plugin: 'vela', surface, component: 'Pane', requestId: 'vela-session', props: PANE_PROPS(cols) } as never) }
+}
+
+test('the pane draws the card, the next chip, section rows and bars from the blocks', async ($, on) => {
   const clock = mock.clock(on)
-  on('process.run', () => ({ value: ran(SESSION) }))
-  on('fs.read', () => ({ value: '# This session\n\nHold, pay, confirm' }))
-  on('ui.open', () => ({ value: { isPlaced: true } }))
+  const { mount } = await paneAfterWrite($ as never, on as never)
+  await clock.advance(1000)
+  const pane = await mount() as never as Mounted
+  const card = (await pane.findAll({ type: 'Box' })).find((b) => b.props.borderStyle === 'round')
+  expect(card?.props.borderColor).toBe('#5aa8ff')
+  expect((await leaf(pane, 'Grill: hold, pay, confirm'))?.props.weight).toBe('bold')
+  expect((await leaf(pane, ' NEXT '))?.props.inverse).toBe(true)
+  expect(await leaf(pane, 'FLO-001')).toBeDefined()
+  expect((await leaf(pane, ' NEW '))?.props.color).toBe('magenta')
+  expect((await leaf(pane, '✔'))?.props.color).toBe('green')
+  expect((await leaf(pane, '█'.repeat(20)))?.props.color).toBe('red')                  // the 19-of-19 bar
+  expect((await leaf(pane, '█'.repeat(5)))?.props.color).toBe('#e5a50a')               // 5 of 19, scaled to 20 cells
+  expect((await leaf(pane, '█'.repeat(15)))?.props.color).toBe('green')                // the agenda: 3 of 4 done
+  expect((await leaf(pane, '░'.repeat(5)))?.props.dimColor).toBe(true)
+  expect(await pane.find({ type: 'Link', text: /Hold, pay, confirm/ })).toBeDefined()  // a row's page is a link
+})
+
+test('the diagram is the widest drawing that fits the pane', async ($, on) => {
+  const clock = mock.clock(on)
+  const { mount } = await paneAfterWrite($ as never, on as never, RICH, 'terminal', 64)
+  await clock.advance(1000)
+  const wide = await mount() as never as { find: (q: unknown) => Promise<unknown> }
+  expect(await wide.find({ type: 'Text', text: 'drawn at 60' })).toBeDefined()
+  expect(await wide.find({ type: 'Text', text: 'drawn at 72' })).toBeUndefined()
+})
+
+test('the diagram falls back to 48 columns in a narrow pane', async ($, on) => {
+  const clock = mock.clock(on)
+  const { mount } = await paneAfterWrite($ as never, on as never, RICH, 'terminal', 50)
+  await clock.advance(1000)
+  const narrow = await mount() as never as { find: (q: unknown) => Promise<unknown> }
+  expect(await narrow.find({ type: 'Text', text: 'drawn at 48' })).toBeDefined()
+})
+
+test('the desktop draws the picture vela wrote instead of the characters', async ($, on) => {
+  const clock = mock.clock(on)
+  const withSvg = { ...RICH, diagram: { svg: '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"></svg>' } }
+  const { mount } = await paneAfterWrite($ as never, on as never, withSvg, 'desktop')
+  await clock.advance(1000)
+  const pane = await mount() as never as Mounted
+  expect(await pane.find({ type: 'Svg' })).toBeDefined()
+  expect(await pane.find({ type: 'Text', text: 'drawn at 60' })).toBeUndefined()
+})
+
+test('its only buttons fold sections; a press hides the rows and sends nothing', async ($, on) => {
+  const clock = mock.clock(on)
+  const sent: string[] = []
+  ;(on as never as (n: string, f: (...a: never[]) => unknown) => void)('prompt.submit', () => { sent.push('prompt'); return {} })
+  const { mount } = await paneAfterWrite($ as never, on as never)
+  await clock.advance(1000)
+  const pane = await mount() as never as Mounted
+  const keys = (await pane.findAll({ type: 'Button' })).map((b) => b.props.key)
+  expect(keys.every((k) => String(k).startsWith('fold:'))).toBe(true)
+  expect(await leaf(pane, 'UNK-009')).toBeDefined()
+  const runsBefore = sent.length
+  await pane.press({ key: 'fold:vela-session:decided' })
+  expect(await leaf(pane, 'UNK-009')).toBeUndefined()
+  expect(await leaf(pane, 'Decided this session')).toBeDefined()  // the header stays, to open it again
+  expect(sent.length).toBe(runsBefore)
+})
+
+test('the band draws vela\'s spans in their tones', async ($, on) => {
+  const clock = mock.clock(on)
+  on('process.run', () => ({ value: ran(RICH) }))
+  on('fs.read', () => ({ value: '' }))
+  on('ui.open', () => ({ value: { isPlaced: false, reason: 'unasked below 144 columns' } }))
+  on('ui.toast', () => ({ value: undefined }))
   on('tool.call', () => ({ result: 'ok' }))
   await $.tool.call(WRITE)
   await clock.advance(1000)
-  const pane = await $.ui.mount({ plugin: 'vela', surface: 'terminal', component: 'Pane', requestId: 'vela-session', props: { title: 'x', isFocused: false, bodyColumns: 60, placement: 'dock' } as never })
-  expect(await pane.find({ type: 'Markdown', text: 'Hold, pay, confirm' })).toBeDefined()
-  expect(await pane.findAll({ type: 'Button' })).toHaveLength(0)
+  const band = await $.ui.mount({ plugin: 'vela', surface: 'terminal', component: 'AbovePrompt', props: { hasSurvey: false, isWorking: false, maxRows: 10 } as never }) as never as Mounted
+  expect((await leaf(band, ' · 1 open'))?.props.color).toBe('#e5a50a')
+  expect((await leaf(band, 'Grill'))?.props.weight).toBe('bold')
 })
 
 const PLAN = { kind: 'explain', vault: '/plan', files: { md: '.vela/companion/explain.md' }, copy: { title: 'Harborline' }, diagram: null, warnings: [] }
