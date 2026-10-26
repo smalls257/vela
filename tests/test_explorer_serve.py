@@ -419,7 +419,7 @@ def test_e17_the_helper_serves_a_vault_file_as_text_and_nothing_outside_the_vaul
     (vault / "docs").mkdir()
     (vault / "docs" / "Q&A #2.md").write_text("# hello\n", encoding="utf-8")
     (vault / "page.html").write_text("<script>alert(1)</script>", encoding="utf-8")
-    (vault / ".vela").mkdir()
+    (vault / ".vela").mkdir(exist_ok=True)  # the server already made it for its key
     (vault / ".vela" / "explorer-pins.json").write_text("{}", encoding="utf-8")
     (tmp_path / "secret.txt").write_text("TOPSECRET-4471", encoding="utf-8")
     (vault / "link.txt").symlink_to(tmp_path / "secret.txt")
@@ -427,7 +427,7 @@ def test_e17_the_helper_serves_a_vault_file_as_text_and_nothing_outside_the_vaul
     assert (status, body) == (200, b"# hello\n") and headers["Content-Type"].startswith("text/plain")
     status, headers, _ = get(server, "/vault-file/page.html")
     assert status == 200 and headers["Content-Type"].startswith("text/plain") and headers["X-Content-Type-Options"] == "nosniff"
-    for refused in ("/vault-file/.vela/explorer-pins.json", "/vault-file/../secret.txt", "/vault-file/%2e%2e/secret.txt",
+    for refused in ("/vault-file/.vela/explorer-pins.json", "/vault-file/.vela/explorer-key", "/vault-file/../secret.txt", "/vault-file/%2e%2e/secret.txt",
                     "/vault-file/link.txt", "/vault-file/docs", "/vault-file/missing.md", "/vault-file/"):
         status, _, body = get(server, refused)
         assert status in (400, 403, 404), refused
@@ -499,3 +499,78 @@ def expected_id(root):
     from vela.explorer import build
     config = cli.load_config(root)
     return build.vault_id(str(config.get("initiative", "")), str(config.get("title", "")), config.get(build.VAULT_ID_KEY))
+
+
+# --- The key outlives a restart: the port is the same every run, so a browser tab still holds the old cookie.
+
+def second_server(helper):
+    server, vault, _ = helper
+    lines = []
+    again = serve.Server(vault, server.page, 0, "haiku", 3, lines.append)
+    return server, again, vault, lines
+
+
+def test_two_servers_on_one_vault_share_a_key_so_an_open_tab_survives_a_restart(helper):
+    server, again, _, lines = second_server(helper)
+    try:
+        assert again.key == server.key
+        assert not any("new key" in line for line in lines)
+    finally:
+        again.server_close()
+
+
+def test_the_key_file_is_private_to_the_user(helper):
+    server, vault, _ = helper
+    path = vault / ".vela" / "explorer-key"
+    assert path.read_text(encoding="utf-8").strip() == server.key
+    assert (path.stat().st_mode & 0o777) == 0o600
+
+
+@pytest.mark.parametrize("junk", ["", "short", "has spaces and is long enough to pass a length check ok", "\x00\xff"])
+def test_a_key_file_that_cannot_be_trusted_gets_a_new_key_and_a_log_line(helper, junk):
+    server, vault, _ = helper
+    (vault / ".vela" / "explorer-key").write_bytes(junk.encode("latin-1"))
+    lines = []
+    again = serve.Server(vault, server.page, 0, "haiku", 3, lines.append)
+    try:
+        assert again.key != server.key and serve.key_from_text(again.key) == again.key
+        assert any("new key" in line for line in lines)
+        assert (vault / ".vela" / "explorer-key").read_text(encoding="utf-8").strip() == again.key
+    finally:
+        again.server_close()
+
+
+def test_a_plan_where_the_key_cannot_be_saved_still_serves_and_says_so(tmp_path):
+    lines = []
+    folder = tmp_path / "read-only"
+    folder.mkdir()
+    folder.chmod(0o500)
+    try:
+        key = serve.load_or_make_key(folder, lines.append)
+    finally:
+        folder.chmod(0o700)
+    assert serve.key_from_text(key) == key
+    assert any("could not save the dashboard key" in line for line in lines)
+
+
+def test_the_key_from_file_text_is_pure():
+    assert serve.key_from_text("abcdefghijklmnopqrstuvwxyz0123456789-_\n") == "abcdefghijklmnopqrstuvwxyz0123456789-_"
+    assert serve.key_from_text("nope") is None and serve.key_from_text(None) is None
+
+
+def test_the_page_without_the_link_is_a_plain_html_403_that_holds_no_key(helper):
+    server, _, _ = helper
+    for key in (None, "an-old-key-from-the-last-run"):
+        response = request(server, "GET", "/", key=key, origin=None)
+        body = response.read().decode("utf-8")
+        assert response.status == 403 and response.getheader("Content-Type").startswith("text/html")
+        assert "This dashboard needs its link" in body and "ask Claude to open the dashboard again" in body
+        assert server.key not in body and not body.lstrip().startswith("{")
+
+
+def test_api_paths_without_the_key_still_answer_json_403(helper):
+    server, _, _ = helper
+    for method, path in (("GET", "/health"), ("GET", "/freshness"), ("GET", "/pins"), ("GET", "/vault-file/x")):
+        response = request(server, method, path, key=None)
+        assert response.status == 403 and response.getheader("Content-Type") == "application/json", path
+        assert "link vela printed" in json.loads(response.read())["error"]
