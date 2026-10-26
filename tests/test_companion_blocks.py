@@ -47,7 +47,7 @@ def test_the_header_card_holds_the_title_the_notes_and_the_agenda_bar(grill):
     card = grill["blocks"][0]
     assert (card["title"], card["right"], card["tone"]) == ("Grill: hold, pay, confirm", "14 notes · 10:41", "info")
     assert card["lines"][0] == [{"t": "Settle how a crossing is held, paid and confirmed.", "tone": "dim"}]
-    assert card["lines"][1] == [{"t": "Agenda  ", "tone": "plain"}, {"bar": [2, 4]}, {"t": "  2 of 4 done", "tone": "dim"}]
+    assert card["lines"][1] == [{"t": "Agenda  ", "tone": "plain"}, {"bar": [3, 4]}, {"t": "  3 of 4 done", "tone": "dim"}]
 
 
 def test_next_names_the_move_its_id_and_where_it_came_from(grill):
@@ -70,7 +70,8 @@ def test_rows_carry_their_own_mark_tone_chip_and_sub_line(grill):
 def test_the_diagram_block_holds_the_flow_at_four_widths(grill):
     block = next(b for b in grill["blocks"] if b["type"] == "diagram")
     assert (block["title"], block["id"]) == ("Flow: Hold, pay, confirm", "FLO-001")
-    assert sorted(block["drawings"]) == ["48", "60", "72", "96"] and "others" in block["alt"]
+    assert sorted(block["drawings"]) == ["48", "60", "72", "96"] and "others" in block["folded"]["48"]
+    assert block["alt"] == "Hold, pay, confirm: 7 steps." and "columns" not in block["alt"] and "96" not in block["folded"]
     assert "text" not in grill["diagram"]
 
 
@@ -167,7 +168,7 @@ def test_the_not_in_the_plan_card_is_dim_and_the_footer_offers_only_views_that_a
     assert (blocks[4]["title"], blocks[4]["tone"]) == ("Not in the plan", "dim")
     ask, picture = blocks[5]["lines"]
     assert flat(ask) == "Also ask  what's left? · who holds what?"   # no release dates, no viewer: two views can't answer
-    assert picture[-1] == {"t": "dashboard.html#asks", "tone": "info", "page": "dashboard.html#asks"}
+    assert picture[-1] == {"t": "dashboard.html in this folder", "tone": "info", "page": "dashboard.html#asks"}
 
 
 def test_no_explain_block_ever_says_on_track(plan):
@@ -202,9 +203,77 @@ def test_the_flow_view_is_a_card_and_the_drawing_with_no_item_list(plan):
     assert blocks[1]["id"] == "FLO-001"
 
 
-def test_the_lit_map_is_not_a_character_drawing(plan):
-    got = explain(plan, "--view", "stuck")
-    assert got["diagram"] is None or "diagram" not in types(got["blocks"])
+def lit_digest(lights):
+    """A digest whose apps are lit as given, so the stuck view has a map to draw."""
+    apps = [{"key": key, "name": key.title(), "domain": ""} for key in lights]
+    return {"version": 3, "title": "T", "made": {"date": "2026-10-24"}, "today": "2026-10-24", "names": {}, "asks": [],
+            "stuck": [], "needs": {"lines": []}, "slices": [], "progress": [], "flows": [], "pages": [], "apps": apps,
+            "app_lights": lights, "releases": []}
+
+
+def stuck_with(lights):
+    from vela import companionexplain
+    data = companionexplain.explain(lit_digest(lights), "stuck", "", companionexplain.Viewer("", ""), None, "2026-10-24")
+    return companionrender.with_renders(data)
+
+
+def test_the_lit_map_is_a_diagram_block_with_no_character_drawing_and_words_for_the_terminal():
+    got = stuck_with({"booking": "warning", "tidepay": "caution", "ledger": "dark"})
+    assert got["diagram"]["kind"] == "map" and got["diagram"]["svg"].startswith("<svg")
+    block = next(b for b in got["blocks"] if b["type"] == "diagram")
+    assert block["svg"] is True and block["drawings"] == {} and block["title"] == "Where the questions sit"
+    assert block["alt"] == "Apps with open questions: Booking (warning), Tidepay (caution)."
+
+
+def test_a_map_with_nothing_lit_draws_no_diagram_at_all():
+    got = stuck_with({"booking": "dark"})
+    assert got["diagram"] is None and "diagram" not in types(got["blocks"])
+
+
+def test_an_off_agenda_item_counts_as_handled_in_the_agenda_bar():
+    agenda = [{"id": "A", "name": "A", "status": "decided"}, {"id": "B", "name": "B", "status": "off-agenda"},
+              {"id": "C", "name": "C", "status": "open"}]
+    assert companionblocks.agenda_line(agenda)[1:] == [{"bar": [2, 3]}, {"t": "  2 of 3 done", "tone": "dim"}]
+
+
+def test_a_flow_with_no_steps_draws_no_header_over_nothing():
+    assert companionblocks.diagram_block({"kind": "sequence", "of": "FLO-1", "name": "Empty", "steps": []}) is None
+
+
+def left_data(items):
+    return {"view": "left", "items": items, "groups": []}
+
+
+def test_the_left_view_leaves_out_apps_with_nothing_planned():
+    items = [{"id": "a", "name": "Booking", "decided": 3, "total": 4}, {"id": "b", "name": "Vessel schedule", "decided": 0, "total": 0},
+             {"id": "c", "name": "Payments", "decided": 1, "total": 2}]
+    data = left_data(items)
+    assert [r["name"] for r in companionblocks.explain_sections(data)[0]["rows"]] == ["Booking", "Payments"]
+    assert [r["label"] for r in companionblocks.bars_block(data)["rows"]] == ["Booking", "Payments"]
+
+
+def test_track_rows_use_the_headlines_status_words_and_flag_an_overdue_slice():
+    data = {"view": "track", "as_of": "2026-10-24"}
+    slice_row = companionblocks.view_row(data, {"id": "S", "name": "Pay", "status": "journey passes", "overdue": "2026-10-01"})
+    assert (slice_row["note"], slice_row["chip"], slice_row["tone"]) == ("past their journey check", {"t": "overdue", "tone": "bad"}, "bad")
+    shipped = companionblocks.view_row(data, {"id": "R1", "name": "R1", "target": "2026-10-01", "days_out": -23, "shipped": True})
+    assert (shipped["mark"], shipped["note"]) == ("✔", "shipped")
+    due = companionblocks.view_row(data, {"id": "R2", "name": "R2", "target": "2026-12-01", "days_out": 38})
+    assert due["note"] == "due December 1"
+
+
+def test_a_group_with_no_holder_gets_a_title_and_a_bar_label():
+    item = {"id": "U", "name": "Q", "open_days": 3, "holds": [], "ask_by": ""}
+    data = {"view": "stuck", "as_of": "2026-10-24", "items": [item, item], "groups": [{"who": "", "items": [item, item]}]}
+    assert companionblocks.explain_sections(data)[0]["title"] == companionblocks.NO_HOLDER
+    assert companionblocks.bars_block(data)["rows"][0]["label"] == companionblocks.NO_HOLDER
+
+
+def test_a_wide_character_title_still_fits_the_band_in_cells():
+    from vela import companionchart
+    data = session_dict(session={"id": "s", "title": "漢字" * 30, "modes": [], "opened": "2026-10-24"}, decided=[], open=[])
+    spans = companionblocks.band_spans(data)
+    assert companionchart.width_of("".join(s["t"] for s in spans)) <= companionblocks.BAND_WIDTH
 
 
 def test_explain_has_a_band_of_spans_and_no_diagram_text(plan):
@@ -218,3 +287,39 @@ def test_the_chart_reference_flow_draws_in_the_session_diagram_block():
     diagram = {"kind": "sequence", "of": "FLO-001", "name": "Hold, pay, confirm", "steps": STEPS}
     block = companionblocks.diagram_block(diagram)
     assert block["drawings"]["60"] and block["alt"].startswith("Hold, pay, confirm: 7 steps.")
+
+
+# --- explain --last asks the stored question again --------------------------------------------------------------------
+
+def stored(plan):
+    return plan / ".vela" / "companion" / "explain.json"
+
+
+def test_last_answers_the_stored_question_again_so_its_blocks_are_always_current(plan):
+    explain(plan, "--view", "flow", "--about", "Hold, pay, confirm")
+    held = json.loads(stored(plan).read_text())
+    assert held["version"] == 2 and held["about"] == "Hold, pay, confirm"
+    del held["blocks"]
+    stored(plan).write_text(json.dumps(held))
+    code, out = run_companion(plan, "explain", "--last", "--json")
+    got = json.loads(out)
+    assert code == 0 and got["view"] == "flow" and types(got["blocks"]) == ["card", "diagram", "lines"]
+
+
+def test_last_refuses_a_file_an_older_vela_wrote_and_says_so_in_vela_words(plan):
+    explain(plan, "--view", "stuck")
+    held = json.loads(stored(plan).read_text())
+    stored(plan).write_text(json.dumps({**held, "version": 1}))
+    code, out = run_companion(plan, "explain", "--last", "--json")
+    assert code == 1 and json.loads(out) == {"message": "The last answer was written by an older vela and can't be redrawn. Ask the question again."}
+
+
+def test_last_with_nothing_asked_yet_says_so(tmp_path):
+    root = tmp_path / "plan"
+    shutil.copytree(EXAMPLE, root)
+    code, out = run_companion(root, "explain", "--last", "--json")
+    assert code == 1 and json.loads(out) == {"message": "Nothing has been explained yet."}
+
+
+def test_every_panel_json_carries_vela_words_for_a_pane_that_cannot_draw_it(grill):
+    assert grill["version"] == 2 and grill["out_of_date"] == companionblocks.OUT_OF_DATE

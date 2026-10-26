@@ -8,7 +8,7 @@ pick a mark, the mark would be the mod's rule. A row carries its own mark and to
 
 The block contract (binding for the mod and the page, which read it):
 
-  Span  {"t": str, "tone": Tone}            optional "page": a vault-relative path, drawn as a link
+  Span  {"t": str, "tone": Tone}            optional "page": a vault-relative path (the terminal links it; the page shows it on hover)
   Line  [Span | {"bar": [done, total]}]     a bar item is 20 cells: the done share in "good", the rest "dim"
   Tone  plain dim strong info good warn bad accent new id
   Block card | next | section | bars | diagram | lines     (see the builders below for each one's keys)
@@ -16,14 +16,17 @@ The block contract (binding for the mod and the page, which read it):
 import datetime
 import re
 
-from vela import companionchart, say
+from vela import companionchart, companionexplain, say
 
 BAND_WIDTH = 100  # why: the band shows below 110 columns, beside the prompt's own margins
 OPEN_HINT = "/vela-companion to open"
+DASHBOARD_FILE = "dashboard.html in this folder"
 DASHBOARD_LINE = "Full dashboard: dashboard.html in this folder"
 UNREADABLE = "I can't read this session's notes on this machine."
 NO_SUMMARY = "No summary yet"
 NONE_NEXT = "Say what's next to hear vela's suggestion."
+OUT_OF_DATE = "This panel was drawn by a different vela than the one that wrote it. Ask the question again."
+NO_HOLDER = "No one named"
 NOTHING_DECIDED, NOTHING_OPEN = "Nothing decided yet.", "Nothing open."
 TITLE_DECIDED, TITLE_WAITING, TITLE_OPEN = "Decided this session", "Yes given, waiting", "Open questions"
 NEXT_SOURCE = {"agenda": "from the agenda", "map": "from your topic map", "design order": "the next section of the design"}
@@ -85,7 +88,8 @@ def time_of(data):
 
 
 def short(text, limit):
-    return text if len(text) <= limit else text[:limit - 1].rstrip() + "…"
+    """The text in at most `limit` terminal cells (wide characters count two), cut with an ellipsis."""
+    return companionchart.cut(text, limit) if companionchart.width_of(text) > limit else text
 
 
 # --- the one-line band -------------------------------------------------------------------------------------------
@@ -94,9 +98,9 @@ def fit_middle(spans, room):
     """The spans cut to `room` characters in all, the last one kept shortened with an ellipsis."""
     out, used = [], 0
     for item in spans:
-        if used + len(item["t"]) <= room:
+        if used + companionchart.width_of(item["t"]) <= room:
             out.append(item)
-            used += len(item["t"])
+            used += companionchart.width_of(item["t"])
             continue
         left = room - used
         if left > 0:
@@ -117,10 +121,10 @@ def session_band(data):
             middle += [dim(" · next: "), span(suggestion_split(data["next"]["text"])[0], "accent")]
     tail = dim(f" · {OPEN_HINT}")
     head = [span(title, "strong"), dim(" · ")]
-    room = BAND_WIDTH - len(tail["t"])
-    if len(title) + 3 + sum(len(s["t"]) for s in middle) > room:
+    room = BAND_WIDTH - companionchart.width_of(tail["t"])
+    if companionchart.width_of(title) + 3 + sum(companionchart.width_of(s["t"]) for s in middle) > room:
         head = [span(short(title, 30), "strong"), dim(" · ")]
-        return head + fit_middle(middle, room - len(short(title, 30)) - 3) + [tail]
+        return head + fit_middle(middle, room - companionchart.width_of(short(title, 30)) - 3) + [tail]
     return head + middle + [tail]
 
 
@@ -129,7 +133,7 @@ def explain_band(data):
     first = data["headline"][0] if data["headline"] else ""
     tone = "bad" if is_stuck(data) else "plain"
     head = [span(short(title, 30), "strong"), span(" · ", "dim")]
-    return head + fit_middle([span(first, tone)], BAND_WIDTH - len(short(title, 30)) - 3)
+    return head + fit_middle([span(first, tone)], BAND_WIDTH - companionchart.width_of(short(title, 30)) - 3)
 
 
 def band_spans(data):
@@ -143,7 +147,8 @@ def capture_words(n):
 
 
 def agenda_line(agenda):
-    done = sum(1 for item in agenda if item["status"] == "decided")
+    # why: an item taken off the agenda is handled, and NEXT already skips it; counting it undone leaves the reader a number short
+    done = sum(1 for item in agenda if item["status"] in ("decided", "off-agenda"))
     return [span("Agenda  "), bar(done, len(agenda)), span(f"  {done} of {len(agenda)} done", "dim")]
 
 
@@ -212,23 +217,31 @@ def session_sections(data):
 
 
 def diagram_block(diagram):
-    """The flow drawn as characters at each width the pane can have, or None when the diagram is not a flow."""
-    if not diagram or diagram["kind"] != "sequence":
+    """The diagram as a block, or None when there is nothing to draw. `svg` says the picture for the desktop pane and the
+    page is data.diagram.svg. A flow also has character drawings for the terminal; the lit map has none, so the terminal
+    draws its `alt`, vela's words for it (Silent Fallback ruled out: the map never just vanishes from a pane)."""
+    if not diagram:
         return None
+    if diagram["kind"] == "map":
+        return {"type": "diagram", "title": diagram["name"], "id": "", "alt": diagram["alt"], "svg": True, "drawings": {}, "folded": {}}
+    if not diagram["steps"]:
+        return None  # a header over nothing reads as a flow with a missing picture
     steps = diagram["steps"]
     return {"type": "diagram", "title": f"Flow: {diagram['name']}", "id": diagram["of"], "alt": flow_alt(diagram),
-            "drawings": {str(w): companionchart.drawing(steps, w) for w in companionchart.WIDTHS}}
+            "svg": True, "drawings": {str(w): companionchart.drawing(steps, w) for w in companionchart.WIDTHS},
+            "folded": {str(w): fold_words(steps, w) for w in companionchart.WIDTHS if companionchart.folded_lanes(steps, w)}}
 
 
 def flow_alt(diagram):
-    """What the picture says in words, including which apps a narrow drawing folds together."""
-    steps = diagram["steps"]
-    said = f"{diagram['name']}: {count_words(len(steps), 'step', 'steps')}."
-    for width in companionchart.WIDTHS:
-        folded = companionchart.folded_lanes(steps, width)
-        if folded:
-            said += f" At {width} columns {', '.join(folded)} are shown together as one lane, \"{companionchart.OTHERS}\"."
-    return said
+    """What the picture says in words. The picture shows every lane; the narrow character drawings fold some (`fold_words`)."""
+    return f"{diagram['name']}: {count_words(len(diagram['steps']), 'step', 'steps')}."
+
+
+def fold_words(steps, width):
+    """What a character drawing at this width left out of its lanes, for the terminal to say under that drawing."""
+    folded = companionchart.folded_lanes(steps, width)
+    return (f"{', '.join(folded)} are shown together as one lane, \"{companionchart.fold_name(steps)}\"; "
+            "a message between two of them is marked ⇄.")
 
 
 def pages_changed(touched):
@@ -321,18 +334,30 @@ def view_row(data, item):
     if view == "needs":
         return row("●", "info", item["name"], note="by " + date_of(item["date"], data) if item.get("date") else "")
     if view == "left":
+        if not item["total"]:
+            return None  # an app with nothing planned is not "0 of 0 decided"; the empty bar would read as no progress
         return row("○", "dim", item["name"], note=f"{item['decided']} of {item['total']} decided")
     if view == "track":
-        note = item.get("status") or ("due " + date_of(item["target"], data) if item.get("target") else "")
-        return row("○", "dim", item["name"], note=note)
+        return track_row(data, item)
     return None
+
+
+def track_row(data, item):
+    """A release row says when it is due or that it shipped; a slice row says its status in the headline's words and
+    carries a red chip when its due date has passed, so "Late: a due date passed" points at something."""
+    if item.get("shipped"):
+        return row("✔", "good", item["name"], note="shipped")
+    if item.get("target"):
+        return row("○", "dim", item["name"], note="due " + date_of(item["target"], data))
+    late = {"t": "overdue", "tone": "bad"} if item.get("overdue") else None
+    return row("■" if late else "○", "bad" if late else "dim", item["name"], note=companionexplain.STATUS_WORDS.get(item["status"], item["status"]), chip=late)
 
 
 def explain_sections(data):
     if data["view"] in ("none", "page", "flow"):
         return []  # a flow's steps are the drawing; the others have no items to list
     if data["groups"]:
-        return [section(f"group:{g['who']}", g["who"], str(len(g["items"])),
+        return [section(f"group:{g['who']}", g["who"] or NO_HOLDER, str(len(g["items"])),
                         [r for r in (view_row(data, i) for i in g["items"]) if r]) for g in data["groups"]]
     rows = [r for r in (view_row(data, i) for i in data["items"]) if r]
     return [section("items", "", "", rows)] if rows else []
@@ -341,6 +366,8 @@ def explain_sections(data):
 def bars_block(data):
     """A bar per holder, per app or per person when the view has two or more numbers worth comparing, else None."""
     view, items = data["view"], [i for i in data["items"] if i["id"] != "total"]
+    if view == "left":
+        items = [i for i in items if i["total"]]
     if view == "stuck":
         waited = [i for i in items if i.get("open_days") is not None]
         if len(waited) < 2:
@@ -351,16 +378,16 @@ def bars_block(data):
             if days:
                 oldest[g["who"]] = max(days)
         top = max(oldest.values(), default=1) or 1
-        rows = [{"label": who, "value": days, "max": top, "tone": days_chip(days)["tone"], "text": str(days)}
+        rows = [{"label": who or NO_HOLDER, "value": days, "max": top, "tone": days_chip(days)["tone"], "text": str(days)}
                 for who, days in oldest.items()]
         return {"type": "bars", "title": "Waiting, by days", "rows": rows}
     if view == "left" and len(items) >= 2:
-        rows = [{"label": i["name"], "value": i["decided"], "max": max(i["total"], 1), "tone": "good",
+        rows = [{"label": i["name"], "value": i["decided"], "max": i["total"], "tone": "good",
                  "text": f"{i['decided']} of {i['total']}"} for i in items]
         return {"type": "bars", "title": "Decided, by app", "rows": rows}
     if view == "who" and len(items) >= 2:
         top = max((len(g["items"]) for g in data["groups"]), default=1)
-        rows = [{"label": g["who"], "value": len(g["items"]), "max": top, "tone": "new", "text": str(len(g["items"]))}
+        rows = [{"label": g["who"] or NO_HOLDER, "value": len(g["items"]), "max": top, "tone": "new", "text": str(len(g["items"]))}
                 for g in data["groups"]]
         return {"type": "bars", "title": "Open questions, by person", "rows": rows}
     return None
@@ -387,7 +414,8 @@ def explain_blocks(data):
         blocks.append(drawn)
     if data["not_recorded"]:
         blocks.append(card("Not in the plan", "", "dim", [plain_line(line, "dim") for line in data["not_recorded"]]))
-    tail = [also_ask_line(data), [span("Full picture  ", "dim"), span(data["dashboard"], "info", page=data["dashboard"])]]
+    # why: the text is the file in words; the fragment that opens the right view rides in `page`, never in lead-facing text
+    tail = [also_ask_line(data), [span("Full picture  ", "dim"), span(DASHBOARD_FILE, "info", page=data["dashboard"])]]
     blocks.append(lines_block([line for line in tail if line] + warning_lines(data)))
     return blocks
 

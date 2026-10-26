@@ -122,6 +122,19 @@ def lane_names(steps):
     return found
 
 
+def others_name(found):
+    """The fold lane's name: "others", or "others (rest)" and so on when a real lane already has the name, so no arrow
+    lands on the wrong box."""
+    name = OTHERS
+    while name in found:
+        name += " (rest)"
+    return name
+
+
+def fold_name(steps):
+    return others_name(lane_names(steps[:companionsvg.MAX_STEPS]))
+
+
 def fit(steps, columns):
     """(lane names to draw, names folded into "others"): all lanes when each gets MIN_LANE cells, else the most connected
     ones (ties go to the one seen first) and one "others" lane for the rest."""
@@ -131,7 +144,7 @@ def fit(steps, columns):
         return list(found), []
     ranked = sorted(found, key=lambda name: (-found[name], list(found).index(name)))
     kept = set(ranked[:room - 1])
-    return [name for name in found if name in kept] + [OTHERS], [name for name in found if name not in kept]
+    return [name for name in found if name in kept] + [others_name(found)], [name for name in found if name not in kept]
 
 
 def folded_lanes(steps, columns):
@@ -188,8 +201,8 @@ def lifelines(lanes, columns, before=None):
     return row
 
 
-def lane_of(name, kept):
-    return name if name in kept else OTHERS
+def lane_of(name, kept, fold):
+    return name if name in kept else fold
 
 
 def arrow_row(lanes, columns, sender, receiver):
@@ -211,11 +224,13 @@ def drawing(steps, columns):
     shown, more = steps[:companionsvg.MAX_STEPS], max(0, len(steps) - companionsvg.MAX_STEPS)
     names, folded = fit(shown, columns)
     lanes = Lanes(names, columns)
-    kept = set(names) - {OTHERS}
+    fold = others_name(lane_names(shown))
+    kept = set(names) - ({fold} if folded else set())
     out = header(lanes, columns) if names else []
     current = names[0] if names else None  # the lane a step with no sender or receiver happens on: the last receiver
     for number, step in enumerate(shown):
-        sender, receiver = (lane_of(end, kept) if end else "" for end in ends_of(step))
+        ends = ends_of(step)
+        sender, receiver = (lane_of(end, kept, fold) if end else "" for end in ends)
         words = companionsvg.step_words(step, 200)
         if names and number:
             out.append(lifelines(lanes, columns).line())
@@ -225,8 +240,11 @@ def drawing(steps, columns):
             out += [label.line(), arrow.line()]
             current = receiver
             continue
-        current = sender or current
-        text = cut(f"◆ {step.get('n', number + 1)}. {words}", columns)
+        current = sender or receiver or current
+        # why: two real lanes folded into one are still two parties talking, so the step says so instead of reading as
+        # something one lane did alone
+        mark = "⇄" if sender and sender == receiver and ends[0] != ends[1] else "◆"
+        text = cut(f"{mark} {step.get('n', number + 1)}. {words}", columns)
         start = max(0, min(lanes.center(current) if names else 0, columns - width_of(text)))
         row = lifelines(lanes, columns, before=start) if names else Canvas(columns)
         row.put(start, text, "strong")

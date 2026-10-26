@@ -14,6 +14,7 @@ const PLAN_PANE = 'vela-plan'
 const REFRESH_AFTER_MS = 400
 const VELA_TIMEOUT_MS = 5000
 const WRITES_PLAN = /scripts\/(run-)?vela\b/
+const BLOCKS_VERSION = 2  // the JSON version this mod draws; vela bumps it when the blocks change shape
 const EXPLAINS_PLAN = /companion explain/
 // A mod's process.run looks no command up on PATH (Claude Code refuses a bare `sh` as "not found or in an unsafe
 // location"), so the shell is named by its full path; /bin/sh is on every Mac and Linux.
@@ -32,6 +33,7 @@ let inVault // undefined = not looked at yet, true or false once looked at; a ve
 let sessionOpened = false
 let shown = { session: false, plan: false }
 let views = { session: null, plan: null }
+const toldUnknown = new Set()  // block types already logged as unknown, so a refresh doesn't repeat the line
 const folded = new Set()  // `<pane>:<section key>` of the sections the person folded; lives as long as the mod does
 
 // Tone -> Ink text props, the one table; vela names the tone, the mod only colors it. `dim` and `strong` are weights,
@@ -72,23 +74,58 @@ async function runVela($, args) {
   return { code: done.exitCode, text: done.stdout, found: parsed.unreadable ? null : parsed, why }
 }
 
+// Whether this JSON is one the mod can draw: the version it knows, with blocks. Anything else is never drawn as an empty
+// pane (Silent Fallback); the caller shows `notDrawableNote`, vela's own sentence.
+const drawable = (found) => found.version === BLOCKS_VERSION && Array.isArray(found.blocks)
+
+// vela's sentence for a JSON the mod can't draw: the one every drawable JSON carries, else any message vela sent.
+function notDrawableNote(found) {
+  if (typeof found.out_of_date === 'string' && found.out_of_date) return found.out_of_date
+  if (typeof found.message === 'string') return found.message
+  return Array.isArray(found.warnings) && found.warnings.length > 0 ? String(found.warnings[0]) : ''
+}
+
 // What the pane draws, from the JSON vela printed (nothing read from disk, nothing made here).
 function viewOf(found) {
   const diagram = found.diagram || null
   return {
-    blocks: Array.isArray(found.blocks) ? found.blocks : [],
+    blocks: found.blocks,
     vault: found.vault || '',
     diagramSvg: diagram ? diagram.svg : '',
     title: found.session ? found.session.title : '',
   }
 }
 
+// A pane that holds only vela's sentence, for a question vela could not answer.
+const messageView = (text) => ({ blocks: [{ type: 'lines', lines: [[{ t: text, tone: 'warn' }]] }], vault: '', diagramSvg: '', title: '' })
+
 const toneProps = (tone) => TONES[tone] || TONES.plain
 const cells = (n) => Math.max(0, Math.round(n))
-const padTo = (text, width) => text + ' '.repeat(Math.max(0, width - text.length))
 
-// A page link: the vault's file, so a click opens it where the terminal opens files.
-const pageHref = (vault, page) => encodeURI(`file://${vault}/${page}`)
+// Terminal cells, not UTF-16 units: East Asian wide characters and emoji take two, marks and joiners none.
+const WIDE = [[0x1100, 0x115f], [0x2e80, 0xa4cf], [0xac00, 0xd7a3], [0xf900, 0xfaff], [0xfe30, 0xfe6f], [0xff00, 0xff60], [0xffe0, 0xffe6], [0x1f300, 0x1f64f], [0x1f900, 0x1f9ff], [0x20000, 0x3fffd]]
+const NO_CELL = /^[\u0300-\u036f\u200b-\u200f\ufe0f]$/
+function cellWidth(text) {
+  let total = 0
+  for (const ch of text) {
+    const code = ch.codePointAt(0)
+    if (NO_CELL.test(ch)) continue
+    total += WIDE.some(([from, to]) => code >= from && code <= to) ? 2 : 1
+  }
+  return total
+}
+const padding = (text, width) => ' '.repeat(Math.max(0, width - cellWidth(text)))
+const padTo = (text, width) => text + padding(text, width)
+
+// A page link: the vault's file, so a click opens it where the terminal opens files. Each path segment is encoded on its
+// own, so a `#`, `?` or `%` in the vault's path stays part of the path; only the fragment vela names (`dashboard.html#asks`)
+// is the URL's.
+function pageHref(vault, page) {
+  const at = page.indexOf('#')
+  const path = at < 0 ? page : page.slice(0, at)
+  const fragment = at < 0 ? '' : `#${encodeURI(page.slice(at + 1))}`
+  return 'file://' + [...vault.split('/'), ...path.split('/')].map(encodeURIComponent).join('/') + fragment
+}
 
 function spanOf(el, span, vault) {
   if (span.page && vault) return el.Link({ href: pageHref(vault, span.page), label: span.t })
@@ -153,16 +190,17 @@ function nextOf(el, block) {
 
 // Names and ids are padded to the section's widest, so the columns line up as in the mockup.
 function rowsOf(el, rows, vault) {
-  const nameWidth = Math.max(0, ...rows.map((r) => (r.name || '').length))
-  const idWidth = Math.max(0, ...rows.map((r) => (r.id || '').length))
+  const nameWidth = Math.max(0, ...rows.map((r) => cellWidth(r.name || '')))
+  const idWidth = Math.max(0, ...rows.map((r) => cellWidth(r.id || '')))
   return rows.map((row) => {
-    const name = row.page && vault ? el.Link({ href: pageHref(vault, row.page), label: padTo(row.name || '', nameWidth) }) : padTo(row.name || '', nameWidth)
+    // the padding is outside the link, so the blanks after a short name aren't underlined
+    const name = row.page && vault ? [el.Link({ href: pageHref(vault, row.page), label: row.name || '' }), padding(row.name || '', nameWidth)] : padTo(row.name || '', nameWidth)
     const main = el.Text({
       children: [
         '  ',
         el.Text({ ...toneProps(row.tone), children: [row.mark || ' '] }),
         ' ',
-        name,
+        ...[name].flat(),
         '  ',
         el.Text({ ...TONES.id, children: [padTo(row.id || '', idWidth)] }),
         row.chip ? ' ' : '',
@@ -185,7 +223,7 @@ function sectionOf(el, block, vault, fold) {
 }
 
 function barsOf(el, block, fold) {
-  const labelWidth = Math.max(0, ...block.rows.map((r) => r.label.length))
+  const labelWidth = Math.max(0, ...block.rows.map((r) => cellWidth(r.label)))
   const rows = block.rows.map((row) => {
     const filled = row.max > 0 ? Math.min(BAR_CELLS, Math.max(row.value > 0 ? 1 : 0, cells((row.value / row.max) * BAR_CELLS))) : 0
     return el.Text({
@@ -200,18 +238,22 @@ function barsOf(el, block, fold) {
 // The widest drawing that fits the pane; the narrowest when none does.
 function drawingFor(drawings, columns) {
   const widths = Object.keys(drawings || {}).map(Number).sort((a, b) => a - b)
-  if (widths.length === 0) return []
+  if (widths.length === 0) return { width: '', lines: [] }
   const fits = widths.filter((w) => w <= columns - 2)
-  return drawings[String(fits.length > 0 ? fits[fits.length - 1] : widths[0])]
+  const width = String(fits.length > 0 ? fits[fits.length - 1] : widths[0])
+  return { width, lines: drawings[width] }
 }
 
 function diagramOf(el, block, columns, surface, svg, fold) {
   const key = 'diagram'
   const head = foldHeader(el, fold, key, block.title, block.id)
   if (folded.has(`${fold.pane}:${key}`)) return el.Box({ flexDirection: 'column', children: [head] })
-  const picture = surface === 'desktop' && svg
+  const { width, lines: drawn } = drawingFor(block.drawings, columns)
+  const left_out = (block.folded || {})[width]  // what this width's drawing left out, in vela's words
+  // why: the lit map has no character drawing, so the terminal says it in vela's words rather than drawing nothing
+  const picture = block.svg && svg && surface === 'desktop'
     ? [el.Svg({ source: svg, alt: block.alt || block.title })]
-    : drawingFor(block.drawings, columns).map((line) => lineOf(el, line, ''))
+    : drawn.length > 0 ? [...drawn.map((line) => lineOf(el, line, '')), ...(left_out ? [el.Text({ dimColor: true, children: [left_out] })] : [])] : [el.Text({ children: [block.alt || ' '] })]
   return el.Box({ flexDirection: 'column', children: [head, ...picture] })
 }
 
@@ -223,11 +265,16 @@ function blockOf(el, block, view, columns, surface, fold) {
     case 'bars': return barsOf(el, block, fold)
     case 'diagram': return diagramOf(el, block, columns, surface, view.diagramSvg, fold)
     case 'lines': return el.Box({ flexDirection: 'column', children: (block.lines || []).map((line) => lineOf(el, line, view.vault)) })
-    default: return null  // a block this mod doesn't know is left out, not guessed at
+    default:  // a block this mod doesn't know is left out, not guessed at, and said once in the debug log
+      if (!toldUnknown.has(block.type)) {
+        toldUnknown.add(block.type)
+        fold.log(`vela companion: skipped a block of an unknown type: ${block.type}`)
+      }
+      return null
   }
 }
 
-// The pane's body: vela's blocks, a blank row between them. `fold` = { pane, redraw }.
+// The pane's body: vela's blocks, a blank row between them. `fold` = { pane, redraw, log }.
 function drawBlocks(view, el, bodyColumns, surface, fold) {
   const drawn = view.blocks.map((block) => blockOf(el, block, view, bodyColumns, surface, fold)).filter(Boolean)
   const spaced = drawn.flatMap((node, at) => (at === 0 ? [node] : [el.Text({ children: [' '] }), node]))
@@ -242,6 +289,14 @@ function firstLine(done) {
 
 async function refreshSession($) {
   const done = await runVela($, ['session'])
+  if (done.found && done.code !== 1 && !drawable(done.found)) {
+    // a JSON this mod can't draw is said in vela's words, never drawn as a blank pane
+    session = null
+    views.session = null
+    problem = notDrawableNote(done.found)
+    $.ui.log(`vela companion: session JSON is version ${done.found.version}, this mod draws ${BLOCKS_VERSION}`, { to: 'debug' })
+    return
+  }
   if (done.code === 0 && done.found) {
     session = done.found
     views.session = viewOf(done.found)
@@ -264,7 +319,7 @@ async function refreshSession($) {
     return
   }
   problem = firstLine(done)
-  if (done.code === 2 && done.found && done.found.files) {
+  if (done.code === 2 && done.found) {
     session = done.found
     views.session = viewOf(done.found)
   }
@@ -273,16 +328,25 @@ async function refreshSession($) {
 async function refreshPlan($) {
   if (!planWanted) return
   const done = await runVela($, ['explain', '--last'])
-  if (done.code === 0 && done.found && done.found.files) {
-    plan = done.found
-    views.plan = viewOf({ ...done.found, session: { title: done.found.copy ? done.found.copy.title : '' } })
-    if (planNeedsOpen) {
-      planNeedsOpen = false
-      const placed = await $.ui.open({ id: PLAN_PANE, title: views.plan.title })
-      shown.plan = placed.isPlaced
-      if (!placed.isPlaced) notePanelIsHidden($)
-    }
+  if (!done.found) return
+  if (done.code !== 0 || !drawable(done.found)) {
+    // vela's sentence (nothing asked yet, an older answer it can't redraw) goes in the pane the person asked for
+    views.plan = messageView(notDrawableNote(done.found))
+    await openPlanOnce($)
+    return
   }
+  if (plan && plan.view !== done.found.view) for (const key of [...folded]) if (key.startsWith(`${PLAN_PANE}:`)) folded.delete(key)  // a fold belongs to the view it was made in
+  plan = done.found
+  views.plan = viewOf({ ...done.found, session: { title: done.found.copy ? done.found.copy.title : '' } })
+  await openPlanOnce($)
+}
+
+async function openPlanOnce($) {
+  if (!planNeedsOpen) return
+  planNeedsOpen = false
+  const placed = await $.ui.open({ id: PLAN_PANE, title: views.plan.title })
+  shown.plan = placed.isPlaced
+  if (!placed.isPlaced) notePanelIsHidden($)
 }
 
 // A pane that could not be placed (a narrow terminal, the desktop app) must not leave the panel silently absent.
@@ -332,12 +396,8 @@ function touchesPlan(e) {
   return false
 }
 
-// The band as vela's colored spans; the plain sentence when vela sent none.
-function bandPieces(found, Text) {
-  const spans = Array.isArray(found.band_spans) ? found.band_spans : []
-  if (spans.length === 0) return [found.band]
-  return spans.map((span) => Text({ ...toneProps(span.tone), children: [span.t] }))
-}
+// The band as vela's colored spans.
+const bandPieces = (found, Text) => found.band_spans.map((span) => Text({ ...toneProps(span.tone), children: [span.t] }))
 
 export function register(on) {
   on('session.start', async ($, e, next) => {
@@ -391,14 +451,16 @@ export function register(on) {
     const view = e.requestId === SESSION_PANE ? views.session : views.plan
     const el = $.ui.resolve(e)
     if (!view) return el.Box({ children: [el.Text({ children: [problem || ' '] })] })
-    return drawBlocks(view, el, e.props.bodyColumns, e.surface, { pane: e.requestId, redraw: () => $.ui.invalidate('ui.render') })
+    return drawBlocks(view, el, e.props.bodyColumns, e.surface, {
+      pane: e.requestId, redraw: () => $.ui.invalidate('ui.render'), log: (text) => $.ui.log(text, { to: 'debug' }),
+    })
   })
 
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     if (e.props.hasSurvey) return next(e)  // a survey holds the band; a hook yields to it
     const { Text } = $.ui.resolve(e)
     if (problem) return Text({ children: [problem] })
-    if (session && session.band && !shown.session) return Text({ children: bandPieces(session, Text) })
+    if (session && !shown.session) return Text({ children: bandPieces(session, Text) })
     return next(e)
   })
 }

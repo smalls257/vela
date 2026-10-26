@@ -147,3 +147,23 @@ def test_when_every_name_fits_on_a_line_the_header_stays_two_rows():
 def test_a_single_word_longer_than_the_box_is_cut_and_a_third_line_is_never_drawn():
     assert chart.wrap("Notifications", 9) == ["Notifica…"]
     assert len(chart.wrap("one two three four five six seven", 9)) == 2
+
+
+def test_a_step_with_only_a_receiver_happens_on_its_own_lane():
+    steps = [message(1, "A", "B"), {"n": 2, "from": "", "to": "A", "text": "Back to A."}]
+    row = next(line for line in text(steps, 60) if "◆ 2." in line)
+    assert row.index("◆") == 11  # lane A's lifeline column (B's is 35)
+
+
+def test_a_message_between_two_folded_lanes_is_marked_not_drawn_as_a_one_lane_step():
+    steps = [message(n, a, b) for n, (a, b) in enumerate([("Hub", "A"), ("Hub", "B"), ("Hub", "C"), ("Hub", "D")], 1)]
+    steps += [message(5, "E", "F", "talk.")]
+    shown = "\n".join(text(steps, 48))
+    assert "⇄ 5." in shown and "◆ 5." not in shown
+
+
+def test_a_real_lane_named_others_does_not_share_a_box_with_the_fold_lane():
+    steps = [message(1, "Hub", "others"), message(2, "Hub", "A"), message(3, "Hub", "B"), message(4, "Hub", "C"),
+             message(5, "Hub", "D"), message(6, "Hub", "E")]
+    names, folded = chart.fit(steps, 48)
+    assert len(set(names)) == len(names) and chart.fold_name(steps) in names and folded

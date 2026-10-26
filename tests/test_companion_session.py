@@ -20,15 +20,9 @@ def session_json(root, *extra):
 
 def test_decided_lists_this_sessions_rows_into_decided_by_name(plan):
     got = session_json(plan)
-    assert [(d["id"], d["name"], d["from"], d["label"]) for d in got["decided"]] == [
-        ("FLO-001", "Hold, pay, confirm", "assumption", "decided today"),
-        ("RUN-booking", "Booking runtime", "assumption", "decided today")]
+    assert [(d["id"], d["name"], d["from"]) for d in got["decided"]] == [
+        ("FLO-001", "Hold, pay, confirm", "assumption"), ("RUN-booking", "Booking runtime", "assumption")]
     assert got["decided"][0]["page"] == "06-runtime/flows/FLO-001-hold-pay-confirm.md"
-
-
-def test_a_session_resumed_on_a_later_day_says_this_session(tmp_path):
-    got = session_json(grill_session(tmp_path, opened="2026-10-22"))
-    assert {d["label"] for d in got["decided"]} == {"decided this session"}
 
 
 def test_a_yes_waiting_names_what_holds_it(plan):

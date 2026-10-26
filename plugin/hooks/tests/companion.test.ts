@@ -1,10 +1,10 @@
 import { expect, mock, test } from 'claude-code/testing'
 
+const BAND = 'Grill: hold, pay, confirm · 2 decided · 1 open · next: Pricing runtime · /vela-companion to open'
 const SESSION = {
-  kind: 'session', capture: 14, notes: 'read', vault: '/plan',
-  band: 'Grill: hold, pay, confirm · 2 decided · 1 open · next: Pricing runtime · /vela-companion to open',
-  session: { title: 'Grill: hold, pay, confirm' }, files: { md: '.vela/companion/session.md' },
-  diagram: { svg: '', text: '1. Find a crossing' }, warnings: [],
+  version: 2, kind: 'session', capture: 14, notes: 'read', vault: '/plan', blocks: [],
+  band_spans: [{ t: BAND, tone: 'plain' }], out_of_date: 'This panel is out of date. Ask again.',
+  session: { title: 'Grill: hold, pay, confirm' }, diagram: null, warnings: [],
 }
 const line = (t: string, tone = 'plain') => [{ t, tone }]
 const DRAW = (w: number) => [[{ t: `drawn at ${w}`, tone: 'info' }]]
@@ -16,18 +16,18 @@ const BLOCKS = [
     { mark: '?', tone: 'new', name: 'Tidepay outcome wording', id: 'UNK-009', note: 'Booking senior', chip: { t: 'NEW', tone: 'new' }, sub: [{ t: 'held by ', tone: 'dim' }, { t: 'Tidepay outcome wording', tone: 'info', page: 'x/11-unknowns.md' }], page: null },
   ] },
   { type: 'bars', title: 'Waiting', rows: [{ label: 'Booking senior', value: 19, max: 19, tone: 'bad', text: '19' }, { label: 'Finance', value: 5, max: 19, tone: 'warn', text: '5' }] },
-  { type: 'diagram', title: 'Flow: Hold, pay, confirm', id: 'FLO-001', alt: 'a flow', drawings: { '48': DRAW(48), '60': DRAW(60), '72': DRAW(72), '96': DRAW(96) } },
+  { type: 'diagram', title: 'Flow: Hold, pay, confirm', id: 'FLO-001', alt: 'a flow', svg: true, folded: { '48': 'five apps are shown as one lane' }, drawings: { '48': DRAW(48), '60': DRAW(60), '72': DRAW(72), '96': DRAW(96) } },
   { type: 'lines', lines: [line('Pages changed FLO-001')] },
 ]
 const RICH = { ...SESSION, blocks: BLOCKS, band_spans: [{ t: 'Grill', tone: 'strong' }, { t: ' · 1 open', tone: 'warn' }] }
-const ran = (stdout: unknown, exitCode = 0) => ({ exitCode, stdout: JSON.stringify(stdout), stderr: '', isStdoutTruncated: false, isStderrTruncated: false })
+let processRuns = 0  // every answer a test gives to process.run goes through `ran`, so this counts the processes vela was asked to start
+const ran = (stdout: unknown, exitCode = 0) => (processRuns += 1, { exitCode, stdout: JSON.stringify(stdout), stderr: '', isStdoutTruncated: false, isStderrTruncated: false })
 const WRITE = { tool: 'Bash', command: 'sh /p/scripts/run-vela decide CON-007 --yes ^c12' } as never
 
 test('vela is started through the shell by its full path, never a bare name', async ($, on) => {
   const clock = mock.clock(on)
   const argvs: string[][] = []
   on('process.run', (_$, e) => { argvs.push([...(e as { argv: string[] }).argv]); return { value: ran(SESSION) } })
-  on('fs.read', () => ({ value: '# This session' }))
   on('tool.call', () => ({ result: 'ok' }))
   await $.tool.call(WRITE)
   await clock.advance(500)
@@ -63,7 +63,6 @@ test('a burst of writes costs one vela run', async ($, on) => {
   const clock = mock.clock(on)
   let runs = 0
   on('process.run', () => { runs += 1; return { value: ran(SESSION) } })
-  on('fs.read', () => ({ value: '# This session' }))
   on('ui.open', () => ({ value: { isPlaced: true } }))
   on('tool.call', () => ({ result: 'ok' }))
   for (const n of [1, 2, 3]) await $.tool.call({ tool: 'Bash', command: `sh /p/scripts/run-vela record add x${n}` } as never)
@@ -95,13 +94,12 @@ test("vela's own failure line is shown in the band, never hidden", async ($, on)
 test('the band is the text vela wrote when no pane is showing', async ($, on) => {
   const clock = mock.clock(on)
   on('process.run', () => ({ value: ran(SESSION) }))
-  on('fs.read', () => ({ value: '# This session' }))
   on('ui.open', () => ({ value: { isPlaced: false, reason: 'unasked below 144 columns' } }))
   on('tool.call', () => ({ result: 'ok' }))
   await $.tool.call(WRITE)
   await clock.advance(1000)
   const band = await $.ui.mount({ plugin: 'vela', surface: 'terminal', component: 'AbovePrompt', props: { hasSurvey: false, isWorking: false, maxRows: 10 } as never })
-  expect(await band.find({ type: 'Text', text: SESSION.band })).toBeDefined()
+  expect(await band.find({ type: 'Text', text: BAND })).toBeDefined()
 })
 
 type Found = { type: string, props: Record<string, unknown>, text: string }
@@ -177,16 +175,17 @@ test('its only buttons fold sections; a press hides the rows and sends nothing',
   expect(keys.every((k) => String(k).startsWith('fold:'))).toBe(true)
   expect(await leaf(pane, 'UNK-009')).toBeDefined()
   const runsBefore = sent.length
+  const processBefore = processRuns
   await pane.press({ key: 'fold:vela-session:decided' })
   expect(await leaf(pane, 'UNK-009')).toBeUndefined()
   expect(await leaf(pane, 'Decided this session')).toBeDefined()  // the header stays, to open it again
   expect(sent.length).toBe(runsBefore)
+  expect(processRuns).toBe(processBefore)  // a press starts no process either
 })
 
 test('the band draws vela\'s spans in their tones', async ($, on) => {
   const clock = mock.clock(on)
   on('process.run', () => ({ value: ran(RICH) }))
-  on('fs.read', () => ({ value: '' }))
   on('ui.open', () => ({ value: { isPlaced: false, reason: 'unasked below 144 columns' } }))
   on('ui.toast', () => ({ value: undefined }))
   on('tool.call', () => ({ result: 'ok' }))
@@ -197,7 +196,7 @@ test('the band draws vela\'s spans in their tones', async ($, on) => {
   expect((await leaf(band, 'Grill'))?.props.weight).toBe('bold')
 })
 
-const PLAN = { kind: 'explain', vault: '/plan', files: { md: '.vela/companion/explain.md' }, copy: { title: 'Harborline' }, diagram: null, warnings: [] }
+const PLAN = { version: 2, kind: 'explain', view: 'none', vault: '/plan', blocks: [], band_spans: [], copy: { title: 'Harborline' }, diagram: null, warnings: [] }
 const START = (cwd: string) => ({ cwd, surface: 'terminal' } as never)
 const DONE = { reason: 'answer', answer: 'done', turnId: 't1', durationMs: 1000 } as never
 function bare(on: (...a: never[]) => unknown, onToast: () => void = () => {}) {
@@ -214,7 +213,6 @@ test('the plan pane opens when the person asks and is not reopened by later turn
   bare(on)
   on('fs.exists', () => ({ value: true }))
   on('process.run', () => ({ value: ran(PLAN) }))
-  on('fs.read', () => ({ value: '# The plan' }))
   on('ui.open', (_h: never, input: never) => { if ((input as unknown as { id: string }).id === 'vela-plan') opens += 1; return { value: { isPlaced: true } } })
   await $.session.start(START('/plan'))
   await $.command.run({ command: 'vela-plan', args: '' } as never)
@@ -246,7 +244,6 @@ test('a folder with a plan above it refreshes after a turn', async ($, on) => {
   bare(on)
   on('fs.exists', (_h: never, input: never) => { const path = (input as unknown as { path: string }).path; looked.push(path); return { value: path === '/work/.vela.yaml' } })
   on('process.run', () => { runs += 1; return { value: ran(SESSION) } })
-  on('fs.read', () => ({ value: '# This session' }))
   on('ui.open', () => ({ value: { isPlaced: true } }))
   await $.session.start(START('/work/plan/sub'))
   await clock.advance(1000)
@@ -263,13 +260,12 @@ test('a survey keeps the band', async ($, on) => {
   bare(on)
   on('ui.render', (h: never, input: never) => { const { Box, Text } = (h as { ui: { resolve: (e: never) => { Box: (p: unknown) => unknown, Text: (p: unknown) => unknown } } }).ui.resolve(input); return Box({ children: [Text({ children: ['the engine band'] })] }) })
   on('process.run', () => ({ value: ran(SESSION) }))
-  on('fs.read', () => ({ value: '# This session' }))
   on('ui.open', () => ({ value: { isPlaced: false, reason: 'unasked below 144 columns' } }))
   on('tool.call', () => ({ result: 'ok' }))
   await $.tool.call(WRITE)
   await clock.advance(1000)
   const band = await $.ui.mount({ plugin: 'vela', surface: 'terminal', component: 'AbovePrompt', props: { hasSurvey: true, isWorking: false, maxRows: 10 } as never })
-  expect(await band.findAll({ type: 'Text', text: SESSION.band })).toHaveLength(0)
+  expect(await band.findAll({ type: 'Text', text: BAND })).toHaveLength(0)
 })
 
 test('a pane that cannot be placed says once that the panel is ready, never silently absent', async ($, on) => {
@@ -277,7 +273,6 @@ test('a pane that cannot be placed says once that the panel is ready, never sile
   let toasts = 0
   bare(on, () => { toasts += 1 })
   on('process.run', () => ({ value: ran(SESSION) }))
-  on('fs.read', () => ({ value: '# This session' }))
   on('ui.open', () => ({ value: { isPlaced: false, reason: 'this surface has no pane' } }))
   on('tool.call', () => ({ result: 'ok' }))
   await $.tool.call(WRITE)
@@ -285,4 +280,116 @@ test('a pane that cannot be placed says once that the panel is ready, never sile
   await $.tool.call(WRITE)
   await clock.advance(1000)
   expect(toasts).toBe(1)
+})
+
+// --- the explain pane, a stale file, links and wide names ---------------------------------------------------------------
+
+const STUCK = {
+  version: 2, kind: 'explain', view: 'stuck', vault: '/Users/x/My Plan #1', out_of_date: 'This panel is out of date. Ask again.',
+  copy: { title: 'Unified Booking' }, diagram: null, band_spans: [], warnings: [],
+  blocks: [
+    { type: 'card', title: "What's stuck?", right: '', tone: 'bad', lines: [line('2 things are stuck.', 'strong')] },
+    { type: 'section', key: 'group:Platform lead', title: 'Platform lead', count: '1', rows: [{ mark: '■', tone: 'bad', name: 'Finance on Booking events', id: '', note: '', chip: { t: '17 days', tone: 'bad' }, sub: [{ t: 'ask by the first of next month', tone: 'dim' }], page: null }] },
+    { type: 'section', key: 'group:Solution lead', title: 'Solution lead', count: '1', rows: [{ mark: '■', tone: 'warn', name: 'Review of the customer data', id: '', note: '', chip: { t: '0 days', tone: 'warn' }, sub: null, page: null }] },
+    { type: 'section', key: 'items', title: '', count: '', rows: [{ mark: '○', tone: 'dim', name: 'An untitled row', id: '', note: '', chip: null, sub: null, page: null }] },
+    { type: 'lines', lines: [[{ t: 'Also ask  ', tone: 'dim' }, { t: "what's left?", tone: 'info' }], [{ t: 'Full picture  ', tone: 'dim' }, { t: 'dashboard.html in this folder', tone: 'info', page: 'dashboard.html#asks' }]] },
+  ],
+}
+
+async function planPane($: never, on: never, found: unknown, code = 0, cols = 64) {
+  const d = $ as never as { command: { run: (a: never) => Promise<unknown> }, ui: { mount: (a: never) => Promise<never> } }
+  const hook = on as never as (n: string, f: (...a: never[]) => unknown) => void
+  hook('process.run', () => ({ value: ran(found, code) }))
+  hook('ui.open', () => ({ value: { isPlaced: true } }))
+  await d.command.run({ command: 'vela-plan', args: '' } as never)
+  return d.ui.mount({ plugin: 'vela', surface: 'terminal', component: 'Pane', requestId: 'vela-plan', props: PANE_PROPS(cols) } as never) as never as Promise<Mounted>
+}
+
+test('the plan pane draws the red card, untitled rows, a fold button per holder and the dashboard link', async ($, on) => {
+  bare(on)
+  const pane = await planPane($ as never, on as never, STUCK)
+  const card = (await pane.findAll({ type: 'Box' })).find((b) => b.props.borderStyle === 'round')
+  expect(card?.props.borderColor).toBe('red')
+  const keys = (await pane.findAll({ type: 'Button' })).map((b) => b.props.key)
+  expect(keys).toEqual(['fold:vela-plan:group:Platform lead', 'fold:vela-plan:group:Solution lead'])
+  expect(await leaf(pane, 'An untitled row' + '')).toBeUndefined()  // padded to the section's width, still drawn
+  expect(await pane.find({ type: 'Text', text: /An untitled row/ })).toBeDefined()
+  expect(await pane.find({ type: 'Text', text: "what's left?" })).toBeDefined()
+  const links = await pane.findAll({ type: 'Link' })
+  expect(links.map((l) => l.props.href)).toEqual(['file:///Users/x/My%20Plan%20%231/dashboard.html#asks'])
+})
+
+test('a path with a hash, a question mark, a space and a percent sign stays one path', async ($, on) => {
+  bare(on)
+  const odd = { ...STUCK, vault: '/Users/x/100% #1 ?/plan' }
+  const pane = await planPane($ as never, on as never, odd)
+  const links = await pane.findAll({ type: 'Link' })
+  expect(links[0].props.href).toBe('file:///Users/x/100%25%20%231%20%3F/plan/dashboard.html#asks')
+})
+
+test('a JSON of another version is never a blank pane: vela\'s sentence is shown', async ($, on) => {
+  const clock = mock.clock(on)
+  const logs: string[] = []
+  ;(on as never as (n: string, f: (...a: never[]) => unknown) => void)('ui.log', (_h: never, e: never) => { logs.push((e as unknown as { text: string }).text); return { value: undefined } })
+  on('process.run', () => ({ value: ran({ ...SESSION, version: 1, blocks: undefined }) }))
+  on('tool.call', () => ({ result: 'ok' }))
+  await $.tool.call(WRITE)
+  await clock.advance(1000)
+  const band = await $.ui.mount({ plugin: 'vela', surface: 'terminal', component: 'AbovePrompt', props: { hasSurvey: false, isWorking: false, maxRows: 10 } as never }) as never as Mounted
+  expect(await band.find({ type: 'Text', text: SESSION.out_of_date })).toBeDefined()
+  expect(logs.some((l) => l.includes('version 1'))).toBe(true)
+})
+
+test("a plan question vela can't answer shows vela's message in the plan pane", async ($, on) => {
+  bare(on)
+  const pane = await planPane($ as never, on as never, { message: 'The last answer was written by an older vela and can\'t be redrawn. Ask the question again.' }, 1)
+  expect(await pane.find({ type: 'Text', text: /older vela/ })).toBeDefined()
+})
+
+test('a block type the mod does not know is skipped and logged once', async ($, on) => {
+  const clock = mock.clock(on)
+  const logs: string[] = []
+  ;(on as never as (n: string, f: (...a: never[]) => unknown) => void)('ui.log', (_h: never, e: never) => { logs.push((e as unknown as { text: string }).text); return { value: undefined } })
+  const odd = { ...RICH, blocks: [{ type: 'hologram' }, ...BLOCKS] }
+  const { mount } = await paneAfterWrite($ as never, on as never, odd)
+  await clock.advance(1000)
+  const pane = await mount() as never as Mounted
+  await pane.press({ key: 'fold:vela-session:decided' })  // a redraw
+  await pane.press({ key: 'fold:vela-session:decided' })
+  expect(await leaf(pane, 'FLO-001')).toBeDefined()
+  expect(logs.filter((l) => l.includes('hologram'))).toHaveLength(1)
+})
+
+test('names in wide characters are padded by cells, and the link holds no blanks', async ($, on) => {
+  const clock = mock.clock(on)
+  const rows = [
+    { mark: '✔', tone: 'good', name: '漢字', id: '', note: '', chip: null, sub: null, page: 'a.md' },
+    { mark: '✔', tone: 'good', name: 'abcd', id: '', note: 'x', chip: null, sub: null, page: null },
+  ]
+  const wideRows = { ...RICH, blocks: [{ type: 'section', key: 'k', title: 'T', count: '2', rows }] }
+  const { mount } = await paneAfterWrite($ as never, on as never, wideRows)
+  await clock.advance(1000)
+  const pane = await mount() as never as Mounted
+  const link = await pane.find({ type: 'Link' })
+  expect(link?.props.label).toBe('漢字')                                   // two wide characters are four cells, as wide as abcd: no padding
+  expect(await pane.find({ type: 'Text', text: /abcd/ })).toBeDefined()
+})
+
+test('the folded-lane words show under the drawing that folded them', async ($, on) => {
+  const clock = mock.clock(on)
+  const { mount } = await paneAfterWrite($ as never, on as never, RICH, 'terminal', 50)
+  await clock.advance(1000)
+  const pane = await mount() as never as Mounted
+  expect(await pane.find({ type: 'Text', text: 'five apps are shown as one lane' })).toBeDefined()
+})
+
+test('the lit map has no drawing, so the terminal says it in words and the desktop draws the picture', async ($, on) => {
+  const clock = mock.clock(on)
+  const map = { type: 'diagram', title: 'Where the questions sit', id: '', alt: 'Apps with open questions: Booking (warning).', svg: true, drawings: {}, folded: {} }
+  const found = { ...RICH, blocks: [map], diagram: { kind: 'map', svg: '<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"></svg>' } }
+  const term = await paneAfterWrite($ as never, on as never, found)
+  await clock.advance(1000)
+  const pane = await term.mount() as never as Mounted
+  expect(await pane.find({ type: 'Text', text: 'Apps with open questions: Booking (warning).' })).toBeDefined()
+  expect(await pane.find({ type: 'Svg' })).toBeUndefined()
 })

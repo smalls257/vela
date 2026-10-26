@@ -17,6 +17,7 @@ def with_renders(data):
     show."""
     data["blocks"] = companionblocks.blocks_of(data)
     data["band_spans"] = companionblocks.band_spans(data)
+    data["out_of_date"] = companionblocks.OUT_OF_DATE
     if data.get("kind") == "session":
         data["band"] = band(data)
         diagram = data.get("diagram")
@@ -36,7 +37,7 @@ def line_text(line):
     for piece in line:
         if "bar" in piece:
             done, total = piece["bar"]
-            full = round(BAR_CELLS * done / total) if total else 0
+            full = int(BAR_CELLS * done / total + 0.5) if total else 0  # why: half up, as the mod's Math.round does; Python's round() goes to even
             out.append("█" * full + "░" * (BAR_CELLS - full))
         else:
             out.append(piece["t"])
@@ -68,6 +69,8 @@ def block_text(block):
         return [f"**{block['title']}**"] + [
             f"  {r['label'].ljust(room)}  " + line_text([{"bar": [r["value"], r["max"]]}]) + f"  {r['text']}" for r in block["rows"]]
     if kind == "diagram":
+        if not block["drawings"]:
+            return [f"**{block['title']}**", block["alt"]]  # a picture with no character drawing is said in words
         drawing = block["drawings"][MARKDOWN_DRAWING]
         return [f"**{block['title']}**", ""] + ["    " + line_text(line) for line in drawing]
     return [line_text(line) for line in block["lines"]]

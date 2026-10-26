@@ -64,7 +64,6 @@ def session_json(root):
 def test_decided_holds_the_bullets_a_capture_names_and_not_the_third(design):
     got = session_json(design)
     assert [d["name"] for d in got["decided"]] == ["Keep the hold in Booking", "Use the outbox for notifications"]
-    assert {d["label"] for d in got["decided"]} == {"decided today"}
 
 
 def test_open_holds_the_question_and_the_gap_by_their_words(design):

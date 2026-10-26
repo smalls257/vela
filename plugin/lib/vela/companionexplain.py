@@ -13,7 +13,7 @@ from dataclasses import dataclass
 
 from vela import companionsvg, say
 
-VERSION = 1
+VERSION = 2  # 2: the JSON carries `blocks`; a file without them is a version-1 file
 VIEWS = ("track", "stuck", "needs", "left", "who", "flow", "page", "none")  # closed: a view not here is refused
 NOT_RECORDED = {
     "track": "The plan doesn't track build progress; the team leads do.",
@@ -118,7 +118,8 @@ def view_track(digest, about, viewer, today):
     mine = [s for s in digest["slices"] if s["key"] in release["slices"]]
     if is_shipped(release, digest["slices"]):
         headline = [f"{release['name']} shipped: every slice tied to it is on.", status_sentence(mine)]
-        return headline, [{"id": release["name"], "name": release["name"], "target": release["target"], "days_out": out}], []
+        return headline, [{"id": release["name"], "name": release["name"], "target": release["target"], "days_out": out,
+                           "shipped": True}], []
     when = f"{out} days out" if out >= 0 else f"{-out} days ago"
     headline = [f"{release['name']} is due {date_words(release['target'], today)}, {when}."]
     headline.append(status_sentence(mine) if mine else "No slice is tied to it yet.")
@@ -235,13 +236,20 @@ READERS = {"track": view_track, "stuck": view_stuck, "needs": view_needs, "left"
            "flow": view_flow, "page": view_page, "none": view_none}
 
 
+def lit_map_words(digest):
+    """The lit map in words, for a pane that cannot draw a picture: which apps have questions and how urgent."""
+    lit = [f"{app['name']} ({digest['app_lights'][app['key']]})" for app in digest["apps"]
+           if digest["app_lights"].get(app["key"]) in ("warning", "caution", "unexamined")]
+    return "Apps with open questions: " + ", ".join(lit) + "."
+
+
 def diagram_of(digest, view, about, items):
     if view == "flow":
         flow = find(digest["flows"], about)
         return {"kind": "sequence", "of": flow["key"], "name": flow["name"], "steps": flow["steps"],
                 "svg": companionsvg.sequence(flow["steps"], flow["name"])}
     if view == "stuck" and any(level in ("warning", "caution", "unexamined") for level in digest["app_lights"].values()):  # a map with nothing lit says nothing
-        return {"kind": "map", "of": "", "name": "Where they sit", "steps": [],
+        return {"kind": "map", "of": "", "name": "Where the questions sit", "steps": [], "alt": lit_map_words(digest),
                 "svg": companionsvg.lit_map(digest["apps"], digest["app_lights"])}
     return None
 
@@ -255,10 +263,10 @@ def views_that_answer(digest, viewer):
 
 
 def explain(digest, view, about, viewer, since, today):
-    """The explain JSON (version 1). Raises Unknown for flow/page naming nothing, NeedsViewer for needs with no handle."""
+    """The explain JSON (version 2). Raises Unknown for flow/page naming nothing, NeedsViewer for needs with no handle."""
     headline, items, groups = READERS[view](digest, about, viewer, today)
     dashboard = "dashboard.html" + (ROUTES[view] if view != "flow" else "#flows&open=" + find(digest["flows"], about)["key"])
-    return {"version": VERSION, "kind": "explain", "view": view, "as_of": today,
+    return {"version": VERSION, "kind": "explain", "view": view, "about": about, "as_of": today,
             "copy": {"title": digest["title"], "made": digest["made"]},
             "viewer": {"handle": viewer.handle, "role": viewer.role}, "headline": headline, "since": since,
             "items": items, "groups": groups, "diagram": diagram_of(digest, view, about, items),

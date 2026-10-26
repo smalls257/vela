@@ -11,8 +11,6 @@ from html import escape as _escape
 
 from vela import companionblocks
 
-BAR_TRACK = "var(--deck-3)"
-
 # tone -> (text color, chip background, chip ink): every color is a variable of the dashboard's palette
 TONES = {
     "plain": ("--ink", "--deck-3", "--ink"),
@@ -45,12 +43,12 @@ def style():
     return STYLE + "\n" + "\n".join(rules)
 
 
-STYLE = """body{margin:0;background:var(--room);color:var(--ink);font:14px/1.45 system-ui,sans-serif}
-main{padding:14px 16px 18px;max-width:440px}a{color:var(--link)}
-.t-strong,.strong{font-weight:600}code,.id{font:12px var(--mono,ui-monospace,monospace)}
+STYLE = """body{margin:0;color-scheme:dark;background:var(--room);color:var(--ink);font:14px/1.45 system-ui,sans-serif}
+main{padding:14px 16px 18px;max-width:440px}
+.t-strong,.strong{font-weight:600}.id{font:12px var(--mono,ui-monospace,monospace)}
 .card{border:1px solid;border-radius:8px;padding:8px 12px;margin:0 0 12px;background:var(--room-2)}
 .card header{display:flex;justify-content:space-between;gap:12px;align-items:baseline;margin-bottom:4px}
-.card h1{font-size:15px;margin:0;font-weight:600}.right{color:var(--ink-3);font-size:12px;white-space:nowrap}
+.card .title{font-size:15px;margin:0;font-weight:600;letter-spacing:0;text-transform:none;color:var(--ink)}.right{color:var(--ink-3);font-size:12px;white-space:nowrap}
 .line{min-height:1.2em}.bar{display:inline-block;vertical-align:middle;width:140px;height:8px;border-radius:2px;background:var(--deck-3);overflow:hidden}
 .bar i{display:block;height:100%}
 .chip{display:inline-block;font-size:11px;font-weight:700;padding:0 7px;border-radius:9px;margin-left:6px;white-space:nowrap}
@@ -60,11 +58,11 @@ details{margin:0 0 12px}summary{cursor:pointer;font-weight:600;padding:2px 0;bor
 summary .count{color:var(--ink-3);font-weight:400;margin-left:4px}
 .row{display:flex;gap:8px;padding:3px 0 3px 4px}.mark{flex:0 0 1.2em;text-align:center}.what{min-width:0}
 .id{color:var(--unexamined-text);margin-left:6px}.note,.sub{color:var(--ink-3)}.note{margin-left:6px}.sub{display:block;font-size:12px}
-.dimmed{color:var(--ink-3)}.page{text-decoration:underline dotted;text-underline-offset:2px}
+.dimmed{color:var(--ink-3)}.page{text-decoration:underline dotted;text-underline-offset:2px}.page.plainpage{text-decoration:none}
 h2{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);margin:0 0 4px}
 .bars{margin:0 0 12px}.brow{display:grid;grid-template-columns:minmax(0,9em) 1fr auto;gap:8px;align-items:center;padding:2px 0}
 .brow .bar{width:100%}.label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-figure{margin:0 0 12px}svg{max-width:100%;height:auto}
+figure{margin:0 0 12px;overflow-x:auto}svg{max-width:none}  /* why: step words are 11 px at the SVG's own width; shrinking it to the panel makes them unreadable */
 .foot{color:var(--ink-3);font-size:12px;margin-top:14px}"""
 
 
@@ -72,10 +70,12 @@ def tone_of(tone):
     return tone if tone in TONES else "plain"
 
 
-def link(page, body):
+def page_name(page, body):
     """A page name, with its path on hover. Not a link: the panel is also published to Cowork, where a path into the
-    vault leads nowhere, and a link that goes nowhere is worse than none."""
-    return f"<span class=\"page\" title=\"{attr(page)}\">{body}</span>"
+    vault leads nowhere, and a link that goes nowhere is worse than none. The dotted underline says "hover me", so the
+    dashboard line, which is a file beside the panel and not a vault page, goes without it."""
+    plain = " plainpage" if page.startswith("dashboard.html") else ""
+    return f"<span class=\"page{plain}\" title=\"{attr(page)}\">{body}</span>"
 
 
 def span_html(piece):
@@ -84,7 +84,7 @@ def span_html(piece):
         share = round(100 * done / total) if total else 0
         return f"<span class=\"bar\"><i class=\"fill-good\" style=\"width:{share}%\"></i></span>"
     body = f"<span class=\"t-{tone_of(piece['tone'])}\">{escape(piece['t'])}</span>"
-    return link(piece["page"], body) if piece.get("page") else body
+    return page_name(piece["page"], body) if piece.get("page") else body
 
 
 def line_html(line):
@@ -93,7 +93,7 @@ def line_html(line):
 
 def card_html(block):
     right = f"<span class=\"right\">{escape(block['right'])}</span>" if block["right"] else ""
-    return (f"<section class=\"card box-{tone_of(block['tone'])}\"><header><h1>{escape(block['title'])}</h1>{right}</header>"
+    return (f"<section class=\"card box-{tone_of(block['tone'])}\"><header><h2 class=\"title\">{escape(block['title'])}</h2>{right}</header>"
             + "".join(line_html(line) for line in block["lines"]) + "</section>")
 
 
@@ -111,7 +111,7 @@ def chip_html(chip):
 def row_html(row):
     tone = tone_of(row["tone"])
     name = escape(row["name"])
-    name = link(row["page"], name) if row["page"] else name
+    name = page_name(row["page"], name) if row["page"] else name
     name = f"<span class=\"dimmed\">{name}</span>" if tone == "dim" else name
     bits = [name]
     if row["id"]:
@@ -151,7 +151,9 @@ def inline(svg):
 
 
 def diagram_html(block, svg):
-    return (f"<figure aria-label=\"{attr(block['alt'])}\"><h2>{escape(block['title'])}</h2>{inline(svg)}</figure>")
+    """The picture carries its own label (role=img, aria-label); a second one on the figure would be read twice, and the
+    block's `alt` is for the Svg element and the terminal."""
+    return f"<figure><h2>{escape(block['title'])}</h2>{inline(svg)}</figure>"
 
 
 def lines_html(block):
@@ -166,22 +168,12 @@ def block_html(block, data):
     return drawn[kind](block)
 
 
-def with_lit_map(blocks, data):
-    """The explain panel's lit map is a picture with no character drawing, so it has no block; it sits before the
-    closing lines."""
-    pieces = [block_html(block, data) for block in blocks]
-    diagram = data.get("diagram")
-    if diagram and not any(block["type"] == "diagram" for block in blocks):
-        pieces.insert(len(pieces) - 1, f"<figure>{inline(diagram['svg'])}</figure>")
-    return pieces
-
-
 def title_of(data):
     return companionblocks.explain_title(data) if data["kind"] == "explain" else data["session"]["title"]
 
 
 def page(data, palette):
-    blocks = data.get("blocks") or companionblocks.blocks_of(data)
+    blocks = data["blocks"]
     return (f"<!doctype html><html lang=\"en\"><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width\">"
             f"<title>{escape(title_of(data))}</title><style>{palette}\n{style()}</style><body><main>"
-            + "".join(with_lit_map(blocks, data)) + "</main></body></html>\n")
+            + "".join(block_html(block, data) for block in blocks) + "</main></body></html>\n")
