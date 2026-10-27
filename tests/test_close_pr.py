@@ -280,6 +280,16 @@ def test_a_pr_nobody_is_asked_to_review_says_so():
     assert "Nobody is asked to review it" in line.plain
 
 
+def test_a_pr_whose_pages_the_sender_owns_says_that_not_that_no_page_has_an_owner():
+    import types
+    from vela.commands import close_push
+    from vela.edge import ghcli
+    sent = ghcli.Sent(True, "gh pr create", url="https://github.invalid/pull/7", number=7)
+    line = close_push.pr_line(types.SimpleNamespace(answer=False, branch=BRANCH), sent, False, [], True)
+    assert "you own every page it changes" in line.plain
+    assert "no page names an owner" not in line.plain
+
+
 def test_a_challenge_without_a_goals_owner_adds_no_reviewer(tmp_path):
     from vela import cli
     vault, _ = sent_session(tmp_path, modes="challenge", title="Challenge: CON-002", handle="someone-else")

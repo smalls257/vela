@@ -212,7 +212,9 @@ def reviewer_handles(root, vault, before_texts, command, session):
     owners = prbody.owner_fields(vault, before, set(before_texts))
     if session.challenge:
         owners += prbody.solution_lead(vault)
-    return prbody.reviewers(owners, own_handle(root, command)), before
+    own = own_handle(root, command)
+    named = any(prbody.handles(owner) for owner in owners)
+    return prbody.reviewers(owners, own), before, named
 
 
 def read_marker(root, rel):
@@ -406,7 +408,7 @@ def body_facts(root, vault, session, args):
 def open_pr(root, vault, session, args):
     pushed_marker(root, session)
     before_texts = changes(root)
-    found, before = reviewer_handles(root, vault, before_texts, PR, session)
+    found, before, named = reviewer_handles(root, vault, before_texts, PR, session)
     text = prbody.body(body_facts(root, vault, session, args))
     with tempfile.TemporaryDirectory(prefix="vela-pr-") as folder:
         body_file = pathlib.Path(folder) / "body.md"
@@ -431,13 +433,13 @@ def open_pr(root, vault, session, args):
         return say.Result(PR, exit=say.REFUSED, wrote=wrote, data={**data, "body_file": BODY_FILE}, lines=[
             say.Line(f"vela close pr: {sent.command} failed: {sent.why}. The body is in {BODY_FILE}; nothing says a "
                      "pull request exists.", plain=sentence)])
-    lines = [pr_line(session, sent, data["added_to_open"], found)]
+    lines = [pr_line(session, sent, data["added_to_open"], found, named)]
     if session.answer:
         return say.Result(PR, data=data, lines=lines)
     return write_pr_number(root, vault, session, sent, before_texts, data, lines)
 
 
-def pr_line(session, sent, added, reviewers=()):
+def pr_line(session, sent, added, reviewers=(), owners_named=False):
     if session.answer:
         return say.Line(f"commented on {sent.url}", plain=f"I added the answer to the challenge's pull request: {sent.url}")
     if added:
@@ -445,8 +447,12 @@ def pr_line(session, sent, added, reviewers=()):
                         plain=f"This branch already has a review open, so I added today's session to it instead of "
                               f"opening another: {sent.url}")
     who = prbody.reviewer_words(reviewers)
-    asked = (f"{who[:1].upper()}{who[1:]} {'is' if len(reviewers) == 1 else 'are'} asked to review it."
-             if reviewers else "Nobody is asked to review it, because no page names an owner for it.")
+    if reviewers:
+        asked = f"{who[:1].upper()}{who[1:]} {'is' if len(reviewers) == 1 else 'are'} asked to review it."
+    elif owners_named:
+        asked = "Nobody is asked to review it, because you own every page it changes."
+    else:
+        asked = "Nobody is asked to review it, because no page names an owner for it."
     return say.Line(f"opened {sent.url}", plain=f"The pull request is open: {sent.url}. {asked}")
 
 

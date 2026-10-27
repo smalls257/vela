@@ -528,7 +528,7 @@ criteria. The opening may use `{opening}`, `{topics[...]}` and `{first_decision}
 | `stakeholder-conflict` | heron and trading-coach `empty`, holdout `after-dump` | `/vela:discover {topics[discover_1]}, and who wants what from it` | 12 | at least half the stakeholder positions surfaced in full: the disagreement named, who holds it named in that turn, and recorded as an unknown or risk; 0 decided without a yes |
 | `unsure-owner` | heron and trading-coach `empty`, holdout `after-dump` | `/vela:discover {topics[discover_1]}`, with news that the lead knows no owner or date | 12 | every time the lead is unsure of an owner or date the next turn proposes one and asks; no owner or date written that the lead's next message didn't say yes to or name |
 | `grill-decisions` | heron `after-full-1`, holdout `after-discover` | `/vela:grill {topics[grill]}` | 14 | at least 1 decision recorded after an explicit yes; 0 without; at most 3 questions in any turn |
-| `grill-ready` | heron `grill-ready` | `/vela:grill the prep note's requirements` | 14 | both ready requirements decided after an explicit yes, none without one, and none of the three blocked ones decided; at most 3 questions in any turn |
+| `grill-ready` | heron `grill-ready` | `/vela:grill the prep note's requirements` | 14 | at least 2 of the five ready requirements decided after an explicit yes, none without one (no item is blocked now); at most 3 questions in any turn |
 
 `discover-implications` also counts gaps (`gaps-surfaced`): the U items the assistant raised before the lead did,
 in any words. One judge call (run.py's `unaware` category, about $0.05) reads the gap items and the session and
@@ -539,8 +539,8 @@ in plain words as a miss; it stays as a check for a case that wants the exact te
 
 `grill-decisions` could not tell a careful grill from a timid one: no heron snapshot held an item the gate finds
 ready, so deciding nothing passed. `grill-ready` starts from `heron-desk/grill-ready`, which is `after-full-1` with
-a Shape's options written for three of the prep note's requirements. `vela check --gate decide --item` finds two of
-them ready and the third, and the other two, waiting on open questions only the DPO and Legal can answer;
+a Shape's options written for three of the prep note's requirements. `vela check --gate decide --item` finds all
+five ready, three of them with an open question under them (settling notes it as `Decided with open`), so none is blocked;
 `tests/test_probe.py` checks the case's lists against the gate. `decided-items` reads each named item's own
 `**State:**` after every turn, so items that share a page are told apart.
 
