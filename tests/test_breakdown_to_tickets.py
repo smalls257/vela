@@ -33,17 +33,18 @@ def test_every_story_and_task_row_of_the_breakdown_is_one_ticket_in_order(tmp_pa
     assert [r["Summary"] for r in rows if r["Issue Type"] == "Task"] == [
         "Sign and notarize the Mac build", "Windows MSI package", "Capture system audio",
         "Store transcripts encrypted", "Build the digest from a transcript"]
-    assert rows[0]["Summary"] == "S-01 Signed installer"
+    assert rows[0]["Summary"] == "Signed installer"
 
 
-def test_the_trace_and_the_criteria_are_in_the_description_as_the_breakdown_states_them(tmp_path):
+def test_the_summary_and_the_grouped_criteria_are_in_the_description_and_the_trace_is_in_the_labels(tmp_path):
     _, rows, _ = convert(tmp_path)
     story = rows[3]["Description"]
-    assert "Traces to: CAP-002.FR2@APP-desktop-agent, EPC-003.AC1; components: Audio Capture, Local Store" in story
-    assert "- Audio is transcribed on the laptop and never leaves it before the security review passes." in story
+    assert "This story captures a meeting's audio on the laptop" in story
+    assert "- Audio is transcribed on the laptop, and nothing leaves it before the security review passes. (covers AC1)" in story
+    assert "Traces to" not in story
+    assert "Written without the vault, so what this story relies on is named by ID only: CAP-002.FR2." in story
     task = rows[4]["Description"]
-    assert "Component: Audio Capture" in task and "Size: L" in task
-    assert "Traces to: CAP-002.FR2@APP-desktop-agent, EPC-003.AC1; components: Audio Capture, Local Store" in task
+    assert task == "Component: Audio Capture\nSize: L\nStory: Capture a meeting locally (S-02)"
 
 
 def test_sizes_become_points_on_tasks_only_and_the_mapping_is_in_the_readme(tmp_path):
@@ -61,8 +62,8 @@ def test_labels_are_the_vault_ids_of_the_trace_and_blocked_by_is_the_stories_tha
     assert header[:6] == ["Issue Id", "Summary", "Description", "Issue Type", "Parent", "Story Points"]
     assert header.count("Labels") == 2 and header[-1] == "Blocked by"
     by_id = {row[0]: row for row in raw[1:]}
-    assert by_id["S-02"][6:8] == ["CAP-002.FR2@APP-desktop-agent", "EPC-003.AC1"]
-    assert by_id["S-01-T1"][6:8] == ["CAP-001.FR1@APP-desktop-agent", ""]
+    assert by_id["S-02"][6:8] == ["CAP-002.FR2", "EPC-003"]
+    assert by_id["S-01-T1"][6:8] == ["CAP-001.FR1", ""]
     assert [by_id[s][-1] for s in ("S-01", "S-02", "S-03")] == ["", "S-01", "S-02"]
     assert "Q-7 (open question: who may a digest name), the CISO review (outside party)" in by_id["S-03"][2]
 
@@ -160,7 +161,7 @@ def test_criteria_open_notes_and_conflicts_land_in_the_description_under_labels_
     source = tmp_path / "heron-breakdown.md"
     source.write_text(HERON.read_text(encoding="utf-8"), encoding="utf-8")
     problems = b2t.convert(source, tmp_path / "work")
-    assert problems == []
+    assert problems and all("has no ticket copy yet" in p for p in problems)
     with (tmp_path / "work" / "tickets.csv").open(encoding="utf-8", newline="") as f:
         raw = list(csv.reader(f))
     header, by_id = raw[0], {row[0]: row for row in raw[1:]}
