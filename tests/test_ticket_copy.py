@@ -333,3 +333,46 @@ def test_the_readme_says_what_a_model_wrote_and_what_code_copied():
     assert "S-03: has no ticket copy yet" in "\n".join(problems)
     _, bare, _ = tickets.convert_text(plan_text(), "desktop-agent-breakdown.md")
     assert "written without the vault" in bare.lower()
+
+
+import json  # noqa: E402
+
+
+def copy_vault(tmp_path):
+    root = tmp_path / "v"
+    shutil.copytree(VAULT, root)
+    return root
+
+
+def test_write_jira_gives_each_ticket_as_it_would_be_created(tmp_path):
+    root = copy_vault(tmp_path)
+    code, said = run("tickets", "write", "--vault", str(root), "--format", "jira")
+    data = json.loads((root / "docs" / "work" / "tickets-jira.json").read_text(encoding="utf-8"))
+    s02 = next(s for s in data["stories"] if s["id"] == "S-02")
+    assert code == 1 and "tickets-jira.json" in said
+    assert [s["id"] for s in data["stories"]][:3] == ["S-01", "S-02", "S-05"]
+    assert s02["summary"] == "Switch on, with consent recorded" and s02["blocked_by"] == ["S-01"]
+    assert s02["labels"] == ["CAP-005.FR1", "CON-003", "CON-004", "EPC-032", "tracer"]
+    assert "**Consent check** (CON-003)" in s02["description"] and "<sub>" not in s02["description"]
+    assert "- Blocked by: Walking skeleton (S-01)" in s02["description"] and len(s02["tasks"]) == 4
+
+
+def test_keys_name_the_blocking_ticket_and_a_bad_keys_file_writes_nothing(tmp_path):
+    root = copy_vault(tmp_path)
+    keys = root / "docs" / "work"
+    keys.mkdir(parents=True)
+    (keys / "jira-keys.txt").write_text("S-01 HERON-11\n", encoding="utf-8")
+    run("tickets", "write", "--vault", str(root), "--format", "jira", "--keys", str(keys / "jira-keys.txt"))
+    data = json.loads((keys / "tickets-jira.json").read_text(encoding="utf-8"))
+    assert "- Blocked by: HERON-11 Walking skeleton (S-01)" in next(s for s in data["stories"] if s["id"] == "S-02")["description"]
+    (keys / "jira-keys.txt").write_text("HERON-11\n", encoding="utf-8")
+    (keys / "tickets-jira.json").unlink()
+    code, said = run("tickets", "write", "--vault", str(root), "--format", "jira", "--keys", str(keys / "jira-keys.txt"))
+    assert code == 2 and "keys file" in said and not (keys / "tickets-jira.json").exists()
+
+
+def test_check_without_the_design_flags_the_story_that_waits_on_a_design_question(tmp_path):
+    root = copy_vault(tmp_path)
+    (root / "docs" / "tech-design" / "desktop-agent.md").unlink()
+    code, said = run("tickets", "check", "--vault", str(root))
+    assert code == 1 and "Story S-02 waits on OQ-005, but the plan's design couldn't be read" in said

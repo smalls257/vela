@@ -3,14 +3,18 @@
 
 The work-breakdown skill writes docs/plan/<slug>-breakdown.md: a summary table, then one `### S-NN <name>` section per
 story (a "Traces to:" line, acceptance criteria as bullets, a `| Task | Size | Component |` table, a "Blocked by:"
-line), then Build order, Coverage and Not planned. This reads that file and writes docs/work/tickets.csv and a README
-beside it. Each story becomes a Story row and each task row a Task row, one for one, with the breakdown's own words.
+line), then Build order, Coverage and Not planned. A story may also carry a summary and its acceptance criteria grouped
+for the ticket, written into the plan by a session; this checks them against the plan's own criteria. This reads that
+file and writes docs/work/tickets.csv and a README beside it. Each story becomes a Story row and each task row a Task
+row, one for one. The model-written copy is checked, and everything else, including what a story relies on and what it
+still waits on, is copied by code from the plan, the vault and the design.
 
 It exists so the tickets come from the grilling (the requirements, the design, the breakdown) and not from a fresh
 conversation that would invent them. Anything it cannot map to a column is listed as a problem in the README and on
 stderr, never dropped; the CSV is still written with everything that did map.
 
     python3 tools/breakdown_to_tickets.py --repo ~/code/desk-agent
+    python3 tools/breakdown_to_tickets.py --repo ~/code/desk-agent --vault ~/code/desk-agent
     python3 tools/breakdown_to_tickets.py --breakdown docs/plan/x-breakdown.md --out /tmp/tickets
 
 Exit 0: every line mapped. 1: the CSV is written but the README lists problems. 2: nothing could be read or written.
@@ -22,8 +26,10 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "plugin" / "lib"))
 
-from vela.tickets import build_rows, parse  # noqa: E402,F401  (the one reader of the format; the explorer's Build plan level uses it too)
-from vela import tickets  # noqa: E402  (the conversion itself: `vela tickets` writes the same files from an installed plugin)
+from vela.breakdown import parse  # noqa: E402,F401  (the one reader of the format; the explorer's Build plan level uses it too)
+from vela import cli, tickets  # noqa: E402,F401  (the conversion itself: `vela tickets` writes the same files from an installed plugin)
+from vela.edge import teamdocs  # noqa: E402
+from vela.tickets import build_rows  # noqa: E402,F401
 
 
 class BreakdownError(Exception):
@@ -38,12 +44,14 @@ def find_breakdown(repo):
     return found[0]
 
 
-def convert(breakdown, out):
+def convert(breakdown, out, vault_root=None):
     """Write out/tickets.csv and out/README.md. Returns the problems found (empty when every line mapped)."""
     try:
         text = breakdown.read_text(encoding="utf-8")
         out.mkdir(parents=True, exist_ok=True)
-        csv_body, readme, problems = tickets.convert_text(text, breakdown.name)
+        vault = cli.load_vault(vault_root) if vault_root else None
+        questions = teamdocs.design_questions(vault_root, text) if vault_root else None
+        csv_body, readme, problems = tickets.convert_text(text, breakdown.name, vault, "", questions)
         with (out / "tickets.csv").open("w", encoding="utf-8", newline="") as handle:
             handle.write(csv_body)
         (out / "README.md").write_text(readme, encoding="utf-8")
@@ -57,11 +65,12 @@ def main(argv=None):
     parser.add_argument("--repo", type=pathlib.Path, default=pathlib.Path("."), help="the team repo; default the current folder")
     parser.add_argument("--breakdown", type=pathlib.Path, help="the breakdown file; default the one docs/plan/*-breakdown.md")
     parser.add_argument("--out", type=pathlib.Path, help="where to write; default <repo>/docs/work")
+    parser.add_argument("--vault", type=pathlib.Path, help="the vault to copy contracts, requirements and open questions from; without it, tickets name them by ID only")
     args = parser.parse_args(argv)
     try:
         breakdown = args.breakdown or find_breakdown(args.repo)
         out = args.out or args.repo / "docs" / "work"
-        problems = convert(breakdown, out)
+        problems = convert(breakdown, out, args.vault)
     except BreakdownError as exc:
         print(f"breakdown_to_tickets: {exc}", file=sys.stderr)
         return 2

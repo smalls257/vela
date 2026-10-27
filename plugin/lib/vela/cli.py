@@ -2955,12 +2955,17 @@ def find_plan(root):
 def cmd_tickets(args, out):
     """`vela tickets check|write`: hold a build plan against the vault, then write the ticket list a person chose.
     Nothing here creates anything in an outside system; it reads the vault and the plan and writes files under --out."""
+    from vela import breakdown as plan_reader
     root = pathlib.Path(args.vault).resolve()
     action = args.action
     try:
         plan_path = pathlib.Path(args.plan) if args.plan else find_plan(root)
         text = plan_path.read_text(encoding="utf-8")
-        findings = tickets.check(text, load_vault(root), args.app or "")
+        vault = load_vault(root)
+        questions = teamdocs.design_questions(root, text)
+        keys = (tickets.read_keys(pathlib.Path(args.keys).read_text(encoding="utf-8"), {s.id for s in plan_reader.read(text)["stories"]})
+                if args.keys else {})
+        findings = tickets.check(text, vault, args.app or "", questions)
     except (OSError, UnicodeDecodeError, tickets.TicketsError) as exc:
         raise ToolError(f"tickets: {exc}") from exc
     for finding in findings:
@@ -2973,10 +2978,13 @@ def cmd_tickets(args, out):
     try:
         target.mkdir(parents=True, exist_ok=True)
         if args.format == "markdown":
-            atomic.write_atomic(target / "tickets.md", tickets.markdown_text(text, plan_path.name, load_vault(root)))
+            atomic.write_atomic(target / "tickets.md", tickets.markdown_text(text, plan_path.name, vault, questions, keys))
             written = [target / "tickets.md"]
+        elif args.format == "jira":
+            atomic.write_atomic(target / "tickets-jira.json", tickets.jira_text(text, plan_path.name, vault, questions, keys))
+            written = [target / "tickets-jira.json"]
         else:
-            csv_body, readme, _ = tickets.convert_text(text, plan_path.name, tool="vela tickets")
+            csv_body, readme, _ = tickets.convert_text(text, plan_path.name, vault, args.app or "", questions, tool="vela tickets", keys=keys)
             atomic.write_atomic(target / "tickets.csv", csv_body)
             atomic.write_atomic(target / "README.md", readme)
             written = [target / "tickets.csv", target / "README.md"]
@@ -3211,7 +3219,9 @@ def build_parser():
     tick.add_argument("plan", nargs="?", help="the build plan (default: the one docs/plan/*-breakdown.md in the vault)")
     tick.add_argument("--vault", default=".", help="vault root (default: current directory)")
     tick.add_argument("--app", help="the app the plan is for, like APP-booking (default: the app named at the top of the plan)")
-    tick.add_argument("--format", choices=("markdown", "csv"), default="markdown", help="with write: the file to write (default: markdown)")
+    tick.add_argument("--format", choices=("markdown", "csv", "jira"), default="markdown",
+                      help="with write: the file to write: tickets.md, tickets.csv with its README, or tickets-jira.json for Jira tools (default: markdown)")
+    tick.add_argument("--keys", help="with write: a file of 'S-01 HERON-11' lines, the tickets already created, so 'Blocked by' names them")
     tick.add_argument("--out", help="with write: the folder to write into (default: <vault>/docs/work)")
     tick.set_defaults(func=cmd_tickets)
     voice = sub.add_parser("voicecheck", help="fail when a rewrite changed an ID, number, date, link, code span or table cell")
