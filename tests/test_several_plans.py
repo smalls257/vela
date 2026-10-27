@@ -533,8 +533,6 @@ def test_planscope_names_follow_the_plans_folder():
     assert planscope.session_branch("", "2026-10-21-x") == "session/2026-10-21-x"
     assert planscope.titled("heron", "2026-10-21 Grill: x") == "[heron] 2026-10-21 Grill: x"
     assert planscope.titled("", "2026-10-21 Grill: x") == "2026-10-21 Grill: x"
-    assert planscope.dashboard_branch("heron", TODAY) == f"dashboard/heron/{TODAY}"
-    assert planscope.dashboard_branch("", TODAY) == f"dashboard/{TODAY}"
 
 
 def test_a_plan_owns_its_own_session_branches_and_the_old_unscoped_ones():

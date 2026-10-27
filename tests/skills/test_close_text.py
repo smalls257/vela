@@ -540,7 +540,7 @@ def test_close_knows_an_epic_owes_its_summary():
 def test_close_ends_with_the_dashboard_line_close_finish_gives():
     last = CLOSE_SKILL.split("\n## ")[-1]
     assert last.startswith("6. No session open")
-    assert "vela close dashboard --for-lead" in last and "vela close dashboard --put-back --for-lead" in last
+    assert "vela close dashboard --for-lead" in last and "--put-back" not in last and "branch" not in last
     assert "the dashboard line `close finish` gave" in csec(5)
     # rule deletion: `close finish` and `close dashboard` print the failed-build line (closefinish.DASHBOARD_FAILED)
     assert "A failed build never undoes the close" not in last and "never called up to date unless it built" not in last
@@ -680,11 +680,11 @@ def test_close_no_longer_rebuilds_every_paragraph_at_the_end():
 
 def test_a_session_on_main_moves_to_its_own_branch_before_finish():
     """`vela close push` moves a session on main to its own branch itself, so the skill asks nothing and runs no
-    `session branch`; it only says the gate may then want sync-main."""
+    `session branch`; it also brings main in once."""
     text = (REPO / "plugin" / "skills" / "close" / "SKILL.md").read_text(encoding="utf-8")
     send = text[text.index("Then send, in this order"):text.index("## 5. The pull request")]
-    assert "On main it moves the work to its own branch first" in send and "vela session branch" not in send
-    assert "asks for `vela close sync-main`, run it" in send
+    assert "On main it moves the work to its own branch and brings main in first" in send and "vela session branch" not in send
+    assert "sends nothing" in send
 
 
 # --- The trim of October 23 (review finding 4): close is the one skill that sends, and it can start cold with START

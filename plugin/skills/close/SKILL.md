@@ -48,7 +48,7 @@ Run `vela close gate --for-lead` and say which slices still run end to end and w
 Then send, in this order:
 
 1. Run `vela close finish --summary "<one line>" --for-lead`. The notes stay on this machine. The summary opens the pull request and nobody reads it back, so it quotes no one: say what was filed, never what anyone said. Say what it lists as not settled at handoff.
-2. Run `vela close push --for-lead`. If it fails, say so in one sentence and stop. On main it moves the work to its own branch first; if the gate then asks for `vela close sync-main`, run it and push again.
+2. Run `vela close push --for-lead`. If it fails, say so in one sentence and stop. On main it moves the work to its own branch and brings main in first. If a file that must stay private is in the saved work, it sends nothing: say which kind, in words, and follow its fix.
 3. Section 5's `vela close pr`.
 
 There is no notice to wait on and no yes to capture: the lead's word to close sends it.
@@ -61,4 +61,4 @@ End with three to six plain sentences: what was filed, by group; what was settle
 
 ## 6. No session open
 
-Run `vela close dashboard --for-lead`; it puts the page on its own branch, never main. If the lead doesn't want that branch, run `vela close dashboard --put-back --for-lead`.
+Run `vela close dashboard --for-lead`.

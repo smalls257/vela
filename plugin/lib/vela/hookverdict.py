@@ -324,6 +324,18 @@ STAGE_REASON = ("That stages a file that must never be committed (the inbox, pri
 
 
 FORCE_LETTER = "f"
+NO_VERIFY_REASON = ("That commit skips the plan's pre-commit check, which is what keeps the inbox, private notes and "
+                    "vela's working files out of a pull request, so I stopped it. Commit without `--no-verify` (or "
+                    "`-n`); if the check refuses a file, take that file out.")
+
+
+def skips_the_hook(sub, args):
+    """True for `git commit --no-verify` or `-n`: the only way past the pre-commit check, which the push re-checks
+    but a commit should not need to dodge."""
+    if sub != "commit":
+        return False
+    flags = [w for w in args if w.startswith("-") and w != "--"]
+    return "--no-verify" in flags or any("n" in w[1:] for w in flags if not w.startswith("--"))
 
 
 def forces_a_stage(sub, args):
@@ -366,6 +378,8 @@ def bash_verdict(command, cwd="", plan_roots=None, staged=()):
         if posixpath.basename(words[0]) != "git":
             continue
         sub, args = git_subcommand(words)
+        if skips_the_hook(sub, args):
+            return Verdict(DENY, NO_VERIFY_REASON)
         if sub == "commit" and not writes_index(sub, args):
             denied = denied or staged is None or any(private_path(p, cwd, plan_roots) for p in staged)
         elif writes_index(sub, args):

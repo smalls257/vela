@@ -55,6 +55,18 @@ def test_a_private_path_or_a_forced_stage_is_denied(command):
     assert found is not None and found.decision == DENY
 
 
+@pytest.mark.parametrize("command", ["git commit --no-verify -m x", "git commit -n -m x", "git commit -nm x",
+                                     "git commit -am x --no-verify", "cd . && git commit -n -m x"])
+def test_a_commit_that_skips_the_pre_commit_check_is_denied_and_says_why(command):
+    found = bash_verdict(command)
+    assert found is not None and found.decision == DENY and "pre-commit" in found.reason
+
+
+def test_a_commit_that_merely_says_n_in_its_message_is_left_alone():
+    assert bash_verdict("git commit -m 'fix n+1 query'") is None
+    assert bash_verdict("git commit -m x") is None
+
+
 def test_a_deny_names_the_private_path_and_the_way_out():
     found = bash_verdict("git add .inbox/call.md")
     assert found.forbidden == [".inbox/call.md"] and "vela close stage" in found.reason

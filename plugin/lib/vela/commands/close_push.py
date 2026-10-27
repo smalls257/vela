@@ -13,10 +13,13 @@ nothing stopped it" is ruled out: the CLI checks first).
    promising a send the next step breaks would be worse than saying so.
 2. A session sitting on the default branch is moved onto its own `session/...` branch first
    (`move_off_default_branch`, the same move `vela session branch` makes): a pull request can't be opened from the
-   branch it goes into, and the default branch is never pushed. Said as one line; nothing is asked.
+   branch it goes into, and the default branch is never pushed. Said as one line; nothing is asked. The new
+   branch was never compared with main, so `close_sync.sync_main` runs once (the step `close sync-main` runs); only a
+   real conflict stops the send.
 3. The gate (`close_gate.observe` then `closegate.ready`, the same pair `close finish` composes): a session that isn't
    ready isn't sent.
-4. Everything the session changed must be committed: a push sends commits.
+4. Everything the session changed must be committed: a push sends commits. No commit it sends may carry a file
+   `guard.never_rule` forbids (`private_in_history`), whatever hook was skipped to commit it.
 5. The push, to the branch the session sits on: with `-u`, or, for an answer session, its challenge's
    branch as it is (the answer lands in the challenge's PR; `gh pr comment`). It leaves `.vela/close/<id>.push.json` (the branch and the head) for
    `close pr`.
@@ -36,11 +39,13 @@ failed (git, the disk, or the handoff number's push); 3 the lead's handle is unk
 import json
 import pathlib
 import re
+import shlex
 import tempfile
 from dataclasses import replace
 
 from vela import closegate, commands, parse, planscope, prbody, privaterecord, say, sessions
 from vela.commands import close_gate, whoami
+from vela.commands import guard as guardcmd
 from vela.decisions import settled
 from vela.edge import flowstore, ghcli, hostprobe, sessiongit, vaultgit
 
@@ -153,8 +158,20 @@ def move_off_default_branch(root, session, lines):
         return session
     from vela.commands import session as sessioncmd
     moved = sessioncmd.move_to_own_branch(root)
-    lines += moved.lines
+    lines += moved.lines[:1]  # the lead hears one line that the work moved, then the send
     return find_session(root, PUSH)
+
+
+def brought_up_to_date(root, args):
+    """After a move the new branch has never been compared with main, so the gate would refuse it for want of a
+    sync-main record. Run the same step `vela close sync-main` runs, once. None when it went through (the send goes
+    on); otherwise its own result, which stops the push the way sync-main stops a close (a real conflict, or a fetch
+    that failed), with nothing sent."""
+    from vela import cli
+    from vela.commands import close_sync
+    today, _ = cli.parse_today(args.today)
+    synced = close_sync.sync_main(root, today)
+    return None if synced.exit == say.DONE else replace(synced, command=PUSH)
 
 
 def can_send(root, command):
@@ -214,9 +231,11 @@ def cmd_push(args, out):
     vault, said = None, []
     try:
         can_send(root, PUSH)
-        session = move_off_default_branch(root, find_session(root, PUSH), said)
+        found = find_session(root, PUSH)
+        session = move_off_default_branch(root, found, said)
         vault = cli.load_vault(root)
-        result = unready(root, vault, session, args) or send(root, vault, session, args)
+        result = (session.branch != found.branch and brought_up_to_date(root, args)) \
+            or unready(root, vault, session, args) or send(root, vault, session, args)
     except Stop as stop:
         result = stop.result
     except sessioncmd.Stop as stop:
@@ -258,6 +277,33 @@ def trouble(why):
     return "git didn't take it"
 
 
+KIND_WORDS = {"inbox": "meeting notes from the inbox", "voice-local": "private voice examples",
+              "voice-corpus": "the writing the voice learns from", "tool-state": "vela's own working files",
+              "session-private": "your private session notes"}
+
+
+def private_in_history(root):
+    """The refusal when a commit this push would send carries a file that must never leave the machine, else None. The
+    hooks can't promise this (a commit typed with `--no-verify`, or `git add -A && git commit` after the hook read the
+    index), so the push checks the branch itself, with the rules `guard staged` uses (**Silent Fallback** ruled out:
+    "no hook ran" must not read as "nothing private is in it")."""
+    since = close_gate.branch_point(root)
+    found = guardcmd.forbidden_since(root, since)
+    if not found:
+        return None
+    kinds = list(dict.fromkeys(KIND_WORDS[rule.key] for _, rule in found))
+    paths = list(dict.fromkeys(path for path, _ in found))
+    said = ", ".join(kinds[:-1]) + (" and " if len(kinds) > 1 else "") + kinds[-1]
+    plain = (f"I haven't sent anything: today's saved work includes {said}, which must stay on your machine. I need to "
+             "take them out of the saved work first, and I'll tell you when that's done.")
+    fix = (f"Rewrite the branch so no commit holds {' '.join(shlex.quote(p) for p in paths)}: git reset --soft "
+           f"{since}, git rm -r --cached --quiet -- those paths, then vela close stage --close, and run close push "
+           "again. Never push first.")
+    return say.Result(PUSH, exit=say.REFUSED, lines=[say.Line(
+        f"vela close push: a commit since {since[:7]} carries {', '.join(paths)}, which guard.never_rule forbids; "
+        f"nothing was pushed. {fix}", plain=plain)])
+
+
 def send(root, vault, session, args):
     left = uncommitted(root)
     if left:
@@ -266,6 +312,9 @@ def send(root, vault, session, args):
         raise refused(PUSH, f"vela close push: {what.lower()}: {', '.join(left)}. Commit them (vela close stage --close, "
                             "or vela close finish) and run this again.",
                       "A few of today's changes aren't saved yet, so they wouldn't go. I'll save them, then send.")
+    kept_back = private_in_history(root)
+    if kept_back is not None:
+        return kept_back
     sent = ghcli.push(root, session.branch, track=not session.answer)
     if not sent.ok:
         return say.Result(PUSH, exit=say.FAILED, data={"branch": session.branch, "retry": sent.command}, lines=[

@@ -1,4 +1,4 @@
-"""`vela close finish --summary "..." [--replace]` and `vela close dashboard [--put-back]` (overhaul Task 11): file the
+"""`vela close finish --summary "..." [--replace]` and `vela close dashboard` (overhaul Task 11): file the
 session in the one order close's "Check, then finish and send" and "No session open" name, and rebuild the dashboard with no session open.
 
 The Violation this module's shape prevents is a God Method rebuilt inside the CLI: finishing a close touches the gate,
@@ -15,12 +15,10 @@ isn't ready (run `vela close gate`), or no session is open; 2 the tool failed (g
 already filed is said); 3 needs the lead, nothing written: several sessions are open, or a handoff record exists and
 replacing it needs `--replace` and the app's team's own yes in the record.
 
-`close dashboard` is the no-session path of close's "No session open": it rebuilds `dashboard.html` and never commits to
-main. With no session open in an owner's copy and the page changed, it asks nothing: it creates `dashboard/<date>` from
-here and commits only `dashboard.html` on it as `Rebuild dashboard`. Pushing it is `close push`'s job. `--put-back` is
-the lead turning that branch down: HEAD's page goes back, so main is left as it was; a page left changed there stopped
-the next `session start` six times in one run. With a session open it rebuilds and leaves the page for the close. A
-reader copy runs no git in either command.
+`close dashboard` rebuilds `dashboard.html` in place from the working tree, uncommitted edits included. It never
+switches branch, makes a branch or commits. With a session open `close finish` commits the page with the close; with
+none it stays changed in the working tree and goes in with the next session (`session start` carries it along, as it
+does any file vela builds itself). A reader copy runs no git in either command.
 """
 import io
 import json
@@ -31,8 +29,6 @@ from vela.edge import atomic, mergegit, sessiongit, stagegit, vaultgit
 
 # The explore report lines the lead hears after the dashboard line (close's "No session open"): what the build went on without.
 RELAYED_KINDS = ("warning", "no design", "gitignore")
-# `close dashboard --put-back`: the lead turned the dashboard's own branch down.
-PUT_BACK = "put-back"
 
 
 def register_close(steps):
@@ -47,9 +43,6 @@ def register_close(steps):
     finish.set_defaults(func=run_finish)
     board = steps.add_parser("dashboard", help="rebuild the dashboard with no session open; commits it on its own dashboard/<date> branch, never main")
     board.add_argument("--vault", default=".", help="vault root (default: current directory)")
-    board.add_argument("--put-back", action="store_const", dest="answer", const=PUT_BACK,
-                       help="put the committed dashboard back, so nothing is left changed for the next session to "
-                            "stop on")
     board.add_argument("--today", help="the date the dashboard counts from, YYYY-MM-DD (default: system date)")
     say.add_output_flags(board)
     board.set_defaults(func=run_dashboard)
@@ -354,13 +347,7 @@ def run_dashboard(args, out):
         resolver = say.Resolver()
     reader = mergegit.is_reader_copy(root)
     found, _ = sessions.find_open(sessiongit.folder_records(root))
-    if args.answer and (reader or found):
-        why = "a read copy has no git" if reader else "a session is open, and vela close finish commits the " \
-                                                      "dashboard on its branch"
-        raise cli.ToolError(f"close dashboard --{args.answer}: {why}.")
     result = say.Result("close dashboard")
-    if args.answer == PUT_BACK:
-        return emit(put_back(root, result), args, out, resolver)
     built, why, plain, relayed = build_dashboard(root, today, resolver)
     result.data["dashboard"] = {"built": built, "message": why or None}
     if not built:
@@ -368,73 +355,21 @@ def run_dashboard(args, out):
         result.lines.append(say.Line(f"vela close dashboard: the dashboard couldn't be rebuilt: {why}.",
                                      f"The dashboard couldn't be updated: {plain}."))
         return emit(result, args, out, resolver)
-    try:
-        lead_choice(root, today, reader, found, result)
-    except vaultgit.GitUnavailable as exc:
-        raise cli.ToolError(f"close dashboard: git failed: {exc}") from exc
+    lead_choice(reader, found, result)
     result.lines += relayed
     return emit(result, args, out, resolver)
 
 
-def put_back(root, result):
-    """The lead turned the branch down: HEAD's dashboard.html back, so main is left exactly as it was. Left changed,
-    it stopped the next `session start` (which asked the lead to save a page no command would commit). Nothing is
-    rebuilt: the page is rebuilt at the next session's close."""
-    try:
-        if not dashboard_changed(root):
-            result.lines.append(say.Line("vela close dashboard: dashboard.html had no changes; nothing to put back.",
-                                         "The dashboard is as it was."))
-            return result
-        code, err = restore_committed(root, closefinish.DASHBOARD)
-    except vaultgit.GitUnavailable as exc:
-        code, err = 1, str(exc)
-    if code != 0:
-        result.exit = say.FAILED
-        result.lines.append(say.Line(f"vela close dashboard: couldn't put dashboard.html back: {err}",
-                                     "I couldn't put the dashboard back as it was. The details are in my notes."))
-        return result
-    result.wrote.append(closefinish.DASHBOARD)
-    result.lines.append(say.Line("vela close dashboard: put back the committed dashboard.html; it is rebuilt at the "
-                                 "next session's close.", closefinish.DASHBOARD_PUT_BACK))
-    return result
-
-
-def restore_committed(root, path):
-    """(exit code, git's words): HEAD's copy of `path` back in the index and on disk; a page HEAD doesn't have is
-    removed, since vela wrote all of it."""
-    code, _, _ = vaultgit.run_git(root, "cat-file", "-e", vaultgit.at("HEAD", path))
-    if code != 0:
-        vaultgit.run_git(root, "rm", "-q", "--cached", "--ignore-unmatch", "--", path)
-        (root / path).unlink(missing_ok=True)
-        return 0, ""
-    code, out, err = vaultgit.run_git(root, "restore", "--source=HEAD", "--staged", "--worktree", "--", path)
-    return code, err or out
-
-
-def lead_choice(root, today, reader, found, result):
-    """What the rebuilt page means here: a read copy keeps it; an open session takes it at its close; with no session
-    it goes on its own dashboard branch, never on main, with no question."""
+def lead_choice(reader, found, result):
+    """What the rebuilt page means here, in one line: this command never commits it. A read copy keeps it on its
+    machine; an open session takes it at its close; with none it waits in the working tree for the next one."""
     line = result.lines.append
     if reader:
         line(say.Line("vela close dashboard: rebuilt dashboard.html; a read copy commits nothing.",
                       "I've updated the dashboard on your machine only; your copy doesn't commit anything."))
-        return
-    if found:
+    elif found:
         line(say.Line("vela close dashboard: rebuilt dashboard.html; vela close finish commits it on the session's "
                       "branch.", "I've updated the dashboard. It goes in when you finish this session."))
-        return
-    if not dashboard_changed(root):
-        line(say.Line("vela close dashboard: dashboard.html was already up to date; nothing to commit.",
-                      closefinish.DASHBOARD_DONE))
-        return
-    name = planscope.dashboard_branch(vaultgit.plan_scope(root), today)
-    code, _, err = vaultgit.run_git(root, "switch", "-c", name)
-    if code != 0:
-        raise vaultgit.GitUnavailable(f"could not create {name}: {err.decode('utf-8', 'replace').strip()}"
-                                      if isinstance(err, bytes) else f"could not create {name}: {str(err).strip()}")
-    sha = commit_alone(root, closefinish.DASHBOARD, closefinish.DASHBOARD_MESSAGE)
-    result.wrote.append(closefinish.DASHBOARD)
-    result.data["commit"] = f"committed {sha}: {closefinish.DASHBOARD_MESSAGE}"
-    line(say.Line(f"vela close dashboard: on {name}, committed {sha}: {closefinish.DASHBOARD_MESSAGE}",
-                  "I've saved the dashboard separately so it doesn't touch the plan; it'll go in with your next "
-                  "review."))  # voice audit row 164: no branch name
+    else:
+        line(say.Line("vela close dashboard: rebuilt dashboard.html in the working tree; it goes in with the next "
+                      "session.", closefinish.NO_SESSION_DASHBOARD))

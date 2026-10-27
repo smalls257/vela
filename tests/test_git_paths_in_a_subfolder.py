@@ -7,7 +7,7 @@ import subprocess
 
 import pytest
 
-from vela.commands import close_finish, team
+from vela.commands import team
 from vela.edge import settlegit, vaultgit, voicegit
 
 PAGE = "sessions/S-001.md"
@@ -45,15 +45,6 @@ def test_settle_reads_heads_copy_of_a_page(vault):
 def test_team_reads_heads_copy_of_a_page(vault):
     assert team.head_text(vault, PAGE) == "committed"
     assert team.head_text(vault, "sessions/new.md") == ""
-
-
-def test_close_puts_back_a_committed_page_and_removes_a_new_one(vault):
-    (vault / PAGE).write_text("changed\n", encoding="utf-8")
-    (vault / "sessions" / "new.md").write_text("vela wrote this\n", encoding="utf-8")
-    assert close_finish.restore_committed(vault, PAGE)[0] == 0
-    assert (vault / PAGE).read_text(encoding="utf-8") == "committed\n"
-    assert close_finish.restore_committed(vault, "sessions/new.md")[0] == 0
-    assert not (vault / "sessions" / "new.md").exists()
 
 
 def test_voice_reads_a_page_at_a_commit(vault):

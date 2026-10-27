@@ -41,7 +41,7 @@ RECORD, CLOSE_COMMIT, MANIFEST, DASHBOARD_BUILD, DASHBOARD_COMMIT = (
 # What the lead hears. The dashboard lines are the one copy of the sentence three skills used to carry.
 DASHBOARD_DONE = "The dashboard is up to date; /vela:explore opens it."  # voice audit row 162: no file name
 DASHBOARD_FAILED = "The dashboard couldn't be updated: {message}. Everything else is filed."
-DASHBOARD_PUT_BACK = "I've left the dashboard as it was. It'll be brought up to date when you next finish a session."
+NO_SESSION_DASHBOARD = "I've updated the dashboard; it goes in with your next session."
 NOT_SETTLED_HEAD ="Not settled at handoff for {app}, so its team should hear this before they accept it:"
 READER_NOTHING_COMMITTED = ("This is your copy, so I've closed your session record here and committed nothing. "
                             "It reaches the owner through a proposal.")

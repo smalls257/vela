@@ -117,13 +117,46 @@ def test_push_on_main_moves_the_work_to_its_own_branch_and_never_pushes_main(tmp
     state = json.loads((vault / ".vela" / "session.json").read_text(encoding="utf-8"))
     state["branch"] = "main"
     (vault / ".vela" / "session.json").write_text(json.dumps(state), encoding="utf-8")
+    for record in (vault / ".vela" / "close").glob("*.json"):
+        if record.name != f"{RECORD}.push.json":
+            record.unlink()  # no sync-main record for any branch: the move must bring main in itself
+    assert not list((vault / ".vela" / "close").glob("*sync*")) and not (vault / ".vela" / "close" / f"{BRANCH.replace('/', '__')}.json").exists()
     main_on_origin = git(bare, "rev-parse", "main")
     code, out = push(vault, "--for-lead")
     assert code == 0, out
-    assert "own branch" in out and remote_has(bare, BRANCH)
+    assert out.count("own branch") == 1 and "Main is back" not in out and remote_has(bare, BRANCH)
     assert git(vault, "branch", "--show-current") == BRANCH
     assert git(bare, "rev-parse", "main") == main_on_origin, "main was never pushed"
     assert git(vault, "rev-parse", "main") != git(vault, "rev-parse", BRANCH), "main no longer holds the session"
+
+
+def test_a_private_file_committed_with_add_all_stops_the_push(tmp_path):
+    """The Bash hook reads the index before `git add -A && git commit` runs, so the push checks the commits itself."""
+    vault, bare = sent_session(tmp_path)
+    (vault / ".inbox").mkdir(exist_ok=True)
+    (vault / ".inbox" / "call.md").write_text("company material\n", encoding="utf-8")
+    git(vault, "add", "-A", "-f", ".inbox")
+    git(vault, "commit", "-q", "-m", "Add call notes")
+    code, out = push(vault, "--for-lead")
+    assert code == 1, out
+    assert "meeting notes from the inbox" in out and "must stay on your machine" in out and say.leak_in(out) is None
+    assert not remote_has(bare, BRANCH)
+    code, out = push(vault)
+    assert code == 1 and ".inbox/call.md" in out and "git reset --soft" in out and "git rm -r --cached" in out
+
+
+def test_a_private_file_added_then_removed_is_still_in_the_history_a_push_sends(tmp_path):
+    vault, bare = sent_session(tmp_path)
+    notes = vault / "sessions" / "private" / "2026-10-20-other.md"
+    notes.parent.mkdir(parents=True, exist_ok=True)
+    notes.write_text("private\n", encoding="utf-8")
+    git(vault, "add", "-f", "sessions/private/2026-10-20-other.md")
+    git(vault, "commit", "-q", "-m", "Oops")
+    git(vault, "rm", "-q", "--cached", "sessions/private/2026-10-20-other.md")
+    git(vault, "commit", "-q", "-m", "Take it out again")
+    code, out = push(vault, "--for-lead")
+    assert code == 1 and "your private session notes" in out, out
+    assert not remote_has(bare, BRANCH)
 
 
 def test_an_uncommitted_change_stops_the_push(tmp_path):

@@ -42,11 +42,8 @@ def test_close_push_moves_a_finished_session_on_main_to_its_own_branch_and_sends
     vault, bare, record_id, began = finished_on_main(tmp_path, monkeypatch)
     branch, tip = f"session/{record_id}", git(vault, "rev-parse", "HEAD")
     code, out = run("close", "push", "--vault", str(vault), "--today", TODAY, "--for-lead")
-    assert code == 1 and "own branch" in out, out  # moved first; the new branch was never compared with main
-    assert git(vault, "branch", "--show-current") == branch and not pushing.remote_has(bare, branch)
-    assert run("close", "sync-main", "--vault", str(vault), "--today", TODAY)[0] == 0
-    code, out = run("close", "push", "--vault", str(vault), "--today", TODAY, "--for-lead")
-    assert code == 0, out
+    assert code == 0 and "own branch" in out, out  # moved, brought main in once, then sent
+    assert git(vault, "branch", "--show-current") == branch
     assert git(vault, "rev-parse", "main") == began and git(vault, "rev-parse", branch + "~1") == tip
     assert pushing.remote_has(bare, branch) and not git(bare, "rev-parse", "main") == tip
 

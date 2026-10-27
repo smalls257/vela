@@ -57,6 +57,18 @@ def plan_paths(root, staged):
     return [(path, planscope.inside(path, folder)) for path, folder in owned if folder is not None]
 
 
+def forbidden_since(root, since):
+    """[(path, Rule)] for every path a commit in `since..HEAD` carries that `guard.never_rule` forbids: the same check
+    `guard staged` makes on the index, made on what a push would send. This is the backstop the pre-commit hook and the
+    Bash hook can't be, because both can be skipped (`--no-verify`, `commit -a` after the hook read the index)."""
+    found = []
+    for path, inner in plan_paths(root, stagegit.committed_paths_since(root, since)):
+        rule = guard.never_rule(inner)
+        if rule is not None:
+            found.append((guard.normal(path), rule))
+    return found
+
+
 def cmd_guard_staged(args, out):
     from vela import cli, commands
     root = pathlib.Path(args.vault).resolve()

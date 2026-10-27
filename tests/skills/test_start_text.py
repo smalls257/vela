@@ -249,7 +249,7 @@ def test_captures_are_numbered_by_record_add_and_keep_their_origins():
     assert "^c01" not in captures and "never reused" not in captures  # rule deletion: record add numbers them
     assert "claude, from <name>" in captures and "promoted on a nod" in captures
     assert "`vela close stage --checkpoint`" in captures
-    assert "never `git add -A`" in captures and "by exact path" not in captures  # hook-only rule stays; the how is the command's
+    assert "never stage private files" in captures and "by exact path" not in captures  # hook-only rule stays; the how is the command's
 
 
 def test_start_names_every_mode_that_marks_at_once():

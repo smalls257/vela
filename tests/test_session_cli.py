@@ -400,17 +400,19 @@ def test_a_dashboard_left_changed_never_stops_the_next_start(tmp_path, monkeypat
     assert code == 0 and "dashboard" not in output, output  # the lead never hears about vela's own page
 
 
-def test_turning_the_dashboard_branch_down_leaves_main_clean(tmp_path, monkeypatch):
+def test_close_dashboard_with_no_session_leaves_the_page_changed_on_the_current_branch(tmp_path, monkeypatch):
     vault = owner(tmp_path, monkeypatch)
     dashboard_on_main_and_changed_on_origin(tmp_path, vault)
-    code, output = run("close", "dashboard", "--vault", str(vault), "--today", TODAY, "--put-back", "--for-lead")
+    before = head(vault)
+    code, output = run("close", "dashboard", "--vault", str(vault), "--today", TODAY, "--for-lead")
     assert code == 0, output
-    assert "I've left the dashboard as it was" in output
-    assert git(vault, "status", "--short", "--untracked-files=no") == "" and head(vault)[1] == "main"
-    assert (vault / "dashboard.html").read_text(encoding="utf-8") == "<p>first build</p>\n"
-    code, output = start(vault, "--mode", "grill", "--topic", "consent")
+    assert "it goes in with your next session" in output
+    assert head(vault) == before, "no branch, no commit"
+    assert "dashboard.html" in git(vault, "status", "--short")
+    code, output = start(vault, "--mode", "grill", "--topic", "consent", "--json")
     assert code == 0, output
-    assert (vault / "dashboard.html").read_text(encoding="utf-8") == "<p>first build</p>\n"  # a start pulls nothing
+    assert not [n for n in json.loads(output)["needs_lead"] if n.get("ask") == "uncommitted changes"]
+    assert "dashboard.html" in git(vault, "status", "--short")  # carried along, not dropped
 
 
 def test_start_in_an_older_plan_adds_the_private_ignore_line_in_the_open_commit(tmp_path, monkeypatch):
