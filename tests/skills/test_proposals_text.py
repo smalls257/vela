@@ -33,10 +33,9 @@ def test_every_flag_proposals_tells_claude_to_run_exists():
     assert flags and flags <= option_strings(), flags - option_strings()
 
 
-def test_review_leaves_every_decision_to_the_owner_and_never_pushes():
+def test_review_leaves_every_decision_to_the_owner():
     text = skill("proposals")
-    for rule in ("pending decisions first", "The owner always decides", "Never write the owner's reason for them", "**Never push, and never open a PR yourself.**",
-                 "Never block it, never hide it", "E316", "git worktree remove", "vela proposals accept", "vela proposals reject", "vela proposals answer"):
+    for rule in ("pending decisions first", "The owner always decides", "Never write the owner's reason for them", "Never block it, never hide it", "E316", "git worktree remove", "vela proposals accept", "vela proposals reject", "vela proposals answer"):
         assert rule in text, rule
 
 
@@ -69,3 +68,10 @@ def test_the_owner_hears_each_change_by_name_not_by_group_key():
     assert "(CON-001)" not in text
     assert "the vault" not in text and "Grill" not in text
     assert "When a command can't express what the owner wants, say so and stop." in text
+
+
+def test_proposals_pushes_the_branch_and_opens_the_pr():
+    text = skill("proposals")
+    assert "Never push" not in text and "never open a PR yourself" not in text and "only if they say so" not in text
+    assert "git push -u origin proposal/<slug>" in text and "gh pr create" in text
+    assert "A local merge stays off" in text

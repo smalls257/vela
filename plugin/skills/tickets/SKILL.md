@@ -1,6 +1,6 @@
 ---
 name: tickets
-description: "Turn a finished build plan into tickets: a Markdown list, a CSV for Jira import, or Jira tools you already have. Offer it when someone asks for tickets; start it only on a yes. Nothing is created outside without a yes."
+description: "Turn a finished build plan into tickets: a Markdown list, a CSV for Jira import, or Jira tools you already have. Offer it when someone asks for tickets; start it only on a yes. Nothing is created outside the system they chose."
 argument-hint: "[app slug or APP-id]"
 ---
 
@@ -34,9 +34,9 @@ Ask once, with your recommendation and why:
 
 - Markdown: `sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela tickets write --vault . --format markdown` writes `docs/work/tickets.md`.
 - CSV: the same with `--format csv` writes `docs/work/tickets.csv` and a `README.md` with the column mapping and Jira's import steps. Check the target tool's import page for its column names before telling the person which columns to map.
-- Jira tools: read the plan's "Ticket waves" and propose the first wave only. Show the first ticket exactly as it would be created (project, type, summary, description with its criteria, links) and wait for a yes. A yes covers that ticket; ask again before creating the rest, and again before any later wave. Write no script to create tickets; call the tool, or write the file.
+- Jira tools: read the plan's "Ticket waves" and propose the first wave only. Choosing Jira tools is the yes for the first wave: show the first ticket exactly as it would be created (project, type, summary, description with its criteria, links), then create the wave's tickets without a yes per ticket. Ask once before each later wave. Write no script to create tickets; call the tool, or write the file.
 
-Nothing is created in any outside system without an explicit yes in this session. A plan edit is not a reason to create or update tickets; tell the person the tickets are now out of date and let them decide.
+Nothing is created in an outside system the person didn't choose in step 3. A plan edit is not a reason to create or update tickets; tell the person the tickets are now out of date and let them decide.
 
 ## 5. Stop
 

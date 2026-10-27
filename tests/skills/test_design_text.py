@@ -142,8 +142,9 @@ def test_design_checks_freshness_first_and_stops_when_behind():
     start = read("skills/design/SKILL.md").split("## 1. Start", 1)[1]
     voice, fresh = start.split("\n\n", 3)[1:3]
     assert VOICE_LINE.search(voice)  # the voice is read before anything is said (voice audit S4)
-    assert fresh.startswith("First run `vela freshness --for-lead`. If it exits 3") and "stop, say what it printed in your words" in fresh
-    assert "offer to bring it up to date" in fresh and "in its words" not in fresh
+    assert fresh.startswith("First run `vela freshness --for-lead`. If it exits 3") and "say what it printed in your words" in fresh
+    assert "bring it up to date (`git switch main`, then `git pull --ff-only`) and say so" in fresh and "offer to" not in fresh
+    assert "uncommitted vault-page changes, stop" in fresh and "in its words" not in fresh
     assert start.index("vela freshness") < start.index("vela handoff verify") < start.index("vela check-slice")
 
 
@@ -211,3 +212,8 @@ def test_design_stays_under_its_word_cap():
 def test_a_tech_design_says_each_operations_fields_and_where_its_spec_is():
     body = (SKILL / "TECH-DESIGN-FORMAT.md").read_text(encoding="utf-8")
     assert "request and response fields" in body and "- Spec:" in body
+
+
+def test_design_pushes_its_pr_without_a_yes():
+    design = read("skills/design/SKILL.md")
+    assert "getting a yes" not in design and "Push the branch and open the pull request when the design is" in design

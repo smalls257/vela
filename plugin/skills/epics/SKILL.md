@@ -27,7 +27,7 @@ Offer 2 or 3 ways to cut the gaps into epics, each epic with exactly one owning 
 Write the skeleton with `vela add epic --title "<title>" --team <@team> --capture ^cNN --for-lead` (`--help` gives the rest; `--delivers` is never empty), citing the chosen cut's capture. Then add what it leaves to you:
 
 - `depends_on`, with `## Depends on` giving one reason per dependency.
-- A tracker link: ask for the item's key or link, or a skip, written as `vela conventions "Links out of the vault"` says. Never make up a key or an address; a skip writes nothing. Offer it for the Library too (`vela library add`), after a yes; `links:` stays as written.
+- A tracker link: ask for the item's key or link, or a skip, written as `vela conventions "Links out of the vault"` says. Never make up a key or an address; a skip writes nothing. Add a link they give to the Library with `vela library add`, no yes; `links:` stays as written.
 - One-line stubs for the summary and `Still open:`; close drafts them through `house-voice`.
 - `## Traces to` holding an empty `traces-to` block, `## Rollout notes` and `## Out of scope`.
 

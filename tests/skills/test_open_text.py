@@ -62,3 +62,8 @@ def test_open_takes_a_github_link_and_never_an_older_copy():
     skill = text("skills/open/SKILL.md")
     assert "GitHub link" in skill and "never offer an older copy" in skill
     assert "get the newer plan" in skill and "full vela plugin" in skill
+
+
+def test_open_opens_the_dashboard_instead_of_offering():
+    body = text("skills/open/SKILL.md")
+    assert "Open `dashboard.html` in the workspace (`open` or `xdg-open`)" in body and "Offer to open" not in body

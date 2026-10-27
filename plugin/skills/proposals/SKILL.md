@@ -58,7 +58,7 @@ It writes `answer.md` beside the proposal, and stops on a group with no decision
 
 ## 4. The branch
 
-The work is on `proposal/<slug>`. Print the owner's normal git steps, for example `git switch main && git merge proposal/<slug>`, or `git push -u origin proposal/<slug>` and a PR as `/vela:close` opens one. Run a local merge only if they say so. **Never push, and never open a PR yourself.** Once it is merged, `git worktree remove <worktree>` tidies up, and the reader continues from a new published copy.
+The work is on `proposal/<slug>`. After `proposals answer`, run `git push -u origin proposal/<slug>` and `gh pr create` for it, and say so in one line. A local merge stays off: print `git switch main && git merge proposal/<slug>` for the owner to run. Once it is merged, `git worktree remove <worktree>` tidies up, and the reader continues from a new published copy.
 
 ## Special cases
 

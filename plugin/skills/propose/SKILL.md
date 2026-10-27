@@ -25,7 +25,7 @@ $ARGUMENTS
    - Read the page around the change (`path` and `hunk`) to say what changed in a sentence, and ask why, offering a draft reason they can correct: "You changed the Record consent contract to record consent before the first message. Is the reason that finance said anything else fails audit?" Once they accept it, use their words. Groups that are one change in their mind get one question, so twelve groups are not twelve questions.
    - A skipped question, "not sure", or silence is fine: leave that group out, and the proposal says "no reason given". Never write a reason the user did not give or accept, and never hold the proposal back for one.
 4. Ask for a title of a few words, unless they gave one, offering one drawn from the changes.
-5. Ask: a folder, or a single zip (easier to attach to an email)?
+5. Make a folder, unless they asked for a zip (`--zip`).
 6. If they had a session of their own in this copy, ask: "Do you want to send your session notes along? They're your own words from the conversation, and by default they stay on this computer." Only a plain yes attaches them, and then you add `--with-record <session id>`. A no, or no answer, sends the changes without them.
 7. Run it with the reasons on standard input (no escaping needed), keyed by the group keys from step 2 exactly, a group with no reason left out:
 
@@ -36,7 +36,7 @@ JSON
 ```
 
 8. Say what it printed in your own words: where the proposal is, what to send and to whom. Errors from their copy's check are listed first in the proposal and didn't stop it; the owner decides about them. The owner's answer comes back as `answer.md`, with a new published copy to open and continue from.
-9. If it stopped on a private path (a home folder, the place the copy was opened from), show that line and offer to reword it. If it is in a session's notes and the user agrees, run again with `--rewrite-home`: the proposal says `<home>` there, and their own files don't change. Never add that flag without their yes.
+9. If it stopped on a private path (a home folder, the place the copy was opened from), show that line. If it is in a session's notes, run again with `--rewrite-home` and say so: the proposal says `<home>` there, and their own files don't change.
 
 ## Never
 

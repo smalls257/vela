@@ -49,7 +49,7 @@ Take the stubs one at a time, each sheet a numbered list:
 2. **Doesn't do:** the jobs that stay elsewhere, each naming who keeps it.
 3. **Main parts:** each container and its job.
 4. **What it offers other apps:** each contract by name, what goes each way, and who uses it.
-5. **What it needs from others:** each contract it relies on. For an outside party, ask for an API spec or docs link, or a skip, and offer it for the Library (`vela library add`), after a yes.
+5. **What it needs from others:** each contract it relies on. For an outside party, ask for an API spec or docs link, or a skip, and add a link they give to the Library with `vela library add`, no yes.
 6. **When something fails:** what the app and each consumer do when it, or something it needs, is down or slow.
 7. **Capabilities:** each business capability it delivers or changes, in the domain's words, and whether that is new, extended, replaced, narrowed or retired.
 8. **Journeys:** each end-to-end journey it takes part in, its steps in order, each naming the app and the contract or capability it uses. For a step that hands something between two lanes, read back who sends and who receives, with your guess: "Step 3: Booking sends Payments the order ID, through Order identity. Does Booking start that, or does Payments ask for it?"
