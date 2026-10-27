@@ -415,7 +415,7 @@ def open_pr(root, vault, session, args):
         else:
             title = planscope.titled(vaultgit.plan_scope(root), prbody.title(
                 session.record.date, list(session.record.modes), session.record.title,
-                decided=len(settled.settled_ids(session.text))))
+                decided=len(settled.settled_ids(session.text, vault, session.record.id))))
             sent = add_to_open_pr(root, session, body_file)
             if sent is None:
                 sent = ghcli.pr_create(root, session.branch, title, body_file, found,

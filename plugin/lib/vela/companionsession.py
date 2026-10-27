@@ -100,8 +100,7 @@ def folded(rows):
 def decided_rows(rows, names):
     return [{"id": item, "name": _name(names, item), "from": last.before, "to": last.after,
              "capture": _capture_of(last), "page": names[item].page if item in names else ""}
-            for item, (_, last) in folded(rows).items() if last.after == "decided" and not last.reconfirmed]
-            # a reconfirmed item was decided on another machine; close's "You settled" leaves it out too
+            for item, (_, last) in folded(rows).items() if last.after == "decided"]
 
 
 def said_yes_rows(notes, index, names):

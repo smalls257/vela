@@ -35,18 +35,15 @@ Run `vela close drafts --json` and draft only its `paragraphs`, through `${CLAUD
 
 If the session touched prose and `vela close drafts` says a review is due, run the voice review once as `${CLAUDE_PLUGIN_ROOT}/skills/close/VOICE-REVIEW.md` says; show the lead only new or changed paragraphs. Then `vela voice harvest list --json`; with candidates, read `${CLAUDE_PLUGIN_ROOT}/skills/close/HARVEST.md`.
 
-## 3. Still yes, then the read-back
+## 3. The read-back
 
-In this order, so the read-back covers the final words:
-
-1. **Still yes?** Run `vela close gate --json` and act only on its "Still yes" item (decisions made on the other machine); everything else it lists is section 4's. Ask once, in one message, with the names it gives: "These were decided on the other machine: the booking API, and one question taken off the finance page. Still yes?" Capture the question before the answer, then do what the gate's clear line says. On a no, run nothing; offer to reopen the item. Never reconfirm anything for them. If an item's owner is someone else and isn't here, their decision stays a name in the receipt with no words, and `close pr` lists it for them: don't chase their words now.
-2. **The read-back.** Run `vela close readback --for-lead` and read its sentences in groups of about five, by item name. For each, the lead keeps it, rewords it or cuts it (`vela close readback --help`); a decision's own receipt can be reworded, never cut, and new words must be theirs. Then `vela close readback --done`.
+Run `vela close readback --for-lead` and read its sentences in groups of about five, by item name. For each, the lead keeps it, rewords it or cuts it (`vela close readback --help`); a decision's own receipt can be reworded, never cut, and new words must be theirs. Then `vela close readback --done`.
 
 ## 4. Check, then finish and send
 
 Run `vela close sync-main --for-lead`; where main changed the same lines, show the lead both sides in plain words and make their choice. Then `vela render`, `vela check --fix auto`, `vela check --for-lead` and `vela check-slice --changed --for-lead`. Say its count lines as they are ("There are also 41 wording notes; want them?", "I'll fix 26 more myself when we close"). Fix errors and flow-step findings with the lead; an outside actor becomes a party only on their yes. Never delete a ledger row or an override to quiet a check. Ask about a possibly untyped subject or a ledger row that no longer fits in plain words; they count among the few things section 1 asks.
 
-Run `vela close gate --for-lead` and say which slices still run end to end and which break. Take what it lists one at a time with your view, grouped by what holds the close up ("Three things before I can finish: two decisions have no yes from you yet, one note isn't sorted, and one page is waiting on seven open questions. One at a time?"); the lead may keep any as it is: record it as START's override rule says, with their reason. A decision with no yes needs the lead's own words: read the item back and capture their answer. If the gate now asks "Still yes?", go back to section 3 step 1, so a finished read-back is never reopened. Run the gate again until it says the session is ready.
+Run `vela close gate --for-lead` and say which slices still run end to end and which break. Take what it lists one at a time with your view, grouped by what holds the close up ("Three things before I can finish: two decisions have no yes from you yet, one note isn't sorted, and one page is waiting on seven open questions. One at a time?"); the lead may keep any as it is: record it as START's override rule says, with their reason. A decision with no yes needs the lead's own words: read the item back and capture their answer. Run the gate again until it says the session is ready.
 
 Then send, in this order:
 

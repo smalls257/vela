@@ -26,7 +26,7 @@ CLOSE_22A = "\n".join((REPO / "plugin" / "skills" / "close" / name).read_text(en
 
 
 HEADINGS = {1: "1. Find the session and mark the captures", 2: "2. Write the items and the prose",
-            3: "3. Still yes, then the read-back", 4: "4. Check, then finish and send",
+            3: "3. The read-back", 4: "4. Check, then finish and send",
             5: "5. The pull request, and what you tell the lead", 6: "6. No session open"}
 
 
@@ -707,10 +707,7 @@ def test_close_carries_the_four_hard_stops_itself():
         assert stop in CLOSE_SKILL, stop
 
 
-def test_close_reconfirms_before_the_read_back_and_sends_in_its_order():
-    three = csec(3)
-    assert three.index("**Still yes?**") < three.index("**The read-back.**")
-    assert "act only on its \"Still yes\" item" in three and "everything else it lists is section 4's" in three
+def test_close_sends_in_its_order():
     assert CLOSE_SKILL.index("## 3.") < CLOSE_SKILL.index("vela close sync-main") < CLOSE_SKILL.index("vela close push --for-lead")
     send = csec(4)
     order = ["1. Run `vela close push --for-lead`", "2. Capture the lead's answer", "3. Run `vela close finish",

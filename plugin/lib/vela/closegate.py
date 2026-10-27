@@ -24,6 +24,12 @@ The lead may still go ahead without a quoted yes (the user can override any rule
 item naming `QUOTED_YES_RULE`, with their reason. The gate then lets the change through and lists the override, never
 hides it.
 
+A change into `decided` also passes on the item's `**Decision:**` receipt when it names a person: the yes may have been
+given in another part of the session, on another machine, in notes this one cannot read, and the gate does not tell
+machines apart (if the lead settles, the lead settles). A hand-set `decided` with neither a row nor a receipt is still
+asked about, and a receipt naming Claude is never a yes. A change out of `decided` with no row here is not asked:
+reopening is the lead's own move and its row may be in other notes.
+
 Only changes into or out of `decided` are judged. Other state moves (a page set to match its rows, an unknown opened)
 are filing, which close does from its defaults; holding every one of them to a quoted yes would make the lead approve
 bookkeeping, which close is meant to spare them.
@@ -39,8 +45,7 @@ CONSENT_CLEAR = ("The lead's own yes, quoted in the session record with a Change
                  "their override with a reason.")
 READBACK_FIRST = "I never read {name} back to you before writing it as decided. Shall I read it back now?"
 READBACK_CLEAR = ("Reading the final wording back, capturing it, and capturing the lead's yes after it clears it "
-                  "(vela decide for a new decision; vela close reconfirm --readback for one the other machine made); "
-                  "so does the lead's override of the quoted-yes rule, with their reason.")
+                  "(vela decide); so does the lead's override of the quoted-yes rule, with their reason.")
 BARE_NON_YES = ("", "ok", "okay", "sure", "next", "fine")
 CONSENT_STATE = "decided"
 
@@ -78,11 +83,6 @@ class Capture:
         return re.sub(r"[^\w\s]", "", self.quote).strip().lower() in BARE_NON_YES
 
 
-# Written after the source of a Changes row that `close reconfirm` filed: the lead said yes again to a decision made in
-# another part of the session, so this part did not settle it.
-RECONFIRMED = "(reconfirmed)"
-
-
 @dataclass(frozen=True)
 class ChangeRow:
     item: str
@@ -95,10 +95,6 @@ class ChangeRow:
     def capture_number(self):
         found = CAPTURE_LINK_RE.search(self.source)
         return found.group("n") if found else ""
-
-    @property
-    def reconfirmed(self):
-        return self.source.rstrip().endswith(RECONFIRMED)
 
 
 @dataclass(frozen=True)
@@ -124,9 +120,9 @@ class Problem:
 
 
 # What holds a close up, in the order the lead hears it: one line per kind when there is more than one of it.
-CONSENT, ELSEWHERE, RECEIPT, READBACK, UNMARKED, CHECK, REMOVED_ROW, STRAY, RENDER, SYNC = (
-    "consent", "elsewhere", "receipt", "readback", "unmarked", "check", "removed", "stray", "render", "sync")
-KINDS = (SYNC, CONSENT, RECEIPT, ELSEWHERE, READBACK, UNMARKED, CHECK, REMOVED_ROW, STRAY, RENDER)
+CONSENT, RECEIPT, READBACK, UNMARKED, CHECK, REMOVED_ROW, STRAY, RENDER, SYNC = (
+    "consent", "receipt", "readback", "unmarked", "check", "removed", "stray", "render", "sync")
+KINDS = (SYNC, CONSENT, RECEIPT, READBACK, UNMARKED, CHECK, REMOVED_ROW, STRAY, RENDER)
 
 
 @dataclass(frozen=True)
@@ -200,6 +196,33 @@ def overrides_for(vault, item):
     return [o for o in override.valid_overrides(*scope) if QUOTED_YES_RULE in o.rules]
 
 
+def decision_bullets(vault, item):
+    """[(page, bullet)] for the item's (or the page's) `**Decision:**` line."""
+    found = vault.item(item)
+    if found is not None:
+        bullet = found.facts.get("Decision")
+        return [(found.page, bullet)] if bullet else []
+    pages = vault.by_id.get(item) or []
+    return [(pages[0], b) for b in pages[0].bullets if b.label == "Decision" and not b.item and not b.generated] if pages else []
+
+
+def receipt_of(vault, item_id):
+    """The parsed `**Decision:**` bullet of an item or page, or None."""
+    from vela import receipts
+    for _, bullet in decision_bullets(vault, item_id):
+        found = receipts.parse_decision(bullet.value)
+        if found is not None:
+            return found
+    return None
+
+
+def receipt_is_a_yes(receipt):
+    """A receipt is a yes when it names a person; a bare link names no one, and Claude's own summary is never one."""
+    if receipt is None or not receipt.who.lstrip("@"):  # a bare `[[record]]` link names no one
+        return False
+    return not receipt.who.lstrip("@").lower().startswith("claude")
+
+
 def judge_change(change, rows, said, vault, record_name, part=1):
     """(Problem or None, Consent or None) for one change into or out of decided."""
     allowed = overrides_for(vault, change.item)
@@ -211,8 +234,7 @@ def judge_change(change, rows, said, vault, record_name, part=1):
     # then decides it with the lead's yes): its row's From is that state, not the branch point's "-".
     row = change_row(change, rows)
     if row is None:
-        return Problem(f"You haven't said yes to {moving(change)} yet.",
-                       f"{change.item}: {change.before} -> {change.after} has no ## Changes row", kind=CONSENT), None
+        return judge_without_a_row(change, vault)
     capture = said.get(row.capture_number)
     if capture is None:
         return Problem(f"I can't find where you said yes to {moving(change)}. Can you say it again?",
@@ -233,6 +255,20 @@ def judge_change(change, rows, said, vault, record_name, part=1):
                        "capture is its read-back", clear=READBACK_CLEAR, kind=CONSENT), None
     return None, Consent(change.item, change.name, f"{change.before} to {change.after}", capture.quote,
                          privaterecord.citation(record_name, part, int(capture.n)))
+
+
+def judge_without_a_row(change, vault):
+    """This part's notes hold no Changes row: the yes may be in other notes. Out of `decided` is the lead's own move
+    and is not asked; into it passes on a receipt that names a person."""
+    if change.after != CONSENT_STATE:
+        return None, Consent(change.item, change.name, f"{change.before} to {change.after}", "", "")
+    receipt = receipt_of(vault, change.item)
+    if not receipt_is_a_yes(receipt):
+        return Problem(f"You haven't said yes to {moving(change)} yet.",
+                       f"{change.item}: {change.before} -> {change.after} has no ## Changes row and no Decision "
+                       "receipt naming a person", kind=CONSENT), None
+    return None, Consent(change.item, change.name, f"{change.before} to {change.after}", receipt.words or "",
+                         decision_bullets(vault, change.item)[0][1].value)
 
 
 def read_back_before(capture, said, item, state):
@@ -484,70 +520,6 @@ def removal_problems(before, after, rows, said):
     return [r.problem for r in unagreed_removals(before, after, rows, said)]
 
 
-# ------------------------------------------------------------------ Task 12: what the other machine decided
-
-STILL_YES = "These were decided on the other machine: {names}. Still yes?"
-STILL_YES_CLEAR = ("The lead's yes in this part, recorded with vela close reconfirm --readback ^cQ --yes ^cNN and the IDs, clears it. "
-                   "A no leaves the item as it is, and the lead may reopen it.")
-LEDGER_ROW, OVERRIDE_ROW = "ledger row", "override"  # the From cell of a removal's Changes row
-
-
-@dataclass(frozen=True)
-class Away:
-    """One thing the other machine did that this part holds no yes for. `id` is what the Changes row names (an item or
-    page ID, a ledger copy, or an override's scope), `name` what the lead hears, `before` and `after` the row's From
-    and To. `is_removal` marks a ledger row or an override taken off."""
-    id: str
-    name: str
-    before: str
-    after: str
-    is_removal: bool = False
-
-
-def decision_bullets(vault, item):
-    """[(page, bullet)] for the item's (or the page's) `**Decision:**` line."""
-    found = vault.item(item)
-    if found is not None:
-        bullet = found.facts.get("Decision")
-        return [(found.page, bullet)] if bullet else []
-    pages = vault.by_id.get(item) or []
-    return [(pages[0], b) for b in pages[0].bullets if b.label == "Decision" and not b.item and not b.generated] if pages else []
-
-
-def cites_another_part(vault, item, record_id, part):
-    """Whether the item's receipt names this session's notes in a part other than this one."""
-    from vela import receipts
-    for _, bullet in decision_bullets(vault, item):
-        found = receipts.parse_decision(bullet.value)
-        if found is not None and found.record == record_id and found.ref is not None and found.ref.part != part:
-            return True
-    return False
-
-
-def away(vault, before, rows, said, record_id, part):
-    """The `Away` things: each change into or out of decided with no Changes row here whose receipt cites another part
-    of this session, and (part 2 and up) every removal this part holds no yes for. Any part can close last, so part 1 is asked too
-    (a receipt that cites part 1 itself is not away); a reader copy has no branch point to compare with."""
-    if before is None:
-        return []
-    out = [Away(c.item, vault.name_of(c.item), c.before, c.after)
-           for c in consent_changes(states(before), states(vault), vault)
-           if not overrides_for(vault, c.item) and change_row(c, rows) is None
-           and cites_another_part(vault, c.item, record_id, part)]
-    if part >= 2:  # a removal carries no receipt to cite, so only a later part can tell it was the other machine's
-        out += [Away(r.key, r.name, OVERRIDE_ROW if r.is_override else LEDGER_ROW, REMOVED, is_removal=True)
-                for r in unagreed_removals(before, vault, rows, said)]
-    return out
-
-
-def elsewhere_problem(asked):
-    """One grouped question for everything decided on the other machine: the lead hears names, `detail` the IDs."""
-    if not asked:
-        return []
-    return [Problem(STILL_YES.format(names=say.names_said([a.name for a in asked])),
-                    "decided elsewhere: " + ", ".join(a.id for a in asked), STILL_YES_CLEAR, kind=ELSEWHERE)]
-
-
 def stray_problem(stray):
     if not stray:
         return []
@@ -739,10 +711,7 @@ def ready(vault, record_text, record_id, seen, part=1):
         changes = reader_changes(rows, after)
     else:
         changes = consent_changes(states(seen.before), after, vault)
-    asked = away(vault, seen.before, rows, said, record_id, part)
-    changes = [c for c in changes if c.item not in {a.id for a in asked}]
     problems, consent = judge(changes, record_text, record_id, vault, part)
-    problems += elsewhere_problem(asked)
     if seen.sync.blocks:
         problems.insert(0, Problem(seen.sync.plain, f"sync-main: {seen.sync.status or 'not run'}",
                                    "Running vela close sync-main clears it.", kind=SYNC, audience=seen.sync.audience))
@@ -753,8 +722,7 @@ def ready(vault, record_text, record_id, seen, part=1):
     problems += mark_target_problems(vault, record_text)
     problems += error_problems(seen.errors, vault)
     if seen.before is not None:
-        problems += [r.problem for r in unagreed_removals(seen.before, vault, rows, said)
-                     if r.key not in {a.id for a in asked}]
+        problems += [r.problem for r in unagreed_removals(seen.before, vault, rows, said)]
     problems += stray_problem(seen.stray)
     problems += render_problem(seen.stale, seen.render_problems)
     return Readiness(tuple(problems), tuple(notes_of(seen)), tuple(consent))

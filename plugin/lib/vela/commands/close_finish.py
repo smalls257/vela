@@ -253,7 +253,7 @@ class Finish:
         """What the lead settled in this session, in words: a Black Box at close otherwise, since settling can happen in
         any session and the lead would learn it only by opening a page."""
         from vela.decisions import settled
-        ids = settled.settled_ids(self.notes)
+        ids = settled.settled_ids(self.notes, self.vault, self.record.id)
         self.result.data["settled"] = ids
         if ids:
             self.say("vela close finish: settled: " + ", ".join(ids),

@@ -136,11 +136,6 @@ def test_an_item_decided_twice_is_listed_once(plan):
     assert [d["id"] for d in got["decided"]].count("FLO-001") == 1
 
 
-def test_an_item_reconfirmed_from_another_machine_is_not_decided_this_session(plan):
-    got = _with_rows(plan, f"| UNK-009 | open | decided | [[{SESSION}#^c11]] (reconfirmed) |")
-    assert "UNK-009" not in [d["id"] for d in got["decided"]]
-
-
 def test_closing_a_session_panel_leaves_the_explain_panels_marker(plan):
     session_json(plan)
     marker = plan / ".vela" / "companion" / "published.json"

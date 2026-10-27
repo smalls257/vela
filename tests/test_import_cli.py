@@ -278,11 +278,11 @@ def test_until_the_lead_answers_a_page_keeps_the_documents_words(tmp_path, monke
 
 def test_one_sources_keep_is_never_voiced_because_anothers_was(tmp_path, monkeypatch):
     state = importqueue.new_state("s")
-    importqueue.set_wording(state, "voice", "^c05")
-    importqueue.set_wording(state, "keep", "^c06", "SRC-03")
-    assert importqueue.wording_for(state, ["SRC-02"]) == ("voice", "^c05")
-    assert importqueue.wording_for(state, ["SRC-02", "SRC-03"]) == ("keep", "^c06")
-    assert importqueue.wording_for(importqueue.new_state("s"), ["SRC-02"]) == ("keep", "")
+    importqueue.set_wording(state, "voice", "^c05", cite="c05")
+    importqueue.set_wording(state, "keep", "^c06", "SRC-03", "c06")
+    assert importqueue.wording_for(state, ["SRC-02"]) == ("voice", "^c05", "c05")
+    assert importqueue.wording_for(state, ["SRC-02", "SRC-03"]) == ("keep", "^c06", "c06")
+    assert importqueue.wording_for(importqueue.new_state("s"), ["SRC-02"]) == ("keep", "", "")
 
 
 def test_a_voiced_page_with_no_answer_on_record_fails_the_check(tmp_path, monkeypatch):
