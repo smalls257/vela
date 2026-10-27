@@ -33,7 +33,6 @@ each entry says which, and for stale what moved.
 
 Alongside the paragraphs:
 
-- **Read-back** (close's "Still yes, then the read-back"): each item that became `decided`, so its final wording is shown to its owner.
 - **Lists over seven** (plan 2.13): a page section holding more than about seven items or bullets reads as a wall;
   the skill puts the few that matter first and the rest under `## Also open (n)`. Choosing the few stays the skill's.
 - **Split facts** (house-voice "Size"): past about 20 paragraphs one PR is hard to review, so the lead is asked

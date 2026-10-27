@@ -624,7 +624,7 @@ def receipt_problems(vault, before, record_id, part, record_text, lead):
 
 PICK_UNBACKED = "A line picked for the pull request isn't backed by what you said, so I won't send it."
 
-READBACK_OWED = "I haven't read back the wording that goes on record in your name yet."
+READBACK_OWED = "I haven't read back the quotes picked for the pull request yet."
 
 
 def unbacked_picks(record_text, seen):

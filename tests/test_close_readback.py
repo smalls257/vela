@@ -64,7 +64,7 @@ def test_gate_waits_for_the_read_back_and_clears_after_done(tmp_path):
     assert readback(vault, "--pick", "^c02")[0] == 0
     assert closegate.READBACK in gate_kinds(vault)
     code, out = run("close", "gate", "--vault", str(vault), "--for-lead", "--today", "2026-10-20")
-    assert "I haven't read back the wording that goes on record in your name yet." in out
+    assert "I haven't read back the quotes picked for the pull request yet." in out
     assert readback(vault, "--done")[0] == 0
     assert closegate.READBACK not in gate_kinds(vault)
 

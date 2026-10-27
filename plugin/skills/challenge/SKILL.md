@@ -69,7 +69,7 @@ Run `vela render`, then `vela check`. For a `decided` item, check now reports E3
 
 Read back by name before anything is sent: "I've added the open question 'Hold expiry under load', owned by you, answer wanted by December 5. It blocks the Booking API contract, which stays decided and unchanged, with your dissent beside it. The check stays red until the solution lead answers. Anything to change?"
 
-Then read back each line of theirs that will leave the machine, the Dissent words and any line the pull request will quote, with `vela close readback --for-lead`: they keep, reword or cut each. A line goes in the pull request only if they pick it (`vela close readback --pick ^cNN`), and only their own words can be picked.
+Then read the team lead's Dissent words back to them directly from the page before they leave the machine, and any quote the pull request will carry with `vela close readback --for-lead`: they keep, reword or cut each. A line goes in the pull request only if they pick it (`vela close readback --pick ^cNN`), and only their own words can be picked.
 
 ## 6. Close and send
 
