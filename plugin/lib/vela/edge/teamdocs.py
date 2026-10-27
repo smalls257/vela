@@ -62,19 +62,29 @@ def team_step(root, name=lambda app: app):
     return min(steps)[2] if steps else None
 
 
-def design_questions(root, plan_text):
-    """{OQ id: the design's entry} from the tech design the plan's prereqs name, or None when the plan names none or
-    the file can't be read. None is not "no questions": tickets.check turns it into a flag for each question a story
-    waits on, so a missing design is never a ticket that quietly leaves its question out."""
+def design_questions_and_gap(root, plan_text):
+    """({OQ id: the design's entry} or None, why). `why` is "" when the design was read, else a plain phrase for the
+    flag: the plan names no tech design, the file it names is missing, or it couldn't be read. None is not "no
+    questions": tickets.check turns it into a flag for each question a story waits on, so a design that wasn't read is
+    never a ticket that quietly leaves its question out."""
     from vela.explorer import design_data
     meta, _, _ = breakdown.split_frontmatter(plan_text)
     raw = meta.get("prereqs") if isinstance(meta, dict) else None
     for entry in raw if isinstance(raw, list) else [raw]:
         path = entry.get("path") if isinstance(entry, dict) else entry
-        if isinstance(path, str) and "tech-design" in path and (pathlib.Path(root) / path).is_file():
-            try:
-                design = design_data.read_design(pathlib.Path(root) / path)
-            except (OSError, UnicodeDecodeError):
-                return None
-            return {q["id"]: q for q in design["open_questions"]}
-    return None
+        if not (isinstance(path, str) and "tech-design" in path):
+            continue
+        full = pathlib.Path(root) / path
+        if not full.is_file():
+            return None, f"the design file the plan names ({path}) is missing"
+        try:
+            design = design_data.read_design(full)
+        except (OSError, UnicodeDecodeError, design_data.DesignError):
+            return None, f"the design file the plan names ({path}) couldn't be read"
+        return {q["id"]: q for q in design["open_questions"]}, ""
+    return None, "the plan names no tech design"
+
+
+def design_questions(root, plan_text):
+    """{OQ id: the design's entry}, or None when the design wasn't read (design_questions_and_gap says why)."""
+    return design_questions_and_gap(root, plan_text)[0]

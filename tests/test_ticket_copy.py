@@ -375,4 +375,39 @@ def test_check_without_the_design_flags_the_story_that_waits_on_a_design_questio
     root = copy_vault(tmp_path)
     (root / "docs" / "tech-design" / "desktop-agent.md").unlink()
     code, said = run("tickets", "check", "--vault", str(root))
-    assert code == 1 and "Story S-02 waits on OQ-005, but the plan's design couldn't be read" in said
+    assert code == 1 and "Story S-02 waits on OQ-005, but the design file the plan names (docs/tech-design/desktop-agent.md) is missing" in said
+
+
+def test_an_empty_covers_tag_is_flagged():
+    for empty in ("(covers )", "(covers and)"):
+        found = flagged(problems_of(plan_text().replace("(covers AC5)", empty)))
+        assert any("covers tag that names no criterion" in x for x in found), empty
+
+
+def test_a_none_blocked_by_line_leaves_a_note_not_a_wait():
+    ctx_stories, ctx = context()
+    plain = tickets.ticket_plain(next(s for s in ctx_stories if s.id == "S-01"), ctx)
+    assert "Blocked by: nothing" in plain and "Note: D-001 is a measured call run in parallel" in plain
+    assert "Also waits on" not in plain
+
+
+def test_the_design_that_was_not_read_says_why_in_plain_words(tmp_path):
+    root = tmp_path / "v"
+    shutil.copytree(VAULT, root)
+    questions_, gap = teamdocs.design_questions_and_gap(root, plan_text())
+    assert questions_ and gap == ""
+    design = root / "docs" / "tech-design" / "desktop-agent.md"
+    design.chmod(0)
+    none_read, gap = teamdocs.design_questions_and_gap(root, plan_text())
+    assert none_read is None and "couldn't be read" in gap and "desktop-agent.md" in gap
+    design.chmod(0o644)
+    design.unlink()
+    none_read, gap = teamdocs.design_questions_and_gap(root, plan_text())
+    assert none_read is None and "is missing" in gap
+    bare = plan_text().replace("tech-design", "elsewhere")
+    none_read, gap = teamdocs.design_questions_and_gap(root, bare)
+    assert none_read is None and gap == "the plan names no tech design"
+    said = [t for t, _ in ticketrefs.open_problems(heron(), stories()["S-02"], None, gap)]
+    assert said == ["waits on OQ-005, but the plan names no tech design, so its ticket can't say what the question is"]
+    code, out = run("tickets", "check", "--vault", str(root))
+    assert code == 1 and "Story S-02 waits on OQ-005, but the design file the plan names" in out

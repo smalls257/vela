@@ -109,7 +109,7 @@ def app_of_plan(text):
     return str((breakdown.read(text)["meta"].get("vault") or {}).get("app", ""))
 
 
-def convert_text(text, source, vault=None, app_id="", questions=None, tool=TOOL, keys=None):
+def convert_text(text, source, vault=None, app_id="", questions=None, tool=TOOL, keys=None, design_gap=""):
     """(tickets.csv text, README text, problems) for one plan's text. Problems is empty when every line mapped and
     every story has ticket copy that covers its criteria."""
     stories, not_planned, problems = parse(text)
@@ -117,7 +117,7 @@ def convert_text(text, source, vault=None, app_id="", questions=None, tool=TOOL,
     ctx = Context(stories, vault, app_id or app_of_plan(text), questions, keys)
     problems = problems + copy_problems(stories)
     if vault is not None:
-        problems += [f"{s.id}: {t}" for s in stories if s.built for t, flag in ticketrefs.open_problems(vault, s, questions) if flag]
+        problems += [f"{s.id}: {t}" for s in stories if s.built for t, flag in ticketrefs.open_problems(vault, s, questions, design_gap) if flag]
     rows = build_rows(stories, ctx)
     return csv_text(rows), readme_text(source, stories, rows, problems, not_planned, tool, with_vault=vault is not None), problems
 
@@ -244,9 +244,10 @@ def slice_words(story, ctx, style):
 
 def details(story, ctx, style):
     shown = set(breakdown.blockers(story)) | {q[1] for q in open_entries(story, ctx)}
+    rest = "Note" if breakdown.NO_BLOCKERS.match(story.blocked or "") else "Also waits on"  # "none. D-001 runs in parallel" is a note, not a wait
     rows = [("Components", story.components or ""), ("Slice", slice_words(story, ctx, style)),
             ("Size", breakdown.size_total(story)), ("Blocked by", blocked_words(story, ctx, style)),
-            ("Also waits on", also_waits(story, shown)), ("Release fit", american(story.fit)), ("Status", story.status or "")]
+            (rest, also_waits(story, shown)), ("Release fit", american(story.fit)), ("Status", story.status or "")]
     return [(label, value) for label, value in rows if value]
 
 
@@ -614,7 +615,7 @@ def check_tracer(stories, order, tracer_id=""):
     return [Finding("slice", sid, "is part of the tracer, but the build order puts another story before it") for sid in late]
 
 
-def check(text, vault, app_id="", questions=None):
+def check(text, vault, app_id="", questions=None, design_gap=""):
     """Every finding about a plan's text held against the vault. `app_id` defaults to the plan's `vault.app`."""
     from vela.explorer import design_data
     plan = breakdown.read(text)
@@ -629,7 +630,7 @@ def check(text, vault, app_id="", questions=None):
         if story.built:
             out += check_story(vault, story, known, dates)
             out += [Finding("ticket", story.id, t, flag) for t, flag in ticketcopy.problems(story)]
-            out += [Finding("open", story.id, t, flag) for t, flag in ticketrefs.open_problems(vault, story, questions)]
+            out += [Finding("open", story.id, t, flag) for t, flag in ticketrefs.open_problems(vault, story, questions, design_gap)]
     out += check_coverage(vault, app_id, plan, stories)
     out += check_slices(vault, stories, app_id)
     out += check_tracer(stories, plan["order"], tracer_id(vault))

@@ -2962,10 +2962,10 @@ def cmd_tickets(args, out):
         plan_path = pathlib.Path(args.plan) if args.plan else find_plan(root)
         text = plan_path.read_text(encoding="utf-8")
         vault = load_vault(root)
-        questions = teamdocs.design_questions(root, text)
+        questions, design_gap = teamdocs.design_questions_and_gap(root, text)
         keys = (tickets.read_keys(pathlib.Path(args.keys).read_text(encoding="utf-8"), {s.id for s in plan_reader.read(text)["stories"]})
                 if args.keys else {})
-        findings = tickets.check(text, vault, args.app or "", questions)
+        findings = tickets.check(text, vault, args.app or "", questions, design_gap)
     except (OSError, UnicodeDecodeError, tickets.TicketsError) as exc:
         raise ToolError(f"tickets: {exc}") from exc
     for finding in findings:
@@ -2984,7 +2984,7 @@ def cmd_tickets(args, out):
             atomic.write_atomic(target / "tickets-jira.json", tickets.jira_text(text, plan_path.name, vault, questions, keys))
             written = [target / "tickets-jira.json"]
         else:
-            csv_body, readme, _ = tickets.convert_text(text, plan_path.name, vault, args.app or "", questions, tool="vela tickets", keys=keys)
+            csv_body, readme, _ = tickets.convert_text(text, plan_path.name, vault, args.app or "", questions, tool="vela tickets", keys=keys, design_gap=design_gap)
             atomic.write_atomic(target / "tickets.csv", csv_body)
             atomic.write_atomic(target / "README.md", readme)
             written = [target / "tickets.csv", target / "README.md"]

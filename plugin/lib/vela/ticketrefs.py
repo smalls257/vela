@@ -127,11 +127,11 @@ def still_open(vault, story, questions):
     return out
 
 
-def open_problems(vault, story, questions):
+def open_problems(vault, story, questions, design_gap=""):
     out = []
     for q in still_open(vault, story, questions):
         if q["id"].startswith("OQ-") and questions is None:
-            out.append((f"waits on {q['id']}, but the plan's design couldn't be read, so its ticket can't say what the question is", True))
+            out.append((f"waits on {q['id']}, but {design_gap or 'the plan' + chr(39) + 's design couldn' + chr(39) + 't be read'}, so its ticket can't say what the question is", True))
             continue
         if not q["found"]:
             if q["id"].startswith("OQ-"):

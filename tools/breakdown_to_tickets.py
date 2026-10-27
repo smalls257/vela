@@ -50,8 +50,8 @@ def convert(breakdown, out, vault_root=None):
         text = breakdown.read_text(encoding="utf-8")
         out.mkdir(parents=True, exist_ok=True)
         vault = cli.load_vault(vault_root) if vault_root else None
-        questions = teamdocs.design_questions(vault_root, text) if vault_root else None
-        csv_body, readme, problems = tickets.convert_text(text, breakdown.name, vault, "", questions)
+        questions, gap = teamdocs.design_questions_and_gap(vault_root, text) if vault_root else (None, "")
+        csv_body, readme, problems = tickets.convert_text(text, breakdown.name, vault, "", questions, design_gap=gap)
         with (out / "tickets.csv").open("w", encoding="utf-8", newline="") as handle:
             handle.write(csv_body)
         (out / "README.md").write_text(readme, encoding="utf-8")

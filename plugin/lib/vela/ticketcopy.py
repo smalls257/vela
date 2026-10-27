@@ -82,6 +82,8 @@ def line_problems(story):
             if bad is None:
                 out.append((f"has a ticket line with no covers tag: {words!r}", True))
                 continue
+            if bad is not None and not numbers and not bad:
+                out.append(("has a covers tag that names no criterion; write it as (covers AC1, AC2)", True))
             if bad:
                 out.append((f"has a covers tag it can't read ({', '.join(repr(b) for b in bad)}); write it as (covers AC1, AC2)", True))
             for n in numbers:
