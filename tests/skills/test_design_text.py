@@ -206,3 +206,8 @@ def test_design_leaves_what_the_commands_print_to_them():
 
 def test_design_stays_under_its_word_cap():
     assert len(skill_text_design_skill().split()) <= 1610  # 1,604 before the trim; 1,557 after
+
+
+def test_a_tech_design_says_each_operations_fields_and_where_its_spec_is():
+    body = (SKILL / "TECH-DESIGN-FORMAT.md").read_text(encoding="utf-8")
+    assert "request and response fields" in body and "- Spec:" in body
