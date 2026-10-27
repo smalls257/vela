@@ -128,15 +128,16 @@ def test_a_slice_line_that_starts_with_another_word_is_a_problem():
 
 def check(root, text=None):
     text = text or plan_text(root)
-    return tickets.check(text, cli.load_vault(root), "")
+    return tickets.check(text, cli.load_vault(root), "", teamdocs.design_questions(root, text))
 
 
 def test_the_heron_plan_is_held_against_its_vault_and_flags_only_what_a_person_should_look_at(vault):
     found = check(vault)
     flagged = sorted({f.story for f in found if f.flag})
-    assert flagged == ["S-01", "S-07a", "S-10"]  # no criterion to quote, a layer, no criterion to quote
+    assert flagged == ["S-01", "S-03", "S-05", "S-06", "S-07a", "S-08", "S-09", "S-10"]  # S-02 has its ticket copy; the rest still carry the flat list
+    assert not [f for f in found if f.story == "S-02" and f.flag]
     assert not [f for f in found if f.kind in ("criteria", "blocked", "release", "reading")]
-    assert tickets.summary(plan_text(vault), found) == "9 stories, 42 tasks, 3 flagged"
+    assert tickets.summary(plan_text(vault), found) == "9 stories, 42 tasks, 8 flagged"
 
 
 def test_a_reworded_criterion_is_found(vault):
@@ -201,17 +202,19 @@ def test_a_release_fit_that_names_the_wrong_date_is_found(vault):
 
 def test_check_prints_findings_and_the_summary_and_writes_nothing(vault):
     code, said = run("tickets", "check", "--vault", str(vault))
-    assert code == 1 and said.rstrip().endswith("9 stories, 42 tasks, 3 flagged")
+    assert code == 1 and said.rstrip().endswith("9 stories, 42 tasks, 8 flagged")
     assert not (vault / "docs" / "work").exists()
 
 
 def test_write_markdown_gives_one_section_per_story_tracer_first_with_criteria_written_out(vault):
     code, said = run("tickets", "write", "--vault", str(vault), "--format", "markdown")
-    assert code == 1 and "9 stories, 42 tasks, 3 flagged" in said
+    assert code == 1 and "9 stories, 42 tasks, 8 flagged" in said
     body = (vault / "docs" / "work" / "tickets.md").read_text(encoding="utf-8")
-    headings = re.findall(r"^## (S-\d+[a-z]?) ", body, re.M)
+    headings = re.findall(r"^## .*<sub>(S-\d+[a-z]?)</sub>$", body, re.M)
     assert headings[:3] == ["S-01", "S-02", "S-05"] and len(headings) == 9
-    assert "When a person switches Heron on, they are offered calendar entries" in body and "S-01-T1" in body
+    assert "Switching Heron on offers two separate choices" in body and "<sub>S-01-T1</sub>" in body
+    assert "When a person switches Heron off and Consent and identity does not confirm" in body
+    assert "**Consent check** <sub>CON-003</sub>" in body and "## S-02" not in body
     assert "## Not ticketed" in body and "S-07b" in body and "## When to create them" in body
 
 
@@ -284,7 +287,7 @@ def test_tickets_are_grouped_by_slice_the_tracer_first(vault):
     later = [s.id for s in breakdown.read(text)["stories"] if s.slice == "vertical" and s.built][-1]
     text = re.sub(rf"(### {later}\b[^\n]*\n(?:(?!### ).*\n)*?)Slice: vertical", r"\1Slice: vertical, SLC-002", text, count=1)
     body = tickets.markdown_text(text, "plan.md", cli.load_vault(vault))
-    headings = re.findall(r"^## (S-\d+[a-z]?) ", body, re.M)
+    headings = re.findall(r"^## .*<sub>(S-\d+[a-z]?)</sub>$", body, re.M)
     tracers = [s.id for s in breakdown.read(text)["stories"] if s.slice == "tracer" and s.built]
     assert headings[:len(tracers)] == [h for h in headings if h in tracers]
     assert headings[len(tracers)] == later  # the slice it names comes before stories that name none

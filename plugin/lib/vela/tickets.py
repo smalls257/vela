@@ -1,13 +1,18 @@
-"""Tickets from a build plan: the checks against the vault, and the two files a person can ask for. No model, no network.
+"""Tickets from a build plan: the checks against the vault, and the files a person can ask for.
 
-    convert_text(text, source)         -> (tickets.csv text, README text, problems); the caller writes the files
-    markdown_text(plan, source)        -> the Markdown ticket list
+    convert_text(text, source, ...)    -> (tickets.csv text, README text, problems); the caller writes the files
+    markdown_text(plan, source, ...)   -> the Markdown ticket list
+    jira_text(plan, source, vault, ...) -> tickets-jira.json, each ticket as a Jira tool would create it
     check(plan, vault, app_id, ...)    -> [Finding]; every finding is a line a person reads before any ticket exists
     summary(plan, findings)            -> "9 stories, 42 tasks, 2 flagged"
 
+The summary and grouped criteria of each story are model-written, into the plan; this module checks them (ticketcopy)
+and copies everything else from the plan and the vault by code (ticketrefs). No network.
+
 The Violation this exists to prevent is a Paper Tiger: a ticket list that mirrors the plan and passes the converter
-while a story rests on no criterion in the vault, quotes one loosely, or waits on a story that is not there. The
-converter (breakdown.py) reads the plan alone; this module holds the plan against the vault, so the check runs before
+while a story rests on no criterion in the vault, quotes one loosely, or waits on a story that is not there. A ticket
+that drops a criterion while reading better than the plan is the same Paper Tiger, which the coverage check is for.
+The converter (breakdown.py) reads the plan alone; this module holds the plan against the vault, so the check runs before
 the people downstream get a ticket. It reads, never writes the vault, and creates nothing in any outside system.
 
 Pure, like the rest of the core: text in, text out. `tools/breakdown_to_tickets.py` and `vela tickets` both call
@@ -37,21 +42,19 @@ class TicketsError(Exception):
 
 README = """# Tickets from the work breakdown
 
-`tickets.csv` was written by `{tool}` from `{source}`. No model touched it: each Story row is a
-`### S-NN` section and each Task row is a row of that story's task table, in the breakdown's own words. Nothing was
-added, merged or reworded. {counts}
+`tickets.csv` was written by `{tool}` from `{source}`. Each Story row is a `### S-NN` section of the plan and each Task row a row of its task table. A story's summary and its grouped acceptance criteria were written into the plan in the house voice, and vela checked that every one of the plan's criteria is still covered; the plan keeps its criteria word for word. What a story relies on (contracts and requirements) and what it still waits on (open questions) are copied by code from the vault and the design. {counts}{vault_note}
 
 ## How each column is filled
 
 | Column | From |
 |---|---|
 | Issue Id | `S-NN` for a story, `S-NN-Tn` for its nth task. Used only to link rows during import. |
-| Summary | the story heading (`S-NN name`), or the task's name |
-| Description | story: its Traces to line, its acceptance criteria under an "Acceptance criteria" heading, its Blocked by line, then its Done when, Components, Slice and Release fit lines, any "Open for the design" notes and "Conflicts" notes, each as written. Task: its component, size, and its story's Traces to line |
+| Summary | the story's name, or the task's name |
+| Description | story: its summary, its acceptance criteria (grouped, each line tagged with the plan criteria it covers, or the plan's own list when the story has no grouped criteria yet), Done when, What this story relies on, Still open, then Components, Slice, Size, Blocked by (stories by name), anything else it waits on, Release fit, and any "Open for the design" and "Conflicts" notes. Task: its component, size and its story's name |
 | Issue Type | Story for a section, Task for a task row. The breakdown has no epic level, so there are no Epics |
 | Parent | a task's Issue Id of its story. Blank for stories |
 | Story Points | tasks only: S = {s}, M = {m}, L = {l}. The work-breakdown skill gives sizes in days, not points, so this mapping is ours, and sizes are for ordering, not commitments. Stories carry no points so the total is not counted twice |
-| Labels | the requirement, contract, criterion and app IDs in the story's Traces to line (`CAP-nnn.FRn@APP-slug`, `CON-nnn`, `EPC-nnn.ACn`, `FR-nnn`, `APP-slug`), one per Labels column; a task has its story's. A story with an "Open for ..." note also gets `needs-design`, and one with a "Conflict with ..." note gets `conflict` |
+| Labels | the requirement and contract IDs on the story's Traces to line, each epic a criterion belongs to (`EPC-nnn`) and any app ID; then its slice shape (tracer, vertical, layer) and vault slice; `needs-design` for an "Open for ..." note and `conflict` for a "Conflict with ..." note. A task has its story's IDs only |
 | Blocked by | the stories a story is blocked by, from its Blocked by line. Anything else it names (an open question, a gap, an outside party) is in the Description only |
 
 ## Import into Jira
@@ -70,10 +73,10 @@ TOOL = "tools/breakdown_to_tickets.py"
 
 def not_ticketed(stories):
     """Lines for the stories the plan will not build, so the README names them instead of leaving a silent gap."""
-    return [f"{s.id} {s.name}: {s.status}" for s in stories if not s.built]
+    return [f"{s.name}{suffix(s.id, SUB)}: {s.status}" for s in stories if not s.built]
 
 
-def readme_text(source, stories, rows, problems, not_planned, tool=TOOL):
+def readme_text(source, stories, rows, problems, not_planned, tool=TOOL, with_vault=True):
     built = [s for s in stories if s.built]
     counts = f"{len(built)} stories and {sum(len(s.tasks) for s in built)} tasks, {len(rows)} rows."
     prob = ("\n## Problems\n\nThese lines could not be mapped cleanly. Fix the breakdown (or the ticket by hand), then run again.\n\n"
@@ -81,8 +84,9 @@ def readme_text(source, stories, rows, problems, not_planned, tool=TOOL):
     listed = [*not_ticketed(stories), *not_planned]
     notp = ("\n## Not ticketed\n\nThe breakdown lists these as deferred, merged or not planned, so they have no ticket:\n\n"
             + "\n".join(f"- {n}" for n in listed) + "\n") if listed else ""
+    vault_note = "" if with_vault else " This file was written without the vault, so each ticket names what it relies on by ID only."
     return README.format(source=source, counts=counts, s=SIZE_POINTS["S"], m=SIZE_POINTS["M"], l=SIZE_POINTS["L"],
-                         problems=prob, not_planned=notp, tool=tool)
+                         problems=prob, not_planned=notp, tool=tool, vault_note=vault_note)
 
 
 def retire_pointers(stories, problems):
@@ -96,12 +100,26 @@ def retire_pointers(stories, problems):
     return kept, problems
 
 
-def convert_text(text, source, tool=TOOL):
-    """(tickets.csv text, README text, problems) for one plan's text. Problems is empty when every line mapped."""
+def copy_problems(stories):
+    """The flagged lines about ticket copy, as the README lists them."""
+    return [f"{s.id}: {t}" for s in stories if s.built for t, flag in ticketcopy.problems(s) if flag]
+
+
+def app_of_plan(text):
+    return str((breakdown.read(text)["meta"].get("vault") or {}).get("app", ""))
+
+
+def convert_text(text, source, vault=None, app_id="", questions=None, tool=TOOL, keys=None):
+    """(tickets.csv text, README text, problems) for one plan's text. Problems is empty when every line mapped and
+    every story has ticket copy that covers its criteria."""
     stories, not_planned, problems = parse(text)
     stories, problems = retire_pointers(stories, problems)
-    rows = build_rows(stories, Context(stories))
-    return csv_text(rows), readme_text(source, stories, rows, problems, not_planned, tool), problems
+    ctx = Context(stories, vault, app_id or app_of_plan(text), questions, keys)
+    problems = problems + copy_problems(stories)
+    if vault is not None:
+        problems += [f"{s.id}: {t}" for s in stories if s.built for t, flag in ticketrefs.open_problems(vault, s, questions) if flag]
+    rows = build_rows(stories, ctx)
+    return csv_text(rows), readme_text(source, stories, rows, problems, not_planned, tool, with_vault=vault is not None), problems
 
 
 # ------------------------------------------------------------------------------- one ticket, two renderings
@@ -348,26 +366,13 @@ def read_keys(text, story_ids):
 
 # ----------------------------------------------------------------------------------------------- Markdown
 
-def blocked_in_words(story):
-    return story.blocked if story.blocked and not breakdown.NOTHING.match(story.blocked) else "nothing"
-
-
-def story_markdown(story):
-    lines = [f"## {story.id} {story.name}", ""]
-    meta = [("Slice", story.slice_text), ("Size", breakdown.size_total(story)), ("Components", story.components),
-            ("Blocked by", blocked_in_words(story)), ("Traces to", story.traces), ("Release fit", story.fit)]
-    lines += [f"- {label}: {value}" for label, value in meta if value]
-    if story.done_when:
-        lines += ["", f"Done when: {story.done_when}"]
-    if story.criteria:
-        lines += ["", story.criteria_label or "Acceptance criteria:", ""] + [f"- {c}" for c in story.criteria]
+def story_markdown(story, ctx):
+    lines = [f"## {story.name}{suffix(story.id, SUB)}", "", ticket_markdown(story, ctx, SUB).rstrip()]
     if story.tasks:
         lines += ["", "Tasks:", ""]
         for number, row in enumerate(story.tasks, 1):
             size, component = (row[1] if len(row) > 1 else ""), (row[2] if len(row) > 2 else "")
-            lines.append(f"- [ ] {story.id}-T{number} {row[0]} (size {size}; {component})")
-    for note in [*story.open_notes, *story.conflicts]:
-        lines += ["", note]
+            lines.append(f"- [ ] {row[0]} (size {size}; {component}){suffix(f'{story.id}-T{number}', SUB)}")
     return lines + [""]
 
 
@@ -386,12 +391,9 @@ def tracer_id(vault):
     return first.id if first else ""
 
 
-def markdown_text(text, source, vault=None):
-    """The Markdown ticket list for a plan's text: one section per story that will be built, its tasks as a checklist.
-    Grouped by slice: the tracer first, then each slice in the vault's order, then stories that name none, each group
-    in the plan's build order."""
-    plan = breakdown.read(text)
-    stories, _ = retire_pointers(plan["stories"], [])
+def ticket_order(plan, stories, vault):
+    """The stories that will be built, tracer first, then each slice in the vault's order, then stories that name
+    none, each group in the plan's build order. Tickets.md and the Jira file are written in this one order."""
     ranked = {o["id"]: i for i, o in enumerate(plan["order"])}
     order = {s.id: s.order for s in slices.read_slices(vault)} if vault is not None and slices.on_pages(vault) else {}
     first = tracer_id(vault)
@@ -400,13 +402,23 @@ def markdown_text(text, source, vault=None):
         group = order.get(story.slice_id, len(order) + (0 if story.slice_id else 1))
         return (not is_tracer(story, first), group, story.slice_id, ranked.get(story.id, len(ranked)))
 
-    built = sorted((s for s in stories if s.built), key=place)
+    return sorted((s for s in stories if s.built), key=place)
+
+
+def markdown_text(text, source, vault=None, questions=None, keys=None):
+    """The Markdown ticket list for a plan's text: one section per story that will be built, its tasks as a checklist.
+    Grouped by slice: the tracer first, then each slice in the vault's order, then stories that name none, each group
+    in the plan's build order."""
+    plan = breakdown.read(text)
+    stories, _ = retire_pointers(plan["stories"], [])
+    ctx = Context(stories, vault, app_of_plan(text), questions, keys)
+    built = ticket_order(plan, stories, vault)
     title = str(plan["meta"].get("slug", source))
     counts = summary_line(built, 0).rsplit(",", 1)[0]
     lines = [f"# Tickets for {title}", "", f"From `{source}`: {counts}, tracer stories first, then grouped by slice. "
              "Sizes are for ordering, not commitments.", ""]
     for story in built:
-        lines += story_markdown(story)
+        lines += story_markdown(story, ctx)
     skipped = not_ticketed(stories)
     if skipped:
         lines += ["## Not ticketed", ""] + [f"- {s}" for s in skipped] + [""]
@@ -414,6 +426,24 @@ def markdown_text(text, source, vault=None):
     if waves:
         lines += ["## When to create them", "", waves, ""]
     return "\n".join(lines).rstrip() + "\n"
+
+
+def jira_text(text, source, vault, questions=None, keys=None):
+    """tickets-jira.json: each ticket as a Jira tool would create it, in the order of tickets.md. A skill copies each
+    field as it is; it never assembles or retypes a description."""
+    plan = breakdown.read(text)
+    stories, _ = retire_pointers(plan["stories"], [])
+    ctx = Context(stories, vault, app_of_plan(text), questions, keys)
+    built = ticket_order(plan, stories, vault)
+    tasks = lambda s: [{"id": f"{s.id}-T{n}", "summary": row[0], "description": task_description(s, row),
+                        "labels": trace_labels(s),
+                        "points": SIZE_POINTS.get(row[1].strip().upper(), "") if len(row) > 1 else ""}
+                       for n, row in enumerate(s.tasks, 1)]
+    data = {"source": source,
+            "stories": [{"id": s.id, "summary": s.name, "description": ticket_markdown(s, ctx, PARENS),
+                         "labels": ticket_labels(s), "blocked_by": breakdown.blockers(s), "tasks": tasks(s)} for s in built],
+            "not_ticketed": not_ticketed(stories)}
+    return json.dumps(data, indent=2, ensure_ascii=False) + "\n"
 
 
 # ------------------------------------------------------------------------------------------------- the checks
@@ -584,7 +614,7 @@ def check_tracer(stories, order, tracer_id=""):
     return [Finding("slice", sid, "is part of the tracer, but the build order puts another story before it") for sid in late]
 
 
-def check(text, vault, app_id=""):
+def check(text, vault, app_id="", questions=None):
     """Every finding about a plan's text held against the vault. `app_id` defaults to the plan's `vault.app`."""
     from vela.explorer import design_data
     plan = breakdown.read(text)
@@ -598,6 +628,8 @@ def check(text, vault, app_id=""):
     for story in stories:
         if story.built:
             out += check_story(vault, story, known, dates)
+            out += [Finding("ticket", story.id, t, flag) for t, flag in ticketcopy.problems(story)]
+            out += [Finding("open", story.id, t, flag) for t, flag in ticketrefs.open_problems(vault, story, questions)]
     out += check_coverage(vault, app_id, plan, stories)
     out += check_slices(vault, stories, app_id)
     out += check_tracer(stories, plan["order"], tracer_id(vault))

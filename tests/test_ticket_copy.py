@@ -307,3 +307,29 @@ def test_the_keys_file_is_read_strictly():
         tickets.read_keys("S-09 HERON-11\n", {"S-01"})
     with pytest.raises(tickets.TicketsError, match="line 1 of the keys file"):
         tickets.read_keys("HERON-11\n", {"S-01"})
+
+
+from conftest import run  # noqa: E402
+
+
+def test_check_names_a_missing_copy_and_a_stale_one_before_anything_is_written(tmp_path):
+    root = tmp_path / "v"
+    shutil.copytree(VAULT, root)
+    page = root / "docs" / "plan" / "desktop-agent-breakdown.md"
+    page.write_text(page.read_text(encoding="utf-8").replace("Heron records no agreement and reads nothing.",
+                                                             "Heron records nothing and reads nothing."), encoding="utf-8")
+    code, said = run("tickets", "write", "--vault", str(root), "--format", "markdown")
+    lines = said.splitlines()
+    stale = next(i for i, l in enumerate(lines) if "Story S-02 has ticket criteria written for earlier acceptance criteria" in l)
+    flat = next(i for i, l in enumerate(lines) if "Story S-03 has no ticket copy yet" in l)
+    wrote = next(i for i, l in enumerate(lines) if l.startswith("wrote "))
+    assert code == 1 and max(stale, flat) < wrote
+
+
+def test_the_readme_says_what_a_model_wrote_and_what_code_copied():
+    _, readme, problems = tickets.convert_text(plan_text(), "desktop-agent-breakdown.md", heron(), "APP-desktop-agent", questions())
+    assert "No model touched it" not in readme
+    assert "written into the plan in the house voice" in readme and "copied by code from the vault and the design" in readme
+    assert "S-03: has no ticket copy yet" in "\n".join(problems)
+    _, bare, _ = tickets.convert_text(plan_text(), "desktop-agent-breakdown.md")
+    assert "written without the vault" in bare.lower()
