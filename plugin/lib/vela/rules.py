@@ -6,7 +6,7 @@ import datetime
 import re
 
 from vela import allocation, cases, deferrals, flows, handoffwarn, links, override, parse, pending, privaterecord, progress, questions, receipts, readability, readload, releases, render, schema, sizing, slices, sourcerows, trace, wording
-from vela.model import Finding, blocked_units, decided_goal_rows, goal_rows_at, meta_line
+from vela.model import Finding, blocked_units, decided_goal_rows, decided_with_open, goal_rows_at, meta_line
 
 
 def check(vault, today, gate=None, items=(), app=None):
@@ -1160,7 +1160,7 @@ def _gate_four(vault):
             continue
         for link in unknown.facts["Blocks"].links:
             for unit_id, state, page, line in blocked_units(vault, link, unknown.page):
-                if state != "decided":
+                if state != "decided" or unknown.id in decided_with_open(vault, unit_id):
                     continue
                 back = "set it to reopened" if page.meta.get("type") == "epic" else "set it back to assumption"
                 yield _f(page, line, "E316", f"{unit_id} is decided, but open unknown {unknown.id} blocks it.",

@@ -389,8 +389,10 @@ def test_the_grill_ready_vaults_hold_exactly_the_ready_and_blocked_items_the_per
             argv += ["--item", d["item"]]
         found = json.loads(subprocess.run(argv, capture_output=True, text=True, timeout=120).stdout)
         ready = {i["id"] for i in found["items"] if i["ready"]}
-        want = {d["item"] for d in decisions if not d.get("blocked")}
-        assert len(ready ^ want) == 0, name
+        held = {i["id"] for i in found["items"] if i["open_blockers"]}
+        want = {d["item"] for d in decisions if d.get("blocked")}
+        assert ready == {d["item"] for d in decisions}, "an open question is noted, never a reason to turn an item away"
+        assert held == want, name
         assert sum(1 for d in decisions if scale.item_state(vault, d["item"], sim) == "assumption") == 11
 
 

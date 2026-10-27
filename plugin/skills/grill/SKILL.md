@@ -60,7 +60,7 @@ When the lead grills an app's handoff, or `vela ladder` shows an app's pages rea
 Before the next question:
 
 - Record a reason only when the lead gives one.
-- For a contract, ask where the provider stands (here, async with channel and date, asked in the PR, or not consulted and why) and capture it. Capture anyone's disagreement in their words; the item can still be decided.
+- For a contract, ask once where the provider stands (here, async, asked in the PR, or not yet) and capture it if they answer; it isn't required. Capture anyone's disagreement in their words; the item can still be decided.
 - When the yes, or a disagreement, came from someone other than the lead, ask that person once: "May I put your words on the plan, or should I just say that you agreed? Say yes in your own words if I may." Capture the answer with them as origin, `--tag quote-yes`. A yes the lead passes on for them doesn't count; a no is fine, and the plan then says who agreed without their words.
 - Run `vela decide <ID> --yes ^cM --for-lead` (plus `--why ^cK` when given); `--help` lists the flags for a contract, a dissent, an override and an absent owner, and the other kinds it takes (a requirement, a release, a slice, an epic, an app's share).
 - When the decision shapes the whole design (the strategy, an app, a flow), offer a decision record, optional: `vela add adr`.

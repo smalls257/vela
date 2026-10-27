@@ -48,13 +48,25 @@ def test_outside_a_grill_the_yes_is_still_needed(tmp_path):
 def test_outside_a_grill_the_gate_still_runs_and_the_lead_can_set_it_aside(tmp_path):
     root = make_vault(tmp_path)
     in_session_with_modes(root, "boundary")
-    block_con_002(root)
+    edit(root / STOCK, "| unknown_product | | error | refused: no such product | | |\n", "")
     code, out = decide(root, "--yes", "^c02", "--provider", "^c07")
-    assert code == 1 and "GATE-4" in [r["rule"] for r in json.loads(out)["refusals"]]
+    assert code == 1 and "case table" in [r["rule"] for r in json.loads(out)["refusals"]]
     git_init(root)
     code, out = decide(root, "--yes", "^c02", "--provider", "^c07",
-                       "--override", "GATE-4", "--reason-from", "^c06", "--until", "2026-11-01")
+                       "--override", '"case table"', "--reason-from", "^c06", "--until", "2026-11-01")
     assert code == 0, out
+
+
+def test_an_open_question_under_the_item_is_noted_and_never_stops_the_yes(tmp_path):
+    root = make_vault(tmp_path)
+    in_session_with_modes(root, "boundary")
+    block_con_002(root)
+    git_init(root)
+    code, out = run("decide", "CON-002", "--yes", "^c02", "--vault", str(root), "--today", TODAY, "--for-lead")
+    assert code == 0, out
+    assert "still has an open question under it" in out and "UNK-003" not in out, out
+    page = (root / STOCK).read_text(encoding="utf-8")
+    assert "- **Decided with open:** UNK-003" in page and "**Override:**" not in page
 
 
 def owned_by_the_stock_team(root):

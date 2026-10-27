@@ -196,18 +196,10 @@ def holds_up(vault, ident):
 
 
 def missing_thing(vault, verdict, owners, resolver):
-    """The one thing in the way, with who owes it and by when. Only a question carries both; for any other rule the
-    owner of the item owes it and no date is known."""
+    """The one thing in the way, with who owes it. The owner of the item owes it and no date is known."""
     reason = verdict.reasons[0]
     out = {"rule": reason.rule, "plain": resolver.plain(reason.plain), "fix": resolver.plain(reason.fix),
            "owed_by": list(owners), "ask": "", "due": "", "question": ""}
-    blocking = vault.item(reason.blocked_by[0]) if reason.blocked_by else None
-    if blocking is not None:
-        out["owed_by"] = list(_handles(blocking.fact("Owner")) or owners)
-        out["ask"] = resolver.plain(blocking.fact("Ask"))
-        out["question"] = resolver.plain(blocking.fact("Question"))
-        due = blocking.fact("Ask by")
-        out["due"] = due if progress.is_date(due) else ""
     return out
 
 

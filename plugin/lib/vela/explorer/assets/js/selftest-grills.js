@@ -13,6 +13,8 @@
   const shownIds = () => cards().map((c) => c.dataset.grill).sort().join(",");
   const idsOf = (list) => list.map((r) => r.id).sort().join(",");
   const head = () => { const h2 = $("#panel-body .p-head h2"); return h2 ? h2.textContent.trim() : ""; };
+  // a requirement opens in its own focus view, which has its own sections, so a grill's panel is checked on another kind
+  const isRequirement = (r) => (ent(r.key) || {}).kind === "requirement";
   const sections = () => $$("#panel-body .p-sec h3").map((x) => x.textContent.replace(/\s+\d+$/, "").trim());
   const nums = (sel) => $$(sel).map((x) => x.textContent.replace(/\D+/g, ""));
   const chipN = (scope) => { const c = $(`.g-scope[data-scope="${scope}"] .g-n`); return c ? +c.textContent : -1; };
@@ -107,7 +109,7 @@
     ok(!parts.length, "grills: each card has an owner line; a said-yes card shows no words, a one-away card says what it waits on and by when", `grills: ${parts.join("; ")}`);
 
     // a card opens in the right-hand panel
-    const pick = rows.find((r) => r.group === "ready") || rows[0];
+    const pick = rows.find((r) => r.group === "ready" && !isRequirement(r)) || rows[0];
     click($(`.g-card[data-grill="${pick.id}"] .g-open`)); await tick();
     ok(head() === pick.name && Grills.st.open === `grill:${pick.id}` && $(`.g-card.on`).dataset.grill === pick.id, `grills: clicking ${shorten(pick.name, 36)} opens it in the right-hand panel and marks the card`, `grills: panel head "${head()}", open ${Grills.st.open}`);
     const want = ["What the grill settles", "Where it stands", "What it holds up", "Owner", "Asked to join", "Prompt for Claude"], got = sections();
@@ -147,7 +149,8 @@
     ok(Grills.st.copied === batch, "grills: Copy batch prompt copies exactly the batch shown", "grills: the batch copy differs");
     click($(".g-unbatch")); await tick();
     ok($$(".g-batch-list li").length === trio.length - 1, "grills: Remove takes one grill out of the batch", `grills: ${$$(".g-batch-list li").length} left`);
-    click($("[data-act=clear-batch]")); await tick();
+    const clear = $("[data-act=clear-batch]");  // a batch of one is already empty after Remove
+    if (clear) { click(clear); await tick(); }
     ok(!$(".g-batch") && !Grills.st.batch.length, "grills: Clear the batch empties it", "grills: the batch is still there");
     DetailsPanel.clear();
 
@@ -162,7 +165,7 @@
     }
 
     // an item's own details: a small Ready for a grill line, only when a grill could decide it
-    const ready = rows.find((r) => r.group !== "one-away" && ent(r.key)), away = rows.find((r) => r.group === "one-away" && ent(r.key));
+    const ready = rows.find((r) => r.group !== "one-away" && ent(r.key) && !isRequirement(r)), away = rows.find((r) => r.group === "one-away" && ent(r.key));
     Nav.home(); await tick();
     if (ready) {
       go(ready.key, { reset: true }); await tick();

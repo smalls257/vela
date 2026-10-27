@@ -17,7 +17,7 @@ from vela.askwho import ACRONYMS, HANDLE, human, resolve_role, who_to_ask  # noq
 from .record import plain, refs_in
 
 NOTHING = re.compile(r"^\s*nothing", re.I)
-HISTORY_LABELS = ("Decision", "Options considered", "Decided by", "Confirmed by", "Dissent", "Override")
+HISTORY_LABELS = ("Decision", "Options considered", "Decided by", "Confirmed by", "Dissent", "Override", schema.DECIDED_WITH_OPEN_LABEL)
 
 
 def first_prose(page, after_line):

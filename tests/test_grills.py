@@ -23,8 +23,9 @@ def test_each_group_holds_the_right_item_and_two_things_away_is_left_out(tmp_pat
     _, found = load(tmp_path)
     assert found["CON-013"].group == grills.SAID_YES
     assert found["CON-010"].group == grills.READY
-    assert found["CON-011"].group == grills.ONE_AWAY
-    assert "CON-012" not in found  # no options and no case table: two things away is the plan, not a queue
+    assert found["CON-011"].group == grills.READY, "an open question under it is noted when it is settled, not a wait"
+    assert found["CON-012"].group == grills.ONE_AWAY, "no options are asked for a contract, so only its case table is missing"
+    assert found["CON-012"].missing["rule"] == "case table"
     assert [g.group for g in found.values()] == sorted((g.group for g in found.values()), key=grills.GROUPS.index)
 
 
@@ -36,13 +37,10 @@ def test_a_kept_yes_carries_the_date_and_the_session_but_not_the_words(tmp_path)
     assert found["CON-010"].yes == {}
 
 
-def test_the_one_missing_thing_says_who_owes_it_and_by_when(tmp_path):
-    _, found = load(tmp_path)
-    missing = found["CON-011"].missing
-    assert missing["rule"] == "GATE-4"
-    assert missing["owed_by"] == ["@mini-qa"] and missing["due"] == "2026-02-01"
-    assert "test till" in missing["plain"]
-    assert found["CON-010"].missing == {}
+def test_an_item_with_an_open_question_is_ready_and_missing_nothing(tmp_path):
+    vault, found = load(tmp_path)
+    assert found["CON-011"].missing == {} and found["CON-010"].missing == {}
+    assert gates.verdict(vault, None, "CON-011", TODAY).open_blockers
 
 
 def test_the_owner_is_the_items_own_unless_a_grill_owner_is_set(tmp_path):

@@ -1,4 +1,5 @@
 """Pages to a vault model, built once. Pure: no disk, clock or network."""
+import re
 from dataclasses import dataclass, field
 
 from vela import schema, sourcerows
@@ -6,6 +7,8 @@ from vela import schema, sourcerows
 # `catalog.EMPTY` inside build() would read the argument, not the module.
 from vela.catalog import EMPTY as EMPTY_CATALOG
 from vela.parse import links_in
+
+UNKNOWN_ID = re.compile(r"\bUNK-\d+\b")
 
 
 @dataclass(frozen=True, order=True)
@@ -290,6 +293,24 @@ def blocked_units(vault, link, from_page):
             yield contract.id, contract.fact("State"), contract.page, contract.line
     for row_id, line in decided_goal_rows(target):
         yield row_id, "decided", target, line
+
+
+def decided_with_open(vault, unit_id):
+    """The UNK IDs on the unit's **Decided with open:** bullet: the open questions its decision noted. Only these are
+    excused from E316; a question opened after the decision is not here."""
+    item = vault.item(unit_id)
+    if item is not None:
+        page, scope = item.page, unit_id
+    else:
+        pages = vault.by_id.get(unit_id) or ([vault.row_ids[unit_id][0]] if unit_id in vault.row_ids else [])
+        if not pages:
+            return frozenset()
+        page, scope = pages[0], ""
+    out = set()
+    for bullet in page.bullets:
+        if bullet.label == schema.DECIDED_WITH_OPEN_LABEL and bullet.item == scope and not bullet.generated:
+            out.update(UNKNOWN_ID.findall(bullet.value))
+    return frozenset(out)
 
 
 def open_unknowns(vault):

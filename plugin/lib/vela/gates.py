@@ -12,20 +12,22 @@ What is judged, and why each rule is the grill skill's own (the why moves with t
 - **GATE-1, the stage.** An app's item (the app page, its runtime page, a contract on its page) is grilled once the app
   is at `target` or later (`progress.in_grill_stage`): before then the app's parts are not read back, so a decision
   would be about a shape nobody confirmed. Initiative-level items pass.
-- **GATE-2, a preferred option.** The item is at `assumption` with an `**Options considered:**` bullet, or an epic is at
+- **GATE-2, a preferred option, asked only on the strategy and a decision record** (`SHAPE_PAGE_IDS`,
+  `SHAPE_PAGE_TYPES`): every other kind settles without options. The item is at `assumption` with an `**Options considered:**` bullet, or an epic is at
   `draft` or `reopened`: a decision picks between options Shape wrote down, it does not invent them. An item already
   `decided` (or a `fact`) is said so, since reopening is a change of mind the lead chooses. A concern page, a table row,
   an unknown or a risk carries no option bullet, so GATE-2 is left to the skill for those (a concern cell passes when the
   lead states what the initiative does for the app; code can't hear that).
-- **GATE-4, open questions.** No open unknown's `**Blocks:**` holds the item, by `model.blockers`, which reads the same
-  `model.blocked_units` E316 reads: a link to a page blocks every item on it, so linking the page cannot dodge the gate.
+- **Open questions are noted, not refused.** `model.blockers` reads the same `model.blocked_units` E316 reads: a link to
+  a page blocks every item on it, so linking the page cannot dodge it. The verdict lists them as `open_blockers`, the
+  lead hears the question once, and `vela decide` writes them on the item's `**Decided with open:**` bullet, which is
+  the only thing E316 excuses.
 - **The case table.** A contract is not decided without its case table with an error case among its rows, or it is a
   Paper Tiger: decided while nobody said what happens when the call goes wrong (`cases.case_table`, as W380 and W385).
   A slice's joins need theirs too, because the flow check and the stubs read them.
 - **The flow check.** A flow or a slice is not ready while its recorded flow check (`flowcheck.standing`) has a finding,
-  is "not fully checked", or has not been run on it as it is now. Never a pass by default (R0), and no override covers
-  "not fully checked": a check that did not finish proved nothing to set aside. Flow-check findings are set aside by the
-  dated overrides the checker itself reads, which its standing already applies.
+  is "not fully checked", or has not been run on it as it is now. Never a pass by default (R0), but the lead can settle
+  anyway: an `**Override:**` naming `"flow check"` on the slice lets the gate through, like any other rule.
 
 GATE-3 (the agenda's yes) stays the skill's: code can't hear a yes. The owner's yes is no gate: the lead's yes settles
 any item, and a yes that isn't the owner's is written as `Decided by ... on behalf of` (`decide_writes.stand_in_owners`).
@@ -49,13 +51,15 @@ from vela import allocation, cases, closegate, ladder, model, override, progress
 from vela.flowcheck import standing as flowstanding
 
 FLOW_CHECK, CASE_TABLE = "flow check", "case table"
-# The model's route when the lead lives with a finding: the command, never the Override bullet's grammar.
-FLOW_OVERRIDE_ROUTE = ('If the lead lives with a finding, record it with vela apply (kind override, the slice page, rule '
-                       '"flow check") with their reason and an end date; "not fully checked" takes none.')
 CASE_TABLE_RULE = '"case table"'
-OVERRIDE_NAMES = {"GATE-1": ("GATE-1",), "GATE-2": ("GATE-2",), "GATE-4": ("GATE-4", "E316"),
-                  CASE_TABLE: (CASE_TABLE_RULE,)}
-ROUTE_NAMES = {"GATE-1": "GATE-1", "GATE-2": "GATE-2", "GATE-4": "GATE-4", CASE_TABLE: CASE_TABLE_RULE}
+FLOW_CHECK_RULE = '"flow check"'
+OVERRIDE_NAMES = {"GATE-1": ("GATE-1",), "GATE-2": ("GATE-2",), CASE_TABLE: (CASE_TABLE_RULE,),
+                  FLOW_CHECK: (FLOW_CHECK_RULE,)}
+ROUTE_NAMES = {"GATE-1": "GATE-1", "GATE-2": "GATE-2", CASE_TABLE: CASE_TABLE_RULE, FLOW_CHECK: FLOW_CHECK_RULE}
+OPEN_QUESTION_NAMES = ("GATE-4", "E316")  # an override naming either already excuses the question; none is asked for now
+# Only these records weigh options: the strategy and a decision record. Every other kind settles without them.
+SHAPE_PAGE_IDS = ("solution-strategy",)
+SHAPE_PAGE_TYPES = ("decision",)
 NO_OPTION_KINDS = ("unknown", "risk", "party", "stored-value")
 EPIC_OPEN = ("draft", "reopened")
 
@@ -70,16 +74,15 @@ OWNER_NAME = re.compile(r"\(([^)]+)\)")
 @dataclass(frozen=True)
 class Reason:
     """One condition the item fails. `plain` and `fix` are for the lead (names, no IDs); `next` is the model's step."""
-    rule: str  # "GATE-1", "GATE-2", "GATE-4", "case table" or "flow check"
+    rule: str  # "GATE-1", "GATE-2", "case table" or "flow check"
     plain: str
     fix: str
     next: str = ""
-    blocked_by: tuple = ()  # the open unknowns, for GATE-4
     ask: str = ""  # the one question for the lead, when one answer settles this reason
 
     def as_json(self):
         return {"rule": self.rule, "plain": self.plain, "fix": self.fix, "next": self.next,
-                "blocked_by": list(self.blocked_by), "ask": self.ask}
+                "ask": self.ask}
 
 
 @dataclass(frozen=True)
@@ -92,6 +95,7 @@ class Verdict:
     owed: tuple = ()  # copy IDs still owed on the item, not answered in the record
     questions: tuple = ()  # the owed copies' questions, in the same order
     route: str = ""  # the `vela decide` flags that would decide it anyway, "" when ready or when nothing can
+    open_blockers: tuple = ()  # UNK IDs of open questions under the item: settling notes them, never refuses
 
     @property
     def fix(self):
@@ -99,7 +103,8 @@ class Verdict:
 
     def as_json(self):
         return {"id": self.id, "name": self.name, "ready": self.ready, "reasons": [r.as_json() for r in self.reasons],
-                "fix": self.fix, "override": self.route, "overridden": list(self.overridden), "owed": list(self.owed)}
+                "fix": self.fix, "override": self.route, "overridden": list(self.overridden), "owed": list(self.owed),
+                "open_blockers": list(self.open_blockers)}
 
 
 # ------------------------------------------------------------------ where an item sits
@@ -217,6 +222,8 @@ def option_reason(vault, found, name):
                       "/vela:epics")
     if state == "assumption" and options:
         return None
+    if found.page.id not in SHAPE_PAGE_IDS and found.page.type not in SHAPE_PAGE_TYPES:
+        return None  # only the strategy and a decision record weigh options
     if not sizing.of(vault).needs(sizing.Need.OPTIONS_BEFORE_DECIDING):
         # Below medium the gate asks the one question; the lead's answer is recorded by `vela decide --options-none`,
         # so the skill never decides the route (the gate's reason carries it).
@@ -230,24 +237,13 @@ def option_reason(vault, found, name):
                                                "your call.", f"/vela:shape {found.id}")
 
 
-def unknown_reason(vault, found, name, today, blocked):
+def open_blockers(vault, found, today, blocked):
+    """The open questions under the item that no covering override excuses, in unknown-ID order."""
     blockers = blocked.get(found.id, [])
     if not blockers:
-        return None, ()
-    covering, ended = _covering(vault, found, "GATE-4", today)
-    if covering:
-        return None, tuple(covering)
-    first = blockers[0]
-    question = first.fact("Question") or first.name
-    owner = OWNER_NAME.search(first.fact("Owner"))
-    who = owner.group(1) if owner else first.fact("Owner")
-    more = f" ({len(blockers) - 1} more open question{'' if len(blockers) == 2 else 's'} hold it up too.)" \
-        if len(blockers) > 1 else ""
-    waits = f"it waits for {who}" if who else "it waits until someone owns that question"
-    fix = (f"Do you know the answer? If not, {waits}, or you can decide {name} anyway until a date you pick.")
-    return Reason("GATE-4", f"{name} waits on an open question nobody has answered yet: {question}{more}",
-                  _ended(fix, ended), "ask the lead; else the unknown's owner and ask-by date, or a research task",
-                  tuple(u.id for u in blockers)), ()
+        return []
+    mine = [o for o in override.valid_overrides(found.page, found.scope) if set(o.rules) & set(OPEN_QUESTION_NAMES)]
+    return [] if any(override.covers(o, today) for o in mine) else blockers
 
 
 def case_problem(vault, contract):
@@ -303,25 +299,27 @@ def judged_standings(keys, flows):
     return [(k, s) for k, s in got[1:] if s is not None and s.state in HOLDS]
 
 
-def flow_reason(vault, found, name, flows):
+def flow_reason(vault, found, name, flows, today):
     keys = flow_keys(vault, found.id)
     if not keys:
-        return None
+        return None, ()
+    covering, _ = _covering(vault, found, FLOW_CHECK, today)
+    if covering:
+        return None, tuple(covering)
     judged = judged_standings(keys, flows or {})
     command = f'vela check-slice "{keys[0]}"'
     if not judged:
         return Reason(FLOW_CHECK, f"The flow check hasn't been run on {name} as it stands now, so nothing shows it works.",
-                      "Run the flow check on it, then read each finding out with its owners and settle it.", command)
+                      "Run the flow check on it, then read each finding out with its owners and settle it.", command), ()
     failing = [(k, s) for k, s in judged if not s.passed]
     if not failing:
-        return None
+        return None, ()
     _, worst = failing[0]
     said = ("is not fully checked: the check did not finish, so it proved nothing yet" if worst.state == flowstanding.NOT_FULLY
             else f"has {worst.words}" + (f" ({', '.join(worst.open)})" if worst.open else ""))
     return Reason(FLOW_CHECK, f"The flow check of {name} {said}.",
-                  "I'd read each finding out with its owners and settle it. If you're happy to live with one for "
-                  "now, I'll note that with an end date; a check that didn't finish can't be waved through.",
-                  f"{command}. {FLOW_OVERRIDE_ROUTE}")
+                  "I'd read each finding out with its owners and settle it. Or I can settle it anyway and note your "
+                  "reason.", command), ()
 
 
 def slice_reasons(vault, found, name, today):
@@ -392,12 +390,13 @@ def verdict(vault, record, item, today, flows=None):
             overridden.extend(covering)
         else:
             reasons.append(Reason(judged.rule, judged.plain, _ended(judged.fix, ended), judged.next, ask=judged.ask))
-    for judged, covering in (unknown_reason(vault, found, name, today, blocked), case_reason(vault, found, name, today)):
-        overridden.extend(covering)
-        if judged is not None:
-            reasons.append(judged)
+    judged, covering = case_reason(vault, found, name, today)
+    overridden.extend(covering)
+    if judged is not None:
+        reasons.append(judged)
     reasons.extend(slice_reasons(vault, found, name, today))
-    flow = flow_reason(vault, found, name, flows)
+    flow, covering = flow_reason(vault, found, name, flows, today)
+    overridden.extend(covering)
     if flow is not None:
         reasons.append(flow)
     patterns = answered(record)
@@ -408,12 +407,13 @@ def verdict(vault, record, item, today, flows=None):
             unique.append(o)
     return Verdict(item, name, not reasons, tuple(reasons), tuple(o.as_dict() for o in unique),
                    tuple(d.copy.id for d in owed), tuple(d.copy.entry.question for d in owed),
-                   route(vault, item, [r.rule for r in reasons], today) if reasons else "")
+                   route(vault, item, [r.rule for r in reasons], today) if reasons else "",
+                   tuple(u.id for u in open_blockers(vault, found, today, blocked)))
 
 
 # ------------------------------------------------------------------ what the command says
 
-def lines_for(found, resolver):
+def lines_for(found, resolver, vault):
     """[say.Line] for one item: the text line carries IDs and rule names (for files and the skill), the plain one is
     what the lead hears, every ID said by its name."""
     plain = resolver.plain
@@ -425,6 +425,12 @@ def lines_for(found, resolver):
                         plain=f"{found.name} isn't ready to decide yet. {plain(first.plain)} {plain(first.fix)}")]
         out += [say.Line(f"{found.id}: also ({r.rule}): {r.plain}", plain=f"Also: {plain(r.plain)}")
                 for r in found.reasons[1:]]
+    if found.open_blockers:
+        first = vault.item(found.open_blockers[0])
+        question = (first.fact("Question") or first.name) if first is not None else found.open_blockers[0]
+        out.append(say.Line(f"{found.id}: open question {', '.join(found.open_blockers)}",
+                            plain=f"{found.name} still has an open question under it: {question}. "
+                                  "Settling notes it as still open."))
     for o in found.overridden:
         until = f" until {o['until']}" if o.get("until") else ""
         out.append(say.Line(f"{found.id}: overridden: {', '.join(o['rules'])} by {o['by']} on {o['date']}{until}",
@@ -444,7 +450,7 @@ def report(vault, verdicts, notes=()):
     verdicts = sorted(verdicts, key=lambda v: not v.ready)  # ready ones first: the grill leads with one
     lines = [say.Line(head, plain=head)] if len(verdicts) > 1 else []
     for found in verdicts:
-        lines += lines_for(found, resolver)
+        lines += lines_for(found, resolver, vault)
     lines += [say.Line(n, plain=resolver.plain(n)) for n in notes]
     asked = release_date_ask(vault)
     if asked:

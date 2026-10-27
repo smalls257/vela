@@ -257,7 +257,7 @@ def test_grill_defines_acceptance_and_the_owner_rule():
     assert 'Silence, "ok", "next", "sure" with nothing else, or a change of subject do not count as acceptance.' in grill
     assert "When the lead says it's decided, it is." in grill and "read the final wording back" not in grill
     assert "says yes in person" in grill
-    assert "ask where the provider stands" in grill
+    assert "ask once where the provider stands" in grill and "it isn't required" in grill
     # rule deletion: `vela decide` prints the already-decided answer and the reopen choice
     for gone in ("it is already decided. Say so", "change of mind in the Changes table", "Exit 3", "Exit 1",
                  "It runs the gate again, writes everything the decision needs"):
@@ -330,8 +330,6 @@ def test_flow_check_line_is_the_commands_not_the_skills():
     assert "'not fully checked' takes no override" not in grill
     assert "not ready while `vela check-slice` reports a finding on it" not in grill
     assert "It moves to `planned` only when every flow it names" not in grill
-    from vela import gates
-    assert "vela apply (kind override, the slice page" in gates.FLOW_OVERRIDE_ROUTE
 
 
 def test_grill_names_only_commands_that_exist():

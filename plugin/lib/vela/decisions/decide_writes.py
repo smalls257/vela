@@ -285,25 +285,22 @@ def stand_in_owners(item, view, record, target):
 
 
 def gate_refusals(item, view, record, target):
-    """The grill gate's verdict on the target, each reason the lead didn't set aside refused. A flow check that did
-    not pass is never set aside here: its findings are covered by the dated overrides the checker itself reads
-    (`vela conventions "Flow check"`), which its standing already applies, and "not fully checked" has none."""
+    """The grill gate's verdict on the target, each reason the lead didn't set aside refused. Every rule can be set
+    aside, the flow check included. An open question is never a reason: `history_bullets` notes it."""
     out = []
     if not target.gate:
         return out
     found = gates.verdict(view.model, record.text, target.gate, textedit.today(view), getattr(view, "flows", None))
     named = rules_set_aside(item)
     for reason in found.reasons:
-        route = gates.ROUTE_NAMES.get(reason.rule)
-        if route is not None and route in named:
+        route = gates.ROUTE_NAMES[reason.rule]
+        if route in named:
             continue
         if (item.get("stated_in") or options_given(item)) and reason.rule == STATED_SKIPS:
             continue  # a source states it, the pick is written with it, or the lead said there was only this one
-        override = found.route if route is not None else \
-            "none from decide: settle each finding, or the dated flow-check override the checker reads"
         # The gate's fix is my recommendation to the lead; an event rule is set aside with a reason and no end date.
-        waiver = None if route is None or overrides.is_standing(route) else EVENT_WAIVER
-        out.append(textedit.refusal(reason.rule, reason.plain, reason.fix, override=override, recommend=reason.fix,
+        waiver = None if overrides.is_standing(route) else EVENT_WAIVER
+        out.append(textedit.refusal(reason.rule, reason.plain, reason.fix, override=found.route, recommend=reason.fix,
                                     waiver=waiver))
     return out
 
@@ -345,6 +342,20 @@ def receipt(item, view, record):
                                    speaker(capture, view.lead), words, item.get("stated_in"))
 
 
+def open_blockers_of(view, record, target):
+    """The UNK IDs of the open questions under the target, sorted: what settling notes instead of refusing."""
+    if not target.gate:
+        return []
+    found = gates.verdict(view.model, record.text, target.gate, textedit.today(view), getattr(view, "flows", None))
+    return sorted(found.open_blockers)
+
+
+def _decided_with_open_bullets(view, record, target):
+    """The open questions under the target, noted on the page so E316 excuses these and no question opened later."""
+    blockers = open_blockers_of(view, record, target)
+    return [f"- **{vault_schema.DECIDED_WITH_OPEN_LABEL}:** {', '.join(blockers)}"] if blockers else []
+
+
 def history_bullets(item, view, record, target, decision=True):
     """The bullets a decision adds under `## History`, in CONVENTIONS' order."""
     today = textedit.today(view)
@@ -358,6 +369,7 @@ def history_bullets(item, view, record, target, decision=True):
         see = record.id if words else ""
         out.append(f"- **Dissent:** {receipts.dissent_value(speaker(capture, view.lead), today, words, see=see)}")
     out += _override_bullets(item, view, record, target)
+    out += _decided_with_open_bullets(view, record, target)
     owners = stand_in_owners(item, view, record, target)
     if owners:
         out.append(f"- **Decided by:** {item['by']}, on behalf of {' '.join(owners)}")

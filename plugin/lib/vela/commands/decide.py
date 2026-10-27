@@ -329,7 +329,22 @@ def file_item(item, root, staged, record, reader):
             return failed(f"wrote {', '.join(written)} but the commit failed: {exc}",
                           "I wrote it down, but couldn't commit it; the changes are on disk.")
     owners = decide_writes.stand_in_owners(item, staged, record, target)
-    return report(item, target, state, written, commit, reader, owners)
+    return report(item, target, state, written, commit, reader, owners, notes_on(item, staged, record, target))
+
+
+def notes_on(item, view, record, target):
+    """What settling noted without asking: [(text, plain)] for each open question left open and a contract with nobody
+    named to test it. The lead hears it once, in the answer; the page already says it."""
+    if item.get("reopen"):
+        return []
+    notes = []
+    open_ones = decide_writes.open_blockers_of(view, record, target)
+    if open_ones:
+        notes.append((f"noted open: {', '.join(open_ones)}", f"{target.name} still has an open question under it; "
+                                                              "I noted that it was decided with it open."))
+    if target.kind == "contract" and not view.model.item(target.id).fact("Tested by"):
+        notes.append(("tested by: not yet", "Nobody has said who tests it yet, so the page says not yet."))
+    return notes
 
 
 def set_aside_words(item):
@@ -350,7 +365,7 @@ def rule_words(rule):
     return f'the "{meaning}" check' if meaning else "a check"
 
 
-def report(item, target, state, written, commit, reader, owners=()):
+def report(item, target, state, written, commit, reader, owners=(), notes=()):
     said = "reopened" if item.get("reopen") else state
     lines = [say.Line(f"{said} {target.id}: wrote {', '.join(written)}" + (f"; commit {commit}" if commit else ""),
                       plain=f"{target.name} is {said}." + set_aside_words(item))]
@@ -358,6 +373,7 @@ def report(item, target, state, written, commit, reader, owners=()):
         lines.append(say.Line(f"decided on behalf of {' '.join(owners)}",
                               plain=f"{target.name} is {' and '.join(owners)}'s; I noted you settled it for them. "
                                     "They can confirm it or challenge it."))
+    lines += [say.Line(text, plain=plain) for text, plain in notes]
     if reader:
         lines.append(say.Line("read copy: nothing committed (no git runs here); the decision is pending the owner's "
                               "approval.", plain="This is your copy, so nothing was committed, and the owner sees "

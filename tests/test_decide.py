@@ -274,23 +274,16 @@ def git_log(root):
 
 # ------------------------------------------------------------------ first callers
 
-def test_gate4_fail_refused_without_override(tmp_path):
+def test_a_decision_with_an_open_question_notes_it(tmp_path):
     root = make_vault(tmp_path)
     block_con_002(root)
     writes, refusals = plan(root, [item()])
-    assert writes == {} and "GATE-4" in rules(refusals), refusals
-    said = next(r for r in refusals if r.rule == "GATE-4")
-    assert "How old may the stock count be" in said.plain and "UNK-003" not in said.plain
-    assert "GATE-4" in said.override and "until" in said.override, "the route carries a suggested end date"
-    assert said.override.startswith("vela decide CON-002 ... --override GATE-4 --reason-from ^cR --until 20"), \
-        said.override
-    assert "- **Override:**" not in said.override, "the refusal names the flags, never the bullet to write by hand"
+    assert refusals == [], "an open question is noted, not refused"
+    bullets = history_of(writes[STOCK], "CON-002")
+    assert "- **Decided with open:** UNK-003" in bullets
+    assert not any(b.startswith("- **Override:**") for b in bullets), "noting it needs no override"
     overridden = filed(root, [item(overrides=[{"rules": ["GATE-4"], "reason": "^c06", "until": "2026-11-01"}])])
-    bullets = history_of(overridden[STOCK], "CON-002")
-    assert "- **Override:** GATE-4 by @priya on 2026-10-20 until 2026-11-01: Go ahead; the owner answers by Friday." \
-        in bullets, bullets
-    _, undated = plan(root, [item(overrides=[{"rules": ["GATE-4"], "reason": "^c06"}])])
-    assert "override-until" in rules(undated), "a standing override with no end is refused, a date offered"
+    assert "- **Decided with open:** UNK-003" in history_of(overridden[STOCK], "CON-002")
 
 
 def test_why_copied_verbatim(tmp_path):
@@ -344,13 +337,14 @@ def test_slice_planned_requires_flowcheck_or_dated_override(tmp_path):
     _, unchecked = plan(root, [item("SLC-001")])
     assert "flow check" in rules(unchecked), "no recorded check is never a pass"
     partial = {"SLC-001": standing.Standing(standing.NOT_FULLY, "not fully checked", "2026-10-19")}
-    _, still = plan(root, [item("SLC-001", overrides=[{"rules": ['"flow check"'], "reason": "^c06"}])], partial)
-    assert "flow check" in rules(still), "no override covers a check that did not finish"
+    _, still = plan(root, [item("SLC-001")], partial)
+    assert "flow check" in rules(still) and '--override \'"flow check"\'' in still[0].override, still
+    _, waived = plan(root, [item("SLC-001", overrides=[{"rules": ['"flow check"'], "reason": "^c06"}])], partial)
+    assert "flow check" not in rules(waived), "the lead's word sets aside a check that did not finish"
     findings = {"SLC-001": standing.Standing(standing.FINDINGS, "1 finding", "2026-10-19", ("invariant broken",))}
     _, found = plan(root, [item("SLC-001")], findings)
     said = next(r for r in found if r.rule == "flow check")
-    assert "end date" in said.fix, "a finding is set aside by the dated flow-check override, which its standing reads"
-    # The checker's standing applies a dated override that covers every finding, so the slice then stands as passed.
+    assert "settle it anyway" in said.fix, "a finding can be settled anyway too"
     passed = {"SLC-001": standing.Standing(standing.PASSED, "passed", "2026-10-19")}
     writes = filed(root, [item("SLC-001")], passed)
     page = writes[SLICE]
@@ -431,14 +425,26 @@ def test_reopen_writes_changes_row(tmp_path):
     assert code == 1, "a bare 'ok' is no reason to reopen, and the item isn't decided any more anyway"
 
 
-def test_contract_needs_provider_capture(tmp_path):
+def test_a_contract_settles_without_a_provider_capture(tmp_path):
     root = make_vault(tmp_path)
-    _, refusals = plan(root, [item(provider=None)])
-    assert "decide-provider-stands" in rules(refusals), refusals
+    writes = filed(root, [item(provider=None)])
+    assert "decide-provider-stands" not in rules(plan(root, [item(provider=None)])[1])
+    assert "- **Tested by:** consumer tests in the shop pipeline." in writes[STOCK], "a Tested by already there stays"
     _, missing = plan(root, [item(provider="^c99")])
-    assert "consent-capture-missing" in rules(missing)
-    reason = [{"rules": ['"a decided contract records where the provider stands"'], "reason": "^c06"}]
-    filed(root, [item(provider=None, overrides=reason)])
+    assert "consent-capture-missing" in rules(missing), "a capture the lead did cite must exist"
+
+
+def test_a_contract_with_no_tested_by_says_not_yet(tmp_path):
+    root = make_vault(tmp_path)
+    edit(root / STOCK, "- **Tested by:** consumer tests in the shop pipeline.\n", "")
+    writes = filed(root, [item(provider=None)])
+    block = writes[STOCK].split("### CON-002")[1].split("\n### ")[0]
+    assert "- **State:** decided\n- **Tested by:** not yet\n" in block, block
+    after = tmp_path / "after"
+    shutil.copytree(root, after)
+    (after / STOCK).write_text(writes[STOCK], encoding="utf-8")
+    _, out = run("check", "--vault", str(after), "--today", TODAY)
+    assert "E318" not in out, out
 
 
 def test_allocation_row_decided(tmp_path):

@@ -182,6 +182,8 @@ WHY_LABEL = "Why"  # the lead's own reasons for a decision, written by the Grill
 OPTIONS_LABEL = "Options considered"  # what Shape recorded: the picked option, and each rejected one with its reason
 # The user's word over a rule, and a decision made on an absent owner's behalf. Allowed on any item or page.
 OVERRIDE_LABEL, DECIDED_BY_LABEL, CONFIRMED_BY_LABEL = "Override", "Decided by", "Confirmed by"
+# The open questions that blocked an item when the lead settled it anyway: UNK IDs, noted so E316 excuses only these.
+DECIDED_WITH_OPEN_LABEL = "Decided with open"
 OVERRIDE_LABELS = (OVERRIDE_LABEL, DECIDED_BY_LABEL, CONFIRMED_BY_LABEL)
 # A reader's decision or override, awaiting the owner's review. Not an override: it sets no rule aside.
 PENDING_LABEL = "Pending approval"
@@ -279,7 +281,8 @@ ALLOCATION_HEADER = ("Requirement", "Share", "Through", "State")
 # A page's history sits at its end under this heading, so the page opens with what is true now. "#### <ID>" under
 # it holds an item's history. HISTORY_LABELS are the bullets that belong there.
 HISTORY_HEADING = "History"
-HISTORY_LABELS = ("Decision", WHY_LABEL, "Override", "Decided by", "Confirmed by", "Options considered", "Dissent")
+HISTORY_LABELS = ("Decision", WHY_LABEL, "Override", "Decided by", "Confirmed by", "Options considered", "Dissent",
+                  DECIDED_WITH_OPEN_LABEL)
 CONTAINER_STATES = ("assumption", "confirmed", "unchanged", "retired")
 CELLS_HEADER = ("App", "State")
 CELL_STATES = ("addressed", "unchanged", "n/a", "unknown", "unexamined")
