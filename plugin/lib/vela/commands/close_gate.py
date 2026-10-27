@@ -35,6 +35,7 @@ of decided is judged as written, and removals, strays and the flow check are lef
 
 `observe` and `closegate.ready` are the public pair `close finish` composes (Task 11): observe gathers, ready judges.
 """
+import collections
 import pathlib
 import re
 import time
@@ -95,14 +96,22 @@ def check_errors(vault, today, before=None):
     """Check's errors, after the overrides (`rules.check` applies them), less those already errors in `before`, the
     vault at the branch point, on the same `today`: the session didn't make those, so it can't be held up by them. An
     error is the same one when its code, page and message match; a new error on a page the session never touched
-    (a deleted page another links to) differs from every old one, so it still blocks. No `before` (a reader copy has
+    (a deleted page another links to) differs from every old one, so it still blocks, and so does one more of an error
+    that was already there (counted per key). No `before` (a reader copy has
     no branch point) keeps them all."""
     from vela import rules
     errors = tuple(f for f in rules.check(vault, today) if f.is_error)
     if before is None:
         return errors
-    already = {(f.code, f.path, f.message) for f in rules.check(before, today) if f.is_error}
-    return tuple(f for f in errors if (f.code, f.path, f.message) not in already)
+    already = collections.Counter((f.code, f.path, f.message) for f in rules.check(before, today) if f.is_error)
+    new = []
+    for f in errors:  # a count, not a set: one more of the same error is still the session's
+        key = (f.code, f.path, f.message)
+        if already[key] > 0:
+            already[key] -= 1
+        else:
+            new.append(f)
+    return tuple(new)
 
 
 def stale_render(root, vault):

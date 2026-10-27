@@ -104,7 +104,9 @@ def _is_date(value):
 
 
 # Rules an old vault may still name: deciding is no longer limited to a grill, so there is nothing left to override.
-RETIRED_RULES = tuple("grill E317 W317".split())
+RETIRED_RULES = tuple("grill E317 W317 GATE-4".split())
+# A retired rule with a successor says so, so a stale bullet is rewritten, not guessed at.
+RETIRED_ADVICE = {"GATE-4": "use E316; settling notes the open question, so it needs no override"}
 
 
 def _rule_problem(names):
@@ -113,8 +115,9 @@ def _rule_problem(names):
         return ""
     retired = [n for n in unknown if n in RETIRED_RULES]
     if retired:
+        advice = "; ".join(RETIRED_ADVICE[n] for n in retired if n in RETIRED_ADVICE)
         return (f"names {', '.join(repr(n) for n in retired)}, and that rule is gone "
-                "(delete this bullet)")
+                f"({advice or 'delete this bullet'})")
     hints = []
     for name in unknown:
         near = [k for k in schema.OVERRIDE_RULES if k.lower() == name.lower()] or \

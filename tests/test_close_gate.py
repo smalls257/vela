@@ -312,6 +312,31 @@ def test_an_error_already_there_at_the_branch_point_does_not_block_close(tmp_pat
     assert check_problems(vault) == []
 
 
+def test_one_more_of_an_error_already_there_still_blocks(tmp_path):
+    vault = session_with(tmp_path, (STOCK, "- **Source:** SRC-01", "- **Source:** SRC-01\n\nSee [[no-such-page]]."))
+    page = vault / STOCK
+    page.write_text(page.read_text(encoding="utf-8").replace("See [[no-such-page]].", "See [[no-such-page]].\n\nAnd [[no-such-page]]."),
+                    encoding="utf-8")
+    found = check_problems(vault)
+    assert len(found) == 1 and "E201" in found[0]["detail"], found
+
+
+def test_a_branch_point_that_cannot_be_read_never_passes(tmp_path, monkeypatch):
+    from vela.commands import close_gate
+    vault = session(tmp_path)
+    decide_stock(vault, [BACK, YES], [YES_ROW])
+    hooks_ran(vault)
+
+    def broken(*_):
+        raise ValueError("the branch point would not parse")
+    monkeypatch.setattr(close_gate, "vault_before", broken)
+    code, out = gate(vault, "--today", "2026-10-20")
+    assert code == 2 and "could not judge" in out, out
+    monkeypatch.setattr(close_gate, "vault_before", lambda *_: (_ for _ in ()).throw(RuntimeError("boom")))
+    code, out = gate(vault, "--today", "2026-10-20")
+    assert code != 0 and "ready to finish" not in out.lower().replace("not ready", ""), (code, out)
+
+
 def test_a_new_error_on_an_untouched_page_still_blocks(tmp_path):
     vault = session(tmp_path)
     (vault / "05-building-blocks" / "till-building-blocks.md").unlink()  # shop and the concerns page link to it

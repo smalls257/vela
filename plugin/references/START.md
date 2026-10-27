@@ -30,8 +30,8 @@ Say the size line it prints, once. If the lead says the plan is bigger or smalle
 
 - **The lead reads names, never codes.** No ID, capture number, check code, gate name or rule name, in your sentences or a command's. A command they type names the thing: "/vela:grill Desktop agent". If the lead asks for an ID, give it. Say states in words; spell out an abbreviation the first time.
 - **A line is written after a yes to that line.** A yes that covers a group you read out counts for every line in it, so read back in groups of about five. Silence or "ok" isn't a yes: ask once more in other words, then park the line as an open question.
-- Never delete a `- Trace:` line. Write American spelling, names included ("Organizer"). Edit with the Edit tool or a `vela` command: no `sed -i`.
-- Only vela stages, commits, sets a state or writes a generated block: never `git add`, a hand-set `state:`, or an edit inside a generated block. Hooks stop these only where hooks run.
+- Never delete a `- Trace:` line. Tool trouble you fix yourself isn't news. Write American spelling, names included ("Organizer"). Edit with the Edit tool or a `vela` command: no `sed -i`.
+- Only vela stages, commits, sets a state or writes a generated block: never `git add`, a hand-set `state:`, or an edit inside a generated block.
 
 ## The user may override any rule
 

@@ -75,6 +75,7 @@ def test_a_well_formed_override_parses_every_part():
     ("E316 by @hl-solution-lead on 2026-11-20", "gives no reason"),
     ("E316 by @hl-solution-lead on 2026-02-30: board meeting", "not a real date"),
     ("gate-1 by @hl-solution-lead on 2026-11-20: board meeting", "did you mean GATE-1?"),
+    ("GATE-4 by @hl-solution-lead on 2026-11-20: board meeting", "use E316"),
     ("GATE-6 by @hl-solution-lead on 2026-11-20: board meeting", "'GATE-6'"),
     ("E316; E303 by @hl-solution-lead on 2026-11-20: board meeting", "not names separated by ', '"),
     ("by @hl-solution-lead on 2026-11-20: board meeting", "names no rule before 'by'"),
@@ -83,6 +84,7 @@ def test_a_malformed_override_names_its_problem(value, problem):
     found = parse(value)
     assert problem in found.problem
     assert found.rules == () and found.codes == set()
+    assert not (value.startswith("GATE-4") and "did you mean" in found.problem), "a retired rule is not guessed at"
 
 
 def test_a_malformed_override_is_an_error_and_overrides_nothing(ub):
