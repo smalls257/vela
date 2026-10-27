@@ -22,7 +22,7 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "plugin" / "lib"))
 
-from vela.breakdown import build_rows, parse  # noqa: E402,F401  (the one reader of the format; the explorer's Build plan level uses it too)
+from vela.tickets import build_rows, parse  # noqa: E402,F401  (the one reader of the format; the explorer's Build plan level uses it too)
 from vela import tickets  # noqa: E402  (the conversion itself: `vela tickets` writes the same files from an installed plugin)
 
 

@@ -14,12 +14,14 @@ Pure, like the rest of the core: text in, text out. `tools/breakdown_to_tickets.
 convert_text() and write what it returns, so the installed plugin and a repo checkout write the same files.
 """
 import difflib
+import json
 import re
 
-from vela import allocation, criteria, releases, slices, trace
+from vela import allocation, criteria, releases, slices, ticketcopy, ticketrefs, trace
+from vela.say import date_words
 from vela import breakdown
 from vela.ticketrefs import normal, statement_of
-from vela.breakdown import SIZE_POINTS, build_rows, csv_text, parse
+from vela.breakdown import SIZE_POINTS, csv_text, parse
 
 CRITERION_ID = re.compile(r"^EPC-\d+\.AC\d+$")
 REQUIREMENT_ID = re.compile(r"^CAP-\d+\.FR\d+(?:@APP-[A-Za-z0-9-]+)?$")
@@ -98,8 +100,250 @@ def convert_text(text, source, tool=TOOL):
     """(tickets.csv text, README text, problems) for one plan's text. Problems is empty when every line mapped."""
     stories, not_planned, problems = parse(text)
     stories, problems = retire_pointers(stories, problems)
-    rows = build_rows(stories)
+    rows = build_rows(stories, Context(stories))
     return csv_text(rows), readme_text(source, stories, rows, problems, not_planned, tool), problems
+
+
+# ------------------------------------------------------------------------------- one ticket, two renderings
+
+SUB, PARENS = "sub", "parens"  # an ID as a small suffix in tickets.md, or in brackets where HTML would show as text
+ISO_DATE = re.compile(r"\b\d{4}-\d{2}-\d{2}\b")
+NUMBER_WORDS = ("no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten")
+ANY_ID = re.compile(r"\b[A-Z]{1,4}-\d+[a-z]?\b")
+KEY_LINE = re.compile(r"^\s*(S-\d+[a-z]?)\s*[:=]?\s+([A-Z][A-Z0-9_]*-\d+)\s*$")
+
+
+class Context:
+    """What a ticket is written from besides its story: the loaded vault (None writes names only, and says so), the
+    plan's app, the design's open questions, each story's name for "Blocked by", and ticket keys already created."""
+
+    def __init__(self, stories, vault=None, app_id="", questions=None, keys=None):
+        self.vault, self.app_id, self.questions, self.keys = vault, app_id, questions, dict(keys or {})
+        self.names = {s.id: s.name for s in stories}
+
+
+def suffix(ident, style):
+    if not ident:
+        return ""
+    return f" <sub>{ident}</sub>" if style == SUB else f" ({ident})"
+
+
+def count_words(n, one):
+    word = NUMBER_WORDS[n] if n < len(NUMBER_WORDS) else str(n)
+    return f"{word} {one if n == 1 else one + 's'}"
+
+
+def american(text):
+    return ISO_DATE.sub(lambda m: date_words(m.group(0)), text or "")
+
+
+def criteria_parts(story):
+    """[(heading, [(words, tag)])]: the grouped ticket copy, or, with no copy yet, the plan's list as one group."""
+    if not ticketcopy.has_copy(story):
+        return [("", [(c, f"AC{n}") for n, c in enumerate(story.criteria, 1)])]
+    out = []
+    for heading, lines in story.ticket_groups:
+        rows = []
+        for line in lines:
+            words, numbers, _ = ticketcopy.tag_of(line)
+            rows.append((words, "covers " + ", ".join(f"AC{n}" for n in numbers) if numbers else ""))
+        out.append((heading, rows))
+    return out
+
+
+def lead_in(story):
+    """The plan's own lead-in on its criteria label ("Acceptance criteria. No epic criterion covers this story, ..."), kept."""
+    label = (story.criteria_label or "").strip()
+    return label if label and label.lower().rstrip(":").strip() != "acceptance criteria" else ""
+
+
+def contract_facts(ref):
+    if ref["sends"] is not None:
+        sends, gets = ("Receives", "Answers with") if ref["provides"] else ("Sends", "Gets back")
+        facts = [(sends, ref["sends"]), (gets, ref["gets"])]
+    else:
+        facts = [("What crosses", ref["crosses"] or "not written in the vault")]
+    held = f", {count_words(ref['open'], 'open question')} on it" if ref["open"] else ""
+    return facts + [("Provided by", ref["provider"]), ("Status", (ref["state"] or "not written in the vault") + held)]
+
+
+def relies_entries(story, ctx):
+    """[(title, id, paragraph or None, [(label, value)])] for each contract and requirement, or one names-only line."""
+    if ctx.vault is None:
+        ids = [t.split("@")[0] for t in breakdown.labels_of(story) if re.match(r"^(CON-\d+|CAP-\d+\.FR\d+)", t)]
+        return [("Written without the vault, so what this story relies on is named by ID only: " + ", ".join(ids) + ".", "", None, [])] if ids else []
+    out = []
+    for ref in ticketrefs.relies_on(ctx.vault, story, ctx.app_id):
+        if ref["kind"] == "contract":
+            out.append((ref["name"], ref["id"], ref["description"] or None, contract_facts(ref)))
+        elif ref["kind"] == "requirement":
+            out.append((ref["name"], ref["id"], ref["statement"], []))
+        else:
+            out.append(("Not found in the vault", ref["id"], None, []))
+    return out
+
+
+def open_entries(story, ctx):
+    if ctx.vault is None:
+        return []
+    out = []
+    for q in ticketrefs.still_open(ctx.vault, story, ctx.questions):
+        if not q["found"]:
+            out.append(("Not found in the plan's design or the vault", q["id"], None, []))
+            continue
+        out.append((q["question"], q["id"], None, [("Until it's answered", q["until"] or "the plan doesn't say"),
+                                                  (q["waits_label"], q["waits"] or "not written down")]))
+    return out
+
+
+def blocked_words(story, ctx, style):
+    ids = breakdown.blockers(story)
+    if not ids:
+        return "nothing"
+    return ", ".join(f"{ctx.keys[s] + ' ' if s in ctx.keys else ''}{ctx.names.get(s, s)}{suffix(s, style)}" for s in ids)
+
+
+def also_waits(story, shown):
+    """The plan's Blocked by sentences a reader would otherwise lose: each that names anything besides the blocking
+    stories (shown by name) and the questions shown under Still open, in the plan's own words."""
+    text = story.blocked or ""
+    if breakdown.NO_BLOCKERS.match(text):
+        text = breakdown.NO_BLOCKERS.sub("", text, count=1).lstrip(" .;:,")
+    kept = []
+    for sentence in re.split(r"(?<=[.?!])\s+", text.strip()):
+        named = set(ANY_ID.findall(sentence))
+        if sentence and not (named and named <= shown):
+            kept.append(sentence)
+    return " ".join(kept)
+
+
+def slice_words(story, ctx, style):
+    sid = story.slice_id
+    if sid and ctx.vault is not None and story.slice:
+        return f"{story.slice}, {ctx.vault.name_of(sid)}{suffix(sid, style)}"
+    return story.slice_text or ""
+
+
+def details(story, ctx, style):
+    shown = set(breakdown.blockers(story)) | {q[1] for q in open_entries(story, ctx)}
+    rows = [("Components", story.components or ""), ("Slice", slice_words(story, ctx, style)),
+            ("Size", breakdown.size_total(story)), ("Blocked by", blocked_words(story, ctx, style)),
+            ("Also waits on", also_waits(story, shown)), ("Release fit", american(story.fit)), ("Status", story.status or "")]
+    return [(label, value) for label, value in rows if value]
+
+
+def trace_labels(story):
+    """The story's trace IDs as Jira labels: a requirement without its app, a criterion as its epic, each once."""
+    out = []
+    for found in breakdown.labels_of(story):
+        base = found.split("@")[0]
+        base = base.split(".AC")[0] if base.startswith("EPC-") else base
+        if base not in out:
+            out.append(base)
+    return out
+
+
+def ticket_labels(story):
+    shape = [story.slice] if story.slice else []
+    vault_slice = [story.slice_id] if story.slice_id else []
+    flags = ([breakdown.LABEL_NEEDS_DESIGN] if story.open_notes else []) + ([breakdown.LABEL_CONFLICT] if story.conflicts else [])
+    return trace_labels(story) + shape + vault_slice + flags
+
+
+def entries_markdown(heading, entries, style):
+    if not entries:
+        return []
+    out = [f"### {heading}", ""]
+    for title, ident, text, facts in entries:
+        out += [f"**{title}**{suffix(ident, style)}" if ident else title, ""]
+        out += [text, ""] if text else []
+        out += [f"- {label}: {value}" for label, value in facts] + ([""] if facts else [])
+    return out
+
+
+def ticket_markdown(story, ctx, style):
+    """A story's ticket description as Markdown: tickets.md uses SUB; the Jira tools path uses PARENS."""
+    out = [story.summary, ""] if story.summary else []
+    out += ["### Acceptance criteria", ""] + ([lead_in(story), ""] if lead_in(story) else [])
+    for heading, rows in criteria_parts(story):
+        out += [f"**{heading}**", ""] if heading else []
+        out += [f"- {words}{suffix(tag, style)}" for words, tag in rows] + [""]
+    out += [f"Done when: {story.done_when}", ""] if story.done_when else []
+    out += entries_markdown("What this story relies on", relies_entries(story, ctx), style)
+    out += entries_markdown("Still open", open_entries(story, ctx), style)
+    for label, notes in (("Open for the design", story.open_notes), ("Conflicts", story.conflicts)):
+        out += [f"### {label}", ""] + [f"- {n}" for n in notes] + [""] if notes else []
+    out += ["### Details", ""] + [f"- {label}: {value}" for label, value in details(story, ctx, style)]
+    out += [f"- Labels: {', '.join(ticket_labels(story))}"] + ([""] + story.extra if story.extra else [])
+    return "\n".join(out).rstrip() + "\n"
+
+
+def entries_plain(heading, entries):
+    if not entries:
+        return []
+    out = [f"{heading}:"]
+    for title, ident, text, facts in entries:
+        out += [f"{title}{suffix(ident, PARENS)}"] + ([text] if text else []) + [f"- {label}: {value}" for label, value in facts]
+    return out + [""]
+
+
+def ticket_plain(story, ctx):
+    """The same ticket as plain lines, for the CSV Description: headings end in a colon, IDs in brackets."""
+    out = [story.summary, ""] if story.summary else []
+    out.append(lead_in(story) or "Acceptance criteria:")
+    for heading, rows in criteria_parts(story):
+        out += [f"{heading}:"] if heading else []
+        out += [f"- {words}{suffix(tag, PARENS)}" for words, tag in rows]
+    out += [""] + ([f"Done when: {story.done_when}", ""] if story.done_when else [])
+    out += entries_plain("What this story relies on", relies_entries(story, ctx))
+    out += entries_plain("Still open", open_entries(story, ctx))
+    out += [f"{label}: {value}" for label, value in details(story, ctx, PARENS)]
+    if story.open_notes:
+        out += ["Open for the design:"] + [f"- {n}" for n in story.open_notes]
+    if story.conflicts:
+        out += ["Conflicts:"] + [f"- {c}" for c in story.conflicts]
+    return "\n".join(out + story.extra).rstrip()
+
+
+def task_description(story, row):
+    component = row[2] if len(row) > 2 else ""
+    size = row[1] if len(row) > 1 else ""
+    return f"Component: {component}\nSize: {size}\nStory: {story.name} ({story.id})"
+
+
+def build_rows(stories, ctx):
+    """One row per story that will be built and one per task row, in file order."""
+    rows = []
+    for story in stories:
+        if not story.built:
+            continue  # deferred or merged: the README lists it as not ticketed
+        rows.append({"Issue Id": story.id, "Summary": story.name.strip(), "Description": ticket_plain(story, ctx),
+                     "Issue Type": "Story", "Parent": "", "Story Points": "", "labels": ticket_labels(story),
+                     "Blocked by": ", ".join(dict.fromkeys(breakdown.blockers(story)))})
+        for number, row in enumerate(story.tasks, 1):
+            size = row[1].strip().upper() if len(row) > 1 else ""
+            rows.append({"Issue Id": f"{story.id}-T{number}", "Summary": row[0], "Description": task_description(story, row),
+                         "Issue Type": "Task", "Parent": story.id, "Story Points": SIZE_POINTS.get(size, ""),
+                         "labels": trace_labels(story), "Blocked by": ""})
+    return rows
+
+
+def csv_for(stories, ctx):
+    """The Jira CSV import: what `vela tickets write --format csv`, the tool and the explorer's "Copy as Jira CSV" all write."""
+    return csv_text(build_rows(stories, ctx))
+
+
+def read_keys(text, story_ids):
+    """{story ID: ticket key} from a keys file of `S-01 HERON-11` lines; a line that isn't one stops the write."""
+    keys = {}
+    for n, line in enumerate(text.splitlines(), 1):
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        found = KEY_LINE.match(line)
+        if not found or found.group(1) not in story_ids:
+            raise TicketsError(f"line {n} of the keys file isn't 'S-nn KEY-n' for a story of this plan: {line.strip()!r}")
+        keys[found.group(1)] = found.group(2)
+    return keys
 
 
 # ----------------------------------------------------------------------------------------------- Markdown

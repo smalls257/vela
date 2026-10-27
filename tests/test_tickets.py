@@ -76,8 +76,10 @@ def test_the_explorer_builds_the_plan_and_the_design_with_the_same_counts(tmp_pa
 
 
 def test_the_ticket_rows_of_the_original_are_all_in_the_new_plan_except_the_stories_it_now_calls_deferred():
-    old = breakdown.build_rows(breakdown.read(ORIGINAL.read_text(encoding="utf-8"))["stories"])
-    new = breakdown.build_rows(breakdown.read(PLAN.read_text(encoding="utf-8"))["stories"])
+    old_stories = breakdown.read(ORIGINAL.read_text(encoding="utf-8"))["stories"]
+    new_stories = breakdown.read(PLAN.read_text(encoding="utf-8"))["stories"]
+    old = tickets.build_rows(old_stories, tickets.Context(old_stories))
+    new = tickets.build_rows(new_stories, tickets.Context(new_stories))
     key = lambda r: (r["Issue Id"], r["Summary"], r["Issue Type"], r["Parent"], r["Story Points"])
     kept = {key(r) for r in new}
     lost = [r["Issue Id"] for r in old if key(r) not in kept]

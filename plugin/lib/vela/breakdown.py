@@ -374,52 +374,6 @@ def labels_of(story):
     return seen
 
 
-def story_labels(story):
-    """The labels of the story's own ticket: its trace IDs, then what the plan flags for the design or the epics."""
-    return labels_of(story) + ([LABEL_NEEDS_DESIGN] if story.open_notes else []) + ([LABEL_CONFLICT] if story.conflicts else [])
-
-
-def story_description(story):
-    parts = [f"Traces to: {story.traces}" if story.traces is not None else "Traces to: (none stated)"]
-    if story.criteria:
-        parts += [story.criteria_label or "Acceptance criteria:"] + [f"- {c}" for c in story.criteria]
-    parts.append(f"Blocked by: {story.blocked}" if story.blocked is not None else "Blocked by: (none stated)")
-    for label, value in (("Done when", story.done_when), ("Components", story.components), ("Slice", story.slice_text),
-                         ("Release fit", story.fit), ("Status", story.status)):
-        if value:
-            parts.append(f"{label}: {value}")
-    if story.open_notes:
-        parts += ["Open for the design:"] + [f"- {n}" for n in story.open_notes]
-    if story.conflicts:
-        parts += ["Conflicts:"] + [f"- {c}" for c in story.conflicts]
-    parts += story.extra
-    return "\n".join(parts)
-
-
-def task_description(story, row):
-    component = row[2] if len(row) > 2 else ""
-    size = row[1] if len(row) > 1 else ""
-    return (f"Component: {component}\nSize: {size}\nStory {story.id} {story.name}\nTraces to: {story.traces}")
-
-
-def build_rows(stories):
-    """One row per story and one per task row, in file order. Labels go in as many trailing Labels cells as needed."""
-    rows = []
-    for story in stories:
-        if not story.built:
-            continue  # deferred or merged: the converter's README lists it as not ticketed
-        rows.append({"Issue Id": story.id, "Summary": f"{story.id} {story.name}".strip(), "Description": story_description(story),
-                     "Issue Type": "Story", "Parent": "", "Story Points": "", "labels": story_labels(story),
-                     "Blocked by": ", ".join(dict.fromkeys(blockers(story)))})
-        for number, row in enumerate(story.tasks, 1):
-            size = row[1].strip().upper() if len(row) > 1 else ""
-            rows.append({"Issue Id": f"{story.id}-T{number}", "Summary": row[0], "Description": task_description(story, row),
-                         "Issue Type": "Task", "Parent": story.id, "Story Points": SIZE_POINTS.get(size, ""),
-                         "labels": labels_of(story), "Blocked by": ""})
-    return rows
-
-
-
 def size_total(story):
     """The story's task sizes as the summary table writes them: largest first, joined by +, e.g. 'M+S'."""
     sizes = [r[1].strip().upper() for r in story.tasks if len(r) > 1 and r[1].strip().upper() in SIZE_POINTS]

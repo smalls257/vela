@@ -234,3 +234,76 @@ def test_a_vault_unknown_names_its_question_and_owner_and_a_missing_meanwhile_is
 def test_without_the_design_each_design_question_is_flagged():
     said = ticketrefs.open_problems(heron(), stories()["S-02"], None)
     assert said == [("waits on OQ-005, but the plan's design couldn't be read, so its ticket can't say what the question is", True)]
+
+
+from vela import tickets  # noqa: E402
+
+
+def context(text=None, keys=None, vault=True):
+    plan = breakdown.read(text or plan_text())
+    return plan["stories"], tickets.Context(plan["stories"], heron() if vault else None, "APP-desktop-agent", questions(), keys)
+
+
+def test_the_markdown_ticket_reads_like_the_approved_mockup():
+    found, ctx = context()
+    body = tickets.ticket_markdown(next(s for s in found if s.id == "S-02"), ctx, tickets.SUB)
+    assert body.startswith("When a person turns Heron on")
+    for line in ("### Acceptance criteria", "**Choosing what Heron reads**",
+                 "- A choice counts only once Consent and identity confirms it. <sub>covers AC3, AC6</sub>",
+                 "### What this story relies on", "**Consent check** <sub>CON-003</sub>", "- Sends: the person's sign-in",
+                 "- Provided by: Consent and identity", "- Status: not decided yet, two open questions on it",
+                 "- Status: not decided yet, three open questions on it", "**Agree to each source separately** <sub>CAP-005.FR1</sub>",
+                 "### Still open", "- Until it's answered: the agent shows nothing and logs",
+                 "- Blocked by: Walking skeleton <sub>S-01</sub>", "- Slice: tracer"):
+        assert line in body.split("\n"), line
+    assert "February 2, 2027" in body and "2027-02-02" not in body
+    assert "When a person switches Heron on, they choose separately" not in body  # covered: a name only
+    assert "OQ-005" not in body.replace("<sub>OQ-005</sub>", "")  # the shown question's sentence is not repeated
+
+
+def test_a_story_without_copy_gets_the_plans_list_tagged_by_number():
+    found, ctx = context()
+    body = tickets.ticket_markdown(next(s for s in found if s.id == "S-03"), ctx, tickets.SUB)
+    assert "- When a person switches Heron off and Consent and identity does not confirm the withdrawal" in body
+    assert "<sub>AC1</sub>" in body and "<sub>AC4</sub>" in body
+    assert "- Also waits on: Assumes CON-004 tolerates a duplicate withdrawal" in body  # a sentence nothing else shows
+
+
+def test_the_plain_ticket_has_the_same_content_with_ids_in_brackets():
+    found, ctx = context()
+    plain = tickets.ticket_plain(next(s for s in found if s.id == "S-02"), ctx)
+    assert "<sub>" not in plain and "###" not in plain and "**" not in plain
+    assert "Consent check (CON-003)" in plain and "- Sends: the person's sign-in" in plain
+    assert "- Switching Heron on offers two separate choices: calendar entries, and Teams transcripts. Transcripts can only be chosen with calendar entries. (covers AC1, AC2)" in plain
+    assert "Blocked by: Walking skeleton (S-01)" in plain and "Traces to" not in plain
+
+
+def test_a_known_ticket_key_is_named_in_blocked_by():
+    found, ctx = context(keys={"S-01": "HERON-11"})
+    plain = tickets.ticket_plain(next(s for s in found if s.id == "S-02"), ctx)
+    assert "Blocked by: HERON-11 Walking skeleton (S-01)" in plain
+
+
+def test_without_the_vault_the_ticket_says_it_names_ids_only():
+    found, ctx = context(vault=False)
+    plain = tickets.ticket_plain(next(s for s in found if s.id == "S-02"), ctx)
+    assert "Written without the vault, so what this story relies on is named by ID only: CAP-005.FR1, CON-003, CON-004." in plain
+
+
+def test_rows_title_stories_by_name_and_label_them_as_the_mockup_shows():
+    found, ctx = context()
+    rows = {r["Issue Id"]: r for r in tickets.build_rows(found, ctx)}
+    assert rows["S-02"]["Summary"] == "Switch on, with consent recorded"
+    assert rows["S-02"]["labels"] == ["CAP-005.FR1", "CON-003", "CON-004", "EPC-032", "tracer"]
+    assert rows["S-02"]["Blocked by"] == "S-01"
+    assert rows["S-02-T1"]["Description"] == f"Component: ConsentGate\nSize: S\nStory: Switch on, with consent recorded (S-02)"
+    assert rows["S-02-T1"]["labels"] == ["CAP-005.FR1", "CON-003", "CON-004", "EPC-032"]
+
+
+def test_the_keys_file_is_read_strictly():
+    assert tickets.read_keys("S-01 HERON-11\n# a note\n\nS-02: HERON-12\n", {"S-01", "S-02"}) == {"S-01": "HERON-11", "S-02": "HERON-12"}
+    import pytest
+    with pytest.raises(tickets.TicketsError, match="line 1 of the keys file"):
+        tickets.read_keys("S-09 HERON-11\n", {"S-01"})
+    with pytest.raises(tickets.TicketsError, match="line 1 of the keys file"):
+        tickets.read_keys("HERON-11\n", {"S-01"})

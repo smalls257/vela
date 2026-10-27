@@ -15,7 +15,7 @@ import sys
 import pytest
 
 from conftest import REPO, edit, run
-from vela import breakdown
+from vela import breakdown, tickets
 from vela.explorer import plan_data
 
 sys.path.insert(0, str(REPO / "tools"))
@@ -164,7 +164,7 @@ def test_the_tickets_file_beside_the_plan_gets_a_relative_link(world):
 # ---------------------------------------------------------------- one reader for the tool and the page
 
 def test_the_tool_and_the_page_use_the_same_reader():
-    assert b2t.parse is breakdown.parse and b2t.build_rows is breakdown.build_rows
+    assert b2t.parse is breakdown.parse and b2t.build_rows is tickets.build_rows
     assert not hasattr(plan_data, "parse_story_sections"), "the page must not carry a second parser"
 
 
@@ -173,7 +173,7 @@ def test_copy_as_jira_csv_is_the_file_the_tool_writes(tmp_path):
     out = tmp_path / "work"
     assert b2t.convert(DEMO_PLAN, out) == []
     written = (out / "tickets.csv").read_bytes().decode("utf-8")
-    assert breakdown.csv_text(breakdown.build_rows(wrapped["read"]["stories"])) == written
+    assert tickets.csv_for(wrapped["read"]["stories"], tickets.Context(wrapped["read"]["stories"])) == written
     rows = list(csv.reader(io.StringIO(written, newline="")))
     assert len(rows) == 1 + 8 + 21
 

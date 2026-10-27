@@ -20,7 +20,7 @@ argument that is not `APP-x=path` raises PlanError: a plan the caller asked for 
 import pathlib
 import re
 
-from vela import breakdown, slices
+from vela import breakdown, slices, tickets
 
 from . import breakdown_find, design_data
 
@@ -239,7 +239,7 @@ def plan_entry(app_id, wrapped, known, design, tracer_slice=""):
     return {"appId": app_id, "file": path.name, "slug": str(read["meta"].get("slug", "")), "status": str(read["meta"].get("status", "")), "gaps": gaps,
             "prereqs": breakdown_find.prereq_names(read["meta"]), "stories": stories, "order": order, "coverage": cover, "notPlanned": read["not_planned"],
             "totals": totals(stories), "problems": problems, "unresolved": unresolved, "ticketsHref": "",
-            "csv": breakdown.csv_text(breakdown.build_rows(ranked))}
+            "csv": tickets.csv_for(ranked, tickets.Context(ranked))}
 
 
 def inside(vault, keys, plans, designs):
