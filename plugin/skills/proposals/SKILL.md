@@ -58,7 +58,7 @@ It writes `answer.md` beside the proposal, and stops on a group with no decision
 
 ## 4. The branch
 
-The work is on `proposal/<slug>`. After `proposals answer`, run `git push -u origin proposal/<slug>` and `gh pr create` for it, and say so in one line. A local merge stays off: print `git switch main && git merge proposal/<slug>` for the owner to run. Once it is merged, `git worktree remove <worktree>` tidies up, and the reader continues from a new published copy.
+The work is on `proposal/<slug>`. After `proposals answer`, run `vela guard history`; if it names a path, stop and tell the owner it must stay on their machine. Then run `git push -u origin proposal/<slug>` and `gh pr create` for it, and say so in one line. A local merge stays off: print `git switch main && git merge proposal/<slug>` for the owner to run. Once it is merged, `git worktree remove <worktree>` tidies up, and the reader continues from a new published copy.
 
 ## Special cases
 

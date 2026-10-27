@@ -2,9 +2,9 @@
 
 Every rule here is already held somewhere that does not depend on a hook firing, because a hook that didn't run looks
 exactly like one that passed (Silent Fallback, plan section 1): the vault's pre-commit `guard staged` refuses a
-forbidden path; `vela decide` is the only thing that moves a state, and `close gate` refuses a state change with no
-quoted capture; render refuses a hand-edited generated block; `close push` refuses to send a session the gate says
-isn't ready. In Claude Code the hooks only say so earlier, before the
+forbidden path; `vela decide` is the only thing that moves a state, and `close gate` refuses a change into `decided`
+with neither a quoted capture nor a new receipt; render refuses a hand-edited generated block; `close push` refuses to
+send a session the gate says isn't ready. In Claude Code the hooks only say so earlier, before the
 mistake is on disk. So this module holds no rule of its own: paths are judged by `guard.never_rule`, the generated
 markers are `parse.MARKER_OPEN`/`MARKER_CLOSE`, and the state lines are the two forms the vault format defines.
 
@@ -397,7 +397,8 @@ def bash_verdict(command, cwd="", plan_roots=None, staged=()):
 
 STATE_LINE = re.compile(r"^\s*[-*]\s+\*\*State:\*\*")
 STATE_REASON = ("A state moves only through `vela decide` (or `vela check --fix W326`), which writes the state with "
-                "the lead's quoted yes and its Changes row; a hand edit is a state change the close gate refuses. "
+                "the lead's quoted yes and its Changes row; a hand edit is a state change the close gate refuses "
+                "unless a new receipt backs it. "
                 "Use `vela decide`.")
 DECIDED_WITH_OPEN_LINE = re.compile(r"^\s*[-*]\s+\*\*" + re.escape(schema.DECIDED_WITH_OPEN_LABEL) + r":\*\*")
 DECIDED_WITH_OPEN_REASON = ("Only `vela decide` writes a `Decided with open` bullet: it lists the open questions the lead "

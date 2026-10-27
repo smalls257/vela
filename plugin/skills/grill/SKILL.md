@@ -31,7 +31,7 @@ Not: "CON-003 (Dock unlock): decided, GATE-5 overridden, see UNK-012." An app's 
 
 If the lead opened with "Settle <name>" and is sure, run only `${CLAUDE_PLUGIN_ROOT}/references/SETTLE.md` for it.
 
-Items the brief lists as ready to decide come first. Open the agenda with them. On turn 1 run `vela check --gate decide --all --for-lead` and open with a ready item as a proposal: "I'd decide <item> as <answer>, because <reason>. OK?" Recaps and reading come after that, or only if needed. If nothing is ready, say so in one line and ask the question that would make the nearest item ready. When an answer settles an item that isn't ready, offer to decide it anyway in that same turn: "That settles <item>. It isn't ready because <reason>. Decide it anyway?" Never file a settling answer as a note without that offer.
+Items the brief lists as ready to decide come first. Open the agenda with them. On turn 1 run `vela check --gate decide --all --for-lead` and open with a ready item as a proposal: "I'd settle <item> as <answer>, because <reason>. Settle it?" Recaps and reading come after that, or only if needed. If nothing is ready, say so in one line and ask the question that would make the nearest item ready. When an answer settles an item that isn't ready, offer to decide it anyway in that same turn: "That settles <item>. It isn't ready because <reason>. Decide it anyway?" Never file a settling answer as a note without that offer.
 
 Answering a challenge, START will take its "Answer a challenge" path (read the Answer row too): resolve its unknown with the team lead as owner, with the `resolve` kind; if the answer changes the item, reopen it (`vela decide --reopen <ID> --why ^cN`) and decide it again.
 

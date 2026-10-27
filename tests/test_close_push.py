@@ -213,3 +213,43 @@ def test_reader_copy_sends_nothing(tmp_path):
     (vault / ".vela" / "workspace.json").write_text('{"author": "Sam"}', encoding="utf-8")
     code, out = push(vault, "--for-lead")
     assert code == 1 and "your copy" in out and os.path.isdir(vault)
+
+
+UNK = """
+### UNK-090 Hold expiry under load
+
+- **Question:** Does the stock level hold under load?
+- **Owner:** @someone-else
+- **State:** open
+- **Blocks:** [[stock-building-blocks#CON-002 Stock level|CON-002]]
+"""
+
+
+def open_question(vault, text=UNK):
+    page = vault / "11-unknowns-and-risks.md"
+    page.write_text(page.read_text(encoding="utf-8") + text, encoding="utf-8")
+    assert run("render", "--vault", str(vault))[0] == 0
+    git(vault, "add", "-u")
+    git(vault, "commit", "-q", "-m", "Challenge CON-002")
+
+
+def test_a_challenge_with_its_deliberate_red_check_can_be_sent(tmp_path):
+    vault, _ = sent_session(tmp_path, modes="challenge", title="Challenge: CON-002", handle="someone-else")
+    open_question(vault)
+    code, out = push(vault)
+    assert code == 0, out
+
+
+def test_a_grill_that_opens_a_blocking_question_is_still_refused(tmp_path):
+    vault, bare = sent_session(tmp_path)
+    open_question(vault)
+    code, out = push(vault)
+    assert code == 1 and not remote_has(bare, BRANCH), out
+
+
+def test_a_challenge_with_another_new_error_is_still_refused(tmp_path):
+    vault, bare = sent_session(tmp_path, modes="challenge", title="Challenge: CON-002", handle="someone-else")
+    open_question(vault, UNK + "\n### UNK-091 Dangling\n\n- **Question:** Who?\n- **Owner:** @x\n- **State:** open\n"
+                               "- **Blocks:** [[no-such-page#CON-404 Gone|CON-404]]\n")
+    code, out = push(vault)
+    assert code == 1 and not remote_has(bare, BRANCH), out

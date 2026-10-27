@@ -167,15 +167,18 @@ def move_off_default_branch(root, session, lines):
     return find_session(root, PUSH)
 
 
-def brought_up_to_date(root, args):
+def brought_up_to_date(root, args, said):
     """After a move the new branch has never been compared with main, so the gate would refuse it for want of a
     sync-main record. Run the same step `vela close sync-main` runs, once. None when it went through (the send goes
     on); otherwise its own result, which stops the push the way sync-main stops a close (a real conflict, or edits that
-    aren't the session's), with nothing sent. A fetch that failed goes on: the push reports an outage itself."""
+    aren't the session's), with nothing sent. A fetch that failed goes on: the push reports an outage itself, and the
+    lines sync-main said ("I couldn't reach main...") go into `said` so the lead still hears them."""
     from vela import cli
     from vela.commands import close_sync
     today, _ = cli.parse_today(args.today)
     synced = close_sync.sync_main(root, today)
+    if synced.exit == say.DONE:
+        said += synced.lines
     return None if synced.exit == say.DONE else replace(synced, command=PUSH)
 
 
@@ -242,7 +245,7 @@ def cmd_push(args, out):
         found = find_session(root, PUSH)
         session = move_off_default_branch(root, found, said)
         vault = cli.load_vault(root)
-        result = (session.branch != found.branch and brought_up_to_date(root, args)) \
+        result = (session.branch != found.branch and brought_up_to_date(root, args, said)) \
             or unready(root, vault, session, args) or send(root, vault, session, args)
     except Stop as stop:
         result = stop.result
@@ -256,13 +259,31 @@ def cmd_push(args, out):
     return emit(result, args, out, vault)
 
 
+def without_its_own_questions(seen, vault):
+    """A challenge exists to open a question under a decided item, so the E316 that question causes is the point of
+    sending it, not a reason to hold it (the challenge skill says "with its deliberate red check"). Leaves out the E316
+    findings whose blocking question is new since the branch point; every other error stays, and so does an E316 for a
+    question that was already open."""
+    if seen.before is None:
+        return seen
+    old = {u.id for u in seen.before.unknowns}
+    new = {u.id for u in vault.unknowns} - old
+
+    def deliberate(finding):
+        found = closegate.BLOCKED.match(finding.message)
+        return finding.code == "E316" and found is not None and found["unknown"] in new
+
+    return replace(seen, errors=tuple(f for f in seen.errors if not deliberate(f)))
+
+
 def unready(root, vault, session, args):
     """The refusal when the gate says the session can't be sent yet, or None. Said in the gate's own grouped words."""
     from vela import cli
     today, _ = cli.parse_today(args.today)
-    readiness = closegate.ready(vault, session.text, session.id,
-                                close_gate.observe(root, vault, session.record, session.text, today),
-                                session.part)
+    seen = close_gate.observe(root, vault, session.record, session.text, today)
+    if session.challenge:
+        seen = without_its_own_questions(seen, vault)
+    readiness = closegate.ready(vault, session.text, session.id, seen, session.part)
     if readiness.ready:
         return None
     lines = close_gate.problem_lines(readiness, say.Resolver(vault))
@@ -410,20 +431,23 @@ def open_pr(root, vault, session, args):
         return say.Result(PR, exit=say.REFUSED, wrote=wrote, data={**data, "body_file": BODY_FILE}, lines=[
             say.Line(f"vela close pr: {sent.command} failed: {sent.why}. The body is in {BODY_FILE}; nothing says a "
                      "pull request exists.", plain=sentence)])
-    lines = [pr_line(session, sent, data["added_to_open"])]
+    lines = [pr_line(session, sent, data["added_to_open"], found)]
     if session.answer:
         return say.Result(PR, data=data, lines=lines)
     return write_pr_number(root, vault, session, sent, before_texts, data, lines)
 
 
-def pr_line(session, sent, added):
+def pr_line(session, sent, added, reviewers=()):
     if session.answer:
         return say.Line(f"commented on {sent.url}", plain=f"I added the answer to the challenge's pull request: {sent.url}")
     if added:
         return say.Line(f"{session.branch} already has an open pull request; added this session to it: {sent.url}",
                         plain=f"This branch already has a review open, so I added today's session to it instead of "
                               f"opening another: {sent.url}")
-    return say.Line(f"opened {sent.url}", plain=f"The pull request is open: {sent.url}")
+    who = prbody.reviewer_words(reviewers)
+    asked = (f"{who[:1].upper()}{who[1:]} {'is' if len(reviewers) == 1 else 'are'} asked to review it."
+             if reviewers else "Nobody is asked to review it, because no page names an owner for it.")
+    return say.Line(f"opened {sent.url}", plain=f"The pull request is open: {sent.url}. {asked}")
 
 
 def add_to_open_pr(root, session, body_file):

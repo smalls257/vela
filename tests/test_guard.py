@@ -97,3 +97,17 @@ def test_the_guard_refuses_a_staged_private_file_at_any_depth():
 
 def test_the_hook_comment_names_the_private_session_notes():
     assert "session notes" in HOOK.read_text(encoding="utf-8").split("exec python3")[0].lower()
+
+
+def test_guard_history_refuses_a_forbidden_path_in_a_commit_on_the_branch(tmp_path):
+    from sharing import git
+    from test_close_push import sent_session
+    vault, _ = sent_session(tmp_path)
+    code, out = run("guard", "history", "--vault", str(vault))
+    assert code == 0, out
+    (vault / ".inbox").mkdir()
+    (vault / ".inbox" / "call.md").write_text("private\n", encoding="utf-8")
+    git(vault, "add", "-f", ".inbox/call.md")
+    git(vault, "commit", "-q", "--no-verify", "-m", "slipped past the hook")
+    code, out = run("guard", "history", "--vault", str(vault))
+    assert code == 1 and ".inbox/call.md" in out, out

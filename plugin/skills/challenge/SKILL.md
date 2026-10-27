@@ -73,7 +73,7 @@ Then read the team lead's Dissent words back to them directly from the page befo
 
 ## 6. Close and send
 
-This skill files its own session: `vela close finish` and `vela close push` stop on the deliberate red check.
+This skill files its own session: `vela close finish` stops on the deliberate red check; `vela close push` sends it with that check red.
 
 1. Run `vela close stage --session <id> --close --summary "<one line the team lead accepts>" --paths-from-render`. Tell the team lead about any file it names as left out. The summary opens the pull request and nobody reads it back, so it quotes no one: say what was filed, never what anyone said.
 2. Run `vela close push --for-lead`. It sends the session's own branch (`branch` in `.vela/session.json`) and asks the solution lead (the `owner:` of `01-goals.md`, unless that is you) to review. If it fails, say in one plain sentence that the challenge didn't go up and why, without pasting its own message, and stop.

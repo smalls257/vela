@@ -81,3 +81,46 @@ def test_close_reconfirm_is_gone(capsys):
     code, _ = run("close", "reconfirm", "--readback", "^c01", "--yes", "^c02", "CON-002")
     assert code == 2  # argparse: not a command
     assert "invalid choice" in capsys.readouterr().err
+
+
+OLD = '- **Decision:** [[2026-09-01-grill-old]] c03, @priya: "Yes, one till API."'
+
+
+def test_a_receipt_from_before_the_branch_point_is_not_this_sessions_yes(tmp_path):
+    # The page at the branch point: reopened earlier (assumption) but still carrying the old Decision bullet.
+    vault = make_vault(tmp_path)
+    page = vault / STOCK
+    reopened = DECIDED.format(decision=OLD).replace("- **State:** decided", "- **State:** assumption")
+    page.write_text(page.read_text(encoding="utf-8").replace("- **State:** fact", reopened, 1), encoding="utf-8")
+    old = privaterecord.render_stub({"id": "2026-09-01-grill-old", "type": "session", "title": "Old grill", "date": "2026-09-01",
+                           "modes": ["grill"], "status": "closed", "captures_sha256": {1: "b" * 64}})
+    (vault / "sessions").mkdir(exist_ok=True)
+    (vault / privaterecord.stub_path("2026-09-01-grill-old")).write_text(old, encoding="utf-8")
+    git(vault, "add", STOCK, "sessions")
+    git(vault, "commit", "-q", "-m", "Decided, then reopened, before the session")
+    # Reuse the fixture's session setup with no edit of its own, then hand-set decided.
+    with_remote(tmp_path, vault)
+    git(vault, "switch", "-q", "-c", f"session/{RID}")
+    stub = privaterecord.render_stub({"id": RID, "type": "session", "title": "Stock grill", "date": "2026-10-20",
+                                      "modes": ["grill"], "status": "open",
+                                      "captures_sha256": {1: "a" * 64, 2: privaterecord.PENDING}})
+    (vault / "sessions").mkdir(exist_ok=True)
+    (vault / privaterecord.stub_path(RID)).write_text(stub, encoding="utf-8")
+    session_files.ignore_private(vault)
+    session_files.write_private(vault, RID, privaterecord.new_private(RID, "Stock grill", "2026-10-20", 2))
+    git(vault, "add", "sessions", ".gitignore")
+    git(vault, "commit", "-q", "-m", "open")
+    assert run("close", "sync-main", "--vault", str(vault), "--today", "2026-10-20")[0] == 0
+    (vault / ".vela").mkdir(exist_ok=True)
+    (vault / ".vela" / "handle").write_text("priya\n", encoding="utf-8")
+    text = page.read_text(encoding="utf-8").replace("- **State:** assumption", "- **State:** decided", 1)
+    page.write_text(text, encoding="utf-8")
+    assert run("render", "--vault", str(vault))[0] == 0
+    problems = gate(vault)
+    assert [p for p in problems if p["kind"] == "consent"], "a bare hand-set decided passed on a stale receipt"
+
+
+def test_a_new_receipt_that_cites_another_session_is_not_this_sessions_yes(tmp_path):
+    other = OTHER_DECISION.replace(RID, "2026-09-01-grill-old")
+    vault = receipt_only_session(tmp_path, decision_line=other)
+    assert [p for p in gate(vault) if p["kind"] == "consent"]

@@ -24,6 +24,11 @@ def register(sub):
     staged.add_argument("--vault", default=".", help="vault root (default: current directory)")
     say.add_output_flags(staged)
     staged.set_defaults(func=cmd_guard_staged)
+    history = each.add_parser("history", help="refuse when a commit since the branch left main carries a forbidden path "
+                                              "(run right before a push that doesn't go through `vela close push`)")
+    history.add_argument("--vault", default=".", help="vault root (default: current directory)")
+    say.add_output_flags(history)
+    history.set_defaults(func=cmd_guard_history)
     one = each.add_parser("path", help="0 when this path may be staged, 1 when it may never be")
     one.add_argument("path", help="a path, relative to the vault root or absolute inside it")
     one.add_argument("--vault", default=".", help="vault root (default: current directory)")
@@ -88,6 +93,27 @@ def cmd_guard_staged(args, out):
         result.data = {"forbidden": []}
         result.lines.append(say.Line(f"vela guard staged: {len(staged)} staged paths, none forbidden.",
                                      "Nothing in this save has to stay on your machine."))  # row 226: not "staged"
+    return commands.emit(result, args, out)
+
+
+def cmd_guard_history(args, out):
+    """The push-time check `close push` makes, for the skills that send with their own command (proposals, design):
+    exit 1 and the paths named when any commit in `branch point..HEAD` carries a forbidden path. A range that can't be
+    read raises, never passes (Silent Fallback)."""
+    from vela import cli, commands
+    from vela.commands import close_gate
+    root = pathlib.Path(args.vault).resolve()
+    try:
+        found = forbidden_since(root, close_gate.branch_point(root))
+    except vaultgit.GitUnavailable as exc:
+        raise cli.ToolError(f"guard history: {exc}. The branch was not checked; don't send it.") from exc
+    result = say.Result("guard history")
+    if found:
+        refuse(result, found)
+    else:
+        result.data = {"forbidden": []}
+        result.lines.append(say.Line("vela guard history: no commit on this branch carries a forbidden path.",
+                                     "Nothing on this branch has to stay on your machine."))
     return commands.emit(result, args, out)
 
 

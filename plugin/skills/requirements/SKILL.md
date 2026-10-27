@@ -45,7 +45,7 @@ A guest who cancels in time gets their money back, and sees where the refund sta
 
 A criterion is a sentence in plain words. When it rests on another item, an unknown or a contract, say that item by its name in the sentence and pass its ID in `--traces`, which writes the `- Trace:` line beneath it. The Trace line is not a criterion, so release criteria skip it. A requirement with more than about seven criteria is two requirements: propose the split before writing it.
 
-After a group's yes and `vela add fr`, ask once per group: "Write these as decided, or keep them as not decided yet?" On "decided", run `vela decide <ID> --yes ^cM --for-lead` for each requirement written; `^cM` is the capture of the lead's answer "decided" to this question, not the earlier yes to the lines. A hedge ("probably", "for now") keeps them not decided yet. If the gate names something, say it once and keep the item not decided yet.
+After a group's yes and `vela add fr`, ask once per group of at most seven: "Write these as decided, or keep them as not decided yet?" On "decided", run `vela decide <ID> --yes ^cM --for-lead` for each requirement written; `^cM` is the capture of the lead's answer "decided" to this question, not the earlier yes to the lines. A hedge ("probably", "for now") keeps them not decided yet. If the gate names something, say it once and keep the item not decided yet.
 
 When the lead drops a requirement, never strike its heading through: that breaks every link to it. Run `vela query refs <ID>`, take the requirement out of every row that names it (allocation, release, app page) in the same checkpoint, then delete the requirement, and keep the reason in the session's notes as a `→ drop` capture.
 

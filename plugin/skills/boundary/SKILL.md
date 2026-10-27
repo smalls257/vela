@@ -66,7 +66,7 @@ Label every line with what it rests on: a source, a decided item, the lead's own
 
 After each sheet, write what was confirmed, as `${CLAUDE_PLUGIN_ROOT}/skills/boundary/PAGES.md` says: `vela add contract --for-lead` for each contract the app provides, then its confirmed case table; `vela add unknown --for-lead` for each open question, in the same checkpoint as the line that links it; the rest by hand. Mark each capture through `vela apply` (`--schema marks`) as `(assumption)`. No command writes the `## Changes` row for an app or runtime page yet, so add each to the session's notes as `| <ID> | <from> | <to> | [[<id>#^cNN]] |`.
 
-Ask once per sheet: "Write these as decided, or keep them as not decided yet?" On "decided", run `vela decide <ID> --yes ^cM --for-lead` for each; `^cM` is the capture of the lead's answer "decided" to this question, not the earlier yes to the lines. A hedge keeps them not decided yet, and so does an item the gate names for a contract or app page: say so once.
+Ask once per sheet, seven items at most per question: "Write these as decided, or keep them as not decided yet?" On "decided", run `vela decide <ID> --yes ^cM --for-lead` for each; `^cM` is the capture of the lead's answer "decided" to this question, not the earlier yes to the lines. A hedge keeps them not decided yet, and so does an item the gate names for a contract or app page: say so once.
 
 Then `vela render`, `vela check --for-lead` and `vela close stage --checkpoint --for-lead`. Draft the paragraph each filed item owes, as `START.md` says under "Draft the paragraph when the item is filed".
 

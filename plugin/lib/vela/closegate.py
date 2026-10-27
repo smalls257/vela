@@ -14,16 +14,16 @@ words behind every change into or out of `decided`:
 
 What this proves is limited, and said plainly (plan 4.3, a Sensor, not a Shield): the model writes every field these
 checks read, so the gate shows a missing or malformed yes; it cannot prove the lead said the words. That is why
-the read-back puts every line that goes on record in the lead's name in front of the lead, and the PR carries receipts,
-not words.
+the read-back puts the quotes the lead picked in front of the lead, and the PR carries receipts, not words.
 
 The lead may still go ahead without a quoted yes (the user can override any rule): an `**Override:**` bullet on the
 item naming `QUOTED_YES_RULE`, with their reason. The gate then lets the change through and lists the override, never
 hides it.
 
-A change into `decided` also passes on the item's `**Decision:**` receipt when it names a person: the yes may have been
-given in another part of the session, on another machine, in notes this one cannot read, and the gate does not tell
-machines apart (if the lead settles, the lead settles). A hand-set `decided` with neither a row nor a receipt is still
+A change into `decided` also passes on the item's newest `**Decision:**` receipt when it names a person, cites this
+session (any part) and was written since the branch point: the yes may have been given in another part of the session,
+on another machine, in notes this one cannot read, and the gate does not tell machines apart (if the lead settles, the
+lead settles). A receipt already on the page at the branch point is an earlier decision, not this session's yes. A hand-set `decided` with neither a row nor a receipt is still
 asked about, and a receipt naming Claude is never a yes. A change out of `decided` with no row here is not asked:
 reopening is the lead's own move and its row may be in other notes.
 
@@ -194,20 +194,35 @@ def decision_bullets(vault, item):
     """[(page, bullet)] for the item's (or the page's) `**Decision:**` line."""
     found = vault.item(item)
     if found is not None:
-        bullet = found.facts.get("Decision")
-        return [(found.page, bullet)] if bullet else []
+        every = [found.facts.get("Decision")] + [b for kept, b in found.repeats if b.label == "Decision"]
+        return [(found.page, b) for b in sorted(filter(None, every), key=lambda b: b.line)]
     pages = vault.by_id.get(item) or []
     return [(pages[0], b) for b in pages[0].bullets if b.label == "Decision" and not b.item and not b.generated] if pages else []
 
 
-def receipt_of(vault, item_id):
-    """The parsed `**Decision:**` bullet of an item or page, or None."""
+def newest_receipt(vault, item_id):
+    """(bullet, receipt) for the item's or page's newest `**Decision:**` bullet, or (None, None). A reopened item keeps
+    its old bullet, so the newest one is the decision that counts."""
     from vela import receipts
-    for _, bullet in decision_bullets(vault, item_id):
+    for _, bullet in reversed(decision_bullets(vault, item_id)):
         found = receipts.parse_decision(bullet.value)
         if found is not None:
-            return found
-    return None
+            return bullet, found
+    return None, None
+
+
+def receipt_of(vault, item_id):
+    """The parsed newest `**Decision:**` bullet of an item or page, or None."""
+    return newest_receipt(vault, item_id)[1]
+
+
+def is_new_since(vault, before, item_id, bullet):
+    """Whether `bullet` was written after the branch point. With no `before` (a reader copy) nothing is old."""
+    if before is None:
+        return True
+    page = next((pg for pg, b in decision_bullets(vault, item_id) if b is bullet), None)
+    old = before.page(page.name) if page is not None else None
+    return old is None or ("Decision", bullet.value) not in {(b.label, b.value) for b in old.bullets}
 
 
 def receipt_is_a_yes(receipt):
@@ -217,7 +232,7 @@ def receipt_is_a_yes(receipt):
     return not receipt.who.lstrip("@").lower().startswith("claude")
 
 
-def judge_change(change, rows, said, vault, record_name, part=1):
+def judge_change(change, rows, said, vault, record_name, part=1, before=None):
     """(Problem or None, Consent or None) for one change into or out of decided."""
     allowed = overrides_for(vault, change.item)
     if allowed:
@@ -228,7 +243,7 @@ def judge_change(change, rows, said, vault, record_name, part=1):
     # then decides it with the lead's yes): its row's From is that state, not the branch point's "-".
     row = change_row(change, rows)
     if row is None:
-        return judge_without_a_row(change, vault)
+        return judge_without_a_row(change, vault, record_name, before)
     capture = said.get(row.capture_number)
     if capture is None:
         return Problem(f"I can't find where you said yes to {moving(change)}. Can you say it again?",
@@ -247,18 +262,18 @@ def judge_change(change, rows, said, vault, record_name, part=1):
                          privaterecord.citation(record_name, part, int(capture.n)))
 
 
-def judge_without_a_row(change, vault):
-    """This part's notes hold no Changes row: the yes may be in other notes. Out of `decided` is the lead's own move
-    and is not asked; into it passes on a receipt that names a person."""
+def judge_without_a_row(change, vault, record_name="", before=None):
+    """This part's notes hold no Changes row: the yes may be in another part of this session. Out of `decided` is the
+    lead's own move and is not asked; into it passes on a receipt that names a person, cites this session (any part)
+    and was written since the branch point. An older receipt is a past decision, not this session's yes."""
     if change.after != CONSENT_STATE:
         return None, Consent(change.item, change.name, f"{change.before} to {change.after}", "", "")
-    receipt = receipt_of(vault, change.item)
-    if not receipt_is_a_yes(receipt):
+    bullet, receipt = newest_receipt(vault, change.item)
+    if not (receipt_is_a_yes(receipt) and receipt.record == record_name and is_new_since(vault, before, change.item, bullet)):
         return Problem(f"You haven't said yes to {moving(change)} yet.",
-                       f"{change.item}: {change.before} -> {change.after} has no ## Changes row and no Decision "
-                       "receipt naming a person", kind=CONSENT), None
-    return None, Consent(change.item, change.name, f"{change.before} to {change.after}", receipt.words or "",
-                         decision_bullets(vault, change.item)[0][1].value)
+                       f"{change.item}: {change.before} -> {change.after} has no ## Changes row and no new Decision "
+                       "receipt for this session naming a person", kind=CONSENT), None
+    return None, Consent(change.item, change.name, f"{change.before} to {change.after}", receipt.words or "", bullet.value)
 
 
 def change_row(change, rows):
@@ -279,13 +294,13 @@ def reader_changes(rows, after):
             if CONSENT_STATE in (r.before, r.after) and r.item in after]
 
 
-def judge(changes, record_text, record_name, vault, part=1):
+def judge(changes, record_text, record_name, vault, part=1, before=None):
     """(problems, consent lines) for the given changes against one session record."""
     rows, said = change_rows(record_text), captures(record_text)
     problems, consent = [], []
     for change in changes:
         named = StateChange(change.item, vault.name_of(change.item), change.before, change.after)
-        problem, line = judge_change(named, rows, said, vault, record_name, part)
+        problem, line = judge_change(named, rows, said, vault, record_name, part, before)
         problems += [replace(problem, clear=problem.clear or CONSENT_CLEAR)] if problem else []
         consent += [line] if line else []
     return problems, consent
@@ -408,7 +423,7 @@ def _first_words(words, limit=12):
 
 
 ERROR_CLEAR = "Fixing it with the lead clears it, or recording the lead's choice as an override with their reason."
-_BLOCKED = re.compile(r"^(?P<unit>\S+) is decided, but open unknown (?P<unknown>\S+) blocks it\.$")
+BLOCKED = re.compile(r"^(?P<unit>\S+) is decided, but open unknown (?P<unknown>\S+) blocks it\.$")
 
 
 def error_problems(errors, vault):
@@ -436,7 +451,7 @@ def _lead_message(message, vault):
 
 
 def _error_words(found, vault):
-    blocked = [_BLOCKED.match(f.message) for f in found]
+    blocked = [BLOCKED.match(f.message) for f in found]
     if all(blocked):
         unit = vault.name_of(blocked[0].group("unit"))
         questions = [vault.name_of(m.group("unknown")) for m in blocked]
@@ -684,7 +699,7 @@ def ready(vault, record_text, record_id, seen, part=1):
         changes = reader_changes(rows, after)
     else:
         changes = consent_changes(states(seen.before), after, vault)
-    problems, consent = judge(changes, record_text, record_id, vault, part)
+    problems, consent = judge(changes, record_text, record_id, vault, part, seen.before)
     if seen.sync.blocks:
         problems.insert(0, Problem(seen.sync.plain, f"sync-main: {seen.sync.status or 'not run'}",
                                    "Running vela close sync-main clears it.", kind=SYNC, audience=seen.sync.audience))

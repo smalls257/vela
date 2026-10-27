@@ -183,7 +183,7 @@ def test_the_session_opens_with_session_start_and_files_with_close_stage():
     assert "Never use `git add -A`" not in text and "Stage every file `vela render` reported" not in text
     assert "git add -A" in close_stage.__doc__ and "allow-list" in close_stage.__doc__
     # the close commands' gate counts the deliberate red check as an error, so the skill says why it files itself
-    assert "`vela close finish` and `vela close push` stop on the deliberate red check" in text
+    assert "`vela close finish` stops on the deliberate red check; `vela close push` sends it with that check red" in text
 
 
 def test_challenge_sends_through_close_push_with_no_extra_yes():

@@ -261,3 +261,28 @@ def test_a_body_is_the_sentences_and_what_changed_only():
 
 def test_lead_never_hears_a_code_in_the_failure_sentence():
     assert say.leak_in(prbody.SAVED_SENTENCE) is None
+
+
+def test_the_lead_hears_who_is_asked_to_review(tmp_path, monkeypatch):
+    fake_gh(tmp_path, monkeypatch)
+    vault, _ = pushed(tmp_path, stock_owner="@lead @mini/stock-team")
+    code, out = pr(vault, "--for-lead")
+    assert code == 0, out
+    assert "The shop team and the stock team are asked to review it." in out
+
+
+def test_a_pr_nobody_is_asked_to_review_says_so():
+    import types
+    from vela.commands import close_push
+    from vela.edge import ghcli
+    sent = ghcli.Sent(True, "gh pr create", url="https://github.invalid/pull/7", number=7)
+    line = close_push.pr_line(types.SimpleNamespace(answer=False, branch=BRANCH), sent, False, [])
+    assert "Nobody is asked to review it" in line.plain
+
+
+def test_a_challenge_without_a_goals_owner_adds_no_reviewer(tmp_path):
+    from vela import cli
+    vault, _ = sent_session(tmp_path, modes="challenge", title="Challenge: CON-002", handle="someone-else")
+    goals = vault / "01-goals.md"
+    goals.write_text(re.sub(r"^owner:.*\n", "", goals.read_text(encoding="utf-8"), flags=re.M), encoding="utf-8")
+    assert prbody.solution_lead(cli.load_vault(vault)) == []

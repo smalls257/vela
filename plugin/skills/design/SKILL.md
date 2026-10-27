@@ -70,7 +70,7 @@ A gap the team lead accepts goes into `gaps[]` in the same plain words, with the
 
 Before the pull request, run `sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela check-diagrams docs/tech-design/<slug>.md` with each ADR that has a diagram. Fix each diagram it names and run it again. If it says it couldn't check (Node.js is missing), tell the team lead and never call the diagrams checked.
 
-Push the branch and open the pull request when the design is `complete` or `complete-with-gaps`. Its body holds the summary, the audit checklist and the challenges. Never say a push or a pull request exists unless the tool printed it; if git or GitHub fails, say in one plain sentence that it didn't go, never the raw error.
+Run `vela guard history` right before the push and stop if it names a path. Push the branch and open the pull request when the design is `complete` or `complete-with-gaps`. Its body holds the summary, the audit checklist and the challenges. Never say a push or a pull request exists unless the tool printed it; if git or GitHub fails, say in one plain sentence that it didn't go, never the raw error.
 
 When the design challenges vault items, offer a handover note at `docs/handover-<slug>-challenges.md`, titled `# Questions the <app> team is raising with the planning lead`: one entry per challenge, most urgent first, each named in words with its ID as a tag, the one `/vela:challenge <ID>` command that raises it, and the open question's text as the design has it. Then say the next step in one line: `/vela:breakdown` plans the build from this design.
 
