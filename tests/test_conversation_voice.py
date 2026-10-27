@@ -108,5 +108,5 @@ def test_what_the_sim_counts_as_a_leak_the_for_lead_formatter_refuses():
     """`vela.say.LEAD_PATTERNS` is the one copy the CLI enforces. The sim's scorecard keeps its own narrower count so
     paid runs stay comparable with the baseline; every leak it counts must also be one `--for-lead` refuses."""
     from vela import say
-    for sample in ("UNK-001", "CAP-002.FR1", "CON-010", "EPC-031", "W365", "E316", "GATE-4", "--gate"):
+    for sample in ("UNK-001", "CAP-002.FR1", "CON-010", "EPC-031", "W365", "E316", "GATE-2", "--gate"):
         assert say.leak_in(f"the line holds {sample} here"), sample

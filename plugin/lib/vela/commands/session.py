@@ -66,7 +66,7 @@ import json
 import pathlib
 import re
 
-from vela import closestate, commands, guard, planscope, privaterecord, progress, records, recordsplit, say, sessions, titlecheck
+from vela import closestate, commands, guard, override as overrides, planscope, privaterecord, progress, records, recordsplit, say, sessions, titlecheck
 from vela.commands import close_sync
 from vela.edge import ghcli, hostprobe, mergegit, sessiongit, vaultgit
 from vela.edge.vaultgit import GitUnavailable
@@ -1005,6 +1005,7 @@ def cmd_brief(args, out):
     result = say.Result(BRIEF)
     review_comments(result, root, vault, sessiongit.is_read_copy(root))
     overdue_questions(result, vault, today)
+    ended_exceptions(result, vault, today)
     ready_to_decide(result, root, vault, today)
     next_steps(result, root, today)
     how_much(result, vault, today)
@@ -1057,6 +1058,24 @@ def review_comments(result, root, vault, reader):
                                  plain=f"{count} came in on pull requests merged since the last session; I'll offer "
                                        "each one as a note." if found else
                                        "No review comments came in since the last session."))
+
+
+def ended_exceptions(result, vault, today):
+    """START step 4: each exception past its end date, by the item's name. A close no longer blocks on it, so this is
+    where the lead hears that it stopped covering the item."""
+    found = []
+    for (_, item_id), page in overrides._scopes(vault).items():
+        for o in overrides.valid_overrides(page, item_id):
+            if overrides.expired(o, today):
+                found.append({"on": item_id or page.id, "rules": list(o.rules), "until": o.until})
+    found.sort(key=lambda e: (e["until"], e["on"]))
+    result.data["ended_exceptions"] = found
+    for entry in found:
+        name = vault.name_of(entry["on"])
+        result.lines.append(say.Line(
+            f"ended exception: {entry['on']} {', '.join(entry['rules'])}, ended {entry['until']}",
+            plain=f"Your exception on {name} ended on {say.date_words(entry['until'])}: extend it, settle the item, "
+                  "or reopen it?"))
 
 
 def overdue_questions(result, vault, today):

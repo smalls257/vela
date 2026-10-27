@@ -11,7 +11,7 @@ sources: [2026-10-08-first-release-boundary]
 # Coach runtime
 
 - **Decision:** [[2026-10-08-coach-team-handoff]]
-- **Override:** GATE-4 by @sim-lead on 2026-10-08: same pattern as the rest, risk owned by me, Coach team knows day one they own the support job
+- **Override:** E316 by @sim-lead on 2026-10-08: same pattern as the rest, risk owned by me, Coach team knows day one they own the support job
 - **Options considered:** Coach app behind TickerTalk (picked); Coach built into TickerTalk: rejected, "B drowns mobile, they're already maxed" (the product lead); Coach, a separate board-demo app and Signal as idea source: rejected, "C's too many apps before we know what Brightwater allows" (the product lead)
 
 Coach runs as its own app behind TickerTalk. A signed-in TickerTalk user opens it through [[coach-building-blocks#CON-001 Coach entry|CON-001]], and Coach takes the quotes for practice trades, delayed by 15 minutes, from Quoteline through [[coach-building-blocks#CON-002 Delayed quotes|CON-002]]. The Coach team runs it, in business hours only in release one. If Coach cannot answer, TickerTalk hides the entry and the news carries on, so an outage at 2am puts no one's money at risk. Who leads the Coach team is not named yet, and that is open in [[11-unknowns-and-risks#UNK-035 Who is the Coach lead and owns Coach's runtime|UNK-035]].

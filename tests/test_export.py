@@ -226,11 +226,11 @@ def test_an_epic_that_carries_an_override_and_an_unconfirmed_decision_says_so_at
     vault = tmp_path / "ub"
     shutil.copytree(FIXTURE, vault)
     epic = vault / "13-epics" / "EPC-031-holds-and-confirms.md"
-    after_title(epic, "- **Override:** GATE-4, GATE-5 by @hl-solution-lead on 2026-11-20: the ask can wait\n"
+    after_title(epic, "- **Override:** E316, GATE-5 by @hl-solution-lead on 2026-11-20: the ask can wait\n"
                 "- **Decided by:** @hl-solution-lead, on behalf of @harborline/booking-team\n")
     _, _, rows = exported(tmp_path, vault=vault)
     description = rows[1][1]
-    assert description.endswith("\n\nOverride: GATE-4, GATE-5 by @hl-solution-lead on 2026-11-20: the ask can wait\n"
+    assert description.endswith("\n\nOverride: E316, GATE-5 by @hl-solution-lead on 2026-11-20: the ask can wait\n"
                                 "Decided by @hl-solution-lead on behalf of @harborline/booking-team")
     assert "Acceptance criteria:\nAC1." in description and description.index("Acceptance criteria") < description.index("Override:")
     assert "Override:" not in rows[2][1], "an epic without overrides is unchanged"

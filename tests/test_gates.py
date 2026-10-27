@@ -198,7 +198,7 @@ def test_contract_without_error_case_not_ready(ub):
     assert not found.ready and rules_of(found) == ["case table"]
     assert "Booking state changed" in found.reasons[0].plain and "goes wrong" in found.reasons[0].plain
     assert found.fix == found.reasons[0].fix and "boundary session" in found.fix
-    assert '"case table"' in found.route and "until" in found.route, "a standing rule's override carries its end"
+    assert '"case table"' in found.route and "until" not in found.route, "no end date is suggested"
 
 
 def test_contract_with_no_case_table_at_all_not_ready(ub):

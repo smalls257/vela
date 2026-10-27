@@ -8,14 +8,13 @@ never refused and never invisible: a well-formed one turns the error it names in
 warning that quotes it, and a malformed one is an error of its own.
 
 A third failure is time. An override of a standing rule (schema.STANDING_RULES: an open
-unknown still blocking, a case table still missing) with no end would cover the rule
-forever, so a red check stays green long after the lead's reason stopped holding: a Silent
-Fallback with a signature on it. So it carries `until`, the day it ends (Anchor: the lead's
-words and the date sit on the page). Past that day it covers nothing and check says E398;
-the lead renews it or the rule bites again. An event rule (GATE-1, 2, 3, 5) was met or not at
+unknown still blocking, a case table still missing) may carry `until`, the day it ends (Anchor: the lead's
+words and the date sit on the page). It is optional: the lead is never made to guess a day. Past that day it
+covers nothing and check says E398, and the session brief names it (session.ended_exceptions) so the lead can
+extend it, settle the item or reopen it. An event rule (GATE-1, 2, 3, 5) was met or not at
 the moment of deciding, so its override has nothing to end. An old bullet with no `until`
-still parses and still covers, and when a refusal asks for a date, suggest_until offers one;
-nothing here ever writes it. Dates come in as arguments: the core reads no clock.
+still parses and still covers; nothing asks for a date, and nothing here ever writes one. Dates come in as
+arguments: the core reads no clock.
 
 Grammar, as CONVENTIONS.md gives it under "Overrides":
 
@@ -205,34 +204,6 @@ def expired(ov, today):
     return bool(not ov.problem and ov.until and any(is_standing(r) for r in ov.rules) and ov.until < str(today))
 
 
-_ISO = re.compile(r"\b\d{4}-\d{2}-\d{2}\b")
-
-
-def _feeds(vault, release, item_id):
-    """Whether the item is part of what the release delivers: a requirement it lists, the capability one belongs to,
-    or an app or contract that carries a share of it."""
-    requirements = {row.requirement for row in release.rows if row.requirement}
-    if item_id in requirements or any(r.split(".")[0] == item_id for r in requirements):
-        return True
-    apps, contracts = releases.reach(vault, release)
-    return item_id in apps or item_id in contracts
-
-
-def suggest_until(item_id, vault, today):
-    """The end date a refusal offers for a standing override on `item_id`: the soonest release `**Target**`, on or
-    after today, of a release the item feeds, else SUGGEST_UNTIL_DAYS from today. Offered, never written: the lead
-    picks the date."""
-    today = str(today)
-    targets = []
-    for release in releases.releases(vault):
-        found = _ISO.search(release.target or "")
-        if found and _is_date(found.group(0)) and found.group(0) >= today and _feeds(vault, release, item_id):
-            targets.append(found.group(0))
-    if targets:
-        return min(targets)
-    return (datetime.date.fromisoformat(today) + datetime.timedelta(days=schema.SUGGEST_UNTIL_DAYS)).isoformat()
-
-
 # ------------------------------------------------------------------ scopes
 
 def scope_bullets(page, item_id, label):
@@ -353,7 +324,7 @@ def grammar_findings(vault):
                 found = parse_override(bullet)
                 if found.problem:
                     yield _f(page, bullet.line, "E321", f"This **Override:** {found.problem}, so it overrides nothing.",
-                             f"Write - **Override:** {GRAMMAR}, for example GATE-4 by @hl-solution-lead on 2026-11-20: <why>.")
+                             f"Write - **Override:** {GRAMMAR}, for example E316 by @hl-solution-lead on 2026-11-20: <why>.")
             elif bullet.label == schema.DECIDED_BY_LABEL and not DECIDED_BY_RE.match(value):
                 yield _f(page, bullet.line, "E322", f"**Decided by:** '{value}' does not say who decided on whose behalf.",
                          f"Write - **Decided by:** {DECIDED_BY_GRAMMAR}.")

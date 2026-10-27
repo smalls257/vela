@@ -47,26 +47,26 @@ def blocked_with(vault, bullet):
 # ------------------------------------------------------------------ grammar
 
 def test_until_parses_and_old_grammar_still_parses():
-    found = parse("GATE-4 by @lead on 2026-10-20 until 2026-11-30: the board meets Monday: UNK-001 cannot wait")
+    found = parse("E316 by @lead on 2026-10-20 until 2026-11-30: the board meets Monday: UNK-001 cannot wait")
     assert found.problem == ""
-    assert (found.rules, found.by, found.date, found.until) == (("GATE-4",), "@lead", "2026-10-20", "2026-11-30")
+    assert (found.rules, found.by, found.date, found.until) == (("E316",), "@lead", "2026-10-20", "2026-11-30")
     assert found.reason == "the board meets Monday: UNK-001 cannot wait"
     assert found.as_dict()["until"] == "2026-11-30"
     assert "until 2026-11-30" in found.describe()
 
-    old = parse("GATE-4 by @lead on 2026-10-20: the board meets Monday")
+    old = parse("E316 by @lead on 2026-10-20: the board meets Monday")
     assert old.problem == "" and old.until is None
     assert "until" not in old.as_dict()  # readers that pin today's dict see no new key on an old bullet
 
     # "until" in the reason is the lead's words, never an end date
-    words = parse("GATE-4 by @lead on 2026-10-20: wait until 2026-12-01 for legal")
+    words = parse("E316 by @lead on 2026-10-20: wait until 2026-12-01 for legal")
     assert words.until is None and words.reason == "wait until 2026-12-01 for legal"
 
 
 @pytest.mark.parametrize("value, problem", [
-    ("GATE-4 by @lead on 2026-10-20 until 2026-02-30: why", "not a real date"),
-    ("GATE-4 by @lead on 2026-10-20 until next month: why", "'until YYYY-MM-DD'"),
-    ("GATE-4 by @lead on 2026-10-20 until 2026-10-01: why", "before the day it was written"),
+    ("E316 by @lead on 2026-10-20 until 2026-02-30: why", "not a real date"),
+    ("E316 by @lead on 2026-10-20 until next month: why", "'until YYYY-MM-DD'"),
+    ("E316 by @lead on 2026-10-20 until 2026-10-01: why", "before the day it was written"),
 ])
 def test_a_bad_until_is_malformed_never_ignored(value, problem):
     found = parse(value)
@@ -76,7 +76,7 @@ def test_a_bad_until_is_malformed_never_ignored(value, problem):
 # ------------------------------------------------------------------ classes
 
 def test_the_two_classes():
-    for rule in ("GATE-4", "E303", "E304", "E316", "E318", "E805", '"case table"',
+    for rule in ("E316", "E303", "E304", "E316", "E318", "E805", '"case table"',
                  '"F8 CON-020 declined until 2026-10-01"'):
         assert override.is_standing(rule), rule
     for rule in ("GATE-1", "GATE-2", "GATE-3", "GATE-5", '"Shape offers 2 or 3 options"'):
@@ -85,29 +85,29 @@ def test_the_two_classes():
 
 
 def test_standing_override_before_until_covers(ub):
-    ov = parse("GATE-4 by @lead on 2026-10-20 until 2026-12-31: the board meets Monday")
+    ov = parse("E316 by @lead on 2026-10-20 until 2026-12-31: the board meets Monday")
     assert override.covers(ov, "2026-12-31") and not override.covers(ov, "2027-01-01")
-    code, out = blocked_with(ub, "- **Override:** GATE-4 by @hl-solution-lead on 2026-11-01 until 2026-12-31: the board meets Monday")
+    code, out = blocked_with(ub, "- **Override:** E316 by @hl-solution-lead on 2026-11-01 until 2026-12-31: the board meets Monday")
     found = findings(out)
     assert ("W316", CAP) in found and ("E316", CAP) not in found and ("E398", CAP) not in found
     assert "until 2026-12-31" in out
 
 
 def test_standing_override_past_until_is_e398(ub):
-    code, out = blocked_with(ub, "- **Override:** GATE-4 by @hl-solution-lead on 2026-10-01 until 2026-11-01: the board meets Monday")
+    code, out = blocked_with(ub, "- **Override:** E316 by @hl-solution-lead on 2026-10-01 until 2026-11-01: the board meets Monday")
     assert code == 1
     found = findings(out)
     assert ("E398", CAP) in found and ("E316", CAP) in found  # a past until covers nothing: the rule bites again
     assert ("W316", CAP) not in found and ("W323", CAP) not in found
     e398 = next(line for line in out.splitlines() if " E398 " in line)
-    assert "ended on 2026-11-01" in e398 and "GATE-4" in e398
+    assert "ended on 2026-11-01" in e398 and "E316" in e398
     assert schema.CODES["E398"] == "an override has passed its end date"
 
 
 def test_an_old_standing_override_with_no_until_still_covers(ub):
-    ov = parse("GATE-4 by @lead on 2026-10-20: the board meets Monday")
+    ov = parse("E316 by @lead on 2026-10-20: the board meets Monday")
     assert override.covers(ov, "2099-01-01")
-    code, out = blocked_with(ub, "- **Override:** GATE-4 by @hl-solution-lead on 2026-11-01: the board meets Monday")
+    code, out = blocked_with(ub, "- **Override:** E316 by @hl-solution-lead on 2026-11-01: the board meets Monday")
     assert ("W316", CAP) in findings(out) and ("E398", CAP) not in findings(out)
 
 
@@ -140,17 +140,3 @@ def test_flowcheck_until_inside_quotes_still_works(tmp_path):
                     "by @lead on 2026-09-13: next sprint\n", encoding="utf-8")
     out = run("check", "--vault", str(vault), "--today", "2026-10-13")[1]
     assert len([line for line in out.splitlines() if " E398 " in line]) == 1  # the flow checker's, never a second
-
-
-# ------------------------------------------------------------------ the date a refusal offers
-
-def test_suggest_until_is_next_release_target_else_30_days():
-    vault = cli.load_vault(HERON)
-    # CAP-002.FR1 is delivered by Release one, Target 2027-02-02
-    assert override.suggest_until("CAP-002.FR1", vault, "2026-10-14") == "2027-02-02"
-    assert override.suggest_until("CAP-002", vault, "2026-10-14") == "2027-02-02"
-    # a release whose Target has passed is not the next one
-    assert override.suggest_until("CAP-002.FR1", vault, "2027-03-01") == "2027-03-31"
-    # CAP-001.FR1 is on no release
-    assert override.suggest_until("CAP-001.FR1", vault, "2026-10-14") == "2026-11-13"
-    assert override.suggest_until("NOPE-1", vault, "2026-12-15") == "2027-01-14"

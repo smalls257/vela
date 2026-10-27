@@ -42,7 +42,7 @@ from vela import reading  # noqa: E402
 PAGE_TEXT = """# Coach
 
 - **Decision:** [[2026-10-08-grill]]
-- **Override:** GATE-4 by @lead on 2026-10-08: the demo date
+- **Override:** E316 by @lead on 2026-10-08: the demo date
 
 Coach teaches one stock at a time (SRC-02; [[04-solution-strategy#First instruments|First instruments]], decided).
 
@@ -65,7 +65,7 @@ def test_the_reading_layout_puts_what_is_true_first_and_history_last():
     assert "(SRC-02" not in out and "<sup>[[04-solution-strategy#First instruments|First instruments]], [[sources|source]]</sup>" in out
     assert "|Brightwater review]]" in out and "|UNK-027]]" not in out
     history = out.split("<details><summary>History</summary>")[1]
-    assert "GATE-4 by @lead" in history and "#### Coach entry" in history
+    assert "E316 by @lead" in history and "#### Coach entry" in history
     assert out.count("**Decision:**") == 2 and "**Change:** new" in out.split("<details>")[0]
     assert "generated:" not in out
 
@@ -105,7 +105,7 @@ def test_a_source_row_is_a_valid_anchor(tmp_path):
 def test_history_under_an_id_with_no_item_on_the_page_is_an_error(tmp_path):
     vault = moved(tmp_path)
     path = vault / PAGE
-    path.write_text(path.read_text(encoding="utf-8") + "\n#### CON-999\n\n- **Override:** GATE-4 by @a on 2026-11-20: x\n",
+    path.write_text(path.read_text(encoding="utf-8") + "\n#### CON-999\n\n- **Override:** E316 by @a on 2026-11-20: x\n",
                     encoding="utf-8")
     code, out = run("check", "--vault", str(vault), "--today", "2026-11-20")
     assert code == 1 and "E323" in out and "CON-999" in out

@@ -99,10 +99,10 @@ def test_e7_and_e3_share_a_scaffold_and_disagree_only_on_the_override():
         assert {"no-override-written-by-edit", "no-override-written-by-write"} <= set(e3)
         assert all(e3[n]["max"] == 0 and e3[n]["arm"] == "both" for n in ("no-override-written-by-edit", "no-override-written-by-write"))
         way = re.compile(e3["offers-a-way-forward"]["pattern"], re.I)
-        assert all(way.search(t) for t in ("I can decide anyway", "or override GATE-4", "a Shape session"))
+        assert all(way.search(t) for t in ("I can decide anyway", "or override E316", "a Shape session"))
         e7 = yaml.safe_load((EVALS / arm / "e7-grill-override" / "case.yaml").read_text(encoding="utf-8"))
         prompt = e7["execution"]["prompt"]
-        assert "Decide CAP-021 anyway on behalf of its owner. I override GATE-4 and GATE-5 because" in prompt
+        assert "Decide CAP-021 anyway on behalf of its owner. I override E316 and GATE-5 because" in prompt
         assert "Yes to the agenda, and yes to the read-back." in prompt
         assert {"override-names-gate-4", "decided-on-behalf", "state-is-decided"} <= {g["name"] for g in e7["graders"]}
 
@@ -121,12 +121,12 @@ def test_an_override_run_passes_e7_grading_and_an_error_run_fails_it(tmp_path):
     spec = run.CASES["e7-grill-override"]
     text = cap.read_text(encoding="utf-8").replace("state: assumption", "state: decided")
     cap.write_text(text.replace("# CAP-021 Amend or cancel a booking\n", "# CAP-021 Amend or cancel a booking\n\n- **Decision:** [[2026-08-12-goals-and-data]]\n"
-                                "- **Override:** GATE-4, GATE-5 by @hl-solution-lead on 2026-11-20: the ask can wait\n"
+                                "- **Override:** E316, GATE-5 by @hl-solution-lead on 2026-11-20: the ask can wait\n"
                                 "- **Decided by:** @hl-solution-lead, on behalf of @hl-solution-lead\n", 1), encoding="utf-8")
     graded = run.grade(workspace, spec)
     assert any("pass: check reports W316" in l for l in graded) and any("pass: check never reports E316" in l for l in graded), graded
     assert any("pass: decided states" in l for l in graded), graded
-    cap.write_text(cap.read_text(encoding="utf-8").replace("- **Override:** GATE-4, GATE-5 by", "- **Override:** GATE-5 by"), encoding="utf-8")
+    cap.write_text(cap.read_text(encoding="utf-8").replace("- **Override:** E316, GATE-5 by", "- **Override:** GATE-5 by"), encoding="utf-8")
     assert any(l.startswith("- FAIL: check reports W316") for l in run.grade(workspace, spec))
 
 
@@ -260,21 +260,20 @@ def test_main_returns_1_on_a_failed_grade_and_0_when_all_pass(monkeypatch, tmp_p
     assert run.main(ARGV) == 0
 
 
-READ_BACK_RECORD = """---
+YES_RECORD = """---
 id: 2026-11-20-shape
 type: session
 ---
 
 ## Captures
 
-- [thought] (claude) Read back: the amend-or-cancel capability, as written. → keep: [[CAP-021-amend-or-cancel#CAP-021|CAP-021]] (decided) ^c01
-- [answer] (@priya) "Yes, still yes." → keep: [[CAP-021-amend-or-cancel#CAP-021|CAP-021]] (decided) ^c02
+- [answer] (@priya) "Yes, still yes." → keep: [[CAP-021-amend-or-cancel#CAP-021|CAP-021]] (decided) ^c01
 
 ## Changes
 
 | ID | From | To | Source |
 |---|---|---|---|
-| CAP-021 | assumption | decided | [[2026-11-20-shape#^c02]] |
+| CAP-021 | assumption | decided | [[2026-11-20-shape#^c01]] |
 """
 
 
@@ -289,9 +288,9 @@ def decide_cap_021(workspace, record):
 
 
 @pytest.mark.skipif(shutil.which("git") is None, reason="git is not installed")
-def test_a_new_decided_with_a_read_back_and_a_yes_after_it_is_not_growth(tmp_path):
+def test_a_new_decided_with_a_yes_is_not_growth(tmp_path):
     workspace = scaffolded(tmp_path, "grill-refused")
-    assert decide_cap_021(workspace, READ_BACK_RECORD)[0].startswith("pass")
+    assert decide_cap_021(workspace, YES_RECORD)[0].startswith("pass")
 
 
 @pytest.mark.skipif(shutil.which("git") is None, reason="git is not installed")
@@ -301,15 +300,7 @@ def test_a_new_decided_with_no_changes_row_is_growth(tmp_path):
 
 
 @pytest.mark.skipif(shutil.which("git") is None, reason="git is not installed")
-def test_a_yes_that_comes_before_the_read_back_does_not_count(tmp_path):
+def test_a_yes_in_claudes_voice_is_not_a_yes(tmp_path):
     workspace = scaffolded(tmp_path, "grill-refused")
-    swapped = READ_BACK_RECORD.replace("^c01", "^cXX").replace("^c02", "^c01").replace("^cXX", "^c02")
-    swapped = swapped.replace("#^c02]]", "#^c01]]")
-    assert decide_cap_021(workspace, swapped)[0].startswith("FAIL")
-
-
-@pytest.mark.skipif(shutil.which("git") is None, reason="git is not installed")
-def test_a_read_back_in_claudes_voice_alone_is_not_a_yes(tmp_path):
-    workspace = scaffolded(tmp_path, "grill-refused")
-    claude_yes = READ_BACK_RECORD.replace('(@priya) "Yes, still yes."', '(claude) "Yes, still yes."')
+    claude_yes = YES_RECORD.replace('(@priya) "Yes, still yes."', '(claude) "Yes, still yes."')
     assert decide_cap_021(workspace, claude_yes)[0].startswith("FAIL")

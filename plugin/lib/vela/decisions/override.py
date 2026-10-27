@@ -13,11 +13,11 @@ is invisible or endless:
   back unchanged.
 - **`by` is the capture's origin handle** and **`on` is today**: who chose, and when, are facts the record already
   holds, so nobody is asked for them.
-- **A standing rule needs `until`** (`override.is_standing`: GATE-4, E303, E304, E316, E318, E805, the case
-  table, a flow-check finding): it guards a condition that stays true until someone acts, so without an end it would
-  cover the rule long after the lead's reason stopped holding. A missing date is refused with the date to offer
-  (`override.suggest_until`: the next release target the item feeds, else 30 days on), which the lead agrees to
-  before it is written. An event rule (GATE-1, 2, 3, 5) was met or not at the moment of deciding and takes no `until`.
+- **A standing rule may carry `until`** (`override.is_standing`: E303, E304, E316, E318, E805, the case table, a
+  flow-check finding): it guards a condition that stays true until someone acts. The lead is never made to pick a
+  day: a standing exception with no end covers the rule until the lead settles the item, and one that has an end
+  and passes it shows in the session brief (`session.ended_exceptions`) instead of blocking a later close. An event
+  rule (GATE-1, 2, 3, 5) was met or not at the moment of deciding and takes no `until`.
 - **The rule names a rule**: a name in `schema.OVERRIDE_RULES`, or a skill rule in double quotes. A name that exists
   nowhere would override nothing while the lead believes it did; and a wish that sets no rule aside is a Notes line,
   not an override.
@@ -29,7 +29,7 @@ bullet check would call malformed (E321) is never written.
 """
 import re
 
-from vela import override as overrides, say, schema as vault_schema
+from vela import override as overrides, schema as vault_schema
 from vela.decisions import consent, schema, textedit
 
 HANDLE = re.compile(rf"^{vault_schema.HANDLE}$")
@@ -37,11 +37,11 @@ DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 SCHEMA = schema.KindSchema(
     fields={"on": "the item's ID (or a page's ID) the rule is set aside for",
-            "rules": "the rules set aside: names such as GATE-4 or E805, or a quoted skill rule \"...\"",
+            "rules": "the rules set aside: names such as GATE-1 or E805, or a quoted skill rule \"...\"",
             "reason": "the capture holding the lead's reason, in their words (\"^c35\")",
-            "until": "YYYY-MM-DD, the last day it covers; required for a standing rule, left out for an event rule"},
+            "until": "YYYY-MM-DD, the last day it covers; optional for a standing rule, left out for an event rule"},
     judgment=("reason", "until"), required=("on", "rules", "reason"),
-    example={"on": "CON-003", "rules": ["GATE-4"], "reason": "^c35", "until": "2026-11-30"})
+    example={"on": "CON-003", "rules": ["E316"], "reason": "^c35", "until": "2026-11-30"})
 
 
 def words_of(reason):
@@ -82,15 +82,7 @@ def validate(item, vault, record):
     today = textedit.today(vault)
     standing = any(overrides.is_standing(r) for r in rules)
     until = item.get("until")
-    if standing and not until and today:
-        date = overrides.suggest_until(str(item["on"]), vault.model, today)
-        found.append(textedit.refusal("override-until", "Setting that aside needs an end date, so it can't cover the "
-                                                        f"rule forever. Shall I say until {_said(date)}?",
-                                      f"Standing rule: ask the lead for the last day it covers; offer {date} (the next "
-                                      "release the item feeds, else 30 days on), then set until.",
-                                      override="none for the date itself: a standing override always ends; the lead "
-                                               "picks the day"))
-    elif until and not standing:
+    if until and not standing:
         found.append(textedit.refusal("override-until-event", "That check was met or not when you decided, so it has "
                                                               "nothing to end.",
                                       "Leave until out for GATE-1, GATE-2, GATE-3, GATE-5 and other event rules."))
@@ -98,12 +90,6 @@ def validate(item, vault, record):
         found.append(textedit.refusal("override-until-date", "That end date isn't one I can use.",
                                       f"until {until!r} must be a YYYY-MM-DD date, today or later."))
     return found
-
-
-def _said(date):
-    """The end date as the lead hears it, without a year: 'December 1'."""
-    import datetime
-    return say.date_words(date, today=datetime.date.fromisoformat(date))
 
 
 def bullet_value(item, vault, record):

@@ -53,7 +53,7 @@ def test_every_snapshot_vault_passes_vela_check_with_no_error():
     bad = {}
     for goals in tracked(SNAPSHOTS.rglob("01-goals.md")):
         code, out = check(goals.parent, "2026-10-19")
-        errors = [l for l in out.splitlines() if re.search(r" E\d+ ", l)]
+        errors = [l for l in out.splitlines() if re.match(r"\S+:\d+: E\d+ ", l)]
         if errors:
             bad[str(goals.parent.relative_to(SNAPSHOTS))] = errors[:2]
     assert bad == {}

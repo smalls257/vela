@@ -14,8 +14,8 @@ spread through the close skill's prose, each item a sentence a model could skip.
   with the Edit tool, which no hook stops in Cowork, shows up here in both apps.
 - **A capture with no mark.** Close files every capture; one left unmarked is something the lead said that would drop
   out of the plan with nobody choosing that.
-- **An error with no recorded choice.** `vela check`'s errors, after the overrides: what's left has nobody's choice
-  behind it, and would fail the merge anyway.
+- **An error the session made, with no recorded choice.** `vela check`'s errors, after the overrides, less those
+  already errors at the branch point: an old error, or an exception that ended since, is not the session's to fix.
 - **A ledger row or an override removed since the branch point.** Close section 6 says to fix errors with the lead and
   never delete the row or override to quiet the check. Deletion is detectable, so it is refused here, unless the record
   holds the lead's own words for the removal (a `| <ID> | ... | removed | [[record#^cNN]] |` Changes row).
@@ -91,10 +91,18 @@ def vault_before(vault, before):
     return model.build(pages, vault.config, sorted(vault.other_names), vault.catalog, vault.template_lines)
 
 
-def check_errors(vault, today):
-    """Check's errors, after the overrides (`rules.check` applies them)."""
+def check_errors(vault, today, before=None):
+    """Check's errors, after the overrides (`rules.check` applies them), less those already errors in `before`, the
+    vault at the branch point, on the same `today`: the session didn't make those, so it can't be held up by them. An
+    error is the same one when its code, page and message match; a new error on a page the session never touched
+    (a deleted page another links to) differs from every old one, so it still blocks. No `before` (a reader copy has
+    no branch point) keeps them all."""
     from vela import rules
-    return tuple(f for f in rules.check(vault, today) if f.is_error)
+    errors = tuple(f for f in rules.check(vault, today) if f.is_error)
+    if before is None:
+        return errors
+    already = {(f.code, f.path, f.message) for f in rules.check(before, today) if f.is_error}
+    return tuple(f for f in errors if (f.code, f.path, f.message) not in already)
 
 
 def stale_render(root, vault):
@@ -181,14 +189,15 @@ def observe(root, vault, record, text, today):
     stale, render_problems = stale_render(root, vault)
     host = hostprobe.read_json(root / hostprobe.HOST_FILE)
     common = dict(lead=apply.lead_of(root), readback=read_back_digest(root, record.id),
-                  picked=tuple(read_picked(root, record.id)), today=today, sync=mergegit.sync_verdict(root), errors=check_errors(vault, today), stale=stale,
+                  picked=tuple(read_picked(root, record.id)), today=today, sync=mergegit.sync_verdict(root), stale=stale,
                   render_problems=render_problems, hooks_ran=(root / hostprobe.ACTIVE_FILE).is_file(), host=host or None,
                   reader=reader)
     if reader:
-        return closegate.Seen(**common)
-    before = flowstore.changed_files(root, since=branch_point(root))
-    return closegate.Seen(before=vault_before(vault, before), stray=strays(root, record.id),
-                          flow=flow_lines(root, vault, before, today), **common)
+        return closegate.Seen(errors=check_errors(vault, today), **common)
+    changed = flowstore.changed_files(root, since=branch_point(root))
+    at_branch_point = vault_before(vault, changed)
+    return closegate.Seen(before=at_branch_point, errors=check_errors(vault, today, at_branch_point),
+                          stray=strays(root, record.id), flow=flow_lines(root, vault, changed, today), **common)
 
 
 def run(args, out):

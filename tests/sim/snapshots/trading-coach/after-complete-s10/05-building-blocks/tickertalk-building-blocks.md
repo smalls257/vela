@@ -72,11 +72,11 @@ Readers reach these through TickerTalk's screens. [[coach-building-blocks|Coach]
 ## History
 
 - **Decision:** [[2026-10-09-tickertalk-reader-identity#^c21]]; decided with Q-DAT-02@APP-tickertalk and Q-OPS-01@APP-tickertalk open (W807)
-- **Override:** GATE-4 by @sim-lead on 2026-10-09: mobile answers on out-of-hours cover by 14 October; the product lead decides the page now so the Coach screens can be built
+- **Override:** E316 by @sim-lead on 2026-10-09: mobile answers on out-of-hours cover by 14 October; the product lead decides the page now so the Coach screens can be built
 - **Options considered:** Coach service behind TickerTalk (picked); Coach inside TickerTalk: rejected, the product lead says "news app stays news"; Coach plus a paper-trading gateway: rejected, two new services for a January demo and a seam that only pays off once real orders exist
 
 #### CON-005 Reader identity
 
 - **Options considered:** Opaque reader ID (picked); email as the identifier: rejected, the mobile lead says TickerTalk identifies readers by an opaque ID, not the email, and an email changes, which would orphan a reader's record
 - **Decision:** [[2026-10-09-tickertalk-reader-identity#^c11]]; provider TickerTalk: present (@sim-lead); consumer Coach: not consulted, the Coach lead has not been asked; decided with Q-DAT-01@INI-001, Q-DAT-02@APP-tickertalk, Q-DAT-03@CON-005 and Q-OPS-02@CON-005 open (W807)
-- **Override:** GATE-2, GATE-4 by @sim-lead on 2026-10-09: mobile confirms stability and the opt-in check by 14 October; the product lead decides now so Coach can build against the contract
+- **Override:** GATE-2, E316 by @sim-lead on 2026-10-09: mobile confirms stability and the opt-in check by 14 October; the product lead decides now so Coach can build against the contract

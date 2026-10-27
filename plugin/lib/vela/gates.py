@@ -1,7 +1,7 @@
 """Whether an item is ready to go on a Grill's agenda, computed once per item (overhaul Task 13). Pure.
 
 The Violation this module exists to prevent is a Distributed Monolith between the grill skill and the check: the skill
-told the model to search `11-unknowns-and-risks.md` for `**Blocks:**` itself to decide GATE-4, while E316 already does
+told the model to search `11-unknowns-and-risks.md` for `**Blocks:**` itself to decide the open-question check, while E316 already does
 that search in `rules.py`. Two copies of one rule drift, and the model's copy is the one nobody tests. So (Shield) the
 conditions code can judge live here, read from the same functions the check rules read, and `vela check --gate decide
 --item X --for-lead|--json` prints the verdict (Filter): "ready", or "not ready" with the plain reason and the one thing
@@ -56,7 +56,7 @@ FLOW_CHECK_RULE = '"flow check"'
 OVERRIDE_NAMES = {"GATE-1": ("GATE-1",), "GATE-2": ("GATE-2",), CASE_TABLE: (CASE_TABLE_RULE,),
                   FLOW_CHECK: (FLOW_CHECK_RULE,)}
 ROUTE_NAMES = {"GATE-1": "GATE-1", "GATE-2": "GATE-2", CASE_TABLE: CASE_TABLE_RULE, FLOW_CHECK: FLOW_CHECK_RULE}
-OPEN_QUESTION_NAMES = ("GATE-4", "E316")  # an override naming either already excuses the question; none is asked for now
+OPEN_QUESTION_NAMES = ("E316",)  # an override naming it already excuses the question; none is asked for now
 # Only these records weigh options: the strategy and a decision record. Every other kind settles without them.
 SHAPE_PAGE_IDS = ("solution-strategy",)
 SHAPE_PAGE_TYPES = ("decision",)
@@ -172,16 +172,15 @@ def _ended(fix, ended):
     return f"{fix} Your exception for this ended on {last}, so it doesn't cover it any more."
 
 
-def route(vault, item_id, rules, today):
-    """The `vela decide` flags that decide the item anyway, with a suggested end for a standing rule (offered, never
-    written: the lead picks the date). Flags, not the Override bullet's grammar: a model that reads the bullet writes
-    it by hand, and only `vela decide` and `vela apply` record an override with its receipts."""
+def route(item_id, rules):
+    """The `vela decide` flags that decide the item anyway; no end date is suggested, an exception needs none. Flags,
+    not the Override bullet's grammar: a model that reads the bullet writes it by hand, and only `vela decide` and
+    `vela apply` record an override with its receipts."""
     names = [ROUTE_NAMES[r] for r in rules if r in ROUTE_NAMES]
     if not names:
         return ""
-    until = f" --until {override.suggest_until(item_id, vault, today)}" if any(map(override.is_standing, names)) else ""
     flags = " ".join(f"--override {shlex.quote(name)}" for name in names)
-    return f"vela decide {item_id} ... {flags} --reason-from ^cR{until}"
+    return f"vela decide {item_id} ... {flags} --reason-from ^cR"
 
 
 # ------------------------------------------------------------------ the conditions
@@ -407,7 +406,7 @@ def verdict(vault, record, item, today, flows=None):
             unique.append(o)
     return Verdict(item, name, not reasons, tuple(reasons), tuple(o.as_dict() for o in unique),
                    tuple(d.copy.id for d in owed), tuple(d.copy.entry.question for d in owed),
-                   route(vault, item, [r.rule for r in reasons], today) if reasons else "",
+                   route(item, [r.rule for r in reasons]) if reasons else "",
                    tuple(u.id for u in open_blockers(vault, found, today, blocked)))
 
 

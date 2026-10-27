@@ -282,7 +282,7 @@ def test_a_decision_with_an_open_question_notes_it(tmp_path):
     bullets = history_of(writes[STOCK], "CON-002")
     assert "- **Decided with open:** UNK-003" in bullets
     assert not any(b.startswith("- **Override:**") for b in bullets), "noting it needs no override"
-    overridden = filed(root, [item(overrides=[{"rules": ["GATE-4"], "reason": "^c06", "until": "2026-11-01"}])])
+    overridden = filed(root, [item(overrides=[{"rules": ["E316"], "reason": "^c06", "until": "2026-11-01"}])])
     assert "- **Decided with open:** UNK-003" in history_of(overridden[STOCK], "CON-002")
 
 

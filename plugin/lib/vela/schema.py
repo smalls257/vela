@@ -244,20 +244,18 @@ SUBJECT_LOOKALIKE_RE = re.compile(r"^(PTY|SV)(?![A-Za-z])", re.IGNORECASE)
 # Rule name in an **Override:** bullet -> the check codes it turns into warnings. A gate check
 # cannot see (GATE-1, 2, 3, 5) turns nothing: the bullet is the record.
 OVERRIDE_RULES = {
-    "GATE-1": (), "GATE-2": (), "GATE-3": (), "GATE-4": ("E316",), "GATE-5": (),
+    "GATE-1": (), "GATE-2": (), "GATE-3": (), "GATE-5": (),
     "E303": ("E303",), "E304": ("E304",), "E316": ("E316",), "E318": ("E318",),
     "E805": ("E805",),
 }
 # Two classes, because they end differently (plan 4.4). A standing rule guards a condition that stays true until
-# someone acts (an unknown still open, a case table still missing), so its override says the date it ends: without
-# one it would cover the rule forever, a Silent Fallback with a signature on it. An event rule was met or not at the
+# someone acts (an unknown still open, a case table still missing), so its override may say the date it ends; when it
+# does, a later close is not held up by it, and the session brief names it. An event rule was met or not at the
 # moment of deciding (who was in the room, how many options a Shape weighed), so its override has nothing to end.
 # A quoted rule is standing when it is "case table" or a flow-check finding ("F<n> ..."), and an event otherwise.
-STANDING_RULES = ("GATE-4", "E303", "E304", "E316", "E318", "E805")
+STANDING_RULES = ("E303", "E304", "E316", "E318", "E805")
 EVENT_RULES = ("GATE-1", "GATE-2", "GATE-3", "GATE-5")
 STANDING_QUOTED = ('"case table"',)
-# How far ahead the date a refusal offers sits when the item feeds no release with a Target still to come.
-SUGGEST_UNTIL_DAYS = 30
 # Error -> the warning it becomes when an Override on the same item names it.
 # The sentence an E805 fix ends with. An overridden E805 prints as W805 without it, so the way to end an
 # override never suggests making another one. It names commands, never the Override bullet's grammar.

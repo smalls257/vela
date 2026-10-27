@@ -59,4 +59,4 @@ Follows the lessons epic. It ships once the Brightwater terms are settled ([[11-
 
 - **Options considered:** Two epics split by contract, lessons, track and list against paper trading (picked, [[2026-10-09-coach-epics#^c01]]); three epics with the ready track on its own: rejected, it splits CON-001's "whether ready" output from the epic that delivers CON-001; one Coach epic: rejected, lessons could not ship without paper trading, and 4 to 7 criteria cannot cover six items ([[2026-10-09-coach-epics#^c02]])
 - **Decision:** [[2026-10-09-epics-coach-mobile]]; decided with Q-DAT-01@INI-001, Q-DAT-02@APP-coach, Q-REG-01@INI-001 and Q-REG-05@INI-001 open (W807)
-- **Override:** GATE-4 by @sim-lead on 2026-10-09: "Honestly not sure on both. Partnerships on Brightwater, @privacy-lead on lawful basis. Set ask-by dates and we move." UNK-059 and UNK-060 stay open, owned with ask-by 2026-10-16.
+- **Override:** E316 by @sim-lead on 2026-10-09: "Honestly not sure on both. Partnerships on Brightwater, @privacy-lead on lawful basis. Set ask-by dates and we move." UNK-059 and UNK-060 stay open, owned with ask-by 2026-10-16.
