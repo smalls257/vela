@@ -12,8 +12,8 @@ brief` reads the lines across the records and lists every item still not decided
 
 The line is a pointer, not a decision: settling still takes the lead's own yes.
 
-A group's yes in requirements, boundary or allocate can settle its lines at once (`vela decide <ID> --yes ^cM`);
-when the lead keeps them not decided yet, they are what this list is for.
+A group's yes in requirements, boundary or allocate can settle its lines at once (`vela decide <ID> --yes ^cM`).
+Items the lead keeps not decided yet reach this list only through `vela decide --later` or a keep mark.
 
 Two writers fill it. `vela decide --later` does when the lead declines the offer to settle. But the rule "run `vela
 decide` on a plain yes" sat in the skills and was skipped (E81: ~20 yeses in two paid runs, none listed), so `vela
