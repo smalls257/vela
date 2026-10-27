@@ -97,16 +97,6 @@ def test_changed_item_owes_its_opening_sentence(tmp_path):
     assert any(p["kind"] == "item" and p["heading"] == "CON-002 Stock level" for p in stock), stock
 
 
-def test_decided_this_session_listed_for_readback(tmp_path):
-    vault = session(tmp_path)
-    decide_stock(vault)
-    data = drafts_json(vault)
-    assert [(r["item"], r["name"], r["before"], r["page"]) for r in data["readback"]] == \
-        [("CON-002", "Stock level", "fact", STOCK)]
-    code, out = drafts(vault, "--for-lead")
-    assert code == 0 and "Stock level" in out, out
-
-
 def test_lists_over_seven_are_named(tmp_path):
     vault = session(tmp_path)
     more = "".join(f"\n### UNK-{n:03d} Question {n}\n\n- **Question:** Is {n} enough?\n- **Owner:** @mini-qa\n"
@@ -155,7 +145,7 @@ def test_reader_copy_runs_no_git(tmp_path, monkeypatch):
     monkeypatch.setattr(vaultgit, "run_git", no_git)
     data = drafts_json(vault)
     assert any(p["kind"] == "item" for p in owed_at(data, STOCK)), data
-    assert [r["item"] for r in data["readback"]] == ["CON-002"]
+    assert "readback" not in data
     assert data["reader_copy"] is True
 
 

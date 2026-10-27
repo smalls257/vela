@@ -108,15 +108,6 @@ class Owed:
 
 
 @dataclass(frozen=True)
-class ReadBack:
-    item: str
-    name: str
-    before: str
-    page: str
-    heading: str
-
-
-@dataclass(frozen=True)
 class LongList:
     page: str
     title: str
@@ -145,7 +136,6 @@ class Split:
 @dataclass
 class Drafts:
     paragraphs: list
-    readback: list
     long_lists: list
     split: object  # Split or None
     judgment: tuple = JUDGMENT
@@ -324,19 +314,6 @@ def owe_epics(ledger, pages, modes):
         if page.type == "epic":
             for heading, what in EPIC_SECTIONS:
                 ledger.owe(page, heading, "epic", WHY["epic"].format(what=what), page.id)
-
-
-def readback(after, decided):
-    out = []
-    for item_id in decided:
-        item = after.item(item_id)
-        if item is not None:
-            out.append(ReadBack(item_id, after.name_of(item_id), "", item.page.path, item.heading))
-            continue
-        pages = after.by_id.get(item_id)
-        if pages:
-            out.append(ReadBack(item_id, after.name_of(item_id), "", pages[0].path, title_of(pages[0])))
-    return out
 
 
 def list_counts(page, item_sections):
@@ -526,7 +503,7 @@ def voice_review(sized, paragraphs):
 
 
 def owed(before, after, changes, modes=(), history=None):
-    """Everything close's "Write the items and the prose" and "Still yes, then the read-back" need from the facts: `before` and `after` are vault models, `changes` is
+    """Everything close's "Write the items and the prose" needs from the facts: `before` and `after` are vault models, `changes` is
     {page path: text before, or None when new} for every page that differs, `modes` the session record's modes.
     `history.written(page, heading, names)` returns a function path -> the page's text as it stood when that paragraph was
     last written this session, or None when it was not written; None for `history` means nothing was written."""
@@ -545,8 +522,7 @@ def owed(before, after, changes, modes=(), history=None):
     kept = sorted({p.page for p in ledger.all() if is_kept(after, p.page)})
     entries = sorted([p for p in ledger.all() if p.page not in kept], key=lambda p: p.page)  # stable order
     paragraphs, done = settle(entries, history, after)
-    back = [ReadBack(r.item, r.name, was.get(r.item, "-"), r.page, r.heading) for r in readback(after, decided)]
-    return Drafts(paragraphs, back, long_lists(after, pages), split_facts(entries), kept=kept, done=done)
+    return Drafts(paragraphs, long_lists(after, pages), split_facts(entries), kept=kept, done=done)
 
 
 def is_kept(vault, path):

@@ -641,13 +641,13 @@ def unbacked_picks(record_text, seen):
 
 
 def readback_problems(vault, record_id, part, record_text, seen):
-    """The lead has not read back the sentences that go on record in their name, or one changed after they did. Silent
-    until there is a sentence to read: a session that put no words on a page owes no read-back."""
+    """The lead has not read back the quotes picked for the pull request, or one changed after they did. Silent until
+    there is a quote to read: settled Decision and Why lines are not read back."""
     from vela import closereadback
-    found = closereadback.sentences(vault, record_id, part, record_text, seen.lead, seen.picked)
+    found = closereadback.owed(closereadback.sentences(vault, record_id, part, record_text, seen.lead, seen.picked))
     if not found or closereadback.digest(found) == seen.readback:
         return []
-    return [Problem(READBACK_OWED, f"{len(found)} sentence(s) to read back; `vela close readback` lists them, "
+    return [Problem(READBACK_OWED, f"{len(found)} picked quote(s) to read back; `vela close readback` lists them, "
                     "`--done` records the lead's yes",
                     "Reading the sentences back to the lead, then vela close readback --done, clears it.",
                     kind=READBACK)]

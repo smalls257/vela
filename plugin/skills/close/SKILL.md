@@ -37,7 +37,7 @@ If the session touched prose and `vela close drafts` says a review is due, run t
 
 ## 3. The read-back
 
-Run `vela close readback --for-lead` and read its sentences in groups of about five, by item name. For each, the lead keeps it, rewords it or cuts it (`vela close readback --help`); a decision's own receipt can be reworded, never cut, and new words must be theirs. Then `vela close readback --done`.
+Run `vela close readback --for-lead`. It lists only quotes picked for the pull request; read them back for keep, reword or cut, then `vela close readback --done`. When it lists nothing, say nothing and go on.
 
 ## 4. Check, then finish and send
 
