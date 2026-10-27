@@ -230,11 +230,12 @@ def test_render_stale_blocks(tmp_path):
     assert "generated tables are out of date" in gate(vault)[1]
 
 
-def test_tree_not_clean_blocks(tmp_path):
+def test_a_stray_file_is_a_note_not_a_stop(tmp_path):
     vault = session(tmp_path)
+    before = gate(vault, "--for-lead")
     (vault / "notes.txt").write_text("scratch\n", encoding="utf-8")
     code, out = gate(vault, "--for-lead")
-    assert code == 1 and "notes.txt" in out, out
+    assert code == before[0] and "leaving it out" in out and "Shall I leave it out" not in out, out
 
 
 def test_flowcheck_line_per_affected_slice(tmp_path):

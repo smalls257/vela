@@ -167,18 +167,17 @@ def test_the_moved_rules_keep_their_reasons_in_code():
 
 
 def test_close_finish_push_pr_in_order():
-    """The yes to send is numbered after `close push`'s notice and captured while the record is still open, so
-    `close finish` commits it; then the push cites it and `close pr` quotes it (tests/replay/step_45 and step_70)."""
+    """The lead's word to close is the yes: finish, then push, then `close pr`, with no notice to wait on and no yes to
+    capture."""
     seven = csec(4)
-    order = ["vela check-slice --changed", "vela close gate --for-lead", "vela close push --for-lead",
-             "vela record add --tag decision", "vela close finish --summary", "vela close push --consent ^cN"]
+    order = ["vela check-slice --changed", "vela close gate --for-lead", "vela close finish --summary",
+             "vela close push --for-lead"]
     at = [seven.index(step) for step in order]
     assert at == sorted(at), order
-    assert '--mark "drop: the yes to send this for review"' in seven
+    assert "--consent" not in seven and "drop: the yes to send" not in seven and "OK?" not in seven
+    assert "no yes to capture" in seven
     assert (CLOSE_SKILL.index("vela close sync-main") < CLOSE_SKILL.index("vela close gate --for-lead")
             < CLOSE_SKILL.index("vela close pr --prose"))
-    assert "captured with `vela record add` while the record is still open" in read(
-        "tests", "replay", "step_45_close_push_notice.py")
 
 
 def test_close_relays_the_gate_grouped_and_in_its_own_words():
@@ -414,14 +413,12 @@ def test_close_can_be_started_by_the_model():
     assert "disable-model-invocation" not in close
 
 
-def test_close_asks_one_confirmation_before_it_pushes_and_never_starts_on_its_own():
+def test_close_sends_on_the_leads_word_to_close_and_never_starts_on_its_own():
     assert "Close starts on the lead's word, never yours." in CLOSE_SKILL
-    assert "Sending is the only step that leaves the machine, and it takes its own yes." in CLOSE_SKILL
-    assert re.search(r"`vela close push --for-lead` and say its notice.*; wait\.", csec(4), re.S)
-    # rule deletion: START says when close starts and that only a yes after the notice sends, and `close push` refuses
-    # a yes captured before the notice (decisions/consent.py:after_send_notice)
-    assert 'A bare "close" is consent to file, not to send.' not in CLOSE_SKILL
-    # START's "Closing a session" holds when close starts and the only yes that sends (pinned in test_start_text.py)
+    assert "Sending follows the lead's word to close; nothing private ever goes." in CLOSE_SKILL
+    assert "takes its own yes" not in CLOSE_SKILL and "say its notice" not in CLOSE_SKILL
+    assert "then the branch sent for review. Never start it unprompted." in CLOSE_SKILL
+    assert "split the pull request by page group" not in CLOSE_SKILL
 
 
 # --- S25: record by default, ask only the few unsettled items, never the tool's own filing
@@ -441,8 +438,7 @@ def test_worked_examples_kept():
                     "Nobody has said who could settle whether a call digest is a client record. I'd ask legal and "
                     "chase it on November 6. Is that the right person?",
                     "I kept the 8 fixed limits as constraints, set aside 12 what-ifs and dropped 5 that repeat other "
-                    "lines.",
-                    "I'll send this for review to Ines and the payments team. OK?"):
+                    "lines."):
         assert example in CLOSE_SKILL, example
 
 
@@ -683,14 +679,12 @@ def test_close_no_longer_rebuilds_every_paragraph_at_the_end():
 
 
 def test_a_session_on_main_moves_to_its_own_branch_before_finish():
-    """After `close finish` the session is closed and `record add` can't take the send yes, so a lead who learns at step 4
-    that main needs a review branch can never send. The move is offered at step 1, while the session is open."""
+    """`vela close push` moves a session on main to its own branch itself, so the skill asks nothing and runs no
+    `session branch`; it only says the gate may then want sync-main."""
     text = (REPO / "plugin" / "skills" / "close" / "SKILL.md").read_text(encoding="utf-8")
     send = text[text.index("Then send, in this order"):text.index("## 5. The pull request")]
-    step1, step4 = send[send.index("1. Run `vela close push --for-lead`"):send.index("2. Capture")], send[send.index("4. Run"):]
-    assert "review needs its own branch" in step1 and "`vela session branch --for-lead`" in step1
-    assert "still open" in step1
-    assert "session branch" not in step4
+    assert "On main it moves the work to its own branch first" in send and "vela session branch" not in send
+    assert "asks for `vela close sync-main`, run it" in send
 
 
 # --- The trim of October 23 (review finding 4): close is the one skill that sends, and it can start cold with START
@@ -710,7 +704,6 @@ def test_close_carries_the_four_hard_stops_itself():
 def test_close_sends_in_its_order():
     assert CLOSE_SKILL.index("## 3.") < CLOSE_SKILL.index("vela close sync-main") < CLOSE_SKILL.index("vela close push --for-lead")
     send = csec(4)
-    order = ["1. Run `vela close push --for-lead`", "2. Capture the lead's answer", "3. Run `vela close finish",
-             "4. Run `vela close push --consent"]
+    order = ["1. Run `vela close finish", "2. Run `vela close push --for-lead`", "3. Section 5's `vela close pr`"]
     at = [send.index(step) for step in order]
     assert at == sorted(at), order

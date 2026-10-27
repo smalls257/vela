@@ -196,11 +196,10 @@ def test_render_stale_blocks():
     assert all(p.audience == say.MODEL for p in result.problems if p.kind == closegate.RENDER)  # Claude's own step
 
 
-def test_tree_not_clean_blocks():
+def test_a_stray_file_is_a_note_not_a_problem():
     result = readied(stray=("notes.txt",))
-    assert not result.ready
-    problem = next(p for p in result.problems if "notes.txt" in p.plain)
-    assert problem.clear
+    assert result.ready and not any("notes.txt" in p.plain for p in result.problems)
+    assert any("notes.txt" in n.plain and "leaving it out" in n.plain for n in result.notes)
 
 
 def test_an_error_with_no_recorded_choice_blocks():

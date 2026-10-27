@@ -1,36 +1,25 @@
-"""`vela close push [--consent ^cN]` and `vela close pr [--prose FILE]`: send the session after a recorded yes, then
-open its pull request (overhaul Task 12, plan 4.3 and 7.3).
+"""`vela close push` and `vela close pr [--prose FILE]`: send the session, then open its pull request (overhaul
+Task 12, plan 4.3 and 7.3).
 
-One confirmation stays before anything leaves the machine: the push and the pull request are the only steps that do,
-and a hard stop forbids sending company material without consent. A yes only happens in conversation, so code can't
-prove it; what code can do is refuse to send without one on record, numbered after the notice, and put the quoted words
-in the PR. That makes this a Sensor, not a Shield, said plainly (plan 4.3). The CLI refuses first, so a hook that didn't
-fire in Cowork can't let a push through: the Silent Fallback "no hook ran, so nothing asked" is ruled out here, where
-it's checked whatever the host.
+The lead's word to close is the yes for the push and the pull request: nothing asks a second time. What still stops a
+send is the gate (a session that isn't ready isn't sent), a reader copy, a host that can't send, and the hard stop on
+company material, which `guard` and the pre-commit hook hold whatever the host (Silent Fallback "no hook ran, so
+nothing stopped it" is ruled out: the CLI checks first).
 
 `close push`, in order:
 
 1. A reader copy sends nothing (no git, no push, no PR) and says so. A host whose probe (`.vela/host.json`) says it
-   can't send gets 7.3's sentence ("I can file the session here, but I can't send it...") before any notice: telling
-   the lead what will be sent when it can't be sent would be a promise the next step breaks.
-2. Without `--consent`: the send notice ("I'll push `session/<id>` and open a pull request for <reviewers>"; for the
-   lead, "I'll send this for review to Ines and the payments team. OK?"), the record's capture count, exit 3.
-   Nothing the lead owns changes. One machine-local marker is left, `.vela/close/<id>.push-notice.json`, holding that
-   count and the branch, because "the yes comes after the notice" can't be checked later without it; `.vela/` is
-   never committed.
-3. With `--consent ^cN`: the capture exists, is the lead's own words (its origin their `vela whoami` handle; anyone
-   else's, an email address included, is said as theirs), isn't a bare "ok", and is numbered
-   above the notice's count (`decisions.consent`, the same checks `apply` uses). A yes with no notice printed for this
-   session on this machine is refused the same way: the lead hasn't heard what is sent.
-4. Everything the session changed is committed, the record with the yes included: a push sends commits, so an
-   uncommitted yes would be quoted in the PR but missing from the branch.
-5. The gate (`close_gate.observe` then `closegate.ready`, the same pair `close finish` composes): a session that isn't
+   can't send gets 7.3's sentence ("I can file the session here, but I can't send it...") before anything is tried:
+   promising a send the next step breaks would be worse than saying so.
+2. A session sitting on the default branch is moved onto its own `session/...` branch first
+   (`move_off_default_branch`, the same move `vela session branch` makes): a pull request can't be opened from the
+   branch it goes into, and the default branch is never pushed. Said as one line; nothing is asked.
+3. The gate (`close_gate.observe` then `closegate.ready`, the same pair `close finish` composes): a session that isn't
    ready isn't sent.
-6. The push, to the branch the session sits on (any branch but the default one: a pull request can't be opened from the
-   branch it goes into, so a session on main is told so and offered `vela session branch`, after the lead's yes): with
-   `-u`, or, for an answer session, its challenge's
-   branch as it is (the answer lands in the challenge's PR). It leaves `.vela/close/<id>.push.json` (the branch, the
-   head, the yes) for `close pr`.
+4. Everything the session changed must be committed: a push sends commits.
+5. The push, to the branch the session sits on: with `-u`, or, for an answer session, its challenge's
+   branch as it is (the answer lands in the challenge's PR; `gh pr comment`). It leaves `.vela/close/<id>.push.json` (the branch and the head) for
+   `close pr`.
 
 `close pr`: when the branch already has an open pull request (`gh pr view` on the branch), the session's body is added to
 it as a comment and no second one is opened; the lead is told so. Reviewers from `owner:` fields (the lead's own handle dropped, `vela whoami`; team handles kept as
@@ -40,9 +29,8 @@ no URL, the body is saved to `.vela/pr-body.md` and the lead hears one sentence;
 `gh` printed its URL. When a PR was created and the session wrote `handed_off_pr: pending`, the number replaces
 `pending`, committed as `Handoff PR number for <APP-id>` and pushed; if `gh` failed, `pending` stays and W325 says so.
 
-Exit codes. push: 0 pushed; 1 refused (a reader copy, a host that can't send, the yes doesn't qualify, something
-uncommitted, the gate); 2 the push failed (the branch and the retry command printed); 3 the yes is needed (the notice
-printed). pr: 0 the URL printed; 1 refused (not pushed yet) or `gh` failed (the body saved, one sentence); 2 the tool
+Exit codes. push: 0 pushed; 1 refused (a reader copy, a host that can't send, something uncommitted, the gate); 2 the
+push failed (the branch and the retry command printed). pr: 0 the URL printed; 1 refused (not pushed yet) or `gh` failed (the body saved, one sentence); 2 the tool
 failed (git, the disk, or the handoff number's push); 3 the lead's handle is unknown (ask once, `vela whoami --set`).
 """
 import json
@@ -53,8 +41,6 @@ from dataclasses import replace
 
 from vela import closegate, commands, parse, planscope, prbody, privaterecord, say, sessions
 from vela.commands import close_gate, whoami
-from vela.decisions import consent as consents
-from vela.decisions import record as records
 from vela.decisions import settled
 from vela.edge import flowstore, ghcli, hostprobe, sessiongit, vaultgit
 
@@ -74,11 +60,9 @@ class Stop(Exception):
 
 
 def register_close(steps):
-    push = steps.add_parser("push", help="send the session's branch, after the lead's yes to the send notice: without "
-                                         "--consent, print the notice and exit 3")
+    push = steps.add_parser("push", help="send the session's branch (a session on the default branch moves to its own "
+                                         "branch first); the lead's word to close is the yes")
     push.add_argument("--vault", default=".", help="vault root (default: current directory)")
-    push.add_argument("--consent", default="", metavar="^cN",
-                      help="the capture holding the lead's yes, numbered after the notice this command printed")
     push.add_argument("--today", help="the date the gate judges by, YYYY-MM-DD (default: system date)")
     say.add_output_flags(push)
     push.set_defaults(func=cmd_push)
@@ -160,21 +144,17 @@ def find_session(root, command):
     return Session(record, text, branch)
 
 
-def refuse_default_branch(root, session, command):
-    """A pull request goes from a branch into the default branch, so a session sitting on the default branch has nothing
-    to open one from. Said in plain words with the way out, which is the lead's yes: moving the session's commits to a
-    new branch changes where the work lives. Nothing is committed to main and nothing is pushed."""
-    default = sessiongit.default_branch(root)
-    if session.branch != default or session.answer:
-        return
-    question = (f"This session is on {default}, and a review needs its own branch, so I haven't sent anything. Want me "
-                f"to move today's work onto a new branch for the review? {default.capitalize()} goes back to how it "
-                "was before.")
-    raise Stop(say.Result(command, exit=say.REFUSED, lines=[say.Line(
-        f"vela {command}: {session.id} is on {default}, and a pull request can't be opened from {default} into itself; "
-        f"nothing was pushed. With the lead's yes, run vela session branch to move the session's commits onto "
-        f"session/{session.id}, then run close push again.", plain=question)],
-        needs_lead=[{"ask": "move to a branch", "question": question, "answer_with": "vela session branch"}]))
+def move_off_default_branch(root, session, lines):
+    """A pull request goes from a branch into the default branch, so a session sitting on the default branch is moved
+    onto its own `session/...` branch before anything is sent (`commands.session.move_to_own_branch`, the same move
+    `vela session branch` makes); the default branch goes back to how it was and is never pushed. An answer session
+    sits on its challenge's branch and stays. `lines` takes what the move said. Returns the session on its branch."""
+    if session.branch != sessiongit.default_branch(root) or session.answer:
+        return session
+    from vela.commands import session as sessioncmd
+    moved = sessioncmd.move_to_own_branch(root)
+    lines += moved.lines
+    return find_session(root, PUSH)
 
 
 def can_send(root, command):
@@ -229,25 +209,23 @@ def emit(result, args, out, vault=None):
 
 def cmd_push(args, out):
     from vela import cli
+    from vela.commands import session as sessioncmd  # late: session loads the size reader, which push never needs
     root = pathlib.Path(args.vault).resolve()
-    vault = None
+    vault, said = None, []
     try:
         can_send(root, PUSH)
-        session = find_session(root, PUSH)
-        refuse_default_branch(root, session, PUSH)
+        session = move_off_default_branch(root, find_session(root, PUSH), said)
         vault = cli.load_vault(root)
-        if not args.consent:
-            # Readiness first: asking "OK?" for a session that can't go yet asks the lead for a yes that is then
-            # refused (the October 14 voice audit, row 133).
-            result = unready(root, vault, session, args) or notice(root, vault, session)
-        else:
-            result = send(root, vault, session, args)
+        result = unready(root, vault, session, args) or send(root, vault, session, args)
     except Stop as stop:
         result = stop.result
+    except sessioncmd.Stop as stop:
+        result = replace(stop.result, command=PUSH)
     except (vaultgit.GitUnavailable, cli.ToolError, OSError) as exc:
         result = say.Result(PUSH, exit=say.FAILED, lines=[say.Line(f"vela close push: {exc}",
                                                                    plain="I couldn't send the session; git didn't "
                                                                          "answer.")])
+    result.lines = said + result.lines
     return emit(result, args, out, vault)
 
 
@@ -280,64 +258,14 @@ def trouble(why):
     return "git didn't take it"
 
 
-def notice(root, vault, session):
-    """The send notice and exit 3. The marker holds the capture count the yes must be numbered above."""
-    count = records.from_text(session.id, privaterecord.private_path(session.id), session.text).count
-    found, _ = reviewer_handles(root, vault, changes(root), PUSH)
-    if session.answer:
-        said = (f"I'll push `{session.branch}` and add a comment on the challenge's pull request.",
-                "I'll send this answer to the challenge's pull request. OK?")
-    else:
-        names = prbody.reviewer_words(found)
-        said = (f"I'll push `{session.branch}` and open a pull request for "
-                f"{', '.join('@' + h for h in found) or 'no reviewer (nobody but you owns what changed)'}.",
-                f"I'll send this for review to {names}. OK?" if names else "I'll send this for review. OK?")
-    marker = {"version": VERSION, "branch": session.branch, "captures": count, "reviewers": found}
-    sessiongit.write_text(root, close_file(session.id, "push-notice"), json.dumps(marker, indent=2) + "\n")
-    s = "" if count == 1 else "s"
-    lines = [say.Line(f"{said[0]}\nThe record holds {count} capture{s} at this notice; capture the lead's yes after "
-                      "it (vela record add --tag decision --mark \"drop: the yes to send this for review\"), run "
-                      "vela close finish while the session is still open, then vela close push --consent ^cNN.",
-                      plain=said[1])]
-    result = say.Result(PUSH, exit=say.NEEDS_LEAD, lines=lines, data={"branch": session.branch, "reviewers": found},
-                        needs_lead=[{"ask": "push", "question": said[1], "captures_at_notice": count,
-                                     "answer_with": "--consent ^cNN"}])
-    return result
-
-
-def consent_refusal(root, session, ref):
-    """The first reason the yes doesn't qualify, or None; and the yes itself."""
-    record = records.from_text(session.id, privaterecord.private_path(session.id), session.text)
-    first = consents.a_yes(ref, record)
-    if first is not None:
-        return first, None
-    yes = record.capture(ref)
-    not_theirs = consents.from_the_lead(yes, own_handle(root, PUSH), sessiongit.lead_names(root))
-    if not_theirs is not None:
-        return not_theirs, yes
-    marker = read_marker(root, close_file(session.id, "push-notice"))
-    if not marker or marker.get("branch") != session.branch or not isinstance(marker.get("captures"), int):
-        late = consents.after_send_notice(yes, int(yes.n))
-        return replace(late, fix="Run vela close push without --consent first: no send notice was printed for this "
-                                 "session's branch on this machine. Then capture the lead's yes after it."), yes
-    return consents.after_send_notice(yes, marker["captures"]), yes
-
-
 def send(root, vault, session, args):
-    refusal, yes = consent_refusal(root, session, args.consent)
-    if refusal is not None:
-        return say.Result(PUSH, exit=say.REFUSED, refusals=[refusal])
     left = uncommitted(root)
     if left:
-        what = ("The record with your yes isn't committed yet" if session.record.path in left
-                else "Some of this session's changes aren't committed yet")
+        what = "Some of this session's changes aren't committed yet"
         # The default mode names the paths for the model; the lead hears what it means for the send.
         raise refused(PUSH, f"vela close push: {what.lower()}: {', '.join(left)}. Commit them (vela close stage --close, "
                             "or vela close finish) and run this again.",
                       "A few of today's changes aren't saved yet, so they wouldn't go. I'll save them, then send.")
-    stopped = unready(root, vault, session, args)
-    if stopped is not None:
-        return stopped
     sent = ghcli.push(root, session.branch, track=not session.answer)
     if not sent.ok:
         return say.Result(PUSH, exit=say.FAILED, data={"branch": session.branch, "retry": sent.command}, lines=[
@@ -347,9 +275,7 @@ def send(root, vault, session, args):
     head = vaultgit.git_out(root, "rev-parse", "HEAD")
     from vela import cli
     today, _ = cli.parse_today(args.today)
-    pushed = {"version": VERSION, "branch": session.branch, "head": head, "consent": f"c{yes.n}",
-              "date": today, "answer": session.answer,
-              "link": privaterecord.citation(session.id, session.part, int(yes.n))}
+    pushed = {"version": VERSION, "branch": session.branch, "head": head, "date": today, "answer": session.answer}
     wrote = [sessiongit.write_text(root, close_file(session.id, "push"), json.dumps(pushed, indent=2) + "\n")]
     plain = ("Sent. Now I'll add your answer to the challenge." if session.answer
              else "Sent. Now I'll open the review.")
@@ -367,7 +293,6 @@ def cmd_pr(args, out):
         if sessiongit.is_read_copy(root):
             raise refused(PR, "vela close pr: a reader copy: no pull request is opened from here.", READER_SENTENCE)
         session = find_session(root, PR)
-        refuse_default_branch(root, session, PR)
         vault = cli.load_vault(root)
         result = open_pr(root, vault, session, args)
     except Stop as stop:
@@ -383,12 +308,11 @@ def pushed_marker(root, session):
     marker = read_marker(root, close_file(session.id, "push"))
     if not marker or marker.get("branch") != session.branch:
         raise refused(PR, f"vela close pr: {session.branch} isn't pushed by close push yet; run vela close push first.",
-                      # Sending needs the lead's own yes (close push's notice), so this asks; it never promises.
-                      "This session isn't sent yet. Shall I send it for review?")
+                      "This session isn't sent yet. I'll send it first.")
     if marker.get("head") != vaultgit.git_out(root, "rev-parse", "HEAD"):
         raise refused(PR, f"vela close pr: {session.branch} has commits since close push; run vela close push "
-                          f"--consent ^{marker.get('consent')} again so the remote has them.",
-                      "Something changed after I sent the session. Shall I send it again?")
+                          "again so the remote has them.",
+                      "Something changed after I sent the session. I'll send it again.")
     return marker
 
 

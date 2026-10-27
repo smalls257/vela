@@ -229,7 +229,6 @@ KIND_WORDS = {
     closegate.UNMARKED: ("some of what was said isn't sorted yet", "some of what was said isn't sorted yet"),
     closegate.CHECK: ("one item can't be finished as it stands", "{n} items can't be finished as they stand"),
     closegate.REMOVED_ROW: ("one thing was taken out this session", "{n} things were taken out this session"),
-    closegate.STRAY: ("some files changed outside this session", "some files changed outside this session"),
 }
 WAY_OUT = "You can also keep any of these as they are; I'll note why."
 

@@ -1,30 +1,30 @@
 """What the Claude Code hooks decide about one tool call: pure, text in and a verdict out (no stdin, disk or git).
 
 Every rule here is already held somewhere that does not depend on a hook firing, because a hook that didn't run looks
-exactly like one that passed (Silent Fallback, plan section 1): `vela close stage` is the only thing that stages and
-the vault's pre-commit `guard staged` refuses a forbidden path; `vela decide` is the only thing that moves a state,
-and `close gate` refuses a state change with no quoted capture; render refuses a hand-edited generated block; `close
-push` refuses to send without the lead's yes on record. In Claude Code the hooks only say so earlier, before the
+exactly like one that passed (Silent Fallback, plan section 1): the vault's pre-commit `guard staged` refuses a
+forbidden path; `vela decide` is the only thing that moves a state, and `close gate` refuses a state change with no
+quoted capture; render refuses a hand-edited generated block; `close push` refuses to send a session the gate says
+isn't ready. In Claude Code the hooks only say so earlier, before the
 mistake is on disk. So this module holds no rule of its own: paths are judged by `guard.never_rule`, the generated
 markers are `parse.MARKER_OPEN`/`MARKER_CLOSE`, and the state lines are the two forms the vault format defines.
 
-**Paper Tiger (a deny-list of `git add` spellings), ruled out.** Matching `git add -A`, `git add .` and `--all` passes
-its own test and misses `-u`, `git -C x add`, `git stage`, `sh -c '...'`, `$(...)` and `commit -a`. So the command is
-read the way a shell reads it, into simple commands (quotes, `;`, `&&`, `|`, `$(...)`, backticks, `sh -c`, `eval`,
-`env`/`xargs`-style wrappers and here-documents), and every `git` run that would write the index is denied whatever
-its spelling: `add`, `stage`, `update-index`, `apply --index|--cached`, and a `commit` that stages on its way
-(`-a`/`--all`, `-i`, `-o`, `-p`, `--pathspec-from-file`, or a path after the options). A plain `git commit -m` stays
-allowed: it commits what is already staged, and only the CLI stages. Words are never commands, so a capture that
-says "git add" in quotes, or a here-document fed to python, is left alone. The CLI's own git runs inside
-`sh .../scripts/run-vela ...` and never reaches this text.
+**Paper Tiger (a deny-list of `git add` spellings), ruled out.** Matching `git add -A` and `git add .` passes its own
+test and misses `-u`, `git -C x add`, `git stage`, `sh -c '...'`, `$(...)` and `commit -a`. So the command is read the
+way a shell reads it, into simple commands (quotes, `;`, `&&`, `|`, `$(...)`, backticks, `sh -c`, `eval`,
+`env`/`xargs`-style wrappers and here-documents), and every `git` run that would write the index is judged whatever
+its spelling: `add`, `stage`, `update-index`, `apply --index|--cached`, and a `commit` that stages on its way. What
+is denied is only a private path: a named path `guard.never_rule` forbids, a forced stage (`-f`, `--force`), or a plain
+`git commit` while the index holds one (or cannot be read). Plain `git add` of plan pages, `-A` and `.` get no
+opinion: the plan's `.gitignore` ignores every path `guard.never_rule` forbids, and the vault's pre-commit `guard
+staged` still refuses one that gets in. Words are never commands, so a capture that says "git add" in quotes, or a
+here-document fed to python, is left alone. The CLI's own git runs inside `sh .../scripts/run-vela ...` and never
+reaches this text.
 
 **Leaky Narrative, ruled out at the reason.** A deny names the way that works ("`vela close stage` stages ...",
 "use `vela decide`") in plain words; the model reads it and retries the right way instead of guessing a spelling the
 hook might miss.
 
-Asked, not denied: `git push`, `gh pr create` and `gh pr comment`, the only calls that send something off the machine
-(plan 9.3 Q9). `ask` puts the send in front of the human; bypass-permissions mode may auto-allow it, which is why
-`close push`'s consent check stays the real gate.
+A push or a pull request gets no opinion: the lead's word to close is the yes, and `vela close push` sends.
 """
 import posixpath
 import re
@@ -32,12 +32,12 @@ from dataclasses import dataclass, field
 
 from vela import guard, parse, schema
 
-DENY, ASK = "deny", "ask"
+DENY = "deny"
 
 
 @dataclass
 class Verdict:
-    decision: str  # DENY or ASK
+    decision: str  # always DENY
     reason: str  # plain words for the model, naming the way that works
     forbidden: list = field(default_factory=list)  # paths guard.py says a commit may never carry, as given
 
@@ -319,87 +319,64 @@ def named_paths(args):
     return paths
 
 
-def sends(words):
-    """True for the runs that send work off this machine: `git push`, `gh pr create`, `gh pr comment`."""
-    name = posixpath.basename(words[0])
-    if name == "git":
-        return git_subcommand(words)[0] == "push"
-    if name == "gh":
-        rest = [w for w in words[1:] if not w.startswith("-")]
-        return rest[:1] == ["pr"] and rest[1:2] in (["create"], ["comment"])
-    return False
+STAGE_REASON = ("That stages a file that must never be committed (the inbox, private notes, private voice files or "
+                "vela's working files), so I stopped it. Stage the plan pages by name, or let `vela close stage` do it.")
 
 
-STAGE_REASON = ("In a vela vault only vela stages and commits, by exact path from its allow-list: run `vela close "
-                "stage` (with `--checkpoint`, `--draft` or `--close` to commit), and `vela close finish` at the end of "
-                "a close. A proposal's worktree commits through `vela proposals commit`. Staging by hand is how the "
-                "inbox, private voice files or another session's work end up in a pull request.")
-SEND_REASON = ("This sends work off this machine (a push or a pull request). In a vela vault `vela close push` and "
-               "`vela close pr` do it once the lead has said yes; ask the lead before it goes.")
+FORCE_LETTER = "f"
 
 
-SHORT_BROAD = set("Au")  # `git add -A`, `git add -u`
-LONG_BROAD = {"--all", "--update"}
-GLOB = re.compile(r"[*?\[]")
-OUTSIDE_PLANS_REASON = (" This folder holds plans. The plan's files go through vela (`vela close stage`); to stage the "
-                        "other files by hand, name each path, for example `git add notes/todo.md`, and do not use -A, "
-                        "-u, `.` or a folder or pattern that reaches a plan.")
-
-
-def stages_broadly(sub, args):
-    """True when this index-writing run names no path to limit it (`add -A`, `add -u`, `commit -a`, `apply --index`)
-    or `add`'s flags say everything."""
+def forces_a_stage(sub, args):
+    """True for `git add -f` / `--force` (any spelling of the short letters): it stages what .gitignore hides."""
+    if sub not in ("add", "stage"):
+        return False
     flags = [w for w in args if w.startswith("-") and w != "--"]
-    letters = {c for w in flags if not w.startswith("--") for c in w[1:]}
-    if sub in ("add", "stage"):
-        return bool(letters & SHORT_BROAD or set(flags) & LONG_BROAD) and not named_paths(args)
-    if sub == "commit":  # a commit that names a path is judged by that path; a plain one by what the index holds
-        return bool(letters & set("aip")) or bool(set(flags) & {"--all", "--include", "--patch", "--interactive"})
-    return sub in ("apply", "update-index") and not named_paths(args)
+    return "--force" in flags or any(FORCE_LETTER in w[1:] for w in flags if not w.startswith("--"))
 
 
-def reaches_a_plan(path, cwd, plan_roots):
-    """True when a path named in a git run lands inside a plan folder or covers one (a parent folder, `.`, or a pattern
-    whose fixed part does). Judged on strings from `cwd`; an absolute path is taken as it is."""
-    literal = GLOB.split(path, 1)[0]
-    if literal != path:
-        literal = literal.rsplit("/", 1)[0] if "/" in literal else ""
-    full = posixpath.normpath(posixpath.join(cwd, literal or "."))
-    return any(full == root or full.startswith(root + "/") or root.startswith(full.rstrip("/") + "/")
-               for root in plan_roots)
+def plan_relative(path, cwd, plan_roots):
+    """`path` as the plan holding it names it, or None for a path in no plan (the owner's own work). Without
+    `plan_roots` the command runs inside a plan and the path is already relative to it."""
+    if plan_roots is None:
+        return path
+    full = posixpath.normpath(posixpath.join(cwd, path))
+    for root in plan_roots:
+        if full.startswith(root + "/"):
+            return full[len(root) + 1:]
+    return None
+
+
+def private_path(path, cwd, plan_roots):
+    """The path when `guard.never_rule` forbids it in the plan that holds it, else None."""
+    inside = plan_relative(path, cwd, plan_roots)
+    return path if inside is not None and guard.never_rule(inside) is not None else None
 
 
 def bash_verdict(command, cwd="", plan_roots=None, staged=()):
-    """The hook's verdict on one Bash command line, or None for no opinion.
+    """The hook's deny for one Bash command line, or None for no opinion; it never asks.
 
-    In a plan every index-writing git run is denied. Opened at a repo's root (or a folder with no plan above it) that
-    holds plans, `plan_roots` lists their absolute folders and only a run that reaches a plan is denied: one that
-    names a path inside a plan or over one, or stages broadly. Named paths outside every plan are the owner's own
-    work and pass. A plain `git commit` commits only the index, so it is denied only when `staged` (absolute paths the
-    index holds; None when they could not be read, which counts as holding a plan's) reaches a plan."""
-    denied, forbidden, asked = False, [], False
+    Only a private path is stopped (**Shield**: the inbox, private notes and vela's own state stay out of a pull
+    request; the lead's word to close is the yes for everything else). An index-writing run is denied when it names a
+    path `guard.never_rule` forbids or forces a stage with `-f`. A plain `git commit` is denied when `staged` (absolute
+    paths the index holds; None when they could not be read, which counts as holding a private one) holds one.
+    `plan_roots` lists the plans' absolute folders when the command runs where plans sit below it; a path in none of
+    them is the owner's own work."""
+    denied, forbidden = False, []
     for words in simple_commands(command):
-        name = posixpath.basename(words[0])
-        if name == "git":
-            sub, args = git_subcommand(words)
-            if sub == "commit" and plan_roots is not None and not writes_index(sub, args):
-                denied = denied or staged is None or any(reaches_a_plan(p, cwd, plan_roots) for p in staged)
-            elif writes_index(sub, args):
-                if plan_roots is None:
-                    denied = True
-                    forbidden += [p for p in named_paths(args) if guard.never_rule(p) is not None]
-                elif stages_broadly(sub, args) or any(reaches_a_plan(p, cwd, plan_roots) for p in named_paths(args)):
-                    denied = True
-        if sends(words):
-            asked = True
-    if denied:
-        rules = [guard.never_rule(p) for p in forbidden]
-        said = " ".join(dict.fromkeys(rule.plain for rule in rules))
-        return Verdict(DENY, STAGE_REASON + (OUTSIDE_PLANS_REASON if plan_roots is not None else "")
-                       + (f" {said}" if said else ""), forbidden)
-    if asked:
-        return Verdict(ASK, SEND_REASON)
-    return None
+        if posixpath.basename(words[0]) != "git":
+            continue
+        sub, args = git_subcommand(words)
+        if sub == "commit" and not writes_index(sub, args):
+            denied = denied or staged is None or any(private_path(p, cwd, plan_roots) for p in staged)
+        elif writes_index(sub, args):
+            named = [p for p in named_paths(args) if private_path(p, cwd, plan_roots)]
+            forbidden += named
+            denied = denied or bool(named) or forces_a_stage(sub, args)
+    if not denied:
+        return None
+    rules = [guard.never_rule(plan_relative(p, cwd, plan_roots)) for p in forbidden]
+    said = " ".join(dict.fromkeys(rule.plain for rule in rules))
+    return Verdict(DENY, STAGE_REASON + (f" {said}" if said else ""), forbidden)
 
 
 # --------------------------------------------------------------------------- what an edit changes

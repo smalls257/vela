@@ -8,7 +8,7 @@ import sys
 
 from conftest import REPO, run
 from sharing import git
-from test_close_push import BRANCH, RECORD, TODAY, YES_WORDS, add_yes, push, remote_has, sent_session
+from test_close_push import BRANCH, RECORD, TODAY, YES_WORDS, push, remote_has, sent_session
 from vela import prbody, say
 
 FAKE_GH = """#!{python}
@@ -64,9 +64,7 @@ def calls(log):
 
 def pushed(tmp_path, **kwargs):
     vault, bare = sent_session(tmp_path, **kwargs)
-    assert push(vault)[0] == 3
-    number = add_yes(vault)
-    code, out = push(vault, "--consent", number)
+    code, out = push(vault)
     assert code == 0, out
     return vault, bare
 
@@ -177,7 +175,7 @@ def test_pr_before_push_refused(tmp_path, monkeypatch):
     vault, _ = sent_session(tmp_path)
     code, out = pr(vault, "--for-lead")
     assert code == 1 and "isn't sent yet" in out, out
-    assert "Shall I send it for review?" in out and "I'll send" not in out  # asks; never promises a send
+    assert "This session isn't sent yet. I'll send it first." in out  # no yes to wait for: sending comes first
     assert not created(log)
 
 
@@ -187,9 +185,6 @@ def test_answer_session_pushes_challenge_branch_and_comments(tmp_path, monkeypat
                                on_branch=CHALLENGE_BRANCH)
     before = git(bare, "rev-parse", CHALLENGE_BRANCH)
     code, out = push(vault)
-    assert code == 3 and f"`{CHALLENGE_BRANCH}`" in out and "comment on the challenge's pull request" in out, out
-    number = add_yes(vault)
-    code, out = push(vault, "--consent", number)
     assert code == 0, out
     assert git(bare, "rev-parse", CHALLENGE_BRANCH) == git(vault, "rev-parse", "HEAD") != before
     assert not remote_has(bare, f"session/{ANSWER}")

@@ -43,7 +43,7 @@ def test_a_second_session_on_a_branch_owes_only_its_own_paragraphs(tmp_path, mon
     assert owed and STOCK not in owed and "05-building-blocks/stock-building-blocks.md" not in owed
 
 
-def test_close_push_on_the_default_branch_offers_a_branch_and_session_branch_moves_the_work(tmp_path, monkeypatch):
+def test_close_push_on_the_default_branch_moves_the_work_to_its_own_branch_without_asking(tmp_path, monkeypatch):
     vault = make_vault(tmp_path)
     bare = with_remote(tmp_path, vault)
     no_gh(tmp_path, monkeypatch)
@@ -52,12 +52,9 @@ def test_close_push_on_the_default_branch_offers_a_branch_and_session_branch_mov
     decide_stock(vault)
     commit_all(vault, "Decide the stock level")
     code, out = run("close", "push", "--vault", str(vault), "--today", TODAY, "--for-lead")
-    assert code == 1, out
-    assert "needs its own branch" in out and "move today's work onto a new branch" in out
-    assert git(bare, "rev-parse", "main") == began  # nothing was pushed
-    code, out = run("session", "branch", "--vault", str(vault), "--json")
-    assert code == 0, out
+    assert "The session has its own branch now" in out and "move today's work" not in out, out
     branch = f"session/{TODAY}-stock"
+    assert git(bare, "rev-parse", "main") == began  # main was never pushed
     assert git(vault, "branch", "--show-current") == branch
     assert git(vault, "rev-parse", "main") == began  # main holds nothing of the session
     assert git(vault, "log", "--format=%s", began + ".." + branch).split("\n")[0] == f"Move session {TODAY}-stock to {branch}"

@@ -1,4 +1,4 @@
-"""`vela close finish --summary "..." [--replace]` and `vela close dashboard [--branch]` (overhaul Task 11): file the
+"""`vela close finish --summary "..." [--replace]` and `vela close dashboard [--put-back]` (overhaul Task 11): file the
 session in the one order close's "Check, then finish and send" and "No session open" name, and rebuild the dashboard with no session open.
 
 The Violation this module's shape prevents is a God Method rebuilt inside the CLI: finishing a close touches the gate,
@@ -15,14 +15,12 @@ isn't ready (run `vela close gate`), or no session is open; 2 the tool failed (g
 already filed is said); 3 needs the lead, nothing written: several sessions are open, or a handoff record exists and
 replacing it needs `--replace` and the app's team's own yes in the record.
 
-`close dashboard` is the no-session path of close's "No session open": it rebuilds `dashboard.html` and never commits to main.
-With no session open in an owner's copy and the page changed, it exits 3 offering a `dashboard/<date>` branch; nothing
-is committed or pushed (the rebuilt page is the lead's view on this machine, not a change to the plan, so it is not in
-`wrote`). `--branch` takes that offer: it creates `dashboard/<date>` from here and commits only `dashboard.html` on it
-as `Rebuild dashboard`. Pushing it is `close push`'s job. `--put-back` is the lead turning the offer down: HEAD's page
-goes back, so main is left as it was; a page left changed there stopped the next `session start` six times in one run.
-With a session open it rebuilds and leaves the page for the
-close. A reader copy runs no git in either command.
+`close dashboard` is the no-session path of close's "No session open": it rebuilds `dashboard.html` and never commits to
+main. With no session open in an owner's copy and the page changed, it asks nothing: it creates `dashboard/<date>` from
+here and commits only `dashboard.html` on it as `Rebuild dashboard`. Pushing it is `close push`'s job. `--put-back` is
+the lead turning that branch down: HEAD's page goes back, so main is left as it was; a page left changed there stopped
+the next `session start` six times in one run. With a session open it rebuilds and leaves the page for the close. A
+reader copy runs no git in either command.
 """
 import io
 import json
@@ -33,8 +31,8 @@ from vela.edge import atomic, mergegit, sessiongit, stagegit, vaultgit
 
 # The explore report lines the lead hears after the dashboard line (close's "No session open"): what the build went on without.
 RELAYED_KINDS = ("warning", "no design", "gitignore")
-# The lead's answer to `close dashboard`'s branch offer (no answer yet: None, and the offer is made).
-BRANCH, PUT_BACK = "branch", "put-back"
+# `close dashboard --put-back`: the lead turned the dashboard's own branch down.
+PUT_BACK = "put-back"
 
 
 def register_close(steps):
@@ -47,15 +45,11 @@ def register_close(steps):
     finish.add_argument("--today", help="the date check and the handoff record use, YYYY-MM-DD (default: system date)")
     say.add_output_flags(finish)
     finish.set_defaults(func=run_finish)
-    board = steps.add_parser("dashboard", help="rebuild the dashboard with no session open; never commits to main")
+    board = steps.add_parser("dashboard", help="rebuild the dashboard with no session open; commits it on its own dashboard/<date> branch, never main")
     board.add_argument("--vault", default=".", help="vault root (default: current directory)")
-    # The lead's answer to the branch offer is one choice, so the two flags can't be passed together
-    answer = board.add_mutually_exclusive_group()
-    answer.add_argument("--branch", action="store_const", dest="answer", const=BRANCH,
-                        help="put the rebuilt dashboard on its own dashboard/<date> branch and commit it there")
-    answer.add_argument("--put-back", action="store_const", dest="answer", const=PUT_BACK,
-                        help="the lead turned the branch down: put the committed dashboard back, so nothing is left "
-                             "changed for the next session to stop on")
+    board.add_argument("--put-back", action="store_const", dest="answer", const=PUT_BACK,
+                       help="put the committed dashboard back, so nothing is left changed for the next session to "
+                            "stop on")
     board.add_argument("--today", help="the date the dashboard counts from, YYYY-MM-DD (default: system date)")
     say.add_output_flags(board)
     board.set_defaults(func=run_dashboard)
@@ -375,7 +369,7 @@ def run_dashboard(args, out):
                                      f"The dashboard couldn't be updated: {plain}."))
         return emit(result, args, out, resolver)
     try:
-        lead_choice(root, today, reader, found, args.answer == BRANCH, result)
+        lead_choice(root, today, reader, found, result)
     except vaultgit.GitUnavailable as exc:
         raise cli.ToolError(f"close dashboard: git failed: {exc}") from exc
     result.lines += relayed
@@ -417,9 +411,9 @@ def restore_committed(root, path):
     return code, err or out
 
 
-def lead_choice(root, today, reader, found, branch, result):
+def lead_choice(root, today, reader, found, result):
     """What the rebuilt page means here: a read copy keeps it; an open session takes it at its close; with no session
-    the lead chooses whether it gets its own branch (exit 3), or has chosen (`--branch`)."""
+    it goes on its own dashboard branch, never on main, with no question."""
     line = result.lines.append
     if reader:
         line(say.Line("vela close dashboard: rebuilt dashboard.html; a read copy commits nothing.",
@@ -434,12 +428,6 @@ def lead_choice(root, today, reader, found, branch, result):
                       closefinish.DASHBOARD_DONE))
         return
     name = planscope.dashboard_branch(vaultgit.plan_scope(root), today)
-    if not branch:
-        result.exit = say.NEEDS_LEAD
-        result.needs_lead = [{"choice": "branch", "branch": name, "run": "vela close dashboard --branch"}]
-        line(say.Line(f"vela close dashboard: rebuilt dashboard.html, not committed: no session is open. Run vela close "
-                      f"dashboard --branch to commit it on {name}.", closefinish.NO_SESSION_DASHBOARD))
-        return
     code, _, err = vaultgit.run_git(root, "switch", "-c", name)
     if code != 0:
         raise vaultgit.GitUnavailable(f"could not create {name}: {err.decode('utf-8', 'replace').strip()}"

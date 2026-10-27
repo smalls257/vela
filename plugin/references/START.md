@@ -16,7 +16,7 @@ Say a `--for-lead` command's lines in your words. When it ends "N more; want the
 
 ## 1. Start the session
 
-Run `vela session start --mode grill --topic "<two to four words from the lead>" --for-lead`, with the skill's own mode in place of `grill`. It commits only a header stub: the notes stay on this machine, so say so once, in your words. It doesn't switch branches or pull `main`, so run `vela freshness --for-lead` next: if the branch is behind, offer to bring `main` in (`vela close sync-main`), and never call the plan up to date when the shared copy was out of reach. On exit 3 it changes nothing: ask what it asks, one at a time, and run it again. Its `--json` names the flag for the answer. Never close a session the user hasn't asked to close.
+Run `vela session start --mode grill --topic "<two to four words from the lead>" --for-lead`, with the skill's own mode in place of `grill`. It commits only a header stub: the notes stay on this machine, so say so once, in your words. It doesn't switch branches or pull `main`, so run `vela freshness --for-lead` next: if the branch is behind, bring `main` in with `vela close sync-main`, and never call the plan up to date when the shared copy was out of reach. On exit 3 it changes nothing: ask what it asks, one at a time, and run it again. Its `--json` names the flag for the answer. Never close a session the user hasn't asked to close.
 
 On resume, say in one line where you stopped; a grill carries on from the first `open` item in the notes' `## Agenda`. Never claim to know what notes kept on another machine say.
 
@@ -31,7 +31,7 @@ Say the size line it prints, once. If the lead says the plan is bigger or smalle
 - **The lead reads names, never codes.** No ID, capture number, check code, gate name or rule name, in your sentences or a command's. A command they type names the thing: "/vela:grill Desktop agent". If the lead asks for an ID, give it. Say states in words; spell out an abbreviation the first time.
 - **A line is written after a yes to that line.** A yes that covers a group you read out counts for every line in it, so read back in groups of about five. Silence or "ok" isn't a yes: ask once more in other words, then park the line as an open question.
 - Never delete a `- Trace:` line. Tool trouble you fix yourself isn't news. Write American spelling, names included ("Organizer"). Edit with the Edit tool or a `vela` command: no `sed -i`.
-- Only vela stages, commits, sets a state or writes a generated block: never `git add`, a hand-set `state:`, or an edit inside a generated block.
+- Only vela sets a state or writes a generated block: never a hand-set `state:`, or an edit inside a generated block. Stage plan pages by name or with `vela close stage`; never stage `.inbox/`, private notes or `.vela/`.
 
 ## The user may override any rule
 
@@ -58,9 +58,9 @@ When the user names a challenge to answer, read `${CLAUDE_PLUGIN_ROOT}/reference
 
 ## Closing a session
 
-Close starts only on the lead's word: "close", "we're done", "that's enough", or a move to another mode. That is the yes to filing: say in one line what will happen and run the `close` skill. If they only sounded finished, ask once, "Shall I close this out now?" Never start close because the work looks complete, a turn limit is near, or a gate stopped you. If close can't start from here, say only: "Type `/vela:close` and I'll take it from there."
+Close starts only on the lead's word: "close", "we're done", "that's enough", or a move to another mode. That is the yes to filing and sending: say in one line what will happen and run the `close` skill. If they only sounded finished, ask once, "Shall I close this out now?" Never start close because the work looks complete, a turn limit is near, or a gate stopped you. If close can't start from here, say only: "Type `/vela:close` and I'll take it from there."
 
-One confirmation stays: close says what will be sent and waits for a yes. That yes, given after close says what goes, is the only one that sends. After a switch, say the line the lead types next, by name ("Type `/vela:requirements booking changes`").
+After a switch, say the line the lead types next, by name ("Type `/vela:requirements booking changes`").
 
 ## Captures during the session
 

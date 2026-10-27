@@ -2,7 +2,7 @@
 # The model may start close, on purpose: "we're done" or "switch to requirements" must be able to start it
 # without the lead typing /vela:close. The description's "Never start it unprompted" is the guard.
 name: close
-description: 'File the session when the lead says they''re done ("close", "we''re done", "switch to …"): notes into pages, prose in the house voice, then the branch sent for review after a yes. Never start it unprompted.'
+description: 'File the session when the lead says they''re done ("close", "we''re done", "switch to …"): notes into pages, prose in the house voice, then the branch sent for review. Never start it unprompted.'
 argument-hint: "[session id, if more than one is open]"
 ---
 
@@ -17,7 +17,7 @@ Four stops no override reaches; say which one applies and offer what you can do 
 - Never say a PR, comment, push or commit exists unless the tool printed it, and never report a failed step as done.
 - Never invent what a person said, a source, or an ID the vault does not hold.
 
-Everything the lead said stays in notes on this machine. What goes into the plan and the pull request in their name is a short list of sentences, and the lead sees every one before it leaves. Sending is the only step that leaves the machine, and it takes its own yes.
+Everything the lead said stays in notes on this machine. What goes into the plan and the pull request in their name is a short list of sentences, and the lead sees every one before it leaves. Sending follows the lead's word to close; nothing private ever goes.
 
 Run `vela role`. In a reader copy, read `${CLAUDE_PLUGIN_ROOT}/skills/close/READER.md`.
 
@@ -31,7 +31,7 @@ Run `vela marks plan --json`. Filing is the tool's work, not the lead's: never s
 
 Write each new item with `vela add unknown`, `vela add constraint` or another type `vela add --help` lists. Facts come from the lead, never from general knowledge; when nobody knows a required fact, write an unknown that asks for it. Keep every `**Override:**`, `**Decided by:**` and `**Confirmed by:**` bullet as written. When `marks plan` leaves a ledger row's state to you, or the lead says the catalog missed a question, read `${CLAUDE_PLUGIN_ROOT}/skills/close/LEDGER.md`.
 
-Run `vela close drafts --json` and draft only its `paragraphs`, through `${CLAUDE_PLUGIN_ROOT}/skills/house-voice/SKILL.md`. A sentence that leaves a matter for later is never kept as prose: write the question with `vela add unknown --blocks <ID>` and link it. Add a glossary entry for each term a newcomer wouldn't know. When it owes more than about twenty paragraphs, ask whether to split the pull request by page group. Then run `vela style` on each drafted page, fix its mechanical findings once, and go on. Never delete an `**Ask:**`, `**Target:**` or `**Owning team:**` line, or a `- Trace:` line, to quiet it. Then run `vela close stage --draft`.
+Run `vela close drafts --json` and draft only its `paragraphs`, through `${CLAUDE_PLUGIN_ROOT}/skills/house-voice/SKILL.md`. A sentence that leaves a matter for later is never kept as prose: write the question with `vela add unknown --blocks <ID>` and link it. Add a glossary entry for each term a newcomer wouldn't know. Then run `vela style` on each drafted page, fix its mechanical findings once, and go on. Never delete an `**Ask:**`, `**Target:**` or `**Owning team:**` line, or a `- Trace:` line, to quiet it. Then run `vela close stage --draft`.
 
 If the session touched prose and `vela close drafts` says a review is due, run the voice review once as `${CLAUDE_PLUGIN_ROOT}/skills/close/VOICE-REVIEW.md` says; show the lead only new or changed paragraphs. Then `vela voice harvest list --json`; with candidates, read `${CLAUDE_PLUGIN_ROOT}/skills/close/HARVEST.md`.
 
@@ -47,10 +47,11 @@ Run `vela close gate --for-lead` and say which slices still run end to end and w
 
 Then send, in this order:
 
-1. Run `vela close push --for-lead` and say its notice ("I'll send this for review to Ines and the payments team. OK?"); wait. If it says the session is on main and a review needs its own branch, ask now, while the session is still open; on a yes run `vela session branch --for-lead`, `vela close sync-main` and `vela close stage`, then start this list again.
-2. Capture the lead's answer, whatever it is, while the session is open: `vela record add --tag decision --mark "drop: the yes to send this for review" "<their words>"`. On a no, do step 3 and stop: the session is filed and nothing is sent.
-3. Run `vela close finish --summary "<one line>" --for-lead`. The notes stay on this machine. The summary opens the pull request and nobody reads it back, so it quotes no one: say what was filed, never what anyone said. Say what it lists as not settled at handoff.
-4. Run `vela close push --consent ^cN --for-lead` with the capture from step 2. If it fails, say so in one sentence and stop.
+1. Run `vela close finish --summary "<one line>" --for-lead`. The notes stay on this machine. The summary opens the pull request and nobody reads it back, so it quotes no one: say what was filed, never what anyone said. Say what it lists as not settled at handoff.
+2. Run `vela close push --for-lead`. If it fails, say so in one sentence and stop. On main it moves the work to its own branch first; if the gate then asks for `vela close sync-main`, run it and push again.
+3. Section 5's `vela close pr`.
+
+There is no notice to wait on and no yes to capture: the lead's word to close sends it.
 
 ## 5. The pull request, and what you tell the lead
 
@@ -60,4 +61,4 @@ End with three to six plain sentences: what was filed, by group; what was settle
 
 ## 6. No session open
 
-Run `vela close dashboard --for-lead` and do what it offers. If the lead turns its branch down, or the close ends without an answer, run `vela close dashboard --put-back --for-lead`, so nothing is left changed on main.
+Run `vela close dashboard --for-lead`; it puts the page on its own branch, never main. If the lead doesn't want that branch, run `vela close dashboard --put-back --for-lead`.

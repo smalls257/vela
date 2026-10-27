@@ -114,9 +114,9 @@ class Problem:
 
 
 # What holds a close up, in the order the lead hears it: one line per kind when there is more than one of it.
-CONSENT, RECEIPT, READBACK, UNMARKED, CHECK, REMOVED_ROW, STRAY, RENDER, SYNC = (
-    "consent", "receipt", "readback", "unmarked", "check", "removed", "stray", "render", "sync")
-KINDS = (SYNC, CONSENT, RECEIPT, READBACK, UNMARKED, CHECK, REMOVED_ROW, STRAY, RENDER)
+CONSENT, RECEIPT, READBACK, UNMARKED, CHECK, REMOVED_ROW, RENDER, SYNC = (
+    "consent", "receipt", "readback", "unmarked", "check", "removed", "render", "sync")
+KINDS = (SYNC, CONSENT, RECEIPT, READBACK, UNMARKED, CHECK, REMOVED_ROW, RENDER)
 
 
 @dataclass(frozen=True)
@@ -336,10 +336,6 @@ class Readiness:
         return not self.problems
 
 
-def _plural(n, one, many):
-    return one if n == 1 else many
-
-
 def unmarked(record_text):
     """Captures with no keep/park/drop mark, in record order. Close files every capture, so one left unmarked is
     something the lead said that would drop out of the plan without anyone choosing that."""
@@ -496,15 +492,15 @@ def removal_problems(before, after, rows, said):
     return [r.problem for r in unagreed_removals(before, after, rows, said)]
 
 
-def stray_problem(stray):
+def stray_note(stray):
+    """A file changed that isn't part of this session is said and left out of the commit; it never holds the close up."""
     if not stray:
         return []
     n, names = len(stray), [lead_path(p) for p in stray]
     shown = say.names_said(names[:3]) + (f" and {say.count_words(n - 3)} more" if n > 3 else "")
-    said = (f"{shown} changed but isn't part of this session. Shall I leave it out, or is it yours to keep?" if n == 1
-            else f"{shown} changed but aren't part of this session. Shall I leave them out, or are they yours to keep?")
-    return [Problem(said, "left out: " + ", ".join(stray),
-                    f"Committing, moving or deleting {_plural(n, 'it', 'them')} clears it.", kind=STRAY)]
+    said = (f"{shown} changed but isn't part of this session, so I'm leaving it out." if n == 1
+            else f"{shown} changed but aren't part of this session, so I'm leaving them out.")
+    return [Problem(said, "left out: " + ", ".join(stray))]
 
 
 def render_problem(stale, render_problems):
@@ -534,6 +530,7 @@ def notes_of(seen):
                              "reader copy: no merge-base"))
     if seen.lead is None:
         notes.append(Problem(NO_HANDLE, "no whoami handle: the receipt lead clause and the picked quotes were not judged"))
+    notes += stray_note(seen.stray)
     notes += [Problem(lead, line) for line, lead in seen.flow]
     if seen.flow_note:
         notes.append(Problem(seen.flow_note, seen.flow_note))
@@ -699,6 +696,5 @@ def ready(vault, record_text, record_id, seen, part=1):
     problems += error_problems(seen.errors, vault)
     if seen.before is not None:
         problems += [r.problem for r in unagreed_removals(seen.before, vault, rows, said)]
-    problems += stray_problem(seen.stray)
     problems += render_problem(seen.stale, seen.render_problems)
     return Readiness(tuple(problems), tuple(notes_of(seen)), tuple(consent))

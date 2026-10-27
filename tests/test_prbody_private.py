@@ -47,8 +47,7 @@ def test_a_receipt_with_the_leads_words_on_the_page_stays_off_the_body(tmp_path,
     git(vault, "add", "05-building-blocks/stock-building-blocks.md")
     git(vault, "commit", "-q", "-m", "Word the receipt")
     assert run("close", "readback", "--done", "--vault", str(vault))[0] == 0
-    assert push(vault)[0] == 3
-    assert push(vault, "--consent", add_yes(vault))[0] == 0
+    assert push(vault)[0] == 0
     assert pr(vault)[0] == 0
     body = created(log)[0]["body"]
     assert "Yes, send it." not in body and YES_WORDS not in body

@@ -36,8 +36,8 @@ without hearing so. Exit codes:
    the initiative has no name yet (the one naming question; `--title` answers it, `--unnamed` records that the lead
    declined).
 
-`session branch` moves an open session that sits on the default branch onto its own `session/...` branch, for a lead
-who said yes when `close push` explained that main can't be the head of a pull request. The session's commits go with
+`session branch` moves an open session that sits on the default branch onto its own `session/...` branch; `close push`
+makes the same move itself, because main can't be the head of a pull request. The session's commits go with
 it and the local default branch goes back to where the session began.
 
 `session brief` is START steps 3 and 4, read-only: review comments on PRs merged since the last closed session (as
@@ -122,7 +122,7 @@ def register_start(verbs):
 
 def register_branch(verbs):
     mover = verbs.add_parser("branch", help="move the open session's commits from the default branch onto a new "
-                                            "session branch, after the lead's yes")
+                                            "session branch (`close push` does this itself)")
     mover.add_argument("--vault", default=".", help="vault root (default: current directory)")
     say.add_output_flags(mover)
     mover.set_defaults(func=cmd_branch)
@@ -761,11 +761,10 @@ def start_owner(root, args, today, modes, plain, said, host):
 
 
 def review_needs_branch(current):
-    """Said once, when a session starts on the default branch: close can't open a pull request from it."""
-    return say.Line(f"on {current}: a review needs its own branch; with the lead's yes, run vela session branch "
+    """Said once, when a session starts on the default branch: close moves the work onto its own branch to send it."""
+    return say.Line(f"on {current}: a review needs its own branch; vela close push moves the work onto one "
                     "(the session is open now)",
-                    plain=f"We're on {current}, and a review needs its own branch. If you want one for this session, "
-                          "say so and I'll make it; otherwise the work stays here.")
+                    plain=f"We're on {current}. Close will move this work onto its own branch for the review.")
 
 
 def start_on_challenge(root, args, today, modes, plain, host, pr, challenged, lines, asks, asked):

@@ -20,10 +20,9 @@ Each check returns None or a `say.Refusal` whose `plain` is the 4.3 table's sent
   carries only the lead's own words or those of someone who gave their own `quote-yes` in this session (`may_quote`).
 - `quote_yes`: a person's own yes to being quoted, a capture tagged `quote-yes` whose origin is that person. A relayed
   one ("Raj said it's fine") has the lead as origin, so it never lets Raj's words out.
-- `from_the_lead`: a push yes is the lead's own, its origin their `vela whoami` handle. Not just any person: an
-  operator's account email or a reviewer's name standing in for the lead is reported as such, and nothing is sent.
-- `after_send_notice`: a push yes comes after `close push` printed what it will send; the caller passes the record's
-  capture count at the notice.
+- `from_the_lead`: a decision's yes is the lead's own, its origin their `vela whoami` handle. Not just any person: an
+  operator's account email or a reviewer's name standing in for the lead is reported as such. Sending takes no yes:
+  the lead's word to close is the yes for the push and the pull request.
 - `unchanged_since_draft`: the capture's quoted words still hash to what the drafter saw. An answer edited after the
   draft may no longer say what the filled-in file assumes (plan 9.1).
 
@@ -43,10 +42,6 @@ GROUP_LIMIT = 7  # the most items one yes may cover for one yes
 OVERRIDE_YES = (f'an override of {closegate.QUOTED_YES_RULE} on the item, its reason citing the capture with the '
                 "lead's words for going ahead, then vela apply again")
 
-
-# A send has no override: only the lead's own yes, after they heard what goes, sends anything.
-NO_PUSH_OVERRIDE = ("none for the push itself: the lead hears what is sent before it goes; tell them, then take their "
-                    "yes")
 
 # Going ahead without a quoted yes is an event override: it has a reason and no end date.
 WAIVE_YES = "You can also have me go ahead without your yes on record; I'll note that you chose to."
@@ -79,28 +74,28 @@ def same_handle(origin, handle):
 
 
 def from_the_lead(capture, handle, names=()):
-    """A send's yes must be the lead's own: `from_a_person` alone let an operator's account email, a name the model
-    guessed, or a reviewer stand in for them (the confirm run recorded the sends in S14, S18 and S21 under an email
+    """A yes must be the lead's own: `from_a_person` alone let an operator's account email, a name the model
+    guessed, or a reviewer stand in for them (the confirm run recorded yeses in S14, S18 and S21 under an email
     address). `handle` is `vela whoami`'s; "" when it isn't known, which is refused too, since then nobody's yes can
     be checked against the lead."""
     if not handle:
         return _refusal("consent-lead-unknown", "I don't know your GitHub handle yet, so I can't tell your yes from "
                                                 "anyone else's. What's the short name after the @?",
                         "Ask the lead once, run vela whoami --set <handle>, capture their yes with --origin @<handle>, "
-                        "then run vela close push --consent again.", override=NO_PUSH_OVERRIDE)
+                        "then run the command again.")
     if is_unverified(capture.origin):
-        return _refusal("consent-unverified", "I couldn't check that you typed that yes, so I haven't sent anything. "
-                                              "Did you say yes to sending it?",
+        return _refusal("consent-unverified", "I couldn't check that you typed that yes, so I haven't counted it. "
+                                              "Did you say yes?",
                         f"^c{capture.n} is unverified (no log of what was typed). Ask the lead; on their yes run "
-                        "vela record confirm, then vela close push --consent again.", override=NO_PUSH_OVERRIDE)
+                        "vela record confirm, then run the command again.")
     if same_handle(capture.origin, handle) or capture.origin.strip().casefold() in {n.casefold() for n in names}:
         return None  # the lead's own display name is the lead
     return _refusal("consent-not-the-lead",
-                    f"That yes is written down as coming from {capture.origin}, not from you, so I haven't sent "
-                    "anything. Shall I send it?",
+                    f"That yes is written down as coming from {capture.origin}, not from you, so I haven't counted "
+                    "it. Did you say yes?",
                     f"^c{capture.n} has origin {capture.origin!r}, but the lead is @{handle} (vela whoami). Only the "
-                    f"lead's own yes sends: ask them, capture their answer with --origin @{handle}, then run vela "
-                    "close push --consent again.", override=NO_PUSH_OVERRIDE)
+                    f"lead's own yes counts: ask them, capture their answer with --origin @{handle}, then run "
+                    "the command again.")
 
 
 def not_bare_non_yes(capture):
@@ -177,15 +172,6 @@ def why_in_their_words(ref, record, lead):
                     f"{capture.origin!r} gave no quote-yes). Someone else's reason goes on a page only after they "
                     "say, in this session, that they may be quoted.",
                     override=WHY_OVERRIDE)
-
-
-def after_send_notice(yes, notice_count):
-    if int(yes.n) > int(notice_count):
-        return None
-    return _refusal("consent-push-before-notice", "Before I send anything, I need to tell you what goes and to whom.",
-                    f"Run close push without a consent to print the send notice, then capture the lead's yes after it "
-                    f"(the yes ^c{yes.n} is not after capture {notice_count}).",
-                    override=NO_PUSH_OVERRIDE)
 
 
 def unchanged_since_draft(capture, stored_hash):

@@ -69,7 +69,7 @@ def test_the_model_line_on_main_names_session_branch_not_a_flag_that_cannot_move
     with_remote(tmp_path, vault)
     code, output = start(vault, "--mode", "grill", "--topic", "desk agent calendar")
     assert code == 0, output
-    assert "with the lead's yes, run vela session branch (the session is open now)" in output
+    assert "vela close push moves the work onto one (the session is open now)" in output
     assert "session start --new-branch" not in output
 
 
@@ -79,7 +79,7 @@ def test_start_on_main_stays_on_main_notes_it_and_says_a_review_needs_a_branch(t
     began = git(vault, "rev-parse", "HEAD")
     code, output = start(vault, "--mode", "grill", "--topic", "desk agent calendar", "--for-lead")
     assert code == 0, output
-    assert output.count("needs its own branch") == 1 and "make it" in output
+    assert output.count("onto its own branch for the review") == 1 and "make it" not in output
     record_id = f"{TODAY}-desk-agent-calendar"
     assert head(vault)[1] == "main"
     assert git(vault, "log", "-1", "--format=%s") == f"Open session {record_id}"
@@ -368,7 +368,8 @@ def test_today_is_the_default_date(tmp_path, monkeypatch):
 
 def dashboard_on_main_and_changed_on_origin(tmp_path, vault):
     """The confirm run's sequence: main has a committed dashboard, a merged session rebuilt it on origin, and a
-    no-session close rebuilt it here and left it uncommitted."""
+    rebuild was left here uncommitted (a no-session close now puts it on its own branch, but a leftover must still not
+    stop the next start)."""
     bare = with_remote(tmp_path, vault)
     (vault / "dashboard.html").write_text("<p>first build</p>\n", encoding="utf-8")
     git(vault, "add", "dashboard.html")
@@ -381,12 +382,11 @@ def dashboard_on_main_and_changed_on_origin(tmp_path, vault):
     (other / "dashboard.html").write_text("<p>a merged session's build</p>\n", encoding="utf-8")
     git(other, "commit", "-q", "-am", "Rebuild dashboard")
     git(other, "push", "-q", "origin", "main")
-    code, output = run("close", "dashboard", "--vault", str(vault), "--today", TODAY, "--json")
-    assert code == 3, output  # the branch offer; the page is left changed until the lead answers
+    (vault / "dashboard.html").write_text("<p>a build left changed</p>\n", encoding="utf-8")
     assert "dashboard.html" in git(vault, "status", "--short")
 
 
-def test_a_dashboard_left_by_a_no_session_close_never_stops_the_next_start(tmp_path, monkeypatch):
+def test_a_dashboard_left_changed_never_stops_the_next_start(tmp_path, monkeypatch):
     vault = owner(tmp_path, monkeypatch)
     dashboard_on_main_and_changed_on_origin(tmp_path, vault)
     left = (vault / "dashboard.html").read_bytes()

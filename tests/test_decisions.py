@@ -78,13 +78,6 @@ def test_an_unverified_why_of_the_leads_is_fixed_by_confirming_it_not_by_a_quote
     assert "quote-yes" not in refusal.fix, "the lead's own words need no quote-yes, only the confirm"
 
 
-def test_push_yes_must_follow_the_send_notice():
-    rec = opened('- [answer] (@priya) "Yes, send it." ^c12', '- [answer] (@priya) "Yes, send it." ^c15')
-    assert consent.after_send_notice(rec.capture("^c12"), notice_count=14).plain == \
-        "Before I send anything, I need to tell you what goes and to whom."
-    assert consent.after_send_notice(rec.capture("^c15"), notice_count=14) is None
-
-
 def test_capture_text_changed_since_draft_refused():
     rec = opened(READBACK, '- [answer] (@priya) "Yes, as read." ^c31')
     sealed = schema.seal({"yes": "^c31"}, rec, ["^c31"])
@@ -99,7 +92,7 @@ def test_refusal_has_plain_fix_and_override():
     refusals = [consent.exists("^c99", rec), consent.from_a_person(rec.capture("^c30")),
                 consent.not_bare_non_yes(rec.capture("^c31")),
                 consent.group_small_enough(9),
-                consent.why_in_their_words("^c32", rec, LEAD), consent.after_send_notice(rec.capture("^c31"), 40),
+                consent.why_in_their_words("^c32", rec, LEAD),
                 consent.unchanged_since_draft(rec.capture("^c31"), "0" * 64)]
     for refusal in refusals:
         assert isinstance(refusal, say.Refusal)

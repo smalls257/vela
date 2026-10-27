@@ -84,37 +84,44 @@ def edit(folder, tool_input, tool="Edit"):
 # --- first callers
 
 
-@pytest.mark.parametrize("command", [
-    "git add 02-constraints.md",
-    "git add -A",
-    "git add .",
-    "git -C /some/where add -- 02-constraints.md",
-    "git --no-pager -c core.quotepath=off add -u",
-    "/usr/bin/git stage 02-constraints.md",
-    "cd sub && git add x.md && git commit -m 'x'",
-    "git commit -am 'Edit the limits'",
-    "git commit -a -m x",
-    "git commit --all -m x",
-    "git commit -m x -- 02-constraints.md",
-    "git commit -m x 02-constraints.md",
-    "FOO=1 git add x",
-    "env GIT_DIR=.git git add x",
-    "bash -c 'git add x'",
-    "sh -lc \"git add x\"",
-    "echo $(git add x)",
-    "echo \"`git add x`\"",
-    "if true; then git add x; fi",
-    "ls | xargs git add",
-    "cat <<EOF\nhello\nEOF\ngit add x",  # the here-document ends, and the next line is a command again
-    "eval 'git add x'",
-    "git update-index --add x",
-    "git commit -qam x",
-])
-def test_hook_bash_denies_any_git_add_with_reason(tmp_path, command):
-    out = bash(vault(tmp_path), command)
-    assert decision(out) == "deny", command
+SPELLINGS = [
+    "git add {p}",
+    "git -C /some/where add -- {p}",
+    "git --no-pager -c core.quotepath=off add {p}",
+    "/usr/bin/git stage {p}",
+    "cd sub && git add {p} && git commit -m 'x'",
+    "git commit -m x -- {p}",
+    "git commit -m x {p}",
+    "FOO=1 git add {p}",
+    "env GIT_DIR=.git git add {p}",
+    "bash -c 'git add {p}'",
+    "sh -lc \"git add {p}\"",
+    "echo $(git add {p})",
+    "echo \"`git add {p}`\"",
+    "if true; then git add {p}; fi",
+    "cat <<EOF\nhello\nEOF\ngit add {p}",  # the here-document ends, and the next line is a command again
+    "eval 'git add {p}'",
+    "git update-index --add {p}",
+    "git add -f 02-constraints.md",
+    "git add --force {p}",
+]
+
+
+@pytest.mark.parametrize("spelling", SPELLINGS)
+def test_hook_bash_denies_a_private_path_staged_in_any_spelling(tmp_path, spelling):
+    out = bash(vault(tmp_path), spelling.format(p=".inbox/call.md"))
+    assert decision(out) == "deny", spelling
     said = reason(out)
-    assert "vela close stage" in said and "vela close finish" in said  # the way that does work, in plain words
+    assert "vela close stage" in said and "must never be committed" in said  # the way that does work, in plain words
+
+
+@pytest.mark.parametrize("command", [
+    "git add 02-constraints.md", "git add -A", "git add .", "git add -u", "git commit -am 'Edit the limits'",
+    "git commit -a -m x", "git commit -m x 02-constraints.md", "git update-index --add 02-constraints.md",
+    "ls | xargs git add",
+])
+def test_hook_bash_lets_plan_pages_be_staged_by_hand(tmp_path, command):
+    assert decision(bash(vault(tmp_path), command)) is None, command
 
 
 @pytest.mark.parametrize("command", [
@@ -156,25 +163,19 @@ def test_hook_edit_of_state_line_denied(tmp_path):
     assert decision(added) is None
 
 
-def test_hook_push_asks(tmp_path):
+def test_hook_push_has_no_opinion(tmp_path):
     folder = vault(tmp_path)
     for command in ("git push origin session/x", "git push", "gh pr create --title x --body y",
-                    "gh pr comment 12 --body hi", "cd . && git -C . push -u origin HEAD"):
-        out = bash(folder, command)
-        assert decision(out) == "ask", command
-        assert reason(out)
-    assert decision(bash(folder, "gh pr view 12")) is None
+                    "gh pr comment 12 --body hi", "cd . && git -C . push -u origin HEAD", "gh pr view 12"):
+        assert decision(bash(folder, command)) is None, command
 
 
-def test_hook_never_prompts_when_permissions_are_bypassed(tmp_path):
-    """The owner runs with bypassed permissions and asked not to be prompted: an "ask" becomes no opinion, while a
-    deny (hand staging in a plan) still denies."""
+def test_hook_still_denies_a_private_path_when_permissions_are_bypassed(tmp_path):
     folder = vault(tmp_path)
     run = lambda command: hook("bash", {"hook_event_name": "PreToolUse", "tool_name": "Bash", "cwd": str(folder),
                                         "permission_mode": "bypassPermissions", "tool_input": {"command": command}})
     assert decision(run("git push origin session/x")) is None
-    assert decision(run("gh pr create --title x --body y")) is None
-    assert decision(run("git add -A")) == "deny"
+    assert decision(run("git add sessions/private/x.md")) == "deny"
 
 
 def test_hook_edit_inside_generated_denied(tmp_path):
@@ -267,12 +268,12 @@ def test_post_edit_reports_a_broken_page_to_the_model(tmp_path):
 
 def test_the_toolkit_repo_marker_turns_the_bash_hook_off_there(tmp_path):
     """vela's own repo carries .vela-toolkit at its root: its template and example plans are fixtures its developers
-    commit, so hand staging there isn't denied. Any other repo with plans keeps the guard."""
+    commit, so even a private path staged by hand there isn't denied. Any other repo with plans keeps the guard."""
     import subprocess
     repo = tmp_path / "repo"
     (repo / "examples").mkdir(parents=True)
     plan = vault(repo / "examples")
     subprocess.run(["git", "init", "-q", str(repo)], check=True)
-    assert decision(bash(plan, "git add -A")) == "deny"
+    assert decision(bash(plan, "git add -f .inbox/x.md")) == "deny"
     (repo / ".vela-toolkit").write_text("toolkit\n", encoding="utf-8")
-    assert decision(bash(plan, "git add -A")) is None
+    assert decision(bash(plan, "git add -f .inbox/x.md")) is None

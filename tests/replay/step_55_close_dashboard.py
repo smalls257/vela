@@ -1,14 +1,13 @@
-"""Close section 9 once the record is closed: `vela close dashboard --for-lead` rebuilds the page and, with no session
-open, commits nothing anywhere: it offers a `dashboard/<date>` branch (exit 3), or says the page was already current."""
+"""Close section 6 once the record is closed: `vela close dashboard --for-lead` rebuilds the page and, with no session
+open, puts it on its own `dashboard/<date>` branch without asking, or says the page was already current. The replay
+then goes back to the session's branch, which the push and the pull request that follow are on."""
 from vela import closefinish
 
 
 def run(ctx):
-    head = ctx.git("rev-parse", "HEAD").strip()
+    branch = ctx.git("branch", "--show-current").strip()
     code, out = ctx.vela("close", "dashboard", "--for-lead", "--today", ctx.today, check=False)
-    assert code in (0, 3), f"close dashboard exited {code}:\n{out}"
-    said = closefinish.NO_SESSION_DASHBOARD if code == 3 else closefinish.DASHBOARD_DONE
-    assert said in out, out
-    assert ctx.git("rev-parse", "HEAD").strip() == head, "close dashboard committed with no session open"
+    assert code == 0, f"close dashboard exited {code}:\n{out}"
     assert (ctx.vault / closefinish.DASHBOARD).is_file()
+    ctx.git("switch", "-q", branch)
     ctx.outputs["close dashboard"] = out
