@@ -23,7 +23,7 @@ Say names, not IDs, in your own words too. Say an item by name:
 
 > Record consent: the desktop agent asks for both choices, the calendar and the chosen folder, and keeps each with the time it was given. If saving doesn't answer within two seconds, the agent says "Couldn't save your choice, so nothing was switched on" and asks again at the next start. That's what I'll write as decided.
 
-Not: "CON-003 (Dock unlock): decided, GATE-5 overridden, see UNK-012." An app's share of a requirement reads the same way: "The rider app's part of 'unlock a bike with a card on file': it checks the card and sends the unlock. Right?"
+Not: "CON-003 (Dock unlock): decided, GATE-5 overridden, see UNK-012." An app's share of a requirement reads the same way: "The rider app's part of 'unlock a bike with a card on file': it checks the card and sends the unlock."
 
 **Acceptance.** Silence, "ok", "next", "sure" with nothing else, or a change of subject do not count as acceptance. When the lead says it's decided, it is. Capture each answer with `vela record add --tag thought "<words>"`.
 
@@ -31,7 +31,7 @@ Not: "CON-003 (Dock unlock): decided, GATE-5 overridden, see UNK-012." An app's 
 
 If the lead opened with "Settle <name>" and is sure, run only `${CLAUDE_PLUGIN_ROOT}/references/SETTLE.md` for it.
 
-Items the brief lists as ready to decide come first. Open the agenda with them. On turn 1 run `vela check --gate decide --all --for-lead` and open with a ready item as a proposal: "I'd decide <item> as <answer>, because <reason>. OK?" Recaps and reading come after that, or only if needed. If nothing is ready, say so in one line and ask the question that would make the nearest item ready. When an answer settles an item that isn't ready, offer to decide it anyway in that same turn, with its read-back: "That settles <item>. It isn't ready because <reason>. Decide it anyway?" Never file a settling answer as a note without that offer.
+Items the brief lists as ready to decide come first. Open the agenda with them. On turn 1 run `vela check --gate decide --all --for-lead` and open with a ready item as a proposal: "I'd decide <item> as <answer>, because <reason>. OK?" Recaps and reading come after that, or only if needed. If nothing is ready, say so in one line and ask the question that would make the nearest item ready. When an answer settles an item that isn't ready, offer to decide it anyway in that same turn: "That settles <item>. It isn't ready because <reason>. Decide it anyway?" Never file a settling answer as a note without that offer.
 
 Answering a challenge, START will take its "Answer a challenge" path (read the Answer row too): resolve its unknown with the team lead as owner, with the `resolve` kind; if the answer changes the item, reopen it (`vela decide --reopen <ID> --why ^cN`) and decide it again.
 
@@ -45,7 +45,7 @@ Left to you: a concern cell passes when the lead says what the initiative does f
 
 **The agenda.** Show it with the open questions under each item, in groups past about seven (the lead may take it in two sessions), and get an explicit yes; capture both, and file it with the `agenda` kind; a yes right after the agenda is accepted in that turn, so never ask for it again. Each item's owner says yes in person, or their async answer is captured with them as origin, channel and date; otherwise offer to reschedule, collect it first, or decide on their behalf.
 
-**Not ready, or decided anyway.** The gate says why an item isn't ready; it stays off the agenda until the lead chooses. Offer "Decide it anyway (I'll note that the open question was skipped)", ask the reason once and capture it. Never refuse, and never ask twice. The rest of the grill runs as normal, read-back and yes included. When the lead decides for an owner who isn't here, say how that ends: "Ines can confirm it later by adding a 'Confirmed by' line to the page, or challenge it with /vela:challenge if she disagrees."
+**Not ready, or decided anyway.** The gate says why an item isn't ready; it stays off the agenda until the lead chooses. Offer "Decide it anyway (I'll note that the open question was skipped)". Say an open question under the item once, by name; settling notes it. For anything else it names, ask the one thing it asks, or offer "Settle it anyway?"; their yes is the reason (`--override <rule> --reason-from ^cM`, the same capture as the yes). Never refuse, and never ask twice. The rest of the grill runs as normal. When the lead decides for an owner who isn't here, say how that ends: "Ines can confirm it later by adding a 'Confirmed by' line to the page, or challenge it with /vela:challenge if she disagrees."
 
 If no item passes and the user overrides none after you offered it for each item their answers settled, do not start the grill: make no change to any page, say why, and offer Shape or stopping.
 

@@ -474,7 +474,7 @@ def consumed(item):
     nothing of this decision left to place."""
     refs = [item.get(name) for name in ("yes", "why", "dissent", "provider", "options_none")]
     refs += [option_ref(spec) for spec in options_specs(item)]
-    refs += [group.get(name) for group in item.get("groups") or [] for name in ("yes",)]
+    refs += [group.get("yes") for group in item.get("groups") or []]
     refs += [group.get("reason") for group in item.get("overrides") or []]
     return list(dict.fromkeys(ref for ref in refs if ref))
 

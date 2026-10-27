@@ -140,7 +140,7 @@ def test_handoff_reads_back_by_name():
 def test_grill_offers_the_override_and_still_runs_the_rest_of_the_grill():
     grill = read_override("skills", "grill", "SKILL.md")
     assert "Decide it anyway (I'll note that the open question was skipped)" in grill
-    assert "ask the reason once" in grill and "Never refuse, and never ask twice." in grill
+    assert "their yes is the reason" in grill and "Never refuse, and never ask twice." in grill
     assert "The rest of the grill runs as normal" in grill
     assert "--override <rule> --reason-from ^cR --until <date>" not in grill and "--on-behalf @<owner>" not in grill
     assert "the override is filed with the decision in section 4" not in grill
