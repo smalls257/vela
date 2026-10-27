@@ -137,7 +137,7 @@ Open Claude at the docs repo's root and the skills ask which plan when you haven
 What stays apart, and why it matters when two plans have work in flight:
 
 - **Git looks only at the plan's folder.** A checkpoint stages and commits the plan's own files by exact path. Another plan's unsaved edits are not staged, not committed, not published, and not counted as uncommitted: `vela publish` stamps `dirty` from the plan's folder alone, and copies only the plan's folder.
-- **Branches carry the plan's name.** A session runs on the branch you are on; when you ask for a fresh one (`vela session start --new-branch`) it is `session/heron/2026-10-21-pilot-scope`, a dashboard branch `dashboard/heron/2026-10-21`, and the pull request is titled `[heron] 2026-10-21 Grill: pilot scope`. Two plans can run a session on the same topic on the same day. A plan that is its own repo keeps `session/<id>` and its old titles.
+- **Branches carry the plan's name.** A session runs on the branch you are on; when you ask for a fresh one (`vela session start --new-branch`) it is `session/heron/2026-10-21-pilot-scope`, and the pull request is titled `[heron] 2026-10-21 Grill: pilot scope`. The dashboard never gets a branch of its own: it is rebuilt in place and goes in with the session's close. Two plans can run a session on the same topic on the same day. A plan that is its own repo keeps `session/<id>` and its old titles.
 - **A session start moves the whole repo's branch,** so it asks first when files outside the plan have unsaved changes, or when the repo is on another plan's session or on a branch of yours. Switch back to `main` and it goes ahead. `close stage` and `close push` likewise refuse once the repo has left the session's branch.
 - **`main` is shared.** A session starts from `main` brought up to the shared copy and `close sync-main` merges it in, both as a normal pull. Neither rewrites another plan's files beyond what the merge brings in; the other plan's uncommitted files do not stop either one.
 - **Hooks follow the plan.** The hooks walk up from the edited file or the command's folder to the nearest `.vela.yaml`, stopping at the repo's root, so editing `projects/heron/02-constraints.md` from the repo's root is guarded by heron's rules. A folder with no plan above it, such as `notes/`, is not guarded.
@@ -173,7 +173,7 @@ vela next: initiative, dump. No app page exists yet, so start with a Dump & Dive
 
 `vela status` shows how far each app has got and its oldest unanswered question.
 
-Only a grill can mark an item decided. Other sessions mark it as a hunch (`inkling`), a working assumption (`assumption`) or a confirmed fact (`fact`). If you want to override a rule, say so. Claude tells you once what the rule protects, does what you asked, and writes a note on the item saying you overrode the rule, and why, so nobody has to guess later.
+Any session can mark an item decided once you say yes to it; a grill is how to test one first. Without that yes a session marks it as a hunch (`inkling`), a working assumption (`assumption`) or a confirmed fact (`fact`). If you want to override a rule, say so. Claude tells you once what the rule protects, does what you asked, and writes a note on the item saying you overrode the rule, and why, so nobody has to guess later.
 
 The last three sessions are the team's. Once an app is handed off, the team's lead engineer runs `/vela:design` and then `/vela:breakdown`, and `/vela:tickets` turns the build plan into tickets. `vela next` shows the team's next step as its own line, beside yours.
 
@@ -191,7 +191,7 @@ Claude steers you to this, it doesn't force it. If the path isn't ready, say "no
 
 Say "close" (or "we're done") and the assistant starts the close for you; typing `/vela:close` does the same. Claude sorts each note it took during the session into keep, park for later, or drop, and asks you only the two or three things it can't settle.
 
-Then it writes the kept notes into the pages, fills the generated sections, checks and commits. After one yes from you, it pushes the session's branch and opens a pull request. The last step rebuilds the dashboard file, commits it if it changed, and tells you:
+Then it writes the kept notes into the pages, fills the generated sections, checks and commits. Saying close is your yes to send: it pushes the session's branch (moving the work off `main` first, and saying so) and opens a pull request, with no second question. A private file in the saved work is the one thing that stops the push. The last step rebuilds the dashboard file in place, with no branch of its own; the close commits it with the session. It tells you:
 
 ```
 The dashboard is up to date: dashboard.html
@@ -207,9 +207,9 @@ Each decision on a page carries a receipt: `[[2026-10-22-booking-api]] c07, @mar
 
 The fingerprint shows the notes on your disk are the ones close saw. `vela records verify <session>` checks it, and `vela records seal <session>` fills it in if a session ended without close. It can't show that someone really said yes.
 
-If you carry on a session on another computer, that computer has the header and no notes. Claude tells you so and keeps new notes there as part 2. At close it asks once about what the first computer decided: "Still yes?" Your notes don't travel, so copy them yourself when you want them somewhere else: `vela records backup --to <a folder or a .zip outside the plan>`. A lost disk loses them, and nothing else holds them.
+If you carry on a session on another computer, that computer has the header and no notes. Claude tells you so and keeps new notes there as part 2. Close doesn't ask again about what the first computer decided; the receipt on each decision already names it. Your notes don't travel, so copy them yourself when you want them somewhere else: `vela records backup --to <a folder or a .zip outside the plan>`. A lost disk loses them, and nothing else holds them.
 
-A plan from before this change has its old records committed. `vela records split` shows what it would move and what words it would take off the pages, then does it on a branch of its own after your yes. It doesn't remove old records from git history, published read copies or old pull request pages; only rewriting history does that.
+A plan from before this change has its old records committed. `vela records split` shows what it would move and what words it would take off the pages, then does it on a branch of its own. `vela records split --dry-run` previews without changing anything. It doesn't remove old records from git history, published read copies or old pull request pages; only rewriting history does that.
 
 ### Material you already have
 

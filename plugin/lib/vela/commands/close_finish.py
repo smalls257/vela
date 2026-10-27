@@ -41,7 +41,7 @@ def register_close(steps):
     finish.add_argument("--today", help="the date check and the handoff record use, YYYY-MM-DD (default: system date)")
     say.add_output_flags(finish)
     finish.set_defaults(func=run_finish)
-    board = steps.add_parser("dashboard", help="rebuild the dashboard with no session open; commits it on its own dashboard/<date> branch, never main")
+    board = steps.add_parser("dashboard", help="rebuild the dashboard with no session open; rebuilds it in place; no branch, no commit")
     board.add_argument("--vault", default=".", help="vault root (default: current directory)")
     board.add_argument("--today", help="the date the dashboard counts from, YYYY-MM-DD (default: system date)")
     say.add_output_flags(board)
