@@ -161,3 +161,76 @@ def test_a_summary_without_grouped_criteria_and_the_reverse_are_each_named():
     no_summary = mini().replace("Summary: It goes. It stops.\n", "")
     found = ticketcopy.problems(breakdown.read(no_summary)["stories"][0])
     assert any("no 'Summary:' line" in t for t, flag in found if flag)
+
+
+import shutil  # noqa: E402
+
+from vela import cli, ticketrefs  # noqa: E402
+from vela.edge import teamdocs  # noqa: E402
+
+
+def heron():
+    return cli.load_vault(VAULT)
+
+
+def questions():
+    return teamdocs.design_questions(VAULT, plan_text())
+
+
+def test_the_design_questions_are_read_from_the_design_the_plan_names():
+    found = questions()
+    assert found["OQ-005"]["title"] == "Is the person told when Consent and identity is down, or their sign-in has expired?"
+    assert found["OQ-005"]["what_would_unblock"].startswith("The solution lead says whether silence on a Consent outage")
+
+
+def test_a_plan_whose_design_cannot_be_read_gives_none_not_an_empty_answer(tmp_path):
+    root = tmp_path / "v"
+    shutil.copytree(VAULT, root)
+    (root / "docs" / "tech-design" / "desktop-agent.md").unlink()
+    assert teamdocs.design_questions(root, plan_text()) is None
+
+
+def test_each_contract_is_written_out_from_the_vault():
+    refs = ticketrefs.relies_on(heron(), stories()["S-02"], "APP-desktop-agent")
+    consent = next(r for r in refs if r["id"] == "CON-003")
+    assert consent == {
+        "kind": "contract", "id": "CON-003", "name": "Consent check",
+        "description": "The Desktop agent asks Consent and identity whether a person has agreed, before it reads anything, and gets back what it may read.",
+        "sends": "the person's sign-in",
+        "gets": "whether they have agreed, and which sources the agent may read (calendar entries, transcripts)",
+        "crosses": "", "provides": False, "provider": "Consent and identity", "state": "not decided yet", "open": 2}
+    assert next(r for r in refs if r["id"] == "CON-004")["open"] == 3
+    assert [r["id"] for r in refs] == ["CAP-005.FR1", "CON-003", "CON-004"]  # Traces to order
+
+
+def test_a_requirement_the_grouped_criteria_cover_is_a_name_only_and_one_they_drop_is_written_out():
+    req = next(r for r in ticketrefs.relies_on(heron(), stories()["S-02"], "APP-desktop-agent") if r["kind"] == "requirement")
+    assert (req["name"], req["statement"]) == ("Agree to each source separately", None)
+    dropped = plan_text().replace("(covers AC1, AC2)", "(covers AC2)")
+    req = next(r for r in ticketrefs.relies_on(heron(), stories(dropped)["S-02"], "APP-desktop-agent") if r["kind"] == "requirement")
+    assert req["statement"].startswith("When a person switches Heron on, they choose separately")
+
+
+def test_each_open_question_the_story_waits_on_is_written_out_with_what_happens_meanwhile():
+    found = ticketrefs.still_open(heron(), stories()["S-02"], questions())
+    assert found == [{"id": "OQ-005", "found": True,
+                      "question": "Is the person told when Consent and identity is down, or their sign-in has expired?",
+                      "until": "the agent shows nothing and logs",
+                      "waits_label": "What would answer it",
+                      "waits": questions()["OQ-005"]["what_would_unblock"]}]
+    assert ticketrefs.open_problems(heron(), stories()["S-02"], questions()) == []
+
+
+def test_a_vault_unknown_names_its_question_and_owner_and_a_missing_meanwhile_is_flagged():
+    text = plan_text().replace("Blocked by: S-01 (store).", "Blocked by: S-01 (store). Who builds the record waits on UNK-068.")
+    found = ticketrefs.still_open(heron(), stories(text)["S-02"], questions())
+    unknown = next(q for q in found if q["id"] == "UNK-068")
+    assert (unknown["question"], unknown["until"], unknown["waits_label"], unknown["waits"]) == (
+        "Which team builds Consent and identity?", None, "Waiting on", "the product owner")
+    said = ticketrefs.open_problems(heron(), stories(text)["S-02"], questions())
+    assert any("Who builds Consent and identity (UNK-068)" in t and "until then" in t and flag for t, flag in said)
+
+
+def test_without_the_design_each_design_question_is_flagged():
+    said = ticketrefs.open_problems(heron(), stories()["S-02"], None)
+    assert said == [("waits on OQ-005, but the plan's design couldn't be read, so its ticket can't say what the question is", True)]

@@ -11,7 +11,7 @@ import pathlib
 from vela import breakdown
 
 DONE = ("complete", "complete-with-gaps")
-TICKET_FILES = ("tickets.csv", "tickets.md")
+TICKET_FILES = ("tickets.csv", "tickets.md", "tickets-jira.json")
 
 
 def meta_of(path):
@@ -60,3 +60,21 @@ def team_step(root, name=lambda app: app):
             steps.append((0, app, f"the {name(app)} team: their build plan is {STATUS_WORDS.get(mine[0].get('status'), mine[0].get('status'))} "
                                   f"and no tickets have been made from it yet, so write them (/vela:tickets)."))
     return min(steps)[2] if steps else None
+
+
+def design_questions(root, plan_text):
+    """{OQ id: the design's entry} from the tech design the plan's prereqs name, or None when the plan names none or
+    the file can't be read. None is not "no questions": tickets.check turns it into a flag for each question a story
+    waits on, so a missing design is never a ticket that quietly leaves its question out."""
+    from vela.explorer import design_data
+    meta, _, _ = breakdown.split_frontmatter(plan_text)
+    raw = meta.get("prereqs") if isinstance(meta, dict) else None
+    for entry in raw if isinstance(raw, list) else [raw]:
+        path = entry.get("path") if isinstance(entry, dict) else entry
+        if isinstance(path, str) and "tech-design" in path and (pathlib.Path(root) / path).is_file():
+            try:
+                design = design_data.read_design(pathlib.Path(root) / path)
+            except (OSError, UnicodeDecodeError):
+                return None
+            return {q["id"]: q for q in design["open_questions"]}
+    return None

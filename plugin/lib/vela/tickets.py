@@ -18,12 +18,12 @@ import re
 
 from vela import allocation, criteria, releases, slices, trace
 from vela import breakdown
+from vela.ticketrefs import normal, statement_of
 from vela.breakdown import SIZE_POINTS, build_rows, csv_text, parse
 
 CRITERION_ID = re.compile(r"^EPC-\d+\.AC\d+$")
 REQUIREMENT_ID = re.compile(r"^CAP-\d+\.FR\d+(?:@APP-[A-Za-z0-9-]+)?$")
 UNKNOWN_ID = re.compile(r"\bUNK-\d+\b")
-WIKILINK = re.compile(r"\[\[(?:[^\]|]*\|)?([^\]]*)\]\]")
 LOOSE = 0.75  # how alike a bullet and a vault sentence must be before the bullet counts as a reworded copy of it
 
 
@@ -185,25 +185,6 @@ class Finding:
 
     def __repr__(self):
         return f"Finding({self.kind!r}, {self.story!r}, {self.text!r})"
-
-
-def normal(text):
-    """A sentence as a reader compares it: wiki links shown as their words, runs of space as one, curly quotes straight."""
-    text = WIKILINK.sub(r"\1", text or "")
-    for fancy, plain in (("‘", "'"), ("’", "'"), ("“", '"'), ("”", '"')):
-        text = text.replace(fancy, plain)
-    return re.sub(r"\s+", " ", text).strip()
-
-
-def statement_of(item):
-    """The sentence under a requirement's heading, before its fact bullets: what the requirement says."""
-    out = []
-    for line in item.page.text.split("\n")[item.line:]:
-        if line.startswith("#") or line.lstrip().startswith("-") or (out and not line.strip()):
-            break
-        if line.strip():
-            out.append(line.strip())
-    return " ".join(out)
 
 
 def vault_sentence(vault, target):
