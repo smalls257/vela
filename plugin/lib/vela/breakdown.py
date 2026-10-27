@@ -14,12 +14,15 @@ write since design session 18: "Done when:", "Components:", "Slice:" (tracer, ve
 "Status:" (deferred, held, split, or merged into another story). A deferred or held story keeps its tasks and criteria;
 a merged one is a pointer and needs none. Plans written without those lines read exactly as before. This is the one
 reader of that format.
+A story may also carry a "Summary:" line and a "Ticket criteria (from <stamp>):" block, the ticket's own copy of its
+criteria, read into `summary` and `ticket_groups` and never into `criteria`.
 tools/breakdown_to_tickets.py turns it into tickets; the explorer's Build plan level (explorer/plan_data.py) draws
 it. They share this module so the ticket a story becomes and the card it is drawn as can never read the file two ways.
 
 Anything the reader cannot map is a line in `problems`, never dropped and never guessed.
 """
 import csv
+import hashlib
 import io
 import re
 
@@ -51,6 +54,10 @@ RELEASE_FIT = re.compile(r"^\W*Release fit\W*:\W*(.*)$", re.I)
 TRACER_FACT = re.compile(r"^\s*[-*+]\s+\*\*Tracer:\*\*\s*(.*?)\s*$", re.I)  # the team's tracer story: `- **Tracer:** yes`
 NO_BLOCKERS = re.compile(r"^\W*none\b", re.I)  # "none. D-001 runs in parallel, not a gate": no blockers, the rest is a note
 STATUS = re.compile(r"^\W*Status\W*:\W*(.*)$", re.I)
+SUMMARY = re.compile(r"^\W*Summary\W*:\W*(.*)$", re.I)
+# The ticket's own copy of the criteria, regrouped and reworded by a session; the stamp is criteria_stamp() of the
+# criteria it was written from, so a copy left behind by an edit is flagged instead of read as current.
+TICKET_LABEL = re.compile(r"^\W*Ticket criteria\b(?:\s*\(from\s+([0-9a-f]{6})\))?\s*:\s*$", re.I)
 SLICES = ("tracer", "vertical", "layer")
 VAULT_SLICE = re.compile(r"\bSLC-\d{3}\b")  # the vault's slice a story belongs to (slices.py), not its shape above
 NOT_BUILT = ("deferred", "merged")  # a story in either state is in no total and has no ticket
@@ -67,6 +74,7 @@ class Story:
         self.criteria_label, self.open_notes, self.conflicts = "", [], []
         self.done_when, self.components, self.slice_text, self.fit, self.status = None, None, None, None, None
         self.tracer = False
+        self.summary, self.ticket_stamp, self.ticket_label, self.ticket_groups = None, None, False, []
 
     @property
     def state(self):
@@ -128,8 +136,50 @@ def sections_of(body):
     return out
 
 
+def criteria_stamp(criteria):
+    """Six hex digits that change whenever any of a story's acceptance criteria change, and not when one is only
+    rewrapped. The Ticket criteria label records the stamp it was written from (TICKET_LABEL)."""
+    joined = "\n".join(" ".join(c.split()) for c in criteria)
+    return hashlib.sha1(joined.encode("utf-8")).hexdigest()[:6]
+
+
+FIELD_LINES = (TRACES, BLOCKED, TRACER_FACT, DONE_WHEN, COMPONENTS, SLICE, RELEASE_FIT, STATUS, SUMMARY,
+               CRITERIA_LABEL, TICKET_LABEL, OPEN_NOTE, CONFLICT_NOTE)
+
+
+def is_field_line(line):
+    return line.lstrip().startswith("|") or any(p.match(line) for p in FIELD_LINES)
+
+
+def take_ticket_line(story, line, state):
+    """A line inside a Ticket criteria block: a bullet is a ticket line, a line ending in a colon starts a group,
+    any other line continues the ticket line above it. A field line or a table row ends the block, and so does a
+    line that fits none of these: it goes back to the story's reader, which reports it."""
+    if is_field_line(line):
+        state["block"] = None
+        return False
+    bullet = BULLET.match(line)
+    if bullet:
+        if not story.ticket_groups:
+            story.ticket_groups.append(["", []])
+        story.ticket_groups[-1][1].append(bullet.group(1).strip())
+        state["last"] = "ticket"
+        return True
+    if line.strip().endswith(":"):
+        story.ticket_groups.append([line.strip()[:-1].strip(), []])
+        state["last"] = "ticket"
+        return True
+    if state["last"] == "ticket" and not state["gap"] and story.ticket_groups and story.ticket_groups[-1][1]:
+        story.ticket_groups[-1][1][-1] += " " + line.strip()
+        return True
+    state["block"] = None
+    return False
+
+
 def take_story_line(story, line, state):
     """File one line of a story's section under the field it belongs to. Returns False if it fits none."""
+    if state.get("block") == "ticket" and take_ticket_line(story, line, state):
+        return True
     if TRACES.match(line):
         story.traces, state["last"] = TRACES.match(line).group(1).strip(), "traces"
     elif BLOCKED.match(line):
@@ -147,6 +197,11 @@ def take_story_line(story, line, state):
         story.fit, state["last"] = RELEASE_FIT.match(line).group(1).strip(), "fit"
     elif STATUS.match(line):
         story.status, state["last"] = STATUS.match(line).group(1).strip(), "status"
+    elif SUMMARY.match(line):
+        story.summary, state["last"] = SUMMARY.match(line).group(1).strip(), "summary"
+    elif TICKET_LABEL.match(line):
+        story.ticket_label, story.ticket_stamp = True, TICKET_LABEL.match(line).group(1)
+        state["block"], state["last"] = "ticket", "ticket_label"
     elif BULLET.match(line):
         story.criteria.append(BULLET.match(line).group(1).strip())
         state["last"] = "criteria"
@@ -167,8 +222,8 @@ def take_story_line(story, line, state):
     return True
 
 
-CONTINUES = ("traces", "blocked", "criteria", "open", "conflict", "done_when", "components", "slice", "fit", "status")
-WRAPPED = {"done_when": "done_when", "components": "components", "slice": "slice_text", "fit": "fit", "status": "status"}
+CONTINUES = ("traces", "blocked", "criteria", "open", "conflict", "done_when", "components", "slice", "fit", "status", "summary")
+WRAPPED = {"done_when": "done_when", "components": "components", "slice": "slice_text", "fit": "fit", "status": "status", "summary": "summary"}
 
 
 def continue_line(story, line, field):
@@ -207,12 +262,12 @@ def parse_story_sections(body):
         if not heading and re.match(r"^###\s+S-", line):
             stories.append(Story("?", line.lstrip("# ").strip()))  # kept, so the caller reports it instead of dropping it
             stories[-1].extra.append("unreadable story heading: " + line.strip())
-            current, state = stories[-1], {"last": None, "gap": False, "table": False}
+            current, state = stories[-1], {"last": None, "gap": False, "table": False, "block": None}
             continue
         if heading:
             current = Story(heading.group(1), heading.group(2))
             stories.append(current)
-            state = {"last": None, "gap": False, "table": False}
+            state = {"last": None, "gap": False, "table": False, "block": None}
             continue
         if re.match(r"^#{1,3}\s", line):
             current = None  # a `## ` section after the stories, or any other heading, ends the story
