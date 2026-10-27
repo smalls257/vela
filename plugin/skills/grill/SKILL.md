@@ -19,19 +19,19 @@ Run the steps in `${CLAUDE_PLUGIN_ROOT}/references/START.md` with mode `grill`, 
 - Keep your recommendation when the user pushes back without a reason. Change it only for a reason, and say what the reason was.
 - Never answer your own question.
 
-Say names, not IDs, in your own words too. A read-back by name:
+Say names, not IDs, in your own words too. Say an item by name:
 
-> Record consent: the desktop agent asks for both choices, the calendar and the chosen folder, and keeps each with the time it was given. If saving doesn't answer within two seconds, the agent says "Couldn't save your choice, so nothing was switched on" and asks again at the next start. That's what I'll write as decided. Right?
+> Record consent: the desktop agent asks for both choices, the calendar and the chosen folder, and keeps each with the time it was given. If saving doesn't answer within two seconds, the agent says "Couldn't save your choice, so nothing was switched on" and asks again at the next start. That's what I'll write as decided.
 
 Not: "CON-003 (Dock unlock): decided, GATE-5 overridden, see UNK-012." An app's share of a requirement reads the same way: "The rider app's part of 'unlock a bike with a card on file': it checks the card and sends the unlock. Right?"
 
-**Acceptance.** Silence, "ok", "next", "sure" with nothing else, or a change of subject do not count as acceptance. Before you close a branch, ask for an explicit yes or an alternative; before anything is decided, read the final wording back and get a yes (items that close together can share one read-back of about five). Capture each answer and your read-back with `vela record add --tag thought "<words>"`.
+**Acceptance.** Silence, "ok", "next", "sure" with nothing else, or a change of subject do not count as acceptance. When the lead says it's decided, it is. Capture each answer with `vela record add --tag thought "<words>"`.
 
 ## 2. Open with a ready item
 
 If the lead opened with "Settle <name>" and is sure, run only `${CLAUDE_PLUGIN_ROOT}/references/SETTLE.md` for it.
 
-Items the brief lists as ready to decide come first. Open the agenda with them, and still read each wording back for its own yes. On turn 1 run `vela check --gate decide --all --for-lead` and open with a ready item as a proposal: "I'd decide <item> as <answer>, because <reason>. OK?" Recaps and reading come after that, or only if needed. If nothing is ready, say so in one line and ask the question that would make the nearest item ready. When an answer settles an item that isn't ready, offer to decide it anyway in that same turn, with its read-back: "That settles <item>. It isn't ready because <reason>. Decide it anyway?" Never file a settling answer as a note without that offer.
+Items the brief lists as ready to decide come first. Open the agenda with them. On turn 1 run `vela check --gate decide --all --for-lead` and open with a ready item as a proposal: "I'd decide <item> as <answer>, because <reason>. OK?" Recaps and reading come after that, or only if needed. If nothing is ready, say so in one line and ask the question that would make the nearest item ready. When an answer settles an item that isn't ready, offer to decide it anyway in that same turn, with its read-back: "That settles <item>. It isn't ready because <reason>. Decide it anyway?" Never file a settling answer as a note without that offer.
 
 Answering a challenge, START will take its "Answer a challenge" path (read the Answer row too): resolve its unknown with the team lead as owner, with the `resolve` kind; if the answer changes the item, reopen it (`vela decide --reopen <ID> --why ^cN`) and decide it again.
 
@@ -59,10 +59,10 @@ When the lead grills an app's handoff, or `vela ladder` shows an app's pages rea
 
 Before the next question:
 
-- Ask why, once, naming the item: "Why this one, in your words?" "As you suggested" gets one more question: what in it persuaded them. A declined reason is captured as given.
+- Record a reason only when the lead gives one.
 - For a contract, ask where the provider stands (here, async with channel and date, asked in the PR, or not consulted and why) and capture it. Capture anyone's disagreement in their words; the item can still be decided.
 - When the yes, or a disagreement, came from someone other than the lead, ask that person once: "May I put your words on the plan, or should I just say that you agreed? Say yes in your own words if I may." Capture the answer with them as origin, `--tag quote-yes`. A yes the lead passes on for them doesn't count; a no is fine, and the plan then says who agreed without their words.
-- Run `vela decide <ID> --readback ^cN --yes ^cM --why ^cK --for-lead`; `--help` lists the flags for a contract, a dissent, an override and an absent owner, and the other kinds it takes (a requirement, a release, a slice, an epic, an app's share). Read an app's share back by name with the app's agenda.
+- Run `vela decide <ID> --yes ^cM --for-lead` (plus `--why ^cK` when given); `--help` lists the flags for a contract, a dissent, an override and an absent owner, and the other kinds it takes (a requirement, a release, a slice, an epic, an app's share).
 - When the decision shapes the whole design (the strategy, an app, a flow), offer a decision record, optional: `vela add adr`.
 - Draft the paragraph the item owes, as `START.md` says under "Draft the paragraph when the item is filed", and show it with the filed line.
 

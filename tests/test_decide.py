@@ -243,7 +243,7 @@ def filed(root, items, flows=None):
 
 
 def item(ident="CON-002", **more):
-    base = {"id": ident, "readback": "^c01", "yes": "^c02", "by": "@priya", "reader": False}
+    base = {"id": ident, "yes": "^c02", "by": "@priya", "reader": False}
     if ident == "CON-002":
         base["provider"] = "^c07"
     base.update(more)
@@ -314,7 +314,7 @@ def test_reader_adds_pending_approval(tmp_path):
     (root / ".vela").mkdir(exist_ok=True)
     (root / ".vela" / "workspace.json").write_text('{"author": "Priya"}', encoding="utf-8")
     (root / ".vela" / "handle").write_text("priya\n", encoding="utf-8")
-    code, out = run("decide", "CON-002", "--vault", str(root), "--today", TODAY, "--readback", "^c01", "--yes", "^c02",
+    code, out = run("decide", "CON-002", "--vault", str(root), "--today", TODAY, "--yes", "^c02",
                     "--provider", "^c07", "--json")
     assert code == 0, out
     data = json.loads(out)
@@ -324,17 +324,17 @@ def test_reader_adds_pending_approval(tmp_path):
 
 def test_epic_needs_yes_per_criterion_group(tmp_path):
     root = make_vault(tmp_path)
-    one_group = [{"criteria": "AC1-AC2", "readback": "^c09", "yes": "^c10"}]
+    one_group = [{"criteria": "AC1-AC2", "yes": "^c10"}]
     _, refusals = plan(root, [item("EPC-001", groups=one_group)])
     assert "decide-epic-criteria" in rules(refusals), refusals
     assert "third" not in refusals[0].plain and "AC3" not in refusals[0].plain
-    both = one_group + [{"criteria": "AC3", "readback": "^c11", "yes": "^c12"}]
+    both = one_group + [{"criteria": "AC3", "yes": "^c12"}]
     writes = filed(root, [item("EPC-001", groups=both)])
     assert "\nstate: decided\n" in writes[EPIC]
     assert history_of(writes[EPIC])[0] == DECISION_LINE
     assert f"| EPC-001 | draft | decided | [[{RECORD_ID}#^c02]] |" in writes[RECORD]
-    _, early = plan(root, [item("EPC-001", groups=[{"criteria": "AC1-AC3", "readback": "^c11", "yes": "^c10"}])])
-    assert "consent-yes-before-readback" in rules(early), "a group's yes comes after its own read-back"
+    _, claudes = plan(root, [item("EPC-001", groups=[{"criteria": "AC1-AC3", "yes": "^c08"}])])
+    assert "consent-not-a-person" in rules(claudes), "a group's yes must be a person's"
     waived = filed(root, [item("EPC-001", overrides=[{"rules": ["GATE-3"], "reason": "^c06"}])])
     assert "\nstate: decided\n" in waived[EPIC], "GATE-3 overridden lets the epic through with no group yeses"
 
@@ -370,7 +370,7 @@ def test_agenda_line_updated(tmp_path):
 def test_commit_message_names_the_sessions_mode(tmp_path):
     root = make_vault(tmp_path)
     git_init(root)
-    code, out = run("decide", "CON-002", "--vault", str(root), "--today", TODAY, "--readback", "^c01", "--yes", "^c02",
+    code, out = run("decide", "CON-002", "--vault", str(root), "--today", TODAY, "--yes", "^c02",
                     "--provider", "^c07", "--json")
     assert code == 0, out
     assert git_log(root)[0] == "grill: CON-002 decided", "the fixture session's first mode"
@@ -394,7 +394,7 @@ def test_decide_writes_the_changes_row_the_gate_reads(tmp_path):
     assert [c.words for c in consent] == ["Yes, as read."]
     said = closegate.captures(writes[RECORD])
     mark = "keep: [[stock-building-blocks#CON-002 Stock level|CON-002]] (decided)"
-    assert [said[n].mark for n in ("02", "03", "01", "07")] == [mark] * 4, "every capture the decision filed is kept"
+    assert [said[n].mark for n in ("02", "03", "07")] == [mark] * 3, "every capture the decision filed is kept"
     assert said["04"].mark == "", "a capture the decision didn't use is left for close"
 
 
@@ -402,13 +402,13 @@ def test_decided_item_exits_3_offering_reopen(tmp_path):
     root = make_vault(tmp_path)
     git_init(root)
     before = (root / SHOP).read_text(encoding="utf-8")
-    code, out = run("decide", "CON-001", "--vault", str(root), "--today", TODAY, "--readback", "^c01", "--yes", "^c02",
+    code, out = run("decide", "CON-001", "--vault", str(root), "--today", TODAY, "--yes", "^c02",
                     "--json")
     assert code == 3, out
     data = json.loads(out)
     assert data["wrote"] == [] and any("--reopen" in c["command"] for c in data["needs_lead"]), data
     assert (root / SHOP).read_text(encoding="utf-8") == before and git_log(root) == ["start"]
-    code, said = run("decide", "CON-001", "--vault", str(root), "--today", TODAY, "--readback", "^c01", "--yes",
+    code, said = run("decide", "CON-001", "--vault", str(root), "--today", TODAY, "--yes",
                      "^c02", "--for-lead")
     assert code == 3 and "Sale API" in said and "reopen" in said, said
 
@@ -443,23 +443,35 @@ def test_contract_needs_provider_capture(tmp_path):
 
 def test_allocation_row_decided(tmp_path):
     root = make_vault(tmp_path)
-    writes = filed(root, [item("CAP-001.FR1@APP-shop", readback="^c13", yes="^c15")])
+    writes = filed(root, [item("CAP-001.FR1@APP-shop", yes="^c15")])
     row = next(line for line in writes[SHOP].split("\n") if line.startswith("| [[CAP-001-sell-a-basket"))
     assert parse.split_row(row)[3] == "decided", row
     assert "| CAP-001.FR1@APP-shop | assumption | decided |" in writes[RECORD]
     assert "**Decision:**" not in writes[SHOP].split("## Requirements allocated")[1], "the page's Decision answers"
-    _, unread = plan(root, [item("CAP-001.FR1@APP-shop", readback="^c01", yes="^c15")])
-    assert "decide-row-readback" in rules(unread), "a row is read back with its app"
 
 
-def test_yes_before_readback_refused(tmp_path):
+def test_settle_it_decides_with_one_yes_and_no_why(tmp_path):
     root = make_vault(tmp_path)
-    _, refusals = plan(root, [item(readback="^c03", yes="^c02")])
-    assert "consent-yes-before-readback" in rules(refusals)
-    assert refusals[0].plain == "Your yes came before I read the final wording back, so I'll read it again."
-    code, out = run("decide", "CON-002", "--vault", str(root), "--today", TODAY, "--readback", "^c03", "--yes", "^c02",
-                    "--provider", "^c07", "--for-lead")
-    assert code == 1 and "read the final wording back" in out, out
+    writes = filed(root, [item(why=None)])
+    bullets = history_of(writes[STOCK], "CON-002")
+    assert bullets[0] == DECISION_LINE and not any(b.startswith("- **Why:**") for b in bullets)
+
+
+def test_the_readback_flag_is_gone(tmp_path):
+    code, _ = run("decide", "CON-002", "--vault", str(make_vault(tmp_path)), "--readback", "^c01", "--yes", "^c02")
+    assert code == 2  # argparse: unrecognized argument
+
+
+def test_an_old_three_part_group_is_a_usage_error(tmp_path):
+    code, _ = run("decide", "EPC-001", "--vault", str(make_vault(tmp_path)), "--yes", "^c10",
+                  "--group", "AC1-AC2", "^c09", "^c10")
+    assert code == 2
+
+
+def test_a_missing_yes_is_refused_plainly(tmp_path):
+    root = make_vault(tmp_path)
+    _, refusals = plan(root, [item(yes=None)])
+    assert "decide-unfilled" in rules(refusals)
 
 
 # ------------------------------------------------------------------ the rest of section 4
@@ -507,11 +519,11 @@ def test_a_flag_another_kind_takes_is_refused(tmp_path):
 def test_for_lead_says_names_not_ids(tmp_path):
     root = make_vault(tmp_path)
     git_init(root)
-    code, out = run("decide", "CON-002", "--vault", str(root), "--today", TODAY, "--readback", "^c01", "--yes", "^c02",
+    code, out = run("decide", "CON-002", "--vault", str(root), "--today", TODAY, "--yes", "^c02",
                     "--provider", "^c07", "--for-lead")
     assert code == 0 and "Stock level" in out, out
     block_con_002(root)
-    code, out = run("decide", "SLC-001", "--vault", str(root), "--today", TODAY, "--readback", "^c01", "--yes", "^c02",
+    code, out = run("decide", "SLC-001", "--vault", str(root), "--today", TODAY, "--yes", "^c02",
                     "--for-lead")
     assert code == 1 and "flow check" in out, out
 
@@ -541,5 +553,5 @@ def in_session_with_modes(root, modes):
 
 
 def decide_con_002(root):
-    return run("decide", "CON-002", "--readback", "^c01", "--yes", "^c02", "--provider", "^c07", "--vault", str(root),
+    return run("decide", "CON-002", "--yes", "^c02", "--provider", "^c07", "--vault", str(root),
                "--today", TODAY, "--json")

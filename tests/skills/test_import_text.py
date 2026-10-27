@@ -36,7 +36,7 @@ def test_import_decides_only_a_stated_decision_with_the_leads_yes():
     # The guided importer (2026-10-19): a decision a source states is decided citing the document once the lead says
     # yes; what they aren't sure of stays an assumption. Never decided any other way.
     imported = text("skills/import/SKILL.md")
-    assert "`vela decide <ID> --readback <capture> --yes <capture> --stated-in <SRC>`" in imported
+    assert "`vela decide <ID> --yes <capture> --stated-in <SRC>`" in imported
     assert "stays an `assumption`, the document noted" in imported and "Never write `decided` any other way" in imported
 
 

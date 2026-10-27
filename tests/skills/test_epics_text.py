@@ -279,7 +279,7 @@ def test_epics_offers_the_e805_routes_once_without_a_rerun_warning():
 
 def test_epics_decides_through_the_command_with_a_group_per_read_back():
     epics = EPICS.read_text(encoding="utf-8")
-    assert "`vela decide <EPC-id> --group AC1-AC5 ^cA ^cB --readback ^cN --yes ^cM --for-lead`" in epics
+    assert "`vela decide <EPC-id> --group AC1-AC5 ^cA --yes ^cM --for-lead`" in epics
     assert "`--override GATE-3 --reason-from ^cR`" in epics
     assert "commit with the message `grill: EPC-nnn decided`" not in epics  # decide commits
 

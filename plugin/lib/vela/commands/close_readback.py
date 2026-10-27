@@ -3,8 +3,7 @@
 
 The Violation this command's shape prevents is a Silent Fallback in the record: a receipt's words, a Why line or a
 quote reads as something the lead said, and nobody showed them the final wording. `closereadback.py` says what is
-listed and why. Close order (controller ruling C7): "Still yes?" reconfirm first, then this read-back, so the digest
-`--done` stores covers the final words; editing any listed sentence afterward changes the digest and the gate asks again.
+listed and why. The digest `--done` stores covers the final words; editing any listed sentence afterward changes the digest and the gate asks again.
 
 - no flag: list the sentences (exit 0).
 - `--reword ITEM --line decision|why|quote --words "..."`: the new words must be an excerpt of the capture the line

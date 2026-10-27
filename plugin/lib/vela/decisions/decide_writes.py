@@ -18,7 +18,7 @@ Why each write, and why it is code's:
 - **The Changes row cites the yes**, `| <ID> | <old state> | <new state> | [[<record>#^cNN]] |`, the row `close gate`
   reads for every change into or out of `decided`. The old state is read from the page, never typed.
 - **The deciding capture is marked now** (`→ keep: [[<page>#<heading>|<ID>]] (<state>)`), the one exception to leaving
-  marks to close, and so is every other capture the decision filed (the read-back, the Why, the Dissent, the provider's
+  marks to close, and so is every other capture the decision filed (the Why, the Dissent, the provider's
   standing, each override's reason), so close finds nothing of the decision left to place.
 - **Dissent** is `<who>, <today>`, with `: "<their words>"` only when that person may be quoted (`receipts`), `who`
   being the capture's origin: someone disagreeing is recorded, and the item is still decided.
@@ -155,16 +155,14 @@ def rules_set_aside(item):
 
 
 def yes_refusals(item, record):
-    """The lead's yes to the read-back: there, a person's, not a bare "ok", after the read-back."""
-    missing = [name for name in ("readback", "yes") if not item.get(name)]
+    """The lead's yes: there, a person's, not a bare "ok"."""
     if closegate_rule() in rules_set_aside(item) and not item.get("yes"):
         return []  # the lead's override of the quoted-yes rule is the record of going ahead; no yes to check
-    if missing:
-        return [refusal("decide-unfilled", "I still need your yes to the read-back before I can write that down.",
-                        f"Give {' and '.join('--' + m for m in missing)}: the read-back capture and the lead's yes "
-                        "after it.", override="none: a decision needs a yes on record, or the lead's override of "
-                                              f"{closegate_rule()}")]
-    found = consent.a_yes(item["yes"], record, readback=item["readback"])
+    if not item.get("yes"):
+        return [refusal("decide-unfilled", "I still need your yes before I can write that down.",
+                        "Give --yes: the capture holding the lead's yes.",
+                        override=f"none: a decision needs a yes on record, or the lead's override of {closegate_rule()}")]
+    found = consent.a_yes(item["yes"], record)
     return [found] if found else []
 
 
@@ -474,9 +472,9 @@ def add_history(text, bullets, target):
 def consumed(item):
     """Every capture the decision filed, the cited one first: each is kept on the item it went into, so close finds
     nothing of this decision left to place."""
-    refs = [item.get(name) for name in ("yes", "why", "readback", "dissent", "provider", "options_none")]
+    refs = [item.get(name) for name in ("yes", "why", "dissent", "provider", "options_none")]
     refs += [option_ref(spec) for spec in options_specs(item)]
-    refs += [group.get(name) for group in item.get("groups") or [] for name in ("readback", "yes")]
+    refs += [group.get(name) for group in item.get("groups") or [] for name in ("yes",)]
     refs += [group.get("reason") for group in item.get("overrides") or []]
     return list(dict.fromkeys(ref for ref in refs if ref))
 

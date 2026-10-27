@@ -10,7 +10,7 @@ brief` reads the lines across the records and lists every item still not decided
 
     - CON-003: the lead said yes in 2026-10-20-shape-booking (^c31)
 
-The line is a pointer, not a decision: settling still reads the final wording back and gets its own yes.
+The line is a pointer, not a decision: settling still takes the lead's own yes.
 
 Two writers fill it. `vela decide --later` does when the lead declines the offer to settle. But the rule "run `vela
 decide` on a plain yes" sat in the skills and was skipped (E81: ~20 yeses in two paid runs, none listed), so `vela

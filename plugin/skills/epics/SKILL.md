@@ -61,7 +61,7 @@ A group read back, to copy:
 
 > For the calendar epic, a tester will check that a client call gets one note ten minutes before it starts, a call moved late still gets its note as soon as it can be built, a canceled call's note is withdrawn, and the people listed come from the invitation alone. *Recommended:* "within two minutes" instead of "as soon as it can be built", so a tester can time it. Does that set hold?
 
-Set an epic to `decided` only when the solution lead confirms it in this session, after every criterion has a yes, its own or its group's; a yes to the whole epic doesn't stand in. Read the final set back for one more yes, then run `vela decide <EPC-id> --group AC1-AC5 ^cA ^cB --readback ^cN --yes ^cM --for-lead`, one `--group` per read-back (criteria, read-back, yes), plus `--why ^cK` when the lead gave a reason. If the lead says decide without the yeses, say once that each yes is what lets a tester hold the team to a criterion, then add `--override GATE-3 --reason-from ^cR`. Never confirmed, the epic stays `draft`.
+Set an epic to `decided` only when the solution lead confirms it in this session, after every criterion has a yes, its own or its group's; a yes to the whole epic doesn't stand in. Run `vela decide <EPC-id> --group AC1-AC5 ^cA --yes ^cM --for-lead`, one `--group` per yes (criteria, yes), plus `--why ^cK` when the lead gave a reason. If the lead says decide without the yeses, say once that each yes is what lets a tester hold the team to a criterion, then add `--override GATE-3 --reason-from ^cR`. Never confirmed, the epic stays `draft`.
 
 ## 6. Check the gate
 

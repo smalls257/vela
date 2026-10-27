@@ -3,7 +3,6 @@ from vela import closegate, closestate, model, parse, say, schema
 
 RECORD = "2026-10-20-grill-consent"
 KEEP = "→ keep: [[booking-building-blocks#CON-003 Consent records|CON-003]]"
-READBACK = f"- [thought] (claude) Read back: consent records keep each choice with its time {KEEP} (decided) ^c03"
 YES = f'- [thought] (@lead) "Yes, decide it as read." says yes to consent records {KEEP} (decided) ^c04'
 SETTLED = f"| CON-003 | assumption | decided | [[{RECORD}#^c04]] |"
 
@@ -52,31 +51,14 @@ def test_bare_ok_is_not_a_yes():
         assert problems and "Was that a yes" in problems[0].plain, words
 
 
-def test_a_yes_after_a_read_back_kept_on_the_item_passes():
-    problems, consent = judged([READBACK, YES], [SETTLED])
+def test_a_yes_with_no_read_back_passes():
+    problems, consent = judged(["- [thought] (@lead) \"That's decided.\" ^c04"], [SETTLED])
     assert not problems and consent
 
 
-def test_a_confident_remark_with_no_read_back_is_asked_about():
-    problems, consent = judged(["- [thought] (@lead) \"That's decided, settle it.\" ^c04"], [SETTLED])
-    assert not consent and [p.kind for p in problems] == [closegate.CONSENT]
-    assert problems[0].plain == ("I never read Consent records back to you before writing it as decided. Shall I "
-                                 "read it back now?")
-    assert problems[0].clear == closegate.READBACK_CLEAR
-
-
-def test_a_read_back_after_the_yes_does_not_count():
-    later = READBACK.replace("^c03", "^c05")
-    assert judged([YES, later], [SETTLED])[0]
-
-
-def test_a_read_back_kept_on_another_item_does_not_count():
-    other = READBACK.replace("|CON-003]]", "|CON-004]]")
-    assert judged([other, YES], [SETTLED])[0]
-
-
-def test_a_read_back_an_earlier_mode_kept_at_assumption_does_not_count():
-    assert judged([READBACK.replace("(decided) ^c03", "(assumption) ^c03"), YES], [SETTLED])[0]
+def test_claudes_capture_is_still_not_a_yes():
+    problems, consent = judged(["- [thought] (claude) \"That's decided.\" ^c04"], [SETTLED])
+    assert not consent and "was my suggestion, not your yes" in problems[0].plain
 
 
 def test_the_quoted_yes_override_still_lets_it_through():
@@ -94,7 +76,7 @@ def test_reopening_needs_no_read_back():
 
 
 def test_a_quoted_yes_passes_and_is_judged_with_its_words():
-    problems, consent = judged([READBACK, YES], [SETTLED])
+    problems, consent = judged([YES], [SETTLED])
     assert not problems
     (line,) = consent
     assert (line.name, line.change, line.words, line.link) == (
@@ -102,7 +84,7 @@ def test_a_quoted_yes_passes_and_is_judged_with_its_words():
 
 
 def test_the_consent_link_names_the_part_the_yes_is_in():
-    _, consent = judged([READBACK, YES], [SETTLED], part=2)
+    _, consent = judged([YES], [SETTLED], part=2)
     assert consent[-1].link == f"[[{RECORD}]] 2.c04"
 
 

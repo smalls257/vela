@@ -20,7 +20,7 @@ other (`field_refusals`), never ignored, because an ignored answer looks filed.
 
 An item:
 
-    {"id": "CON-003", "to": "decided", "readback": "^c30", "yes": "^c31", "why": "^c33", "dissent": null,
+    {"id": "CON-003", "to": "decided", "yes": "^c31", "why": "^c33", "dissent": null,
      "overrides": [{"rules": ["GATE-4"], "reason": "^c35", "until": "2026-11-30"}],
      "by": "@lead", "reader": false}
 
@@ -30,8 +30,8 @@ An item:
 citing the lead's reason, which `close gate` then reads like any other change out of `decided`.
 
 What is refused, plainly, and nothing written: the target isn't in the vault; it is already where the decision would
-put it (`vela decide` turns that into exit 3, "already decided; reopen?"); the yes isn't a yes, or comes before the
-read-back (`consent`); the gate failed and the lead set none of its reasons aside (`gates.verdict`); and what the
+put it (`vela decide` turns that into exit 3, "already decided; reopen?"); the yes isn't a yes
+(`consent`); the gate failed and the lead set none of its reasons aside (`gates.verdict`); and what the
 target kind adds. The grill gate needs the flow check's standings for a slice or a flow: the shell attaches them to the
 view as `flows`; a view without them reads as "not checked", never as a pass.
 """
@@ -45,8 +45,7 @@ from vela.decisions import consent, decide_writes, schema, textedit
 KINDS = ("allocation_row", "slice", "epic", "contract", "fr", "release", "page")
 SHARED = {"id": "the item's ID (a release by its heading, an allocation row as CAP-nnn.FRn@APP-<slug>)",
           "to": "where it goes: decided (planned for a slice); computed, leave it as drafted",
-          "readback": "the capture where the final wording was read back",
-          "yes": "the capture holding the lead's yes to that read-back, after it",
+          "yes": "the capture holding the lead's yes",
           "why": "the capture holding the lead's reason, in their words (null when they gave none)",
           "dissent": "the capture holding a disagreement, in the dissenter's words",
           "overrides": "the rules the lead set aside: [{\"rules\": [\"GATE-4\"], \"reason\": \"^c35\", \"until\": "
@@ -60,7 +59,7 @@ SHARED = {"id": "the item's ID (a release by its heading, an allocation row as C
                       "[\"<option>=declined\"]",
           "options_none": "the capture holding the lead's answer that this was the only option (no Shape session); "
                           "written as the options considered, in their words when they may be quoted"}
-JUDGMENT = ("readback", "yes", "why", "dissent", "overrides", "picked", "rejected", "options_none")
+JUDGMENT = ("yes", "why", "dissent", "overrides", "picked", "rejected", "options_none")
 
 
 def kind_module(kind):
@@ -80,7 +79,7 @@ def _schema():
     fields = dict(SHARED)
     fields.update({name: f"({kind} only) {hint}" for name, (kind, hint) in kind_fields().items()})
     judgment = JUDGMENT + tuple(kind_fields())
-    example = {"id": "CON-003", "to": "decided", "readback": "^c30", "yes": "^c31", "why": "^c33",
+    example = {"id": "CON-003", "to": "decided", "yes": "^c31", "why": "^c33",
                "provider": "^c32", "overrides": [{"rules": ["GATE-4"], "reason": "^c35", "until": "2026-11-30"}],
                "by": "@lead", "reader": False}
     return schema.KindSchema(fields=fields, judgment=judgment, required=("id", "by"), example=example)

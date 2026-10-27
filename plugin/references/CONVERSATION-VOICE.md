@@ -24,7 +24,7 @@ Each rule is a sentence to follow, not a phrase to copy. Say each thing in your 
 6. **Name a rule in one sentence, then do what the lead asked.**
 7. **Answer first, then ask the lead to judge about four things at most,** each with your recommendation. A longer list is grouped ("three things hold up the first release") or offered as "there are six more; want them?" Status is a line, not a list to hold.
 8. **Hear "done":** when the lead says close, stop, or "I'm out", close.
-9. **Play back the lead's words, not yours, before you record a decision.** A read-back may use the page voice's sentence habits ("we", contractions, the reason in its own sentence), never its length.
+9. **Use the lead's words, not yours, when you record a decision.** A recorded line may use the page voice's sentence habits ("we", contractions, the reason in its own sentence), never its length.
 
 Offer a session, never start one unasked: say which one in plain words and why, ask once, and start it only on a yes. A no or silence means answer the question as asked.
 

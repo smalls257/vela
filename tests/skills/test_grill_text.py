@@ -141,7 +141,7 @@ def test_grill_offers_the_override_and_still_runs_the_rest_of_the_grill():
     grill = read_override("skills", "grill", "SKILL.md")
     assert "Decide it anyway (I'll note that the open question was skipped)" in grill
     assert "ask the reason once" in grill and "Never refuse, and never ask twice." in grill
-    assert "The rest of the grill runs as normal" in grill and "read-back" in grill
+    assert "The rest of the grill runs as normal" in grill
     assert "--override <rule> --reason-from ^cR --until <date>" not in grill and "--on-behalf @<owner>" not in grill
     assert "the override is filed with the decision in section 4" not in grill
     from vela import cli
@@ -232,7 +232,7 @@ def test_grill_handoff_does_not_require_the_epics_gate():
 def test_grill_leaves_the_capture_marks_to_decide():
     grill = text("skills/grill/SKILL.md")
     assert "→ keep: [[" not in grill and "the one exception to leaving marks off until close" not in grill
-    assert "vela decide <ID> --readback ^cN --yes ^cM --why ^cK --for-lead" in grill
+    assert "vela decide <ID> --yes ^cM --for-lead" in grill
 
 
 def test_grill_leaves_options_considered_to_the_gate():
@@ -255,8 +255,8 @@ def test_grill_holds_the_loop_and_files_each_decision_at_once():
 def test_grill_defines_acceptance_and_the_owner_rule():
     grill = text("skills/grill/SKILL.md")
     assert 'Silence, "ok", "next", "sure" with nothing else, or a change of subject do not count as acceptance.' in grill
-    assert "read the final wording back and get a yes" in grill
-    assert "says yes in person" in grill and "explicit yes" in grill
+    assert "When the lead says it's decided, it is." in grill and "read the final wording back" not in grill
+    assert "says yes in person" in grill
     assert "ask where the provider stands" in grill
     # rule deletion: `vela decide` prints the already-decided answer and the reopen choice
     for gone in ("it is already decided. Say so", "change of mind in the Changes table", "Exit 3", "Exit 1",
@@ -304,9 +304,9 @@ def test_grill_says_the_capture_is_the_record_of_an_open_owed_question():
 # --- From tests/test_why.py: the lead's own reasons, copied by decide
 
 
-def test_the_grill_asks_for_the_why_in_the_leads_words_and_offers_a_record_for_big_ones():
+def test_the_grill_records_a_why_only_when_given_and_offers_a_record_for_big_ones():
     grill = skill_text("grill")
-    assert "Why this one, in your words?" in grill and "A declined reason is captured as given" in grill
+    assert "Record a reason only when the lead gives one." in grill and "Why this one, in your words?" not in grill
     assert "decision record" in grill and "`vela add adr`" in grill  # the flags are `vela add adr --help`'s
     assert "word for word as `- **Why:** <the lead's words>`" not in grill  # decide copies it
 

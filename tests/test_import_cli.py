@@ -199,7 +199,7 @@ def check_codes(vault):
 def test_a_stated_decision_is_decided_with_the_yes_citing_the_document(tmp_path, monkeypatch):
     vault = started(tmp_path, monkeypatch, CAPTURES)
     path = with_adr(vault)
-    code, output = run("decide", "ADR-0001", "--readback", "^c01", "--yes", "^c02", "--stated-in", "SRC-04",
+    code, output = run("decide", "ADR-0001", "--yes", "^c02", "--stated-in", "SRC-04",
                        "--vault", str(vault), "--today", TODAY, "--json")
     assert code == 0, output
     text = path.read_text(encoding="utf-8")
@@ -213,10 +213,10 @@ def test_a_stated_decision_without_a_real_yes_is_refused_and_nothing_written(tmp
     vault = started(tmp_path, monkeypatch, CAPTURES)
     path = with_adr(vault)
     for yes in ("^c03", "^c04"):  # a bare "ok", and Claude's own "Yes"
-        code, _ = run("decide", "ADR-0001", "--readback", "^c01", "--yes", yes, "--stated-in", "SRC-04",
+        code, _ = run("decide", "ADR-0001", "--yes", yes, "--stated-in", "SRC-04",
                       "--vault", str(vault), "--today", TODAY)
         assert code == 1
-    code, output = run("decide", "ADR-0001", "--readback", "^c01", "--yes", "^c02", "--stated-in", "SRC-09",
+    code, output = run("decide", "ADR-0001", "--yes", "^c02", "--stated-in", "SRC-09",
                        "--vault", str(vault), "--today", TODAY)
     assert code == 1 and "decide-stated-in" in output
     assert path.read_text(encoding="utf-8") == ADR_TEXT

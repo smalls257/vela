@@ -46,7 +46,7 @@ Hard stops are not process rules, and no override reaches them. Say which one ap
 
 ## Settle when the lead is sure
 
-When the lead is sure of an item, or says a plain yes to a pick, in any mode, read `${CLAUDE_PLUGIN_ROOT}/references/SETTLE.md`.
+When the lead says an item is settled, or says a plain yes to a pick, in any mode, read `${CLAUDE_PLUGIN_ROOT}/references/SETTLE.md`.
 
 ## Draft the paragraph when the item is filed
 

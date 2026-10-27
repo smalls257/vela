@@ -20,7 +20,7 @@ def test_the_conversation_voice_has_nine_rules_as_sentences():
     assert rules == [str(n) for n in range(1, 10)]
     assert "For what's ahead, picture a specific moment" in VOICE and "don't record a guess as a fact" in VOICE
     assert "assumed, decided or open" in VOICE
-    assert "Play back the lead's words, not yours" in VOICE
+    assert "Use the lead's words, not yours" in VOICE
 
 
 def test_examples_lead_and_voice_md_comes_first():
