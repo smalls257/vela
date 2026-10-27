@@ -38,7 +38,7 @@ from vela.flowcheck import readers
 from vela.parse import FENCE, closes_fence
 
 from . import (asks_data, assets_inline, capdeps, branches_data, breakdown_find, design_data, design_find, draft_data, flows_data, grills_data, icons_data, inside_data, library_data, needs_data, onboard_data,
-               pages_data, panel_data, plan_data, roles_data, serve, slices_data, starts_data)
+               pages_data, panel_data, plan_data, reqs_data, roles_data, serve, slices_data, starts_data)
 from . import pins as pinning
 from .record import (HANDLE, LABELED_LINE, PROSE_LIMIT, Keys, dashboard_pages, inline_html,
                      plain, refs_in, title_of)
@@ -58,10 +58,10 @@ class ExplorerError(Exception):
 # The page's script and style, in load order: shared code first, one module per view, the boot last.
 JS_MODULES = ("core", "theme", "fx", "menus", "assets", "icons", "layout", "pan", "geometry", "capfocus", "diagrams", "search", "minimap", "reader", "viewer", "queue", "panel", "panelsize", "detailspanel", "motion", "view-map",
               "wires", "mapgroups", "releases", "slices", "flowkit", "flowpicker", "branches", "flowview", "lanegroups", "view-flows", "rehearse", "view-asks", "view-decisions", "view-library", "view-grills", "view-progress",
-              "view-trace", "capview", "sections", "needs", "roles", "onboard", "nav", "markdown", "ask", "inside", "plan", "drafts", "freshness", "main")
-SELFTEST_MODULES = ("selftest", "selftest-branches", "selftest-flowview", "selftest-qol", "selftest-inside", "selftest-onboard", "selftest-details", "selftest-library", "selftest-grills", "selftest-needs", "selftest-zoom", "selftest-capfocus", "selftest-capview", "selftest-diagrams")  # 120 KB of checks: bundled only when asked (`vela explore --selftest`), not shipped to every reader
+              "view-trace", "capview", "reqview", "sections", "needs", "roles", "onboard", "nav", "markdown", "ask", "inside", "plan", "drafts", "freshness", "main")
+SELFTEST_MODULES = ("selftest", "selftest-branches", "selftest-flowview", "selftest-qol", "selftest-inside", "selftest-onboard", "selftest-details", "selftest-library", "selftest-grills", "selftest-needs", "selftest-zoom", "selftest-capfocus", "selftest-capview", "selftest-reqview", "selftest-diagrams")  # 120 KB of checks: bundled only when asked (`vela explore --selftest`), not shipped to every reader
 CSS_MODULES = ("base", "menus", "nav", "panel", "compact", "map", "needs", "flows", "rehearse", "asks", "decisions", "pages", "reader", "roles", "onboard",
-               "releases", "slices", "capview", "branches", "ask", "inside", "plan", "pending", "drafts", "library", "grills", "themes", "plain")
+               "releases", "slices", "capview", "reqview", "branches", "ask", "inside", "plan", "pending", "drafts", "library", "grills", "themes", "plain")
 
 # The themes the page offers, first the default. Each is a palette in assets/css/themes.css (Console is base.css's
 # :root); the picker in the top bar lists them in this order and remembers the choice in the browser.
@@ -674,6 +674,7 @@ def extract(vault, root, today, pins_path=None, designs=None, seed=None, plans=N
     data["containers"] = inside_data.containers(vault, keys)
     data["designs"] = inside_data.inside(vault, keys, designs or {})
     data["plans"] = plan_data.inside(vault, keys, plans or {}, data["designs"])
+    data["requirements"] = reqs_data.extract(vault, keys, entities, data["designs"], data["plans"], blocked, data["asks"], today)
     data["insidePanel"] = panel_data.panels(vault, data)
     data["contractAnswers"] = panel_data.contract_answers(vault)
     data["themes"] = [{"id": i, "label": label, "say": say} for i, label, say in THEMES]

@@ -14,7 +14,7 @@ const Nav = (() => {
   // section -> its visuals, the first being the default; [] means its page is read full width
   const VISUALS = {
     goals: [["goals", "Goals"]], constraints: [], context: [["context", "Today and after"]], strategy: [],
-    capabilities: [["capmap", "Capabilities"], ["capmatrix", "Dependency matrix"], ["trace", "Requirements to epics"]], releases: [["releases", "Timeline"]], slices: [["slices", "Slices"]],
+    capabilities: [["capmap", "Capabilities"], ["capmatrix", "Dependency matrix"], ["trace", "Requirements to epics"]], requirements: [["reqs", "Requirements"]], releases: [["releases", "Timeline"]], slices: [["slices", "Slices"]],
     apps: [["map", "Map"], ["progress", "Progress"]], flows: [["flows", "Step through"]], concerns: [["concerns", "By app"]],
     decisions: [["decisions", "Decision log"]], unknowns: [["asks", "Who to ask"]], glossary: [], epics: [["epics", "Epics"], ["trace", "Requirements to epics"]],
     library: [["library", "Library"]],
@@ -43,7 +43,7 @@ const Nav = (() => {
   function pageBeside() { return textLed(App.section) || App.view === "doc" ? "" : sectionPage(); }
   function missingPage() { const s = sec(); return s ? `The ${s.label.toLowerCase()} page isn't written yet. The plan's lead writes it in a planning session.` : "No page."; }
   /* What each visual shows, one line, as the View menu says it. */
-  const VISUAL_SAY = { capmap: "every capability as a card, and one in focus with what needs it and what it needs", capmatrix: "which capability needs which, across all of them", map: "the apps and the contracts between them", progress: "how far each app is, and what is waiting on someone", trace: "which requirements have an app and an epic behind them",
+  const VISUAL_SAY = { capmap: "every capability as a card, and one in focus with what needs it and what it needs", capmatrix: "which capability needs which, across all of them", map: "the apps and the contracts between them", progress: "how far each app is, and what is waiting on someone", trace: "which requirements have an app and an epic behind them", reqs: "every requirement, the six checks that say whether it is met so far, and everything one touches",
     epics: "every epic, and what it delivers", releases: "the system before and after each release" };
   const visualItem = ([v, label]) => ({ id: v, label, say: VISUAL_SAY[v] || null, checked: App.view === v, run: () => { Sections.doc.page = ""; showView(v); } });
   /* The View menu's items for the section the reader is in. A section with a map keeps the map's four views in the same
@@ -310,7 +310,7 @@ const Nav = (() => {
   function foldList(id) { st.expanded.has(id) ? st.expanded.delete(id) : st.expanded.add(id); write(OPEN_KEY, [...st.expanded]); }
   function item(s) {
     const here = App.section === s.id, has = s.children.length > 0, openList = st.expanded.has(s.id), kept = CapFocus.kids(s);
-    const lv = sectionLamp(s), missing = !s.page && !(s.id === "slices" && D.slicePlan.list.length) && s.id !== "library";  // slices have no index page: each slice is one; the library is a view of the register
+    const lv = sectionLamp(s), missing = !s.page && !(s.id === "slices" && D.slicePlan.list.length) && s.id !== "library" && s.id !== "requirements";  // slices have no index page: each slice is one; the library is a view of the register
     const row = h("div", { class: "side-row" + (here && !st.child ? " on" : here ? " in" : "") + (missing ? " missing" : "") },
       has ? h("button", { class: "side-caret", "aria-expanded": String(openList), "aria-label": `${openList ? "Hide" : "Show"} the ${s.label.toLowerCase()}`, onclick: () => { foldList(s.id); refresh(); } }, openList ? "▾" : "▸") : h("span", { class: "side-caret blank" }),
       h("button", { class: "side-link", "data-section": s.id, "aria-current": here && !st.child ? "page" : null, ...(has ? { "aria-expanded": String(openList) } : {}),
@@ -323,7 +323,7 @@ const Nav = (() => {
       const lvk = levelOf(k), cur = here && st.child === k;
       return h("button", { class: "side-kid" + (cur ? " on" : ""), "data-section": s.id, "data-child": k, "aria-current": cur ? "page" : null, onclick: () => open(s.id, k), title: E[k].title },
         s.id === "apps" && NODE[k] ? Icons.forKey(k, "side-glyph") : null,
-        h("span", { class: "side-label" }, s.id === "capabilities" || s.id === "epics" || s.id === "decisions" ? [E[k].title, idTag(E[k].id)] : kidLabel(s, k)), lvk !== "dark" && D.lights[k] ? lampEl(lvk) : null);
+        h("span", { class: "side-label" }, s.id === "capabilities" || s.id === "requirements" || s.id === "epics" || s.id === "decisions" ? [E[k].title, idTag(E[k].id)] : kidLabel(s, k)), lvk !== "dark" && D.lights[k] ? lampEl(lvk) : null);
     }).flatMap((kid) => (s.id === "apps" && here && st.child === kid.dataset.child && typeof Inside !== "undefined" ? [kid, Inside.sideEntry(kid.dataset.child)] : [kid]))));
     return out;
   }

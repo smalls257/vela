@@ -88,6 +88,17 @@ def on_pages(vault):
     return bool(pages(vault))
 
 
+def left_out(vault):
+    """{id: (Left, where)} for each item a lead said is left out, with the words for where: release one's Not in the
+    tracer, then each slice's Not in this slice. W343 quotes the reason, and the requirements view says the same."""
+    first = releases.first_release(vault)
+    out = {i: (left, "Not in the tracer") for left in (first.not_in_tracer if first else ()) for i in left.ids}
+    for s in read_slices(vault) if on_pages(vault) else ():
+        for left in s.not_in:
+            out.update({i: (left, f"the slice {s.id}, in what it leaves out,") for i in left.ids if i not in out})
+    return out
+
+
 def read_slices(vault):
     """Every slice in the vault, in order: from slice pages when there are any, else from the releases page."""
     found = pages(vault)

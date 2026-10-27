@@ -167,7 +167,7 @@ const SelfTest = (() => {
       ok(goneAfterRemove && goneAfterClick && goneAfterHash, "tooltip: it hides when its element goes, on any click and on a page change",
         `tooltip stayed: after its element went ${!goneAfterRemove}, after a click ${!goneAfterClick}, after a page change ${!goneAfterHash}`);
     }
-    const order = ["goals", "constraints", "context", "strategy", "capabilities", "releases", "slices", "apps", "flows", "concerns", "decisions", "unknowns", "glossary", "epics", ...(D.sections.some((s) => s.id === "library") ? ["library"] : [])];
+    const order = ["goals", "constraints", "context", "strategy", "capabilities", ...(D.sections.some((s) => s.id === "requirements") ? ["requirements"] : []), "releases", "slices", "apps", "flows", "concerns", "decisions", "unknowns", "glossary", "epics", ...(D.sections.some((s) => s.id === "library") ? ["library"] : [])];
     Nav.refresh();
     const shown = [...new Set($$("#side .side-link").map((b) => b.dataset.section))];
     const sideOrder = [...order.filter((id) => !["constraints", "context", "strategy", "glossary"].includes(id)), "constraints", "context", "strategy", "glossary"];  // the text-first pages sit last, under Read

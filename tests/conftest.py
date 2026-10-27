@@ -243,6 +243,12 @@ def run_chrome(cmd, timeout):
     given (seen: a renderer alive, nothing happening). A healthy launch takes seconds, so `timeout` is split into
     ATTEMPTS equal shares: a stalled share is killed, printed to stderr, and the launch tried again. When every share
     stalls this raises TimeoutError naming the command and each stall; it never returns empty output."""
+    # The selftest drives the page through every section in virtual time, so it makes thousands of history entries in a
+    # burst and Chrome's flooding protection then ignores later ones ("Throttling navigation", crbug.com/1038223); a
+    # deep-link check reads a stale address. Only selftest launches get the flag: the selftest's own "history writes
+    # per action" check is what notices an app that spams history, which real users would hit.
+    if any("selftest" in arg for arg in cmd):
+        cmd = [cmd[0], "--disable-ipc-flooding-protection", *cmd[1:]]
     share = timeout / ATTEMPTS
     stalls = []
     for attempt in range(1, ATTEMPTS + 1):
