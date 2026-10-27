@@ -6,7 +6,7 @@ spread through the close skill's prose, each item a sentence a model could skip.
 (Shield), and each line is a Sensor for a failure that used to be silent. What blocks:
 
 - **Main not brought in.** `close sync-main` records its outcome; a branch never compared with main is not ready
-  unless the lead chose to go on without it, which the gate still says. The gate never runs sync-main itself, even
+  unless main could not be reached (an outage, not the lead's to fix), which the gate still says. The gate never runs sync-main itself, even
   when its record is missing (plan 9.2 said it would): a check that merges is a write hidden inside a read, a Black
   Box. It says which command to run instead.
 - **A decision with no quoted yes.** Every item that went into or out of `decided` since the branch point must have a

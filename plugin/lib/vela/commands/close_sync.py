@@ -5,12 +5,15 @@ classify hunks, abort, `-X ours`). It was the riskiest prose in the plugin: one 
 edits. The steps are the same every time, so they are code (plan section 1); the lead is asked only where a person
 must choose.
 
-- Fetch fails: exit 3, nothing changed. The lead chooses to try again or go on; `--accept-not-compared` records the
-  go-on, so `close gate` lists it instead of blocking (Silent Fallback: going on without main must be on record).
+- Fetch fails: exit 0, nothing changed, and one plain line says main wasn't reached. The record keeps `not-compared`
+  with reason `fetch-failed`, so `close gate` lists it without blocking: an outage is not the lead's to fix, and going
+  on without main must be on record (Silent Fallback), not asked about.
 - origin/main already in HEAD: up to date, exit 0.
-- Tracked files with uncommitted edits: exit 3, nothing changed. A merge over uncommitted edits can mix them into a
-  conflict nobody can untangle. This command never stages or commits the session's files (one capability per
-  subcommand): `vela close stage --checkpoint` does that. A tracked file close stage never commits (vela's `.vela/`
+- Tracked files with uncommitted edits: a merge over them can mix them into a conflict nobody can untangle, so at
+  close the session's files are saved first with `close_stage.checkpoint`, the same call as `vela close stage
+  --checkpoint` (one staging rule, not two). A changed file that is not the session's is left alone and named, exit 1,
+  and nothing is merged. Session start keeps the old stop (exit 3) because no session is open to file under.
+  A tracked file close stage never commits (vela's `.vela/`
   working files, the inbox, private voice; `guard.never_rule`), or one vela rebuilds in full (`dashboard.html`), is
   not the lead's unsaved work: it is set aside before the merge and written back after, exactly as it was, and a
   conflict in one is settled with `-X ours`.
@@ -35,11 +38,10 @@ import pathlib
 import re
 
 from vela import closestate, commands, guard, mergeplan, say
-from vela.edge import mergegit
+from vela.edge import mergegit, vaultgit
 
 COMMAND = "close sync-main"
 CHECKPOINT = "vela close stage --checkpoint"
-ACCEPT = "vela close sync-main --accept-not-compared"
 
 
 def register_close(steps):
@@ -49,8 +51,6 @@ def register_close(steps):
     sync.add_argument("--today", help="the date to record, YYYY-MM-DD (default: today)")
     sync.add_argument("--timeout", type=int, default=mergegit.FETCH_TIMEOUT,
                       help=f"seconds to wait for git fetch (default: {mergegit.FETCH_TIMEOUT})")
-    sync.add_argument("--accept-not-compared", action="store_true",
-                      help="the lead chose to go on without main after a failed fetch: record it, so close gate lists it")
     say.add_output_flags(sync)
     sync.set_defaults(func=cmd_sync_main)
 
@@ -58,7 +58,7 @@ def register_close(steps):
 def cmd_sync_main(args, out):
     from vela import cli  # cli resolves the date once; the core never reads the clock
     today, _ = cli.parse_today(args.today)
-    return commands.emit(sync_main(pathlib.Path(args.vault), today, args.accept_not_compared, args.timeout), args, out)
+    return commands.emit(sync_main(pathlib.Path(args.vault), today, args.timeout), args, out)
 
 
 class _Run:
@@ -101,39 +101,34 @@ def never_committed(path):
     return guard.set_aside_unasked(path)
 
 
-def sync_main(root, today, accept=False, timeout=mergegit.FETCH_TIMEOUT):
+def sync_main(root, today, timeout=mergegit.FETCH_TIMEOUT):
     """Close's step: bring origin/main into the checked-out branch and record the outcome for the gate."""
-    return _bring_in(_Run(root, today), accept, timeout)
+    return _bring_in(_Run(root, today), timeout)
 
 
 def bring_in_at_start(root, today, timeout=mergegit.FETCH_TIMEOUT):
     """Session start's step: the same merge, but no close record (see the module docstring)."""
-    return _bring_in(_Run(root, today, keep_record=False), False, timeout)
+    return _bring_in(_Run(root, today, keep_record=False), timeout)
 
 
-def _bring_in(run, accept, timeout):
+def _bring_in(run, timeout):
     root = run.root
     if mergegit.is_reader_copy(root):
         return run.finish(closestate.READER, say.DONE, [say.Line(
             "sync-main: a read copy has no main to bring in; no git was run.",
             "This is your copy, so there is no main to bring in.")])
     try:
-        return _sync_owner(run, accept, timeout)
+        return _sync_owner(run, timeout)
     except mergegit.MergeGitFailed as exc:
         return _git_failed(run, str(exc))
     finally:
         run.put_back()
 
 
-def _sync_owner(run, accept, timeout):
+def _sync_owner(run, timeout):
     root = run.root
     run.branch = mergegit.current_branch(root)
     run.head = mergegit.sha(root, "HEAD")
-    if accept:
-        run.main = mergegit.sha(root, mergegit.MAIN) if mergegit.has_ref(root, mergegit.MAIN) else ""
-        return run.finish(closestate.ACCEPTED, say.DONE, [say.Line(
-            "sync-main: not compared with origin/main; the lead chose to go on. close gate will list it.",
-            "Going on without comparing with main, as you said. The final check will list it.")])
     why = mergegit.fetch_origin(root, timeout)
     if why:
         return _fetch_failed(run, why)
@@ -145,7 +140,9 @@ def _sync_owner(run, accept, timeout):
     dirty = mergegit.tracked_changes(root)
     mine = [path for path in dirty if not never_committed(path)]
     if mine:
-        return _uncommitted(run, mine)
+        dirty, stop = _uncommitted(run, mine)
+        if stop is not None:
+            return stop
     run.set_aside = [path for path in dirty if never_committed(path)]
     run.kept = mergegit.set_aside(root, run.set_aside)
     return _merge(run)
@@ -255,7 +252,7 @@ def _conflict(run, plans):
         plain="Someone changed the same paragraphs on main while we worked, so I stopped before mixing them. "
               "Nothing of yours changed. Want to see both versions?",
         fix="Show the lead both sides of each listed line range; the lead resolves; rerun vela close sync-main.",
-        override=f"{ACCEPT} (go on without main; close gate lists it)")
+        override="none: only the lead chooses between the two versions")
     return run.finish(closestate.CONFLICT, say.REFUSED, lines, files=files, refusals=[refusal])
 
 
@@ -267,29 +264,60 @@ def _conflict_outside(run, outside):
         plain="Main changed some files outside this plan that clash with this branch, so I stopped before mixing them. "
               "Nothing changed. They belong to the rest of the repository, so they need settling there first.",
         fix=f"Settle these files outside the plan, then rerun vela close sync-main: {shown}",
-        override=f"{ACCEPT} (go on without main; close gate lists it)")
+        override="none: those files are settled outside this plan")
     lines = [say.Line(f"sync-main: conflict outside this plan: {shown}", plain="")]
     return run.finish(closestate.CONFLICT, say.REFUSED, lines, files=[{"path": p, "lines": ["outside this plan"]} for p in outside],
                       refusals=[refusal])
 
 
 def _fetch_failed(run, why):
-    choices = [{"choice": "retry", "plain": "Try again", "run": "vela close sync-main"},
-               {"choice": "go-on", "plain": "Go on without main", "run": ACCEPT}]
-    result = run.finish(closestate.NOT_COMPARED, say.NEEDS_LEAD, [say.Line(
-        f"sync-main: not compared: git fetch origin failed: {why}. Retry, or record the lead's go-on with {ACCEPT}.",
-        "I couldn't reach main, so I haven't checked for newer changes. Try again, or go on without them?")],
-        reason=closestate.FETCH_FAILED, needs_lead=choices)
-    result.data["fetch_error"] = why  # session start says it in its own words, with no close choices
+    result = run.finish(closestate.NOT_COMPARED, say.DONE, [say.Line(
+        f"sync-main: not compared: git fetch origin failed: {why}. Went on without main; close gate lists it.",
+        "I couldn't reach main, so I went on without its newest changes.")],
+        reason=closestate.FETCH_FAILED)
+    result.data["fetch_error"] = why  # session start says it in its own words
     return result
 
 
 def _uncommitted(run, dirty):
-    shown = ", ".join(dirty[:5]) + (f" and {len(dirty) - 5} more" if len(dirty) > 5 else "")
+    """(the tracked changes still left, None) once the session's edits are saved; else (those, the Result that stops).
+    Session start has no open session to file under, so it keeps the old stop and the lead's checkpoint choice."""
+    if not run.keep_record:
+        return dirty, _checkpoint_first(run, dirty)
+    from vela.commands import close_stage
+    try:
+        saved = close_stage.checkpoint(run.root)
+    except (vaultgit.GitUnavailable, OSError) as exc:
+        raise mergegit.MergeGitFailed(f"saving the session's edits before the merge failed: {exc}") from exc
+    run.head = mergegit.sha(run.root, "HEAD")  # the checkpoint moved it; the merge's `wrote` starts after it
+    left = [path for path in mergegit.tracked_changes(run.root) if not never_committed(path)]
+    if left:
+        return left, _not_the_sessions(run, left, saved)
+    return mergegit.tracked_changes(run.root), None
+
+
+def _shown(paths):
+    return ", ".join(paths[:5]) + (f" and {len(paths) - 5} more" if len(paths) > 5 else "")
+
+
+def _not_the_sessions(run, left, saved):
+    """Changed files the checkpoint rightly left out (or no single open session to file under): the lead's call."""
+    why = ("Those files aren't part of this session, so I didn't save them with it" if saved
+           else "I couldn't tell which session to save them under")
+    text = f"{why}. Commit them or put them aside, then I'll bring in main."
+    refusal = say.Refusal(rule="sync-main unsaved edits", plain=text,
+                          fix=f"Commit or restore {_shown(left)}, then rerun vela close sync-main.", override="none: "
+                          "a merge over unsaved edits can mix them into a conflict")
+    return run.finish(closestate.NOT_COMPARED, say.REFUSED, [say.Line(
+        f"sync-main: not compared: {len(left)} tracked files have uncommitted edits outside the session's files "
+        f"({_shown(left)}); nothing was merged.", plain=text)], reason=closestate.UNCOMMITTED, refusals=[refusal])
+
+
+def _checkpoint_first(run, dirty):
     choices = [{"choice": "checkpoint", "plain": "Save the session's edits in a checkpoint commit", "run": CHECKPOINT}]
     return run.finish(closestate.NOT_COMPARED, say.NEEDS_LEAD, [say.Line(
-        f"sync-main: not compared: {len(dirty)} tracked files have uncommitted edits ({shown}). Commit them first with "
-        f"{CHECKPOINT}, then rerun.",
+        f"sync-main: not compared: {len(dirty)} tracked files have uncommitted edits ({_shown(dirty)}). Commit them "
+        f"first with {CHECKPOINT}, then rerun.",
         "I'll save your edits first, so nothing's lost when I bring in main. OK?")],
         reason=closestate.UNCOMMITTED, needs_lead=choices)
 

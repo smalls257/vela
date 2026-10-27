@@ -232,16 +232,7 @@ def cmd_close_stage(args, out):
             return cli_emit(result, args, out)
     before = write_closed(root, files) if files else {}
     try:
-        changed = stagegit.changed_paths(root)
-        plan = guard.plan(changed, vault_pages(changed), ident)
-        stagegit.stage(root, list(plan.stage))
-        commit_line, committed = "", False
-        if args.commit and plan.stage:
-            message = MESSAGES[args.commit].format(id=ident)
-            commit_line = f"committed {stagegit.commit(root, message, list(plan.stage))}: {message}"
-            committed = True
-        elif args.commit:
-            commit_line = "nothing to commit: no allow-listed file changed"
+        plan, commit_line, committed = stage_and_commit(root, ident, args.commit)
     except (vaultgit.GitUnavailable, OSError) as exc:
         put_back(root, before)
         raise cli.ToolError(f"close stage: {exc}") from exc
@@ -255,6 +246,34 @@ def cmd_close_stage(args, out):
     result.exit = say.REFUSED if (plan.left or plan.never) else say.DONE
     report(result, plan, commit_line, committed, mode)
     return cli_emit(result, args, out)
+
+
+def stage_and_commit(root, ident, commit):
+    """(the plan, the commit line, whether it committed): stage the session's files by exact path, then commit them as
+    MESSAGES[commit] when `commit` is set. `--checkpoint` and `checkpoint` below are this one call (Distributed
+    Monolith ruled out: sync-main saving the lead's edits must not be a second copy of the staging rules)."""
+    changed = stagegit.changed_paths(root)
+    plan = guard.plan(changed, vault_pages(changed), ident)
+    stagegit.stage(root, list(plan.stage))
+    commit_line, committed = "", False
+    if commit and plan.stage:
+        message = MESSAGES[commit].format(id=ident)
+        commit_line = f"committed {stagegit.commit(root, message, list(plan.stage))}: {message}"
+        committed = True
+    elif commit:
+        commit_line = "nothing to commit: no allow-listed file changed"
+    return plan, commit_line, committed
+
+
+def checkpoint(root):
+    """Save the session's edits in a `Checkpoint <id>` commit, as `vela close stage --checkpoint` does. Returns the
+    session id, or "" when no single open session says which one to file (nothing was staged or committed then).
+    Raises vaultgit.GitUnavailable or OSError when git or the disk refuses."""
+    records = open_records(root)
+    if len(records) != 1:
+        return ""
+    stage_and_commit(root, records[0], "checkpoint")
+    return records[0]
 
 
 def closed_files(args, root, ident):

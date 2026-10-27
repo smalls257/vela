@@ -63,23 +63,29 @@ def full_records_vault(tmp_path):
     return vault
 
 
-def test_dry_run_changes_nothing_and_lists_what_it_strips(tmp_path):
+def test_split_applies_without_asking(tmp_path):
+    vault = full_records_vault(tmp_path)
+    code, out = run("records", "split", "--vault", str(vault), "--today", "2026-10-22", "--json")
+    assert code == 0 and json.loads(out)["needs_lead"] == [], out
+    assert git(vault, "branch", "--show-current") == "records-split"
+
+
+def test_split_dry_run_writes_nothing(tmp_path):
     vault = full_records_vault(tmp_path)
     before = tree_bytes(vault)
-    code, out = run("records", "split", "--vault", str(vault), "--today", "2026-10-22", "--json")
+    code, out = run("records", "split", "--dry-run", "--vault", str(vault), "--today", "2026-10-22", "--json")
     data = json.loads(out)
-    assert code == 3 and tree_bytes(vault) == before
+    assert code == 0 and tree_bytes(vault) == before and data["needs_lead"] == []
     assert {s["what"] for s in data["stripped"]} == {"dissent", "answered quote"}
     assert data["records"] == ["2026-01-05-till-needs", RECORD]
     assert data["links"] == 1 and data["sources_added"] == ["SRC-002"] and data["split_date"] == "2026-10-22"
     assert {s["path"] for s in data["stripped"]} == {SHOP, UNKNOWNS}
-    assert data["needs_lead"][0]["answer_with"] == "--apply"
     assert git(vault, "branch", "--show-current") == "main"
 
 
 def test_apply_commits_stubs_and_rewritten_links_only(tmp_path):
     vault = full_records_vault(tmp_path)
-    assert run("records", "split", "--apply", "--vault", str(vault), "--today", "2026-10-22")[0] == 0
+    assert run("records", "split", "--vault", str(vault), "--today", "2026-10-22")[0] == 0
     assert git(vault, "branch", "--show-current") == "records-split"
     shown = git(vault, "show", "--stat", "--format=", "HEAD")
     assert "sessions/private" not in shown and "sessions/2026-01-10-shop-api.md" in shown
@@ -95,7 +101,7 @@ def test_apply_commits_stubs_and_rewritten_links_only(tmp_path):
 def test_apply_moves_the_words_to_the_private_file_and_leaves_a_stub(tmp_path):
     vault = full_records_vault(tmp_path)
     whole = (vault / "sessions" / f"{RECORD}.md").read_text(encoding="utf-8")
-    assert run("records", "split", "--apply", "--vault", str(vault), "--today", "2026-10-22")[0] == 0
+    assert run("records", "split", "--vault", str(vault), "--today", "2026-10-22")[0] == 0
     notes = session_files.record_text(vault, RECORD)
     assert ANSWER in notes and notes.endswith(whole.split("---\n", 2)[2])
     stub = session_files.stub_text(vault, RECORD)
@@ -111,30 +117,30 @@ def test_apply_refuses_a_dirty_tree(tmp_path):
     vault = full_records_vault(tmp_path)
     (vault / "01-goals.md").write_text((vault / "01-goals.md").read_text(encoding="utf-8") + "\nedit\n",
                                        encoding="utf-8")
-    code, out = run("records", "split", "--apply", "--vault", str(vault))
+    code, out = run("records", "split", "--vault", str(vault))
     assert code == 1 and "changes that aren't committed" in out
     assert git(vault, "branch", "--show-current") == "main"
 
 
 def test_apply_says_what_history_still_holds(tmp_path):
     vault = full_records_vault(tmp_path)
-    code, out = run("records", "split", "--apply", "--vault", str(vault), "--today", "2026-10-22")
+    code, out = run("records", "split", "--vault", str(vault), "--today", "2026-10-22")
     assert code == 0 and recordsplit.HISTORY_TELL in out
     assert "Once it's merged, I'll republish the read copy." in out
 
 
 def test_the_for_lead_lines_hold_no_id_and_still_tell_the_history(tmp_path):
     vault = full_records_vault(tmp_path)
-    code, out = run("records", "split", "--vault", str(vault), "--for-lead")
-    assert code == 3 and "W720" not in out and "@raj" not in out
-    code, out = run("records", "split", "--apply", "--vault", str(vault), "--today", "2026-10-22", "--for-lead")
+    code, out = run("records", "split", "--dry-run", "--vault", str(vault), "--for-lead")
+    assert code == 0 and "W720" not in out and "@raj" not in out
+    code, out = run("records", "split", "--vault", str(vault), "--today", "2026-10-22", "--for-lead")
     assert code == 0 and "still in this repository's history" in out and "W720" not in out
 
 
 def test_a_second_split_has_nothing_to_do(tmp_path):
     vault = full_records_vault(tmp_path)
-    assert run("records", "split", "--apply", "--vault", str(vault), "--today", "2026-10-22")[0] == 0
-    code, out = run("records", "split", "--vault", str(vault), "--today", "2026-10-23", "--json")
+    assert run("records", "split", "--vault", str(vault), "--today", "2026-10-22")[0] == 0
+    code, out = run("records", "split", "--dry-run", "--vault", str(vault), "--today", "2026-10-23", "--json")
     assert code == 0 and json.loads(out)["records"] == []
 
 
@@ -146,7 +152,7 @@ def test_split_date_covers_records_dated_ahead():
 
 def test_answered_quote_points_at_a_first_hand_row(tmp_path):
     vault = full_records_vault(tmp_path)
-    assert run("records", "split", "--apply", "--vault", str(vault), "--today", "2026-10-22")[0] == 0
+    assert run("records", "split", "--vault", str(vault), "--today", "2026-10-22")[0] == 0
     ledger_row = next(line for line in (vault / UNKNOWNS).read_text(encoding="utf-8").split("\n")
                       if line.startswith("| Q-DAT-03"))
     sources = (vault / "sources.md").read_text(encoding="utf-8")
@@ -297,7 +303,7 @@ def test_handoff_hash_moves_only_when_the_split_was_the_only_change(tmp_path):
     manifest.write_text(handoff.write("APP-shop", rows, "abc1234", "2026-01-20", title="Shop"), encoding="utf-8")
     git(vault, "add", "-A")
     git(vault, "commit", "-q", "-m", "handoff")
-    code, out = run("records", "split", "--apply", "--vault", str(vault), "--today", "2026-10-22", "--json")
+    code, out = run("records", "split", "--vault", str(vault), "--today", "2026-10-22", "--json")
     assert code == 0 and json.loads(out)["handoff_rows"] == ["handoffs/APP-shop.md: CON-001"]
     _, new_rows = handoff.read(manifest.read_text(encoding="utf-8"))
     old_hash = {e.id: e.hash for e in entries}
@@ -343,12 +349,12 @@ def test_a_line_the_split_cannot_read_is_listed_without_its_words_and_stops_appl
     page.write_text(page.read_text(encoding="utf-8").replace(
         "- **Dissent:** @raj, 2026-01-10: too slow", "- **Dissent:** Raj thinks it is slow"), encoding="utf-8")
     git(vault, "commit", "-qam", "odd dissent")
-    code, out = run("records", "split", "--vault", str(vault), "--today", "2026-10-22", "--json")
+    code, out = run("records", "split", "--dry-run", "--vault", str(vault), "--today", "2026-10-22", "--json")
     data = json.loads(out)
     assert code == 1 and [(i["path"], i["what"]) for i in data["left"]] == [(SHOP, "dissent")]
     assert "thinks" not in out
     before = tree_bytes(vault)
-    code, out = run("records", "split", "--apply", "--vault", str(vault), "--today", "2026-10-22")
+    code, out = run("records", "split", "--vault", str(vault), "--today", "2026-10-22")
     assert code == 1 and "Fix them by hand" in out and "thinks" not in out
     assert git(vault, "branch", "--show-current") == "main" and tree_bytes(vault) == before
 
@@ -366,7 +372,7 @@ def test_a_failure_after_the_branch_is_made_puts_everything_back(tmp_path, monke
     git(vault, "add", "-A")
     git(vault, "commit", "-q", "-m", "handoff")
     before = tree_bytes(vault)
-    code, out = run("records", "split", "--apply", "--vault", str(vault), "--today", "2026-10-22")
+    code, out = run("records", "split", "--vault", str(vault), "--today", "2026-10-22")
     assert code == 2 and "would not load" in out and "put the plan back" in out
     assert git(vault, "branch", "--show-current") == "main" and "records-split" not in git(vault, "branch")
     assert tree_bytes(vault) == before and git(vault, "status", "--porcelain") == ""
@@ -381,8 +387,8 @@ def test_the_dry_run_never_asks_gh_or_writes_the_handle(tmp_path, monkeypatch):
     def no_gh(*args, **kwargs):
         raise AssertionError("the dry run called gh")
     monkeypatch.setattr(sessiongit, "gh", no_gh)
-    code, out = run("records", "split", "--vault", str(vault), "--today", "2026-10-22", "--json")
-    assert code == 3 and not (vault / ".vela" / "handle").exists()
+    code, out = run("records", "split", "--dry-run", "--vault", str(vault), "--today", "2026-10-22", "--json")
+    assert code == 0 and not (vault / ".vela" / "handle").exists()
     assert any("handle" in line for line in json.loads(out)["lines"])
 
 
@@ -391,10 +397,10 @@ def test_apply_refuses_when_no_handle_is_cached_so_the_leads_words_are_kept(tmp_
     (vault / ".vela" / "handle").unlink()
     git(vault, "commit", "-qam", "no cached handle")
     before = tree_bytes(vault)
-    code, out = run("records", "split", "--apply", "--vault", str(vault), "--today", "2026-10-22")
+    code, out = run("records", "split", "--vault", str(vault), "--today", "2026-10-22")
     assert code == 1 and "Run vela whoami first, so I keep your own words" in out
     assert git(vault, "branch", "--show-current") == "main" and tree_bytes(vault) == before
-    code, out = run("records", "split", "--apply", "--vault", str(vault), "--today", "2026-10-22", "--for-lead")
+    code, out = run("records", "split", "--vault", str(vault), "--today", "2026-10-22", "--for-lead")
     assert code == 1 and "whoami" not in out and "find out first" in out
 
 
@@ -405,16 +411,16 @@ def test_a_reviewer_row_quoting_a_session_is_listed_without_its_words_and_stops_
            "severity: high |  |  |")
     ledger.write_text(ledger.read_text(encoding="utf-8").rstrip("\n") + f"\n{row}\n", encoding="utf-8")
     git(vault, "commit", "-qam", "a reviewer row")
-    code, out = run("records", "split", "--vault", str(vault), "--today", "2026-10-22", "--json")
+    code, out = run("records", "split", "--dry-run", "--vault", str(vault), "--today", "2026-10-22", "--json")
     data = json.loads(out)
     assert code == 1 and [(i["path"], i["what"]) for i in data["left"]] == [(UNKNOWNS, "reviewer quote")]
     assert "rounds every sale" not in out
-    code, out = run("records", "split", "--apply", "--vault", str(vault), "--today", "2026-10-22")
+    code, out = run("records", "split", "--vault", str(vault), "--today", "2026-10-22")
     assert code == 1 and "reviewer questions that quote a session" in out and "rounds every sale" not in out
     assert not (vault / "sessions" / "private").exists()
     ledger.write_text(ledger.read_text(encoding="utf-8").replace(f"in [[{RECORD}]]", "in [[shop-building-blocks]]"),
                       encoding="utf-8")
-    assert [i for i in json.loads(run("records", "split", "--vault", str(vault), "--today", "2026-10-22",
+    assert [i for i in json.loads(run("records", "split", "--dry-run", "--vault", str(vault), "--today", "2026-10-22",
                                       "--json")[1])["left"]] == [], "requoted from a page, nothing is left"
 
 

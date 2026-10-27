@@ -248,7 +248,7 @@ def test_close_merges_a_moved_main_before_render():
     step = csec(4)
     assert step.index("vela close sync-main") < step.index("vela render")
     assert "vela close stage --checkpoint" not in step and "--accept-not-compared" not in step  # sync-main prints both
-    assert close_sync.CHECKPOINT == "vela close stage --checkpoint" and "--accept-not-compared" in close_sync.ACCEPT
+    assert close_sync.CHECKPOINT == "vela close stage --checkpoint" and not hasattr(close_sync, "ACCEPT")
     assert "Exit 3 for uncommitted edits" not in step and "Exit 1: main changed lines" not in step
     assert "git merge" not in step and "-X ours" not in step and "--theirs" not in step
     assert "long-lived PR" in read("README.md") and "merge `origin/main`" in read("README.md")

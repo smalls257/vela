@@ -12,7 +12,7 @@ so keeping it without the lead's yes is the quiet failure; here no yes means exi
 - A local file is kept (copied to `library/<folder>/<name>`) only with `--keep-file --yes ^cN`, where ^cN is a capture
   in the open session holding the lead's yes (the same check `vela decide --yes` runs: a person's words, not a bare
   "ok"). A file in `.inbox/` may be kept this way: the copy is committed, the inbox original stays ignored.
-- A file over 20 MB asks for a link instead (exit 3); `--force-large` keeps it anyway.
+- A file over 20 MB is kept, with a line saying a link is usually the better row: size is a note, not a stop.
 - Nothing is overwritten. A name clash, the same bytes already kept, or the same link already registered is refused
   and the existing item is named.
 - A spec file's version is read from its `info.version` unless `--version` says otherwise.
@@ -20,7 +20,7 @@ so keeping it without the lead's yes is the quiet failure; here no yes means exi
   holds exactly the new file and sources.md, staged by exact path through `stagegit`, never a folder.
 
 Exit codes: 0 added (and committed); 1 refused, nothing written; 2 git or the disk failed (what landed is named);
-3 the lead's yes (or a choice about a large file) is needed first: nothing was written.
+3 the lead's yes is needed first: nothing was written.
 
 `vela library list` prints the rows grouped by type (spec, design, document, wiki, tracker, link); `--json` shape:
 {"command": "library list", "exit": 0, "count": N, "groups": [{"type": "spec", "items": [{"id", "title", "owner",
@@ -62,7 +62,6 @@ def register(sub):
     add.add_argument("--keep-file", action="store_true",
                      help="copy a local file into library/; needs --yes, the lead's yes on record")
     add.add_argument("--yes", metavar="^cN", help="the capture holding the lead's yes to keeping the file")
-    add.add_argument("--force-large", action="store_true", help="keep a file over 20 MB anyway")
     say.add_output_flags(add)
     add.set_defaults(func=run_add)
     listing = each.add_parser("list", help="the Library's rows, grouped by type")
@@ -183,14 +182,12 @@ def file_plan(root, args):
     return Plan(item_of(args, source_type, version, stored, ""), path, stored, data), None
 
 
-def large_choice(plan, size):
+def large_note(size):
     mb = size / (1024 * 1024)
-    return needs_lead("library add", f"That file is about {mb:.0f} megabytes, which is a lot to keep in the plan's folder. "
-                      "A link to where it lives is usually better. Link it, or keep the file anyway?",
-                      f"vela library add: {plan.source} is {size} bytes, over the 20 MB limit. Add it as a link "
-                      "(drop --keep-file and pass its URL), or pass --force-large to keep it.",
-                      [{"choice": "link", "plain": "add a link instead"},
-                       {"choice": "keep", "command": "--force-large", "plain": "keep the file anyway"}])
+    return say.Line(f"vela library add: kept a file of {size} bytes, past the size where a link is usually the better "
+                    "row.",
+                    plain=f"That file is about {mb:.0f} megabytes, which is a lot to keep in the plan's folder, but I kept "
+                          "it. A link to where it lives is usually better.")
 
 
 def yes_ask(plan):
@@ -257,8 +254,6 @@ def add_to_library(root, today, vault, args):
 
 
 def consent_stop(root, args, plan):
-    if len(plan.data) > library.MAX_BYTES and not args.force_large:
-        return large_choice(plan, len(plan.data))
     if not (args.keep_file and args.yes):
         return yes_ask(plan)
     return check_yes(root, args)
@@ -301,4 +296,6 @@ def write_and_commit(root, today, vault, plan, reader):
     kept = "kept the file and " if plan.stored else ""
     result.lines.append(say.Line(f"committed {data['commit']}: {message}",
                                  plain=f"I've {kept}added “{plan.item['title']}” to the library and saved it."))
+    if len(plan.data) > library.MAX_BYTES:
+        result.lines.append(large_note(len(plan.data)))
     return result

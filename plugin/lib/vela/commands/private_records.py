@@ -21,8 +21,9 @@ Exit codes: 0 the part matches (or was sealed, or was already); 1 it changed sin
 or holds a different fingerprint (seal); 2 no private file here, no stub, or git failed.
 
 `split` exists to prevent a Silent Fallback in the migration: moving the record files while a person's words stay on
-committed pages. Its dry run (the default) runs the same `split_folder` on a temporary copy, so what it lists is what
-`--apply` writes, and it exits 3 asking for the lead's yes. `--apply` refuses a dirty tree, works on its own branch,
+committed pages. It applies at once: the work is on a branch of its own, so the review is the merge, and a
+yes asked first only slowed it. `--dry-run` runs the same `split_folder` on a temporary copy, so what it lists is what
+the real run writes, and it exits 0. A real run refuses a dirty tree, works on its own branch,
 stages named paths only (never the private notes) and commits once. `split_folder` writes in place and runs no git.
 """
 import dataclasses
@@ -69,10 +70,9 @@ def register(sub):
     show.add_argument("--vault", default=".", help="vault root (default: current directory)")
     say.add_output_flags(show)
     show.set_defaults(func=cmd_show)
-    split = verbs.add_parser("split", help="move an older plan's session records to private notes (dry run first)")
+    split = verbs.add_parser("split", help="move an older plan's session records to private notes (on a branch of its own)")
     split.add_argument("--vault", default=".", help="vault root (default: current directory)")
-    split.add_argument("--apply", action="store_true",
-                       help="do it, on a branch of its own, after the lead said yes to the dry run")
+    split.add_argument("--dry-run", action="store_true", help="list what the split would do and change nothing")
     split.add_argument("--today", help="the date written (records_split, new sources), YYYY-MM-DD")
     say.add_output_flags(split)
     split.set_defaults(func=cmd_split)
@@ -295,19 +295,19 @@ def cmd_split(args, out):
     root = pathlib.Path(args.vault).resolve()
     try:
         today, _ = cli.parse_today(args.today)
-        result = split(root, args.apply, today)
+        result = split(root, args.dry_run, today)
     except (ValueError, OSError, vaultgit.GitUnavailable, cli.ToolError) as exc:
         result = failed(SPLIT, str(exc))
     return commands.emit(result, args, out)
 
 
-def split(root, apply, today):
+def split(root, dry, today):
     if sessiongit.is_read_copy(root):
         return failed(SPLIT, "this is a read copy, and the records live in the owner's plan.",
                       "Splitting the records is done in the owner's plan, not in a read copy.")
     lead = lead_handle(root)
     branch_texts = idgit.branch_texts(root)
-    if not apply:
+    if dry:
         return dry_run(root, lead, today, branch_texts)
     return apply_split(root, lead, today, branch_texts)
 
@@ -321,9 +321,7 @@ def dry_run(root, lead, today, branch_texts):
         return nothing_to_split(report)
     if report.left:
         return say.Result(SPLIT, exit=say.REFUSED, lines=dry_run_lines(report, lead), data=split_data(report))
-    ask = "Want me to go ahead?"
-    return say.Result(SPLIT, exit=say.NEEDS_LEAD, lines=dry_run_lines(report, lead), data=split_data(report),
-                      needs_lead=[{"ask": "split", "question": ask, "answer_with": "--apply"}])
+    return say.Result(SPLIT, lines=dry_run_lines(report, lead), data=split_data(report))
 
 
 def nothing_to_split(report):
@@ -398,7 +396,7 @@ def apply_split(root, lead, today, branch_texts):
         return failed_refused(SPLIT, text, {"uncommitted": dirty})
     if not lead:
         return say.Result(SPLIT, exit=say.REFUSED, data={"lead": ""}, lines=[say.Line(
-            "vela records split: no handle is cached, so --apply would strip your own words too. Run vela whoami "
+            "vela records split: no handle is cached, so the split would strip your own words too. Run vela whoami "
             "first, so I keep your own words.",
             plain="I don't know who you are yet, and splitting now would take out your own words too. I'll find "
                   "out first, so I keep them.")])

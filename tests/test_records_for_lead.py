@@ -65,5 +65,5 @@ def test_backup_on_success_and_on_refusal(tmp_path, started):
 
 
 def test_split_dry_run_and_apply_refusals(started):
-    assert lead("split", "--vault", str(started), "--today", TODAY)[0] in (0, 3)
-    assert lead("split", "--apply", "--vault", str(started), "--today", TODAY)[0] in (0, 1, 3)
+    assert lead("split", "--dry-run", "--vault", str(started), "--today", TODAY)[0] in (0, 3)
+    assert lead("split", "--vault", str(started), "--today", TODAY)[0] in (0, 1, 3)

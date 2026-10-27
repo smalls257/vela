@@ -15,7 +15,8 @@ nothing stopped it" is ruled out: the CLI checks first).
    (`move_off_default_branch`, the same move `vela session branch` makes): a pull request can't be opened from the
    branch it goes into, and the default branch is never pushed. Said as one line; nothing is asked. The new
    branch was never compared with main, so `close_sync.sync_main` runs once (the step `close sync-main` runs); only a
-   real conflict stops the send.
+   real conflict stops the send. An unreachable main does not: sync-main notes it and goes on, and the push itself
+   then fails with its own words if the network is down.
 3. The gate (`close_gate.observe` then `closegate.ready`, the same pair `close finish` composes): a session that isn't
    ready isn't sent.
 4. Everything the session changed must be committed: a push sends commits. No commit it sends may carry a file
@@ -165,8 +166,8 @@ def move_off_default_branch(root, session, lines):
 def brought_up_to_date(root, args):
     """After a move the new branch has never been compared with main, so the gate would refuse it for want of a
     sync-main record. Run the same step `vela close sync-main` runs, once. None when it went through (the send goes
-    on); otherwise its own result, which stops the push the way sync-main stops a close (a real conflict, or a fetch
-    that failed), with nothing sent."""
+    on); otherwise its own result, which stops the push the way sync-main stops a close (a real conflict, or edits that
+    aren't the session's), with nothing sent. A fetch that failed goes on: the push reports an outage itself."""
     from vela import cli
     from vela.commands import close_sync
     today, _ = cli.parse_today(args.today)

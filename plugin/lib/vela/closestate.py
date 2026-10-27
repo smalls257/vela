@@ -22,8 +22,8 @@ from vela import say
 
 VERSION = 1
 UP_TO_DATE, MERGED, MERGED_GENERATED = "up-to-date", "merged", "merged-generated-only"
-CONFLICT, NOT_COMPARED, ACCEPTED, READER = "conflict", "not-compared", "not-compared-accepted", "reader"
-STATUSES = (UP_TO_DATE, MERGED, MERGED_GENERATED, CONFLICT, NOT_COMPARED, ACCEPTED, READER)
+CONFLICT, NOT_COMPARED, READER = "conflict", "not-compared", "reader"
+STATUSES = (UP_TO_DATE, MERGED, MERGED_GENERATED, CONFLICT, NOT_COMPARED, READER)
 
 # Why a branch was not compared, so the gate and a reviewer can tell an outage from a dirty tree.
 FETCH_FAILED, UNCOMMITTED, GIT_FAILED = "fetch-failed", "uncommitted-edits", "git-failed"
@@ -72,7 +72,7 @@ def parse(text):
 @dataclass(frozen=True)
 class Verdict:
     """What the gate makes of a record. `blocks` stops the close; `plain` is the lead-facing reason (no codes);
-    `listed` means the close may go on but the gate must still say it (the lead chose to go on without main).
+    `listed` means the close may go on but the gate must still say it (main could not be reached).
     `audience` is say.MODEL for a verdict whose remedy is the model's own next step (sync-main not run yet): the gate
     still blocks on it, but the lead isn't asked about a step Claude takes itself."""
     blocks: bool
@@ -97,8 +97,10 @@ def verdict(rec):
         return Verdict(False, _PASS[status], status)
     if status == READER:
         return Verdict(False, "This is your copy, so there is no main to bring in.", status)
-    if status == ACCEPTED:
-        return Verdict(False, "We went on without the latest from main, as you chose.", status, True)
+    if status == NOT_COMPARED and rec.get("reason") == FETCH_FAILED:
+        # An outage is not the lead's to fix, and holding the close for it would only stall them. It goes on and is
+        # said, so a close that never compared with main is on record (Silent Fallback ruled out).
+        return Verdict(False, "I couldn't reach main, so we went on without its newest changes.", status, True)
     if status == CONFLICT:
         # sync-main aborts a merge that stopped (edge/mergegit.py), so nothing is left half-merged: the state to say is
         # that main's changes are not in yet and the lead picks between the two versions.
