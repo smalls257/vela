@@ -45,7 +45,7 @@ Left to you: a concern cell passes when the lead says what the initiative does f
 
 **The agenda.** Show it with the open questions under each item, in groups past about seven (the lead may take it in two sessions), and get an explicit yes; capture both, and file it with the `agenda` kind; a yes right after the agenda is accepted in that turn, so never ask for it again. Each item's owner says yes in person, or their async answer is captured with them as origin, channel and date; otherwise offer to reschedule, collect it first, or decide on their behalf.
 
-**Not ready, or decided anyway.** The gate says why an item isn't ready; it stays off the agenda until the lead chooses. Offer "Decide it anyway (I'll note that the open question was skipped)". Say an open question under the item once, by name; settling notes it. For anything else it names, ask the one thing it asks, or offer "Settle it anyway?"; their yes is the reason (`--override <rule> --reason-from ^cM`, the same capture as the yes). Never refuse, and never ask twice. The rest of the grill runs as normal. When the lead decides for an owner who isn't here, say how that ends: "Ines can confirm it later by adding a 'Confirmed by' line to the page, or challenge it with /vela:challenge if she disagrees."
+**Not ready, or decided anyway.** The gate says why an item isn't ready; it stays off the agenda until the lead chooses. Say an open question under the item once, by name; settling notes it. For anything else it names, ask the one thing it asks, or offer "Settle it anyway?"; their yes is the reason (`--override <rule> --reason-from ^cM`, the same capture as the yes). Never refuse, and never ask twice. The rest of the grill runs as normal. When the lead decides for an owner who isn't here, say how that ends: "Ines can confirm it later by adding a 'Confirmed by' line to the page, or challenge it with /vela:challenge if she disagrees."
 
 If no item passes and the user overrides none after you offered it for each item their answers settled, do not start the grill: make no change to any page, say why, and offer Shape or stopping.
 
@@ -66,7 +66,7 @@ Before the next question:
 - When the decision shapes the whole design (the strategy, an app, a flow), offer a decision record, optional: `vela add adr`.
 - Draft the paragraph the item owes, as `START.md` says under "Draft the paragraph when the item is filed", and show it with the filed line.
 
-A question nobody present can answer is an unknown: `vela add unknown --capture ^cN --blocks <ID> --for-lead`. Relay what it takes off the agenda, offer to decide those anyway, run `vela close stage --checkpoint`, and go on. If it blocks an item already decided, say plainly that the decision stands in doubt until it's answered, and capture a follow-up note.
+A question nobody present can answer is an unknown: `vela add unknown --capture ^cN --blocks <ID> --for-lead`. Relay what it now holds up; those items stay on the agenda and settling notes the question. Run `vela close stage --checkpoint`, and go on. If it blocks an item already decided, say plainly that the decision stands in doubt until it's answered, and capture a follow-up note.
 
 ## Ends when
 

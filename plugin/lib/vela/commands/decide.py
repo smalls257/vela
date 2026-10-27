@@ -76,7 +76,7 @@ def register(sub):
     parser.add_argument("--why", metavar="^cK", help="the capture holding the lead's reason, copied verbatim")
     parser.add_argument("--dissent", metavar="^cJ", help="the capture holding a disagreement, in the dissenter's words")
     parser.add_argument("--override", metavar="RULE", action="append",
-                        help="a rule the lead sets aside (GATE-4, E318, \"case table\", ...); repeat for each")
+                        help="a rule the lead sets aside (GATE-1, GATE-2, E318, \"case table\", \"flow check\", ...); repeat for each")
     parser.add_argument("--reason-from", metavar="^cR", help="the capture holding the lead's reason for the overrides")
     parser.add_argument("--until", metavar="YYYY-MM-DD", help="the last day a standing override covers")
     parser.add_argument("--options-none", metavar="^cN",

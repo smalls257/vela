@@ -350,9 +350,9 @@ def open_blockers_of(view, record, target):
     return sorted(found.open_blockers)
 
 
-def _decided_with_open_bullets(view, record, target):
+def _decided_with_open_bullets(item, view, record, target):
     """The open questions under the target, noted on the page so E316 excuses these and no question opened later."""
-    blockers = open_blockers_of(view, record, target)
+    blockers = [] if item.get("reopen") else open_blockers_of(view, record, target)
     return [f"- **{vault_schema.DECIDED_WITH_OPEN_LABEL}:** {', '.join(blockers)}"] if blockers else []
 
 
@@ -369,7 +369,7 @@ def history_bullets(item, view, record, target, decision=True):
         see = record.id if words else ""
         out.append(f"- **Dissent:** {receipts.dissent_value(speaker(capture, view.lead), today, words, see=see)}")
     out += _override_bullets(item, view, record, target)
-    out += _decided_with_open_bullets(view, record, target)
+    out += _decided_with_open_bullets(item, view, record, target)
     owners = stand_in_owners(item, view, record, target)
     if owners:
         out.append(f"- **Decided by:** {item['by']}, on behalf of {' '.join(owners)}")

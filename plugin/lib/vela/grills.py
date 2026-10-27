@@ -44,6 +44,7 @@ class Grill:
     apps: tuple  # IDs of the apps it sits on (for the App filter)
     sources: tuple  # SRC IDs it rests on
     missing: dict  # {} unless one-away: {"rule", "plain", "fix", "owed_by", "ask", "due", "question"}
+    open_question: dict  # {} unless an open question sits under it: {"question", "ask", "owed_by", "due"}; settling notes it
     owner: tuple  # handles who run it: the grill owner, else the item's own owners
     owner_set: bool  # True when a grill owner was set with `vela grill owner`
     join: tuple  # handles asked to join
@@ -53,6 +54,7 @@ class Grill:
         return {"id": self.id, "name": self.name, "kind": self.kind, "group": self.group, "state": self.state,
                 "since": self.since, "settles": list(self.settles), "holdsUp": list(self.holds_up),
                 "apps": list(self.apps), "sources": list(self.sources), "missing": self.missing,
+                "openQuestion": self.open_question,
                 "owner": list(self.owner), "ownerSet": self.owner_set, "join": list(self.join), "yes": self.yes}
 
 
@@ -203,6 +205,17 @@ def missing_thing(vault, verdict, owners, resolver):
     return out
 
 
+def open_question_of(vault, verdict, owners, resolver):
+    """The first open question under the item, with who owes the answer and by when, for its card: {} when none. The
+    item is ready all the same; settling it notes the question as still open."""
+    blocking = vault.item(verdict.open_blockers[0]) if verdict.open_blockers else None
+    if blocking is None:
+        return {}
+    due = blocking.fact("Ask by")
+    return {"question": resolver.plain(blocking.fact("Question")), "ask": resolver.plain(blocking.fact("Ask")),
+            "owed_by": list(_handles(blocking.fact("Owner")) or owners), "due": due if progress.is_date(due) else ""}
+
+
 # ------------------------------------------------------------------ the list
 
 def waiting(vault, verdicts, today):
@@ -228,6 +241,7 @@ def waiting(vault, verdicts, today):
             since=since(vault, ident, state, sessions), settles=settles(vault, ident, resolver),
             holds_up=holds_up(vault, ident), apps=apps_of(vault, ident), sources=sources_of(vault, ident),
             missing=missing_thing(vault, verdict, run_by, resolver) if group == ONE_AWAY else {},
+            open_question=open_question_of(vault, verdict, run_by, resolver),
             owner=run_by, owner_set=entry is not None and bool(entry.owner), join=entry.join if entry is not None else (),
             yes={k: mark[k] for k in ("session", "date", "title")} if mark else {}))
     return sorted(found, key=lambda g: (GROUPS.index(g.group), -len(g.holds_up), g.id))

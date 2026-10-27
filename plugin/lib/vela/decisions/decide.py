@@ -21,7 +21,7 @@ other (`field_refusals`), never ignored, because an ignored answer looks filed.
 An item:
 
     {"id": "CON-003", "to": "decided", "yes": "^c31", "why": "^c33", "dissent": null,
-     "overrides": [{"rules": ["GATE-4"], "reason": "^c35", "until": "2026-11-30"}],
+     "overrides": [{"rules": ["E318"], "reason": "^c35", "until": "2026-11-30"}],
      "by": "@lead", "reader": false}
 
 `by` (the lead's handle) and `reader` (whether this is a reader copy) are computed by the drafter, never asked;
@@ -48,7 +48,7 @@ SHARED = {"id": "the item's ID (a release by its heading, an allocation row as C
           "yes": "the capture holding the lead's yes",
           "why": "the capture holding the lead's reason, in their words (null when they gave none)",
           "dissent": "the capture holding a disagreement, in the dissenter's words",
-          "overrides": "the rules the lead set aside: [{\"rules\": [\"GATE-4\"], \"reason\": \"^c35\", \"until\": "
+          "overrides": "the rules the lead set aside: [{\"rules\": [\"E318\"], \"reason\": \"^c35\", \"until\": "
                        "\"YYYY-MM-DD\"}]; until only for a standing rule",
           "by": "the lead's handle; computed",
           "reader": "true in a reader copy; computed",
@@ -80,7 +80,7 @@ def _schema():
     fields.update({name: f"({kind} only) {hint}" for name, (kind, hint) in kind_fields().items()})
     judgment = JUDGMENT + tuple(kind_fields())
     example = {"id": "CON-003", "to": "decided", "yes": "^c31", "why": "^c33",
-               "provider": "^c32", "overrides": [{"rules": ["GATE-4"], "reason": "^c35", "until": "2026-11-30"}],
+               "provider": "^c32", "overrides": [{"rules": ["E318"], "reason": "^c35", "until": "2026-11-30"}],
                "by": "@lead", "reader": False}
     return schema.KindSchema(fields=fields, judgment=judgment, required=("id", "by"), example=example)
 

@@ -121,14 +121,14 @@ const Grills = (() => {
 
   /* ------------------------------------------------------------ words for a card */
   const dueWords = (iso) => (isDate(iso) ? `, due ${day(iso)}` : "");
+  const answerWords = (m) => {
+    const who = m.ask || (m.owed_by[0] ? personName(m.owed_by[0]) : "");
+    return `${who ? `${who}'s` : "an"} answer to "${m.question.replace(/\?$/, "")}"${dueWords(m.due)}`;
+  };
   function waitingSentence(r) {
     const m = r.missing;
     if (!m || !m.rule) return "";
-    if (m.question) {
-      const who = m.ask || (m.owed_by[0] ? personName(m.owed_by[0]) : "");
-      return `${who ? `${who}'s` : "an"} answer to "${m.question.replace(/\?$/, "")}"${dueWords(m.due)}. Then this is ready.`;
-    }
-    return m.plain;
+    return m.question ? `${answerWords(m)}. Then this is ready.` : m.plain;
   }
   const pillOf = (r) => (r.group === "said-yes" ? [`yes on ${day(r.yes.date)}`, "yes"] : r.group === "ready" ? ["ready", "ready"]
     : [r.missing && r.missing.question ? "waits on 1 answer" : "one thing away", "wait"]);
@@ -162,6 +162,7 @@ const Grills = (() => {
       h("span", { class: `g-pill ${tone}` }, pillText)), ownerLine(r)];
     if (r.group !== "one-away" && r.settles.length) body.push(h("div", { class: "g-need" }, h("b", {}, "Settles: "), settleSummary(r)));
     if (r.group === "one-away") body.push(h("div", { class: "g-need" }, h("b", { class: "g-wait" }, r.missing.question ? "Waiting on: " : "In the way: "), waitingSentence(r)));
+    if (r.openQuestion && r.openQuestion.question) body.push(h("div", { class: "g-need g-openq" }, h("b", {}, "Still open: "), `${answerWords(r.openQuestion)}. Settling it notes that.`));
     const chips = holdChips(r);
     return h("div", { class: "g-card" + (on ? " on" : ""), "data-grill": r.id, "data-group": r.group, "data-owner": r.owner.join(" "), onclick: open },
       h("button", { class: "g-open", type: "button", "aria-pressed": String(on), "aria-label": `${r.name}: ${pillText}. Show the details`, onclick: (ev) => { ev.stopPropagation(); open(); } }, ...body),

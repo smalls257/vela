@@ -41,6 +41,9 @@ def test_an_item_with_an_open_question_is_ready_and_missing_nothing(tmp_path):
     vault, found = load(tmp_path)
     assert found["CON-011"].missing == {} and found["CON-010"].missing == {}
     assert gates.verdict(vault, None, "CON-011", TODAY).open_blockers
+    asked = found["CON-011"].open_question
+    assert asked["owed_by"] == ["@mini-qa"] and asked["due"] == "2026-02-01" and "test till" in asked["question"]
+    assert found["CON-010"].open_question == {}
 
 
 def test_the_owner_is_the_items_own_unless_a_grill_owner_is_set(tmp_path):

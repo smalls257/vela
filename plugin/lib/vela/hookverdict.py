@@ -30,7 +30,7 @@ import posixpath
 import re
 from dataclasses import dataclass, field
 
-from vela import guard, parse
+from vela import guard, parse, schema
 
 DENY, ASK = "deny", "ask"
 
@@ -408,6 +408,10 @@ STATE_LINE = re.compile(r"^\s*[-*]\s+\*\*State:\*\*")
 STATE_REASON = ("A state moves only through `vela decide` (or `vela check --fix W326`), which writes the state with "
                 "the lead's quoted yes and its Changes row; a hand edit is a state change the close gate refuses. "
                 "Use `vela decide`.")
+DECIDED_WITH_OPEN_LINE = re.compile(r"^\s*[-*]\s+\*\*" + re.escape(schema.DECIDED_WITH_OPEN_LABEL) + r":\*\*")
+DECIDED_WITH_OPEN_REASON = ("Only `vela decide` writes a `Decided with open` bullet: it lists the open questions the lead "
+                            "settled the item with, and the check excuses exactly those. A hand-typed one would hide a "
+                            "question nobody noted. Settle the item with `vela decide`.")
 GENERATED_REASON = ("That text sits inside a generated block (`<!-- generated: ... -->`), which `vela render` "
                     "rewrites from the pages; a hand edit there is lost or refused. Change the item it comes from, "
                     "then run `vela render`.")
@@ -425,6 +429,10 @@ def state_lines(text):
                 found.append(line.strip())
     found += [line.strip() for line in lines if STATE_LINE.match(line)]
     return found
+
+
+def decided_with_open_lines(text):
+    return [line.strip() for line in parse.lines_of(text) if DECIDED_WITH_OPEN_LINE.match(line)]
 
 
 def generated_blocks(text):
@@ -461,6 +469,8 @@ def edit_verdict(before, after):
         return None
     if removed(state_lines(before), state_lines(after)):
         return Verdict(DENY, STATE_REASON)
+    if removed(decided_with_open_lines(after), decided_with_open_lines(before)):
+        return Verdict(DENY, DECIDED_WITH_OPEN_REASON)
     after_blocks = generated_blocks(after)
     if any(after_blocks.get(name) != text for name, text in generated_blocks(before).items()):
         return Verdict(DENY, GENERATED_REASON)

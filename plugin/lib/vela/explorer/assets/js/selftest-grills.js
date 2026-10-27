@@ -104,9 +104,12 @@
       if (r.group === "said-yes" && ($(".g-quote", c) || c.textContent.includes("Yes,"))) parts.push(`${r.name}: the lead's words show on the card`);
       if (r.group === "one-away" && !/^(Waiting on|In the way): /.test($(".g-need", c).textContent)) parts.push(`${r.name}: no word on what is in the way`);
       if (r.group === "one-away" && r.missing.due && !$(".g-need", c).textContent.includes(day(r.missing.due))) parts.push(`${r.name}: no due date`);
+      const q = r.openQuestion && r.openQuestion.question ? r.openQuestion : null, line = $(".g-openq", c);
+      if (q && (!line || !line.textContent.includes(q.question.replace(/\?$/, "")) || (q.due && !line.textContent.includes(day(q.due))))) parts.push(`${r.name}: its open question is not on the card`);
+      if (!q && line) parts.push(`${r.name}: a card says an open question that is not there`);
       if (IDLIKE.test([".g-t", ".g-owner", ".g-need"].map((q) => ($(q, c) ? $(q, c).textContent : "")).join(" "))) parts.push(`${r.name}: an ID or handle shows`);
     }
-    ok(!parts.length, "grills: each card has an owner line; a said-yes card shows no words, a one-away card says what it waits on and by when", `grills: ${parts.join("; ")}`);
+    ok(!parts.length, "grills: each card has an owner line; a said-yes card shows no words, a one-away card says what it waits on and by when, and a card with an open question under it names it", `grills: ${parts.join("; ")}`);
 
     // a card opens in the right-hand panel
     const pick = rows.find((r) => r.group === "ready" && !isRequirement(r)) || rows[0];

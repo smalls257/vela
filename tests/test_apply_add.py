@@ -91,15 +91,14 @@ def test_ask_by_is_the_leads_date_or_absent(tmp_path):
     assert "- **Ask by:** 2026-10-30" in given[UNKNOWNS]
 
 
-def test_add_unknown_blocks_updates_agenda(tmp_path):
+def test_add_unknown_blocks_leaves_the_agenda_alone(tmp_path):
     root = make_vault(tmp_path, agenda=["- CON-002: GATE-3 confirmed yes, status open",
                                         "- CON-001: GATE-3 confirmed yes, status decided"])
     item = {"type": "unknown", "name": "Stock count lag", "question": "How old can the count be?",
             "owner": "@priya", "blocks": ["CON-002"]}
     writes = filed(root, "add", [item])
     assert "- **Blocks:** [[stock-building-blocks#CON-002 Stock level|CON-002]]" in writes[UNKNOWNS]
-    assert "- CON-002: GATE-3 confirmed yes, status off-agenda: UNK-003" in writes[RECORD]
-    assert "- CON-001: GATE-3 confirmed yes, status decided" in writes[RECORD]
+    assert RECORD not in writes, "the agenda lines are not rewritten: an item it blocks stays on the agenda"
     assert add_unknown.now_blocks(dict(item, id="UNK-003"), session_files.record_text(root, RECORD_ID)) == ["CON-002"]
     code, out = run("add", "unknown", "--vault", str(root), "--today", TODAY, "--name", "Stock count lag",
                     "--question", "How old can the count be?", "--owner", "@priya", "--blocks", "CON-002", "--json")
@@ -109,7 +108,7 @@ def test_add_unknown_blocks_updates_agenda(tmp_path):
     code, said = run("add", "unknown", "--vault", str(root), "--today", TODAY, "--name", "Stock count source",
                      "--question", "Where does the count come from?", "--owner", "@priya", "--blocks", "CON-002",
                      "--for-lead")
-    assert code == 0 and "Stock level" in said, said  # the agenda item it now blocks, by its name
+    assert code == 0 and "Stock level" in said and "stays on the agenda" in said, said  # the agenda item it now blocks, by its name
 
 
 def test_lead_words_with_pipes_and_newlines_escape_in_table_cells(tmp_path):
