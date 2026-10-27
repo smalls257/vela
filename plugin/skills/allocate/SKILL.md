@@ -36,6 +36,8 @@ Label every line with what it rests on: the requirement, an app page, a contract
 - **A handover no contract covers** that the lead confirmed is `vela add contract --provider APP-<slug> --consumers APP-<slug> --change new --capture ^cNN`, with `--name`, `--crosses` and `--change-policy` in the lead's words. It writes the required bullets on the provider's page and links each consumer. Tell the lead: "This is a new contract between apps that nobody planned when the apps were split. It still needs deciding like the others."
 - Each written row gets a capture marked at once, `→ keep: [[<page>#<heading>|<ID>]] (assumption)`; rows have no ID of their own, so the capture links the app page's `Requirements allocated` heading and names the row as `CAP-nnn.FRn@APP-<slug>`, and so does its `## Changes` row in the session's notes. That label is for the files; to the lead, say the requirement and the app by name.
 
+After each share is written, ask once: "Write these as decided, or keep them as not decided yet?" On "decided", run `vela decide <ID> --yes ^cM --for-lead` for each requirement or contract involved, the group's yes as `^cM`. A hedge keeps them not decided yet.
+
 Then run `vela render` and `vela check`, fix every error, and commit a checkpoint with `vela close stage --checkpoint --for-lead`. The `allocation` block should show the requirement carried, and the trace check T7 (a code for you, not the lead) should no longer name it.
 
 Draft the paragraph each filed item owes now, as `START.md` says under "Draft the paragraph when the item is filed", and show it with the filed line.

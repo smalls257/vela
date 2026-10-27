@@ -6,11 +6,11 @@ argument-hint: "[the decided item, or an app]"
 
 # Boundary
 
-Turn a decided direction into apps a team lead can take. Until an app page exists, epics and handoff have nothing to work on. Unless the lead settles an item, what it writes is "not decided yet", and a concern cell is never `addressed`.
+Turn a decided direction into apps a team lead can take; epics and handoff need an app page. Unless the lead settles an item, what it writes is "not decided yet", and a concern cell is never `addressed`.
 
 Run the steps in `${CLAUDE_PLUGIN_ROOT}/references/START.md` with mode `boundary`, and read the Boundary row of `${CLAUDE_PLUGIN_ROOT}/references/MODES.md`. Page formats: `vela conventions "Fact bullets"` for contracts and case tables, `vela conventions "Fact tables"` for containers, `vela conventions "Concern cells and waivers"`, and `vela conventions "Flow check"` for the sequence diagram.
 
-Spell names in American English, capitalized ones too ("Route Optimizer"): the spelling check skips capitalized words. A read-back by name:
+Spell names in American English, capitalized ones too ("Route Optimizer"). A read-back by name:
 
 > Not this: "APP-dock-service provides CON-003 to APP-fleet-console, at assumption; UNK-051 blocks it."
 >
@@ -18,32 +18,32 @@ Spell names in American English, capitalized ones too ("Route Optimizer"): the s
 
 ## 1. Read the direction
 
-Read the picked option on `04-solution-strategy.md` and what it links, the context and scope, building blocks, flows, concerns, functional requirements and the open questions on them. If the direction isn't decided, say what is still open (apps cut on it may be cut again) and go on only as an override.
+Read the picked option on `04-solution-strategy.md` and what it links, the context and scope, building blocks, flows, concerns, functional requirements and the open questions on them. If the direction isn't decided, say what is open (apps cut on it may be cut again); go on only as an override.
 
 ## 2. Find the seams, then offer the cuts
 
-Once, before drawing the apps, run `vela questions --existence --for-lead`, read it as one turn, and capture each of the six answers on its own line.
+Before drawing the apps, run `vela questions --existence --for-lead`, read it as one turn, and capture each of the six answers on its own line.
 
-Before any cut, ask how the product comes apart, in the lead's own words, a question or two at a time: the question a business analyst asks before drawing a context diagram. What will someone stand up, own, release or switch off on its own? Don't let the shape's wording (a report, a reminder, "one helper") answer it for them. Ask:
+Before any cut, ask how the product comes apart, in the lead's own words, a question or two at a time: the question a business analyst asks before drawing a context diagram. What will someone stand up, own, release or switch off on its own? Ask:
 
 - "Which parts run on a person's own device, which run somewhere shared that your people operate, and which does an administrator or support person open?"
 - "Would different teams build or run any of these, or would any ship on its own schedule?"
 - "Could any part be thrown away and rebuilt without losing something people rely on, such as who agreed to what, or what each person may see?"
 - "Who keeps the record of who consented, who signed in, and what access was granted? Is that a part of one of the above, or a thing of its own?"
 
-Every part they name ends up in the cuts, as an app or as "not an app" with its reason; a part only the sources name you offer as `(claude)`, with the source. Offer consent and identity as an app of their own whenever a source shows a different owner, lifecycle or approval. A lead who says it is one thing gets the single-app cut first; never force a split they reject.
+Every part they name ends up in the cuts, as an app or as "not an app" with its reason; a part only the sources name is offered as `(claude)`, with the source. Offer consent and identity as their own app when a source shows a different owner, lifecycle or approval. A lead who says it is one thing gets the single-app cut first.
 
 Offer the cut the lead described and each real alternative the plan needs, never padding to a number. Each names every app it touches and what happens to it, in words (new, changed, connected to as it is, left alone, retired); which app owns each job and which job no app owns yet; what it makes easy and hard; and what each claim rests on. Test each cut against the functional requirements with `vela boundary cover --cut .vela/cuts.json --for-lead` and relay what each carries whole, splits or leaves with no app; the trade-offs are yours. Say which cut you prefer and why, capture each cut, the reactions, the pick and each rejected cut's reason, and write the pick with `vela add cut --for-lead`. If they reject them all, capture why and offer new cuts.
 
-Then ask once, for every app together, what the lead's people call the area of the business each sits in, and whether any two are really one area. Offer names the plan already uses, so spellings converge; never invent one. An app given no area keeps none, as an override. Stub every new or changed app with `vela add app-stub --for-lead`, with the domain they named and the pick's capture.
+Then ask once, for all apps together, what the lead's people call the area of the business each sits in, and whether any two are really one area. Offer names the plan already uses; never invent one. An app given no area keeps none, as an override. Stub every new or changed app with `vela add app-stub --for-lead`, with the domain they named and the pick's capture.
 
 ## 3. Read back one boundary sheet per app
 
-**Draw the tracer candidate's flows first.** Say what "tracer" and "slice" mean, from `vela terms`, the first time. Before the first sheet, offer the journey that crosses the most of the cut's apps and read its steps back first, so its pages exist when Releases chooses the tracer. Record the answer so releases does not ask again: capture the path in the lead's words, marked at once `→ keep: [[<first flow page>#Steps|<the flow's name>]] (assumption)`, and open the flow page with "We build this journey first, as the first thin path: ..." (Releases finds it by those words). With no candidate yet, say Releases will ask once. Once a flow's steps and case tables are confirmed, draw its sequence diagram.
+**Draw the tracer candidate's flows first.** Say what "tracer" and "slice" mean, from `vela terms`, the first time. Before the first sheet, offer the journey that crosses the most apps and read its steps back first, so its pages exist when Releases chooses the tracer. Record the answer so releases does not ask again: capture the path in the lead's words, marked at once `→ keep: [[<first flow page>#Steps|<the flow's name>]] (assumption)`, and open the flow page with "We build this journey first, as the first thin path: ..." (Releases finds it by those words). With no candidate yet, Releases will ask. Draw its sequence diagram once its steps and case tables are confirmed.
 
 Group what makes sense by default with a `box`: channels that follow the same steps (an opening `alt` names them) and lookups that only answer the core app. Never group the app the flow is about, and don't group lanes just to save width. Say it in one plain line.
 
-Take the stubs one at a time. Show each sheet as a numbered list:
+Take the stubs one at a time, each sheet a numbered list:
 
 1. **Does:** what the app decides or keeps, in the domain's words, and its domain.
 2. **Doesn't do:** the jobs that stay elsewhere, each naming who keeps it.
@@ -66,10 +66,12 @@ Label every line with what it rests on: a source, a decided item, the lead's own
 
 After each sheet, write what was confirmed, as `${CLAUDE_PLUGIN_ROOT}/skills/boundary/PAGES.md` says: `vela add contract --for-lead` for each contract the app provides, then its confirmed case table; `vela add unknown --for-lead` for each open question, in the same checkpoint as the line that links it; the rest by hand. Mark each capture through `vela apply` (`--schema marks`) as `(assumption)`. No command writes the `## Changes` row for an app or runtime page yet, so add each to the session's notes as `| <ID> | <from> | <to> | [[<id>#^cNN]] |`.
 
-Then `vela render`, `vela check --for-lead` (fix what the new pages cause), and `vela close stage --checkpoint --for-lead`. Draft the paragraph each filed item owes, as `START.md` says under "Draft the paragraph when the item is filed".
+Ask once per sheet: "Write these as decided, or keep them as not decided yet?" On "decided", run `vela decide <ID> --yes ^cM --for-lead` for each, the sheet's yes as `^cM`. A hedge keeps them not decided yet, and so does an item the gate names for a contract or app page: say so once.
+
+Then `vela render`, `vela check --for-lead` (fix what the new pages cause) and `vela close stage --checkpoint --for-lead`. Draft the paragraph each filed item owes, as `START.md` says under "Draft the paragraph when the item is filed".
 
 ## 5. Review, then finish
 
-Once every sheet is written, run the review checkpoint in `${CLAUDE_PLUGIN_ROOT}/references/REVIEW.md` "after the pages are written", with the new app, contract and runtime pages as its focus, and `vela questions --subject <ID>` for each new app and contract. Show the digest and capture what the lead takes.
+Once every sheet is written, run the review checkpoint in `${CLAUDE_PLUGIN_ROOT}/references/REVIEW.md` "after the pages are written", with the new app, contract and runtime pages as its focus, and `vela questions --subject <ID>` for each new app and contract. Show the digest; capture what the lead takes.
 
 When the lead is done, close as `START.md` says under "Closing a session". Next, settle each app and its contracts, or grill them: name the line, such as `/vela:grill Desktop agent`.

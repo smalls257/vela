@@ -6,7 +6,7 @@ argument-hint: "[CAP-nnn, several, or none for every capability the strategy nee
 
 # Requirements
 
-Say what the business needs, once, before anyone decides which app does it. A requirement names no app: boundary and `/vela:allocate` come after. What it writes is `assumption` (to the lead, "not decided yet") until the lead settles it.
+Say what the business needs, once, before anyone decides which app does it. A requirement names no app: boundary and `/vela:allocate` come after. What it writes stays not decided yet unless the lead settles it here or later.
 
 Vela is `sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela` (`START.md`, "Where vela runs from", covers a host that leaves the variable unexpanded). The format is `vela conventions "Requirements and allocation"`. When a command can't express what the lead wants, say so and stop.
 
@@ -45,7 +45,9 @@ A guest who cancels in time gets their money back, and sees where the refund sta
 
 A criterion is a sentence in plain words. When it rests on another item, an unknown or a contract, say that item by its name in the sentence and pass its ID in `--traces`, which writes the `- Trace:` line beneath it. The Trace line is not a criterion, so release criteria skip it. A requirement with more than about seven criteria is two requirements: propose the split before writing it.
 
-When the lead drops a requirement, never strike its heading through: that breaks every link to it. Run `vela query refs <ID>`, take the requirement out of every row that names it (allocation, release, app page) in the same checkpoint, then delete the requirement, and keep the reason in the session's notes as a `→ drop` capture. Then run `vela render` and `vela check`, fix every error, and commit a checkpoint with `vela close stage --checkpoint --for-lead`.
+When the lead drops a requirement, never strike its heading through: that breaks every link to it. Run `vela query refs <ID>`, take the requirement out of every row that names it (allocation, release, app page) in the same checkpoint, then delete the requirement, and keep the reason in the session's notes as a `→ drop` capture. After a group's yes and `vela add fr`, ask once per group: "Write these as decided, or keep them as not decided yet?" On "decided", run `vela decide <ID> --yes ^cM --for-lead` for each requirement written, the group's yes as `^cM`. A hedge ("probably", "for now") keeps them not decided yet.
+
+Then run `vela render` and `vela check`, fix every error, and commit a checkpoint with `vela close stage --checkpoint --for-lead`.
 
 Draft the paragraph each filed item owes now, as `START.md` says under "Draft the paragraph when the item is filed", and show it with the filed line.
 
