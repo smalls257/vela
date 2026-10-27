@@ -107,3 +107,10 @@ def test_choosing_jira_is_the_yes_for_the_first_wave():
     body = text(TICKETS / "SKILL.md")
     assert "Choosing Jira tools is the yes for the first wave" in body and "without a yes per ticket" in body
     assert "Ask once before each later wave" in body and "wait for a yes" not in body
+
+
+def test_tickets_writes_missing_ticket_copy_only_on_a_yes_and_copies_jira_fields_as_written():
+    body = text(TICKETS / "SKILL.md")
+    for phrase in ("still gets a ticket, with the plan's criteria as a flat list", "on a yes write it into the plan",
+                   "never reword an acceptance criterion", "--format jira", "never retype or reword a description", "--keys docs/work/jira-keys.txt"):
+        assert phrase in body, phrase

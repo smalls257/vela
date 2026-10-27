@@ -49,6 +49,7 @@ Then, for each agreed story, one question at a time with your recommendation and
 
 - **Acceptance criteria.** Quote them word for word from the epic criterion or requirement the story traces to, one bullet each, and put every ID on the `Traces to:` line. A criterion from the design or the team (a target, a failure rule) is written as the design states it. `vela tickets check` checks the quotes again. A criterion the vault doesn't hold is never made up: it goes to the design as a question.
 - **Done when**: one plain sentence a tester could say aloud.
+- **Ticket copy**, once the criteria are agreed: a `Summary:` line and a `Ticket criteria` block, written through `house-voice` the way `PLAN-FORMAT.md` shows. They group, merge and reword the criteria for the ticket; the criteria themselves stay word for word.
 - **Tasks**, each sized `S` (up to about 2 days), `M` (3 to 5 days) or `L` (1 to 2 weeks) for one engineer. A task over `L` is split. Sizes are for ordering.
 - **What it waits on**: another story, a design question or deferral, an outside party. `Blocked by:` starts with `none` when nothing blocks it.
 - **Whether it fits before the next release date** in `04b-releases.md`: do the rough sum only from capacity the design or the team lead states, say it's rough and from their numbers, and write "cannot tell" with the missing number when one is missing.
