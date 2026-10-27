@@ -5,7 +5,7 @@ the story relies on from the vault (ticketrefs.py).
     python3 -m pytest -p no:cacheprovider tests/test_ticket_copy.py -q
 """
 from conftest import REPO
-from vela import breakdown
+from vela import breakdown, ticketcopy
 
 FIXTURES = REPO / "tests" / "fixtures" / "team-skills"
 VAULT = FIXTURES / "heron-plan"
@@ -93,3 +93,71 @@ def test_the_stamp_changes_with_the_words_and_not_with_the_wrapping():
     assert breakdown.criteria_stamp(["It goes.", "It stops."]) == breakdown.criteria_stamp(["It  goes.", "It\nstops."])
     assert breakdown.criteria_stamp(["It goes.", "It stops."]) != breakdown.criteria_stamp(["It goes.", "It halts."])
     assert breakdown.criteria_stamp(["It goes.", "It stops."]) != breakdown.criteria_stamp(["It stops.", "It goes."])
+
+
+def problems_of(text, sid="S-02"):
+    return ticketcopy.problems(stories(text)[sid])
+
+
+def flagged(found):
+    return [t for t, flag in found if flag]
+
+
+# ---- the check
+
+def test_the_heron_story_with_copy_passes_and_one_without_is_flagged_with_its_flat_list():
+    assert problems_of(plan_text()) == []
+    found = problems_of(plan_text(), "S-03")
+    assert len(found) == 1 and found[0][1] is True and "flat list" in found[0][0]
+    assert ticketcopy.covered(stories()["S-03"]) == {1, 2, 3, 4}
+    assert ticketcopy.covered(stories()["S-02"]) == {1, 2, 3, 4, 5, 6}
+
+
+def test_a_criterion_no_line_covers_is_flagged_with_its_words():
+    text = plan_text().replace("reads nothing. (covers AC5)", "reads nothing.")
+    found = flagged(problems_of(text))
+    assert any("no covers tag" in t for t in found)
+    assert any(t.startswith("AC5 isn't covered") and "For a person who has not switched Heron on" in t for t in found)
+
+
+def test_a_tag_naming_no_criterion_or_written_wrong_is_flagged():
+    text = plan_text().replace("(covers AC5)", "(covers AC5, AC7)").replace("(covers AC3)", "(covers criterion 3)")
+    found = flagged(problems_of(text))
+    assert any("covers AC7, but the story has 6 acceptance criteria" in t for t in found)
+    assert any("'criterion'" in t or "'3'" in t for t in found)
+
+
+def test_a_changed_criterion_makes_the_copy_stale_and_the_flag_gives_the_new_stamp():
+    text = plan_text().replace("Heron records no agreement and reads nothing.", "Heron records nothing and reads nothing.")
+    new = breakdown.criteria_stamp(stories(text)["S-02"].criteria)
+    found = flagged(problems_of(text))
+    assert any("written for earlier acceptance criteria" in t and f"Ticket criteria (from {new}):" in t for t in found)
+    unstamped = flagged(problems_of(plan_text().replace("Ticket criteria (from 7d05f2):", "Ticket criteria:")))
+    assert any("no stamp" in t and "Ticket criteria (from 7d05f2):" in t for t in unstamped)
+
+
+def test_ids_in_the_model_written_words_are_flagged_and_a_short_summary_is_a_note():
+    text = plan_text().replace("comes after the encrypted store.", "comes after the encrypted store (S-01).")
+    assert any("S-01" in t and "summary" in t for t in flagged(problems_of(text)))
+    text = plan_text().replace("no meeting text. (covers AC3)", "no meeting text, per CON-004. (covers AC3)")
+    assert any("CON-004" in t for t in flagged(problems_of(text)))
+    short = plan_text().replace(
+        "This is part of the first working path through the agent, the tracer, and it comes after the encrypted store.", "")
+    notes = [t for t, flag in problems_of(short) if not flag]
+    assert len(notes) == 1 and "3 sentences" in notes[0]
+
+
+def test_lines_before_any_heading_and_a_heading_with_nothing_under_it_are_flagged():
+    text = mini().replace("Moving:\n", "").replace("Stopping:\n- It stops. (covers AC2)", "Stopping:")
+    found = flagged(ticketcopy.problems(breakdown.read(text)["stories"][0]))
+    assert any("before the first heading" in t for t in found)
+    assert any("'Stopping', with no lines under it" in t for t in found)
+
+
+def test_a_summary_without_grouped_criteria_and_the_reverse_are_each_named():
+    no_block = mini().split("Ticket criteria")[0] + "\n| Task | Size | Component |\n|---|---|---|\n| Build it | S | Core |\n\nBlocked by: none\n"
+    found = ticketcopy.problems(breakdown.read(no_block)["stories"][0])
+    assert any("no 'Ticket criteria' block" in t for t, flag in found if flag)
+    no_summary = mini().replace("Summary: It goes. It stops.\n", "")
+    found = ticketcopy.problems(breakdown.read(no_summary)["stories"][0])
+    assert any("no 'Summary:' line" in t for t, flag in found if flag)
