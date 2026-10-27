@@ -393,3 +393,17 @@ test('the lit map has no drawing, so the terminal says it in words and the deskt
   expect(await pane.find({ type: 'Text', text: 'Apps with open questions: Booking (warning).' })).toBeDefined()
   expect(await pane.find({ type: 'Svg' })).toBeUndefined()
 })
+
+test('asked for with nothing open, the pane says why instead of staying shut', async ($, on) => {
+  const WHY = "No session is open in this folder. This folder isn't in git, so a design can't show here: a design runs on its own design/<app> branch."
+  let opens = 0
+  bare(on)
+  on('fs.exists', () => ({ value: true }))
+  on('process.run', () => ({ value: { exitCode: 1, stdout: `${WHY}\n`, stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }))
+  on('ui.open', (_h: never, input: never) => { if ((input as unknown as { id: string }).id === 'vela-session') opens += 1; return { value: { isPlaced: true } } })
+  await $.session.start(START('/plan'))
+  await $.command.run({ command: 'vela-companion', args: '' } as never)
+  expect(opens).toBe(1)
+  const pane = await $.ui.mount({ plugin: 'vela', surface: 'terminal', component: 'Pane', requestId: 'vela-session', props: PANE_PROPS(64) } as never) as never as Mounted
+  expect(await leaf(pane, WHY)).toBeDefined()
+})
