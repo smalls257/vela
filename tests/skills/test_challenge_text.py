@@ -88,7 +88,7 @@ def test_challenge_writes_an_unknown_the_senior_owns():
 
 def test_challenge_asks_the_solution_lead_in_a_pr():
     text = skill_text_challenge()
-    assert "picks the solution lead as reviewer" in text
+    assert "asks the solution lead (the `owner:` of `01-goals.md`, unless that is you) to review" in text
     assert "a contract to `assumption`, an epic to `reopened`" in text
     assert "Never say a PR exists unless it printed the URL" in text  # the hard stop stays pinned
 

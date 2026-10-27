@@ -115,6 +115,10 @@ class Session:
         return "answer" in self.record.modes
 
     @property
+    def challenge(self):
+        return "challenge" in self.record.modes
+
+    @property
     def challenged(self):
         found = re.match(r"^Answer: (\S+)$", self.record.title or "")
         return found.group(1) if found else ""
@@ -200,9 +204,12 @@ def changes(root):
     return flowstore.changed_files(root, since=close_gate.branch_point(root))
 
 
-def reviewer_handles(root, vault, before_texts, command):
+def reviewer_handles(root, vault, before_texts, command, session):
     before = close_gate.vault_before(vault, before_texts)
-    return prbody.reviewers(prbody.owner_fields(vault, before, set(before_texts)), own_handle(root, command)), before
+    owners = prbody.owner_fields(vault, before, set(before_texts))
+    if session.challenge:
+        owners += prbody.solution_lead(vault)
+    return prbody.reviewers(owners, own_handle(root, command)), before
 
 
 def read_marker(root, rel):
@@ -378,7 +385,7 @@ def body_facts(root, vault, session, args):
 def open_pr(root, vault, session, args):
     pushed_marker(root, session)
     before_texts = changes(root)
-    found, before = reviewer_handles(root, vault, before_texts, PR)
+    found, before = reviewer_handles(root, vault, before_texts, PR, session)
     text = prbody.body(body_facts(root, vault, session, args))
     with tempfile.TemporaryDirectory(prefix="vela-pr-") as folder:
         body_file = pathlib.Path(folder) / "body.md"

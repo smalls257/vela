@@ -94,6 +94,35 @@ def test_reviewers_drop_own_handle_and_keep_teams(tmp_path, monkeypatch):
     assert "https://github.invalid/mini/vault/pull/7" in out
 
 
+def test_a_challenge_asks_the_solution_lead_to_review(tmp_path, monkeypatch):
+    """A challenge changes no app page, so the app owners alone would leave it with no reviewer: the `owner:` of
+    01-goals.md is asked too, and the lead's own handle is still dropped."""
+    log = fake_gh(tmp_path, monkeypatch)
+    vault, _ = pushed(tmp_path, modes="challenge", title="Challenge: CON-002", handle="someone-else")
+    code, out = pr(vault)
+    assert code == 0, out
+    (call,) = created(log)
+    assert "mini-lead" in reviewers_of(call)
+
+
+def test_a_challenge_by_the_solution_lead_does_not_ask_themselves(tmp_path, monkeypatch):
+    log = fake_gh(tmp_path, monkeypatch)
+    vault, _ = pushed(tmp_path, modes="challenge", title="Challenge: CON-002", handle="mini-lead")
+    code, out = pr(vault)
+    assert code == 0, out
+    (call,) = created(log)
+    assert "mini-lead" not in reviewers_of(call)
+
+
+def test_a_grill_does_not_ask_the_solution_lead_unless_an_owner(tmp_path, monkeypatch):
+    log = fake_gh(tmp_path, monkeypatch)
+    vault, _ = pushed(tmp_path)
+    code, out = pr(vault)
+    assert code == 0, out
+    (call,) = created(log)
+    assert "mini-lead" not in reviewers_of(call)
+
+
 def test_a_branch_with_an_open_pull_request_gets_the_session_added_not_a_second_one(tmp_path, monkeypatch):
     log = fake_gh(tmp_path, monkeypatch)
     monkeypatch.setenv("FAKE_GH_OPEN_PR", "1")

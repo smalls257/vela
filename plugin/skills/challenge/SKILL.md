@@ -76,7 +76,7 @@ Then read the team lead's Dissent words back to them directly from the page befo
 This skill files its own session: `vela close finish` and `vela close push` stop on the deliberate red check.
 
 1. Run `vela close stage --session <id> --close --summary "<one line the team lead accepts>" --paths-from-render`. Tell the team lead about any file it names as left out. The summary opens the pull request and nobody reads it back, so it quotes no one: say what was filed, never what anyone said.
-2. Run `vela close push --for-lead`. It sends the session's own branch (`branch` in `.vela/session.json`) and picks the solution lead as reviewer. If it fails, say in one plain sentence that the challenge didn't go up and why, without pasting its own message, and stop.
+2. Run `vela close push --for-lead`. It sends the session's own branch (`branch` in `.vela/session.json`) and asks the solution lead (the `owner:` of `01-goals.md`, unless that is you) to review. If it fails, say in one plain sentence that the challenge didn't go up and why, without pasting its own message, and stop.
 3. Write the PR body to `.vela/close/prose.md`, each item by name with its ID beside it:
    - **Challenge.** The item, the question, the case and the proposal, in your words. Quote only the team lead's own words that they picked at the read-back, never anyone else's.
    - **Open question.** Its short name, `UNK-nnn`, owner and, when it has one, ask-by date.

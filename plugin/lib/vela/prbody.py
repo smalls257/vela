@@ -7,6 +7,8 @@ skipped step left a list out with nothing saying it was skipped. Everything here
 - **Reviewers.** The `owner:` of each app page the session changed and of each consumer app of a contract it changed.
   A person's handle loses its `@`; a team handle `@org/team` is passed as `org/team` (gh's form); the lead's own
   handle is dropped, because GitHub refuses a PR author as its reviewer and the lead can't review their own session.
+- **A challenge's reviewer** is also the solution lead, the `owner:` of `01-goals.md`: a challenge changes no app page,
+  so no app owner would be asked otherwise.
 - **The body**, short on purpose: it is for reading. The model's two or three sentences, then **What changed**: one
   line per item, its name and its new state in plain words ("now decided", "set back to not decided yet").
 - **What the body does not carry.** Overrides, open questions, stale pages, the check result and the stage still
@@ -109,6 +111,13 @@ def owner_fields(vault, before, changed):
             continue
         out += [str(app.meta["owner"]) for app in vault.consumers(contract) if app.meta.get("owner")]
     return out
+
+
+def solution_lead(vault):
+    """The `owner:` of `01-goals.md`: the solution lead, who answers a challenge. A list of one, or none."""
+    goals = vault.page("01-goals")
+    owner = goals.meta.get("owner") if goals is not None else None
+    return [str(owner)] if owner else []
 
 
 def _facts(item):
