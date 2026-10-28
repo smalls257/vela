@@ -28,7 +28,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "plugin" / 
 
 from vela.breakdown import parse  # noqa: E402,F401  (the one reader of the format; the explorer's Build plan level uses it too)
 from vela import cli, tickets  # noqa: E402,F401  (the conversion itself: `vela tickets` writes the same files from an installed plugin)
-from vela.edge import teamdocs  # noqa: E402
+from vela.edge import teamdocs  # noqa: E402 -- after the sys.path insert above, which makes vela importable
 
 
 class BreakdownError(Exception):

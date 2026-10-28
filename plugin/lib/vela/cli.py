@@ -1844,11 +1844,17 @@ def cmd_explore(args, out):
         link = copies.first_symlink(root)
         if link:
             raise ToolError(f"I will not serve Ask Claude for this vault: {untrusted.link_refusal(link)}")
-        say = lambda line: print(f"vela explore: {line}", file=out, flush=True)  # noqa: E731
+
+        def say(line):
+            print(f"vela explore: {line}", file=out, flush=True)
+
         port = args.port if args.port is not None else explorer_serve.preferred_port(explorer.vault_id_for(root))
-        serve_page = lambda p: explorer_serve.serve(root, target, p, args.model, not args.no_open, say,  # noqa: E731
-                                                    freshness=lambda: live_freshness(root, found, today, explorer_serve.FreshnessUnavailable),
-                                                    pins=root / explorer_pins.PINS_FILE)
+
+        def serve_page(p):
+            return explorer_serve.serve(root, target, p, args.model, not args.no_open, say,
+                                        freshness=lambda: live_freshness(root, found, today, explorer_serve.FreshnessUnavailable),
+                                        pins=root / explorer_pins.PINS_FILE)
+
         try:
             try:
                 serve_page(port)

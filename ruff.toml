@@ -1,0 +1,19 @@
+# The one ruff config for every gate caller (.githooks/pre-commit, .githooks/gate, .claude/hooks/gates.py).
+# Callers pass --config ruff.toml and no --select, so adding a rule here is the only edit it takes.
+force-exclude = true  # files named on the command line obey the excludes too, as they do for the hooks
+extend-exclude = [".semgrep"]  # the rule fixtures hold deliberately bad code
+
+[lint]
+select = [
+  "E9", "F63", "F7", "F82",  # syntax errors and names that cannot work at runtime
+  "E722",  # a bare except swallows every failure (Silent Fallback)
+  "S506",  # yaml.load without a safe loader runs arbitrary code
+  "N",  # PEP 8 names: a reader tells a class from a constant without opening it
+  "ERA001",  # commented-out code is a fossil; git keeps the history
+  "PGH004",  # a bare noqa hides every finding on its line; name the code and the reason
+]
+ignore = ["N818"]  # exception names here say what happened, not a trailing "Error"
+
+[lint.per-file-ignores]
+"tests/**" = ["N"]  # test names read as sentences
+"plugin/lib/yaml/**" = ["N", "ERA001"]  # vendored; kept byte-for-byte with upstream

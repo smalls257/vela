@@ -774,7 +774,9 @@ def relative_href(target, page_dir):
     (/tmp, /private), where the folders named below are the absolute path. Sibling folders such as ~/Code/vault and
     ~/Code/booking share a deep folder, so their link is kept."""
     target, page_dir, home = pathlib.Path(target).resolve(), pathlib.Path(page_dir).resolve(), pathlib.Path.home().resolve()
-    under_home = lambda p: p == home or home in p.parents  # noqa: E731
+    def under_home(p):
+        return p == home or home in p.parents
+
     if under_home(target) and not under_home(page_dir):
         return None
     if len(pathlib.Path(os.path.commonpath([target, page_dir])).parts) <= SHALLOW_SHARED_FOLDER:

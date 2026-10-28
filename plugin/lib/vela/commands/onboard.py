@@ -36,12 +36,12 @@ def register(sub):
     verbs.required = True
     show = verbs.add_parser("show", help="the standard path for a role at the project's stage")
     show.add_argument("--role", default="", help="lead, exec, product, qa, eng or mgr (default: the lead's record for you, else your choice, else your path's, else exec)")
-    common(show, cmd_show)
-    common(verbs.add_parser("modules", help="every module's name and what it is for"), cmd_modules)
-    common(verbs.add_parser("check", help="mistakes on the lead's onboarding page"), cmd_check)
+    add_vault_and_date_flags(show, cmd_show)
+    add_vault_and_date_flags(verbs.add_parser("modules", help="every module's name and what it is for"), cmd_modules)
+    add_vault_and_date_flags(verbs.add_parser("check", help="mistakes on the lead's onboarding page"), cmd_check)
     build = verbs.add_parser("build", help="rebuild your own page from your path")
     build.add_argument("--handle", default="", help="whose path (default: the handle vela whoami keeps)")
-    common(build, cmd_build)
+    add_vault_and_date_flags(build, cmd_build)
     path = verbs.add_parser("path", help="your own path: choices only, kept under your handle")
     acts = path.add_subparsers(dest="path_command", metavar="{set,show,clear}")
     acts.required = True
@@ -52,14 +52,14 @@ def register(sub):
     setter.add_argument("--diagrams", default="no", help="yes shows the real items as diagrams, no as cards")
     setter.add_argument("--bring-back", default="", help="module names the lead hid that you asked for, comma separated")
     setter.add_argument("--handle", default="", help="whose path (default: the handle vela whoami keeps)")
-    common(setter, cmd_path_set)
+    add_vault_and_date_flags(setter, cmd_path_set)
     for verb, func in (("show", cmd_path_show), ("clear", cmd_path_clear)):
         one = acts.add_parser(verb, help=f"{verb} your path")
         one.add_argument("--handle", default="", help="whose path (default: the handle vela whoami keeps)")
-        common(one, func)
+        add_vault_and_date_flags(one, func)
 
 
-def common(parser, func):
+def add_vault_and_date_flags(parser, func):
     parser.add_argument("--vault", default=".", help="vault root (default: current directory)")
     parser.add_argument("--today", help="the date due windows count from, YYYY-MM-DD (default: system date)")
     say.add_output_flags(parser)

@@ -14,6 +14,16 @@
     ],
     "PreToolUse": [
       {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/gates.py\" guard-edit",
+            "timeout": 10
+          }
+        ]
+      },
+      {
         "matcher": "Bash",
         "hooks": [
           {
@@ -64,7 +74,9 @@
       "Edit(/.githooks/**)",
       "Edit(/.semgrep/**)",
       "Edit(/.semgrepignore)",
-      "Edit(/.claude/hooks/**)"
+      "Edit(/.claude/hooks/**)",
+      "Edit(/ruff.toml)",
+      "Edit(/tools/quality_*.py)"
     ],
     "deny": [
       "Bash(git push --no-verify *)",

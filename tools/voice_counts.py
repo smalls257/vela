@@ -9,7 +9,7 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "plugin" / "lib"))
 
-from vela import cli, readability, readload  # noqa: E402
+from vela import cli, readability, readload  # noqa: E402 -- after the sys.path insert above, which makes vela importable
 
 
 def main(argv):

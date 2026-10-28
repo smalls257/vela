@@ -12,7 +12,7 @@ import sys
 REPO = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "plugin" / "lib"))
 
-from vela import conventions  # noqa: E402
+from vela import conventions  # noqa: E402 -- after the sys.path insert above, which makes vela importable
 
 COPIES = ("plugin/template", "examples/unified-booking", "tests/stub-conventions")
 

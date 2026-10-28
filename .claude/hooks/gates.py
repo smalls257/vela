@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Claude Code hooks for this repo. One file, four entry points, wired in .claude/settings.json:
 
-  gates.py after-edit   PostToolUse on Edit|Write|MultiEdit: ruff + semgrep on the one file (about 1 s)
-  gates.py guard-bash   PreToolUse on Bash: refuses commands that skip or disable the git hooks
+  gates.py after-edit   PostToolUse on Edit|Write|MultiEdit: ruff + semgrep + the quality gate on the one file (about 1.5 s)
+  gates.py guard-bash   PreToolUse on Bash: refuses commands that skip or disable the git hooks, run the waiver seed or write .quality/
+  gates.py guard-edit   PreToolUse on Edit|Write|MultiEdit: refuses any edit under .quality/
   gates.py session-start SessionStart: warns when this clone has not set core.hooksPath to .githooks
-  gates.py before-stop  Stop and SubagentStop: semgrep on every changed file, CONVENTIONS sync, and the
+  gates.py before-stop  Stop and SubagentStop: ruff, semgrep and the quality gate on every changed file, CONVENTIONS sync, and the
                         tests named after changed vela modules (about 3 to 20 s)
   gates.py scannable    for .githooks/pre-commit: filters NUL-separated paths to the ones the gates lint
 
@@ -36,18 +37,32 @@ ENV = {**os.environ, "SEMGREP_SEND_METRICS": "off", "SEMGREP_ENABLE_VERSION_CHEC
 HOOKED = {"commit", "push", "merge", "rebase", "am", "cherry-pick"}
 
 
+SEPARATORS = ";&|\n"
+# git's own options that take the next word as their value.
+GIT_VALUE_OPTIONS = {"-C", "-c", "--git-dir", "--work-tree", "--namespace"}
+# commit's long options that take the next word as their value; "-n" after one of these is text, not a flag.
+COMMIT_LONG_VALUE_OPTIONS = {"--author", "--date", "--message", "--file", "--template", "--reuse-message",
+                             "--reedit-message", "--fixup", "--squash", "--cleanup", "--trailer",
+                             "--pathspec-from-file"}
+# -S is absent on purpose: git reads its key id only when attached (-Skey), so "-S -n" still carries -n.
+COMMIT_SHORT_VALUE_LETTERS = "mFCct"
+
+
 def _segments(command):
-    """The command split into simple commands on ; & | and newlines, each a token list. Unparseable text
-    (an open quote) is one whitespace-split segment, so a typo cannot hide a flag."""
+    """The command split into simple commands on ; & | and unquoted newlines, each a token list. A newline
+    inside quotes stays in its word, so a quoted message cannot be read as a second command. Unparseable text
+    (an open quote) is split on the same separators, so a typo cannot hide a flag."""
+    command = command.replace("\\\n", " ")
     try:
-        lexer = shlex.shlex(command, posix=True, punctuation_chars=";&|")
+        lexer = shlex.shlex(command, posix=True, punctuation_chars=SEPARATORS)
+        lexer.whitespace = " \t\r"
         lexer.whitespace_split = True
         tokens = list(lexer)
     except ValueError:
-        tokens = command.split()
+        tokens = [word for part in re.split(f"[{re.escape(SEPARATORS)}]+", command) for word in part.split() + [";"]]
     segment = []
     for token in tokens + [";"]:
-        if token and set(token) <= set(";&|"):
+        if token and set(token) <= set(SEPARATORS):
             if segment:
                 yield segment
             segment = []
@@ -55,32 +70,146 @@ def _segments(command):
             segment.append(token)
 
 
+def _hooked_git(tokens):
+    """(subcommand, the tokens after it) when this simple command is git running a subcommand that fires hooks,
+    else None. Skips leading NAME=value words and git's global options (-C <dir>, -c <k=v>)."""
+    rest = list(tokens)
+    while rest and "=" in rest[0] and not rest[0].startswith("-"):
+        rest.pop(0)
+    if "git" not in rest:
+        return None
+    rest = rest[rest.index("git") + 1:]
+    i = 0
+    while i < len(rest) and rest[i].startswith("-"):
+        i += 2 if rest[i] in GIT_VALUE_OPTIONS else 1
+    if i < len(rest) and rest[i] in HOOKED:
+        return rest[i], rest[i + 1:]
+    return None
+
+
+def _short_cluster(letters):
+    """(has -n, takes the next word as its value) for one run of short options such as `-am`."""
+    for at, letter in enumerate(letters):
+        if letter == "n":
+            return True, False
+        if letter in COMMIT_SHORT_VALUE_LETTERS:
+            return False, at == len(letters) - 1
+    return False, False
+
+
+def _commit_skips_hooks(args):
+    """Whether `git commit <args>` carries -n (short for --no-verify). Reads only commit's own options: stops at
+    --, and does not read the value of -m/-F/-C/-c/-t or of a long option as a flag."""
+    i = 0
+    while i < len(args):
+        token = args[i]
+        i += 1
+        if token == "--":
+            return False
+        if token in COMMIT_LONG_VALUE_OPTIONS:
+            i += 1
+        elif re.fullmatch(r"-[A-Za-z]+", token):
+            has_n, takes_value = _short_cluster(token[1:])
+            if has_n:
+                return True
+            i += takes_value
+    return False
+
+
+def _hooks_path_reason(tokens):
+    """Why this command's core.hooksPath use moves the hooks away, or None."""
+    # The setting itself, or -c core.hooksPath=...; the same words inside a quoted commit message are not it.
+    at = next((i for i, t in enumerate(tokens) if t.lower() == "core.hookspath" or t.lower().startswith("core.hookspath=")), None)
+    if at is None:
+        return None
+    # Reading it, or pointing it at .githooks, turns the gates on; anything else turns them off.
+    value = tokens[at + 1] if at + 1 < len(tokens) else ""
+    if "--get" in tokens or (value == ".githooks" and "--unset" not in tokens):
+        return None
+    return "changes where git looks for hooks"
+
+
+def _tooling_reason(tokens):
+    """Why this simple command removes a hook or turns semgrep rules off, or None."""
+    if tokens and tokens[0] in ("rm", "mv", "chmod") and any(".githooks" in t for t in tokens[1:]):
+        return "removes or disables a git hook"
+    if any(t.startswith("SEMGREP_RULES=") for t in tokens) or "--exclude-rule" in tokens:
+        return "turns semgrep rules off"
+    return None
+
+
+def _git_reason(tokens):
+    """Why this simple command, when it is git, skips the hooks or moves them, or None."""
+    reason = _hooks_path_reason(tokens)
+    found = _hooked_git(tokens)
+    if reason or found is None:
+        return reason
+    sub, args = found
+    if "--no-verify" in (args[:args.index("--")] if "--" in args else args):
+        return "skips the git hooks"
+    # Only for commit is -n short for --no-verify; on push it is --dry-run and on merge --no-stat.
+    if sub == "commit" and _commit_skips_hooks(args):
+        return "skips the git hooks"
+    return None
+
+
 def bypass_reason(command):
     """Why `command` gets around the gates, or None. Pure."""
     for tokens in _segments(command):
         words = [t for t in tokens if "=" not in t or t.startswith("-")]
-        if tokens and tokens[0] in ("rm", "mv", "chmod") and any(".githooks" in t for t in tokens[1:]):
-            return "removes or disables a git hook"
-        if any(t.startswith("SEMGREP_RULES=") for t in tokens) or "--exclude-rule" in tokens:
-            return "turns semgrep rules off"
-        if "git" not in words:
-            continue
-        # The setting itself, or -c core.hooksPath=...; the same words inside a quoted commit message are not it.
-        at = next((i for i, t in enumerate(tokens) if t == "core.hooksPath" or t.startswith("core.hooksPath=")), None)
-        if at is not None:
-            # Reading it, or pointing it at .githooks, turns the gates on; anything else turns them off.
-            value = tokens[at + 1] if at + 1 < len(tokens) else ""
-            if "--get" in tokens or (value == ".githooks" and "--unset" not in tokens):
-                continue
-            return "changes where git looks for hooks"
-        sub = next((t for t in words[words.index("git") + 1:] if not t.startswith("-") and t in HOOKED), None)
-        if sub is None:
-            continue
-        if "--no-verify" in tokens:
-            return "skips the git hooks"
-        # Only for commit is -n short for --no-verify; on push it is --dry-run and on merge --no-stat.
-        if sub == "commit" and any(re.fullmatch(r"-[a-zA-Z]*n[a-zA-Z]*", t) for t in tokens):
-            return "skips the git hooks"
+        reason = _tooling_reason(tokens) or _waiver_reason(tokens) or (_git_reason(tokens) if "git" in words else None)
+        if reason:
+            return reason
+    return None
+
+
+# The waiver file is delete-only, and only the owner adds to it. Under bypass-permissions mode no permission rule
+# prompts, so a hook deny is the one stop an agent meets. Same limit as above: text matching, not a sandbox.
+OWNER_SEED_COMMAND = "! python3 tools/quality_seed.py --owner OWNER --reason TEXT"
+WAIVER_REASON = ("touches the complexity waivers or runs the seed. Only the owner reseeds or renews them, from their own "
+                 f"terminal or by typing `{OWNER_SEED_COMMAND}` at the Claude prompt. Fix the code instead, or ask the owner")
+WAIVER_NAMES = re.compile(r"quality_seed|(^|\W)\.quality(/|$)|complexity-waivers", re.IGNORECASE)
+READ_ONLY_COMMANDS = {"cat", "head", "tail", "grep", "rg", "wc", "ls", "diff", "ruff", "echo", "printf"}
+READ_ONLY_GIT = {"add", "commit", "diff", "log", "show", "status", "ls-files", "blame", "grep", "rev-parse"}
+RESTORE_WAIVER_FILE = ["checkout", "--", ".quality/complexity-waivers.tsv"]
+
+
+def _redirects(tokens):
+    return any(t.lstrip("0123456789").startswith(">") for t in tokens)
+
+
+def _first_command(tokens):
+    """(command word, the words after it), skipping leading NAME=value words."""
+    rest = list(tokens)
+    while rest and "=" in rest[0] and not rest[0].startswith("-"):
+        rest.pop(0)
+    return (rest[0], rest[1:]) if rest else ("", [])
+
+
+def _git_only_reads(rest):
+    """Whether `git <rest>` reads or stages, or is the one-file restore of the waiver file from HEAD."""
+    i = 0
+    while i < len(rest) and rest[i].startswith("-"):
+        i += 2 if rest[i] in GIT_VALUE_OPTIONS else 1
+    rest = rest[i:]
+    return bool(rest) and (rest[0] in READ_ONLY_GIT or rest == RESTORE_WAIVER_FILE)
+
+
+def _only_reads(tokens):
+    """Whether this simple command can name the waiver file without changing it: a reader, a git read or stage, the
+    one-file restore, or pytest. Anything with a redirect or a command substitution is not."""
+    if _redirects(tokens) or any("$(" in t or "`" in t for t in tokens):
+        return False
+    command, rest = _first_command(tokens)
+    if command == "git":
+        return _git_only_reads(rest)
+    return command in READ_ONLY_COMMANDS or tokens[:3] == ["python3", "-m", "pytest"]
+
+
+def _waiver_reason(tokens):
+    """Why this simple command touches the waiver file or the seed, or None. Reading it is allowed."""
+    if any(WAIVER_NAMES.search(t) for t in tokens) and not _only_reads(tokens):
+        return WAIVER_REASON
     return None
 
 
@@ -145,23 +274,58 @@ def run(argv, root, timeout):
     return done.returncode, done.stdout + done.stderr
 
 
-def lint(root, files):
-    """Findings for these repo-relative files as text lines; empty when clean."""
+def _start(argv, root):
+    return subprocess.Popen(argv, cwd=root, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=ENV)
+
+
+def _finish(proc):
+    """(exit code, output) of a process started by _start; one that outlives its minute is killed, then raised."""
+    try:
+        out, _ = proc.communicate(timeout=60)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        proc.communicate()
+        raise
+    return proc.returncode, out
+
+
+def _ruff_problems(root, py):
+    code, out = run(["ruff", "check", "--no-cache", "--quiet", "--output-format", "concise", "--config", "ruff.toml", *py], root, 30)
+    return out.splitlines() if code else []
+
+
+def _quality_problems(code, out):
+    """The quality gate's exit as problem lines. Exit 2 (it could not run) is a problem, not a raise, so a missing
+    lizard blocks the edit and the Stop instead of passing in silence."""
+    if code == 0:
+        return []
+    if code == 1:
+        return out.splitlines()
+    return ["quality gate could not run: " + out.strip()]
+
+
+def _require_tools():
     for tool in ("ruff", "semgrep"):
         if not shutil.which(tool):
             raise RuntimeError(f"{tool} is not installed, so the gate cannot run")
-    problems = []
+
+
+def _semgrep_problems(proc):
+    code, out = _finish(proc)
+    return [line for line in out.splitlines() if line.strip()] if code else []
+
+
+def lint(root, files):
+    """Findings for these repo-relative files as text lines; empty when clean. Semgrep and the quality gate run
+    side by side while ruff runs here, so the edit hook costs the slowest of them, not the sum."""
+    _require_tools()
     py = [f for f in files if f.endswith(".py") or f == "plugin/scripts/vela"]
-    if py:
-        code, out = run(["ruff", "check", "--no-cache", "--quiet", "--output-format", "concise",
-                         "--select", "E9,F63,F7,F82,E722,S506", "--extend-exclude", ".semgrep", *py], root, 30)
-        if code:
-            problems += out.splitlines()
-    code, out = run(["semgrep", "scan", "--config", ".semgrep", "--metrics=off", "--disable-version-check",
-                     "--error", "--quiet", "--emacs", *files], root, 60)
-    if code:
-        problems += [line for line in out.splitlines() if line.strip()]
-    return problems
+    semgrep = _start(["semgrep", "scan", "--config", ".semgrep", "--metrics=off", "--disable-version-check",
+                      "--error", "--quiet", "--emacs", *files], root)
+    quality = _start([sys.executable, "tools/quality_gate.py", *py], root) if py else None
+    problems = _ruff_problems(root, py) if py else []
+    problems += _semgrep_problems(semgrep)
+    return problems + (_quality_problems(*_finish(quality)) if quality else [])
 
 
 def scannable(root, paths):
@@ -198,6 +362,24 @@ def after_edit(event):
     if problems:
         print(f"{rel} breaks a repo rule (see .semgrep/):\n" + "\n".join(problems[:30]), file=sys.stderr)
         return 2
+    return 0
+
+
+def waiver_edit_reason(path, root):
+    """Why editing `path` (absolute, or relative to the repo root) is refused, or None. Pure."""
+    rel = os.path.relpath(os.path.join(root, path), root)
+    if rel.split(os.sep)[0].casefold() == ".quality":
+        return ("edits .quality/, the delete-only complexity waivers. Only the owner reseeds or renews them, from their "
+                f"own terminal or by typing `{OWNER_SEED_COMMAND}` at the Claude prompt")
+    return None
+
+
+def guard_edit(event):
+    root = str(repo_root(event.get("cwd") or "."))
+    why = waiver_edit_reason(event.get("tool_input", {}).get("file_path", ""), root)
+    if why:
+        print(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny",
+                                                 "permissionDecisionReason": f"This edit {why}."}}))
     return 0
 
 
@@ -256,8 +438,8 @@ def print_scannable(paths_in):
 
 
 def main(argv):
-    hooks = {"after-edit": after_edit, "guard-bash": guard_bash, "before-stop": before_stop,
-             "session-start": session_start}
+    hooks = {"after-edit": after_edit, "guard-bash": guard_bash, "guard-edit": guard_edit,
+             "before-stop": before_stop, "session-start": session_start}
     if argv[1:] == ["scannable"]:
         try:
             return print_scannable(sys.stdin.read())

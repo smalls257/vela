@@ -1,5 +1,6 @@
 """The gate hooks' decisions: what counts as bypassing the hooks, which tests a change needs, and when Stop blocks."""
 import importlib.util
+import json
 import pathlib
 
 import pytest
@@ -18,6 +19,11 @@ spec.loader.exec_module(gates)
     "chmod -x .githooks/pre-push",
 ])
 def test_commands_that_skip_the_hooks_are_named(command):
+    assert gates.bypass_reason(command)
+
+
+@pytest.mark.parametrize("command", ["git config CORE.HOOKSPATH /dev/null"])
+def test_the_hooks_path_setting_is_case_insensitive(command):
     assert gates.bypass_reason(command)
 
 
@@ -41,6 +47,26 @@ def test_stop_blocks_once_then_tells_the_user_instead_of_looping():
 @pytest.mark.parametrize("command", ["git push -n origin main", "git merge -n feature"])
 def test_dash_n_skips_hooks_only_on_commit(command):
     assert gates.bypass_reason(command) is None
+
+
+@pytest.mark.parametrize("command", [
+    "python3 -m pytest -q -n auto tests/test_gates.py\ngit commit -m 'x'",
+    "git commit -m x\npython3 -m pytest -n 4",
+    "git add a.py && git commit -m x && python3 -m pytest -n auto",
+    "git commit -m \"$(cat <<'EOF'\nfix the -n parse\nEOF\n)\"\npython3 -m pytest -n auto",
+    "git commit -m -n",            # git takes "-n" as the message
+    "git commit -F msg.txt -- -n",  # after --, a pathspec
+])
+def test_dash_n_outside_git_commit_options_passes(command):
+    assert gates.bypass_reason(command) is None
+
+
+@pytest.mark.parametrize("command", [
+    "git commit -m x -n", "git commit -S -n", "git commit -aS -n", "git commit -nm x", "git commit -am x -n", "git -C repo commit -n -m x",
+    "python3 -m pytest -n auto\ngit commit -n -m x", "git commit \\\n  -n -m x", "ls\ngit push --no-verify",
+])
+def test_dash_n_on_git_commit_still_skips_the_hooks(command):
+    assert gates.bypass_reason(command) == "skips the git hooks"
 
 
 @pytest.mark.parametrize("command", ["git config core.hooksPath .githooks", "git config --get core.hooksPath"])
@@ -328,3 +354,84 @@ def test_gate_all_lists_every_waiting_item_with_the_ready_ones_first(ub):
 def test_gate_all_refuses_a_named_item_and_a_non_decide_gate(ub):
     assert run("check", "--vault", str(ub), "--gate", "decide", "--all", "--item", "CON-001")[0] == 2
     assert run("check", "--vault", str(ub), "--gate", "shape", "--all")[0] == 2
+
+
+RUFF_CALLERS = [".githooks/pre-commit", ".githooks/gate", ".claude/hooks/gates.py"]
+
+
+@pytest.mark.parametrize("caller", RUFF_CALLERS)
+def test_every_ruff_caller_reads_the_one_config(caller):
+    text = (REPO / caller).read_text(encoding="utf-8")
+    ruff_lines = [line for line in text.splitlines() if "ruff" in line and "check" in line]
+    assert ruff_lines and all("ruff.toml" in line and "--select" not in line for line in ruff_lines), ruff_lines
+
+
+def test_ruff_config_selects_naming_and_comment_rules():
+    text = (REPO / "ruff.toml").read_text(encoding="utf-8")
+    for rule in ('"E9"', '"E722"', '"S506"', '"N"', '"ERA001"', '"PGH004"'):
+        assert rule in text
+    assert '"N818"' in text and "force-exclude = true" in text
+
+
+def test_quality_exit_codes_become_problems():
+    assert gates._quality_problems(0, "") == []
+    assert gates._quality_problems(1, "a.py:1: QG-CPX x\n") == ["a.py:1: QG-CPX x"]
+    assert gates._quality_problems(2, "lizard is not installed") == ["quality gate could not run: lizard is not installed"]
+
+
+def test_pre_commit_checks_the_waiver_file_before_its_early_exit():
+    text = (REPO / ".githooks/pre-commit").read_text(encoding="utf-8")
+    assert text.index("tools/quality_gate.py --staged") < text.index("[ ${#files[@]} -eq 0 ]")
+
+
+def test_gate_needs_lizard_and_runs_the_quality_stage():
+    text = (REPO / ".githooks/gate").read_text(encoding="utf-8")
+    assert "need lizard" in text and 'stage "quality gates" python3 tools/quality_gate.py --base' in text
+
+
+@pytest.mark.parametrize("command", [
+    "python3 tools/quality_seed.py --owner x --reason y", "python3 ./tools/quality_seed.py --first",
+    "cd tools && python3 quality_seed.py", "PYTHONPATH=x python3 tools/quality_seed.py",
+    "echo x >> .quality/complexity-waivers.tsv", "echo x >.quality/complexity-waivers.tsv",
+    "cp other .quality/complexity-waivers.tsv", "mv other .quality/complexity-waivers.tsv",
+    "printf x | tee .quality/complexity-waivers.tsv", "sed -i s/a/b/ .quality/complexity-waivers.tsv",
+    "python3 -c \"open('.quality/complexity-waivers.tsv', 'a').write('x')\"", "cd .quality && echo hi > x",
+    "git checkout main -- .quality/complexity-waivers.tsv", 'git commit -m "$(python3 tools/quality_seed.py)"',
+])
+def test_an_agent_cannot_write_the_waivers_or_run_the_seed(command):
+    why = gates.bypass_reason(command)
+    assert why and "only the owner" in why.lower() and "! python3 tools/quality_seed.py" in why
+
+
+@pytest.mark.parametrize("command", [
+    "cat .quality/complexity-waivers.tsv", "grep -c ccn .quality/complexity-waivers.tsv", "ls .quality",
+    "git diff HEAD -- .quality/complexity-waivers.tsv", "git add .quality/complexity-waivers.tsv",
+    "git checkout -- .quality/complexity-waivers.tsv", "git commit -m 'explain quality_seed in the docs'",
+    "python3 tools/quality_gate.py --base main",
+])
+def test_reading_staging_and_restoring_the_waivers_is_allowed(command):
+    assert gates.bypass_reason(command) is None
+
+
+@pytest.mark.parametrize("path", [".quality/complexity-waivers.tsv", "/repo/.quality/x", "tools/../.quality/x",
+                                  ".Quality/x"])
+def test_no_edit_tool_may_touch_the_waiver_directory(path):
+    assert "Only the owner" in gates.waiver_edit_reason(path, "/repo")
+
+
+def test_other_edits_are_not_refused_by_the_waiver_guard():
+    assert gates.waiver_edit_reason("/repo/tools/quality_gate.py", "/repo") is None
+    assert gates.waiver_edit_reason("docs/.quality-notes.md", "/repo") is None
+
+
+def test_the_edit_guard_is_wired_before_edits_and_the_ask_rules_for_the_waivers_are_gone():
+    settings = json.loads((REPO / ".claude/settings.json").read_text(encoding="utf-8"))
+    guard = [h for h in settings["hooks"]["PreToolUse"] if h["matcher"] == "Edit|Write|MultiEdit"]
+    assert guard and "guard-edit" in guard[0]["hooks"][0]["command"]
+    ask = settings["permissions"]["ask"]
+    assert not [rule for rule in ask if "quality_seed" in rule or ".quality" in rule]  # bypass mode never prompts, so the hook is the stop
+
+
+def test_ci_installs_lizard_for_the_tests_and_the_gate():
+    text = (REPO / ".github/workflows/tests.yml").read_text(encoding="utf-8")
+    assert text.count("lizard==1.21.3") == 2 and "fetch-depth: 0" in text

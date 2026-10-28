@@ -41,28 +41,28 @@ def register(sub):
     add.add_argument("--reason", default="", help="why the group wants it, when the lead said")
     add.add_argument("--basis", default=topicmap.STATED, choices=topicmap.BASES,
                      help="stated: the group's own view as the lead reports it; guess: the lead's guess at it")
-    common(add, cmd_add)
+    add_record_flags(add, cmd_add)
 
     opener = verbs.add_parser("open", help="a waiting item to raise later: a gap, conflict, belief or fact")
     opener.add_argument("text", help="the item, in the lead's words")
     opener.add_argument("--type", required=True, choices=topicmap.TYPES, dest="item_type")
     opener.add_argument("--kind", default="", help="the kind it belongs to")
     opener.add_argument("--topic", default="", help="the topic; a conflict on a topic marks its pair as raised")
-    common(opener, cmd_open)
+    add_record_flags(opener, cmd_open)
 
     closer = verbs.add_parser("close", help="settle a waiting item")
     closer.add_argument("number", type=int, help="the item's number, as open printed it")
     closer.add_argument("--as", dest="outcome", default=topicmap.SETTLED, choices=topicmap.OUTCOMES,
                         help="settled in the talk; recorded in the plan as open; set-aside by the lead")
     closer.add_argument("--how", default="", help="how it ended, in a line")
-    common(closer, cmd_close)
+    add_record_flags(closer, cmd_close)
 
-    common(verbs.add_parser("next", help="what to raise next: summarize, a pair side by side, a group, or a kind"),
+    add_record_flags(verbs.add_parser("next", help="what to raise next: summarize, a pair side by side, a group, or a kind"),
            cmd_next)
-    common(verbs.add_parser("show", help="the read-back: covered, empty, and what waits"), cmd_show)
+    add_record_flags(verbs.add_parser("show", help="the read-back: covered, empty, and what waits"), cmd_show)
 
 
-def common(parser, func):
+def add_record_flags(parser, func):
     parser.add_argument("--vault", default=".", help="vault root (default: current directory)")
     parser.add_argument("--record", default="", metavar="ID", help="the open record, when several are open")
     say.add_output_flags(parser)
