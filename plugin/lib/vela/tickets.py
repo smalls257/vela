@@ -18,16 +18,18 @@ the people downstream get a ticket. It reads, never writes the vault, and create
 Pure, like the rest of the core: text in, text out. `tools/breakdown_to_tickets.py` and `vela tickets` both call
 convert_text() and write what it returns, so the installed plugin and a repo checkout write the same files.
 """
+import csv
 import difflib
+import io
 import json
 import re
 
-from vela import allocation, criteria, releases, slices, ticketcopy, ticketrefs, trace
+from vela import allocation, breakdown, criteria, export, releases, slices, ticketcopy, ticketrefs, trace
 from vela.say import date_words
-from vela import breakdown
 from vela.ticketrefs import normal, statement_of
-from vela.breakdown import SIZE_POINTS, csv_text, parse
+from vela.breakdown import SIZE_POINTS, parse
 
+COLUMNS = ["Issue Id", "Summary", "Description", "Issue Type", "Parent", "Story Points"]
 CRITERION_ID = re.compile(r"^EPC-\d+\.AC\d+$")
 REQUIREMENT_ID = re.compile(r"^CAP-\d+\.FR\d+(?:@APP-[A-Za-z0-9-]+)?$")
 UNKNOWN_ID = re.compile(r"\bUNK-\d+\b")
@@ -42,7 +44,7 @@ class TicketsError(Exception):
 
 README = """# Tickets from the work breakdown
 
-`tickets.csv` was written by `{tool}` from `{source}`. Each Story row is a `### S-NN` section of the plan and each Task row a row of its task table. {copy_note} What a story relies on (contracts and requirements) and what it still waits on (open questions) are copied by code from the vault and the design. {counts}{vault_note}
+`tickets.csv` was written by `{tool}` from `{source}`. Each Story row is a `### S-NN` section of the plan and each Task row a row of its task table. {copy_note} What a story relies on (contracts and requirements) and what it still waits on (open questions) are copied from the team's records and the design. {counts}{vault_note}
 
 ## How each column is filled
 
@@ -85,11 +87,11 @@ def readme_text(source, stories, rows, problems, not_planned, tool=TOOL, with_va
     notp = ("\n## Not ticketed\n\nThe breakdown lists these as deferred, merged or not planned, so they have no ticket:\n\n"
             + "\n".join(f"- {n}" for n in listed) + "\n") if listed else ""
     lacking = [s for s in built if not ticketcopy.has_copy(s)]
-    copy_note = ("A story's summary and its grouped acceptance criteria were written into the plan in the house voice, and vela checked that every one of the plan's criteria is still covered; the plan keeps its criteria word for word."
+    copy_note = ("A story's summary and its grouped acceptance criteria were written into the plan, and vela checked that every one of the plan's criteria is still covered; the plan keeps its criteria word for word."
                  if not lacking else
                  "None of the stories has ticket copy yet, so each ticket carries the plan's criteria as a flat list." if len(lacking) == len(built) else
-                 f"{len(built) - len(lacking)} of {len(built)} stories have a summary and grouped acceptance criteria, written into the plan in the house voice and checked against the plan's criteria; the other {len(lacking)} carry the plan's criteria as a flat list.")
-    vault_note = "" if with_vault else " This file was written without the vault, so each ticket names what it relies on by ID only."
+                 f"{len(built) - len(lacking)} of {len(built)} stories have a summary and grouped acceptance criteria, written into the plan and checked against the plan's criteria; the other {len(lacking)} carry the plan's criteria as a flat list.")
+    vault_note = "" if with_vault else " This file was written without the team's records, so each ticket names what it relies on by ID only."
     return README.format(source=source, counts=counts, s=SIZE_POINTS["S"], m=SIZE_POINTS["M"], l=SIZE_POINTS["L"],
                          problems=prob, not_planned=notp, tool=tool, vault_note=vault_note, copy_note=copy_note)
 
@@ -163,7 +165,7 @@ def american(text):
 def criteria_parts(story):
     """[(heading, [(words, tag)])]: the grouped ticket copy, or, with no copy yet, the plan's list as one group."""
     if not ticketcopy.has_copy(story):
-        return [("", [(c, f"AC{n}") for n, c in enumerate(story.criteria, 1)])]
+        return [("", [(c, "") for c in story.criteria])]  # a bare tag means nothing to a reader with no copy beside it
     out = []
     for heading, lines in story.ticket_groups:
         rows = []
@@ -185,16 +187,16 @@ def contract_facts(ref):
         sends, gets = ("Receives", "Answers with") if ref["provides"] else ("Sends", "Gets back")
         facts = [(sends, ref["sends"]), (gets, ref["gets"])]
     else:
-        facts = [("What crosses", ref["crosses"] or "not written in the vault")]
+        facts = [("What crosses", ref["crosses"] or "not written down")]
     held = f", {count_words(ref['open'], 'open question')} on it" if ref["open"] else ""
-    return facts + [("Provided by", ref["provider"]), ("Status", (ref["state"] or "not written in the vault") + held)]
+    return facts + [("Provided by", ref["provider"]), ("Status", (ref["state"] or "not written down") + held)]
 
 
 def relies_entries(story, ctx):
     """[(title, id, paragraph or None, [(label, value)])] for each contract and requirement, or one names-only line."""
     if ctx.vault is None:
         ids = [t.split("@")[0] for t in breakdown.labels_of(story) if re.match(r"^(CON-\d+|CAP-\d+\.FR\d+)", t)]
-        return [("Written without the vault, so what this story relies on is named by ID only: " + ", ".join(ids) + ".", "", None, [])] if ids else []
+        return [("Written without the team's records, so what this story relies on is named by ID only: " + ", ".join(ids) + ".", "", None, [])] if ids else []
     out = []
     for ref in ticketrefs.relies_on(ctx.vault, story, ctx.app_id):
         if ref["kind"] == "contract":
@@ -202,7 +204,7 @@ def relies_entries(story, ctx):
         elif ref["kind"] == "requirement":
             out.append((ref["name"], ref["id"], ref["statement"], []))
         else:
-            out.append(("Not found in the vault", ref["id"], None, []))
+            out.append(("Not found in the team's records", ref["id"], None, []))
     return out
 
 
@@ -213,7 +215,7 @@ def open_entries(story, ctx):
     for q in ticketrefs.still_open(ctx.vault, story, ctx.questions):
         if not q["found"]:
             unread = q["id"].startswith("OQ-") and ctx.questions is None
-            out.append(("Not looked up: the plan's design wasn't read" if unread else "Not found in the plan's design or the vault", q["id"], None, []))
+            out.append(("Not looked up: the plan's design wasn't read" if unread else "Not found in the plan's design or the team's records", q["id"], None, []))
             continue
         out.append((q["question"], q["id"], None, [("Until it's answered", q["until"] or "the plan doesn't say"),
                                                   (q["waits_label"], q["waits"] or "not written down")]))
@@ -227,18 +229,39 @@ def blocked_words(story, ctx, style):
     return ", ".join(f"{ctx.keys[s] + ' ' if s in ctx.keys else ''}{ctx.names.get(s, s)}{suffix(s, style)}" for s in ids)
 
 
+BARE_CONNECTORS = re.compile(r"\b(?:and|or|by|to|through|the|blocked)\b", re.I)
+
+
+def only_ids(sentence):
+    """True for a sentence that is nothing but IDs, their bracketed names and connecting words ("OQ-007, UNK-051 and
+    OQ-009." or "S-02 (Grant)."): everything it says the ticket shows already."""
+    bare = re.sub(r"\([^)]*\)", "", ANY_ID.sub("", sentence))
+    return not re.search(r"[A-Za-z]", BARE_CONNECTORS.sub("", bare))
+
+
+WAITS_UNTIL_THEN = re.compile(r"\bwaits? on\b[^;]*;\s*until then\b", re.I)  # "<what> waits on OQ-005; until then <what it does>"
+
+
+def carried_by_still_open(sentence):
+    """True for the one shape Still open repeats whole: the question's title, and what happens until then."""
+    return bool(WAITS_UNTIL_THEN.search(sentence)) and ticketrefs.waits_sentence(sentence)
+
+
 def also_waits(story, shown):
-    """The plan's Blocked by sentences a reader would otherwise lose: each that names anything besides the blocking
-    stories (shown by name) and the questions shown under Still open, in the plan's own words."""
+    """(waits, notes): the plan's Blocked by sentences a reader would otherwise lose, in the plan's own words. Only a
+    sentence that is a bare list of IDs, all shown (blocking stories by name, questions under Still open), is left out,
+    and so is a "waits on OQ-nnn; until then ..." sentence whose questions are shown, which Still open says in full.
+    A sentence that says the story does not wait ("Not blocked by OQ-007 ...") is a note; the rest are waits."""
     text = story.blocked or ""
-    if breakdown.NO_BLOCKERS.match(text):
+    none = breakdown.NO_BLOCKERS.match(text)
+    if none:
         text = breakdown.NO_BLOCKERS.sub("", text, count=1).lstrip(" .;:,")
-    kept = []
+    waits, notes = [], []
     for sentence in re.split(r"(?<=[.?!])\s+", text.strip()):
-        named = set(ANY_ID.findall(sentence))
-        if sentence and not (named and named <= shown):
-            kept.append(sentence)
-    return " ".join(kept)
+        if not sentence or (set(ANY_ID.findall(sentence)) <= shown and (only_ids(sentence) or carried_by_still_open(sentence))):
+            continue
+        (waits if ticketrefs.waits_sentence(sentence) and not none else notes).append(sentence)
+    return " ".join(waits), " ".join(notes)
 
 
 def slice_words(story, ctx, style):
@@ -250,10 +273,10 @@ def slice_words(story, ctx, style):
 
 def details(story, ctx, style):
     shown = set(breakdown.blockers(story)) | {q[1] for q in open_entries(story, ctx)}
-    rest = "Note" if breakdown.NO_BLOCKERS.match(story.blocked or "") else "Also waits on"  # "none. D-001 runs in parallel" is a note, not a wait
+    waits, notes = also_waits(story, shown)  # "none. D-001 runs in parallel" and "Not blocked by OQ-007" are notes, not waits
     rows = [("Components", story.components or ""), ("Slice", slice_words(story, ctx, style)),
             ("Size", breakdown.size_total(story)), ("Blocked by", blocked_words(story, ctx, style)),
-            (rest, also_waits(story, shown)), ("Release fit", american(story.fit)), ("Status", story.status or "")]
+            ("Also waits on", waits), ("Note", notes), ("Release fit", american(story.fit)), ("Status", story.status or "")]
     return [(label, value) for label, value in rows if value]
 
 
@@ -353,6 +376,19 @@ def build_rows(stories, ctx):
     return rows
 
 
+def csv_text(rows):
+    """The Jira import for `rows` (build_rows) as text: what breakdown_to_tickets.py writes to tickets.csv, byte for byte."""
+    width = max([len(r["labels"]) for r in rows] or [1]) or 1
+    header = COLUMNS + ["Labels"] * width + ["Blocked by"]
+    out = io.StringIO(newline="")
+    writer = csv.writer(out)
+    writer.writerow(header)
+    for r in rows:
+        cells = [r[c] for c in COLUMNS] + r["labels"] + [""] * (width - len(r["labels"])) + [r["Blocked by"]]
+        writer.writerow([export.defuse(cell) if isinstance(cell, str) else cell for cell in cells])
+    return out.getvalue()
+
+
 def csv_for(stories, ctx):
     """The Jira CSV import: what `vela tickets write --format csv`, the tool and the explorer's "Copy as Jira CSV" all write."""
     return csv_text(build_rows(stories, ctx))
@@ -419,13 +455,13 @@ def ticket_order(plan, stories, vault):
     return sorted((s for s in stories if s.built), key=place)
 
 
-def markdown_text(text, source, vault=None, questions=None, keys=None):
+def markdown_text(text, source, vault=None, questions=None, keys=None, app_id=""):
     """The Markdown ticket list for a plan's text: one section per story that will be built, its tasks as a checklist.
     Grouped by slice: the tracer first, then each slice in the vault's order, then stories that name none, each group
     in the plan's build order."""
     plan = breakdown.read(text)
     stories, _ = retire_pointers(plan["stories"], [])
-    ctx = Context(stories, vault, app_of_plan(text), questions, keys)
+    ctx = Context(stories, vault, app_id or app_of_plan(text), questions, keys)
     built = ticket_order(plan, stories, vault)
     title = str(plan["meta"].get("slug", source))
     counts = summary_line(built, 0).rsplit(",", 1)[0]
@@ -442,12 +478,12 @@ def markdown_text(text, source, vault=None, questions=None, keys=None):
     return "\n".join(lines).rstrip() + "\n"
 
 
-def jira_text(text, source, vault, questions=None, keys=None):
+def jira_text(text, source, vault, questions=None, keys=None, app_id=""):
     """tickets-jira.json: each ticket as a Jira tool would create it, in the order of tickets.md. A skill copies each
     field as it is; it never assembles or retypes a description."""
     plan = breakdown.read(text)
     stories, _ = retire_pointers(plan["stories"], [])
-    ctx = Context(stories, vault, app_of_plan(text), questions, keys)
+    ctx = Context(stories, vault, app_id or app_of_plan(text), questions, keys)
     built = ticket_order(plan, stories, vault)
     tasks = lambda s: [{"id": f"{s.id}-T{n}", "summary": row[0], "description": task_description(s, row),
                         "labels": trace_labels(s),

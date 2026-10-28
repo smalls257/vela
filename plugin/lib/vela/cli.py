@@ -2978,10 +2978,10 @@ def cmd_tickets(args, out):
     try:
         target.mkdir(parents=True, exist_ok=True)
         if args.format == "markdown":
-            atomic.write_atomic(target / "tickets.md", tickets.markdown_text(text, plan_path.name, vault, questions, keys))
+            atomic.write_atomic(target / "tickets.md", tickets.markdown_text(text, plan_path.name, vault, questions, keys, args.app or ""))
             written = [target / "tickets.md"]
         elif args.format == "jira":
-            atomic.write_atomic(target / "tickets-jira.json", tickets.jira_text(text, plan_path.name, vault, questions, keys))
+            atomic.write_atomic(target / "tickets-jira.json", tickets.jira_text(text, plan_path.name, vault, questions, keys, args.app or ""))
             written = [target / "tickets-jira.json"]
         else:
             csv_body, readme, _ = tickets.convert_text(text, plan_path.name, vault, args.app or "", questions, tool="vela tickets", keys=keys, design_gap=design_gap)

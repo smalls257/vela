@@ -18,7 +18,7 @@ from vela import breakdown
 COVERS = re.compile(r"\(covers\s+([^)]*)\)\s*$", re.I)
 TOKEN = re.compile(r"^AC(\d+)$")
 # The words a session writes carry no IDs: vela adds each as a suffix and a label, so a Jira reader never meets a bare one.
-ID_IN_WORDS = re.compile(r"\b(?:CAP|CON|EPC|FR|APP|CST|OQ|UNK|SLC|PG|D|G|S)-\d+")
+ID_IN_WORDS = re.compile(r"\b(?:(?:CAP|CON|EPC|FR|APP|CST|OQ|UNK|SLC|PG|D|G|S)-\d+|AC\d+|FR\d+)", re.I)
 SENTENCE = re.compile(r"(?<=[.?!])\s+(?=[A-Z\"'(])")
 SUMMARY_SENTENCES = (4, 5)
 
@@ -59,11 +59,16 @@ def summary_problems(story):
     return out
 
 
-def stamp_problems(story):
+def label_problems(story):
+    """The Ticket criteria label itself: unreadable as written, missing its stamp, or stamped for other criteria.
+    Each says the label to write, with the stamp this story's criteria give, so the first stamp is never invented."""
     stamp = breakdown.criteria_stamp(story.criteria)
     label = f"`Ticket criteria (from {stamp}):`"
+    if story.ticket_label_bad:
+        return [(f"has a 'Ticket criteria' label vela can't read ({story.ticket_label_bad!r}); the lines under it are read as "
+                 f"ticket copy. Write the label as {label}", True)]
     if story.ticket_stamp is None:
-        return [(f"has ticket criteria with no stamp; once they match its acceptance criteria, write the label as {label}", True)]
+        return [(f"has ticket criteria with no stamp yet; write the label as {label}", True)]
     if story.ticket_stamp != stamp:
         return [("has ticket criteria written for earlier acceptance criteria; rewrite them against the criteria as they "
                  f"are now, then write the label as {label}", True)]
@@ -82,7 +87,7 @@ def line_problems(story):
             if bad is None:
                 out.append((f"has a ticket line with no covers tag: {words!r}", True))
                 continue
-            if bad is not None and not numbers and not bad:
+            if not numbers and not bad:
                 out.append(("has a covers tag that names no criterion; write it as (covers AC1, AC2)", True))
             if bad:
                 out.append((f"has a covers tag it can't read ({', '.join(repr(b) for b in bad)}); write it as (covers AC1, AC2)", True))
@@ -104,10 +109,10 @@ def problems(story):
     """Every line about one story's ticket copy, in the order a person fixes them."""
     if not has_copy(story):
         if story.ticket_label:
-            return [("has a 'Ticket criteria' label with no lines under it, so its ticket carries the plan's criteria as a flat list", True)]
+            return label_problems(story) + [("has a 'Ticket criteria' label with no lines under it, so its ticket carries the plan's criteria as a flat list", True)]
         if story.summary is None:
             return [("has no ticket copy yet (a summary and its criteria grouped for the ticket), so its ticket carries the "
                      "plan's criteria as a flat list", True)]
         return summary_problems(story) + [("has a summary but no 'Ticket criteria' block, so its ticket carries the plan's "
                                            "criteria as a flat list", True)]
-    return summary_problems(story) + stamp_problems(story) + line_problems(story) + coverage_problems(story)
+    return summary_problems(story) + label_problems(story) + line_problems(story) + coverage_problems(story)

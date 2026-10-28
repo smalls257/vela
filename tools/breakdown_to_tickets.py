@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Turn a work-breakdown plan into a Jira CSV import, without a model and without inventing a word.
+"""Turn a work-breakdown plan into a Jira CSV import. The ticket copy in the plan is checked, not rewritten; everything else is copied.
 
 The work-breakdown skill writes docs/plan/<slug>-breakdown.md: a summary table, then one `### S-NN <name>` section per
 story (a "Traces to:" line, acceptance criteria as bullets, a `| Task | Size | Component |` table, a "Blocked by:"
@@ -29,7 +29,6 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "plugin" / 
 from vela.breakdown import parse  # noqa: E402,F401  (the one reader of the format; the explorer's Build plan level uses it too)
 from vela import cli, tickets  # noqa: E402,F401  (the conversion itself: `vela tickets` writes the same files from an installed plugin)
 from vela.edge import teamdocs  # noqa: E402
-from vela.tickets import build_rows  # noqa: E402,F401
 
 
 class BreakdownError(Exception):

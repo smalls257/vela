@@ -1,9 +1,9 @@
-"""Read a work-breakdown plan (docs/plan/<slug>-breakdown.md) into stories and tasks, without a model and without
-inventing a word.
+"""Read a work-breakdown plan (docs/plan/<slug>-breakdown.md) into stories and tasks. The reader
+is plain code: it maps what the plan says and never guesses a word it doesn't.
 
     read(text)  -> {meta, stories, summary, order, coverage, not_planned, problems}
     parse(text) -> (stories, not_planned, problems)
-    csv_text(stories) -> the Jira CSV import as text
+    criteria_stamp(criteria) -> the six hex digits the Ticket criteria label records
 
 The work-breakdown skill writes the file: frontmatter (status, prereqs, gaps), a summary table, one `### S-NN <name>`
 section per story (a "Traces to:" line, acceptance criteria as bullets, a `| Task | Size | Component |` table, a
@@ -15,24 +15,22 @@ write since design session 18: "Done when:", "Components:", "Slice:" (tracer, ve
 a merged one is a pointer and needs none. Plans written without those lines read exactly as before. This is the one
 reader of that format.
 A story may also carry a "Summary:" line and a "Ticket criteria (from <stamp>):" block, the ticket's own copy of its
-criteria, read into `summary` and `ticket_groups` and never into `criteria`.
-tools/breakdown_to_tickets.py turns it into tickets; the explorer's Build plan level (explorer/plan_data.py) draws
-it. They share this module so the ticket a story becomes and the card it is drawn as can never read the file two ways.
+criteria, read into `summary` and `ticket_groups` and never into `criteria`. A line that begins "Ticket criteria" but
+isn't the label (a placeholder, a stamp of the wrong length) still opens that block and is kept in `ticket_label_bad`
+for the check to report; it is never read as part of a plan criterion.
+vela/tickets.py turns it into tickets (tools/breakdown_to_tickets.py and `vela tickets` call it); the explorer's Build
+plan level (explorer/plan_data.py) draws it. They share this module so the ticket a story becomes and the card it is drawn as can never read the file two ways.
 
 Anything the reader cannot map is a line in `problems`, never dropped and never guessed.
 """
-import csv
 import hashlib
-import io
 import re
 
 from vela import parse as vault_parse
 
-from vela import export
 
 SIZE_POINTS = {"S": 2, "M": 5, "L": 8}  # work-breakdown defines S, M, L (about 2 days, 3 to 5 days, 1 to 2 weeks) and no points
 STATUSES = ("complete", "complete-with-gaps")
-COLUMNS = ["Issue Id", "Summary", "Description", "Issue Type", "Parent", "Story Points"]
 STORY_HEADING = re.compile(r"^###\s+(S-\d+[a-z]?)\b[\s:\-\u2013\u2014]*(.*?)\s*$")
 TRACES = re.compile(r"^\W*Traces to\W*:\W*(.*)$", re.I)
 BLOCKED = re.compile(r"^\W*Blocked by\W*:\W*(.*)$", re.I)
@@ -58,6 +56,7 @@ SUMMARY = re.compile(r"^\W*Summary\W*:\W*(.*)$", re.I)
 # The ticket's own copy of the criteria, regrouped and reworded by a session; the stamp is criteria_stamp() of the
 # criteria it was written from, so a copy left behind by an edit is flagged instead of read as current.
 TICKET_LABEL = re.compile(r"^\W*Ticket criteria\b(?:\s*\(from\s+([0-9a-f]{6})\))?\s*:\s*$", re.I)
+TICKET_LABEL_LOOSE = re.compile(r"^\W*Ticket criteria\b", re.I)  # any line meant as the label, well written or not
 SLICES = ("tracer", "vertical", "layer")
 VAULT_SLICE = re.compile(r"\bSLC-\d{3}\b")  # the vault's slice a story belongs to (slices.py), not its shape above
 NOT_BUILT = ("deferred", "merged")  # a story in either state is in no total and has no ticket
@@ -75,6 +74,7 @@ class Story:
         self.done_when, self.components, self.slice_text, self.fit, self.status = None, None, None, None, None
         self.tracer = False
         self.summary, self.ticket_stamp, self.ticket_label, self.ticket_groups = None, None, False, []
+        self.ticket_label_bad = ""  # the label line as written, when it begins "Ticket criteria" but TICKET_LABEL can't read it
 
     @property
     def state(self):
@@ -144,7 +144,7 @@ def criteria_stamp(criteria):
 
 
 FIELD_LINES = (TRACES, BLOCKED, TRACER_FACT, DONE_WHEN, COMPONENTS, SLICE, RELEASE_FIT, STATUS, SUMMARY,
-               CRITERIA_LABEL, TICKET_LABEL, OPEN_NOTE, CONFLICT_NOTE)
+               CRITERIA_LABEL, TICKET_LABEL_LOOSE, OPEN_NOTE, CONFLICT_NOTE)
 
 
 def is_field_line(line):
@@ -199,8 +199,10 @@ def take_story_line(story, line, state):
         story.status, state["last"] = STATUS.match(line).group(1).strip(), "status"
     elif SUMMARY.match(line):
         story.summary, state["last"] = SUMMARY.match(line).group(1).strip(), "summary"
-    elif TICKET_LABEL.match(line):
-        story.ticket_label, story.ticket_stamp = True, TICKET_LABEL.match(line).group(1)
+    elif TICKET_LABEL_LOOSE.match(line):
+        read = TICKET_LABEL.match(line)
+        story.ticket_label, story.ticket_stamp = True, read.group(1) if read else None
+        story.ticket_label_bad = "" if read else line.strip()
         state["block"], state["last"] = "ticket", "ticket_label"
     elif BULLET.match(line):
         story.criteria.append(BULLET.match(line).group(1).strip())
@@ -465,16 +467,3 @@ def parse(text):
     """(stories, not_planned, problems) for one breakdown document."""
     plan = read(text)
     return plan["stories"], plan["not_planned"], plan["problems"]
-
-
-def csv_text(rows):
-    """The Jira import for `rows` (build_rows) as text: what breakdown_to_tickets.py writes to tickets.csv, byte for byte."""
-    width = max([len(r["labels"]) for r in rows] or [1]) or 1
-    header = COLUMNS + ["Labels"] * width + ["Blocked by"]
-    out = io.StringIO(newline="")
-    writer = csv.writer(out)
-    writer.writerow(header)
-    for r in rows:
-        cells = [r[c] for c in COLUMNS] + r["labels"] + [""] * (width - len(r["labels"])) + [r["Blocked by"]]
-        writer.writerow([export.defuse(cell) if isinstance(cell, str) else cell for cell in cells])
-    return out.getvalue()

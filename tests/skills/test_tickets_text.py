@@ -114,3 +114,9 @@ def test_tickets_writes_missing_ticket_copy_only_on_a_yes_and_copies_jira_fields
     for phrase in ("still gets a ticket, with the plan's criteria as a flat list", "on a yes write it into the plan",
                    "never reword an acceptance criterion", "--format jira", "never retype or reword a description", "--keys docs/work/jira-keys.txt"):
         assert phrase in body, phrase
+
+
+def test_the_tickets_skill_says_where_the_stamp_comes_from_and_passes_one_app_to_every_write():
+    body = text(TICKETS / "SKILL.md")
+    for phrase in ("plain `Ticket criteria:` label", "put the stamp it prints in the label", "the same `--app`"):
+        assert phrase in body, phrase

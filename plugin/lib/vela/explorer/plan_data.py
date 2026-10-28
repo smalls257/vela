@@ -224,7 +224,7 @@ def totals(stories):
     return {"stories": len(stories), "built": len(built), "tasks": sum(len(s["tasks"]) for s in built), "points": sum(s["points"] for s in built), "bySize": by_size}
 
 
-def design_questions_for(plan_path, read):
+def design_questions_for(plan_path):
     """(questions, why) read the way the tool reads them (teamdocs.design_questions_and_gap), so "Copy as Jira CSV" and
     the tool's file can't differ: the vault root is the plan's repo, three folders up from docs/plan/<file>."""
     from vela.edge import teamdocs
@@ -242,7 +242,7 @@ def plan_entry(app_id, wrapped, known, design, tracer_slice="", vault=None):
     order = read["order"]
     order_of = {o["id"]: i + 1 for i, o in enumerate(order)}
     ranked = sorted(read["stories"], key=lambda s: order_of.get(s.id, len(order) + 1))
-    questions, _ = design_questions_for(path, read)
+    questions, _ = design_questions_for(path)
     filed, _ = tickets.retire_pointers(read["stories"], [])  # the tool's rows are in file order, not build order
     stories = [story_entry(s, read["summary"], order_of, known, problems, tracer_slice) for s in ranked]
     if design and design["path"] not in breakdown_find.prereq_names(read["meta"]):

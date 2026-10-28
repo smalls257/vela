@@ -42,7 +42,7 @@ def test_the_summary_and_the_grouped_criteria_are_in_the_description_and_the_tra
     assert "This story captures a meeting's audio on the laptop" in story
     assert "- Audio is transcribed on the laptop, and nothing leaves it before the security review passes. (covers AC1)" in story
     assert "Traces to" not in story
-    assert "Written without the vault, so what this story relies on is named by ID only: CAP-002.FR2." in story
+    assert "Written without the team's records, so what this story relies on is named by ID only: CAP-002.FR2." in story
     task = rows[4]["Description"]
     assert task == "Component: Audio Capture\nSize: L\nStory: Capture a meeting locally (S-02)"
 

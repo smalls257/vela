@@ -261,11 +261,11 @@ def test_the_markdown_ticket_reads_like_the_approved_mockup():
     assert "OQ-005" not in body.replace("<sub>OQ-005</sub>", "")  # the shown question's sentence is not repeated
 
 
-def test_a_story_without_copy_gets_the_plans_list_tagged_by_number():
+def test_a_story_without_copy_gets_the_plans_list_with_no_tags():
     found, ctx = context()
     body = tickets.ticket_markdown(next(s for s in found if s.id == "S-03"), ctx, tickets.SUB)
     assert "- When a person switches Heron off and Consent and identity does not confirm the withdrawal" in body
-    assert "<sub>AC1</sub>" in body and "<sub>AC4</sub>" in body
+    assert "<sub>AC" not in body  # a bare AC number means nothing to a reader with no grouped copy beside it
     assert "- Also waits on: Assumes CON-004 tolerates a duplicate withdrawal" in body  # a sentence nothing else shows
 
 
@@ -287,7 +287,7 @@ def test_a_known_ticket_key_is_named_in_blocked_by():
 def test_without_the_vault_the_ticket_says_it_names_ids_only():
     found, ctx = context(vault=False)
     plain = tickets.ticket_plain(next(s for s in found if s.id == "S-02"), ctx)
-    assert "Written without the vault, so what this story relies on is named by ID only: CAP-005.FR1, CON-003, CON-004." in plain
+    assert "Written without the team's records, so what this story relies on is named by ID only: CAP-005.FR1, CON-003, CON-004." in plain
 
 
 def test_rows_title_stories_by_name_and_label_them_as_the_mockup_shows():
@@ -329,10 +329,10 @@ def test_check_names_a_missing_copy_and_a_stale_one_before_anything_is_written(t
 def test_the_readme_says_what_a_model_wrote_and_what_code_copied():
     _, readme, problems = tickets.convert_text(plan_text(), "desktop-agent-breakdown.md", heron(), "APP-desktop-agent", questions())
     assert "No model touched it" not in readme
-    assert "written into the plan in the house voice" in readme and "copied by code from the vault and the design" in readme
+    assert "written into the plan and checked against" in readme and "copied from the team's records and the design" in readme
     assert "S-03: has no ticket copy yet" in "\n".join(problems)
     _, bare, _ = tickets.convert_text(plan_text(), "desktop-agent-breakdown.md")
-    assert "written without the vault" in bare.lower()
+    assert "written without the team's records" in bare.lower()
 
 
 import json  # noqa: E402
@@ -435,8 +435,6 @@ def test_the_page_reads_the_design_the_way_the_tool_does_so_its_csv_is_the_tools
 
 
 def test_the_readme_says_when_a_plan_has_no_ticket_copy_and_when_only_some_do():
-    bare = plan_text().replace("Ticket criteria (from 7d05f2):", "Ticket criteria:")
-    none = breakdown.read(plan_text())
     _, readme, _ = tickets.convert_text(plan_text(), "p.md")
     assert "of 9 stories have a summary" in readme and "carry the plan's criteria as a flat list" in readme
     stripped = "\n".join(l for l in plan_text().splitlines() if not l.startswith(("Summary:", "Ticket criteria", "- Switching", "- Each choice goes", "- A choice counts only", "- If a choice isn't", "- If a person never", "Choosing what", "Recording the", "When it doesn't go")))
@@ -463,3 +461,115 @@ def test_an_open_question_with_the_design_unread_says_so_and_a_bad_vault_is_a_pl
     done = subprocess.run([sys.executable, str(REPO / "tools" / "breakdown_to_tickets.py"), "--breakdown", str(PLAN),
                            "--out", str(tmp_path / "o"), "--vault", str(tmp_path / "nope")], capture_output=True, text=True)
     assert done.returncode == 2 and "is not a folder" in done.stderr and "Traceback" not in done.stderr
+
+
+# ---- final review fixes: a mistyped label, tickets that agree with the plan, the first stamp, --app, roles
+
+CRITERIA = ["It goes.", "It stops."]
+GOOD = breakdown.criteria_stamp(CRITERIA)
+
+
+def mini_with_label(label):
+    return MINI.replace("Ticket criteria (from STAMP):", label)
+
+
+def test_a_mistyped_ticket_criteria_label_never_joins_the_plans_criteria():
+    for label in ("Ticket criteria (from <stamp>):", f"Ticket criteria (from {GOOD}0):", f"Ticket criteria (from stamp {GOOD}):",
+                  "Ticket criteria (from 12345):", "Ticket criteria from " + GOOD + ":"):
+        story = breakdown.read(mini_with_label(label))["stories"][0]
+        assert story.criteria == CRITERIA, label
+        assert [h for h, _ in story.ticket_groups] == ["Moving", "Stopping"], label
+        assert story.ticket_label_bad == label
+        said = [t for t, flag in ticketcopy.problems(story) if flag]
+        assert len(said) == 1 and "label vela can't read" in said[0] and f"`Ticket criteria (from {GOOD}):`" in said[0], (label, said)
+
+
+def test_a_missing_stamp_says_to_write_the_stamp_and_not_that_the_copy_is_old():
+    story = breakdown.read(mini_with_label("Ticket criteria:"))["stories"][0]
+    said = [t for t, flag in ticketcopy.problems(story) if flag]
+    assert story.ticket_label_bad == "" and len(said) == 1
+    assert "no stamp yet" in said[0] and f"`Ticket criteria (from {GOOD}):`" in said[0] and "earlier" not in said[0]
+
+
+def test_a_mistyped_label_with_no_lines_under_it_is_still_named():
+    text = mini_with_label("Ticket criteria (from <stamp>):").replace("Moving:\n- It goes, and then it\n  stops. (covers AC1, AC2)\n\nStopping:\n- It stops. (covers AC2)\n", "")
+    said = [t for t, flag in ticketcopy.problems(breakdown.read(text)["stories"][0]) if flag]
+    assert any("can't read" in t for t in said) and any("no lines under it" in t for t in said)
+
+
+def test_ids_written_as_ac_numbers_fr_numbers_or_in_lowercase_are_flagged_in_the_words():
+    for word in ("AC3", "FR1", "oq-005", "con-003"):
+        assert ticketcopy.ids_in(f"It waits on {word} here."), word
+
+
+def only(text, sid):
+    return next(s for s in breakdown.read(text)["stories"] if s.id == sid)
+
+
+def test_a_sentence_that_says_not_blocked_by_is_no_wait_and_stays_as_a_note():
+    s07a = only(plan_text(), "S-07a")
+    assert ticketrefs.waits_on_ids(s07a) == []
+    assert ticketrefs.still_open(heron(), s07a, questions()) == []
+    assert not any("OQ-" in t or "UNK-" in t for t, _ in ticketrefs.open_problems(heron(), s07a, questions()))
+    found, ctx = context()
+    plain = tickets.ticket_plain(next(s for s in found if s.id == "S-07a"), ctx)
+    assert "Still open" not in plain
+    assert "Note: Not blocked by OQ-007, UNK-051 or OQ-009: nothing here depends on what the Summarizer keeps or how it authenticates callers." in plain
+    assert "Also waits on: S-01 (setting reader pattern) and the S-05 transport interface." in plain
+
+
+def test_a_question_the_plan_says_is_not_planned_is_a_note_with_its_sentence_kept():
+    s05 = only(plan_text(), "S-05")
+    assert "OQ-005" not in ticketrefs.waits_on_ids(s05)
+    found, ctx = context()
+    plain = tickets.ticket_plain(next(s for s in found if s.id == "S-05"), ctx)
+    assert "Note: OQ-005 (telling the person about an expired sign-in) is not planned: the agent shows nothing and logs." in plain
+    assert "Is the person told when Consent and identity is down" not in plain.split("Still open:")[1].split("Components")[0]
+
+
+def test_what_happens_meanwhile_is_read_from_the_clause_that_says_it():
+    s05 = only(plan_text(), "S-05")
+    assert ticketrefs.until_then(s05, "UNK-069") == "build and test against a mocked Graph"
+    assert ticketrefs.until_then(s05, "UNK-067") is None  # the plan says nothing about it
+    s08 = only(plan_text(), "S-08")
+    assert ticketrefs.until_then(s08, "OQ-009") == "use a throwaway certificate on a placeholder build"
+    assert ticketrefs.until_then(only(plan_text(), "S-02"), "OQ-005") == "the agent shows nothing and logs"
+
+
+def test_no_blocked_by_sentence_is_dropped_unless_it_is_only_ids_the_ticket_shows():
+    found, ctx = context()
+    for story in found:
+        if not story.built or not story.blocked:
+            continue
+        plain = tickets.ticket_plain(story, ctx)
+        for sentence in tickets.re.split(r"(?<=[.?!])\s+", story.blocked):
+            if sentence and not tickets.only_ids(sentence) and not tickets.carried_by_still_open(sentence) \
+                    and not breakdown.NO_BLOCKERS.match(sentence):
+                assert sentence in plain, (story.id, sentence)
+
+
+def test_the_until_then_flags_on_heron_are_only_the_true_ones():
+    said = [(s.id, q) for s in breakdown.read(plan_text())["stories"] if s.built
+            for q in (qq for qq in ticketrefs.still_open(heron(), s, questions()) if qq["until"] is None)]
+    assert sorted(f"{sid} {q['id']}" for sid, q in said) == [
+        "S-05 UNK-067", "S-06 OQ-002", "S-06 UNK-067", "S-08 UNK-069", "S-09 OQ-001", "S-09 OQ-009", "S-09 UNK-054", "S-10 OQ-009"]
+
+
+def test_a_role_keeps_its_own_capitals():
+    assert ticketrefs.owner_words("@endpoint-lead (IT endpoint lead)") == "the IT endpoint lead"
+    assert ticketrefs.owner_words("@ciso (CISO)") == "the CISO"
+    assert ticketrefs.owner_words("@dpo (DPO)") == "the DPO"
+    assert ticketrefs.owner_words("@product-owner (Product owner)") == "the product owner"
+    waiting = {q["waits"] for s in breakdown.read(plan_text())["stories"] if s.built
+               for q in ticketrefs.still_open(heron(), s, questions()) if q["waits_label"] == "Waiting on"}
+    assert "the IT endpoint lead" in waiting and not any(w in ("the it endpoint lead", "the ciso", "the dpo") for w in waiting)
+
+
+def test_app_reaches_the_markdown_and_jira_outputs_as_it_reaches_the_csv():
+    text = plan_text().replace("  app: APP-desktop-agent\n", "")
+    app = "APP-consent-and-identity"
+    args = (text, "p.md", heron(), questions())
+    csv_body, _, _ = tickets.convert_text(text, "p.md", heron(), app, questions())
+    assert "Receives" in tickets.markdown_text(*args, None, app) and "Sends" not in tickets.markdown_text(*args, None, app).split("Consent check")[1].split("###")[0]
+    assert "Receives" in tickets.jira_text(*args, None, app) and "Receives" in csv_body
+    assert "Receives" not in tickets.markdown_text(*args)
