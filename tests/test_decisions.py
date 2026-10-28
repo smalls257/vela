@@ -29,47 +29,38 @@ READBACK = "- [readback] (claude) I read back: stock level is decided as the cou
 
 def test_bare_ok_is_not_a_yes():
     rec = opened(READBACK, '- [answer] (@priya) "ok" ^c31')
-    refusal = consent.a_yes("^c31", rec, readback="^c30")
-    assert refusal is not None and refusal.plain == "You said 'ok'. Is that a yes to the wording as I read it?"
+    refusal = consent.a_yes("^c31", rec)
+    assert refusal is not None and refusal.plain == "You said 'ok'. Is that a yes?"
     assert consent.not_bare_non_yes(rec.capture("^c31")) is not None
 
 
 def test_claude_origin_is_not_a_yes():
     rec = opened(READBACK, "- [answer] (claude) yes, decide it ^c31")
-    refusal = consent.a_yes("^c31", rec, readback="^c30")
-    assert refusal.plain == "That line was mine, not yours. Does the wording I read back sound right to you?"
+    refusal = consent.a_yes("^c31", rec)
+    assert refusal.plain == "That line was mine, not yours. Is that a yes from you?"
 
 
 def test_claude_from_summary_is_not_a_yes():
     rec = opened(READBACK, "- [answer] (claude, from @priya) Priya is happy with it ^c31")
-    assert consent.from_a_person(rec.capture("^c31")).plain == "That line was mine, not yours. Does the wording I read back sound right to you?"
+    assert consent.from_a_person(rec.capture("^c31")).plain == "That line was mine, not yours. Is that a yes from you?"
 
 
-def test_yes_before_readback_is_refused():
-    rec = opened('- [answer] (@priya) "Yes, decide it." ^c29', READBACK)
-    refusal = consent.a_yes("^c29", rec, readback="^c30")
-    assert refusal.plain == "Your yes came before I read the final wording back, so I'll read it again."
-    assert consent.after_readback(rec.capture("^c29"), rec.capture("^c30")) is not None
-
-
-def test_a_yes_after_its_readback_passes():
+def test_a_yes_needs_no_read_back_first():
     rec = opened(READBACK, '- [answer] (@priya) "Yes, as read." ^c31')
-    assert consent.a_yes("^c31", rec, readback="^c30") is None
+    assert consent.a_yes("^c31", rec) is None
 
 
 def test_missing_capture_is_refused():
     rec = opened(READBACK)
-    assert consent.a_yes("^c44", rec, readback="^c30").plain == \
+    assert consent.a_yes("^c44", rec).plain == \
         "I don't have your answer written down yet, so I haven't filed it."
     assert consent.exists("not a capture", rec) is not None
 
 
-def test_group_readback_over_seven_refused():
+def test_group_over_seven_refused():
     assert consent.group_small_enough(7) is None
     refusal = consent.group_small_enough(8)
-    assert refusal.plain == "That was too much for one yes. I'll read it back in smaller groups."
-    items = [{"readback": "^c30"}] * 8 + [{"readback": "^c40"}]
-    assert consent.group_sizes(items) == {"^c30": 8, "^c40": 1}
+    assert refusal.plain == "That was too much for one yes. I'll ask in smaller groups."
 
 
 def test_why_must_be_the_leads_words():
@@ -87,13 +78,6 @@ def test_an_unverified_why_of_the_leads_is_fixed_by_confirming_it_not_by_a_quote
     assert "quote-yes" not in refusal.fix, "the lead's own words need no quote-yes, only the confirm"
 
 
-def test_push_yes_must_follow_the_send_notice():
-    rec = opened('- [answer] (@priya) "Yes, send it." ^c12', '- [answer] (@priya) "Yes, send it." ^c15')
-    assert consent.after_send_notice(rec.capture("^c12"), notice_count=14).plain == \
-        "Before I send anything, I need to tell you what goes and to whom."
-    assert consent.after_send_notice(rec.capture("^c15"), notice_count=14) is None
-
-
 def test_capture_text_changed_since_draft_refused():
     rec = opened(READBACK, '- [answer] (@priya) "Yes, as read." ^c31')
     sealed = schema.seal({"yes": "^c31"}, rec, ["^c31"])
@@ -107,8 +91,8 @@ def test_refusal_has_plain_fix_and_override():
     rec = opened(READBACK, '- [answer] (@priya) "ok" ^c31', "- [why] (claude) simpler ^c32")
     refusals = [consent.exists("^c99", rec), consent.from_a_person(rec.capture("^c30")),
                 consent.not_bare_non_yes(rec.capture("^c31")),
-                consent.after_readback(rec.capture("^c30"), rec.capture("^c31")), consent.group_small_enough(9),
-                consent.why_in_their_words("^c32", rec, LEAD), consent.after_send_notice(rec.capture("^c31"), 40),
+                consent.group_small_enough(9),
+                consent.why_in_their_words("^c32", rec, LEAD),
                 consent.unchanged_since_draft(rec.capture("^c31"), "0" * 64)]
     for refusal in refusals:
         assert isinstance(refusal, say.Refusal)

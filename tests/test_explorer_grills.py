@@ -49,8 +49,16 @@ def test_the_date_of_the_yes_but_not_its_words_and_the_one_missing_thing_ride_wi
     _, rows = extract(tmp_path)
     assert rows["CON-003"]["yes"] == {"date": "2026-10-20"}
     away = rows["CON-002"]["missing"]
-    assert away["due"] == "2027-03-01" and away["owed_by"] == ["@hl-platform-lead"] and "finance reconciliation" in away["question"]
-    assert not IDLIKE.search(away["plain"] + away["fix"] + away["question"] + " ".join(rows["CON-002"]["settles"]))
+    assert away["rule"] == "case table" and away["due"] == "" and away["question"] == ""
+    assert not IDLIKE.search(away["plain"] + away["fix"] + " ".join(rows["CON-002"]["settles"]))
+
+
+def test_a_card_with_an_open_question_under_it_carries_the_question_its_owner_and_date(tmp_path):
+    _, rows = extract(tmp_path)
+    asked = rows["CON-002"]["openQuestion"]
+    assert asked["due"] == "2027-03-01" and asked["owed_by"] == ["@hl-platform-lead"] and "finance reconciliation" in asked["question"]
+    assert not IDLIKE.search(asked["question"] + asked["ask"])
+    assert rows["CON-001"]["openQuestion"] == {}
 
 
 def test_an_owner_entry_the_page_cannot_read_is_carried_as_a_problem(tmp_path):

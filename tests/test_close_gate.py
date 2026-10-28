@@ -230,11 +230,12 @@ def test_render_stale_blocks(tmp_path):
     assert "generated tables are out of date" in gate(vault)[1]
 
 
-def test_tree_not_clean_blocks(tmp_path):
+def test_a_stray_file_is_a_note_not_a_stop(tmp_path):
     vault = session(tmp_path)
+    before = gate(vault, "--for-lead")
     (vault / "notes.txt").write_text("scratch\n", encoding="utf-8")
     code, out = gate(vault, "--for-lead")
-    assert code == 1 and "notes.txt" in out, out
+    assert code == before[0] and "leaving it out" in out and "Shall I leave it out" not in out, out
 
 
 def test_flowcheck_line_per_affected_slice(tmp_path):
@@ -287,8 +288,65 @@ def test_close_offers_only_ready_steps():
     close.register(parser.add_subparsers())
     top = next(a for a in parser._actions if isinstance(a, argparse._SubParsersAction))
     steps = next(a for a in top.choices["close"]._actions if isinstance(a, argparse._SubParsersAction)).choices
-    names = {"close_sync": "sync-main", "close_stage": "stage", "close_gate": "gate", "close_reconfirm": "reconfirm", "close_readback": "readback", "close_drafts": "drafts",
+    names = {"close_sync": "sync-main", "close_stage": "stage", "close_gate": "gate", "close_readback": "readback", "close_drafts": "drafts",
              "close_finish": "finish", "close_push": "push"}
     for name in close.STEPS:
         module = importlib.import_module(f"vela.commands.{name}")
         assert (names[name] in steps) == (module.register_close is not None), name
+
+
+# ------------------------------------------------------------------ close blocks only on what the session made
+
+def check_problems(vault, *flags):
+    code, out = gate(vault, "--json", "--today", "2026-10-20", *flags)
+    return [p for p in json.loads(out)["problems"] if p["kind"] == closegate.CHECK]
+
+
+def touch_goals(vault):
+    page = vault / "01-goals.md"
+    page.write_text(page.read_text(encoding="utf-8") + "\nA line the session added.\n", encoding="utf-8")
+
+
+def test_an_error_already_there_at_the_branch_point_does_not_block_close(tmp_path):
+    vault = session_with(tmp_path, (STOCK, "- **Source:** SRC-01", "- **Source:** SRC-01\n\nSee [[no-such-page]]."))
+    touch_goals(vault)
+    assert check_problems(vault) == []
+
+
+def test_one_more_of_an_error_already_there_still_blocks(tmp_path):
+    vault = session_with(tmp_path, (STOCK, "- **Source:** SRC-01", "- **Source:** SRC-01\n\nSee [[no-such-page]]."))
+    page = vault / STOCK
+    page.write_text(page.read_text(encoding="utf-8").replace("See [[no-such-page]].", "See [[no-such-page]].\n\nAnd [[no-such-page]]."),
+                    encoding="utf-8")
+    found = check_problems(vault)
+    assert len(found) == 1 and "E201" in found[0]["detail"], found
+
+
+def test_a_branch_point_that_cannot_be_read_never_passes(tmp_path, monkeypatch):
+    from vela.commands import close_gate
+    vault = session(tmp_path)
+    decide_stock(vault, [BACK, YES], [YES_ROW])
+    hooks_ran(vault)
+
+    def broken(*_):
+        raise ValueError("the branch point would not parse")
+    monkeypatch.setattr(close_gate, "vault_before", broken)
+    code, out = gate(vault, "--today", "2026-10-20")
+    assert code == 2 and "could not judge" in out, out
+    monkeypatch.setattr(close_gate, "vault_before", lambda *_: (_ for _ in ()).throw(RuntimeError("boom")))
+    code, out = gate(vault, "--today", "2026-10-20")
+    assert code != 0 and "ready to finish" not in out.lower().replace("not ready", ""), (code, out)
+
+
+def test_a_new_error_on_an_untouched_page_still_blocks(tmp_path):
+    vault = session(tmp_path)
+    (vault / "05-building-blocks" / "till-building-blocks.md").unlink()  # shop and the concerns page link to it
+    found = check_problems(vault)
+    assert len(found) >= 1 and any("shop-building-blocks.md" in p["detail"] for p in found), found
+
+
+def test_an_ended_exception_does_not_block_close(tmp_path):
+    ended = "- **Override:** E318 by @priya on 2026-09-01 until 2026-10-01: the vendor tests the stock read"
+    vault = session_with(tmp_path, (STOCK, "- **Source:** SRC-01", "- **Source:** SRC-01\n" + ended))
+    touch_goals(vault)
+    assert check_problems(vault) == []

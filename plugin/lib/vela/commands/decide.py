@@ -1,29 +1,29 @@
-"""`vela decide ID --readback ^cN --yes ^cM [...]` and `vela decide --reopen ID --why ^cN` (overhaul Task 16, plan 3.3).
+"""`vela decide ID --yes ^cM [...]` and `vela decide --reopen ID --why ^cN` (overhaul Task 16, plan 3.3).
 
 Grill section 4 was nine bullets of writes per decision, every one mechanical: the state, the Decision bullet, the Why
 copied word for word, the Dissent, the Override and Decided by bullets, the Pending approval marker in a reader copy, the
 `## Changes` row, the mark on the deciding capture and the commit. Each was a place for a model to tidy the lead's words
 or skip a row, and `close gate` then refused the session over a decision with nothing on record. Here the flags name
 captures, never words; `vela.decisions.decide` dispatches to the target kind's module and writes all of it in one step,
-through the same `decisions.plan` as `vela apply`, so `close gate` and `decide` agree by construction. The skill still
-asks "Why this one, in your words?" and captures the answer; code copies it.
+through the same `decisions.plan` as `vela apply`, so `close gate` and `decide` agree by construction. The skill
+captures a reason only when the lead gives one; code copies it.
 
-    vela decide ID --readback ^cN --yes ^cM [--why ^cK] [--dissent ^cJ]
+    vela decide ID --yes ^cM [--why ^cK] [--dissent ^cJ]
                    [--override RULE ... --reason-from ^cR [--until YYYY-MM-DD]]
                    [--provider ^cP] [--picked "OPTION=^cP" --rejected "OPTION=^cR|declined" ...]
-                   [--group CRITERIA READBACK YES ...] [--vault V] [--today D] [--json|--for-lead]
+                   [--group CRITERIA YES ...] [--vault V] [--today D] [--json|--for-lead]
     vela decide ID --later --yes ^cM [--vault V] [--today D] [--json|--for-lead]
     vela decide --reopen ID --why ^cN [--vault V] [--today D] [--json|--for-lead]
 
 ID is a page's or item's ID, an allocation row as `CAP-nnn.FRn@APP-<slug>`, or a release's heading. `--provider` is a
-contract's (where the provider stands), `--group` an epic's (one per criterion group read back); each kind's module
+contract's (where the provider stands), `--group` an epic's (one per criterion group); each kind's module
 says why. `--override` may repeat; its rules share one reason, and `--until` goes on the standing ones only (an event
 rule, GATE-1, 2 or 3, has nothing to end).
 
 The lead's yes settles any item. When the item is someone else's, `Decided by: @lead, on behalf of @owner` is written
 for them and the answer says so once; nothing is refused or overridden.
 
-Any session can decide: the rule is that `vela decide` filed it, with the lead's yes to a read-back, and nothing here
+Any session can decide: the rule is that `vela decide` filed it, with the lead's yes, and nothing here
 reads the session's modes. `--later --yes ^cM` is the other answer to an offer to settle: it keeps the lead's yes under
 `## Ready to decide` and decides nothing; with `--picked` and `--rejected` it also writes the pick's options on the
 page, so the reasons the lead gave are kept.
@@ -34,8 +34,8 @@ the lead didn't set aside refuses the decision, with the override line that woul
 Exit codes (plan 3.1):
 0  decided (or planned, or reopened): what was written and the commit are printed (`--json`: `id`, `state`, `wrote`,
    `commit`, `reader`);
-1  refused: every reason, plainly, and nothing written. The gate failed and nothing set it aside; the yes isn't a yes
-   or comes before the read-back; what the target kind needs is missing; or no session is open;
+1  refused: every reason, plainly, and nothing written. The gate failed and nothing set it aside; the yes isn't a yes;
+   what the target kind needs is missing; or no session is open;
 2  the tool failed: the vault or git can't be read, the disk refused a write, or the commit failed (what was written
    is named, so nothing is lost);
 3  the item is already decided: nothing written; the choices are reopening it (`--reopen`, recording the change of
@@ -72,19 +72,18 @@ def register(sub):
     parser.add_argument("id", nargs="?", help="the item: an ID, CAP-nnn.FRn@APP-<slug> for an allocation row, or a "
                                               "release's heading")
     parser.add_argument("--reopen", metavar="ID", help="reopen a decided item (a change of mind), with --why")
-    parser.add_argument("--readback", metavar="^cN", help="the capture where the final wording was read back")
-    parser.add_argument("--yes", metavar="^cM", help="the capture holding the lead's yes, after the read-back")
+    parser.add_argument("--yes", metavar="^cM", help="the capture holding the lead's yes")
     parser.add_argument("--why", metavar="^cK", help="the capture holding the lead's reason, copied verbatim")
     parser.add_argument("--dissent", metavar="^cJ", help="the capture holding a disagreement, in the dissenter's words")
     parser.add_argument("--override", metavar="RULE", action="append",
-                        help="a rule the lead sets aside (GATE-4, E318, \"case table\", ...); repeat for each")
+                        help="a rule the lead sets aside (GATE-1, GATE-2, E318, \"case table\", \"flow check\", ...); repeat for each")
     parser.add_argument("--reason-from", metavar="^cR", help="the capture holding the lead's reason for the overrides")
     parser.add_argument("--until", metavar="YYYY-MM-DD", help="the last day a standing override covers")
     parser.add_argument("--options-none", metavar="^cN",
                         help="the capture holding the lead's answer that this was the only option: recorded as the options considered, so no Shape session is needed (the grill gate below medium asks that one question)")
     parser.add_argument("--provider", metavar="^cP", help="contract: the capture saying where the provider stands")
-    parser.add_argument("--group", nargs=3, action="append", metavar=("CRITERIA", "READBACK", "YES"),
-                        help="epic: a criterion group read back (AC1-AC5), its read-back and the lead's yes; repeat")
+    parser.add_argument("--group", nargs=2, action="append", metavar=("CRITERIA", "YES"),
+                        help="epic: a criterion group (AC1-AC5) and the lead's yes to it; repeat")
     parser.add_argument("--picked", metavar="OPTION=^cP",
                         help="settling a pick: the option the lead picked and the capture where they picked it")
     parser.add_argument("--rejected", metavar="OPTION=^cR", action="append",
@@ -129,7 +128,7 @@ def override_groups(args):
 def item_from(args, ident, by, reader):
     if args.reopen:
         return {"id": ident, "reopen": True, "why": args.why, "by": by, "reader": reader}
-    item = {"id": ident, "readback": args.readback, "yes": args.yes, "why": args.why, "dissent": args.dissent,
+    item = {"id": ident, "yes": args.yes, "why": args.why, "dissent": args.dissent,
             "overrides": override_groups(args), "by": by, "reader": reader}
     if args.provider:
         item["provider"] = args.provider
@@ -142,7 +141,7 @@ def item_from(args, ident, by, reader):
     if getattr(args, "options_none", None):
         item["options_none"] = args.options_none
     if args.group:
-        item["groups"] = [{"criteria": c, "readback": r, "yes": y} for c, r, y in args.group]
+        item["groups"] = [{"criteria": c, "yes": y} for c, y in args.group]
     return {k: v for k, v in item.items() if v not in (None, [])}
 
 
@@ -246,11 +245,6 @@ def later_refusals(args, record, staged, ident):
             "decide-later-needs-yes", "I need the lead's yes before I can keep this for later.",
             "give --yes: the capture holding the lead's yes to the pick", audience=say.MODEL,
             override="none: without the lead's yes there is nothing to keep")])
-    if args.readback:
-        return refused([textedit.refusal(
-            "decide-later-with-readback", "I can't both keep this for later and settle it.",
-            "a read-back means the lead is settling, so drop --later", audience=say.MODEL,
-            override="none: drop --later to settle, or --readback to keep it for later")])
     unwritten = [flag for flag, given in (("--why", args.why), ("--dissent", args.dissent), ("--reopen", args.reopen))
                  if given]
     if unwritten:
@@ -259,7 +253,7 @@ def later_refusals(args, record, staged, ident):
                                            "options, so I haven't kept anything.",
             f"--later writes none of {', '.join(unwritten)}; settle it to file them, or drop those flags and keep "
             "only the yes (--picked and --rejected it does write)", audience=say.MODEL,
-            override="none: drop the flags, or settle it with a read-back")])
+            override="none: drop the flags, or settle it")])
     module, target = decide.locate(staged, ident)
     if target is None:
         return refused([decide.missing(ident)])
@@ -335,7 +329,22 @@ def file_item(item, root, staged, record, reader):
             return failed(f"wrote {', '.join(written)} but the commit failed: {exc}",
                           "I wrote it down, but couldn't commit it; the changes are on disk.")
     owners = decide_writes.stand_in_owners(item, staged, record, target)
-    return report(item, target, state, written, commit, reader, owners)
+    return report(item, target, state, written, commit, reader, owners, notes_on(item, staged, record, target))
+
+
+def notes_on(item, view, record, target):
+    """What settling noted without asking: [(text, plain)] for each open question left open and a contract with nobody
+    named to test it. The lead hears it once, in the answer; the page already says it."""
+    if item.get("reopen"):
+        return []
+    notes = []
+    open_ones = decide_writes.open_blockers_of(view, record, target)
+    if open_ones:
+        notes.append((f"noted open: {', '.join(open_ones)}", f"{target.name} still has an open question under it; "
+                                                              "I noted that it was decided with it open."))
+    if target.kind == "contract" and not view.model.item(target.id).fact("Tested by"):
+        notes.append(("tested by: not yet", "Nobody has said who tests it yet, so the page says not yet."))
+    return notes
 
 
 def set_aside_words(item):
@@ -356,7 +365,7 @@ def rule_words(rule):
     return f'the "{meaning}" check' if meaning else "a check"
 
 
-def report(item, target, state, written, commit, reader, owners=()):
+def report(item, target, state, written, commit, reader, owners=(), notes=()):
     said = "reopened" if item.get("reopen") else state
     lines = [say.Line(f"{said} {target.id}: wrote {', '.join(written)}" + (f"; commit {commit}" if commit else ""),
                       plain=f"{target.name} is {said}." + set_aside_words(item))]
@@ -364,6 +373,7 @@ def report(item, target, state, written, commit, reader, owners=()):
         lines.append(say.Line(f"decided on behalf of {' '.join(owners)}",
                               plain=f"{target.name} is {' and '.join(owners)}'s; I noted you settled it for them. "
                                     "They can confirm it or challenge it."))
+    lines += [say.Line(text, plain=plain) for text, plain in notes]
     if reader:
         lines.append(say.Line("read copy: nothing committed (no git runs here); the decision is pending the owner's "
                               "approval.", plain="This is your copy, so nothing was committed, and the owner sees "

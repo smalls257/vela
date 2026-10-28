@@ -878,8 +878,9 @@ def test_decided_items_wants_the_ready_ones_with_a_yes_and_never_a_blocked_one(t
     assert not fn(run, criterion)[0], "a grill that decides nothing fails"
 
 
-def test_the_grill_ready_snapshot_holds_two_ready_items_and_blocked_ones():
-    """The case's lists must match what the plan's own gate says, or the probe scores the wrong thing."""
+def test_the_grill_ready_snapshot_holds_five_ready_items_and_no_blocked_ones():
+    """The case's lists must match what the plan's own gate says, or the probe scores the wrong thing. An open
+    question under an item no longer blocks it, so nothing on this snapshot is blocked."""
     case = probe.load_case("grill-ready")
     criterion = next(c for c in case["criteria"] if c["check"] == "decided-items")
     vault = SIM / "snapshots" / "heron-desk" / "grill-ready"
@@ -895,7 +896,7 @@ def test_the_grill_ready_snapshot_holds_two_ready_items_and_blocked_ones():
 def test_a_grill_probe_records_which_watched_item_was_decided(tmp_path):
     code, out, err, runs = run_probe(tmp_path, "grill-ready", "heron-desk")
     assert runs, err
-    assert "FAIL decided-items: ready items decided after an explicit yes: 0 of 2" in out
+    assert "FAIL decided-items: ready items decided after an explicit yes: 0 of 5" in out
 
 
 def test_gaps_surfaced_is_judged_and_keeps_only_a_quote_from_an_assistant_turn(tmp_path):
@@ -934,7 +935,7 @@ def test_a_checks_number_is_averaged_exactly_once(tmp_path):
     assert summary["watched blocked items decided"]["better"] == "lower"
     assert all(len(row["values"]) == 2 for row in summary.values())
     means = [line for line in out.splitlines() if "±" in line and "watched ready items decided with a yes" in line]
-    assert means == ["  watched ready items decided with a yes: 0 of 2 ± 0  (0, 0; higher is better)"]
+    assert means == ["  watched ready items decided with a yes: 0 of 5 ± 0  (0, 0; higher is better)"]
     assert "over 2 runs" not in out
 
 

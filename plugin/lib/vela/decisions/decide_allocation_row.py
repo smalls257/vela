@@ -1,13 +1,10 @@
 """`vela decide CAP-nnn.FRn@APP-<slug>`: one row of an app's `## Requirements allocated` set decided (grill's "File each decision as its branch closes";
 CONVENTIONS "Requirements and allocation"). Pure.
 
-A Grill on an app page takes its allocated rows with it: each row is read back as part of the app's agenda and set
-`decided` in its State cell when the lead confirms it. The Violation this kind exists to prevent is a Paper Tiger
-share: a row marked decided that nobody heard read back with its app, so a team inherits a share of a requirement they
-never agreed to carry. So:
+A Grill on an app page takes its allocated rows with it: each row is set `decided` in its State cell when the lead
+confirms it. The Violation this kind exists to prevent is a Paper Tiger share: a row marked decided on an app that
+isn't itself decided, so a team inherits a share of a requirement they never agreed to carry. So:
 
-- **The read-back names the app** (its title, its ID, or the row's `CAP-nnn.FRn@APP-<slug>`): a yes to "the requirement"
-  heard without the app is a yes to the requirement, not to this app's share of it.
 - **The app page's own `**Decision:**` answers for its rows**, as it does for goal rows, so a row is decided only on a
   page that carries one (decide the page first, in the same grill). No Decision or Why bullet is written for a row,
   and a `--why` is refused rather than dropped: the reason for the page's decision goes with the page.
@@ -76,13 +73,6 @@ def refusals(item, view, record, found):
             "decide-row-needs-page-decision", f"{app_name} itself isn't decided yet, and its shares are decided with it.",
             f"Decide {app} first in this grill (its page's Decision answers for its rows), then the row.",
             override="--override E303 --reason-from <the lead's reason> --until <date>"))
-    readback = record.capture(item.get("readback")) if item.get("readback") else None
-    words = (readback.words if readback is not None else "").lower()
-    if readback is not None and not any(w and w.lower() in words for w in (app_name, app, found.id)):
-        out.append(decide_writes.refusal(
-            "decide-row-readback", f"I read that share back without saying it's {app_name}'s, so I'll read it again.",
-            f"Read the row back as {found.id} (or with the app's name), capture the read-back, then the lead's yes.",
-            override="none: a row is read back with its app"))
     if item.get("why"):
         out.append(decide_writes.refusal(
             "decide-row-why", f"The reason goes with {app_name}'s own decision, not with one of its shares.",

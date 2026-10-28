@@ -39,24 +39,24 @@ def test_agenda_refuses_a_bad_status_and_a_bare_yes(tmp_path):
     assert [r.rule for r in refusals] == ["consent-bare-non-yes"]
 
 
-def test_override_standing_without_until_refused_with_suggested_date(tmp_path):
+def test_a_standing_override_needs_no_end_date(tmp_path):
     root = make_vault(tmp_path, captures=CAPTURES)
-    _, refusals = plan(root, "override", [{"on": "CON-002", "rules": ["GATE-4"], "reason": "^c03"}])
-    assert [r.rule for r in refusals] == ["override-until"]
-    assert "2026-11-19" in refusals[0].fix  # 30 days on: the item feeds no release with a target ahead
-    assert "date" in refusals[0].plain
+    writes, refusals = plan(root, "override", [{"on": "CON-002", "rules": ["E316"], "reason": "^c03"}])
+    assert [r.rule for r in refusals] == []
+    bullet = next(l for l in writes[STOCK].split("\n") if l.startswith("- **Override:**"))
+    assert " until " not in bullet
 
 
 def test_override_writes_the_leads_words_verbatim(tmp_path):
     root = make_vault(tmp_path, captures=CAPTURES)
-    writes = filed(root, "override", [{"on": "CON-002", "rules": ["GATE-4"], "reason": "^c03",
+    writes = filed(root, "override", [{"on": "CON-002", "rules": ["E316"], "reason": "^c03",
                                        "until": "2026-11-30"}])
     page = writes[STOCK]
     bullet = next(line for line in page.split("\n") if line.startswith("- **Override:**"))
     assert page.index("## History") < page.index("#### CON-002") < page.index(bullet)
     parsed = overrides.parse(bullet[len("- **Override:** "):])
     assert not parsed.problem, parsed.problem
-    assert parsed.rules == ("GATE-4",) and parsed.by == "@priya" and parsed.date == "2026-10-20"
+    assert parsed.rules == ("E316",) and parsed.by == "@priya" and parsed.date == "2026-10-20"
     assert parsed.until == "2026-11-30"
     assert override_kind.words_of(parsed.reason) == "Stores need it | now, and **today**."
     event = filed(root, "override", [{"on": "CON-002", "rules": ["GATE-5"], "reason": "^c03"}])

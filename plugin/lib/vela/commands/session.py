@@ -36,8 +36,8 @@ without hearing so. Exit codes:
    the initiative has no name yet (the one naming question; `--title` answers it, `--unnamed` records that the lead
    declined).
 
-`session branch` moves an open session that sits on the default branch onto its own `session/...` branch, for a lead
-who said yes when `close push` explained that main can't be the head of a pull request. The session's commits go with
+`session branch` moves an open session that sits on the default branch onto its own `session/...` branch; `close push`
+makes the same move itself, because main can't be the head of a pull request. The session's commits go with
 it and the local default branch goes back to where the session began.
 
 `session brief` is START steps 3 and 4, read-only: review comments on PRs merged since the last closed session (as
@@ -66,7 +66,7 @@ import json
 import pathlib
 import re
 
-from vela import closestate, commands, guard, planscope, privaterecord, progress, records, recordsplit, say, sessions, titlecheck
+from vela import closestate, commands, guard, override as overrides, planscope, privaterecord, progress, records, recordsplit, say, sessions, titlecheck
 from vela.commands import close_sync
 from vela.edge import ghcli, hostprobe, mergegit, sessiongit, vaultgit
 from vela.edge.vaultgit import GitUnavailable
@@ -122,7 +122,7 @@ def register_start(verbs):
 
 def register_branch(verbs):
     mover = verbs.add_parser("branch", help="move the open session's commits from the default branch onto a new "
-                                            "session branch, after the lead's yes")
+                                            "session branch (`close push` does this itself)")
     mover.add_argument("--vault", default=".", help="vault root (default: current directory)")
     say.add_output_flags(mover)
     mover.set_defaults(func=cmd_branch)
@@ -761,11 +761,10 @@ def start_owner(root, args, today, modes, plain, said, host):
 
 
 def review_needs_branch(current):
-    """Said once, when a session starts on the default branch: close can't open a pull request from it."""
-    return say.Line(f"on {current}: a review needs its own branch; with the lead's yes, run vela session branch "
+    """Said once, when a session starts on the default branch: close moves the work onto its own branch to send it."""
+    return say.Line(f"on {current}: a review needs its own branch; vela close push moves the work onto one "
                     "(the session is open now)",
-                    plain=f"We're on {current}, and a review needs its own branch. If you want one for this session, "
-                          "say so and I'll make it; otherwise the work stays here.")
+                    plain=f"We're on {current}. Close will move this work onto its own branch for the review.")
 
 
 def start_on_challenge(root, args, today, modes, plain, host, pr, challenged, lines, asks, asked):
@@ -1005,6 +1004,7 @@ def cmd_brief(args, out):
     result = say.Result(BRIEF)
     review_comments(result, root, vault, sessiongit.is_read_copy(root))
     overdue_questions(result, vault, today)
+    ended_exceptions(result, vault, today)
     ready_to_decide(result, root, vault, today)
     next_steps(result, root, today)
     how_much(result, vault, today)
@@ -1057,6 +1057,24 @@ def review_comments(result, root, vault, reader):
                                  plain=f"{count} came in on pull requests merged since the last session; I'll offer "
                                        "each one as a note." if found else
                                        "No review comments came in since the last session."))
+
+
+def ended_exceptions(result, vault, today):
+    """START step 4: each exception past its end date, by the item's name. A close no longer blocks on it, so this is
+    where the lead hears that it stopped covering the item."""
+    found = []
+    for (_, item_id), page in overrides._scopes(vault).items():
+        for o in overrides.valid_overrides(page, item_id):
+            if overrides.expired(o, today):
+                found.append({"on": item_id or page.id, "rules": list(o.rules), "until": o.until})
+    found.sort(key=lambda e: (e["until"], e["on"]))
+    result.data["ended_exceptions"] = found
+    for entry in found:
+        name = vault.name_of(entry["on"])
+        result.lines.append(say.Line(
+            f"ended exception: {entry['on']} {', '.join(entry['rules'])}, ended {entry['until']}",
+            plain=f"Your exception on {name} ended on {say.date_words(entry['until'])}: extend it, settle the item, "
+                  "or reopen it?"))
 
 
 def overdue_questions(result, vault, today):

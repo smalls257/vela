@@ -61,23 +61,22 @@ def page_text(vault):
 
 def test_gate_waits_for_the_read_back_and_clears_after_done(tmp_path):
     vault = closing_vault(tmp_path)
+    assert readback(vault, "--pick", "^c02")[0] == 0
     assert closegate.READBACK in gate_kinds(vault)
     code, out = run("close", "gate", "--vault", str(vault), "--for-lead", "--today", "2026-10-20")
-    assert "I haven't read back the wording that goes on record in your name yet." in out
+    assert "I haven't read back the quotes picked for the pull request yet." in out
     assert readback(vault, "--done")[0] == 0
     assert closegate.READBACK not in gate_kinds(vault)
 
 
-def test_the_list_names_the_decision_and_the_why(tmp_path):
+def test_the_list_holds_the_picked_quote_and_not_the_decision_or_the_why(tmp_path):
     vault = closing_vault(tmp_path)
+    assert readback(vault, "--pick", "^c02")[0] == 0
     code, out = readback(vault, "--json")
-    found = {(s["item"], s["line"]): s for s in json.loads(out)["sentences"]}
-    assert found[("CON-002", "decision")]["words"] == "Yes, one till API for the web and the kiosks."
-    assert found[("CON-002", "decision")]["number"] == 1
-    assert found[("CON-002", "why")]["words"] == "Because the kiosks can't run two APIs."
-    assert found[("CON-002", "why")]["number"] == 2
+    found = [(s["line"], s["number"], s["words"]) for s in json.loads(out)["sentences"]]
+    assert found == [("quote", 2, "Because the kiosks can't run two APIs.")]
     code, out = readback(vault, "--for-lead")
-    assert code == 0 and "Stock level" in out and "CON-002" not in out and "^c" not in out
+    assert code == 0 and "Because the kiosks" in out and "CON-002" not in out and "^c" not in out
 
 
 def test_a_reword_must_be_an_excerpt_or_an_approved_wording(tmp_path):
@@ -110,14 +109,24 @@ def test_an_approval_that_is_not_the_leads_is_refused(tmp_path):
     assert code == 1 and page_text(vault) == before
 
 
-def test_editing_a_sentence_after_done_reopens_the_read_back(tmp_path):
+def test_editing_a_picked_quote_after_done_reopens_the_read_back(tmp_path):
     vault = closing_vault(tmp_path)
+    assert readback(vault, "--pick", "^c02")[0] == 0
     assert readback(vault, "--done")[0] == 0
     assert closegate.READBACK not in gate_kinds(vault)
-    assert readback(vault, "--reword", "CON-002", "--line", "why", "--words", "the kiosks can't run two APIs")[0] == 0
+    assert readback(vault, "--reword", "^c02", "--line", "quote", "--words", "the kiosks can't run two APIs")[0] == 0
     assert closegate.READBACK in gate_kinds(vault)
     assert readback(vault, "--done")[0] == 0
     assert closegate.READBACK not in gate_kinds(vault)
+
+
+def test_a_session_that_only_settled_owes_no_read_back(tmp_path):
+    vault = closing_vault(tmp_path)
+    assert closegate.READBACK not in gate_kinds(vault)
+    assert readback(vault, "--reword", "CON-002", "--line", "why", "--words", "the kiosks can't run two APIs")[0] == 0
+    assert closegate.READBACK not in gate_kinds(vault)
+    code, out = readback(vault, "--for-lead")
+    assert code == 0 and "nothing to read back" in out
 
 
 def test_pick_refuses_someone_elses_words(tmp_path):
@@ -162,7 +171,7 @@ def test_a_session_with_no_words_on_record_owes_no_read_back(tmp_path):
     page.write_text(page_text(vault).replace(WHY + "\n", "").replace(
         'c01, @priya: "Yes, one till API for the web and the kiosks."', "c01, @priya"), encoding="utf-8")
     assert closegate.READBACK not in gate_kinds(vault)
-    assert "nothing" in readback(vault)[1].lower()
+    assert "no picked quotes" in readback(vault)[1]
 
 
 # ---- the pure half
@@ -190,11 +199,6 @@ def test_a_why_traces_to_the_leads_capture_not_someone_elses(tmp_path):
     vault = closing_vault(tmp_path)
     page = vault / STOCK
     page.write_text(page_text(vault).replace(WHY, "- **Why:** Fine by me."), encoding="utf-8")
-    code, out = readback(vault, "--json")
-    why = next(s for s in json.loads(out)["sentences"] if s["line"] == "why")
-    assert why["number"] == 0  # ^c08 is cto-ana's
-    code, out = readback(vault, "--for-lead")
-    assert "not traceable to your words" in out and "^c00" not in out
     assert readback(vault, "--reword", "CON-002", "--line", "why", "--words", "Fine")[0] == 1
     code, out = readback(vault, "--reword", "CON-002", "--line", "why", "--words", "Yes, say it as one till API",
                          "--approved", "^c09")
@@ -212,12 +216,9 @@ def test_two_whys_on_one_item_need_number(tmp_path):
     assert second not in page_text(vault) and WHY in page_text(vault)
 
 
-def test_with_no_known_lead_everything_is_listed_but_nothing_changes(tmp_path):
+def test_with_no_known_lead_nothing_changes(tmp_path):
     vault = closing_vault(tmp_path)
     (vault / ".vela" / "handle").unlink()
-    code, out = readback(vault, "--for-lead")
-    assert code == 0 and "don't know your GitHub handle" in out and "Yes, one till API" in out
-    assert "vela whoami" in readback(vault)[1]
     before = page_text(vault)
     code, out = readback(vault, "--cut", "CON-002", "--line", "why")
     assert code == 1 and "don't know your GitHub handle" in out and page_text(vault) == before

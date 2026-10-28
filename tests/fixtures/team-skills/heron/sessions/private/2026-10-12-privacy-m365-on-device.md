@@ -9,14 +9,14 @@ summary: "Locked the laptop-only morning note on the strategy page; opened two u
 ## Agenda
 
 - solution-strategy: GATE-3 confirmed yes, status decided
-- CON-001: GATE-3 confirmed no, status off-agenda: UNK-066, UNK-069
-- CON-002: GATE-3 confirmed no, status off-agenda: UNK-067
-- CON-003: GATE-3 confirmed no, status off-agenda: UNK-069
-- CON-004: GATE-3 confirmed no, status off-agenda: UNK-069
-- CON-005: GATE-3 confirmed no, status off-agenda: UNK-069
-- FLO-005: GATE-3 confirmed no, status off-agenda: UNK-069
-- APP-summarizer: GATE-3 confirmed no, status off-agenda: UNK-067
-- APP-consent-and-identity: GATE-3 confirmed no, status off-agenda: UNK-068, UNK-069
+- CON-001: GATE-3 confirmed no, status open
+- CON-002: GATE-3 confirmed no, status open
+- CON-003: GATE-3 confirmed no, status open
+- CON-004: GATE-3 confirmed no, status open
+- CON-005: GATE-3 confirmed no, status open
+- FLO-005: GATE-3 confirmed no, status open
+- APP-summarizer: GATE-3 confirmed no, status open
+- APP-consent-and-identity: GATE-3 confirmed no, status open
 
 ## Captures
 

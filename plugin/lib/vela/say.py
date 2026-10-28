@@ -95,13 +95,13 @@ KIND_WORDS = {"UNK": "an open question", "R": "a risk", "CON": "a contract", "CA
               "ENT": "an entity", "PTY": "a party", "SV": "a stored value", "CST": "a constraint", "SRC": "a source",
               "INI": "the initiative", "G": "a goal"}
 
-# Override bullets name the rule they set aside (`GATE-4`, `E316`), and findings quote those bullets. The lead hears what
+# Override bullets name the rule they set aside (`GATE-1`, `E316`), and findings quote those bullets. The lead hears what
 # the rule protects instead, in the grill skill's own terms.
 GATE_WORDS = {"GATE-1": "the stage check", "GATE-2": "the preferred-option check",
-              "GATE-3": "the check that you agreed the agenda", "GATE-4": "the open-question check",
+              "GATE-3": "the check that you agreed the agenda",
               "GATE-5": "the check that the owner said yes"}
 # The overridable check codes, said by what each protects (the October 14 voice audit, row 72), so one rule never has
-# two names: E316 and GATE-4 are both "the open-question check". A code not here is said by its schema meaning.
+# two names. A code not here is said by its schema meaning.
 RULE_WORDS = {"E316": "the open-question check", "E303": "the which-session-decided check",
               "E318": "the who-tests-it check", "E304": "the needs-a-source check",
               "E805": "the urgent-questions check"}

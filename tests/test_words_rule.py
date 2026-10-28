@@ -93,7 +93,7 @@ def test_decide_without_a_known_handle_exits_3(tmp_path, monkeypatch):
     root = vault(tmp_path)
     monkeypatch.setattr("vela.edge.sessiongit.read_handle", lambda root: "")
     monkeypatch.setattr("vela.edge.sessiongit.gh", lambda *a, **k: type("Ran", (), {"how": "missing", "out": "", "first_line": lambda self: ""})())
-    code, out = run("decide", "CON-002", "--vault", str(root), "--today", TODAY, "--readback", "^c01", "--yes", "^c02",
+    code, out = run("decide", "CON-002", "--vault", str(root), "--today", TODAY, "--yes", "^c02",
                     "--provider", "^c07", "--json")
     assert code == 3, out
 

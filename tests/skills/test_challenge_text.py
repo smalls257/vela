@@ -88,9 +88,9 @@ def test_challenge_writes_an_unknown_the_senior_owns():
 
 def test_challenge_asks_the_solution_lead_in_a_pr():
     text = skill_text_challenge()
-    assert "The reviewer is the solution lead: the `owner:` of `01-goals.md`." in text
+    assert "asks the solution lead (the `owner:` of `01-goals.md`, unless that is you) to review" in text
     assert "a contract to `assumption`, an epic to `reopened`" in text
-    assert "Never say a PR exists unless `gh` printed its URL." in text  # the hard stop stays pinned
+    assert "Never say a PR exists unless it printed the URL" in text  # the hard stop stays pinned
 
 
 # What the skill writes, applied to a copy of the fixture: the check turns red with E316 and
@@ -183,14 +183,21 @@ def test_the_session_opens_with_session_start_and_files_with_close_stage():
     assert "Never use `git add -A`" not in text and "Stage every file `vela render` reported" not in text
     assert "git add -A" in close_stage.__doc__ and "allow-list" in close_stage.__doc__
     # the close commands' gate counts the deliberate red check as an error, so the skill says why it files itself
-    assert "`vela close finish` and `vela close push` stop on the deliberate red check" in text
+    assert "`vela close finish` stops on the deliberate red check; `vela close push` sends it with that check red" in text
 
 
-def test_nothing_is_sent_without_the_team_leads_yes():
+def test_challenge_sends_through_close_push_with_no_extra_yes():
     text = skill_text_challenge()
-    assert 'I\'ll send this challenge for review to <the solution lead\'s name>. OK?' in text
-    assert '--mark "drop: the yes to send this for review"' in text
-    assert text.index("OK?") < text.index("git push -u origin session/<id>") < text.index("gh pr create")
+    assert "I'll send this challenge for review" not in text and "drop: the yes to send" not in text
+    assert "vela close push --for-lead" in text and "vela close pr --prose .vela/close/prose.md --for-lead" in text
+    assert "git push -u origin" not in text and "gh pr create" not in text
+    assert text.index("vela close push --for-lead") < text.index("vela close pr --prose")
+
+
+def test_challenge_still_reads_the_team_leads_own_words_back_before_they_leave():
+    text = skill_text_challenge()
+    assert "read the team lead's Dissent words back to them directly from the page before they leave the machine" in text
+    assert "vela close readback --for-lead" in text
 
 
 def test_handoff_verify_says_doesnt_exist_when_there_is_no_manifest(tmp_path, capsys):

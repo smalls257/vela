@@ -199,7 +199,7 @@ def check_codes(vault):
 def test_a_stated_decision_is_decided_with_the_yes_citing_the_document(tmp_path, monkeypatch):
     vault = started(tmp_path, monkeypatch, CAPTURES)
     path = with_adr(vault)
-    code, output = run("decide", "ADR-0001", "--readback", "^c01", "--yes", "^c02", "--stated-in", "SRC-04",
+    code, output = run("decide", "ADR-0001", "--yes", "^c02", "--stated-in", "SRC-04",
                        "--vault", str(vault), "--today", TODAY, "--json")
     assert code == 0, output
     text = path.read_text(encoding="utf-8")
@@ -213,10 +213,10 @@ def test_a_stated_decision_without_a_real_yes_is_refused_and_nothing_written(tmp
     vault = started(tmp_path, monkeypatch, CAPTURES)
     path = with_adr(vault)
     for yes in ("^c03", "^c04"):  # a bare "ok", and Claude's own "Yes"
-        code, _ = run("decide", "ADR-0001", "--readback", "^c01", "--yes", yes, "--stated-in", "SRC-04",
+        code, _ = run("decide", "ADR-0001", "--yes", yes, "--stated-in", "SRC-04",
                       "--vault", str(vault), "--today", TODAY)
         assert code == 1
-    code, output = run("decide", "ADR-0001", "--readback", "^c01", "--yes", "^c02", "--stated-in", "SRC-09",
+    code, output = run("decide", "ADR-0001", "--yes", "^c02", "--stated-in", "SRC-09",
                        "--vault", str(vault), "--today", TODAY)
     assert code == 1 and "decide-stated-in" in output
     assert path.read_text(encoding="utf-8") == ADR_TEXT
@@ -278,11 +278,11 @@ def test_until_the_lead_answers_a_page_keeps_the_documents_words(tmp_path, monke
 
 def test_one_sources_keep_is_never_voiced_because_anothers_was(tmp_path, monkeypatch):
     state = importqueue.new_state("s")
-    importqueue.set_wording(state, "voice", "^c05")
-    importqueue.set_wording(state, "keep", "^c06", "SRC-03")
-    assert importqueue.wording_for(state, ["SRC-02"]) == ("voice", "^c05")
-    assert importqueue.wording_for(state, ["SRC-02", "SRC-03"]) == ("keep", "^c06")
-    assert importqueue.wording_for(importqueue.new_state("s"), ["SRC-02"]) == ("keep", "")
+    importqueue.set_wording(state, "voice", "^c05", cite="c05")
+    importqueue.set_wording(state, "keep", "^c06", "SRC-03", "c06")
+    assert importqueue.wording_for(state, ["SRC-02"]) == ("voice", "^c05", "c05")
+    assert importqueue.wording_for(state, ["SRC-02", "SRC-03"]) == ("keep", "^c06", "c06")
+    assert importqueue.wording_for(importqueue.new_state("s"), ["SRC-02"]) == ("keep", "", "")
 
 
 def test_a_voiced_page_with_no_answer_on_record_fails_the_check(tmp_path, monkeypatch):

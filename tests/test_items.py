@@ -182,7 +182,7 @@ def test_label_case_does_not_matter(mini):
     assert code == 0, out
 
 
-# fix round 1: GATE-4 reach, decided rows, malformed anchors and Decision links
+# fix round 1: E316 reach, decided rows, malformed anchors and Decision links
 
 def test_gate_four_page_link_reaches_items_on_the_page(mini):
     edit(mini / UNK, "- **Opened:** 2026-01-10\n", "- **Opened:** 2026-01-10\n- **Blocks:** [[shop-building-blocks|Shop]]\n")

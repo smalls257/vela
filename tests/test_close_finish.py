@@ -194,15 +194,10 @@ def test_no_session_path_does_not_commit_to_main(tmp_path):
     with_remote(tmp_path, vault)
     head = git(vault, "rev-parse", "HEAD")
     code, out = run("close", "dashboard", "--vault", str(vault), "--today", TODAY, "--for-lead")
-    assert code == 3, out
+    assert code == 0, out  # no question, no branch, no commit
     assert closefinish.NO_SESSION_DASHBOARD in out and say.leak_in(out) is None
-    assert (vault / "dashboard.html").is_file()
-    assert git(vault, "rev-parse", "HEAD") == head and git(vault, "branch", "--show-current") == "main"
-    code, out = run("close", "dashboard", "--vault", str(vault), "--today", TODAY, "--branch")
-    assert code == 0, out
-    assert git(vault, "branch", "--show-current") == f"dashboard/{TODAY}"
-    assert files_in(vault, "HEAD") == ["dashboard.html"] and subjects(vault, 1) == ["Rebuild dashboard"]
-    assert git(vault, "rev-parse", "main") == head
+    assert (vault / "dashboard.html").is_file() and git(vault, "branch", "--show-current") == "main"
+    assert git(vault, "rev-parse", "HEAD") == head
 
 
 def test_dashboard_with_a_session_open_leaves_it_for_the_close(tmp_path):

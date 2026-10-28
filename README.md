@@ -37,7 +37,7 @@ Your vaults are not touched. The `release` branch is generated from `main` and h
    - `/vela:boundary` turns a decided direction into apps: 2–3 ways to cut it, then one sheet per app (what it does and does not do, containers, contracts, failure, concerns), written at `assumption` line by line.
    - `/vela:allocate` divides each requirement among the apps and contracts that carry it, so every requirement has an owner before epics.
    - `/vela:releases` asks when anyone outside the team first gets the result, then which requirements (or which of their checks) each dated release delivers, and writes `04b-releases.md`, which the dashboard's Releases view reads.
-   - Any session can settle an item `decided` when you're sure, but only after it reads the item back and you say yes; a grill is how to test one first.
+   - Any session can settle an item `decided` when you're sure, once you say yes to it; a grill is how to test one first.
    - `/vela:ask` answers questions from the vault. It is read-only, and anything the vault doesn't hold comes back as `Not recorded:`.
    - `/vela:find` finds where something is, in seconds, mid-conversation: "how does coach talk to brightwater" gives the best place to look and the flows that cross it.
    - `/vela:onboard` gets someone who has just joined up to speed: it asks their role, what they need and whether they like diagrams or explanations, then sets up a path through the plan in the dashboard. Everything on it comes from the plan, and what the plan doesn't hold says "Not recorded yet" and who to ask.

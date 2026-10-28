@@ -11,7 +11,7 @@ authored: authored
 # Solution strategy
 
 - **Decision:** [[2026-10-08-first-instruments-signal]]
-- **Override:** GATE-4 by @sim-lead on 2026-10-08: CEO wants the January demo, counsel cleared lessons and paper, unknowns to the team
+- **Override:** E316 by @sim-lead on 2026-10-08: CEO wants the January demo, counsel cleared lessons and paper, unknowns to the team
 
 ## The core move
 

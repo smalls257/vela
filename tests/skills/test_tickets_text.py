@@ -44,7 +44,7 @@ def test_tickets_reads_the_voices_through_start_and_the_conversation_voice_file(
 def test_the_tickets_skill_checks_asks_creates_nothing_without_a_yes_and_stops():
     body = text(TICKETS / "SKILL.md")
     for phrase in ("vela tickets check", "Markdown ticket list", "CSV for Jira import", "Do you already have Jira connected to Claude, or a Jira command-line tool?",
-                   "never guess a project key", "Nothing is created in any outside system without an explicit yes",
+                   "never guess a project key", "Nothing is created in an outside system the person didn't choose in step 3",
                    "Write no script to create tickets", "stop with one short summary", "9 stories, 42 tasks, 3 flagged"):
         assert phrase in body, phrase
     assert "tools/breakdown_to_tickets.py" not in body  # not shipped in the plugin zip; the CLI carries the converter
@@ -101,3 +101,9 @@ def test_tickets_names_only_commands_that_exist():
     assert len(found) >= 3, found
     for line, written, argv in found:
         assert is_a_mention(parser, argv) or parse_error(parser, argv) is None, (line, written)
+
+
+def test_choosing_jira_is_the_yes_for_the_first_wave():
+    body = text(TICKETS / "SKILL.md")
+    assert "Choosing Jira tools is the yes for the first wave" in body and "without a yes per ticket" in body
+    assert "Ask once before each later wave" in body and "wait for a yes" not in body

@@ -6,7 +6,7 @@ spread through the close skill's prose, each item a sentence a model could skip.
 (Shield), and each line is a Sensor for a failure that used to be silent. What blocks:
 
 - **Main not brought in.** `close sync-main` records its outcome; a branch never compared with main is not ready
-  unless the lead chose to go on without it, which the gate still says. The gate never runs sync-main itself, even
+  unless main could not be reached (an outage, not the lead's to fix), which the gate still says. The gate never runs sync-main itself, even
   when its record is missing (plan 9.2 said it would): a check that merges is a write hidden inside a read, a Black
   Box. It says which command to run instead.
 - **A decision with no quoted yes.** Every item that went into or out of `decided` since the branch point must have a
@@ -14,8 +14,8 @@ spread through the close skill's prose, each item a sentence a model could skip.
   with the Edit tool, which no hook stops in Cowork, shows up here in both apps.
 - **A capture with no mark.** Close files every capture; one left unmarked is something the lead said that would drop
   out of the plan with nobody choosing that.
-- **An error with no recorded choice.** `vela check`'s errors, after the overrides: what's left has nobody's choice
-  behind it, and would fail the merge anyway.
+- **An error the session made, with no recorded choice.** `vela check`'s errors, after the overrides, less those
+  already errors at the branch point: an old error, or an exception that ended since, is not the session's to fix.
 - **A ledger row or an override removed since the branch point.** Close section 6 says to fix errors with the lead and
   never delete the row or override to quiet the check. Deletion is detectable, so it is refused here, unless the record
   holds the lead's own words for the removal (a `| <ID> | ... | removed | [[record#^cNN]] |` Changes row).
@@ -35,6 +35,7 @@ of decided is judged as written, and removals, strays and the flow check are lef
 
 `observe` and `closegate.ready` are the public pair `close finish` composes (Task 11): observe gathers, ready judges.
 """
+import collections
 import pathlib
 import re
 import time
@@ -91,10 +92,26 @@ def vault_before(vault, before):
     return model.build(pages, vault.config, sorted(vault.other_names), vault.catalog, vault.template_lines)
 
 
-def check_errors(vault, today):
-    """Check's errors, after the overrides (`rules.check` applies them)."""
+def check_errors(vault, today, before=None):
+    """Check's errors, after the overrides (`rules.check` applies them), less those already errors in `before`, the
+    vault at the branch point, on the same `today`: the session didn't make those, so it can't be held up by them. An
+    error is the same one when its code, page and message match; a new error on a page the session never touched
+    (a deleted page another links to) differs from every old one, so it still blocks, and so does one more of an error
+    that was already there (counted per key). No `before` (a reader copy has
+    no branch point) keeps them all."""
     from vela import rules
-    return tuple(f for f in rules.check(vault, today) if f.is_error)
+    errors = tuple(f for f in rules.check(vault, today) if f.is_error)
+    if before is None:
+        return errors
+    already = collections.Counter((f.code, f.path, f.message) for f in rules.check(before, today) if f.is_error)
+    new = []
+    for f in errors:  # a count, not a set: one more of the same error is still the session's
+        key = (f.code, f.path, f.message)
+        if already[key] > 0:
+            already[key] -= 1
+        else:
+            new.append(f)
+    return tuple(new)
 
 
 def stale_render(root, vault):
@@ -181,14 +198,15 @@ def observe(root, vault, record, text, today):
     stale, render_problems = stale_render(root, vault)
     host = hostprobe.read_json(root / hostprobe.HOST_FILE)
     common = dict(lead=apply.lead_of(root), readback=read_back_digest(root, record.id),
-                  picked=tuple(read_picked(root, record.id)), today=today, sync=mergegit.sync_verdict(root), errors=check_errors(vault, today), stale=stale,
+                  picked=tuple(read_picked(root, record.id)), today=today, sync=mergegit.sync_verdict(root), stale=stale,
                   render_problems=render_problems, hooks_ran=(root / hostprobe.ACTIVE_FILE).is_file(), host=host or None,
                   reader=reader)
     if reader:
-        return closegate.Seen(**common)
-    before = flowstore.changed_files(root, since=branch_point(root))
-    return closegate.Seen(before=vault_before(vault, before), stray=strays(root, record.id),
-                          flow=flow_lines(root, vault, before, today), **common)
+        return closegate.Seen(errors=check_errors(vault, today), **common)
+    changed = flowstore.changed_files(root, since=branch_point(root))
+    at_branch_point = vault_before(vault, changed)
+    return closegate.Seen(before=at_branch_point, errors=check_errors(vault, today, at_branch_point),
+                          stray=strays(root, record.id), flow=flow_lines(root, vault, changed, today), **common)
 
 
 def run(args, out):
@@ -211,7 +229,6 @@ KIND_WORDS = {
     closegate.UNMARKED: ("some of what was said isn't sorted yet", "some of what was said isn't sorted yet"),
     closegate.CHECK: ("one item can't be finished as it stands", "{n} items can't be finished as they stand"),
     closegate.REMOVED_ROW: ("one thing was taken out this session", "{n} things were taken out this session"),
-    closegate.STRAY: ("some files changed outside this session", "some files changed outside this session"),
 }
 WAY_OUT = "You can also keep any of these as they are; I'll note why."
 

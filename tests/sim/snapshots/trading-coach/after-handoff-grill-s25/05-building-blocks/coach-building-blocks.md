@@ -13,7 +13,7 @@ sources: [SRC-01, SRC-02, SRC-06, 2026-10-08-first-instruments-signal, 2026-10-0
 # Coach
 
 - **Decision:** [[2026-10-08-coach-contracts-grill]]
-- **Override:** GATE-4 by @sim-lead on 2026-10-08: CEO wants the January demo, counsel cleared lessons and paper, open questions to the build team as named risks with owners
+- **Override:** E316 by @sim-lead on 2026-10-08: CEO wants the January demo, counsel cleared lessons and paper, open questions to the build team as named risks with owners
 - **Options considered:** Coach app behind TickerTalk (picked); Coach built into TickerTalk: rejected, "B drowns mobile, they're already maxed" (the product lead); Coach, a separate board-demo app and Signal as idea source: rejected, "C's too many apps before we know what Brightwater allows" (the product lead)
 
 Coach teaches individual US-listed stocks through lessons and paper practice on quotes delayed by 15 minutes (SRC-02; [[04-solution-strategy#First instruments|First instruments]], decided). It also holds the private January board demo of trade ideas: no customer can open it, it places no live order, and the user buys themselves ([[04-solution-strategy#First release|First release]], decided). It keeps each user's lesson progress and paper positions; where they are kept is not decided.
@@ -59,7 +59,7 @@ Key: dark blue: the app this page is about · amber: changed by this initiative 
 - **State:** decided
 - **Decision:** [[2026-10-08-coach-contracts-grill]]
 - **Tested by:** TickerTalk side, the mobile lead; Coach side, the coach lead; neither is named yet, no handles
-- **Override:** GATE-4 by @sim-lead on 2026-10-08: CEO wants the January demo, counsel cleared lessons and paper, open questions to the build team as named risks with owners
+- **Override:** E316 by @sim-lead on 2026-10-08: CEO wants the January demo, counsel cleared lessons and paper, open questions to the build team as named risks with owners
 - **Options considered:** Coach app behind TickerTalk (picked); Coach built into TickerTalk: rejected, "B drowns mobile, they're already maxed" (the product lead); Coach, a separate board-demo app and Signal as idea source: rejected, "C's too many apps before we know what Brightwater allows" (the product lead)
 
 ## Contracts this app consumes
@@ -74,7 +74,7 @@ Key: dark blue: the app this page is about · amber: changed by this initiative 
 - **State:** decided
 - **Decision:** [[2026-10-08-coach-contracts-grill]]
 - **Tested by:** Coach side, the coach lead (not named yet, no handle); Quoteline side, not consulted
-- **Override:** GATE-4 by @sim-lead on 2026-10-08: CEO wants the January demo, counsel cleared lessons and paper, open questions to the build team as named risks with owners
+- **Override:** E316 by @sim-lead on 2026-10-08: CEO wants the January demo, counsel cleared lessons and paper, open questions to the build team as named risks with owners
 - **Options considered:** Coach app behind TickerTalk (picked); Coach built into TickerTalk: rejected, "B drowns mobile, they're already maxed" (the product lead); Coach, a separate board-demo app and Signal as idea source: rejected, "C's too many apps before we know what Brightwater allows" (the product lead)
 
 <!-- generated:contracts-consumed sha=5c308f02: do not edit, run vela render -->

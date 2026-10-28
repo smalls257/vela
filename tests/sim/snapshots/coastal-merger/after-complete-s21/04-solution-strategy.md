@@ -17,7 +17,7 @@ authored: authored
 - **Options considered:** Option B, a linked household account (picked); Option A, one sign-in: rejected, "A leaves the family email for later which just delays the problem."; Option C, one merged customer and wallet: rejected, it needs Finance to settle points and needs the two FERRYMASTER people, who are leaving, so a migration could start with nowhere to land.
 - **Decision:** [[2026-10-06-what-one-account-means-2]]
 - **Decided by:** @sim-lead, on behalf of @solution-lead
-- **Override:** GATE-4, GATE-5 by @sim-lead on 2026-10-06: I can't wait for Legal to confirm terms that don't exist yet. The legal owner will tell us what the customer terms allow, but the terms themselves depend on what we're building. If we wait for the legal read before we decide, we're stalled indefinitely. The legal check on Monday is not optional, it's a gate on build, but it can't block the decision. If the terms say we can't do matching, we have a problem to solve then, not a reason to wait now.
+- **Override:** E316, GATE-5 by @sim-lead on 2026-10-06: I can't wait for Legal to confirm terms that don't exist yet. The legal owner will tell us what the customer terms allow, but the terms themselves depend on what we're building. If we wait for the legal read before we decide, we're stalled indefinitely. The legal check on Monday is not optional, it's a gate on build, but it can't block the decision. If the terms say we can't do matching, we have a problem to solve then, not a reason to wait now.
 - **Still owed:** DPO sign-off still owed, UNK-010 open. [[11-unknowns-and-risks#UNK-028 Customer terms and contracting party|UNK-028]] stays open.
 ## Loyalty in one account
 

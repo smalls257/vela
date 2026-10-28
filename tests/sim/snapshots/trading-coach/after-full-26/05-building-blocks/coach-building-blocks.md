@@ -118,29 +118,29 @@ Quoteline's delayed US equity quotes. [[sources#SRC-10|Quoteline's reply]] says 
 ## History
 
 - **Decision:** [[2026-10-09-coach-page-contracts]]
-- **Override:** GATE-4 by @sim-lead on 2026-10-09: UNK-028 waits on a check with the mobile lead by 14 October, and UNK-029 is Coach's own design call
+- **Override:** E316 by @sim-lead on 2026-10-09: UNK-028 waits on a check with the mobile lead by 14 October, and UNK-029 is Coach's own design call
 - **Options considered:** Coach service behind TickerTalk (picked); Coach inside TickerTalk: rejected, the product lead says "news app stays news"; Coach plus a paper-trading gateway: rejected, two new services for a January demo and a seam that only pays off once real orders exist
 
 #### CON-001 Lessons and track
 
 - **Options considered:** Coach service behind TickerTalk (picked); Coach inside TickerTalk: rejected, the product lead says "news app stays news"; Coach plus a paper-trading gateway: rejected, two new services for a January demo and a seam that only pays off once real orders exist
 - **Decision:** [[2026-10-09-coach-page-contracts]]
-- **Override:** GATE-4 by @sim-lead on 2026-10-09: UNK-028 waits on a check with the mobile lead by 14 October, and UNK-029 is Coach's own design call
+- **Override:** E316 by @sim-lead on 2026-10-09: UNK-028 waits on a check with the mobile lead by 14 October, and UNK-029 is Coach's own design call
 
 #### CON-002 Paper trades
 
 - **Options considered:** Coach service behind TickerTalk (picked); Coach inside TickerTalk: rejected, the product lead says "news app stays news"; Coach plus a paper-trading gateway: rejected, two new services for a January demo and a seam that only pays off once real orders exist
 - **Decision:** [[2026-10-09-coach-page-contracts]]
-- **Override:** GATE-4 by @sim-lead on 2026-10-09: UNK-028 waits on a check with the mobile lead by 14 October, and UNK-029 is Coach's own design call
+- **Override:** E316 by @sim-lead on 2026-10-09: UNK-028 waits on a check with the mobile lead by 14 October, and UNK-029 is Coach's own design call
 
 #### CON-003 Brightwater sandbox
 
 - **Options considered:** Coach service behind TickerTalk (picked); Coach inside TickerTalk: rejected, the product lead says "news app stays news"; Coach plus a paper-trading gateway: rejected, two new services for a January demo and a seam that only pays off once real orders exist
 - **Decision:** [[2026-10-09-coach-page-contracts]]
-- **Override:** GATE-4 by @sim-lead on 2026-10-09: UNK-028 waits on a check with the mobile lead by 14 October, and UNK-029 is Coach's own design call
+- **Override:** E316 by @sim-lead on 2026-10-09: UNK-028 waits on a check with the mobile lead by 14 October, and UNK-029 is Coach's own design call
 
 #### CON-004 Quoteline delayed quotes
 
 - **Options considered:** Coach service behind TickerTalk (picked); Coach inside TickerTalk: rejected, the product lead says "news app stays news"; Coach plus a paper-trading gateway: rejected, two new services for a January demo and a seam that only pays off once real orders exist
 - **Decision:** [[2026-10-09-coach-page-contracts]]
-- **Override:** GATE-4 by @sim-lead on 2026-10-09: UNK-028 waits on a check with the mobile lead by 14 October, and UNK-029 is Coach's own design call
+- **Override:** E316 by @sim-lead on 2026-10-09: UNK-028 waits on a check with the mobile lead by 14 October, and UNK-029 is Coach's own design call

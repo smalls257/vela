@@ -40,6 +40,16 @@ def test_set_records_the_band_and_the_leads_reason(tmp_path):
     assert config["title"] == "Scheduled jobs"
 
 
+def test_size_set_needs_no_reason(tmp_path):
+    root = small(tmp_path)
+    code, out = run("size", "set", "large", "--vault", str(root), "--today", "2026-10-23")
+    assert code == 0, out
+    config = yaml.safe_load((root / ".vela.yaml").read_text(encoding="utf-8"))
+    assert config["size"] == {"band": "large", "because": "reason not given", "date": "2026-10-23"}
+    code, out = run("size", "--vault", str(root))
+    assert code == 0 and "reason not given" in out and "large" in out
+
+
 def test_set_without_a_reason_on_record_asks_for_it_and_writes_nothing(tmp_path):
     root = small(tmp_path)
     open_session(root)

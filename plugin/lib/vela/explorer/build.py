@@ -231,7 +231,7 @@ def settled_said(value):
 
 
 def override_said(bullet):
-    """An Override bullet as a reader says it: who skipped which check, when, and why, not "GATE-4 by @x on <ISO>".
+    """An Override bullet as a reader says it: who skipped which check, when, and why, not "E316 by @x on <ISO>".
     A malformed one is shown as written, so the checker's complaint about it still matches what the page shows."""
     o = override.parse(bullet.value, bullet.line)
     if o.problem:

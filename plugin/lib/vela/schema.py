@@ -182,6 +182,8 @@ WHY_LABEL = "Why"  # the lead's own reasons for a decision, written by the Grill
 OPTIONS_LABEL = "Options considered"  # what Shape recorded: the picked option, and each rejected one with its reason
 # The user's word over a rule, and a decision made on an absent owner's behalf. Allowed on any item or page.
 OVERRIDE_LABEL, DECIDED_BY_LABEL, CONFIRMED_BY_LABEL = "Override", "Decided by", "Confirmed by"
+# The open questions that blocked an item when the lead settled it anyway: UNK IDs, noted so E316 excuses only these.
+DECIDED_WITH_OPEN_LABEL = "Decided with open"
 OVERRIDE_LABELS = (OVERRIDE_LABEL, DECIDED_BY_LABEL, CONFIRMED_BY_LABEL)
 # A reader's decision or override, awaiting the owner's review. Not an override: it sets no rule aside.
 PENDING_LABEL = "Pending approval"
@@ -242,20 +244,18 @@ SUBJECT_LOOKALIKE_RE = re.compile(r"^(PTY|SV)(?![A-Za-z])", re.IGNORECASE)
 # Rule name in an **Override:** bullet -> the check codes it turns into warnings. A gate check
 # cannot see (GATE-1, 2, 3, 5) turns nothing: the bullet is the record.
 OVERRIDE_RULES = {
-    "GATE-1": (), "GATE-2": (), "GATE-3": (), "GATE-4": ("E316",), "GATE-5": (),
+    "GATE-1": (), "GATE-2": (), "GATE-3": (), "GATE-5": (),
     "E303": ("E303",), "E304": ("E304",), "E316": ("E316",), "E318": ("E318",),
     "E805": ("E805",),
 }
 # Two classes, because they end differently (plan 4.4). A standing rule guards a condition that stays true until
-# someone acts (an unknown still open, a case table still missing), so its override says the date it ends: without
-# one it would cover the rule forever, a Silent Fallback with a signature on it. An event rule was met or not at the
+# someone acts (an unknown still open, a case table still missing), so its override may say the date it ends; when it
+# does, a later close is not held up by it, and the session brief names it. An event rule was met or not at the
 # moment of deciding (who was in the room, how many options a Shape weighed), so its override has nothing to end.
 # A quoted rule is standing when it is "case table" or a flow-check finding ("F<n> ..."), and an event otherwise.
-STANDING_RULES = ("GATE-4", "E303", "E304", "E316", "E318", "E805")
+STANDING_RULES = ("E303", "E304", "E316", "E318", "E805")
 EVENT_RULES = ("GATE-1", "GATE-2", "GATE-3", "GATE-5")
 STANDING_QUOTED = ('"case table"',)
-# How far ahead the date a refusal offers sits when the item feeds no release with a Target still to come.
-SUGGEST_UNTIL_DAYS = 30
 # Error -> the warning it becomes when an Override on the same item names it.
 # The sentence an E805 fix ends with. An overridden E805 prints as W805 without it, so the way to end an
 # override never suggests making another one. It names commands, never the Override bullet's grammar.
@@ -279,7 +279,8 @@ ALLOCATION_HEADER = ("Requirement", "Share", "Through", "State")
 # A page's history sits at its end under this heading, so the page opens with what is true now. "#### <ID>" under
 # it holds an item's history. HISTORY_LABELS are the bullets that belong there.
 HISTORY_HEADING = "History"
-HISTORY_LABELS = ("Decision", WHY_LABEL, "Override", "Decided by", "Confirmed by", "Options considered", "Dissent")
+HISTORY_LABELS = ("Decision", WHY_LABEL, "Override", "Decided by", "Confirmed by", "Options considered", "Dissent",
+                  DECIDED_WITH_OPEN_LABEL)
 CONTAINER_STATES = ("assumption", "confirmed", "unchanged", "retired")
 CELLS_HEADER = ("App", "State")
 CELL_STATES = ("addressed", "unchanged", "n/a", "unknown", "unexamined")

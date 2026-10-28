@@ -106,6 +106,10 @@ def booking_grills(tmp_path):
         path.write_text(text[:at] + options + text[at + len("- **State:** decided"):], encoding="utf-8")
     edit(root / "11-unknowns-and-risks.md", "- **Ask by:** 2027-03-01\n- **Notes:** Deferred to INI-005.",
          "- **Ask by:** 2027-03-01\n- **Blocks:** [[booking-building-blocks#CON-002 Booking state changed|CON-002]]\n- **Notes:** Deferred to INI-005.")
+    # CON-002 keeps its open question (settling notes it) and loses its error case, so one thing is in the way
+    edit(root / "05-building-blocks" / "booking-building-blocks.md",
+         "| bus_down | | error | the event bus is down: the Event publisher keeps the events and publishes them in order "
+         "when it returns, so none are lost | | |\n", "")
     edit(root / "13-epics" / "EPC-039-run-booking.md", "state: decided", "state: draft")  # an epic nothing waits on: the batch has a grill that unblocks none
     session_files.write_record(root, "2026-10-20-shape-pricing", BOOKING_SESSION)
     with open(root / ".vela.yaml", "a", encoding="utf-8") as config:

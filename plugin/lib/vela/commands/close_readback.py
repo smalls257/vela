@@ -1,18 +1,18 @@
 """`vela close readback [--reword ITEM --line L --words W [--approved ^cNN]] [--cut ITEM --line L] [--pick ^cNN]
-[--done] [--json|--for-lead]`: the lead reads back every sentence that goes on record in their name.
+[--done] [--json|--for-lead]`: the lead reads back the quotes picked for the pull request.
 
-The Violation this command's shape prevents is a Silent Fallback in the record: a receipt's words, a Why line or a
-quote reads as something the lead said, and nobody showed them the final wording. `closereadback.py` says what is
-listed and why. Close order (controller ruling C7): "Still yes?" reconfirm first, then this read-back, so the digest
-`--done` stores covers the final words; editing any listed sentence afterward changes the digest and the gate asks again.
+The Violation this command's shape prevents is a Silent Fallback in the record: a picked quote reads as something the
+lead said, and nobody showed them the final wording. Settled Decision and Why lines are not listed; `--reword` and
+`--cut` still reach them. `closereadback.py` says what is
+listed and why. The digest `--done` stores covers the final words; editing any listed sentence afterward changes the digest and the gate asks again.
 
-- no flag: list the sentences (exit 0).
+- no flag: list the picked quotes (exit 0).
 - `--reword ITEM --line decision|why|quote --words "..."`: the new words must be an excerpt of the capture the line
   cites, or the words of a lead capture that approves them (`--approved ^cNN`, which re-points a decision receipt to it).
 - `--cut ITEM --line why|quote`: drop the line. A decision's words can be reworded, never cut.
 - `--pick ^cNN`: add a quote of the lead's own words (or of someone with their own quote-yes) to
-  `.vela/close/<id>.quotes.json`. The PR body no longer prints picked quotes; the pick is still read back and gated.
-- `--done`: store the digest of what stands now in `.vela/close/<id>.readback.json`.
+  `.vela/close/<id>.quotes.json`. The pick is read back and gated.
+- `--done`: store the digest of the picked quotes that stand now in `.vela/close/<id>.readback.json`.
 
 Exit codes: 0 done; 1 refused (said in plain words); 2 the tool failed; 3 several sessions are open.
 """
@@ -118,11 +118,12 @@ def judge(args, root, vault, record, lead):
     if args.cut:
         return cut(args, root, vault, record, listing, picked)
     if args.done:
-        digest = closereadback.digest(listing)
+        read = closereadback.owed(listing)
+        digest = closereadback.digest(read)
         wrote = sessiongit.write_text(root, _file(root, record.id, "readback"), json.dumps({"digest": digest}) + "\n")
-        return _done([wrote], f"close readback: {len(listing)} sentence(s) read back ({digest[:12]}).",
+        return _done([wrote], f"close readback: {len(read)} sentence(s) read back ({digest[:12]}).",
                      "Thank you. That wording is on record as you read it.")
-    return show(listing, vault, lead)
+    return show(closereadback.owed(listing), vault, lead)
 
 
 def show(listing, vault, lead):
@@ -138,8 +139,8 @@ def show(listing, vault, lead):
         note = "" if s.number else f" ({UNTRACEABLE})"
         lines.append(say.Line(text, plain=f'{label}: "{s.words}"{note}'))
     if not listing:
-        lines[0] = say.Line("close readback: nothing goes on record in the lead's name.",
-                            plain="Nothing goes on record in your name, so there's nothing to read back.")
+        lines[0] = say.Line("close readback: no picked quotes to read back.",
+                            plain="No quotes are picked, so there's nothing to read back.")
     data = {"sentences": [s.__dict__ for s in listing]}
     return say.Result(NAME, exit=say.DONE, lines=lines, data=data)
 

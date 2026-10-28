@@ -1,6 +1,8 @@
 """What the lead hears about settling: the close line, the waiting list, the PR title, the next step."""
 from vela import prbody, progress, terms
 from vela.decisions import ready, settled
+from vela.model import build
+from vela.parse import parse_page
 
 RECORD = ("## Changes\n\n| ID | From | To | Source |\n|---|---|---|---|\n"
           "| solution-strategy | inkling | decided | [[r#^c18]] |\n| CON-003 | assumption | decided | [[r#^c46]] |\n"
@@ -34,6 +36,9 @@ def test_a_grill_is_for_testing():
                                      "questions, one at a time, until it holds up.")
 
 
-def test_a_reconfirmed_decision_is_not_counted_as_settled_in_this_session():
-    record = RECORD + "| CON-009 | assumption | decided | [[r#^c60]] (reconfirmed) |\n"
-    assert settled.settled_ids(record) == ["solution-strategy", "CON-003"]
+def test_an_item_whose_receipt_names_this_session_counts_as_settled():
+    page = ("pages/p.md", "---\nid: CON-009\ntype: constraint\ntitle: Till API\nstate: decided\nowner: \"@t\"\n---\n\n"
+            "# Till API\n\n- **Decision:** [[r]] 2.c01, @priya: \"Yes.\"\n")
+    vault = build([parse_page(*page)], {"initiative": "INI-900", "title": "Mini shop"})
+    assert settled.settled_ids(RECORD, vault, "r")[-1] == "CON-009"
+    assert settled.settled_ids(RECORD, vault, "other") == ["solution-strategy", "CON-003"]

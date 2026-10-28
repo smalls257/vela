@@ -105,3 +105,11 @@ def test_capture_line_refuses_what_would_not_parse():
             records.capture_line(tag, origin, words, 1)
     with pytest.raises(records.CaptureRefused):
         records.append("# x\n", "- [idea] (claude) a ^c01")
+
+
+def test_a_challenge_title_may_carry_the_plan_prefix_of_a_shared_repo():
+    """planscope.titled puts `[plan] ` in front when several plans share a repo; the answer must still find it."""
+    prs = [{"number": 8, "headRefName": "session/shop/2026-10-11-challenge-con-001", "title": "[shop] 2026-10-11 Challenge: CON-001"}]
+    assert [p["number"] for p in sessions.challenge_matches(prs, "CON-001")] == [8]
+    assert sessions.challenged_id({**prs[0], "state": "OPEN"}) == "CON-001"
+    assert sessions.challenged_id({**prs[0], "state": "OPEN", "title": "[shop] Challenge: CON-001"}) is None

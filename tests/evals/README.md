@@ -34,8 +34,8 @@ all eight cases up to $160. The ceiling is checked before each run starts, so a 
 blocking CAP-021. In e3 the lead asks for a plain grill, so grill must not pick an override for them: a
 grader fails any Write or Edit that adds `**Override:**`, and the run.py forbid check fails an override
 bullet in the CAP-021 page. Offering to "decide anyway" or "override" counts as a way forward.
-In e7 the lead explicitly overrides GATE-4 and GATE-5, so CAP-021 must end up decided with an
-`**Override:**` naming GATE-4 and a `**Decided by:**` that says "on behalf of". Native graders read the page
+In e7 the lead explicitly overrides E316 and GATE-5, so CAP-021 must end up decided with an
+`**Override:**` naming E316 and a `**Decided by:**` that says "on behalf of". Native graders read the page
 (any tool that wrote it). run.py adds what a grader cannot: `vela check` must report W316 and never E316,
 and one more decided page is allowed (`may_decide`). The scaffold's owner of CAP-021 is the lead themselves,
 so the on-behalf line names the lead twice; the grader checks the wording, not that the handles differ.

@@ -23,7 +23,7 @@ The list holds only if counsel clears it as not investment advice, which [[11-un
 ## History
 
 - **Decision:** [[2026-10-09-first-instruments]]
-- **Override:** GATE-4, GATE-5 by @sim-lead on 2026-10-09: counsel and partnerships have answered some of these (not sourced), the CEO wants the January demo, and the open questions go to the build team with owners
+- **Override:** E316, GATE-5 by @sim-lead on 2026-10-09: counsel and partnerships have answered some of these (not sourced), the CEO wants the January demo, and the open questions go to the build team with owners
 - **Decided by:** @sim-lead, on behalf of @solution-lead
 - **Options considered:** Teach on paper (picked); Recommend, reader taps: rejected, it needs a compliance ruling nobody has written; Automatic for the ready: rejected, it needs a compliance ruling nobody has written
 - **Options considered:** A short list of big US stocks (picked, on condition that counsel clears the list as not investment advice); Any US stock the reader picks: rejected for now, kept as the fallback if legal will not clear the list; Stocks first, options as reading only: rejected, the CEO's acceptance is open and the options content is too much to run in parallel

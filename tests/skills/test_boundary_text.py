@@ -249,7 +249,7 @@ def test_boundary_says_what_to_do_with_the_ready_to_decide_hand_off():
 
 def test_boundary_offers_links_to_the_library_and_keeps_links_front_matter():
     body = (PLUGIN / "skills/boundary/SKILL.md").read_text(encoding="utf-8")
-    assert "vela library add" in body and "for the Library" in body
+    assert "add a link they give to the Library with `vela library add`, no yes" in body
     assert "The page's `links:` stay as they are" in body
 
 
@@ -271,3 +271,7 @@ def test_boundary_asks_for_each_contracts_spec_and_files_a_missing_one_as_a_ques
     assert "who writes it and by when" in body and "no `**Blocks:**` line" in body
     assert '"No spec" is a fine answer' in body
 
+
+def test_a_group_yes_can_write_and_settle():
+    assert "Write these as decided, or keep them as not decided yet?" in text("skills/boundary/SKILL.md")
+    assert "vela decide <ID> --yes ^cM --for-lead" in text("skills/boundary/SKILL.md")

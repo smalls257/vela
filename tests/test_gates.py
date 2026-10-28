@@ -110,6 +110,7 @@ def test_the_asset_slot_rule_watches_the_explorer_where_it_lives_now():
 # the one place that now computes the stage, preferred-option, open-question, case-table and flow-check conditions per
 # item, and that the plain `--gate decide` output the skills already read did not move.
 import json  # noqa: E402
+import re  # noqa: E402
 import shutil  # noqa: E402
 
 from conftest import edit, run  # noqa: E402
@@ -164,14 +165,31 @@ def rules_of(found):
 
 # ------------------------------------------------------------------ first callers
 
-def test_unknown_blocking_page_blocks_every_item_on_it(ub):
-    assert judge(ub, "CON-001").ready, "without the unknown the contract is ready: the test below means something"
+def test_an_open_question_is_listed_not_refused(ub):
+    assert judge(ub, "CON-001").open_blockers == (), "without the unknown there is nothing to note"
     block_booking(ub)
     for item in ("CON-001", "CON-002"):
         found = judge(ub, item)
-        assert not found.ready and rules_of(found) == ["GATE-4"], (item, found)
-        assert found.reasons[0].blocked_by == ("UNK-099",)
-        assert "how long a hold lasts" in found.reasons[0].plain
+        assert found.ready and found.open_blockers == ("UNK-099",), (item, found)
+    code, out = run("check", "--vault", str(ub), "--today", TODAY, "--gate", "decide", "--item", "CON-001", "--for-lead")
+    assert code == 0 and "still has an open question under it" in out and "how long a hold lasts" in out, out
+    assert "UNK-099" not in out and "Settling notes it as still open." in out, out
+
+
+def test_a_requirement_needs_no_options(ub):
+    page = ub / BOOKING
+    page.write_text(page.read_text(encoding="utf-8").replace(OPEN, "- **State:** assumption\n"), encoding="utf-8")
+    assert "GATE-2" not in rules_of(judge(ub, "CON-001")), "a contract at assumption settles without options"
+
+
+def test_the_strategy_still_needs_options(ub):
+    page = ub / "04-solution-strategy.md"
+    text = page.read_text(encoding="utf-8")
+    assert "id: solution-strategy" in text
+    text = re.sub(r"(?m)^- \*\*Options considered:\*\*.*\n", "", text)
+    text = re.sub(r"(?m)^state: .*$", "state: assumption", text, count=1)
+    page.write_text(text, encoding="utf-8")
+    assert "GATE-2" in rules_of(judge(ub, "solution-strategy"))
 
 
 def test_contract_without_error_case_not_ready(ub):
@@ -180,7 +198,7 @@ def test_contract_without_error_case_not_ready(ub):
     assert not found.ready and rules_of(found) == ["case table"]
     assert "Booking state changed" in found.reasons[0].plain and "goes wrong" in found.reasons[0].plain
     assert found.fix == found.reasons[0].fix and "boundary session" in found.fix
-    assert '"case table"' in found.route and "until" in found.route, "a standing rule's override carries its end"
+    assert '"case table"' in found.route and "until" not in found.route, "no end date is suggested"
 
 
 def test_contract_with_no_case_table_at_all_not_ready(ub):
@@ -193,37 +211,26 @@ def test_contract_with_no_case_table_at_all_not_ready(ub):
     assert "Nobody has written down" in found.reasons[0].plain
 
 
-def test_flowcheck_not_fully_checked_blocks_and_no_override_covers_it(ub):
+def test_not_fully_checked_can_be_set_aside(ub):
     passed = {"SLC-001": standing.Standing(standing.PASSED, "passed", "2026-11-19")}
     assert judge(ub, "SLC-001", flows=passed).ready
     partial = {"SLC-001": standing.Standing(standing.NOT_FULLY, "not fully checked", "2026-11-19")}
     found = judge(ub, "SLC-001", flows=partial)
     assert not found.ready and rules_of(found) == ["flow check"]
     assert "not fully checked" in found.reasons[0].plain
-    assert found.reasons[0].next.endswith(
-        'If the lead lives with a finding, record it with vela apply (kind override, the slice page, rule "flow check") '
-        'with their reason and an end date; "not fully checked" takes none.')
-    assert "- **Override:**" not in found.reasons[0].next and found.reasons[0].next.startswith("vela check-slice ")
+    assert '--override \'"flow check"\'' in found.route and "--reason-from ^cR" in found.route
     page = ub / SLICE
-    page.write_text(page.read_text(encoding="utf-8") + "\n- **Override:** \"not fully checked\" by @hl-solution-lead "
+    page.write_text(page.read_text(encoding="utf-8") + "\n- **Override:** \"flow check\" by @hl-solution-lead "
                     "on 2026-11-19 until 2026-12-31: the budget ran out\n", encoding="utf-8")
     found = judge(ub, "SLC-001", flows=partial)
-    assert not found.ready and found.overridden == (), "no override covers a check that did not finish"
+    assert found.ready and len(found.overridden) == 1, "the lead's word sets aside a check that did not finish"
+    missing = judge(ub, "SLC-001", flows={})
+    assert missing.ready, "an override on the slice covers a check that was not run, too"
+
+
+def test_a_slice_never_checked_is_not_ready(ub):
     missing = judge(ub, "SLC-001")
     assert not missing.ready and "hasn't been run" in missing.reasons[0].plain, "no record is never a pass (R0)"
-
-
-def test_standing_override_with_live_until_lets_gate4_through(ub):
-    block_booking(ub)
-    text = (ub / BOOKING).read_text(encoding="utf-8")
-    at = text.index(OPEN) + len(OPEN)  # CON-001's, the first
-    (ub / BOOKING).write_text(text[:at] + "- **Override:** GATE-4 by @hl-solution-lead on 2026-11-19 until 2026-11-30: "
-                              "the hold length can change later without breaking the API\n" + text[at:], encoding="utf-8")
-    found = judge(ub, "CON-001")
-    assert found.ready and len(found.overridden) == 1 and found.overridden[0]["until"] == "2026-11-30"
-    assert not judge(ub, "CON-002").ready, "the override sits on CON-001 alone"
-    ended = judge(ub, "CON-001", today="2026-12-01")
-    assert not ended.ready and rules_of(ended) == ["GATE-4"] and "ended on 2026-11-30" in ended.fix
 
 
 LEDGER_ROW_START = "| Q-DAT-02@APP-* |"
@@ -259,14 +266,17 @@ def test_for_lead_reason_names_the_thing(ub):
 
 def test_json_carries_each_verdict_for_decide(ub):
     block_booking(ub)
-    code, out = run("check", "--vault", str(ub), "--today", TODAY, "--gate", "decide", "--item", "CON-001", "--json")
+    edit(ub / BOOKING, BUS_DOWN, "")
+    code, out = run("check", "--vault", str(ub), "--today", TODAY, "--gate", "decide", "--item", "CON-001", "--item",
+                    "CON-002", "--json")
     assert code == 1
     found = json.loads(out)
     assert found["ready"] is False
-    item = found["items"][0]
-    assert {"id", "ready", "reasons", "fix", "override", "overridden", "owed"} <= set(item)
-    assert item["id"] == "CON-001" and item["reasons"][0]["rule"] == "GATE-4"
-    assert item["reasons"][0]["blocked_by"] == ["UNK-099"] and "GATE-4" in item["override"]
+    item = next(i for i in found["items"] if i["id"] == "CON-001")
+    assert {"id", "ready", "reasons", "fix", "override", "overridden", "owed", "open_blockers"} <= set(item)
+    assert item["open_blockers"] == ["UNK-099"] and item["reasons"] == []
+    broken = next(i for i in found["items"] if i["id"] == "CON-002")
+    assert broken["reasons"][0]["rule"] == "case table" and "blocked_by" not in broken["reasons"][0]
 
 
 def test_all_ready_exits_0(ub):
@@ -306,7 +316,7 @@ def test_check_without_for_lead_unchanged(tmp_path):
 def test_gate_all_lists_every_waiting_item_with_the_ready_ones_first(ub):
     ids = grill.candidates(cli.load_vault(ub))
     assert "CON-001" in ids and "CON-002" in ids
-    block_booking(ub)
+    edit(ub / BOOKING, BUS_DOWN, "")
     code, out = run("check", "--vault", str(ub), "--today", TODAY, "--gate", "decide", "--all", "--json")
     data = json.loads(out)["items"]
     assert {i["id"] for i in data} == set(ids)

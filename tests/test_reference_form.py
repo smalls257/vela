@@ -147,7 +147,7 @@ def test_a_real_session_writes_links_check_accepts(tmp_path, monkeypatch):
         assert code == 0, out
     notes = session_files.record_text(vault, record_id)
     assert "^c05" in notes
-    steps = [("decide", "CON-002", "--readback", "^c01", "--yes", "^c02", "--provider", "^c03"),
+    steps = [("decide", "CON-002", "--yes", "^c02", "--provider", "^c03"),
              ("add", "slice", "--title", "The till sells", "--flows", "FLO-001", "--capture", "^c04"),
              ("add", "constraint", "--capture", "^c05", "--forces", "the till work lands first")]
     for argv in steps:

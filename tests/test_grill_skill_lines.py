@@ -11,7 +11,7 @@ SKILL = (REPO / "plugin" / "skills" / "grill" / "SKILL.md").read_text(encoding="
 
 def test_the_grill_opens_with_one_gate_call_and_a_ready_item_as_a_proposal():
     assert "vela check --gate decide --all --for-lead" in SKILL
-    assert "I'd decide <item> as <answer>, because <reason>. OK?" in SKILL
+    assert "I'd settle <item> as <answer>, because <reason>. Settle it?" in SKILL
     assert "Recaps and reading come after that, or only if needed." in SKILL
     assert "ask the question that would make the nearest item ready" in SKILL
 

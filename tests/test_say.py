@@ -47,18 +47,18 @@ def test_finding_id_prints_area_and_question():
 
 def test_ids_with_no_name_are_said_by_their_kind_and_captures_by_what_they_are():
     resolver = say.Resolver()
-    said = resolver.plain("UNK-009 blocks CON-004, from ^c12; copy Q-FIN-03@SV-01; row R-DAT-10; GATE-4 overridden")
+    said = resolver.plain("UNK-009 blocks CON-004, from ^c12; copy Q-FIN-03@SV-01; row R-DAT-10; E316 overridden")
     assert say.leak_in(said) is None, said
     assert "an open question" in said and "a contract" in said and "a note in the session record" in said
     assert "the open-question check" in said
 
 
 def test_refusal_carries_plain_fix_and_override_and_for_lead_prints_only_plain():
-    refusal = say.Refusal("GATE-4", "Nobody has said who owns the consent records yet.", "Ask the lead.",
-                          "vela apply ... (rule GATE-4)")
+    refusal = say.Refusal("E316", "Nobody has said who owns the consent records yet.", "Ask the lead.",
+                          "vela apply ... (rule E316)")
     result = say.Result("demo", exit=say.REFUSED, refusals=[refusal])
-    assert refusal.as_json() == {"refused": True, "rule": "GATE-4", "plain": refusal.plain, "fix": "Ask the lead.",
-                                 "override": "vela apply ... (rule GATE-4)", "audience": say.LEAD, "recommend": ""}
+    assert refusal.as_json() == {"refused": True, "rule": "E316", "plain": refusal.plain, "fix": "Ask the lead.",
+                                 "override": "vela apply ... (rule E316)", "audience": say.LEAD, "recommend": ""}
     assert say.render(result, "for-lead") == "Nobody has said who owns the consent records yet.\n" + say.WAIVE_ONE
     assert "Override: vela apply" in say.render(result, "default")
 
@@ -126,7 +126,7 @@ def test_the_lead_hears_the_answer_then_about_four_then_how_many_more():
 def test_refusals_by_audience_and_the_way_out_said_once():
     model = say.Refusal("decide-by", "I need your handle.", "run vela whoami", "none: a decision names who",
                         audience=say.MODEL)
-    lead = [say.Refusal("GATE-4", f"Question {n} is open.", "Ask.", "an override", recommend="I'd ask the owner.")
+    lead = [say.Refusal("E316", f"Question {n} is open.", "Ask.", "an override", recommend="I'd ask the owner.")
             for n in (1, 2)]
     said = say.render(say.Result("demo", exit=say.REFUSED, refusals=[model, *lead]), "for-lead")
     assert "handle" not in said  # the model's slip never reaches the lead
@@ -162,13 +162,11 @@ def test_date_words_with_a_weekday_keeps_the_same_order():
     assert say.date_words_with_weekday("soon", today) == "soon"
 
 
-def test_the_session_date_helper_and_the_override_question_use_the_same_order():
+def test_the_session_date_helper_puts_the_month_first():
     import datetime
     from vela import sessions
-    from vela.decisions import override
     assert sessions.date_in_words("2026-10-14", datetime.date(2026, 1, 1)) == "October 14"
     assert sessions.date_in_words("2027-02-02", datetime.date(2026, 1, 1)) == "February 2, 2027"
-    assert override._said("2026-12-01") == "December 1"
 
 
 # --- a refusal names its fix (the October 22 trim): the skills dropped their per-command exit-code ladders because

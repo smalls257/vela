@@ -114,7 +114,8 @@ def test_breakdown_loads_the_voice_before_its_first_question_and_names_house_voi
 def test_breakdown_checks_freshness_before_the_prerequisites():
     body = text(BREAKDOWN / "SKILL.md")
     assert body.index("vela freshness") < body.index("Check the prerequisites")
-    assert "say what it printed in your words and offer to bring it up to date" in body
+    assert "bring it up to date (`git switch main`, then `git pull --ff-only`) and say so" in body and "offer to bring" not in body
+    assert "uncommitted vault-page changes, stop" in body
 
 
 def test_flow_check_line_team_side():

@@ -141,42 +141,62 @@ def test_hunk_straddling_a_generated_marker_counts_as_outside(repos):
     assert "21-22" in rec["files"][0]["lines"], rec
 
 
-def test_fetch_failure_exits_3_not_compared(repos, tmp_path):
+def test_sync_main_goes_on_when_main_is_unreachable(repos, tmp_path):
     lead, _ = repos
     git(lead, "remote", "set-url", "origin", str(tmp_path / "nowhere.git"))
     head = git(lead, "rev-parse", "HEAD")
     code, out = sync(lead, "--json")
-    assert code == 3, out
+    assert code == 0, out
     result = json.loads(out)
-    assert {c["choice"] for c in result["needs_lead"]} == {"retry", "go-on"} and result["wrote"] == []
+    assert result["needs_lead"] == [] and result["wrote"] == []
     assert state(lead)["status"] == closestate.NOT_COMPARED and state(lead)["reason"] == closestate.FETCH_FAILED
     assert git(lead, "rev-parse", "HEAD") == head
     code, out = sync(lead, "--for-lead")
-    assert out.strip() == ("I couldn't reach main, so I haven't checked for newer changes. "
-                           "Try again, or go on without them?")  # voice audit row 127: one name for main
+    assert code == 0 and out.strip() == "I couldn't reach main, so I went on without its newest changes."
 
 
-def test_dirty_tracked_files_exit_3_and_change_nothing(repos):
-    lead, other = repos
-    commit(other, {"notes.md": "notes from main\n"}, "main moves", push=True)
-    (lead / "01-goals.md").write_text(page(intro="Unsaved edit."), encoding="utf-8")
-    head = git(lead, "rev-parse", "HEAD")
-    code, out = sync(lead)
-    assert code == 3 and "vela close stage --checkpoint" in out, out
-    assert git(lead, "rev-parse", "HEAD") == head and not mergegit.merging(lead)
-    assert "Unsaved edit." in (lead / "01-goals.md").read_text(encoding="utf-8")
-    assert (lead / "notes.md").read_text(encoding="utf-8") == "notes\n"
-    assert state(lead)["reason"] == closestate.UNCOMMITTED
-
-
-def test_accept_not_compared_is_recorded(repos, tmp_path):
+def test_the_gate_does_not_stop_on_an_unreachable_main(repos, tmp_path):
     lead, _ = repos
     git(lead, "remote", "set-url", "origin", str(tmp_path / "nowhere.git"))
-    assert sync(lead)[0] == 3
-    code, out = sync(lead, "--accept-not-compared")
-    assert code == 0, out
+    assert sync(lead)[0] == 0
     verdict = mergegit.sync_verdict(lead)
-    assert state(lead)["status"] == closestate.ACCEPTED and not verdict.blocks and verdict.listed
+    assert not verdict.blocks and verdict.listed and "couldn't reach main" in verdict.plain
+    assert closestate.verdict({"status": closestate.NOT_COMPARED, "reason": closestate.UNCOMMITTED}).blocks
+
+
+def open_session(lead):
+    """An open session stub on the branch, committed, so `close stage --checkpoint` knows which session it files."""
+    stub = lead / "sessions" / "2026-10-14-x.md"
+    stub.parent.mkdir(exist_ok=True)
+    stub.write_text("---\nstatus: open\nbranch: session/x\n---\n", encoding="utf-8")
+    git(lead, "add", "sessions/2026-10-14-x.md")
+    git(lead, "commit", "-q", "-m", "Open session 2026-10-14-x")
+
+
+def test_sync_main_checkpoints_uncommitted_edits_itself(repos):
+    lead, other = repos
+    open_session(lead)
+    commit(other, {"notes.md": "notes from main\n"}, "main moves", push=True)
+    (lead / "01-goals.md").write_text(page(intro="Unsaved edit."), encoding="utf-8")
+    code, out = sync(lead)
+    assert code == 0, out
+    assert git(lead, "log", "--format=%s", "-3").splitlines()[1] == "Checkpoint 2026-10-14-x"
+    assert "Unsaved edit." in (lead / "01-goals.md").read_text(encoding="utf-8")
+    assert (lead / "notes.md").read_text(encoding="utf-8") == "notes from main\n"
+    assert state(lead)["status"] == closestate.MERGED
+
+
+def test_a_changed_file_outside_the_session_is_named_and_not_swept_in(repos):
+    lead, other = repos
+    open_session(lead)
+    commit(lead, {"scratch.txt": "mine\n"}, "scratch file")
+    commit(other, {"notes.md": "notes from main\n"}, "main moves", push=True)
+    (lead / "scratch.txt").write_text("my side note\n", encoding="utf-8")
+    head = git(lead, "rev-parse", "HEAD")
+    code, out = sync(lead, "--json")
+    assert code == 1 and "scratch.txt" in out, out
+    assert git(lead, "rev-parse", "HEAD") == head and not mergegit.merging(lead)
+    assert state(lead)["reason"] == closestate.UNCOMMITTED and mergegit.sync_verdict(lead).blocks
 
 
 def test_reader_copy_runs_no_git(tmp_path, monkeypatch):
@@ -315,18 +335,19 @@ def test_the_template_ignores_every_vela_working_file_but_the_shared_layout(tmp_
     assert vaultgit.status_paths(tmp_path, "--untracked-files=all", pathspec=(".vela",)) == [".vela/explorer-pins.json"]
 
 
-def test_the_lead_s_files_still_block_and_are_named_whole(repos):
-    """A dirty page still needs a checkpoint, the cache beside it is not in the list, and no path loses its first
-    letter (porcelain was sliced after the output was stripped)."""
+def test_the_leads_page_is_saved_and_the_cache_beside_it_is_put_back(repos):
+    """A dirty page is checkpointed, the cache beside it is set aside and written back as it was, and neither is
+    listed as unsaved work."""
     lead, other = repos
+    open_session(lead)
     commit_cache(lead, '{"v": 1}\n', "cache")
     commit(other, {"notes.md": "notes from main\n"}, "main moves", push=True)
     (lead / CACHE).write_text('{"v": 2}\n', encoding="utf-8")
     (lead / "01-goals.md").write_text(page(intro="Unsaved edit."), encoding="utf-8")
     code, out = sync(lead)
-    assert code == 3, out
-    assert "1 tracked files have uncommitted edits (01-goals.md)" in out, out
-    assert "flowcheck-cache" not in out
+    assert code == 0, out
+    assert "uncommitted" not in out
+    assert "Unsaved edit." in (lead / "01-goals.md").read_text(encoding="utf-8")
     assert (lead / CACHE).read_text(encoding="utf-8") == '{"v": 2}\n'
 
 

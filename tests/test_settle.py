@@ -25,38 +25,48 @@ def decide(root, *flags):
 
 
 @pytest.mark.parametrize("modes", EVERY_MODE)
-def test_any_session_decides_with_a_read_back_a_yes_and_a_why(tmp_path, modes):
+def test_any_session_decides_with_a_yes_and_a_why(tmp_path, modes):
     root = make_vault(tmp_path)
     in_session_with_modes(root, modes)
     git_init(root)
-    code, out = decide(root, "--readback", "^c01", "--yes", "^c02", "--why", "^c03", "--provider", "^c07")
+    code, out = decide(root, "--yes", "^c02", "--why", "^c03", "--provider", "^c07")
     assert code == 0, out
     assert re.search(r"### CON-002[\s\S]*?- \*\*State:\*\* decided", (root / STOCK).read_text(encoding="utf-8"))
     assert git_log(root)[0] == f"{modes.split(',')[0].strip()}: CON-002 decided"
     assert "Ready to decide" not in session_files.record_text(root, RECORD_ID)
 
 
-def test_outside_a_grill_the_read_back_and_the_yes_are_still_needed(tmp_path):
+def test_outside_a_grill_the_yes_is_still_needed(tmp_path):
     root = make_vault(tmp_path)
     in_session_with_modes(root, "shape")
-    code, out = decide(root, "--yes", "^c02", "--provider", "^c07")
+    code, out = decide(root, "--provider", "^c07")
     assert code == 1 and json.loads(out)["refusals"][0]["rule"] == "decide-unfilled"
-    code, out = decide(root, "--readback", "^c03", "--yes", "^c02", "--provider", "^c07")
-    assert code == 1 and "consent-yes-before-readback" in [r["rule"] for r in json.loads(out)["refusals"]]
-    code, out = decide(root, "--readback", "^c01", "--yes", "^c04", "--provider", "^c07")  # ^c04 is a bare "ok"
+    code, out = decide(root, "--yes", "^c04", "--provider", "^c07")  # ^c04 is a bare "ok"
     assert code == 1 and "consent-bare-non-yes" in [r["rule"] for r in json.loads(out)["refusals"]]
 
 
 def test_outside_a_grill_the_gate_still_runs_and_the_lead_can_set_it_aside(tmp_path):
     root = make_vault(tmp_path)
     in_session_with_modes(root, "boundary")
-    block_con_002(root)
-    code, out = decide(root, "--readback", "^c01", "--yes", "^c02", "--provider", "^c07")
-    assert code == 1 and "GATE-4" in [r["rule"] for r in json.loads(out)["refusals"]]
+    edit(root / STOCK, "| unknown_product | | error | refused: no such product | | |\n", "")
+    code, out = decide(root, "--yes", "^c02", "--provider", "^c07")
+    assert code == 1 and "case table" in [r["rule"] for r in json.loads(out)["refusals"]]
     git_init(root)
-    code, out = decide(root, "--readback", "^c01", "--yes", "^c02", "--provider", "^c07",
-                       "--override", "GATE-4", "--reason-from", "^c06", "--until", "2026-11-01")
+    code, out = decide(root, "--yes", "^c02", "--provider", "^c07",
+                       "--override", '"case table"', "--reason-from", "^c06", "--until", "2026-11-01")
     assert code == 0, out
+
+
+def test_an_open_question_under_the_item_is_noted_and_never_stops_the_yes(tmp_path):
+    root = make_vault(tmp_path)
+    in_session_with_modes(root, "boundary")
+    block_con_002(root)
+    git_init(root)
+    code, out = run("decide", "CON-002", "--yes", "^c02", "--vault", str(root), "--today", TODAY, "--for-lead")
+    assert code == 0, out
+    assert "still has an open question under it" in out and "UNK-003" not in out, out
+    page = (root / STOCK).read_text(encoding="utf-8")
+    assert "- **Decided with open:** UNK-003" in page and "**Override:**" not in page
 
 
 def owned_by_the_stock_team(root):
@@ -71,7 +81,7 @@ def test_the_leads_yes_settles_an_item_someone_else_owns_and_says_it_was_for_the
     in_session_with_modes(root, "boundary")
     owned_by_the_stock_team(root)
     git_init(root)
-    code, out = run("decide", "CON-002", "--readback", "^c01", "--yes", "^c02", "--provider", "^c07",
+    code, out = run("decide", "CON-002", "--yes", "^c02", "--provider", "^c07",
                     "--vault", str(root), "--today", TODAY, "--for-lead")
     assert code == 0, out
     assert "Stock level is stock team's; I noted you settled it for them. They can confirm it or challenge it." in out
@@ -83,7 +93,7 @@ def test_the_on_behalf_flag_is_gone(tmp_path):
     root = make_vault(tmp_path)
     in_session_with_modes(root, "boundary")
     git_init(root)
-    code, out = decide(root, "--readback", "^c01", "--yes", "^c02", "--provider", "^c07", "--on-behalf", "@stock-team")
+    code, out = decide(root, "--yes", "^c02", "--provider", "^c07", "--on-behalf", "@stock-team")
     assert code != 0 and "on-behalf" in out
 
 
@@ -92,7 +102,7 @@ def test_the_owners_own_yes_is_theirs_with_no_on_behalf_line(tmp_path):
     in_session_with_modes(root, "boundary")
     owned_by_the_stock_team(root)
     git_init(root)
-    code, decide_out = run("decide", "CON-002", "--readback", "^c01", "--yes", "^c13", "--provider", "^c07",
+    code, decide_out = run("decide", "CON-002", "--yes", "^c13", "--provider", "^c07",
                            "--vault", str(root), "--today", TODAY, "--for-lead")
     assert code == 0, decide_out
     assert "on behalf" not in (root / STOCK).read_text(encoding="utf-8")
@@ -117,7 +127,6 @@ def test_later_needs_the_yes_and_is_not_a_settle(tmp_path):
     root = make_vault(tmp_path)
     in_session_with_modes(root, "shape")
     assert decide(root, "--later")[0] == 1
-    assert decide(root, "--later", "--yes", "^c02", "--readback", "^c01")[0] == 1
 
 
 def rules_of(out):
@@ -208,7 +217,7 @@ def test_a_settle_in_shape_passes_close_gate(tmp_path):
     root = make_vault(tmp_path)
     in_session_with_modes(root, "shape")
     on_a_session_branch(root)
-    assert decide(root, "--readback", "^c01", "--yes", "^c02", "--why", "^c03", "--provider", "^c07")[0] == 0
+    assert decide(root, "--yes", "^c02", "--why", "^c03", "--provider", "^c07")[0] == 0
     gate = json.loads(run("close", "gate", "--vault", str(root), "--today", TODAY, "--json")[1])
     assert not [p for p in gate.get("problems", []) if p.get("kind") == "consent"], gate
 
@@ -233,7 +242,7 @@ def test_a_decided_record_of_a_decision_made_this_session_passes_close_gate(tmp_
     root = make_vault(tmp_path)
     in_session_with_modes(root, "grill")
     on_a_session_branch(root)
-    assert decide(root, "--readback", "^c01", "--yes", "^c02", "--why", "^c03", "--provider", "^c07")[0] == 0
+    assert decide(root, "--yes", "^c02", "--why", "^c03", "--provider", "^c07")[0] == 0
     code, out = run("apply", str(a_decided_adr_file(root)), "--vault", str(root), "--json")
     assert code == 0, out
     assert consent_problems(root) == []
@@ -244,7 +253,7 @@ def test_vela_add_adr_decided_knows_the_lead(tmp_path):
     root = make_vault(tmp_path)
     in_session_with_modes(root, "grill")
     on_a_session_branch(root)
-    assert decide(root, "--readback", "^c01", "--yes", "^c02", "--why", "^c03", "--provider", "^c07")[0] == 0
+    assert decide(root, "--yes", "^c02", "--why", "^c03", "--provider", "^c07")[0] == 0
     (root / ".vela").mkdir(exist_ok=True)
     (root / ".vela" / "handle").write_text("priya\n")
     code, out = run("add", "adr", "--title", "Stock over one API", "--state", "decided", "--decision", RECORD_ID,
@@ -253,7 +262,7 @@ def test_vela_add_adr_decided_knows_the_lead(tmp_path):
     assert consent_problems(root) == []
 
 
-def test_a_hand_set_decided_citing_that_s_decided_fails_close(tmp_path):
+def test_a_hand_set_decided_citing_that_s_decided_passes_close(tmp_path):
     root = make_vault(tmp_path, captures=['- [thought] (@priya) "That\'s decided." ^c01'])
     in_session_with_modes(root, "shape")
     on_a_session_branch(root)
@@ -263,30 +272,14 @@ def test_a_hand_set_decided_citing_that_s_decided_fails_close(tmp_path):
     session_files.edit_record(root, RECORD_ID, "## Captures",
                               f"## Changes\n\n| ID | From | To | Source |\n|---|---|---|---|\n"
                               f"| CON-002 | assumption | decided | [[{RECORD_ID}#^c01]] |\n\n## Captures")
-    gate = json.loads(run("close", "gate", "--vault", str(root), "--today", TODAY, "--json")[1])
-    assert any("never read" in p.get("plain", "") for p in gate.get("problems", [])), gate
+    assert consent_problems(root) == []
 
 
-def test_the_read_back_has_to_be_claudes_words_not_the_leads_remark(tmp_path):
+def test_claudes_words_are_never_the_yes(tmp_path):
     root = make_vault(tmp_path)
     in_session_with_modes(root, "shape")
-    code, out = decide(root, "--readback", "^c02", "--yes", "^c03", "--provider", "^c07")  # ^c02 is the lead's
-    assert code == 1 and "consent-readback-not-claudes" in rules_of(out)
-
-
-def test_a_lead_capture_marked_decided_is_not_a_read_back_at_close(tmp_path):
-    keep = "[[stock-building-blocks#CON-002 Stock level|CON-002]] (decided)"
-    root = make_vault(tmp_path, captures=[f'- [thought] (@priya) "That\'s decided." → keep: {keep} ^c01',
-                                          '- [answer] (@priya) "Yes, go." ^c02'])
-    in_session_with_modes(root, "grill")
-    on_a_session_branch(root)
-    page = (root / STOCK).read_text(encoding="utf-8")
-    (root / STOCK).write_text(re.sub(r"(### CON-002[\s\S]*?- \*\*State:\*\* )assumption", r"\1decided", page, count=1),
-                              encoding="utf-8")
-    session_files.edit_record(root, RECORD_ID, "## Captures",
-                              f"## Changes\n\n| ID | From | To | Source |\n|---|---|---|---|\n"
-                              f"| CON-002 | assumption | decided | [[{RECORD_ID}#^c02]] |\n\n## Captures")
-    assert any("never read" in p["plain"] for p in consent_problems(root))
+    code, out = decide(root, "--yes", "^c08", "--provider", "^c07")  # ^c08 is Claude's
+    assert code == 1 and "consent-not-a-person" in rules_of(out)
 
 
 # --- settling a pick writes its options
@@ -358,7 +351,7 @@ def test_options_already_written_are_left_as_they_are(tmp_path):
 def test_the_flags_reach_the_command(tmp_path):
     root = pick_vault(tmp_path)
     git_init(root)
-    code, out = run("decide", "solution-strategy", "--readback", "^c01", "--yes", "^c02", "--why", "^c03",
+    code, out = run("decide", "solution-strategy", "--yes", "^c02", "--why", "^c03",
                     "--picked", "One Shop API=^c16", "--rejected", "The till calls Stock itself=^c17",
                     "--vault", str(root), "--today", TODAY, "--json")
     assert code == 0, out

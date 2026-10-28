@@ -12,7 +12,7 @@ The vault already says what the app must do. This session settles how the team b
 
 Before your first question, read `voice/VOICE.md` if the vault has one, then `${CLAUDE_PLUGIN_ROOT}/references/CONVERSATION-VOICE.md`; write the design's prose through `house-voice` (`${CLAUDE_PLUGIN_ROOT}/skills/house-voice/SKILL.md` and the vault's `voice/examples/`, read as files: only a person can start house-voice).
 
-First run `vela freshness --for-lead`. If it exits 3, this copy is behind the shared plan: stop, say what it printed in your words and offer to bring it up to date (`git switch main`, then `git pull --ff-only`), and go on once it is. When it says the copy is up to date, say nothing about it. A stale copy says an app isn't handed off when main says it is. If the command fails, say in one plain sentence that you couldn't check, then go on.
+First run `vela freshness --for-lead`. If it exits 3, this copy is behind the shared plan: say what it printed in your words, bring it up to date (`git switch main`, then `git pull --ff-only`) and say so, then go on. If the pull stops on uncommitted vault-page changes, stop and say so. When it says the copy is up to date, say nothing about it. A stale copy says an app isn't handed off when main says it is. If the command fails, say in one plain sentence that you couldn't check, then go on.
 
 A design opens no session, so START's numbered steps don't apply; its rules "Owner or reader", "Plain names and a page a person can hold" and "The user may override any rule" do, and so does "Relaying a command" for every `--for-lead` line. When the terms slice, tracer or grill first come up, define each once from `vela terms <word>`.
 
@@ -70,7 +70,7 @@ A gap the team lead accepts goes into `gaps[]` in the same plain words, with the
 
 Before the pull request, run `sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela check-diagrams docs/tech-design/<slug>.md` with each ADR that has a diagram. Fix each diagram it names and run it again. If it says it couldn't check (Node.js is missing), tell the team lead and never call the diagrams checked.
 
-Push the branch and open the pull request when the design is `complete` or `complete-with-gaps`, after saying what will be sent and getting a yes. Its body holds the summary, the audit checklist and the challenges. Never say a push or a pull request exists unless the tool printed it; if git or GitHub fails, say in one plain sentence that it didn't go, never the raw error.
+Run `vela guard history` right before the push and stop if it names a path or fails with exit 2. Push the branch and open the pull request when the design is `complete` or `complete-with-gaps`. Its body holds the summary, the audit checklist and the challenges. Never say a push or a pull request exists unless the tool printed it; if git or GitHub fails, say in one plain sentence that it didn't go, never the raw error.
 
 When the design challenges vault items, offer a handover note at `docs/handover-<slug>-challenges.md`, titled `# Questions the <app> team is raising with the planning lead`: one entry per challenge, most urgent first, each named in words with its ID as a tag, the one `/vela:challenge <ID>` command that raises it, and the open question's text as the design has it. Then say the next step in one line: `/vela:breakdown` plans the build from this design.
 

@@ -59,10 +59,10 @@ def parse(value):
 # ------------------------------------------------------------------ grammar
 
 def test_a_well_formed_override_parses_every_part():
-    found = parse('GATE-4, E303, "Shape offers 2 or 3 options" by @hl-solution-lead on 2026-11-20: '
+    found = parse('E316, E303, "Shape offers 2 or 3 options" by @hl-solution-lead on 2026-11-20: '
                   "the board meets Monday: UNK-001 cannot wait")
     assert found.problem == ""
-    assert found.rules == ("GATE-4", "E303", '"Shape offers 2 or 3 options"')
+    assert found.rules == ("E316", "E303", '"Shape offers 2 or 3 options"')
     assert (found.by, found.date) == ("@hl-solution-lead", "2026-11-20")
     assert found.reason == "the board meets Monday: UNK-001 cannot wait"
     assert found.codes == {"E316", "E303"}
@@ -70,32 +70,34 @@ def test_a_well_formed_override_parses_every_part():
 
 @pytest.mark.parametrize("value, problem", [
     ("", "is empty"),
-    ("GATE-4 on 2026-11-20: board meeting", "names no @handle"),
-    ("GATE-4 by @hl-solution-lead: board meeting", "has no 'on YYYY-MM-DD' date"),
-    ("GATE-4 by @hl-solution-lead on 2026-11-20", "gives no reason"),
-    ("GATE-4 by @hl-solution-lead on 2026-02-30: board meeting", "not a real date"),
-    ("gate-4 by @hl-solution-lead on 2026-11-20: board meeting", "did you mean GATE-4?"),
+    ("E316 on 2026-11-20: board meeting", "names no @handle"),
+    ("E316 by @hl-solution-lead: board meeting", "has no 'on YYYY-MM-DD' date"),
+    ("E316 by @hl-solution-lead on 2026-11-20", "gives no reason"),
+    ("E316 by @hl-solution-lead on 2026-02-30: board meeting", "not a real date"),
+    ("gate-1 by @hl-solution-lead on 2026-11-20: board meeting", "did you mean GATE-1?"),
+    ("GATE-4 by @hl-solution-lead on 2026-11-20: board meeting", "use E316"),
     ("GATE-6 by @hl-solution-lead on 2026-11-20: board meeting", "'GATE-6'"),
-    ("GATE-4; E303 by @hl-solution-lead on 2026-11-20: board meeting", "not names separated by ', '"),
+    ("E316; E303 by @hl-solution-lead on 2026-11-20: board meeting", "not names separated by ', '"),
     ("by @hl-solution-lead on 2026-11-20: board meeting", "names no rule before 'by'"),
 ])
 def test_a_malformed_override_names_its_problem(value, problem):
     found = parse(value)
     assert problem in found.problem
     assert found.rules == () and found.codes == set()
+    assert not (value.startswith("GATE-4") and "did you mean" in found.problem), "a retired rule is not guessed at"
 
 
 def test_a_malformed_override_is_an_error_and_overrides_nothing(ub):
-    on_cap(ub, "- **Override:** gate-4 by @hl-solution-lead on 2026-11-20: the board meets Monday")
+    on_cap(ub, "- **Override:** gate-1 by @hl-solution-lead on 2026-11-20: the board meets Monday")
     block_cap_021(ub)
     code, out = broken(ub)
     assert code == 1
     assert sorted(findings(out)) == [("E316", CAP), ("E321", CAP)]
-    assert "did you mean GATE-4?" in out and "so it overrides nothing" in out
+    assert "did you mean GATE-1?" in out and "so it overrides nothing" in out
 
 
 def test_a_label_one_typo_away_is_an_error_not_prose(ub):
-    on_cap(ub, "- **Overide:** GATE-4 by @hl-solution-lead on 2026-11-20: the board meets Monday")
+    on_cap(ub, "- **Overide:** E316 by @hl-solution-lead on 2026-11-20: the board meets Monday")
     edit(ub / PRICING, CONFIRMED, "- **Confirmd by:** @hl-pricing-senior on 2026-08-12\n")
     found = codes(ub)
     assert ("E321", CAP) in found
@@ -110,7 +112,7 @@ def test_malformed_decided_by_and_confirmed_by_are_errors(ub):
 
 
 def test_rules_never_crash_on_odd_override_values(ub):
-    for value in ("", "   ", '"" by @x on 2026-11-20: y', "GATE-4 by @ on 9999-99-99: ", "ünïcödé by @x on 2026-11-20: z"):
+    for value in ("", "   ", '"" by @x on 2026-11-20: y', "E316 by @ on 9999-99-99: ", "ünïcödé by @x on 2026-11-20: z"):
         on_cap(ub, f"- **Override:** {value}")
     code, out = broken(ub)
     assert code == 1 and "Traceback" not in out
@@ -119,13 +121,13 @@ def test_rules_never_crash_on_odd_override_values(ub):
 
 # ------------------------------------------------------------- downgrades
 
-def test_gate_4_override_turns_e316_into_w316(ub):
+def test_e316_override_turns_e316_into_w316(ub):
     block_cap_021(ub)
-    on_cap(ub, "- **Override:** GATE-4 by @hl-solution-lead on 2026-11-20: the board signs off Monday; UNK-001 stays open")
+    on_cap(ub, "- **Override:** E316 by @hl-solution-lead on 2026-11-20: the board signs off Monday; UNK-001 stays open")
     code, out = broken(ub)
     assert code == 0
     assert findings(out) == [("W316", CAP)]
-    assert "Accepted as an exception: GATE-4 by @hl-solution-lead on 2026-11-20: the board signs off Monday" in out
+    assert "Accepted as an exception: E316 by @hl-solution-lead on 2026-11-20: the board signs off Monday" in out
 
 
 def test_the_e316_code_itself_can_be_named(ub):
@@ -151,23 +153,23 @@ def test_e318_and_e304_overrides_on_contracts(ub):
 
 
 def test_an_override_covers_only_its_own_scope(ub):
-    """A page-level GATE-4 does not reach a contract under the page's headings."""
+    """A page-level E316 does not reach a contract under the page's headings."""
     edit(ub / "11-unknowns-and-risks.md",
          "- **State:** resolved\n- **Blocks:** [[FLO-001-hold-pay-confirm|FLO-001]] design, "
          "[[ADR-0002-ferrymaster-ledger-of-record|ADR-0002]], [[EPC-031-holds-and-confirms|EPC-031]]\n",
          "- **State:** open\n- **Ask by:** 2026-12-01\n- **Blocks:** [[pricing-building-blocks|APP-pricing]]\n")
     edit(ub / PRICING, "- **Decision:** [[2026-07-28-solution-strategy]]\n\nPricing quotes",
-         "- **Decision:** [[2026-07-28-solution-strategy]]\n- **Override:** GATE-4 by @hl-solution-lead on 2026-11-20: fares do not wait on UNK-001\n\nPricing quotes")
+         "- **Decision:** [[2026-07-28-solution-strategy]]\n- **Override:** E316 by @hl-solution-lead on 2026-11-20: fares do not wait on UNK-001\n\nPricing quotes")
     assert sorted(codes(ub)) == [("E316", PRICING), ("W316", PRICING)]
 
 
 # ------------------------------------------------------------- not needed
 
 def test_an_override_of_a_rule_the_item_keeps_is_not_needed(ub):
-    on_cap(ub, "- **Override:** GATE-4, E303 by @hl-solution-lead on 2026-11-20: just in case")
+    on_cap(ub, "- **Override:** E316, E303 by @hl-solution-lead on 2026-11-20: just in case")
     code, out = broken(ub)
     assert code == 0 and findings(out) == [("W323", CAP)]
-    assert "Override not needed: CAP-021 does not break GATE-4, E303" in out
+    assert "Override not needed: CAP-021 does not break E316, E303" in out
 
 
 def test_gates_and_quoted_rules_the_check_cannot_see_are_never_not_needed(ub):

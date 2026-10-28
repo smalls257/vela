@@ -61,8 +61,9 @@ def test_unsorted_lines_are_never_called_the_leads():
 
 def test_the_read_back_header_is_plain_for_the_lead(tmp_path):
     vault = closing_vault(tmp_path)
+    assert readback(vault, "--pick", "^c02")[0] == 0
     code, out = readback(vault, "--for-lead")
-    assert out.splitlines()[0] == "Two sentences to read back." and "sentence(s)" not in out
+    assert out.splitlines()[0] == "One sentence to read back." and "sentence(s)" not in out
     assert "sentence(s)" in readback(vault)[1]
 
 

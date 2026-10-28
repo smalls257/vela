@@ -28,7 +28,7 @@ def note_validate(item, vault, record):
     if vault.text(item["page"]) is None:
         found.append(say.Refusal("note-page", "I can't find that page.", "Point the note at a page that exists.",
                                  "none: a note needs a page"))
-    refusal = consent.a_yes(item["yes"], record, readback=item.get("readback"))
+    refusal = consent.a_yes(item["yes"], record)
     return found + ([refusal] if refusal else [])
 
 
@@ -43,9 +43,9 @@ def note_kind(monkeypatch):
     kind = types.ModuleType("vela.decisions.note")
     kind.SCHEMA = schema.KindSchema(
         fields={"page": "the page to add the note to", "line": "the note, as it goes on the page",
-                "readback": "the capture where the note was read back", "yes": "the capture holding the lead's yes"},
+                "yes": "the capture holding the lead's yes"},
         judgment=("yes",), required=("page", "line", "yes"),
-        example={"page": STOCK, "line": "A note.", "readback": "^c30", "yes": "^c31"})
+        example={"page": STOCK, "line": "A note.", "yes": "^c31"})
     kind.validate, kind.apply = note_validate, note_apply
     monkeypatch.setitem(sys.modules, "vela.decisions.note", kind)
     monkeypatch.setattr(schema, "KINDS", schema.KINDS + ("note",))
@@ -69,7 +69,7 @@ def decision_file(root, items, kind="note", session=RECORD_ID):
 
 
 def good(page=STOCK, line="Stores count stock nightly.", yes="^c31"):
-    return {"page": page, "line": line, "readback": "^c30", "yes": yes}
+    return {"page": page, "line": line, "yes": yes}
 
 
 def snapshot(root):
@@ -99,7 +99,7 @@ def test_invalid_item_writes_nothing(tmp_path, note_kind):
     assert code == 1, out
     assert snapshot(root) == before and path.read_bytes() == file_before
     refusals = json.loads(out)["refusals"]
-    assert [r["plain"] for r in refusals] == ["You said 'ok'. Is that a yes to the wording as I read it?"]
+    assert [r["plain"] for r in refusals] == ["You said 'ok'. Is that a yes?"]
 
 
 def test_refusal_has_plain_fix_and_override(tmp_path, note_kind):

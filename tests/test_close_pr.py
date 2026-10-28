@@ -8,7 +8,7 @@ import sys
 
 from conftest import REPO, run
 from sharing import git
-from test_close_push import BRANCH, RECORD, TODAY, YES_WORDS, add_yes, push, remote_has, sent_session
+from test_close_push import BRANCH, RECORD, TODAY, YES_WORDS, push, remote_has, sent_session
 from vela import prbody, say
 
 FAKE_GH = """#!{python}
@@ -64,9 +64,7 @@ def calls(log):
 
 def pushed(tmp_path, **kwargs):
     vault, bare = sent_session(tmp_path, **kwargs)
-    assert push(vault)[0] == 3
-    number = add_yes(vault)
-    code, out = push(vault, "--consent", number)
+    code, out = push(vault)
     assert code == 0, out
     return vault, bare
 
@@ -94,6 +92,35 @@ def test_reviewers_drop_own_handle_and_keep_teams(tmp_path, monkeypatch):
     assert "--head" in call["args"] and call["args"][call["args"].index("--head") + 1] == BRANCH
     assert call["args"][call["args"].index("--title") + 1] == f"{TODAY} Decisions: stock"
     assert "https://github.invalid/mini/vault/pull/7" in out
+
+
+def test_a_challenge_asks_the_solution_lead_to_review(tmp_path, monkeypatch):
+    """A challenge changes no app page, so the app owners alone would leave it with no reviewer: the `owner:` of
+    01-goals.md is asked too, and the lead's own handle is still dropped."""
+    log = fake_gh(tmp_path, monkeypatch)
+    vault, _ = pushed(tmp_path, modes="challenge", title="Challenge: CON-002", handle="someone-else")
+    code, out = pr(vault)
+    assert code == 0, out
+    (call,) = created(log)
+    assert "mini-lead" in reviewers_of(call)
+
+
+def test_a_challenge_by_the_solution_lead_does_not_ask_themselves(tmp_path, monkeypatch):
+    log = fake_gh(tmp_path, monkeypatch)
+    vault, _ = pushed(tmp_path, modes="challenge", title="Challenge: CON-002", handle="mini-lead")
+    code, out = pr(vault)
+    assert code == 0, out
+    (call,) = created(log)
+    assert "mini-lead" not in reviewers_of(call)
+
+
+def test_a_grill_does_not_ask_the_solution_lead_unless_an_owner(tmp_path, monkeypatch):
+    log = fake_gh(tmp_path, monkeypatch)
+    vault, _ = pushed(tmp_path)
+    code, out = pr(vault)
+    assert code == 0, out
+    (call,) = created(log)
+    assert "mini-lead" not in reviewers_of(call)
 
 
 def test_a_branch_with_an_open_pull_request_gets_the_session_added_not_a_second_one(tmp_path, monkeypatch):
@@ -177,7 +204,7 @@ def test_pr_before_push_refused(tmp_path, monkeypatch):
     vault, _ = sent_session(tmp_path)
     code, out = pr(vault, "--for-lead")
     assert code == 1 and "isn't sent yet" in out, out
-    assert "Shall I send it for review?" in out and "I'll send" not in out  # asks; never promises a send
+    assert "This session isn't sent yet. I'll send it first." in out  # no yes to wait for: sending comes first
     assert not created(log)
 
 
@@ -187,9 +214,6 @@ def test_answer_session_pushes_challenge_branch_and_comments(tmp_path, monkeypat
                                on_branch=CHALLENGE_BRANCH)
     before = git(bare, "rev-parse", CHALLENGE_BRANCH)
     code, out = push(vault)
-    assert code == 3 and f"`{CHALLENGE_BRANCH}`" in out and "comment on the challenge's pull request" in out, out
-    number = add_yes(vault)
-    code, out = push(vault, "--consent", number)
     assert code == 0, out
     assert git(bare, "rev-parse", CHALLENGE_BRANCH) == git(vault, "rev-parse", "HEAD") != before
     assert not remote_has(bare, f"session/{ANSWER}")
@@ -237,3 +261,38 @@ def test_a_body_is_the_sentences_and_what_changed_only():
 
 def test_lead_never_hears_a_code_in_the_failure_sentence():
     assert say.leak_in(prbody.SAVED_SENTENCE) is None
+
+
+def test_the_lead_hears_who_is_asked_to_review(tmp_path, monkeypatch):
+    fake_gh(tmp_path, monkeypatch)
+    vault, _ = pushed(tmp_path, stock_owner="@lead @mini/stock-team")
+    code, out = pr(vault, "--for-lead")
+    assert code == 0, out
+    assert "The shop team and the stock team are asked to review it." in out
+
+
+def test_a_pr_nobody_is_asked_to_review_says_so():
+    import types
+    from vela.commands import close_push
+    from vela.edge import ghcli
+    sent = ghcli.Sent(True, "gh pr create", url="https://github.invalid/pull/7", number=7)
+    line = close_push.pr_line(types.SimpleNamespace(answer=False, branch=BRANCH), sent, False, [])
+    assert "Nobody is asked to review it" in line.plain
+
+
+def test_a_pr_whose_pages_the_sender_owns_says_that_not_that_no_page_has_an_owner():
+    import types
+    from vela.commands import close_push
+    from vela.edge import ghcli
+    sent = ghcli.Sent(True, "gh pr create", url="https://github.invalid/pull/7", number=7)
+    line = close_push.pr_line(types.SimpleNamespace(answer=False, branch=BRANCH), sent, False, [], True)
+    assert "you own every page it changes" in line.plain
+    assert "no page names an owner" not in line.plain
+
+
+def test_a_challenge_without_a_goals_owner_adds_no_reviewer(tmp_path):
+    from vela import cli
+    vault, _ = sent_session(tmp_path, modes="challenge", title="Challenge: CON-002", handle="someone-else")
+    goals = vault / "01-goals.md"
+    goals.write_text(re.sub(r"^owner:.*\n", "", goals.read_text(encoding="utf-8"), flags=re.M), encoding="utf-8")
+    assert prbody.solution_lead(cli.load_vault(vault)) == []

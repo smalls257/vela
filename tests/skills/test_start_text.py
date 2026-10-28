@@ -108,7 +108,7 @@ def test_start_keeps_bringing_main_in_and_freshness():
     one = section("1. Start the session")
     assert "never call the plan up to date when the shared copy was out of reach" in one
     assert "doesn't switch branches or pull `main`" in one and "`vela close sync-main`" in one
-    assert "`vela freshness --for-lead`" in one and "offer to bring `main` in" in one
+    assert "`vela freshness --for-lead`" in one and "bring `main` in with `vela close sync-main`" in one
 
 
 def test_start_never_mentions_a_probe_skill_because_next_says_what_to_do():
@@ -235,14 +235,12 @@ def test_every_never_list_is_a_default_the_user_can_override_because_start_says_
 # --- closing and captures
 
 
-def test_start_never_starts_close_and_close_waits_for_a_yes_before_sending():
+def test_start_never_starts_close_and_the_leads_word_to_close_is_the_yes_to_send():
     closing = section("Closing a session")
-    assert "Never start close" in closing and "close says what will be sent and waits for a yes" in closing
+    assert "Never start close" in closing and "That is the yes to filing and sending" in closing
+    assert "waits for a yes" not in closing and "One confirmation stays" not in closing
     assert "CAP-005" not in closing and "`/vela:requirements booking changes`" in closing
-    # The confirm run's diagnosis: START said typing /vela:close or saying "push" was consent to send, which close
-    # never accepts (its section 7 sends only on a yes captured after the notice). One route, said once.
     assert "unless the lead typed" not in closing and "in so many words" not in closing
-    assert "That yes, given after close says what goes, is the only one that sends." in closing
 
 
 def test_captures_are_numbered_by_record_add_and_keep_their_origins():
@@ -251,7 +249,7 @@ def test_captures_are_numbered_by_record_add_and_keep_their_origins():
     assert "^c01" not in captures and "never reused" not in captures  # rule deletion: record add numbers them
     assert "claude, from <name>" in captures and "promoted on a nod" in captures
     assert "`vela close stage --checkpoint`" in captures
-    assert "never `git add -A`" in captures and "by exact path" not in captures  # hook-only rule stays; the how is the command's
+    assert "never stage private files" in captures and "by exact path" not in captures  # hook-only rule stays; the how is the command's
 
 
 def test_start_names_every_mode_that_marks_at_once():
@@ -320,11 +318,10 @@ def test_start_holds_what_the_trimmed_mode_skills_lean_on():
     zero = section("0. Read how to talk")
     assert zero.index("voice/VOICE.md") < zero.index("CONVERSATION-VOICE.md")
     one = section("1. Start the session")
-    assert "run `vela freshness --for-lead` next" in one and "offer to bring `main` in (`vela close sync-main`)" in one
-    # close: when it starts, the only yes that sends, what it drafts
+    assert "run `vela freshness --for-lead` next" in one and "bring `main` in with `vela close sync-main`" in one
+    # close: when it starts, that the word to close sends, what it drafts
     closing = section("Closing a session")
-    assert "Close starts only on the lead's word" in closing
-    assert "That yes, given after close says what goes, is the only one that sends." in closing
+    assert "Close starts only on the lead's word" in closing and "the yes to filing and sending" in closing
     assert "close lists only what is missing or went stale since" in section("Draft the paragraph when the item is filed")
 
 

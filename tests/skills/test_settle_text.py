@@ -13,10 +13,11 @@ def test_start_points_every_mode_to_settle():
     assert "references/SETTLE.md" in START and "a grill `(decided)`" not in START
 
 
-def test_settle_keeps_the_read_back_the_yes_and_the_why():
-    for kept in ("Still yes?", "--readback ^cN --yes ^cM --why ^cK", "with no `--mark`", "Why this one, in your words?",
-                 "aren't a yes", "--later --yes ^cM", "--gate decide --item <ID> --for-lead"):
+def test_settle_files_on_the_leads_word():
+    for kept in ("--yes ^cM", "--later --yes ^cM", "--gate decide --item <ID> --for-lead"):
         assert kept in SETTLE, kept
+    for gone in ("Still yes?", "--readback", "Why this one, in your words?"):
+        assert gone not in SETTLE, gone
 
 
 def test_someone_elses_item_is_settled_by_the_leads_yes_with_no_flag_or_reason():

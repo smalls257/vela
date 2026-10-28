@@ -45,7 +45,7 @@ The user corrects the map. Write nothing until they have.
 
 `vela import next --for-lead` gives the next batch, about four, each with your proposal, asked in one turn. Capture the answer, settle each by its number (`vela import close 1 --as decided --how "<a line>"`, or the outcome the lead chose), and only then ask for the next batch.
 
-- **A stated decision the lead says yes to** is decided, citing the document: `vela decide <ID> --readback <capture> --yes <capture> --stated-in <SRC>`. One they aren't sure of stays an `assumption`, the document noted. Never write `decided` any other way.
+- **A stated decision the lead says yes to** is decided, citing the document: `vela decide <ID> --yes <capture> --stated-in <SRC>`. One they aren't sure of stays an `assumption`, the document noted. Never write `decided` any other way.
 - **A clash** goes the way the lead picks. If they don't know, both sides become one open question naming both sources: `vela add unknown --name "<name>" --owner <handle> --for-lead`, and an ask-by date only if the lead gives one.
 - **A stale fact** is kept, replaced or opened the same way.
 

@@ -1,6 +1,6 @@
-"""`vela session branch` after `close finish`: a session run on main is closed by then, and the close skill's own
-next step (push says a review needs its own branch, then `session branch`) used to dead-end on "I can't tell which
-session to move". The finished, never-pushed session on main moves like an open one."""
+"""A session run on main and closed by `close finish`: `close push` moves it onto its own branch and sends that, and
+`vela session branch` moves it the same way on its own. The finished, never-pushed session on main moves like an open
+one (it used to dead-end on "I can't tell which session to move")."""
 import json
 
 from conftest import run
@@ -33,42 +33,33 @@ def finished_on_main(tmp_path, monkeypatch):
         "- **State:** fact", pushing.DECIDED.replace(pushing.RECORD, record_id), 1), encoding="utf-8")
     assert run("render", "--vault", str(vault))[0] == 0
     (vault / ".vela" / "handle").write_text("lead\n", encoding="utf-8")
-    run("close", "push", "--vault", str(vault), "--today", TODAY)  # the send notice, as section 7 step 1 has it
-    number = pushing.add_yes(vault)
     code, out = run("close", "finish", "--vault", str(vault), "--summary", SUMMARY, "--today", TODAY)
     assert code == 0, out
-    return vault, bare, record_id, began, number
+    return vault, bare, record_id, began
 
 
-def test_a_finished_session_on_main_moves_to_its_own_branch_and_then_pushes(tmp_path, monkeypatch):
-    vault, bare, record_id, began, number = finished_on_main(tmp_path, monkeypatch)
+def test_close_push_moves_a_finished_session_on_main_to_its_own_branch_and_sends_it(tmp_path, monkeypatch):
+    vault, bare, record_id, began = finished_on_main(tmp_path, monkeypatch)
     branch, tip = f"session/{record_id}", git(vault, "rev-parse", "HEAD")
-    code, out = run("close", "push", "--vault", str(vault), "--today", TODAY, "--consent", number, "--for-lead")
-    assert code == 1 and "needs its own branch" in out, out
+    code, out = run("close", "push", "--vault", str(vault), "--today", TODAY, "--for-lead")
+    assert code == 0 and "own branch" in out, out  # moved, brought main in once, then sent
+    assert git(vault, "branch", "--show-current") == branch
+    assert git(vault, "rev-parse", "main") == began and git(vault, "rev-parse", branch + "~1") == tip
+    assert pushing.remote_has(bare, branch) and not git(bare, "rev-parse", "main") == tip
+
+
+def test_session_branch_moves_a_finished_session_on_main_by_itself(tmp_path, monkeypatch):
+    vault, bare, record_id, began = finished_on_main(tmp_path, monkeypatch)
+    branch, tip = f"session/{record_id}", git(vault, "rev-parse", "HEAD")
     code, out = run("session", "branch", "--vault", str(vault), "--for-lead")
     assert code == 0, out
     assert git(vault, "branch", "--show-current") == branch and git(vault, "rev-parse", "HEAD~0") != began
     assert git(vault, "rev-parse", "main") == began and git(vault, "rev-parse", branch + "~1") == tip
     assert "can't tell" not in out and "own branch now" in out
-    assert run("close", "sync-main", "--vault", str(vault), "--today", TODAY)[0] == 0  # compared per branch: the new one
-    assert run("close", "push", "--vault", str(vault), "--today", TODAY)[0] == 3  # the notice, now on its own branch
-    number = yes_after_the_notice(vault, record_id, number)
-    code, out = run("close", "push", "--vault", str(vault), "--today", TODAY, "--consent", number)
-    assert code == 0, out
-    assert pushing.remote_has(bare, branch)
-
-
-def yes_after_the_notice(vault, record_id, first):
-    """The lead's yes numbered after the notice: the filed record takes no `record add`, so the line is copied."""
-    notes = session_files.record_text(vault, record_id)
-    line = next(l for l in notes.splitlines() if l.endswith(first))
-    number = "^c%02d" % (int(first[2:]) + 1)
-    session_files.write_private(vault, record_id, notes.replace(line, line + "\n" + line[:-len(first)] + number))
-    return number
 
 
 def test_two_finished_unpushed_sessions_are_not_guessed_between(tmp_path, monkeypatch):
-    vault, _, record_id, _, _ = finished_on_main(tmp_path, monkeypatch)
+    vault, _, record_id, _ = finished_on_main(tmp_path, monkeypatch)
     other = "2026-10-20-second"
     first = vault / privaterecord.stub_path(record_id)
     stub = vault / privaterecord.stub_path(other)

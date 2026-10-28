@@ -36,7 +36,7 @@ def test_every_flag_propose_tells_claude_to_run_exists():
 def test_propose_never_invents_a_reason_or_sends_anything():
     text = skill("propose")
     for rule in ("no reason given", "Never invent a reason", "Never send, email, upload or share the proposal", "never run `git` or `gh`",
-                 "Never add that flag without their yes", "Never attach the session notes without a yes", "A skipped question, \"not sure\", or silence is fine"):
+                 "Never attach the session notes without a yes", "A skipped question, \"not sure\", or silence is fine"):
         assert rule in text, rule
     assert "vela role" in text and "you decide directly" in text and "--whys -" in text
 
@@ -64,3 +64,10 @@ def test_the_reader_is_asked_by_the_items_name_not_the_group_key():
     assert '"You changed the Record consent contract' in text
     assert "vault" not in text.split("## Proposing", 1)[0].split("# Propose", 1)[1]
     assert "When a command can't express what the user wants, say so and stop." in text
+
+
+def test_propose_makes_a_folder_and_rewrites_the_home_path_without_a_yes():
+    body = skill("propose")
+    assert "Make a folder, unless they asked for a zip" in body and "a folder, or a single zip" not in body
+    assert "run again with `--rewrite-home` and say so" in body and "Never add that flag without their yes" not in body
+    assert "Never attach the session notes without a yes in this conversation." in body  # privacy stays a yes

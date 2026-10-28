@@ -279,7 +279,7 @@ def test_epics_offers_the_e805_routes_once_without_a_rerun_warning():
 
 def test_epics_decides_through_the_command_with_a_group_per_read_back():
     epics = EPICS.read_text(encoding="utf-8")
-    assert "`vela decide <EPC-id> --group AC1-AC5 ^cA ^cB --readback ^cN --yes ^cM --for-lead`" in epics
+    assert "`vela decide <EPC-id> --group AC1-AC5 ^cA --yes ^cM --for-lead`" in epics
     assert "`--override GATE-3 --reason-from ^cR`" in epics
     assert "commit with the message `grill: EPC-nnn decided`" not in epics  # decide commits
 
@@ -320,7 +320,7 @@ def test_epics_names_only_commands_that_exist():
 
 def test_epics_offers_the_tracker_link_to_the_library():
     body = (PLUGIN / "skills/epics/SKILL.md").read_text(encoding="utf-8")
-    assert "vela library add" in body and "for the Library" in body and "`links:` stays as written" in body
+    assert "Add a link they give to the Library with `vela library add`, no yes" in body and "`links:` stays as written" in body
 
 
 def test_epics_drafts_the_paragraph_of_each_item_it_files_now():

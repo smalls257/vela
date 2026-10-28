@@ -143,16 +143,14 @@ def test_a_file_in_the_inbox_is_copied_and_the_inbox_copy_stays_ignored(vault):
     assert (inbox / "notes.md").exists() and ".inbox" not in git(vault, "ls-files")
 
 
-def test_a_large_file_asks_for_a_link_unless_forced(vault, outside, monkeypatch):
+def test_a_large_library_file_is_added_with_a_note(vault, outside, monkeypatch):
     monkeypatch.setattr(library, "MAX_BYTES", 10)
     source = outside / "Big.zip"
     source.write_bytes(b"0123456789ABC")
     code, said = add(vault, source, "--title", "Big", "--keep-file", "--yes", "^c02")
-    assert code == 3 and "link" in json.dumps(json.loads(said)["lines"]), said
-    assert not (vault / "library").exists()
-    code, said = add(vault, source, "--title", "Big", "--keep-file", "--yes", "^c02", "--force-large")
     assert code == 0, said
     assert (vault / "library" / "documents" / "big.zip").exists()
+    assert "a link is usually the better row" in json.dumps(json.loads(said)["lines"]), said
 
 
 def test_a_name_clash_is_refused_and_named(vault, outside):
@@ -255,7 +253,7 @@ def test_the_asks_pass_the_lead_voice_check(vault, outside, monkeypatch):
     monkeypatch.setattr(library, "MAX_BYTES", 10)
     code, said = run("library", "add", str(source), "--vault", str(vault), "--title", "Till guide", "--keep-file",
                      "--yes", "^c02", "--for-lead")
-    assert code == 3 and "link" in said, said
+    assert code == 0 and "A link to where it lives is usually better." in said, said
     code, said = run("library", "add", "https://example.com/h", "--vault", str(vault), "--title", "Handbook",
                      "--for-lead")
     assert code == 0 and "added" in said, said

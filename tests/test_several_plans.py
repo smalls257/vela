@@ -344,22 +344,27 @@ def verdict(out):
     return out.get("hookSpecificOutput", {}).get("permissionDecision")
 
 
-def test_a_bash_hook_at_the_repo_root_or_in_a_plan_denies_staging_by_hand(docs):
+def test_a_bash_hook_at_the_repo_root_or_in_a_plan_denies_a_private_path_staged_by_hand(docs):
     repo, heron, _ = docs
     for folder in (repo, heron, heron / "sessions"):
-        out = hook("bash", {"cwd": str(folder), "tool_input": {"command": "git add -A"}})
+        path = "projects/heron/.inbox/x.md" if folder == repo else ".inbox/x.md"
+        out = hook("bash", {"cwd": str(folder), "tool_input": {"command": f"git add -f {path}"}})
         assert verdict(out) == "deny", folder
+        assert verdict(hook("bash", {"cwd": str(folder), "tool_input": {"command": "git add -A"}})) is None, folder
 
 
-def test_a_plain_commit_at_a_repo_root_is_denied_only_when_the_index_holds_a_plans_files(docs):
+def test_a_plain_commit_at_a_repo_root_is_denied_only_when_the_index_holds_a_private_path(docs):
     repo, heron, _ = docs
     (repo / "README.md").write_text("# docs, edited\n", encoding="utf-8")
     git(repo, "add", "README.md")
     assert stage_verdict(repo, "git commit -m wip")[0] is None  # the index holds only an owner's file
     (heron / "01-goals.md").write_text((heron / "01-goals.md").read_text(encoding="utf-8") + "\nX.\n", encoding="utf-8")
     git(repo, "add", "projects/heron/01-goals.md")
+    assert stage_verdict(repo, "git commit -m wip")[0] is None  # a plan page is the close's to send
+    (heron / ".inbox").mkdir()
+    (heron / ".inbox" / "call.md").write_text("company material\n", encoding="utf-8")
+    git(repo, "add", "-f", "projects/heron/.inbox/call.md")
     assert stage_verdict(repo, "git commit -m wip")[0] == "deny"
-    assert stage_verdict(repo, "git commit -am wip")[0] == "deny"
 
 
 def test_a_bash_hook_in_a_folder_with_no_plan_above_or_below_is_silent(docs, tmp_path):
@@ -390,21 +395,30 @@ def test_at_a_repo_root_with_plans_staging_named_files_outside_every_plan_is_all
     "git add projects/heron/01-goals.md", "git add README.md projects/payments/x.md", "git add projects",
     "git add -A", "git add --all", "git add .", "git add -u", "git add projects/*", "git add */01-goals.md",
     "git commit -a -m wip", "git commit --all -m wip", "git add notes && git add -A"])
-def test_at_a_repo_root_with_plans_staging_that_reaches_a_plan_is_denied_with_the_way_out(docs, command):
+def test_at_a_repo_root_with_plans_staging_plan_pages_gets_no_opinion(docs, command):
     repo, _, _ = docs
     (repo / "notes").mkdir()
+    assert stage_verdict(repo, command)[0] is None
+
+
+@pytest.mark.parametrize("command", [
+    "git add projects/heron/.inbox/call.md", "git add -f projects/heron/01-goals.md",
+    "git add README.md projects/payments/sessions/private/x.md"])
+def test_at_a_repo_root_with_plans_a_private_path_or_a_forced_stage_is_denied_with_the_way_out(docs, command):
+    repo, _, _ = docs
     decision, reason = stage_verdict(repo, command)
     assert decision == "deny"
-    assert "vela close stage" in reason and "name each path" in reason
+    assert "vela close stage" in reason
 
 
-def test_the_same_rules_hold_from_a_folder_beside_the_plans_and_not_from_inside_one(docs):
+def test_the_same_rules_hold_from_a_folder_beside_the_plans_and_from_inside_one(docs):
     repo, heron, _ = docs
     (repo / "notes").mkdir()
     assert stage_verdict(repo / "notes", "git add todo.md")[0] is None
-    assert stage_verdict(repo / "notes", "git add ../projects/heron/x.md")[0] == "deny"
-    assert stage_verdict(repo / "notes", "git add -A")[0] == "deny"
-    assert stage_verdict(heron, "git add notes.md")[0] == "deny"  # inside a plan, every hand staging is denied
+    assert stage_verdict(repo / "notes", "git add ../projects/heron/.inbox/x.md")[0] == "deny"
+    assert stage_verdict(repo / "notes", "git add ../projects/heron/x.md")[0] is None
+    assert stage_verdict(heron, "git add notes.md")[0] is None  # a plan page; the pre-commit guard holds the rest
+    assert stage_verdict(heron, "git add voice/local/a.md")[0] == "deny"
 
 
 def test_an_edit_in_a_plan_is_guarded_by_that_plans_rules_from_the_repo_root_and_one_outside_is_not(docs):
@@ -519,8 +533,6 @@ def test_planscope_names_follow_the_plans_folder():
     assert planscope.session_branch("", "2026-10-21-x") == "session/2026-10-21-x"
     assert planscope.titled("heron", "2026-10-21 Grill: x") == "[heron] 2026-10-21 Grill: x"
     assert planscope.titled("", "2026-10-21 Grill: x") == "2026-10-21 Grill: x"
-    assert planscope.dashboard_branch("heron", TODAY) == f"dashboard/heron/{TODAY}"
-    assert planscope.dashboard_branch("", TODAY) == f"dashboard/{TODAY}"
 
 
 def test_a_plan_owns_its_own_session_branches_and_the_old_unscoped_ones():

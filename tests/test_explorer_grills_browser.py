@@ -31,7 +31,7 @@ WANTED = [
     "grills: choosing Engineering in Viewing as makes Mine follow the people the plan records for it (Booking senior)",
     "grills: Owner, App and Holds up each narrow the list to exactly their grills, and Ready only drops the group one thing away (exercised: owner, app, holds up)",
     "grills: each filter starts at any",
-    "grills: each card has an owner line; a said-yes card shows no words, a one-away card says what it waits on and by when",
+    "grills: each card has an owner line; a said-yes card shows no words, a one-away card says what it waits on and by when, and a card with an open question under it names it",
     "grills: clicking",
     "grills: the panel gives what it settles, where it stands, what it holds up, the owner, who is asked to join and the prompt, in that order",
     "grills: the prompt starts /vela:grill with the item's name and is plain words, no IDs or handles",

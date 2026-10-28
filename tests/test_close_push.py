@@ -1,8 +1,5 @@
-"""`vela close push` (overhaul Task 12): one confirmation before anything leaves the machine.
-
-Without `--consent` it prints the send notice, notes the record's capture count, and exits 3; with it, the yes must be
-a person's, numbered after the notice, and more than an "ok", and the gate must pass, before the branch is pushed. The
-push goes to a bare repo in tmp_path standing in for origin."""
+"""`vela close push`: the lead's word to close is the yes, so it sends once the gate passes, with no second question,
+and a session on main moves to its own branch first. The push goes to a bare repo in tmp_path standing in for origin."""
 import json
 import os
 import stat
@@ -18,12 +15,12 @@ BRANCH = f"session/{RECORD}"
 TODAY = "2026-10-20"
 STOCK = "05-building-blocks/stock-building-blocks.md"
 MARK = " → keep: [[stock-building-blocks#CON-002 Stock level|CON-002]] (decided)"
+SEND_MARK = "drop: a yes the test captured"
 YES_WORDS = "Yes, decide stock level as read."
 BACK = f"- [thought] (claude) Read back: stock level is read on both sides{MARK} ^c01"
 YES = f'- [thought] (@lead) "{YES_WORDS}" says yes{MARK} ^c02'
 YES_ROW = f"| CON-002 | fact | decided | [[{RECORD}#^c02]] |"
 DECIDED = f"- **State:** decided\n- **Decision:** [[{RECORD}]]\n- **Tested by:** the stock read test on both sides"
-SEND_MARK = "drop: the yes to send this for review"
 
 
 def record_text(record_id=RECORD, modes="grill", title="Grill: stock", captures=None, rows=None):
@@ -80,9 +77,9 @@ def push(vault, *flags):
 
 
 def add_yes(vault, words="Yes, send it.", origin="@lead"):
-    """The lead's answer to the send notice, captured with `vela record add`. It lands in the private notes, which
-    are never committed, so there is nothing to commit afterwards."""
-    saidlog.append(vault, "test-session", "2026-10-14T09:00:00Z", words)  # typed, as the hook logs it
+    """A capture by `vela record add`, typed as the hook logs it, in the private notes (never committed). Close push
+    takes no yes; tests that read a lead's capture back (`records show`) use this."""
+    saidlog.append(vault, "test-session", "2026-10-14T09:00:00Z", words)
     code, out = run("record", "add", "--vault", str(vault), "--origin", origin, "--tag", "decision", "--mark",
                     SEND_MARK, words)
     assert code == 0, out
@@ -93,102 +90,87 @@ def remote_has(bare, branch):
     return git(bare, "branch", "--list", branch).strip() != ""
 
 
-def test_push_without_consent_prints_notice_exits_3(tmp_path):
+def test_push_sends_with_no_yes_once_the_gate_is_ready(tmp_path):
     vault, bare = sent_session(tmp_path)
-    head = git(vault, "rev-parse", "HEAD")
-    code, out = push(vault)
-    assert code == 3, out
-    assert f"I'll push `{BRANCH}` and open a pull request for" in out
-    assert "stock-team" in out and "mini/shop-team" in out  # the changed app's owner and its contract's consumer
-    assert "2 captures" in out and "--consent" in out
-    assert "run vela close finish while the session is still open, then vela close push --consent ^cNN" in out
-    assert f'--mark "{SEND_MARK}"' in out
-    assert git(vault, "rev-parse", "HEAD") == head and not remote_has(bare, BRANCH)
-    code, lead = push(vault, "--for-lead")
-    assert code == 3 and lead.strip().startswith("I'll send this for review to") and lead.strip().endswith("OK?")
-    assert say.leak_in(lead) is None
-    code, data = push(vault, "--json")
-    assert code == 3 and json.loads(data)["needs_lead"][0]["captures_at_notice"] == 2
-
-
-def test_consent_before_notice_refused(tmp_path):
-    vault, bare = sent_session(tmp_path)
-    number = add_yes(vault)  # a yes captured before any notice was printed
-    code, out = push(vault)
-    assert code == 3, out  # the notice comes now, after the yes
-    code, out = push(vault, "--consent", number)
-    assert code == 1 and "Before I send anything, I need to tell you what goes and to whom." in out, out
-    assert not remote_has(bare, BRANCH)
-
-
-def test_bare_ok_consent_refused(tmp_path):
-    vault, bare = sent_session(tmp_path)
-    assert push(vault)[0] == 3
-    number = add_yes(vault, words="ok")
-    code, out = push(vault, "--consent", number, "--for-lead")
-    assert code == 1 and "You said 'ok'. Is that a yes" in out, out
-    assert not remote_has(bare, BRANCH)
-
-
-def test_claude_consent_refused(tmp_path):
-    vault, bare = sent_session(tmp_path)
-    assert push(vault)[0] == 3
-    number = add_yes(vault, words="the lead seemed happy to send", origin="claude")
-    code, out = push(vault, "--consent", number)
-    assert code == 1 and "That line was mine, not yours." in out
-    assert not remote_has(bare, BRANCH)
-
-
-def test_a_yes_from_anyone_but_the_lead_sends_nothing(tmp_path):
-    """The confirm run recorded the send's yes under the operator's account email (S14, S18, S21) and as "Sim Lead"
-    (S2); a person's origin was all close push asked for. Only the `vela whoami` handle's yes sends now."""
-    vault, bare = sent_session(tmp_path)
-    assert push(vault)[0] == 3
-    for origin, said in (("someone@example.com", "someone@example.com"), ("Priya", "Priya"),
-                         ("@stock-team", "stock team")):
-        number = add_yes(vault, origin=origin)
-        code, out = push(vault, "--consent", number, "--for-lead")
-        assert code == 1, out
-        assert f"That yes is written down as coming from {said}, not from you, so I haven't sent anything." in out
-        assert not remote_has(bare, BRANCH)
-    code, out = push(vault, "--consent", number, "--json")
-    refusal = json.loads(out)["refusals"][0]
-    assert refusal["rule"] == "consent-not-the-lead" and "--origin @lead" in refusal["fix"], out
-    number = add_yes(vault, origin="LEAD")  # the lead's own handle, however it is written
-    assert push(vault, "--consent", number)[0] == 0
-    assert remote_has(bare, BRANCH)
-
-
-def test_consent_after_notice_pushes(tmp_path):
-    vault, bare = sent_session(tmp_path)
-    assert push(vault)[0] == 3
-    number = add_yes(vault)
-    code, out = push(vault, "--consent", number, "--for-lead")
+    code, out = push(vault, "--for-lead")
     assert code == 0, out
     assert remote_has(bare, BRANCH)
     assert git(bare, "rev-parse", BRANCH) == git(vault, "rev-parse", "HEAD")
-    assert say.leak_in(out) is None
+    assert out.strip() == "Sent. Now I'll open the review." and say.leak_in(out) is None
     pushed = json.loads((vault / ".vela" / "close" / f"{RECORD}.push.json").read_text(encoding="utf-8"))
-    assert pushed["branch"] == BRANCH and pushed["consent"] == number.lstrip("^")
-    assert pushed["link"] == f"[[{RECORD}]] {number.lstrip('^')}", "a committed reference, never an anchor into the notes"
+    assert pushed["branch"] == BRANCH and "consent" not in pushed and "link" not in pushed
+    assert not list((vault / ".vela" / "close").glob("*push-notice*"))
 
 
-def test_an_uncommitted_change_stops_the_push_but_the_private_yes_does_not(tmp_path):
+def test_the_consent_flag_is_gone(tmp_path):
     vault, bare = sent_session(tmp_path)
-    assert push(vault)[0] == 3
-    number = add_yes(vault)
+    code, out = push(vault, "--consent", "^c02")
+    assert code == 2, out
+    assert not remote_has(bare, BRANCH)
+
+
+def test_push_on_main_moves_the_work_to_its_own_branch_and_never_pushes_main(tmp_path):
+    vault, bare = sent_session(tmp_path)
+    git(vault, "switch", "-q", "main")
+    git(vault, "merge", "-q", "--ff-only", BRANCH)  # the finished session sits on main, unpushed
+    git(vault, "branch", "-q", "-D", BRANCH)
+    state = json.loads((vault / ".vela" / "session.json").read_text(encoding="utf-8"))
+    state["branch"] = "main"
+    (vault / ".vela" / "session.json").write_text(json.dumps(state), encoding="utf-8")
+    for record in (vault / ".vela" / "close").glob("*.json"):
+        if record.name != f"{RECORD}.push.json":
+            record.unlink()  # no sync-main record for any branch: the move must bring main in itself
+    assert not list((vault / ".vela" / "close").glob("*sync*")) and not (vault / ".vela" / "close" / f"{BRANCH.replace('/', '__')}.json").exists()
+    main_on_origin = git(bare, "rev-parse", "main")
+    code, out = push(vault, "--for-lead")
+    assert code == 0, out
+    assert out.count("own branch") == 1 and "Main is back" not in out and remote_has(bare, BRANCH)
+    assert git(vault, "branch", "--show-current") == BRANCH
+    assert git(bare, "rev-parse", "main") == main_on_origin, "main was never pushed"
+    assert git(vault, "rev-parse", "main") != git(vault, "rev-parse", BRANCH), "main no longer holds the session"
+
+
+def test_a_private_file_committed_with_add_all_stops_the_push(tmp_path):
+    """The Bash hook reads the index before `git add -A && git commit` runs, so the push checks the commits itself."""
+    vault, bare = sent_session(tmp_path)
+    (vault / ".inbox").mkdir(exist_ok=True)
+    (vault / ".inbox" / "call.md").write_text("company material\n", encoding="utf-8")
+    git(vault, "add", "-A", "-f", ".inbox")
+    git(vault, "commit", "-q", "-m", "Add call notes")
+    code, out = push(vault, "--for-lead")
+    assert code == 1, out
+    assert "meeting notes from the inbox" in out and "must stay on your machine" in out and say.leak_in(out) is None
+    assert not remote_has(bare, BRANCH)
+    code, out = push(vault)
+    assert code == 1 and ".inbox/call.md" in out and "git reset --soft" in out and "git rm -r --cached" in out
+
+
+def test_a_private_file_added_then_removed_is_still_in_the_history_a_push_sends(tmp_path):
+    vault, bare = sent_session(tmp_path)
+    notes = vault / "sessions" / "private" / "2026-10-20-other.md"
+    notes.parent.mkdir(parents=True, exist_ok=True)
+    notes.write_text("private\n", encoding="utf-8")
+    git(vault, "add", "-f", "sessions/private/2026-10-20-other.md")
+    git(vault, "commit", "-q", "-m", "Oops")
+    git(vault, "rm", "-q", "--cached", "sessions/private/2026-10-20-other.md")
+    git(vault, "commit", "-q", "-m", "Take it out again")
+    code, out = push(vault, "--for-lead")
+    assert code == 1 and "your private session notes" in out, out
+    assert not remote_has(bare, BRANCH)
+
+
+def test_an_uncommitted_change_stops_the_push(tmp_path):
+    vault, bare = sent_session(tmp_path)
     (vault / STOCK).write_text((vault / STOCK).read_text(encoding="utf-8") + "\nA late edit.\n", encoding="utf-8")
-    code, out = push(vault, "--consent", number)
+    code, out = push(vault)
     assert code == 1 and "aren't committed yet" in out, out
     assert not remote_has(bare, BRANCH)
 
 
 def test_gate_refusal_stops_the_push(tmp_path):
     vault, bare = sent_session(tmp_path)
-    assert push(vault)[0] == 3
-    number = add_yes(vault)
     (vault / ".vela" / "close").joinpath(f"{BRANCH.replace('/', '__')}.json").unlink()  # sync-main's record gone
-    code, out = push(vault, "--consent", number)
+    code, out = push(vault)
     assert code == 1 and "not ready" in out, out
     assert not remote_has(bare, BRANCH)
 
@@ -200,33 +182,28 @@ def test_no_network_says_the_stance_and_sends_nothing(tmp_path):
     code, out = push(vault, "--for-lead")
     assert code == 1, out
     assert "I can file the session here, but I can't send it." in out
-    assert not (vault / ".vela" / "close" / f"{RECORD}.push-notice.json").exists()
+    assert not remote_has(bare, BRANCH)
 
 
 def test_push_failure_prints_branch_and_retry(tmp_path):
     vault, bare = sent_session(tmp_path)
-    assert push(vault)[0] == 3
-    number = add_yes(vault)
     hook = bare / "hooks" / "pre-receive"
     hook.write_text("#!/bin/sh\necho 'refused by the test' >&2\nexit 1\n", encoding="utf-8")
     hook.chmod(hook.stat().st_mode | stat.S_IEXEC)
-    code, out = push(vault, "--consent", number)
+    code, out = push(vault)
     assert code == 2, out
     assert BRANCH in out and f"git push -u origin {BRANCH}" in out
-    code, lead = push(vault, "--consent", number, "--for-lead")
+    code, lead = push(vault, "--for-lead")
     assert code == 2 and say.leak_in(lead) is None and "Shall I try again?" in lead
     assert BRANCH not in lead  # the branch and git's command stay in the default line
 
 
-def test_an_unready_session_is_refused_before_the_send_notice(tmp_path):
-    """The gate runs first: asking "OK?" for a session that can't go yet asks for a yes that is then refused."""
+def test_a_stray_file_does_not_stop_the_push(tmp_path):
     vault, bare = sent_session(tmp_path)
     (vault / "notes.txt").write_text("scratch\n", encoding="utf-8")
     code, out = push(vault, "--for-lead")
-    assert code == 1, out
-    assert out.startswith("I haven't sent anything.") and "OK?" not in out, out
-    assert not list((vault / ".vela" / "close").glob("*push-notice*"))  # no notice, so no yes can be taken for it
-    assert not remote_has(bare, BRANCH)
+    assert code == 0, out
+    assert remote_has(bare, BRANCH)
 
 
 def test_reader_copy_sends_nothing(tmp_path):
@@ -236,3 +213,43 @@ def test_reader_copy_sends_nothing(tmp_path):
     (vault / ".vela" / "workspace.json").write_text('{"author": "Sam"}', encoding="utf-8")
     code, out = push(vault, "--for-lead")
     assert code == 1 and "your copy" in out and os.path.isdir(vault)
+
+
+UNK = """
+### UNK-090 Hold expiry under load
+
+- **Question:** Does the stock level hold under load?
+- **Owner:** @someone-else
+- **State:** open
+- **Blocks:** [[stock-building-blocks#CON-002 Stock level|CON-002]]
+"""
+
+
+def open_question(vault, text=UNK):
+    page = vault / "11-unknowns-and-risks.md"
+    page.write_text(page.read_text(encoding="utf-8") + text, encoding="utf-8")
+    assert run("render", "--vault", str(vault))[0] == 0
+    git(vault, "add", "-u")
+    git(vault, "commit", "-q", "-m", "Challenge CON-002")
+
+
+def test_a_challenge_with_its_deliberate_red_check_can_be_sent(tmp_path):
+    vault, _ = sent_session(tmp_path, modes="challenge", title="Challenge: CON-002", handle="someone-else")
+    open_question(vault)
+    code, out = push(vault)
+    assert code == 0, out
+
+
+def test_a_grill_that_opens_a_blocking_question_is_still_refused(tmp_path):
+    vault, bare = sent_session(tmp_path)
+    open_question(vault)
+    code, out = push(vault)
+    assert code == 1 and not remote_has(bare, BRANCH), out
+
+
+def test_a_challenge_with_another_new_error_is_still_refused(tmp_path):
+    vault, bare = sent_session(tmp_path, modes="challenge", title="Challenge: CON-002", handle="someone-else")
+    open_question(vault, UNK + "\n### UNK-091 Dangling\n\n- **Question:** Who?\n- **Owner:** @x\n- **State:** open\n"
+                               "- **Blocks:** [[no-such-page#CON-404 Gone|CON-404]]\n")
+    code, out = push(vault)
+    assert code == 1 and not remote_has(bare, BRANCH), out

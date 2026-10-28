@@ -66,7 +66,7 @@ CASES = {
                          "forbid": [("capabilities/CAP-021-*.md", DECIDED), (CAP_021, OVERRIDE_BULLET)]},
     "e7-grill-override": {"today": "2026-11-20", "gate": False, "may_decide": 1,
                           "expect": [(CAP_021, DECIDED),
-                                     (CAP_021, OVERRIDE_BULLET + r"[^\n]*\bGATE-4\b"),
+                                     (CAP_021, OVERRIDE_BULLET + r"[^\n]*\bE316\b"),
                                      (CAP_021, r"^- \*\*Decided by:\*\* @[A-Za-z0-9_-]+, on behalf of @")],
                           "forbid": [], "check_codes": ["W316"], "check_never": ["E316"]},
     "e4-shape": {"today": "2026-11-20", "gate": False,
@@ -191,9 +191,8 @@ def invented_ids(workspace):
 
 
 def settled_ids(workspace):
-    """IDs the session records settle properly: a `## Changes` row into decided whose yes is a person's and comes after
-    a read-back of Claude's that `vela decide` marked on that item. Reads sessions/private/ too: the lead's notes hold
-    the table when the captures are private."""
+    """IDs the session records settle properly: a `## Changes` row into decided whose yes is a person's. Reads sessions/private/ too: the lead's
+    notes hold the table when the captures are private."""
     from vela import closegate
     found = set()
     for path in sorted((workspace / "sessions").rglob("*.md")):
@@ -201,14 +200,13 @@ def settled_ids(workspace):
         said = closegate.captures(text)
         for row in closegate.change_rows(text):
             capture = said.get(row.capture_number)
-            if row.after == closegate.CONSENT_STATE and capture is not None and capture.is_person \
-                    and closegate.read_back_before(capture, said, row.item, closegate.CONSENT_STATE):
+            if row.after == closegate.CONSENT_STATE and capture is not None and capture.is_person:
                 found.add(row.item)
     return found
 
 
 def decided_growth(workspace, allowed=0):
-    """A case that asks for no decision writes none, and a decision it does write has a read-back and a yes after it. A
+    """A case that asks for no decision writes none, and a decision it does write has a person's yes. A
     rise in decided states over the scaffold beyond `allowed` plus the items settled that way is a failure."""
     before = scaffold_state(workspace)
     if before is None:
@@ -220,8 +218,7 @@ def decided_growth(workspace, allowed=0):
     was = count(before)
     settled = len(settled_ids(workspace))
     verdict = "FAIL" if now - was > allowed + settled else "pass"
-    return [f"{verdict}: decided states {was} -> {now} (up to {allowed} allowed, and {settled} settled with a read-back "
-            "and a yes after it)"]
+    return [f"{verdict}: decided states {was} -> {now} (up to {allowed} allowed, and {settled} settled with a yes)"]
 
 
 def check_code_lines(output, wanted, never):

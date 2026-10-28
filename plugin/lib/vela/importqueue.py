@@ -155,28 +155,29 @@ def close(state, number, outcome, how=""):
     return item
 
 
-def set_wording(state, choice, yes, source=ALL_SOURCES):
+def set_wording(state, choice, yes, source=ALL_SOURCES, cite=""):
     """The lead's answer to the voice question, for every source or one. `yes` is the capture of their words; the
-    shell checks it is a person's before it gets here."""
+    shell checks it is a person's before it gets here. `cite` is how a committed page cites that capture
+    (`[[<session>]] 2.c07`), worked out when the notes are in hand, so paging never has to read them."""
     if choice not in WORDINGS:
         raise QueueRefused(f"wording {choice!r} is not one of {', '.join(WORDINGS)}")
     if not yes:
         raise QueueRefused("the wording answer needs the capture of the lead's words (--yes)")
-    state["wording"][source] = {"as": choice, "yes": yes}
+    state["wording"][source] = {"as": choice, "yes": yes, "cite": cite}
     return state["wording"][source]
 
 
 def wording_for(state, sources):
-    """The wording a page drawn from `sources` takes, and the yes behind it: the answer for its source when the lead
+    """The wording a page drawn from `sources` takes, and the yes behind it and how a page cites it: the answer for its source when the lead
     gave one, else their answer for all sources, else `keep` with no yes. Until the lead answers, the documents' words
     are kept as written; nothing is voiced on the session's own judgment. A page drawn from sources answered
     differently keeps the stricter answer, so one source's "keep" is never voiced because another's was."""
     chosen = []
     for source in sources or [ALL_SOURCES]:
         answer = state["wording"].get(source) or state["wording"].get(ALL_SOURCES)
-        chosen.append(answer or {"as": KEEP, "yes": ""})
+        chosen.append(answer or {"as": KEEP, "yes": "", "cite": ""})
     strictest = min(chosen, key=lambda a: WORDINGS.index(a["as"]))
-    return strictest["as"], strictest["yes"]
+    return strictest["as"], strictest["yes"], strictest["cite"]
 
 
 def said(item, source_names):

@@ -33,7 +33,7 @@ def notes(session=SESSION, summary="Settle how a crossing is held, paid and conf
     return (f"---\nid: {session}\npart: 1\nsummary: \"{summary}\"\n---\n\n# {TODAY} Grill: hold, pay, confirm\n\n"
             "## Agenda\n\n- FLO-001: GATE-3 confirmed yes, status decided\n"
             "- RUN-booking: GATE-3 confirmed yes, status decided\n"
-            "- CON-007: GATE-3 confirmed yes, status off-agenda: UNK-009\n"
+            "- CON-007: GATE-3 confirmed yes, status off-agenda: GATE-2\n"
             "- RUN-pricing: GATE-3 confirmed yes, status open\n\n"
             f"## Ready to decide\n\n- CON-007: the lead said yes in {session} (^c12)\n\n"
             "## Captures\n\n" + "\n".join(lines) + "\n\n## Changes\n\n| ID | From | To | Source |\n|---|---|---|---|\n"
