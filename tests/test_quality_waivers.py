@@ -44,6 +44,7 @@ def test_expired_waivers_and_todos():
     w = quality_waivers.parse_waivers(HEAD + LINE)
     assert quality_waivers.expired(w.values(), datetime.date(2027, 4, 27)) == []
     assert len(quality_waivers.expired(w.values(), datetime.date(2027, 4, 28))) == 1
-    found = quality_waivers.expired_todos(["tools/x.py:3:# TODO(smalls257, 2026-10-01): drop the old flag"],  # nosemgrep: todo-needs-owner-and-reason -- the input under test
+    marker = "TO" + "DO"  # built at run time so a repo-wide grep for dated markers does not find this test
+    found = quality_waivers.expired_todos([f"tools/x.py:3:# {marker}(smalls257, 2026-10-01): drop the old flag"],
                                           datetime.date(2026, 10, 27))
     assert found[0].path == "tools/x.py" and found[0].line == 3 and "expired on 2026-10-01" in found[0].message

@@ -43,7 +43,8 @@ GIT_VALUE_OPTIONS = {"-C", "-c", "--git-dir", "--work-tree", "--namespace"}
 COMMIT_LONG_VALUE_OPTIONS = {"--author", "--date", "--message", "--file", "--template", "--reuse-message",
                              "--reedit-message", "--fixup", "--squash", "--cleanup", "--trailer",
                              "--pathspec-from-file"}
-COMMIT_SHORT_VALUE_LETTERS = "mFCctS"
+# -S is absent on purpose: git reads its key id only when attached (-Skey), so "-S -n" still carries -n.
+COMMIT_SHORT_VALUE_LETTERS = "mFCct"
 
 
 def _segments(command):
@@ -87,7 +88,7 @@ def _hooked_git(tokens):
 
 def _commit_skips_hooks(args):
     """Whether `git commit <args>` carries -n (short for --no-verify). Reads only commit's own options: stops at
-    --, and does not read the value of -m/-F/-C/-c/-t/-S or of a long option as a flag."""
+    --, and does not read the value of -m/-F/-C/-c/-t or of a long option as a flag."""
     i = 0
     while i < len(args):
         token = args[i]

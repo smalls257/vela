@@ -56,7 +56,7 @@ def test_dash_n_outside_git_commit_options_passes(command):
 
 
 @pytest.mark.parametrize("command", [
-    "git commit -m x -n", "git commit -nm x", "git commit -am x -n", "git -C repo commit -n -m x",
+    "git commit -m x -n", "git commit -S -n", "git commit -aS -n", "git commit -nm x", "git commit -am x -n", "git -C repo commit -n -m x",
     "python3 -m pytest -n auto\ngit commit -n -m x", "git commit \\\n  -n -m x", "ls\ngit push --no-verify",
 ])
 def test_dash_n_on_git_commit_still_skips_the_hooks(command):
