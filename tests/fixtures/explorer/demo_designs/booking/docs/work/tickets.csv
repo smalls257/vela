@@ -1,134 +1,153 @@
-Issue Id,Summary,Description,Issue Type,Parent,Story Points,Labels,Labels,Labels,Labels,Labels,Labels,Labels,Labels,Labels,Blocked by
-S-01,S-01 Confirm a booking over the website's surface,"Traces to: CAP-013.FR1@APP-booking, CAP-015.FR1@APP-booking, CON-001, EPC-031.AC5, EPC-031.AC6; components: Booking API, Booking lifecycle
-Acceptance criteria:
-- The website shows a booking as confirmed only after the ledger has recorded it.
-- A confirmation the ledger rejects shows as failed, never as confirmed.
-- Two channels asking about the same booking reference at the same moment get the same state.
-- A call to CON-001 without a valid service token is refused at the Platform gateway.
-Blocked by: none",Story,,,CAP-013.FR1@APP-booking,CAP-015.FR1@APP-booking,CON-001,EPC-031.AC5,EPC-031.AC6,,,,,
+Issue Id,Summary,Description,Issue Type,Parent,Story Points,Labels,Labels,Labels,Labels,Labels,Labels,Blocked by
+S-01,Confirm a booking over the website's surface,"Acceptance criteria:
+- The website shows a booking as confirmed only after the ledger has recorded it. (AC1)
+- A confirmation the ledger rejects shows as failed, never as confirmed. (AC2)
+- Two channels asking about the same booking reference at the same moment get the same state. (AC3)
+- A call to CON-001 without a valid service token is refused at the Platform gateway. (AC4)
+
+What this story relies on:
+Written without the vault, so what this story relies on is named by ID only: CAP-013.FR1, CAP-015.FR1, CON-001.
+
+Size: M+M+S
+Blocked by: nothing",Story,,,CAP-013.FR1,CAP-015.FR1,CON-001,EPC-031,,,
 S-01-T1,"Booking state machine: held, confirming, confirmed, released","Component: Booking lifecycle
 Size: M
-Story S-01 Confirm a booking over the website's surface
-Traces to: CAP-013.FR1@APP-booking, CAP-015.FR1@APP-booking, CON-001, EPC-031.AC5, EPC-031.AC6; components: Booking API, Booking lifecycle",Task,S-01,5,CAP-013.FR1@APP-booking,CAP-015.FR1@APP-booking,CON-001,EPC-031.AC5,EPC-031.AC6,,,,,
+Story: Confirm a booking over the website's surface (S-01)",Task,S-01,5,CAP-013.FR1,CAP-015.FR1,CON-001,EPC-031,,,
 S-01-T2,"Versioned HTTP surface for hold, confirm and get","Component: Booking API
 Size: M
-Story S-01 Confirm a booking over the website's surface
-Traces to: CAP-013.FR1@APP-booking, CAP-015.FR1@APP-booking, CON-001, EPC-031.AC5, EPC-031.AC6; components: Booking API, Booking lifecycle",Task,S-01,5,CAP-013.FR1@APP-booking,CAP-015.FR1@APP-booking,CON-001,EPC-031.AC5,EPC-031.AC6,,,,,
+Story: Confirm a booking over the website's surface (S-01)",Task,S-01,5,CAP-013.FR1,CAP-015.FR1,CON-001,EPC-031,,,
 S-01-T3,Error codes a channel can show a customer,"Component: Booking API
 Size: S
-Story S-01 Confirm a booking over the website's surface
-Traces to: CAP-013.FR1@APP-booking, CAP-015.FR1@APP-booking, CON-001, EPC-031.AC5, EPC-031.AC6; components: Booking API, Booking lifecycle",Task,S-01,2,CAP-013.FR1@APP-booking,CAP-015.FR1@APP-booking,CON-001,EPC-031.AC5,EPC-031.AC6,,,,,
-S-02,"S-02 Read fares, capacity and customers","Traces to: CAP-012.FR1@APP-booking, CON-003, CON-004, CON-005, EPC-038.AC1, EPC-038.AC2; components: Upstream readers
-Acceptance criteria:
-- Booking's contract test for CON-003 passes against Pricing's provider verification, in both teams' pipelines.
-- For the same crossing and fare rules, Booking gets the same quote the front ends get today.
-Blocked by: UNK-010 (open question: capacity checks at the kiosk peak), UNK-011 (open question: guest bookings in the customer lookup)",Story,,,CAP-012.FR1@APP-booking,CON-003,CON-004,CON-005,EPC-038.AC1,EPC-038.AC2,,,,
+Story: Confirm a booking over the website's surface (S-01)",Task,S-01,2,CAP-013.FR1,CAP-015.FR1,CON-001,EPC-031,,,
+S-02,"Read fares, capacity and customers","Acceptance criteria:
+- Booking's contract test for CON-003 passes against Pricing's provider verification, in both teams' pipelines. (AC1)
+- For the same crossing and fare rules, Booking gets the same quote the front ends get today. (AC2)
+
+What this story relies on:
+Written without the vault, so what this story relies on is named by ID only: CAP-012.FR1, CON-003, CON-004, CON-005.
+
+Size: M+M+S
+Blocked by: nothing
+Also waits on: UNK-010 (open question: capacity checks at the kiosk peak), UNK-011 (open question: guest bookings in the customer lookup)",Story,,,CAP-012.FR1,CON-003,CON-004,CON-005,EPC-038,,
 S-02-T1,Quote client with timeout and circuit breaker,"Component: Upstream readers
 Size: M
-Story S-02 Read fares, capacity and customers
-Traces to: CAP-012.FR1@APP-booking, CON-003, CON-004, CON-005, EPC-038.AC1, EPC-038.AC2; components: Upstream readers",Task,S-02,5,CAP-012.FR1@APP-booking,CON-003,CON-004,CON-005,EPC-038.AC1,EPC-038.AC2,,,,
+Story: Read fares, capacity and customers (S-02)",Task,S-02,5,CAP-012.FR1,CON-003,CON-004,CON-005,EPC-038,,
 S-02-T2,Capacity and customer lookup clients,"Component: Upstream readers
 Size: M
-Story S-02 Read fares, capacity and customers
-Traces to: CAP-012.FR1@APP-booking, CON-003, CON-004, CON-005, EPC-038.AC1, EPC-038.AC2; components: Upstream readers",Task,S-02,5,CAP-012.FR1@APP-booking,CON-003,CON-004,CON-005,EPC-038.AC1,EPC-038.AC2,,,,
+Story: Read fares, capacity and customers (S-02)",Task,S-02,5,CAP-012.FR1,CON-003,CON-004,CON-005,EPC-038,,
 S-02-T3,Contract tests against the three providers,"Component: Upstream readers
 Size: S
-Story S-02 Read fares, capacity and customers
-Traces to: CAP-012.FR1@APP-booking, CON-003, CON-004, CON-005, EPC-038.AC1, EPC-038.AC2; components: Upstream readers",Task,S-02,2,CAP-012.FR1@APP-booking,CON-003,CON-004,CON-005,EPC-038.AC1,EPC-038.AC2,,,,
-S-03,S-03 Write confirmed bookings to FERRYMASTER,"Traces to: CON-006, EPC-031.AC2, EPC-031.AC3, EPC-032.AC1, EPC-032.AC2, EPC-032.AC3, EPC-032.AC4, EPC-032.AC5, EPC-032.AC6; components: Ledger adapter, Booking lifecycle
-Acceptance criteria:
-- Booking sends BKHOLD, BKCONF, BKAMND and BKCANC in the format CON-006 documents, and the FERRYMASTER test region accepts each one in the weekly end-to-end run.
-- When FERRYMASTER rejects a write or does not answer, Booking retries and the booking keeps its hold. No channel sees `confirmed` until FERRYMASTER has accepted.
-- The same write sent twice is applied once in FERRYMASTER.
-- p95 ledger write latency in the weekly end-to-end run is no worse than the 2.1 s measured for UNK-001.
-- Booking's contract tests run against the ledger simulator with no connection to FERRYMASTER.
-Blocked by: S-01, the mainframe team's test region slot for the weekly run (outside party)",Story,,,CON-006,EPC-031.AC2,EPC-031.AC3,EPC-032.AC1,EPC-032.AC2,EPC-032.AC3,EPC-032.AC4,EPC-032.AC5,EPC-032.AC6,S-01
+Story: Read fares, capacity and customers (S-02)",Task,S-02,2,CAP-012.FR1,CON-003,CON-004,CON-005,EPC-038,,
+S-03,Write confirmed bookings to FERRYMASTER,"Acceptance criteria:
+- Booking sends BKHOLD, BKCONF, BKAMND and BKCANC in the format CON-006 documents, and the FERRYMASTER test region accepts each one in the weekly end-to-end run. (AC1)
+- When FERRYMASTER rejects a write or does not answer, Booking retries and the booking keeps its hold. No channel sees `confirmed` until FERRYMASTER has accepted. (AC2)
+- The same write sent twice is applied once in FERRYMASTER. (AC3)
+- p95 ledger write latency in the weekly end-to-end run is no worse than the 2.1 s measured for UNK-001. (AC4)
+- Booking's contract tests run against the ledger simulator with no connection to FERRYMASTER. (AC5)
+
+What this story relies on:
+Written without the vault, so what this story relies on is named by ID only: CON-006.
+
+Size: L+M+M+S
+Blocked by: Confirm a booking over the website's surface (S-01)",Story,,,CON-006,EPC-031,EPC-032,,,,S-01
 S-03-T1,Outbox table written in the same transaction as each state change,"Component: Booking lifecycle
 Size: M
-Story S-03 Write confirmed bookings to FERRYMASTER
-Traces to: CON-006, EPC-031.AC2, EPC-031.AC3, EPC-032.AC1, EPC-032.AC2, EPC-032.AC3, EPC-032.AC4, EPC-032.AC5, EPC-032.AC6; components: Ledger adapter, Booking lifecycle",Task,S-03,5,CON-006,EPC-031.AC2,EPC-031.AC3,EPC-032.AC1,EPC-032.AC2,EPC-032.AC3,EPC-032.AC4,EPC-032.AC5,EPC-032.AC6,
+Story: Write confirmed bookings to FERRYMASTER (S-03)",Task,S-03,5,CON-006,EPC-031,EPC-032,,,,
 S-03-T2,MQ mapping for the four ledger transactions,"Component: Ledger adapter
 Size: L
-Story S-03 Write confirmed bookings to FERRYMASTER
-Traces to: CON-006, EPC-031.AC2, EPC-031.AC3, EPC-032.AC1, EPC-032.AC2, EPC-032.AC3, EPC-032.AC4, EPC-032.AC5, EPC-032.AC6; components: Ledger adapter, Booking lifecycle",Task,S-03,8,CON-006,EPC-031.AC2,EPC-031.AC3,EPC-032.AC1,EPC-032.AC2,EPC-032.AC3,EPC-032.AC4,EPC-032.AC5,EPC-032.AC6,
+Story: Write confirmed bookings to FERRYMASTER (S-03)",Task,S-03,8,CON-006,EPC-031,EPC-032,,,,
 S-03-T3,Idempotency keys on every write,"Component: Ledger adapter
 Size: S
-Story S-03 Write confirmed bookings to FERRYMASTER
-Traces to: CON-006, EPC-031.AC2, EPC-031.AC3, EPC-032.AC1, EPC-032.AC2, EPC-032.AC3, EPC-032.AC4, EPC-032.AC5, EPC-032.AC6; components: Ledger adapter, Booking lifecycle",Task,S-03,2,CON-006,EPC-031.AC2,EPC-031.AC3,EPC-032.AC1,EPC-032.AC2,EPC-032.AC3,EPC-032.AC4,EPC-032.AC5,EPC-032.AC6,
+Story: Write confirmed bookings to FERRYMASTER (S-03)",Task,S-03,2,CON-006,EPC-031,EPC-032,,,,
 S-03-T4,Ledger simulator for contract tests,"Component: Ledger adapter
 Size: M
-Story S-03 Write confirmed bookings to FERRYMASTER
-Traces to: CON-006, EPC-031.AC2, EPC-031.AC3, EPC-032.AC1, EPC-032.AC2, EPC-032.AC3, EPC-032.AC4, EPC-032.AC5, EPC-032.AC6; components: Ledger adapter, Booking lifecycle",Task,S-03,5,CON-006,EPC-031.AC2,EPC-031.AC3,EPC-032.AC1,EPC-032.AC2,EPC-032.AC3,EPC-032.AC4,EPC-032.AC5,EPC-032.AC6,
-S-04,S-04 Hold a seat and release it when it runs out,"Traces to: CAP-014.FR1@APP-booking, CAP-014.FR2@APP-booking, EPC-031.AC1, EPC-031.AC4, EPC-037.AC2; components: Hold keeper
-Acceptance criteria:
-- A channel that asks to hold a seat through CON-001 gets back a booking reference and an expiry time, and no other channel can sell that seat until the hold ends.
-- A failed or abandoned payment releases the hold, and the seat is available to every channel again.
-- A hold that isn't confirmed in time is released, and Booking publishes a state-changed event.
-Blocked by: S-01, S-02, OQ-001 (open question in the design: is a hold 10 minutes or 15?)",Story,,,CAP-014.FR1@APP-booking,CAP-014.FR2@APP-booking,EPC-031.AC1,EPC-031.AC4,EPC-037.AC2,,,,,"S-01, S-02"
+Story: Write confirmed bookings to FERRYMASTER (S-03)",Task,S-03,5,CON-006,EPC-031,EPC-032,,,,
+S-04,Hold a seat and release it when it runs out,"Acceptance criteria:
+- A channel that asks to hold a seat through CON-001 gets back a booking reference and an expiry time, and no other channel can sell that seat until the hold ends. (AC1)
+- A failed or abandoned payment releases the hold, and the seat is available to every channel again. (AC2)
+- A hold that isn't confirmed in time is released, and Booking publishes a state-changed event. (AC3)
+
+What this story relies on:
+Written without the vault, so what this story relies on is named by ID only: CAP-014.FR1, CAP-014.FR2.
+
+Size: M+M
+Blocked by: Confirm a booking over the website's surface (S-01), Read fares, capacity and customers (S-02)
+Also waits on: S-01, S-02, OQ-001 (open question in the design: is a hold 10 minutes or 15?)
+Open for the design:
+- Open for `tech-design-grill`: whether a hold survives a restart of the Hold keeper. The design says only that holds live in Redis.
+Conflicts:
+- Conflict with an epic criterion: EPC-031.AC4 says a hold ends when payment fails; the design lets a hold run to its expiry. The story follows the design and the conflict goes upstream.",Story,,,CAP-014.FR1,CAP-014.FR2,EPC-031,EPC-037,needs-design,conflict,"S-01, S-02"
 S-04-T1,"Redis holds with a TTL, lifetime read from configuration","Component: Hold keeper
 Size: M
-Story S-04 Hold a seat and release it when it runs out
-Traces to: CAP-014.FR1@APP-booking, CAP-014.FR2@APP-booking, EPC-031.AC1, EPC-031.AC4, EPC-037.AC2; components: Hold keeper",Task,S-04,5,CAP-014.FR1@APP-booking,CAP-014.FR2@APP-booking,EPC-031.AC1,EPC-031.AC4,EPC-037.AC2,,,,,
+Story: Hold a seat and release it when it runs out (S-04)",Task,S-04,5,CAP-014.FR1,CAP-014.FR2,EPC-031,EPC-037,,,
 S-04-T2,Extend a hold while its booking is confirming,"Component: Hold keeper
 Size: M
-Story S-04 Hold a seat and release it when it runs out
-Traces to: CAP-014.FR1@APP-booking, CAP-014.FR2@APP-booking, EPC-031.AC1, EPC-031.AC4, EPC-037.AC2; components: Hold keeper",Task,S-04,5,CAP-014.FR1@APP-booking,CAP-014.FR2@APP-booking,EPC-031.AC1,EPC-031.AC4,EPC-037.AC2,,,,,
-S-05,S-05 Take Tidepay's payment outcome,"Traces to: CON-007, EPC-031.AC7; components: Booking API
-Acceptance criteria:
-- No request or response on CON-001 or CON-007 carries card data.
-Blocked by: S-01, S-03, UNK-009",Story,,,CON-007,EPC-031.AC7,,,,,,,,"S-01, S-03"
+Story: Hold a seat and release it when it runs out (S-04)",Task,S-04,5,CAP-014.FR1,CAP-014.FR2,EPC-031,EPC-037,,,
+S-05,Take Tidepay's payment outcome,"Acceptance criteria:
+- No request or response on CON-001 or CON-007 carries card data. (AC1)
+
+What this story relies on:
+Written without the vault, so what this story relies on is named by ID only: CON-007.
+
+Size: M+S
+Blocked by: Confirm a booking over the website's surface (S-01), Write confirmed bookings to FERRYMASTER (S-03)
+Also waits on: S-01, S-03, UNK-009",Story,,,CON-007,EPC-031,,,,,"S-01, S-03"
 S-05-T1,Signed webhook endpoint answering 204,"Component: Booking API
 Size: M
-Story S-05 Take Tidepay's payment outcome
-Traces to: CON-007, EPC-031.AC7; components: Booking API",Task,S-05,5,CON-007,EPC-031.AC7,,,,,,,,
+Story: Take Tidepay's payment outcome (S-05)",Task,S-05,5,CON-007,EPC-031,,,,,
 S-05-T2,Log scrubber test for card data,"Component: Booking API
 Size: S
-Story S-05 Take Tidepay's payment outcome
-Traces to: CON-007, EPC-031.AC7; components: Booking API",Task,S-05,2,CON-007,EPC-031.AC7,,,,,,,,
-S-06,S-06 Book at the call center and the kiosks,"Traces to: CAP-013.FR2@APP-booking, CAP-013.FR3@APP-booking, EPC-033.AC3, EPC-034.AC2, EPC-034.AC3, EPC-034.AC5, EPC-035.AC1, EPC-035.AC3, EPC-035.AC5; components: Booking API, Booking lifecycle
-Acceptance criteria:
-- An agent confirms a held crossing and reads the booking reference back to the caller.
-- For any booking reference, the desktop shows the same state as the website and the kiosks.
-- Booking API v1 answers kiosk requests unchanged for at least 6 months after the March 2027 image ships, whatever later versions add.
-- The consumer-driven contract tests of the website, the desktop and the kiosks pass in Booking's provider verification.
-Blocked by: S-01, S-02",Story,,,CAP-013.FR2@APP-booking,CAP-013.FR3@APP-booking,EPC-033.AC3,EPC-034.AC2,EPC-034.AC3,EPC-034.AC5,EPC-035.AC1,EPC-035.AC3,EPC-035.AC5,"S-01, S-02"
+Story: Take Tidepay's payment outcome (S-05)",Task,S-05,2,CON-007,EPC-031,,,,,
+S-06,Book at the call center and the kiosks,"Acceptance criteria:
+- An agent confirms a held crossing and reads the booking reference back to the caller. (AC1)
+- For any booking reference, the desktop shows the same state as the website and the kiosks. (AC2)
+- Booking API v1 answers kiosk requests unchanged for at least 6 months after the March 2027 image ships, whatever later versions add. (AC3)
+- The consumer-driven contract tests of the website, the desktop and the kiosks pass in Booking's provider verification. (AC4)
+
+What this story relies on:
+Written without the vault, so what this story relies on is named by ID only: CAP-013.FR2, CAP-013.FR3.
+
+Size: M+S+S
+Blocked by: Confirm a booking over the website's surface (S-01), Read fares, capacity and customers (S-02)",Story,,,CAP-013.FR2,CAP-013.FR3,EPC-033,EPC-034,EPC-035,,"S-01, S-02"
 S-06-T1,Provider verification for the three channels' contract tests,"Component: Booking API
 Size: M
-Story S-06 Book at the call center and the kiosks
-Traces to: CAP-013.FR2@APP-booking, CAP-013.FR3@APP-booking, EPC-033.AC3, EPC-034.AC2, EPC-034.AC3, EPC-034.AC5, EPC-035.AC1, EPC-035.AC3, EPC-035.AC5; components: Booking API, Booking lifecycle",Task,S-06,5,CAP-013.FR2@APP-booking,CAP-013.FR3@APP-booking,EPC-033.AC3,EPC-034.AC2,EPC-034.AC3,EPC-034.AC5,EPC-035.AC1,EPC-035.AC3,EPC-035.AC5,
+Story: Book at the call center and the kiosks (S-06)",Task,S-06,5,CAP-013.FR2,CAP-013.FR3,EPC-033,EPC-034,EPC-035,,
 S-06-T2,Keep v1 answering unchanged behind the version path,"Component: Booking API
 Size: S
-Story S-06 Book at the call center and the kiosks
-Traces to: CAP-013.FR2@APP-booking, CAP-013.FR3@APP-booking, EPC-033.AC3, EPC-034.AC2, EPC-034.AC3, EPC-034.AC5, EPC-035.AC1, EPC-035.AC3, EPC-035.AC5; components: Booking API, Booking lifecycle",Task,S-06,2,CAP-013.FR2@APP-booking,CAP-013.FR3@APP-booking,EPC-033.AC3,EPC-034.AC2,EPC-034.AC3,EPC-034.AC5,EPC-035.AC1,EPC-035.AC3,EPC-035.AC5,
+Story: Book at the call center and the kiosks (S-06)",Task,S-06,2,CAP-013.FR2,CAP-013.FR3,EPC-033,EPC-034,EPC-035,,
 S-06-T3,Show an amendment's re-quoted fare before it is committed,"Component: Booking lifecycle
 Size: S
-Story S-06 Book at the call center and the kiosks
-Traces to: CAP-013.FR2@APP-booking, CAP-013.FR3@APP-booking, EPC-033.AC3, EPC-034.AC2, EPC-034.AC3, EPC-034.AC5, EPC-035.AC1, EPC-035.AC3, EPC-035.AC5; components: Booking API, Booking lifecycle",Task,S-06,2,CAP-013.FR2@APP-booking,CAP-013.FR3@APP-booking,EPC-033.AC3,EPC-034.AC2,EPC-034.AC3,EPC-034.AC5,EPC-035.AC1,EPC-035.AC3,EPC-035.AC5,
-S-07,S-07 Publish booking state changes,"Traces to: CON-002, CAP-022.FR1@APP-booking, EPC-037.AC1, EPC-037.AC4, EPC-037.AC5; components: Event publisher
-Acceptance criteria:
-- Every change of booking state produces one Booking state changed event on the bus, carrying the booking reference, the new state and the time of the change.
-- An event carries the customer ID and no card data or other personal data.
-- A change to the event schema that removes or renames a field fails Booking's pipeline.
-Blocked by: S-03",Story,,,CON-002,CAP-022.FR1@APP-booking,EPC-037.AC1,EPC-037.AC4,EPC-037.AC5,,,,,S-03
+Story: Book at the call center and the kiosks (S-06)",Task,S-06,2,CAP-013.FR2,CAP-013.FR3,EPC-033,EPC-034,EPC-035,,
+S-07,Publish booking state changes,"Acceptance criteria:
+- Every change of booking state produces one Booking state changed event on the bus, carrying the booking reference, the new state and the time of the change. (AC1)
+- An event carries the customer ID and no card data or other personal data. (AC2)
+- A change to the event schema that removes or renames a field fails Booking's pipeline. (AC3)
+
+What this story relies on:
+Written without the vault, so what this story relies on is named by ID only: CON-002, CAP-022.FR1.
+
+Size: M+S
+Blocked by: Write confirmed bookings to FERRYMASTER (S-03)",Story,,,CON-002,CAP-022.FR1,EPC-037,,,,S-03
 S-07-T1,Drain the outbox to the bus topic,"Component: Event publisher
 Size: M
-Story S-07 Publish booking state changes
-Traces to: CON-002, CAP-022.FR1@APP-booking, EPC-037.AC1, EPC-037.AC4, EPC-037.AC5; components: Event publisher",Task,S-07,5,CON-002,CAP-022.FR1@APP-booking,EPC-037.AC1,EPC-037.AC4,EPC-037.AC5,,,,,
+Story: Publish booking state changes (S-07)",Task,S-07,5,CON-002,CAP-022.FR1,EPC-037,,,,
 S-07-T2,Additive-only schema check in the pipeline,"Component: Event publisher
 Size: S
-Story S-07 Publish booking state changes
-Traces to: CON-002, CAP-022.FR1@APP-booking, EPC-037.AC1, EPC-037.AC4, EPC-037.AC5; components: Event publisher",Task,S-07,2,CON-002,CAP-022.FR1@APP-booking,EPC-037.AC1,EPC-037.AC4,EPC-037.AC5,,,,,
-S-08,S-08 Amend and cancel online,"Traces to: CAP-021.FR1@APP-booking, CAP-021.FR2@APP-booking, EPC-036.AC1, EPC-036.AC2, EPC-036.AC3; components: Booking lifecycle, Booking API
-Acceptance criteria:
-- A customer can change the date or time of a crossing on the website and sees the re-quoted fare before they accept it.
-- A customer can cancel a booking on the website, and every channel shows it as `canceled` once FERRYMASTER has accepted the cancellation.
-- A change that is not allowed is refused with a reason the channel can show the customer, and nothing reaches FERRYMASTER.
-Blocked by: S-03, S-07, D-001 (deferred: Booking API v2 is designed when EPC-036 starts)",Story,,,CAP-021.FR1@APP-booking,CAP-021.FR2@APP-booking,EPC-036.AC1,EPC-036.AC2,EPC-036.AC3,,,,,"S-03, S-07"
+Story: Publish booking state changes (S-07)",Task,S-07,2,CON-002,CAP-022.FR1,EPC-037,,,,
+S-08,Amend and cancel online,"Acceptance criteria:
+- A customer can change the date or time of a crossing on the website and sees the re-quoted fare before they accept it. (AC1)
+- A customer can cancel a booking on the website, and every channel shows it as `canceled` once FERRYMASTER has accepted the cancellation. (AC2)
+- A change that is not allowed is refused with a reason the channel can show the customer, and nothing reaches FERRYMASTER. (AC3)
+
+What this story relies on:
+Written without the vault, so what this story relies on is named by ID only: CAP-021.FR1, CAP-021.FR2.
+
+Size: L+M
+Blocked by: Write confirmed bookings to FERRYMASTER (S-03), Publish booking state changes (S-07)
+Also waits on: S-03, S-07, D-001 (deferred: Booking API v2 is designed when EPC-036 starts)",Story,,,CAP-021.FR1,CAP-021.FR2,EPC-036,,,,"S-03, S-07"
 S-08-T1,Amend and cancel transitions with the rules that refuse a change,"Component: Booking lifecycle
 Size: L
-Story S-08 Amend and cancel online
-Traces to: CAP-021.FR1@APP-booking, CAP-021.FR2@APP-booking, EPC-036.AC1, EPC-036.AC2, EPC-036.AC3; components: Booking lifecycle, Booking API",Task,S-08,8,CAP-021.FR1@APP-booking,CAP-021.FR2@APP-booking,EPC-036.AC1,EPC-036.AC2,EPC-036.AC3,,,,,
+Story: Amend and cancel online (S-08)",Task,S-08,8,CAP-021.FR1,CAP-021.FR2,EPC-036,,,,
 S-08-T2,Amend and cancel on the HTTP surface,"Component: Booking API
 Size: M
-Story S-08 Amend and cancel online
-Traces to: CAP-021.FR1@APP-booking, CAP-021.FR2@APP-booking, EPC-036.AC1, EPC-036.AC2, EPC-036.AC3; components: Booking lifecycle, Booking API",Task,S-08,5,CAP-021.FR1@APP-booking,CAP-021.FR2@APP-booking,EPC-036.AC1,EPC-036.AC2,EPC-036.AC3,,,,,
+Story: Amend and cancel online (S-08)",Task,S-08,5,CAP-021.FR1,CAP-021.FR2,EPC-036,,,,

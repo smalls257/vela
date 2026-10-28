@@ -423,10 +423,10 @@ def test_a_folder_that_only_mentions_onedrive_is_not_a_sync_folder():
 
 
 def test_the_jira_csv_does_not_carry_a_live_formula():
-    from vela import breakdown
-    row = {c: "" for c in breakdown.COLUMNS} | {"Summary": "=HYPERLINK(\"http://evil\",\"x\")", "labels": [], "Blocked by": ""}
+    from vela import tickets
+    row = {c: "" for c in tickets.COLUMNS} | {"Summary": "=HYPERLINK(\"http://evil\",\"x\")", "labels": [], "Blocked by": ""}
     import csv
-    cells = list(csv.reader(io.StringIO(breakdown.csv_text([row]))))[1]
+    cells = list(csv.reader(io.StringIO(tickets.csv_text([row]))))[1]
     assert cells[1].startswith("'=HYPERLINK")
 
 

@@ -7,7 +7,7 @@ import shutil
 import pytest
 
 from conftest import REPO, check, edit, findings, run
-from vela import breakdown, completeness, links, parse, releases, render
+from vela import breakdown, completeness, links, parse, releases, render, tickets
 from vela.cli import load_vault
 
 SHOP = "05-building-blocks/shop-building-blocks.md"
@@ -127,7 +127,7 @@ def test_c12_an_escaped_pipe_stays_in_its_cell():
 def test_c30_a_cell_that_starts_like_a_formula_is_written_as_text():
     rows = [{"Issue Id": "S-01", "Summary": "=HYPERLINK(\"http://x\")", "Description": "+cmd", "Issue Type": "Story",
              "Parent": "", "Story Points": 5, "labels": [], "Blocked by": "@x"}]
-    got = list(csv.reader(io.StringIO(breakdown.csv_text(rows))))[1]
+    got = list(csv.reader(io.StringIO(tickets.csv_text(rows))))[1]
     assert got[1].startswith("'=") and got[2].startswith("'+") and got[5] == "5"
 
 

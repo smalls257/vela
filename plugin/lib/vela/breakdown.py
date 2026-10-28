@@ -1,9 +1,9 @@
-"""Read a work-breakdown plan (docs/plan/<slug>-breakdown.md) into stories and tasks, without a model and without
-inventing a word.
+"""Read a work-breakdown plan (docs/plan/<slug>-breakdown.md) into stories and tasks. The reader
+is plain code: it maps what the plan says and never guesses a word it doesn't.
 
     read(text)  -> {meta, stories, summary, order, coverage, not_planned, problems}
     parse(text) -> (stories, not_planned, problems)
-    csv_text(stories) -> the Jira CSV import as text
+    criteria_stamp(criteria) -> the six hex digits the Ticket criteria label records
 
 The work-breakdown skill writes the file: frontmatter (status, prereqs, gaps), a summary table, one `### S-NN <name>`
 section per story (a "Traces to:" line, acceptance criteria as bullets, a `| Task | Size | Component |` table, a
@@ -14,22 +14,23 @@ write since design session 18: "Done when:", "Components:", "Slice:" (tracer, ve
 "Status:" (deferred, held, split, or merged into another story). A deferred or held story keeps its tasks and criteria;
 a merged one is a pointer and needs none. Plans written without those lines read exactly as before. This is the one
 reader of that format.
-tools/breakdown_to_tickets.py turns it into tickets; the explorer's Build plan level (explorer/plan_data.py) draws
-it. They share this module so the ticket a story becomes and the card it is drawn as can never read the file two ways.
+A story may also carry a "Summary:" line and a "Ticket criteria (from <stamp>):" block, the ticket's own copy of its
+criteria, read into `summary` and `ticket_groups` and never into `criteria`. A line that begins "Ticket criteria" but
+isn't the label (a placeholder, a stamp of the wrong length) still opens that block and is kept in `ticket_label_bad`
+for the check to report; it is never read as part of a plan criterion.
+vela/tickets.py turns it into tickets (tools/breakdown_to_tickets.py and `vela tickets` call it); the explorer's Build
+plan level (explorer/plan_data.py) draws it. They share this module so the ticket a story becomes and the card it is drawn as can never read the file two ways.
 
 Anything the reader cannot map is a line in `problems`, never dropped and never guessed.
 """
-import csv
-import io
+import hashlib
 import re
 
 from vela import parse as vault_parse
 
-from vela import export
 
 SIZE_POINTS = {"S": 2, "M": 5, "L": 8}  # work-breakdown defines S, M, L (about 2 days, 3 to 5 days, 1 to 2 weeks) and no points
 STATUSES = ("complete", "complete-with-gaps")
-COLUMNS = ["Issue Id", "Summary", "Description", "Issue Type", "Parent", "Story Points"]
 STORY_HEADING = re.compile(r"^###\s+(S-\d+[a-z]?)\b[\s:\-\u2013\u2014]*(.*?)\s*$")
 TRACES = re.compile(r"^\W*Traces to\W*:\W*(.*)$", re.I)
 BLOCKED = re.compile(r"^\W*Blocked by\W*:\W*(.*)$", re.I)
@@ -51,6 +52,11 @@ RELEASE_FIT = re.compile(r"^\W*Release fit\W*:\W*(.*)$", re.I)
 TRACER_FACT = re.compile(r"^\s*[-*+]\s+\*\*Tracer:\*\*\s*(.*?)\s*$", re.I)  # the team's tracer story: `- **Tracer:** yes`
 NO_BLOCKERS = re.compile(r"^\W*none\b", re.I)  # "none. D-001 runs in parallel, not a gate": no blockers, the rest is a note
 STATUS = re.compile(r"^\W*Status\W*:\W*(.*)$", re.I)
+SUMMARY = re.compile(r"^\W*Summary\W*:\W*(.*)$", re.I)
+# The ticket's own copy of the criteria, regrouped and reworded by a session; the stamp is criteria_stamp() of the
+# criteria it was written from, so a copy left behind by an edit is flagged instead of read as current.
+TICKET_LABEL = re.compile(r"^\W*Ticket criteria\b(?:\s*\(from\s+([0-9a-f]{6})\))?\s*:\s*$", re.I)
+TICKET_LABEL_LOOSE = re.compile(r"^\W*Ticket criteria\b", re.I)  # any line meant as the label, well written or not
 SLICES = ("tracer", "vertical", "layer")
 VAULT_SLICE = re.compile(r"\bSLC-\d{3}\b")  # the vault's slice a story belongs to (slices.py), not its shape above
 NOT_BUILT = ("deferred", "merged")  # a story in either state is in no total and has no ticket
@@ -67,6 +73,8 @@ class Story:
         self.criteria_label, self.open_notes, self.conflicts = "", [], []
         self.done_when, self.components, self.slice_text, self.fit, self.status = None, None, None, None, None
         self.tracer = False
+        self.summary, self.ticket_stamp, self.ticket_label, self.ticket_groups = None, None, False, []
+        self.ticket_label_bad = ""  # the label line as written, when it begins "Ticket criteria" but TICKET_LABEL can't read it
 
     @property
     def state(self):
@@ -128,8 +136,50 @@ def sections_of(body):
     return out
 
 
+def criteria_stamp(criteria):
+    """Six hex digits that change whenever any of a story's acceptance criteria change, and not when one is only
+    rewrapped. The Ticket criteria label records the stamp it was written from (TICKET_LABEL)."""
+    joined = "\n".join(" ".join(c.split()) for c in criteria)
+    return hashlib.sha1(joined.encode("utf-8")).hexdigest()[:6]
+
+
+FIELD_LINES = (TRACES, BLOCKED, TRACER_FACT, DONE_WHEN, COMPONENTS, SLICE, RELEASE_FIT, STATUS, SUMMARY,
+               CRITERIA_LABEL, TICKET_LABEL_LOOSE, OPEN_NOTE, CONFLICT_NOTE)
+
+
+def is_field_line(line):
+    return line.lstrip().startswith("|") or any(p.match(line) for p in FIELD_LINES)
+
+
+def take_ticket_line(story, line, state):
+    """A line inside a Ticket criteria block: a bullet is a ticket line, a line ending in a colon starts a group,
+    any other line continues the ticket line above it. A field line or a table row ends the block, and so does a
+    line that fits none of these: it goes back to the story's reader, which reports it."""
+    if is_field_line(line):
+        state["block"] = None
+        return False
+    bullet = BULLET.match(line)
+    if bullet:
+        if not story.ticket_groups:
+            story.ticket_groups.append(["", []])
+        story.ticket_groups[-1][1].append(bullet.group(1).strip())
+        state["last"] = "ticket"
+        return True
+    if line.strip().endswith(":"):
+        story.ticket_groups.append([line.strip()[:-1].strip(), []])
+        state["last"] = "ticket"
+        return True
+    if state["last"] == "ticket" and not state["gap"] and story.ticket_groups and story.ticket_groups[-1][1]:
+        story.ticket_groups[-1][1][-1] += " " + line.strip()
+        return True
+    state["block"] = None
+    return False
+
+
 def take_story_line(story, line, state):
     """File one line of a story's section under the field it belongs to. Returns False if it fits none."""
+    if state.get("block") == "ticket" and take_ticket_line(story, line, state):
+        return True
     if TRACES.match(line):
         story.traces, state["last"] = TRACES.match(line).group(1).strip(), "traces"
     elif BLOCKED.match(line):
@@ -147,6 +197,13 @@ def take_story_line(story, line, state):
         story.fit, state["last"] = RELEASE_FIT.match(line).group(1).strip(), "fit"
     elif STATUS.match(line):
         story.status, state["last"] = STATUS.match(line).group(1).strip(), "status"
+    elif SUMMARY.match(line):
+        story.summary, state["last"] = SUMMARY.match(line).group(1).strip(), "summary"
+    elif TICKET_LABEL_LOOSE.match(line):
+        read = TICKET_LABEL.match(line)
+        story.ticket_label, story.ticket_stamp = True, read.group(1) if read else None
+        story.ticket_label_bad = "" if read else line.strip()
+        state["block"], state["last"] = "ticket", "ticket_label"
     elif BULLET.match(line):
         story.criteria.append(BULLET.match(line).group(1).strip())
         state["last"] = "criteria"
@@ -167,8 +224,8 @@ def take_story_line(story, line, state):
     return True
 
 
-CONTINUES = ("traces", "blocked", "criteria", "open", "conflict", "done_when", "components", "slice", "fit", "status")
-WRAPPED = {"done_when": "done_when", "components": "components", "slice": "slice_text", "fit": "fit", "status": "status"}
+CONTINUES = ("traces", "blocked", "criteria", "open", "conflict", "done_when", "components", "slice", "fit", "status", "summary")
+WRAPPED = {"done_when": "done_when", "components": "components", "slice": "slice_text", "fit": "fit", "status": "status", "summary": "summary"}
 
 
 def continue_line(story, line, field):
@@ -207,12 +264,12 @@ def parse_story_sections(body):
         if not heading and re.match(r"^###\s+S-", line):
             stories.append(Story("?", line.lstrip("# ").strip()))  # kept, so the caller reports it instead of dropping it
             stories[-1].extra.append("unreadable story heading: " + line.strip())
-            current, state = stories[-1], {"last": None, "gap": False, "table": False}
+            current, state = stories[-1], {"last": None, "gap": False, "table": False, "block": None}
             continue
         if heading:
             current = Story(heading.group(1), heading.group(2))
             stories.append(current)
-            state = {"last": None, "gap": False, "table": False}
+            state = {"last": None, "gap": False, "table": False, "block": None}
             continue
         if re.match(r"^#{1,3}\s", line):
             current = None  # a `## ` section after the stories, or any other heading, ends the story
@@ -319,52 +376,6 @@ def labels_of(story):
     return seen
 
 
-def story_labels(story):
-    """The labels of the story's own ticket: its trace IDs, then what the plan flags for the design or the epics."""
-    return labels_of(story) + ([LABEL_NEEDS_DESIGN] if story.open_notes else []) + ([LABEL_CONFLICT] if story.conflicts else [])
-
-
-def story_description(story):
-    parts = [f"Traces to: {story.traces}" if story.traces is not None else "Traces to: (none stated)"]
-    if story.criteria:
-        parts += [story.criteria_label or "Acceptance criteria:"] + [f"- {c}" for c in story.criteria]
-    parts.append(f"Blocked by: {story.blocked}" if story.blocked is not None else "Blocked by: (none stated)")
-    for label, value in (("Done when", story.done_when), ("Components", story.components), ("Slice", story.slice_text),
-                         ("Release fit", story.fit), ("Status", story.status)):
-        if value:
-            parts.append(f"{label}: {value}")
-    if story.open_notes:
-        parts += ["Open for the design:"] + [f"- {n}" for n in story.open_notes]
-    if story.conflicts:
-        parts += ["Conflicts:"] + [f"- {c}" for c in story.conflicts]
-    parts += story.extra
-    return "\n".join(parts)
-
-
-def task_description(story, row):
-    component = row[2] if len(row) > 2 else ""
-    size = row[1] if len(row) > 1 else ""
-    return (f"Component: {component}\nSize: {size}\nStory {story.id} {story.name}\nTraces to: {story.traces}")
-
-
-def build_rows(stories):
-    """One row per story and one per task row, in file order. Labels go in as many trailing Labels cells as needed."""
-    rows = []
-    for story in stories:
-        if not story.built:
-            continue  # deferred or merged: the converter's README lists it as not ticketed
-        rows.append({"Issue Id": story.id, "Summary": f"{story.id} {story.name}".strip(), "Description": story_description(story),
-                     "Issue Type": "Story", "Parent": "", "Story Points": "", "labels": story_labels(story),
-                     "Blocked by": ", ".join(dict.fromkeys(blockers(story)))})
-        for number, row in enumerate(story.tasks, 1):
-            size = row[1].strip().upper() if len(row) > 1 else ""
-            rows.append({"Issue Id": f"{story.id}-T{number}", "Summary": row[0], "Description": task_description(story, row),
-                         "Issue Type": "Task", "Parent": story.id, "Story Points": SIZE_POINTS.get(size, ""),
-                         "labels": labels_of(story), "Blocked by": ""})
-    return rows
-
-
-
 def size_total(story):
     """The story's task sizes as the summary table writes them: largest first, joined by +, e.g. 'M+S'."""
     sizes = [r[1].strip().upper() for r in story.tasks if len(r) > 1 and r[1].strip().upper() in SIZE_POINTS]
@@ -456,16 +467,3 @@ def parse(text):
     """(stories, not_planned, problems) for one breakdown document."""
     plan = read(text)
     return plan["stories"], plan["not_planned"], plan["problems"]
-
-
-def csv_text(rows):
-    """The Jira import for `rows` (build_rows) as text: what breakdown_to_tickets.py writes to tickets.csv, byte for byte."""
-    width = max([len(r["labels"]) for r in rows] or [1]) or 1
-    header = COLUMNS + ["Labels"] * width + ["Blocked by"]
-    out = io.StringIO(newline="")
-    writer = csv.writer(out)
-    writer.writerow(header)
-    for r in rows:
-        cells = [r[c] for c in COLUMNS] + r["labels"] + [""] * (width - len(r["labels"])) + [r["Blocked by"]]
-        writer.writerow([export.defuse(cell) if isinstance(cell, str) else cell for cell in cells])
-    return out.getvalue()

@@ -65,6 +65,7 @@ Release fit: cannot tell. It traces to no requirement on a release; sizes add to
 
 ### S-02 Switch on, with consent recorded
 - **Tracer:** yes
+Summary: When a person turns Heron on, the Desktop agent asks them two separate questions: may Heron read their calendar, and may it read their Teams transcripts (transcripts need the calendar too). Each answer goes to Consent and identity, which keeps the record. The agent counts a choice as made only once Consent and identity confirms it; until then it reads nothing for that person. This is part of the first working path through the agent, the tracer, and it comes after the encrypted store.
 Traces to: CAP-005.FR1@APP-desktop-agent, CON-003, CON-004, EPC-032.AC1, EPC-032.AC2, EPC-032.AC3, EPC-032.AC4
 Components: ConsentGate, ConsentRecorder, NoteView
 Slice: tracer
@@ -76,6 +77,15 @@ Acceptance criteria:
 - When a choice is not confirmed as kept, Heron reads nothing for that person and tells them.
 - For a person who has not switched Heron on, Heron records no agreement and reads nothing.
 - A choice not confirmed by Consent and identity counts as not kept (design, Failure behavior).
+Ticket criteria (from 7d05f2):
+Choosing what Heron reads:
+- Switching Heron on offers two separate choices: calendar entries, and Teams transcripts. Transcripts can only be chosen with calendar entries. (covers AC1, AC2)
+Recording the choice:
+- Each choice goes to Consent and identity with the person's sign-in, the source and the date, and no meeting text. (covers AC3)
+- A choice counts only once Consent and identity confirms it. (covers AC3, AC6)
+When it doesn't go through:
+- If a choice isn't confirmed, Heron reads nothing for that person and tells them. (covers AC4, AC6)
+- If a person never switches Heron on, Heron records nothing and reads nothing. (covers AC5)
 
 | Task | Size | Component |
 |---|---|---|

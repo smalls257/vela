@@ -1,0 +1,39 @@
+When a person turns Heron on, the Desktop agent asks them two separate questions: may Heron read their calendar, and may it read their Teams transcripts (transcripts need the calendar too). Each answer goes to Consent and identity, which keeps the record. The agent counts a choice as made only once Consent and identity confirms it; until then it reads nothing for that person. This is part of the first working path through the agent, the tracer, and it comes after the encrypted store.
+
+Acceptance criteria:
+Choosing what Heron reads:
+- Switching Heron on offers two separate choices: calendar entries, and Teams transcripts. Transcripts can only be chosen with calendar entries. (covers AC1, AC2)
+Recording the choice:
+- Each choice goes to Consent and identity with the person's sign-in, the source and the date, and no meeting text. (covers AC3)
+- A choice counts only once Consent and identity confirms it. (covers AC3, AC6)
+When it doesn't go through:
+- If a choice isn't confirmed, Heron reads nothing for that person and tells them. (covers AC4, AC6)
+- If a person never switches Heron on, Heron records nothing and reads nothing. (covers AC5)
+
+Done when: a person who switches Heron on has each choice recorded by Consent and identity, and a choice that is not confirmed leaves Heron reading nothing for them.
+
+What this story relies on:
+Agree to each source separately (CAP-005.FR1)
+Consent check (CON-003)
+The Desktop agent asks Consent and identity whether a person has agreed, before it reads anything, and gets back what it may read.
+- Sends: the person's sign-in
+- Gets back: whether they have agreed, and which sources the agent may read (calendar entries, transcripts)
+- Provided by: Consent and identity
+- Status: not decided yet, two open questions on it
+Record consent (CON-004)
+The Desktop agent tells Consent and identity when a person switches Heron on or off, so the record of who agreed to what is kept outside the agent.
+- Sends: the person's sign-in and whether they switched on or off
+- Gets back: confirmation that it was kept
+- Provided by: Consent and identity
+- Status: not decided yet, three open questions on it
+
+Still open:
+Is the person told when Consent and identity is down, or their sign-in has expired? (OQ-005)
+- Until it's answered: the agent shows nothing and logs
+- What would answer it: The solution lead says whether silence on a Consent outage or an expired sign-in is the intent or a gap to close, and if a gap, owns the wording and which requirement carries it.
+
+Components: ConsentGate, ConsentRecorder, NoteView
+Slice: tracer
+Size: M+M+S+S
+Blocked by: Walking skeleton (S-01)
+Release fit: cannot tell for February 2, 2027. Sizes add to at most 14 days for one engineer, and the design names two Rust engineers but not how many days each has before February 2, 2027.

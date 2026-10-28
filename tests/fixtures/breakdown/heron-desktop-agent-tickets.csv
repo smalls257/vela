@@ -1,439 +1,413 @@
-Issue Id,Summary,Description,Issue Type,Parent,Story Points,Labels,Labels,Labels,Labels,Labels,Labels,Labels,Labels,Labels,Blocked by
-S-01,"S-01 Spike: sign-in, keychain, sandbox and sharing detection","Traces to: CON-001 (de-risks EPC-001.AC1 and EPC-001.AC7). Components: SignIn / TokenStore, CalendarSource. This story produces a recorded result, not a demo. It has no epic criterion of its own, so its criteria come from OQ-001 and OQ-013 in the design.
-Acceptance criteria:
+Issue Id,Summary,Description,Issue Type,Parent,Story Points,Labels,Labels,Labels,Labels,Labels,Labels,Blocked by
+S-01,"Spike: sign-in, keychain, sandbox and sharing detection","Acceptance criteria:
 - On one Mac and one Windows laptop managed by Intune or Jamf, against a test registration: sign in, store the token, restart and refresh with no prompts, using the largest token a pilot account gets (OQ-001).
 - A re-launched copy of the app can start with no network and no keychain access, on both OSes (OQ-001).
 - A second process that binds first or replays the code makes sign-in fail safe; the deep-link plugin is compared with loopback (design, Sign-in redirect).
 - A sharing-detection run with Teams, Zoom and a browser meeting, on both OSes (OQ-013).
 - The result is written up as pass or fail per OS.
-Blocked by: laptops from the endpoint lead (G-001, OQ-001, OQ-005); a test registration (UNK-013). It does not wait on the production registration (G-009). The delta-token check (OQ-011) is not in this story; it is in S-06.",Story,,,CON-001,EPC-001.AC1,EPC-001.AC7,,,,,,,S-06
+
+What this story relies on:
+Written without the team's records, so what this story relies on is named by ID only: CON-001.
+
+Size: M+M+M+M+S+S
+Blocked by: Earlier calls from the past calendar (S-06)
+Also waits on: laptops from the endpoint lead (G-001, OQ-001, OQ-005); a test registration (UNK-013). It does not wait on the production registration (G-009). The delta-token check (OQ-011) is not in this story; it is in S-06.",Story,,,CON-001,EPC-001,,,,,S-06
 S-01-T1,"Get a developer tenant and a test registration, client ID in settings","Component: SignIn / TokenStore
 Size: S
-Story S-01 Spike: sign-in, keychain, sandbox and sharing detection
-Traces to: CON-001 (de-risks EPC-001.AC1 and EPC-001.AC7). Components: SignIn / TokenStore, CalendarSource. This story produces a recorded result, not a demo. It has no epic criterion of its own, so its criteria come from OQ-001 and OQ-013 in the design.",Task,S-01,2,CON-001,EPC-001.AC1,EPC-001.AC7,,,,,,,
+Story: Spike: sign-in, keychain, sandbox and sharing detection (S-01)",Task,S-01,2,CON-001,EPC-001,,,,,
 S-01-T2,"Loopback PKCE sign-in with state and nonce checks, the bind-first and replay tests, and the deep-link comparison","Component: SignIn / TokenStore
 Size: M
-Story S-01 Spike: sign-in, keychain, sandbox and sharing detection
-Traces to: CON-001 (de-risks EPC-001.AC1 and EPC-001.AC7). Components: SignIn / TokenStore, CalendarSource. This story produces a recorded result, not a demo. It has no epic criterion of its own, so its criteria come from OQ-001 and OQ-013 in the design.",Task,S-01,5,CON-001,EPC-001.AC1,EPC-001.AC7,,,,,,,
+Story: Spike: sign-in, keychain, sandbox and sharing detection (S-01)",Task,S-01,5,CON-001,EPC-001,,,,,
 S-01-T3,"Keychain on Mac; DPAPI on Windows, with the encrypted-file fallback for the credential size cap","Component: SignIn / TokenStore
 Size: M
-Story S-01 Spike: sign-in, keychain, sandbox and sharing detection
-Traces to: CON-001 (de-risks EPC-001.AC1 and EPC-001.AC7). Components: SignIn / TokenStore, CalendarSource. This story produces a recorded result, not a demo. It has no epic criterion of its own, so its criteria come from OQ-001 and OQ-013 in the design.",Task,S-01,5,CON-001,EPC-001.AC1,EPC-001.AC7,,,,,,,
+Story: Spike: sign-in, keychain, sandbox and sharing detection (S-01)",Task,S-01,5,CON-001,EPC-001,,,,,
 S-01-T4,"Re-launched worker with no network and no keychain, on both OSes","Component: SignIn / TokenStore
 Size: M
-Story S-01 Spike: sign-in, keychain, sandbox and sharing detection
-Traces to: CON-001 (de-risks EPC-001.AC1 and EPC-001.AC7). Components: SignIn / TokenStore, CalendarSource. This story produces a recorded result, not a demo. It has no epic criterion of its own, so its criteria come from OQ-001 and OQ-013 in the design.",Task,S-01,5,CON-001,EPC-001.AC1,EPC-001.AC7,,,,,,,
+Story: Spike: sign-in, keychain, sandbox and sharing detection (S-01)",Task,S-01,5,CON-001,EPC-001,,,,,
 S-01-T5,Sharing-detection run on both OSes,"Component: CalendarSource
 Size: M
-Story S-01 Spike: sign-in, keychain, sandbox and sharing detection
-Traces to: CON-001 (de-risks EPC-001.AC1 and EPC-001.AC7). Components: SignIn / TokenStore, CalendarSource. This story produces a recorded result, not a demo. It has no epic criterion of its own, so its criteria come from OQ-001 and OQ-013 in the design.",Task,S-01,5,CON-001,EPC-001.AC1,EPC-001.AC7,,,,,,,
+Story: Spike: sign-in, keychain, sandbox and sharing detection (S-01)",Task,S-01,5,CON-001,EPC-001,,,,,
 S-01-T6,"Write up the results, pass or fail per OS","Component: SignIn / TokenStore
 Size: S
-Story S-01 Spike: sign-in, keychain, sandbox and sharing detection
-Traces to: CON-001 (de-risks EPC-001.AC1 and EPC-001.AC7). Components: SignIn / TokenStore, CalendarSource. This story produces a recorded result, not a demo. It has no epic criterion of its own, so its criteria come from OQ-001 and OQ-013 in the design.",Task,S-01,2,CON-001,EPC-001.AC1,EPC-001.AC7,,,,,,,
-S-02,S-02 IT's settings decide which calls get a note,"Traces to: EPC-001.AC1, EPC-002.AC5; the CON-001 and CON-002 shares of CAP-001.FR1@APP-heron and CAP-001.FR4@APP-heron. Components: ManagedSettings, CallClassifier, ClientMatcher. Rests on the design sections Client-call and client-match rules, Rollback, kill switch and signing, and Throttling and stale calendar.
-Acceptance criteria:
+Story: Spike: sign-in, keychain, sandbox and sharing detection (S-01)",Task,S-01,2,CON-001,EPC-001,,,,,
+S-02,IT's settings decide which calls get a note,"Acceptance criteria:
 - A call counts as a client call under the active rule, and no note appears for a call that does not (EPC-001.AC1).
 - In a folder or among earlier calls, only those that relate to the call's client by the active rule are used (EPC-002.AC5).
 - From the design: settings come from machine-scope locations only; without a valid snapshot Heron builds no notes and says why in the tray; a valid snapshot is kept for a bounded time (24-hour ceiling) when a later payload is invalid; `enabled=false` dominates; a call whose external invitees span more than one client domain gets no note and the reason ""more than one client on this call"".
-Blocked by: G-005 (OQ-005, IT has not committed to settings delivery; blocks delivery on real laptops, not the build, which uses fixtures); UNK-021 and UNK-022 (the rule defaults are assumptions).",Story,,,EPC-001.AC1,EPC-002.AC5,CON-001,CON-002,CAP-001.FR1@APP-heron,CAP-001.FR4@APP-heron,,,,
+
+What this story relies on:
+Written without the team's records, so what this story relies on is named by ID only: CON-001, CON-002, CAP-001.FR1, CAP-001.FR4.
+
+Size: M+M+M+S+S+S+S
+Blocked by: nothing
+Also waits on: G-005 (OQ-005, IT has not committed to settings delivery; blocks delivery on real laptops, not the build, which uses fixtures); UNK-021 and UNK-022 (the rule defaults are assumptions).",Story,,,EPC-001,EPC-002,CON-001,CON-002,CAP-001.FR1,CAP-001.FR4,
 S-02-T1,"`ManagedSettings` port, 5-second quiet period, one snapshot read","Component: ManagedSettings
 Size: M
-Story S-02 IT's settings decide which calls get a note
-Traces to: EPC-001.AC1, EPC-002.AC5; the CON-001 and CON-002 shares of CAP-001.FR1@APP-heron and CAP-001.FR4@APP-heron. Components: ManagedSettings, CallClassifier, ClientMatcher. Rests on the design sections Client-call and client-match rules, Rollback, kill switch and signing, and Throttling and stale calendar.",Task,S-02,5,EPC-001.AC1,EPC-002.AC5,CON-001,CON-002,CAP-001.FR1@APP-heron,CAP-001.FR4@APP-heron,,,,
+Story: IT's settings decide which calls get a note (S-02)",Task,S-02,5,EPC-001,EPC-002,CON-001,CON-002,CAP-001.FR1,CAP-001.FR4,
 S-02-T2,"Windows adapter: policy key under HKLM, per-user keys ignored","Component: ManagedSettings
 Size: S
-Story S-02 IT's settings decide which calls get a note
-Traces to: EPC-001.AC1, EPC-002.AC5; the CON-001 and CON-002 shares of CAP-001.FR1@APP-heron and CAP-001.FR4@APP-heron. Components: ManagedSettings, CallClassifier, ClientMatcher. Rests on the design sections Client-call and client-match rules, Rollback, kill switch and signing, and Throttling and stale calendar.",Task,S-02,2,EPC-001.AC1,EPC-002.AC5,CON-001,CON-002,CAP-001.FR1@APP-heron,CAP-001.FR4@APP-heron,,,,
+Story: IT's settings decide which calls get a note (S-02)",Task,S-02,2,EPC-001,EPC-002,CON-001,CON-002,CAP-001.FR1,CAP-001.FR4,
 S-02-T3,"Mac adapter: managed preferences from a configuration profile, user-home files ignored","Component: ManagedSettings
 Size: S
-Story S-02 IT's settings decide which calls get a note
-Traces to: EPC-001.AC1, EPC-002.AC5; the CON-001 and CON-002 shares of CAP-001.FR1@APP-heron and CAP-001.FR4@APP-heron. Components: ManagedSettings, CallClassifier, ClientMatcher. Rests on the design sections Client-call and client-match rules, Rollback, kill switch and signing, and Throttling and stale calendar.",Task,S-02,2,EPC-001.AC1,EPC-002.AC5,CON-001,CON-002,CAP-001.FR1@APP-heron,CAP-001.FR4@APP-heron,,,,
+Story: IT's settings decide which calls get a note (S-02)",Task,S-02,2,EPC-001,EPC-002,CON-001,CON-002,CAP-001.FR1,CAP-001.FR4,
 S-02-T4,"Snapshot rules: fail closed, bounded keep with 24-hour ceiling, `enabled` dominates, invalid field logged by code","Component: ManagedSettings
 Size: M
-Story S-02 IT's settings decide which calls get a note
-Traces to: EPC-001.AC1, EPC-002.AC5; the CON-001 and CON-002 shares of CAP-001.FR1@APP-heron and CAP-001.FR4@APP-heron. Components: ManagedSettings, CallClassifier, ClientMatcher. Rests on the design sections Client-call and client-match rules, Rollback, kill switch and signing, and Throttling and stale calendar.",Task,S-02,5,EPC-001.AC1,EPC-002.AC5,CON-001,CON-002,CAP-001.FR1@APP-heron,CAP-001.FR4@APP-heron,,,,
+Story: IT's settings decide which calls get a note (S-02)",Task,S-02,5,EPC-001,EPC-002,CON-001,CON-002,CAP-001.FR1,CAP-001.FR4,
 S-02-T5,"`CallClassifier` and `ClientMatcher` interfaces with the provisional default rule and the two alternates (calendar tag or category, call tool in the invitation)","Component: CallClassifier, ClientMatcher
 Size: M
-Story S-02 IT's settings decide which calls get a note
-Traces to: EPC-001.AC1, EPC-002.AC5; the CON-001 and CON-002 shares of CAP-001.FR1@APP-heron and CAP-001.FR4@APP-heron. Components: ManagedSettings, CallClassifier, ClientMatcher. Rests on the design sections Client-call and client-match rules, Rollback, kill switch and signing, and Throttling and stale calendar.",Task,S-02,5,EPC-001.AC1,EPC-002.AC5,CON-001,CON-002,CAP-001.FR1@APP-heron,CAP-001.FR4@APP-heron,,,,
+Story: IT's settings decide which calls get a note (S-02)",Task,S-02,5,EPC-001,EPC-002,CON-001,CON-002,CAP-001.FR1,CAP-001.FR4,
 S-02-T6,Mixed-client reason code and the merge-only affiliate-domain setting,"Component: ClientMatcher
 Size: S
-Story S-02 IT's settings decide which calls get a note
-Traces to: EPC-001.AC1, EPC-002.AC5; the CON-001 and CON-002 shares of CAP-001.FR1@APP-heron and CAP-001.FR4@APP-heron. Components: ManagedSettings, CallClassifier, ClientMatcher. Rests on the design sections Client-call and client-match rules, Rollback, kill switch and signing, and Throttling and stale calendar.",Task,S-02,2,EPC-001.AC1,EPC-002.AC5,CON-001,CON-002,CAP-001.FR1@APP-heron,CAP-001.FR4@APP-heron,,,,
+Story: IT's settings decide which calls get a note (S-02)",Task,S-02,2,EPC-001,EPC-002,CON-001,CON-002,CAP-001.FR1,CAP-001.FR4,
 S-02-T7,"Text for the active rule and the settings state, handed to the tray and Note view","Component: CallClassifier
 Size: S
-Story S-02 IT's settings decide which calls get a note
-Traces to: EPC-001.AC1, EPC-002.AC5; the CON-001 and CON-002 shares of CAP-001.FR1@APP-heron and CAP-001.FR4@APP-heron. Components: ManagedSettings, CallClassifier, ClientMatcher. Rests on the design sections Client-call and client-match rules, Rollback, kill switch and signing, and Throttling and stale calendar.",Task,S-02,2,EPC-001.AC1,EPC-002.AC5,CON-001,CON-002,CAP-001.FR1@APP-heron,CAP-001.FR4@APP-heron,,,,
-S-03,"S-03 A note on screen ten minutes before a client call (walking skeleton, fake calendar)","Traces to: CAP-001.FR1@APP-heron (share), CAP-001.FR2@APP-heron (share), CAP-001.FR5@APP-heron (share); EPC-001.AC1, EPC-001.AC5, EPC-001.AC6, EPC-004.AC1, EPC-004.AC2, EPC-004.AC5. Components: NoteScheduler, NoteAssembler, NoteStore, NoteWindow, Diagnostics. Rests on the design sections Note building, Attendee organization, Showing the note, Web view boundary, Copies of note text and wind-down, and Data model.
-Acceptance criteria:
+Story: IT's settings decide which calls get a note (S-02)",Task,S-02,2,EPC-001,EPC-002,CON-001,CON-002,CAP-001.FR1,CAP-001.FR4,
+S-03,"A note on screen ten minutes before a client call (walking skeleton, fake calendar)","Acceptance criteria:
 - For each client call the person sees one note ten minutes before the start, and no note for a call that does not count as a client call (EPC-001.AC1).
 - The people come from that call's entry only: everyone invited appears except those who declined, someone who joins without being invited does not appear, and a list in the invitation is expanded only when the entry names its members (EPC-001.AC5).
 - Each person is shown by name and organization only (EPC-001.AC6).
 - Every client call gets a note or a short message saying why there is none (EPC-004.AC1).
 - A first call gets a note that says there is no earlier call and still lists who is on the call (EPC-004.AC2).
 - A message never takes the place of the list of who is on the call, when the entry makes that known (EPC-004.AC5).
-Blocked by: UNK-026 (whether the entry carries an organization; the plan uses the derived value); G-002 (OQ-002, wording of the message when the calendar cannot be read; does not block the build); G-013 (OQ-013, window behavior while the screen is shared; handled in the release stories once the S-01 result is in, see Not planned).",Story,,,CAP-001.FR1@APP-heron,CAP-001.FR2@APP-heron,CAP-001.FR5@APP-heron,EPC-001.AC1,EPC-001.AC5,EPC-001.AC6,EPC-004.AC1,EPC-004.AC2,EPC-004.AC5,S-01
+
+What this story relies on:
+Written without the team's records, so what this story relies on is named by ID only: CAP-001.FR1, CAP-001.FR2, CAP-001.FR5.
+
+Size: L+M+M+M+M+M+S
+Blocked by: Spike: sign-in, keychain, sandbox and sharing detection (S-01)
+Also waits on: UNK-026 (whether the entry carries an organization; the plan uses the derived value); G-002 (OQ-002, wording of the message when the calendar cannot be read; does not block the build); G-013 (OQ-013, window behavior while the screen is shared; handled in the release stories once the S-01 result is in, see Not planned).",Story,,,CAP-001.FR1,CAP-001.FR2,CAP-001.FR5,EPC-001,EPC-004,,S-01
 S-03-T1,"`NoteScheduler` against a fake clock: build on discovery, show at T-10, mark shown only on the window's acknowledgment, retry once","Component: NoteScheduler
 Size: M
-Story S-03 A note on screen ten minutes before a client call (walking skeleton, fake calendar)
-Traces to: CAP-001.FR1@APP-heron (share), CAP-001.FR2@APP-heron (share), CAP-001.FR5@APP-heron (share); EPC-001.AC1, EPC-001.AC5, EPC-001.AC6, EPC-004.AC1, EPC-004.AC2, EPC-004.AC5. Components: NoteScheduler, NoteAssembler, NoteStore, NoteWindow, Diagnostics. Rests on the design sections Note building, Attendee organization, Showing the note, Web view boundary, Copies of note text and wind-down, and Data model.",Task,S-03,5,CAP-001.FR1@APP-heron,CAP-001.FR2@APP-heron,CAP-001.FR5@APP-heron,EPC-001.AC1,EPC-001.AC5,EPC-001.AC6,EPC-004.AC1,EPC-004.AC2,EPC-004.AC5,
+Story: A note on screen ten minutes before a client call (walking skeleton, fake calendar) (S-03)",Task,S-03,5,CAP-001.FR1,CAP-001.FR2,CAP-001.FR5,EPC-001,EPC-004,,
 S-03-T2,"`NoteAssembler.build` for the people list, organization derived from the email domain and labeled, the first-call note and the reason-only note","Component: NoteAssembler
 Size: M
-Story S-03 A note on screen ten minutes before a client call (walking skeleton, fake calendar)
-Traces to: CAP-001.FR1@APP-heron (share), CAP-001.FR2@APP-heron (share), CAP-001.FR5@APP-heron (share); EPC-001.AC1, EPC-001.AC5, EPC-001.AC6, EPC-004.AC1, EPC-004.AC2, EPC-004.AC5. Components: NoteScheduler, NoteAssembler, NoteStore, NoteWindow, Diagnostics. Rests on the design sections Note building, Attendee organization, Showing the note, Web view boundary, Copies of note text and wind-down, and Data model.",Task,S-03,5,CAP-001.FR1@APP-heron,CAP-001.FR2@APP-heron,CAP-001.FR5@APP-heron,EPC-001.AC1,EPC-001.AC5,EPC-001.AC6,EPC-004.AC1,EPC-004.AC2,EPC-004.AC5,
+Story: A note on screen ten minutes before a client call (walking skeleton, fake calendar) (S-03)",Task,S-03,5,CAP-001.FR1,CAP-001.FR2,CAP-001.FR5,EPC-001,EPC-004,,
 S-03-T3,"`NoteStore` port and the encrypted SQLCipher adapter: `SURFACED_NOTE` row, key behind the `TokenStore` port, 30-day expiry sweep","Component: NoteStore
 Size: M
-Story S-03 A note on screen ten minutes before a client call (walking skeleton, fake calendar)
-Traces to: CAP-001.FR1@APP-heron (share), CAP-001.FR2@APP-heron (share), CAP-001.FR5@APP-heron (share); EPC-001.AC1, EPC-001.AC5, EPC-001.AC6, EPC-004.AC1, EPC-004.AC2, EPC-004.AC5. Components: NoteScheduler, NoteAssembler, NoteStore, NoteWindow, Diagnostics. Rests on the design sections Note building, Attendee organization, Showing the note, Web view boundary, Copies of note text and wind-down, and Data model.",Task,S-03,5,CAP-001.FR1@APP-heron,CAP-001.FR2@APP-heron,CAP-001.FR5@APP-heron,EPC-001.AC1,EPC-001.AC5,EPC-001.AC6,EPC-004.AC1,EPC-004.AC2,EPC-004.AC5,
+Story: A note on screen ten minutes before a client call (walking skeleton, fake calendar) (S-03)",Task,S-03,5,CAP-001.FR1,CAP-001.FR2,CAP-001.FR5,EPC-001,EPC-004,,
 S-03-T4,"`NoteWindow` Tauri web view: plain-text rendering, strict content security policy, the three commands, show acknowledgment, tray entry with the latest note","Component: NoteWindow
 Size: L
-Story S-03 A note on screen ten minutes before a client call (walking skeleton, fake calendar)
-Traces to: CAP-001.FR1@APP-heron (share), CAP-001.FR2@APP-heron (share), CAP-001.FR5@APP-heron (share); EPC-001.AC1, EPC-001.AC5, EPC-001.AC6, EPC-004.AC1, EPC-004.AC2, EPC-004.AC5. Components: NoteScheduler, NoteAssembler, NoteStore, NoteWindow, Diagnostics. Rests on the design sections Note building, Attendee organization, Showing the note, Web view boundary, Copies of note text and wind-down, and Data model.",Task,S-03,8,CAP-001.FR1@APP-heron,CAP-001.FR2@APP-heron,CAP-001.FR5@APP-heron,EPC-001.AC1,EPC-001.AC5,EPC-001.AC6,EPC-004.AC1,EPC-004.AC2,EPC-004.AC5,
+Story: A note on screen ten minutes before a client call (walking skeleton, fake calendar) (S-03)",Task,S-03,8,CAP-001.FR1,CAP-001.FR2,CAP-001.FR5,EPC-001,EPC-004,,
 S-03-T5,Web-view boundary checks: static command-list test and runtime refusal test,"Component: NoteWindow
 Size: M
-Story S-03 A note on screen ten minutes before a client call (walking skeleton, fake calendar)
-Traces to: CAP-001.FR1@APP-heron (share), CAP-001.FR2@APP-heron (share), CAP-001.FR5@APP-heron (share); EPC-001.AC1, EPC-001.AC5, EPC-001.AC6, EPC-004.AC1, EPC-004.AC2, EPC-004.AC5. Components: NoteScheduler, NoteAssembler, NoteStore, NoteWindow, Diagnostics. Rests on the design sections Note building, Attendee organization, Showing the note, Web view boundary, Copies of note text and wind-down, and Data model.",Task,S-03,5,CAP-001.FR1@APP-heron,CAP-001.FR2@APP-heron,CAP-001.FR5@APP-heron,EPC-001.AC1,EPC-001.AC5,EPC-001.AC6,EPC-004.AC1,EPC-004.AC2,EPC-004.AC5,
+Story: A note on screen ten minutes before a client call (walking skeleton, fake calendar) (S-03)",Task,S-03,5,CAP-001.FR1,CAP-001.FR2,CAP-001.FR5,EPC-001,EPC-004,,
 S-03-T6,"`Diagnostics` local log of closed codes, rotation, note reference scheme","Component: Diagnostics
 Size: M
-Story S-03 A note on screen ten minutes before a client call (walking skeleton, fake calendar)
-Traces to: CAP-001.FR1@APP-heron (share), CAP-001.FR2@APP-heron (share), CAP-001.FR5@APP-heron (share); EPC-001.AC1, EPC-001.AC5, EPC-001.AC6, EPC-004.AC1, EPC-004.AC2, EPC-004.AC5. Components: NoteScheduler, NoteAssembler, NoteStore, NoteWindow, Diagnostics. Rests on the design sections Note building, Attendee organization, Showing the note, Web view boundary, Copies of note text and wind-down, and Data model.",Task,S-03,5,CAP-001.FR1@APP-heron,CAP-001.FR2@APP-heron,CAP-001.FR5@APP-heron,EPC-001.AC1,EPC-001.AC5,EPC-001.AC6,EPC-004.AC1,EPC-004.AC2,EPC-004.AC5,
+Story: A note on screen ten minutes before a client call (walking skeleton, fake calendar) (S-03)",Task,S-03,5,CAP-001.FR1,CAP-001.FR2,CAP-001.FR5,EPC-001,EPC-004,,
 S-03-T7,Fixture `CalendarSource` for the demo,"Component: CalendarSource
 Size: S
-Story S-03 A note on screen ten minutes before a client call (walking skeleton, fake calendar)
-Traces to: CAP-001.FR1@APP-heron (share), CAP-001.FR2@APP-heron (share), CAP-001.FR5@APP-heron (share); EPC-001.AC1, EPC-001.AC5, EPC-001.AC6, EPC-004.AC1, EPC-004.AC2, EPC-004.AC5. Components: NoteScheduler, NoteAssembler, NoteStore, NoteWindow, Diagnostics. Rests on the design sections Note building, Attendee organization, Showing the note, Web view boundary, Copies of note text and wind-down, and Data model.",Task,S-03,2,CAP-001.FR1@APP-heron,CAP-001.FR2@APP-heron,CAP-001.FR5@APP-heron,EPC-001.AC1,EPC-001.AC5,EPC-001.AC6,EPC-004.AC1,EPC-004.AC2,EPC-004.AC5,
-S-04,"S-04 Moves, cancels and late notes","Traces to: CAP-001.FR1@APP-heron (share), CAP-001.FR5@APP-heron (share); EPC-001.AC2, EPC-001.AC3, EPC-001.AC4, EPC-004.AC4. Components: NoteScheduler, NoteStore, NoteWindow, Diagnostics. Rests on the design sections Cancels and moves after a note was built, Showing the note, and Keeping it running.
-Acceptance criteria:
+Story: A note on screen ten minutes before a client call (walking skeleton, fake calendar) (S-03)",Task,S-03,2,CAP-001.FR1,CAP-001.FR2,CAP-001.FR5,EPC-001,EPC-004,,
+S-04,"Moves, cancels and late notes","Acceptance criteria:
 - A client call booked, or moved to start, inside ten minutes of the change reaching Heron gets its note as soon as it can be built (EPC-001.AC2).
 - After a move, the note is shown ten minutes before the call's new time and not the old one (EPC-001.AC3).
 - After a cancellation, no note is shown for that call and a note already built for it is withdrawn (EPC-001.AC4).
 - A note not ready by ten minutes before the call is shown as soon as it is ready, clearly marked as late, and not dropped (EPC-004.AC4).
 - Design behavior, not an epic criterion: a cancel or move after a note was shown adds a one-time marker and the shown note is not rewritten; on start or wake the scheduler loads unshown rows, catches up from the delta token before it shows what is now due, and says when the app was not running through T-10.
-Blocked by: S-03. Real moves and cancels arrive only with S-05; this story builds against the fixture calendar. If the catch-up cannot finish on wake (offline, signed out), the design shows the built note marked ""calendar not confirmed since HH:MM"", so a canceled call can still show a note in that case; how long to wait for the catch-up before showing is not decided in the design (see Not planned). G-013 (OQ-013) touches the late-note behavior. UNK-027 is open for EPC-004.AC4.",Story,,,CAP-001.FR1@APP-heron,CAP-001.FR5@APP-heron,EPC-001.AC2,EPC-001.AC3,EPC-001.AC4,EPC-004.AC4,,,,"S-03, S-05"
+
+What this story relies on:
+Written without the team's records, so what this story relies on is named by ID only: CAP-001.FR1, CAP-001.FR5.
+
+Size: M+M+M+M+S+S
+Blocked by: A note on screen ten minutes before a client call (walking skeleton, fake calendar) (S-03), Real calendar: sign in and poll (S-05)
+Also waits on: Real moves and cancels arrive only with S-05; this story builds against the fixture calendar. If the catch-up cannot finish on wake (offline, signed out), the design shows the built note marked ""calendar not confirmed since HH:MM"", so a canceled call can still show a note in that case; how long to wait for the catch-up before showing is not decided in the design (see Not planned). G-013 (OQ-013) touches the late-note behavior. UNK-027 is open for EPC-004.AC4.",Story,,,CAP-001.FR1,CAP-001.FR5,EPC-001,EPC-004,,,"S-03, S-05"
 S-04-T1,"Re-time on a move: new T-10, model deadline moves with it, moved earlier builds at once and shows late","Component: NoteScheduler
 Size: M
-Story S-04 Moves, cancels and late notes
-Traces to: CAP-001.FR1@APP-heron (share), CAP-001.FR5@APP-heron (share); EPC-001.AC2, EPC-001.AC3, EPC-001.AC4, EPC-004.AC4. Components: NoteScheduler, NoteStore, NoteWindow, Diagnostics. Rests on the design sections Cancels and moves after a note was built, Showing the note, and Keeping it running.",Task,S-04,5,CAP-001.FR1@APP-heron,CAP-001.FR5@APP-heron,EPC-001.AC2,EPC-001.AC3,EPC-001.AC4,EPC-004.AC4,,,,
+Story: Moves, cancels and late notes (S-04)",Task,S-04,5,CAP-001.FR1,CAP-001.FR5,EPC-001,EPC-004,,,
 S-04-T2,Build at once for a call inside ten minutes; late marking; the tray's latest note with a late mark and the call-passed case,"Component: NoteScheduler, NoteWindow
 Size: M
-Story S-04 Moves, cancels and late notes
-Traces to: CAP-001.FR1@APP-heron (share), CAP-001.FR5@APP-heron (share); EPC-001.AC2, EPC-001.AC3, EPC-001.AC4, EPC-004.AC4. Components: NoteScheduler, NoteStore, NoteWindow, Diagnostics. Rests on the design sections Cancels and moves after a note was built, Showing the note, and Keeping it running.",Task,S-04,5,CAP-001.FR1@APP-heron,CAP-001.FR5@APP-heron,EPC-001.AC2,EPC-001.AC3,EPC-001.AC4,EPC-004.AC4,,,,
+Story: Moves, cancels and late notes (S-04)",Task,S-04,5,CAP-001.FR1,CAP-001.FR5,EPC-001,EPC-004,,,
 S-04-T3,"Cancel: withdraw a built note, delete the row after the marker is shown","Component: NoteScheduler, NoteStore
 Size: S
-Story S-04 Moves, cancels and late notes
-Traces to: CAP-001.FR1@APP-heron (share), CAP-001.FR5@APP-heron (share); EPC-001.AC2, EPC-001.AC3, EPC-001.AC4, EPC-004.AC4. Components: NoteScheduler, NoteStore, NoteWindow, Diagnostics. Rests on the design sections Cancels and moves after a note was built, Showing the note, and Keeping it running.",Task,S-04,2,CAP-001.FR1@APP-heron,CAP-001.FR5@APP-heron,EPC-001.AC2,EPC-001.AC3,EPC-001.AC4,EPC-004.AC4,,,,
+Story: Moves, cancels and late notes (S-04)",Task,S-04,2,CAP-001.FR1,CAP-001.FR5,EPC-001,EPC-004,,,
 S-04-T4,"Markers on a shown note: canceled, moved to HH:MM, changed after this note was shown","Component: NoteWindow
 Size: M
-Story S-04 Moves, cancels and late notes
-Traces to: CAP-001.FR1@APP-heron (share), CAP-001.FR5@APP-heron (share); EPC-001.AC2, EPC-001.AC3, EPC-001.AC4, EPC-004.AC4. Components: NoteScheduler, NoteStore, NoteWindow, Diagnostics. Rests on the design sections Cancels and moves after a note was built, Showing the note, and Keeping it running.",Task,S-04,5,CAP-001.FR1@APP-heron,CAP-001.FR5@APP-heron,EPC-001.AC2,EPC-001.AC3,EPC-001.AC4,EPC-004.AC4,,,,
+Story: Moves, cancels and late notes (S-04)",Task,S-04,5,CAP-001.FR1,CAP-001.FR5,EPC-001,EPC-004,,,
 S-04-T5,"Start and wake catch-up: load unshown rows, catch up from the delta token, then show what is due, with the ""not running through T-10"" wording","Component: NoteScheduler, NoteStore
 Size: M
-Story S-04 Moves, cancels and late notes
-Traces to: CAP-001.FR1@APP-heron (share), CAP-001.FR5@APP-heron (share); EPC-001.AC2, EPC-001.AC3, EPC-001.AC4, EPC-004.AC4. Components: NoteScheduler, NoteStore, NoteWindow, Diagnostics. Rests on the design sections Cancels and moves after a note was built, Showing the note, and Keeping it running.",Task,S-04,5,CAP-001.FR1@APP-heron,CAP-001.FR5@APP-heron,EPC-001.AC2,EPC-001.AC3,EPC-001.AC4,EPC-004.AC4,,,,
+Story: Moves, cancels and late notes (S-04)",Task,S-04,5,CAP-001.FR1,CAP-001.FR5,EPC-001,EPC-004,,,
 S-04-T6,Diagnostics counts for late notes and for cancels and moves that arrived after a note was shown,"Component: Diagnostics
 Size: S
-Story S-04 Moves, cancels and late notes
-Traces to: CAP-001.FR1@APP-heron (share), CAP-001.FR5@APP-heron (share); EPC-001.AC2, EPC-001.AC3, EPC-001.AC4, EPC-004.AC4. Components: NoteScheduler, NoteStore, NoteWindow, Diagnostics. Rests on the design sections Cancels and moves after a note was built, Showing the note, and Keeping it running.",Task,S-04,2,CAP-001.FR1@APP-heron,CAP-001.FR5@APP-heron,EPC-001.AC2,EPC-001.AC3,EPC-001.AC4,EPC-004.AC4,,,,
-S-05,S-05 Real calendar: sign in and poll,"Traces to: CON-001; CAP-001.FR1@APP-heron (obligation of CON-001), CAP-001.FR2@APP-heron (obligation of CON-001); EPC-001.AC1 (entries arrive), EPC-001.AC5 and EPC-001.AC6 (attendees arrive). Components: CalendarSource, SignIn / TokenStore. Rests on the design sections Integration points, Failure behavior, Sign-in redirect, Registration, scopes and schedule, Throttling and stale calendar, and Scale.
-Acceptance criteria:
+Story: Moves, cancels and late notes (S-04)",Task,S-04,2,CAP-001.FR1,CAP-001.FR5,EPC-001,EPC-004,,,
+S-05,Real calendar: sign in and poll,"Acceptance criteria:
 - Microsoft's calendar sends each entry with its time and attendees, and sends any move or cancellation, so Heron can act on the change before the note is due (CAP-001.FR1 obligation of CON-001).
 - Each entry carries every invitee's name, whether each has accepted or declined, and the members of a list when the entry names them (CAP-001.FR2 obligation of CON-001).
 - Design behavior, not an epic criterion: delegated scopes `Calendars.Read`, `offline_access` and `User.Read` only; a calendar with no good poll for five minutes is marked stale; throttling honors `Retry-After`; one notification per signed-out episode, a reminder at T-30, and the reason shown at T-10 only.
-Blocked by: S-01 (spike result); G-009 (OQ-009, production registration); G-014 (OQ-014, how often sign-in is forced again); G-001; G-005 for the lead window and reminder settings; G-002 (OQ-002) for the wording of the message. The window re-base rule waits on S-06 (G-011, OQ-011); until then the poll falls back to a full resync.",Story,,,CON-001,CAP-001.FR1@APP-heron,CAP-001.FR2@APP-heron,EPC-001.AC1,EPC-001.AC5,EPC-001.AC6,,,,"S-01, S-06"
+
+What this story relies on:
+Written without the team's records, so what this story relies on is named by ID only: CON-001, CAP-001.FR1, CAP-001.FR2.
+
+Size: L+M+M+M+M+M+M+S
+Blocked by: Spike: sign-in, keychain, sandbox and sharing detection (S-01), Earlier calls from the past calendar (S-06)
+Also waits on: S-01 (spike result); G-009 (OQ-009, production registration); G-014 (OQ-014, how often sign-in is forced again); G-001; G-005 for the lead window and reminder settings; G-002 (OQ-002) for the wording of the message. The window re-base rule waits on S-06 (G-011, OQ-011); until then the poll falls back to a full resync.",Story,,,CON-001,CAP-001.FR1,CAP-001.FR2,EPC-001,,,"S-01, S-06"
 S-05-T1,"Production loopback PKCE sign-in from the S-01 result: compiled login-host list, tenant and client ID from settings, test tenant in debug builds only","Component: SignIn / TokenStore
 Size: M
-Story S-05 Real calendar: sign in and poll
-Traces to: CON-001; CAP-001.FR1@APP-heron (obligation of CON-001), CAP-001.FR2@APP-heron (obligation of CON-001); EPC-001.AC1 (entries arrive), EPC-001.AC5 and EPC-001.AC6 (attendees arrive). Components: CalendarSource, SignIn / TokenStore. Rests on the design sections Integration points, Failure behavior, Sign-in redirect, Registration, scopes and schedule, Throttling and stale calendar, and Scale.",Task,S-05,5,CON-001,CAP-001.FR1@APP-heron,CAP-001.FR2@APP-heron,EPC-001.AC1,EPC-001.AC5,EPC-001.AC6,,,,
+Story: Real calendar: sign in and poll (S-05)",Task,S-05,5,CON-001,CAP-001.FR1,CAP-001.FR2,EPC-001,,,
 S-05-T2,"Mac token store in the keychain, access list naming the signed binary","Component: SignIn / TokenStore
 Size: M
-Story S-05 Real calendar: sign in and poll
-Traces to: CON-001; CAP-001.FR1@APP-heron (obligation of CON-001), CAP-001.FR2@APP-heron (obligation of CON-001); EPC-001.AC1 (entries arrive), EPC-001.AC5 and EPC-001.AC6 (attendees arrive). Components: CalendarSource, SignIn / TokenStore. Rests on the design sections Integration points, Failure behavior, Sign-in redirect, Registration, scopes and schedule, Throttling and stale calendar, and Scale.",Task,S-05,5,CON-001,CAP-001.FR1@APP-heron,CAP-001.FR2@APP-heron,EPC-001.AC1,EPC-001.AC5,EPC-001.AC6,,,,
+Story: Real calendar: sign in and poll (S-05)",Task,S-05,5,CON-001,CAP-001.FR1,CAP-001.FR2,EPC-001,,,
 S-05-T3,"Windows token store: DPAPI-wrapped, with the encrypted-file fallback if the token does not fit","Component: SignIn / TokenStore
 Size: M
-Story S-05 Real calendar: sign in and poll
-Traces to: CON-001; CAP-001.FR1@APP-heron (obligation of CON-001), CAP-001.FR2@APP-heron (obligation of CON-001); EPC-001.AC1 (entries arrive), EPC-001.AC5 and EPC-001.AC6 (attendees arrive). Components: CalendarSource, SignIn / TokenStore. Rests on the design sections Integration points, Failure behavior, Sign-in redirect, Registration, scopes and schedule, Throttling and stale calendar, and Scale.",Task,S-05,5,CON-001,CAP-001.FR1@APP-heron,CAP-001.FR2@APP-heron,EPC-001.AC1,EPC-001.AC5,EPC-001.AC6,,,,
+Story: Real calendar: sign in and poll (S-05)",Task,S-05,5,CON-001,CAP-001.FR1,CAP-001.FR2,EPC-001,,,
 S-05-T4,"Graph delta poll: 2-minute interval with jitter, T-15 re-poll, catch-up on start and wake, 7-day window","Component: CalendarSource
 Size: L
-Story S-05 Real calendar: sign in and poll
-Traces to: CON-001; CAP-001.FR1@APP-heron (obligation of CON-001), CAP-001.FR2@APP-heron (obligation of CON-001); EPC-001.AC1 (entries arrive), EPC-001.AC5 and EPC-001.AC6 (attendees arrive). Components: CalendarSource, SignIn / TokenStore. Rests on the design sections Integration points, Failure behavior, Sign-in redirect, Registration, scopes and schedule, Throttling and stale calendar, and Scale.",Task,S-05,8,CON-001,CAP-001.FR1@APP-heron,CAP-001.FR2@APP-heron,EPC-001.AC1,EPC-001.AC5,EPC-001.AC6,,,,
+Story: Real calendar: sign in and poll (S-05)",Task,S-05,8,CON-001,CAP-001.FR1,CAP-001.FR2,EPC-001,,,
 S-05-T5,"Rejected delta token: drop only the token and resync the full window, reconciled against stored rows","Component: CalendarSource, NoteStore
 Size: M
-Story S-05 Real calendar: sign in and poll
-Traces to: CON-001; CAP-001.FR1@APP-heron (obligation of CON-001), CAP-001.FR2@APP-heron (obligation of CON-001); EPC-001.AC1 (entries arrive), EPC-001.AC5 and EPC-001.AC6 (attendees arrive). Components: CalendarSource, SignIn / TokenStore. Rests on the design sections Integration points, Failure behavior, Sign-in redirect, Registration, scopes and schedule, Throttling and stale calendar, and Scale.",Task,S-05,5,CON-001,CAP-001.FR1@APP-heron,CAP-001.FR2@APP-heron,EPC-001.AC1,EPC-001.AC5,EPC-001.AC6,,,,
+Story: Real calendar: sign in and poll (S-05)",Task,S-05,5,CON-001,CAP-001.FR1,CAP-001.FR2,EPC-001,,,
 S-05-T6,"Map Graph entries to `Entry` (name, email, response, list members)","Component: CalendarSource
 Size: S
-Story S-05 Real calendar: sign in and poll
-Traces to: CON-001; CAP-001.FR1@APP-heron (obligation of CON-001), CAP-001.FR2@APP-heron (obligation of CON-001); EPC-001.AC1 (entries arrive), EPC-001.AC5 and EPC-001.AC6 (attendees arrive). Components: CalendarSource, SignIn / TokenStore. Rests on the design sections Integration points, Failure behavior, Sign-in redirect, Registration, scopes and schedule, Throttling and stale calendar, and Scale.",Task,S-05,2,CON-001,CAP-001.FR1@APP-heron,CAP-001.FR2@APP-heron,EPC-001.AC1,EPC-001.AC5,EPC-001.AC6,,,,
+Story: Real calendar: sign in and poll (S-05)",Task,S-05,2,CON-001,CAP-001.FR1,CAP-001.FR2,EPC-001,,,
 S-05-T7,"Throttle and backoff, one failed poll to unconfirmed, five minutes to stale, with log codes","Component: CalendarSource
 Size: M
-Story S-05 Real calendar: sign in and poll
-Traces to: CON-001; CAP-001.FR1@APP-heron (obligation of CON-001), CAP-001.FR2@APP-heron (obligation of CON-001); EPC-001.AC1 (entries arrive), EPC-001.AC5 and EPC-001.AC6 (attendees arrive). Components: CalendarSource, SignIn / TokenStore. Rests on the design sections Integration points, Failure behavior, Sign-in redirect, Registration, scopes and schedule, Throttling and stale calendar, and Scale.",Task,S-05,5,CON-001,CAP-001.FR1@APP-heron,CAP-001.FR2@APP-heron,EPC-001.AC1,EPC-001.AC5,EPC-001.AC6,,,,
+Story: Real calendar: sign in and poll (S-05)",Task,S-05,5,CON-001,CAP-001.FR1,CAP-001.FR2,EPC-001,,,
 S-05-T8,"Signed-out episode: badge, one notification inside the lead window, T-30 reminder, catch-up on the next good poll","Component: CalendarSource, NoteScheduler
 Size: M
-Story S-05 Real calendar: sign in and poll
-Traces to: CON-001; CAP-001.FR1@APP-heron (obligation of CON-001), CAP-001.FR2@APP-heron (obligation of CON-001); EPC-001.AC1 (entries arrive), EPC-001.AC5 and EPC-001.AC6 (attendees arrive). Components: CalendarSource, SignIn / TokenStore. Rests on the design sections Integration points, Failure behavior, Sign-in redirect, Registration, scopes and schedule, Throttling and stale calendar, and Scale.",Task,S-05,5,CON-001,CAP-001.FR1@APP-heron,CAP-001.FR2@APP-heron,EPC-001.AC1,EPC-001.AC5,EPC-001.AC6,,,,
-S-06,S-06 Earlier calls from the past calendar,"Traces to: CON-001; CAP-001.FR3@APP-heron (obligation of CON-001); EPC-001.AC7. Components: CalendarSource (`earlier_calls`), NoteStore (delta token). Rests on the design sections Integration points and Registration, scopes and schedule. Choosing the most recent earlier call is `NoteAssembler`'s job (S-10); this story supplies the entries.
-Acceptance criteria:
+Story: Real calendar: sign in and poll (S-05)",Task,S-05,5,CON-001,CAP-001.FR1,CAP-001.FR2,EPC-001,,,
+S-06,Earlier calls from the past calendar,"Acceptance criteria:
 - Past calendar entries come over CON-001 with their attendees, as coming ones do, so the most recent earlier call with the same client can be found (EPC-001.AC7).
 - Design behavior, not an epic criterion: past lookback is capped at 90 days, provisionally, as a managed setting with a request budget per client lookup; a rejected delta token drops only that token and resyncs the window.
-Blocked by: S-05; S-02 (`same_client`); G-011 (OQ-011, the identity team's check and the call partner's sign-off on 90 days; the sign-off blocks shipping, not building); G-008 (OQ-008, the works council list must say past entries are read). Rollout blocker: S-06 must not be enabled for real users before S-11 (`PopulationFilter`), because past entries can name excluded people.
+
+What this story relies on:
+Written without the team's records, so what this story relies on is named by ID only: CON-001, CAP-001.FR3.
+
+Size: M+M+S+S
+Blocked by: Real calendar: sign in and poll (S-05), IT's settings decide which calls get a note (S-02), Earlier calls from the past calendar (S-06), Excluded people (S-11)
+Also waits on: S-05; S-02 (`same_client`); G-011 (OQ-011, the identity team's check and the call partner's sign-off on 90 days; the sign-off blocks shipping, not building); G-008 (OQ-008, the works council list must say past entries are read). Rollout blocker: S-06 must not be enabled for real users before S-11 (`PopulationFilter`), because past entries can name excluded people.
 Open for the design:
-- Open for `tech-design-grill`: what `earlier_calls` returns when the per-lookup request budget runs out. The design's port returns a list or the errors `Network`, `Throttled`, `Token`, `Stale`, and says nothing about a spent budget. A partial list could hide the true most recent call, and an empty one would read as ""first call"". S-10 builds against a stub variant for ""lookup incomplete"" until the design says (see Not planned).",Story,,,CON-001,CAP-001.FR3@APP-heron,EPC-001.AC7,needs-design,,,,,,"S-05, S-02, S-06, S-11"
+- Open for `tech-design-grill`: what `earlier_calls` returns when the per-lookup request budget runs out. The design's port returns a list or the errors `Network`, `Throttled`, `Token`, `Stale`, and says nothing about a spent budget. A partial list could hide the true most recent call, and an empty one would read as ""first call"". S-10 builds against a stub variant for ""lookup incomplete"" until the design says (see Not planned).",Story,,,CON-001,CAP-001.FR3,EPC-001,needs-design,,,"S-05, S-02, S-06, S-11"
 S-06-T1,"Delta-token check on a test registration against a moving window, then the fixed re-base rule (OQ-011)","Component: CalendarSource
 Size: S
-Story S-06 Earlier calls from the past calendar
-Traces to: CON-001; CAP-001.FR3@APP-heron (obligation of CON-001); EPC-001.AC7. Components: CalendarSource (`earlier_calls`), NoteStore (delta token). Rests on the design sections Integration points and Registration, scopes and schedule. Choosing the most recent earlier call is `NoteAssembler`'s job (S-10); this story supplies the entries.",Task,S-06,2,CON-001,CAP-001.FR3@APP-heron,EPC-001.AC7,,,,,,,
+Story: Earlier calls from the past calendar (S-06)",Task,S-06,2,CON-001,CAP-001.FR3,EPC-001,,,,
 S-06-T2,Implement the window re-base rule in the poll,"Component: CalendarSource
 Size: M
-Story S-06 Earlier calls from the past calendar
-Traces to: CON-001; CAP-001.FR3@APP-heron (obligation of CON-001); EPC-001.AC7. Components: CalendarSource (`earlier_calls`), NoteStore (delta token). Rests on the design sections Integration points and Registration, scopes and schedule. Choosing the most recent earlier call is `NoteAssembler`'s job (S-10); this story supplies the entries.",Task,S-06,5,CON-001,CAP-001.FR3@APP-heron,EPC-001.AC7,,,,,,,
+Story: Earlier calls from the past calendar (S-06)",Task,S-06,5,CON-001,CAP-001.FR3,EPC-001,,,,
 S-06-T3,"`earlier_calls(client)` on demand, with the 90-day cap and the per-lookup request budget as managed settings","Component: CalendarSource
 Size: M
-Story S-06 Earlier calls from the past calendar
-Traces to: CON-001; CAP-001.FR3@APP-heron (obligation of CON-001); EPC-001.AC7. Components: CalendarSource (`earlier_calls`), NoteStore (delta token). Rests on the design sections Integration points and Registration, scopes and schedule. Choosing the most recent earlier call is `NoteAssembler`'s job (S-10); this story supplies the entries.",Task,S-06,5,CON-001,CAP-001.FR3@APP-heron,EPC-001.AC7,,,,,,,
+Story: Earlier calls from the past calendar (S-06)",Task,S-06,5,CON-001,CAP-001.FR3,EPC-001,,,,
 S-06-T4,"Delta token kept in `NoteStore`, with the token-only drop on rejection","Component: NoteStore
 Size: S
-Story S-06 Earlier calls from the past calendar
-Traces to: CON-001; CAP-001.FR3@APP-heron (obligation of CON-001); EPC-001.AC7. Components: CalendarSource (`earlier_calls`), NoteStore (delta token). Rests on the design sections Integration points and Registration, scopes and schedule. Choosing the most recent earlier call is `NoteAssembler`'s job (S-10); this story supplies the entries.",Task,S-06,2,CON-001,CAP-001.FR3@APP-heron,EPC-001.AC7,,,,,,,
-S-07,S-07 Choose a folder,"Traces to: CON-002; CAP-001.FR4@APP-heron (share), CAP-001.FR4@APP-heron (obligation of CON-002), CAP-001.FR3@APP-heron (obligation of CON-002); EPC-002.AC1, EPC-002.AC2, EPC-002.AC3, EPC-002.AC4, EPC-002.AC6. Components: FolderSource, the parser worker, NoteWindow. Rests on the design sections Folder matching, Keeping it running, and Copies of note text and wind-down.
-Acceptance criteria:
+Story: Earlier calls from the past calendar (S-06)",Task,S-06,2,CON-001,CAP-001.FR3,EPC-001,,,,
+S-07,Choose a folder,"Acceptance criteria:
 - The person can name one folder and change it later; after a change the next note uses the new folder (EPC-002.AC1).
 - Heron reads nothing of the person's apart from the chosen folder, the calendar entries and the call tools' records: no mailbox and no general document search (EPC-002.AC2).
 - Until a folder is chosen, the note for a client call says that no folder is set (EPC-002.AC3).
 - When the chosen folder is missing or empty, the note says so and names the problem (EPC-002.AC4).
 - The files in the chosen folder can be read and nothing is written back to it (EPC-002.AC6).
 - Design behavior, not an epic criterion: only text, Markdown, Word and PDF files are read, up to 2 MB per file and 50 files by default, as managed settings; a path that leaves the folder, including by symlink or junction, is refused; a network or synced folder is refused unless `allow_network_folders` allows it; online-only files are skipped and listed as ""not on this laptop""; the floor has a 60-second deadline and a 5-second per-file timeout; file names and paths are never stored.
-Blocked by: S-03 (the Note view); S-01 (sandbox result, G-001 and OQ-001); G-016 (OQ-016, online-only detection against the firm's sync client; blocks trusting the detection, not building it); UNK-019 (daily folder habit); G-008 for files about an excluded person, handled by S-11.",Story,,,CON-002,CAP-001.FR4@APP-heron,CAP-001.FR3@APP-heron,EPC-002.AC1,EPC-002.AC2,EPC-002.AC3,EPC-002.AC4,EPC-002.AC6,,"S-03, S-01, S-11"
+
+What this story relies on:
+Written without the team's records, so what this story relies on is named by ID only: CON-002, CAP-001.FR4, CAP-001.FR3.
+
+Size: M+M+M+M+M+M+M+M+M+S+S+S+S
+Blocked by: A note on screen ten minutes before a client call (walking skeleton, fake calendar) (S-03), Spike: sign-in, keychain, sandbox and sharing detection (S-01), Excluded people (S-11)
+Also waits on: S-03 (the Note view); S-01 (sandbox result, G-001 and OQ-001); G-016 (OQ-016, online-only detection against the firm's sync client; blocks trusting the detection, not building it); UNK-019 (daily folder habit); G-008 for files about an excluded person, handled by S-11.",Story,,,CON-002,CAP-001.FR4,CAP-001.FR3,EPC-002,,,"S-03, S-01, S-11"
 S-07-T1,"`FolderSource` port: choose and change the folder, status Unset, Missing, Empty or Ok, and the tray folder picker","Component: FolderSource
 Size: M
-Story S-07 Choose a folder
-Traces to: CON-002; CAP-001.FR4@APP-heron (share), CAP-001.FR4@APP-heron (obligation of CON-002), CAP-001.FR3@APP-heron (obligation of CON-002); EPC-002.AC1, EPC-002.AC2, EPC-002.AC3, EPC-002.AC4, EPC-002.AC6. Components: FolderSource, the parser worker, NoteWindow. Rests on the design sections Folder matching, Keeping it running, and Copies of note text and wind-down.",Task,S-07,5,CON-002,CAP-001.FR4@APP-heron,CAP-001.FR3@APP-heron,EPC-002.AC1,EPC-002.AC2,EPC-002.AC3,EPC-002.AC4,EPC-002.AC6,,
+Story: Choose a folder (S-07)",Task,S-07,5,CON-002,CAP-001.FR4,CAP-001.FR3,EPC-002,,,
 S-07-T2,"Read-only enumeration: path resolution, symlink and junction refusal, hidden and system skip, size and count caps as settings","Component: FolderSource
 Size: M
-Story S-07 Choose a folder
-Traces to: CON-002; CAP-001.FR4@APP-heron (share), CAP-001.FR4@APP-heron (obligation of CON-002), CAP-001.FR3@APP-heron (obligation of CON-002); EPC-002.AC1, EPC-002.AC2, EPC-002.AC3, EPC-002.AC4, EPC-002.AC6. Components: FolderSource, the parser worker, NoteWindow. Rests on the design sections Folder matching, Keeping it running, and Copies of note text and wind-down.",Task,S-07,5,CON-002,CAP-001.FR4@APP-heron,CAP-001.FR3@APP-heron,EPC-002.AC1,EPC-002.AC2,EPC-002.AC3,EPC-002.AC4,EPC-002.AC6,,
+Story: Choose a folder (S-07)",Task,S-07,5,CON-002,CAP-001.FR4,CAP-001.FR3,EPC-002,,,
 S-07-T3,"Parser worker harness: same signed executable in worker mode, time and memory caps, crash backoff, per-run temp folder","Component: FolderSource
 Size: M
-Story S-07 Choose a folder
-Traces to: CON-002; CAP-001.FR4@APP-heron (share), CAP-001.FR4@APP-heron (obligation of CON-002), CAP-001.FR3@APP-heron (obligation of CON-002); EPC-002.AC1, EPC-002.AC2, EPC-002.AC3, EPC-002.AC4, EPC-002.AC6. Components: FolderSource, the parser worker, NoteWindow. Rests on the design sections Folder matching, Keeping it running, and Copies of note text and wind-down.",Task,S-07,5,CON-002,CAP-001.FR4@APP-heron,CAP-001.FR3@APP-heron,EPC-002.AC1,EPC-002.AC2,EPC-002.AC3,EPC-002.AC4,EPC-002.AC6,,
+Story: Choose a folder (S-07)",Task,S-07,5,CON-002,CAP-001.FR4,CAP-001.FR3,EPC-002,,,
 S-07-T4,"Worker sandbox on Mac: no network, no keychain, no inherited handles","Component: FolderSource
 Size: M
-Story S-07 Choose a folder
-Traces to: CON-002; CAP-001.FR4@APP-heron (share), CAP-001.FR4@APP-heron (obligation of CON-002), CAP-001.FR3@APP-heron (obligation of CON-002); EPC-002.AC1, EPC-002.AC2, EPC-002.AC3, EPC-002.AC4, EPC-002.AC6. Components: FolderSource, the parser worker, NoteWindow. Rests on the design sections Folder matching, Keeping it running, and Copies of note text and wind-down.",Task,S-07,5,CON-002,CAP-001.FR4@APP-heron,CAP-001.FR3@APP-heron,EPC-002.AC1,EPC-002.AC2,EPC-002.AC3,EPC-002.AC4,EPC-002.AC6,,
+Story: Choose a folder (S-07)",Task,S-07,5,CON-002,CAP-001.FR4,CAP-001.FR3,EPC-002,,,
 S-07-T5,"Worker sandbox on Windows: no network, no keychain, no inherited handles","Component: FolderSource
 Size: M
-Story S-07 Choose a folder
-Traces to: CON-002; CAP-001.FR4@APP-heron (share), CAP-001.FR4@APP-heron (obligation of CON-002), CAP-001.FR3@APP-heron (obligation of CON-002); EPC-002.AC1, EPC-002.AC2, EPC-002.AC3, EPC-002.AC4, EPC-002.AC6. Components: FolderSource, the parser worker, NoteWindow. Rests on the design sections Folder matching, Keeping it running, and Copies of note text and wind-down.",Task,S-07,5,CON-002,CAP-001.FR4@APP-heron,CAP-001.FR3@APP-heron,EPC-002.AC1,EPC-002.AC2,EPC-002.AC3,EPC-002.AC4,EPC-002.AC6,,
+Story: Choose a folder (S-07)",Task,S-07,5,CON-002,CAP-001.FR4,CAP-001.FR3,EPC-002,,,
 S-07-T6,Text and Markdown extraction,"Component: FolderSource
 Size: S
-Story S-07 Choose a folder
-Traces to: CON-002; CAP-001.FR4@APP-heron (share), CAP-001.FR4@APP-heron (obligation of CON-002), CAP-001.FR3@APP-heron (obligation of CON-002); EPC-002.AC1, EPC-002.AC2, EPC-002.AC3, EPC-002.AC4, EPC-002.AC6. Components: FolderSource, the parser worker, NoteWindow. Rests on the design sections Folder matching, Keeping it running, and Copies of note text and wind-down.",Task,S-07,2,CON-002,CAP-001.FR4@APP-heron,CAP-001.FR3@APP-heron,EPC-002.AC1,EPC-002.AC2,EPC-002.AC3,EPC-002.AC4,EPC-002.AC6,,
+Story: Choose a folder (S-07)",Task,S-07,2,CON-002,CAP-001.FR4,CAP-001.FR3,EPC-002,,,
 S-07-T7,Word extraction,"Component: FolderSource
 Size: M
-Story S-07 Choose a folder
-Traces to: CON-002; CAP-001.FR4@APP-heron (share), CAP-001.FR4@APP-heron (obligation of CON-002), CAP-001.FR3@APP-heron (obligation of CON-002); EPC-002.AC1, EPC-002.AC2, EPC-002.AC3, EPC-002.AC4, EPC-002.AC6. Components: FolderSource, the parser worker, NoteWindow. Rests on the design sections Folder matching, Keeping it running, and Copies of note text and wind-down.",Task,S-07,5,CON-002,CAP-001.FR4@APP-heron,CAP-001.FR3@APP-heron,EPC-002.AC1,EPC-002.AC2,EPC-002.AC3,EPC-002.AC4,EPC-002.AC6,,
+Story: Choose a folder (S-07)",Task,S-07,5,CON-002,CAP-001.FR4,CAP-001.FR3,EPC-002,,,
 S-07-T8,PDF extraction,"Component: FolderSource
 Size: M
-Story S-07 Choose a folder
-Traces to: CON-002; CAP-001.FR4@APP-heron (share), CAP-001.FR4@APP-heron (obligation of CON-002), CAP-001.FR3@APP-heron (obligation of CON-002); EPC-002.AC1, EPC-002.AC2, EPC-002.AC3, EPC-002.AC4, EPC-002.AC6. Components: FolderSource, the parser worker, NoteWindow. Rests on the design sections Folder matching, Keeping it running, and Copies of note text and wind-down.",Task,S-07,5,CON-002,CAP-001.FR4@APP-heron,CAP-001.FR3@APP-heron,EPC-002.AC1,EPC-002.AC2,EPC-002.AC3,EPC-002.AC4,EPC-002.AC6,,
+Story: Choose a folder (S-07)",Task,S-07,5,CON-002,CAP-001.FR4,CAP-001.FR3,EPC-002,,,
 S-07-T9,Network and synced folder refusal with `allow_network_folders`,"Component: FolderSource
 Size: S
-Story S-07 Choose a folder
-Traces to: CON-002; CAP-001.FR4@APP-heron (share), CAP-001.FR4@APP-heron (obligation of CON-002), CAP-001.FR3@APP-heron (obligation of CON-002); EPC-002.AC1, EPC-002.AC2, EPC-002.AC3, EPC-002.AC4, EPC-002.AC6. Components: FolderSource, the parser worker, NoteWindow. Rests on the design sections Folder matching, Keeping it running, and Copies of note text and wind-down.",Task,S-07,2,CON-002,CAP-001.FR4@APP-heron,CAP-001.FR3@APP-heron,EPC-002.AC1,EPC-002.AC2,EPC-002.AC3,EPC-002.AC4,EPC-002.AC6,,
+Story: Choose a folder (S-07)",Task,S-07,2,CON-002,CAP-001.FR4,CAP-001.FR3,EPC-002,,,
 S-07-T10,"Online-only detection from file attributes and the ""not on this laptop"" list","Component: FolderSource
 Size: M
-Story S-07 Choose a folder
-Traces to: CON-002; CAP-001.FR4@APP-heron (share), CAP-001.FR4@APP-heron (obligation of CON-002), CAP-001.FR3@APP-heron (obligation of CON-002); EPC-002.AC1, EPC-002.AC2, EPC-002.AC3, EPC-002.AC4, EPC-002.AC6. Components: FolderSource, the parser worker, NoteWindow. Rests on the design sections Folder matching, Keeping it running, and Copies of note text and wind-down.",Task,S-07,5,CON-002,CAP-001.FR4@APP-heron,CAP-001.FR3@APP-heron,EPC-002.AC1,EPC-002.AC2,EPC-002.AC3,EPC-002.AC4,EPC-002.AC6,,
+Story: Choose a folder (S-07)",Task,S-07,5,CON-002,CAP-001.FR4,CAP-001.FR3,EPC-002,,,
 S-07-T11,"Floor deadline, per-file timeout and the ""incomplete"" marker","Component: FolderSource, NoteAssembler
 Size: M
-Story S-07 Choose a folder
-Traces to: CON-002; CAP-001.FR4@APP-heron (share), CAP-001.FR4@APP-heron (obligation of CON-002), CAP-001.FR3@APP-heron (obligation of CON-002); EPC-002.AC1, EPC-002.AC2, EPC-002.AC3, EPC-002.AC4, EPC-002.AC6. Components: FolderSource, the parser worker, NoteWindow. Rests on the design sections Folder matching, Keeping it running, and Copies of note text and wind-down.",Task,S-07,5,CON-002,CAP-001.FR4@APP-heron,CAP-001.FR3@APP-heron,EPC-002.AC1,EPC-002.AC2,EPC-002.AC3,EPC-002.AC4,EPC-002.AC6,,
+Story: Choose a folder (S-07)",Task,S-07,5,CON-002,CAP-001.FR4,CAP-001.FR3,EPC-002,,,
 S-07-T12,"Note view text for folder not set, missing and empty","Component: NoteWindow
 Size: S
-Story S-07 Choose a folder
-Traces to: CON-002; CAP-001.FR4@APP-heron (share), CAP-001.FR4@APP-heron (obligation of CON-002), CAP-001.FR3@APP-heron (obligation of CON-002); EPC-002.AC1, EPC-002.AC2, EPC-002.AC3, EPC-002.AC4, EPC-002.AC6. Components: FolderSource, the parser worker, NoteWindow. Rests on the design sections Folder matching, Keeping it running, and Copies of note text and wind-down.",Task,S-07,2,CON-002,CAP-001.FR4@APP-heron,CAP-001.FR3@APP-heron,EPC-002.AC1,EPC-002.AC2,EPC-002.AC3,EPC-002.AC4,EPC-002.AC6,,
+Story: Choose a folder (S-07)",Task,S-07,2,CON-002,CAP-001.FR4,CAP-001.FR3,EPC-002,,,
 S-07-T13,"File-side boundary tests: nothing written back, nothing read outside the folder","Component: FolderSource
 Size: S
-Story S-07 Choose a folder
-Traces to: CON-002; CAP-001.FR4@APP-heron (share), CAP-001.FR4@APP-heron (obligation of CON-002), CAP-001.FR3@APP-heron (obligation of CON-002); EPC-002.AC1, EPC-002.AC2, EPC-002.AC3, EPC-002.AC4, EPC-002.AC6. Components: FolderSource, the parser worker, NoteWindow. Rests on the design sections Folder matching, Keeping it running, and Copies of note text and wind-down.",Task,S-07,2,CON-002,CAP-001.FR4@APP-heron,CAP-001.FR3@APP-heron,EPC-002.AC1,EPC-002.AC2,EPC-002.AC3,EPC-002.AC4,EPC-002.AC6,,
-S-08,S-08 Only this client's files are used,"Traces to: CAP-001.FR4@APP-heron (share, matched as for CAP-001.FR3); EPC-002.AC5. Components: FolderSource, ClientMatcher, NoteWindow, NoteStore, NoteScheduler. Rests on the design sections Folder matching and Client-call and client-match rules.
-Acceptance criteria:
+Story: Choose a folder (S-07)",Task,S-07,2,CON-002,CAP-001.FR4,CAP-001.FR3,EPC-002,,,
+S-08,Only this client's files are used,"Acceptance criteria:
 - From a folder that holds files for several clients, the note uses only the files that relate to the call's client, matched as for CAP-001.FR3 (EPC-002.AC5).
 - Design behavior, not an epic criterion: a file relates only on an exact match, the full domain or the full client name as a whole word, never a substring; public-mail names and domains never identify a client; the Note view shows each file used by name with the reason, at build time; the stored note keeps the kind of source and never a name or path; each stored note records the rule that built it, unshown notes are rebuilt after a rule switch and shown notes keep theirs.
-Blocked by: S-07; S-02; UNK-022 (the match rule is an assumption; an answer outside the default is a matcher change, see Not planned); R-DAT-08 and R-DAT-15 (personal data in files stays with the DPO); G-008 and S-11 for a file that names an excluded person.
+
+What this story relies on:
+Written without the team's records, so what this story relies on is named by ID only: CAP-001.FR4, CAP-001.FR3.
+
+Size: M+M+M+S+S+S
+Blocked by: Choose a folder (S-07), IT's settings decide which calls get a note (S-02), Excluded people (S-11)
+Also waits on: S-07; S-02; UNK-022 (the match rule is an assumption; an answer outside the default is a matcher change, see Not planned); R-DAT-08 and R-DAT-15 (personal data in files stays with the DPO); G-008 and S-11 for a file that names an excluded person.
 Open for the design:
-- Open for `tech-design-grill`: who owns the public-mail list and where it lives. The design names the list but no owner or source, and it is a build constant in this plan. If product or compliance must own it, it moves to a managed setting (see Not planned).",Story,,,CAP-001.FR4@APP-heron,CAP-001.FR3,EPC-002.AC5,needs-design,,,,,,"S-07, S-02, S-11"
+- Open for `tech-design-grill`: who owns the public-mail list and where it lives. The design names the list but no owner or source, and it is a build constant in this plan. If product or compliance must own it, it moves to a managed setting (see Not planned).",Story,,,CAP-001.FR4,CAP-001.FR3,EPC-002,needs-design,,,"S-07, S-02, S-11"
 S-08-T1,`files_for(client)`: exact domain and whole-word name match on path and on text,"Component: FolderSource, ClientMatcher
 Size: M
-Story S-08 Only this client's files are used
-Traces to: CAP-001.FR4@APP-heron (share, matched as for CAP-001.FR3); EPC-002.AC5. Components: FolderSource, ClientMatcher, NoteWindow, NoteStore, NoteScheduler. Rests on the design sections Folder matching and Client-call and client-match rules.",Task,S-08,5,CAP-001.FR4@APP-heron,CAP-001.FR3,EPC-002.AC5,,,,,,,
+Story: Only this client's files are used (S-08)",Task,S-08,5,CAP-001.FR4,CAP-001.FR3,EPC-002,,,,
 S-08-T2,Public-mail list applied to names and domains,"Component: ClientMatcher
 Size: S
-Story S-08 Only this client's files are used
-Traces to: CAP-001.FR4@APP-heron (share, matched as for CAP-001.FR3); EPC-002.AC5. Components: FolderSource, ClientMatcher, NoteWindow, NoteStore, NoteScheduler. Rests on the design sections Folder matching and Client-call and client-match rules.",Task,S-08,2,CAP-001.FR4@APP-heron,CAP-001.FR3,EPC-002.AC5,,,,,,,
+Story: Only this client's files are used (S-08)",Task,S-08,2,CAP-001.FR4,CAP-001.FR3,EPC-002,,,,
 S-08-T3,"Note view lists each file used with its reason, at build time","Component: NoteWindow
 Size: M
-Story S-08 Only this client's files are used
-Traces to: CAP-001.FR4@APP-heron (share, matched as for CAP-001.FR3); EPC-002.AC5. Components: FolderSource, ClientMatcher, NoteWindow, NoteStore, NoteScheduler. Rests on the design sections Folder matching and Client-call and client-match rules.",Task,S-08,5,CAP-001.FR4@APP-heron,CAP-001.FR3,EPC-002.AC5,,,,,,,
+Story: Only this client's files are used (S-08)",Task,S-08,5,CAP-001.FR4,CAP-001.FR3,EPC-002,,,,
 S-08-T4,`NoteStore.put` replaces a name with its kind; no name or path field,"Component: NoteStore
 Size: S
-Story S-08 Only this client's files are used
-Traces to: CAP-001.FR4@APP-heron (share, matched as for CAP-001.FR3); EPC-002.AC5. Components: FolderSource, ClientMatcher, NoteWindow, NoteStore, NoteScheduler. Rests on the design sections Folder matching and Client-call and client-match rules.",Task,S-08,2,CAP-001.FR4@APP-heron,CAP-001.FR3,EPC-002.AC5,,,,,,,
+Story: Only this client's files are used (S-08)",Task,S-08,2,CAP-001.FR4,CAP-001.FR3,EPC-002,,,,
 S-08-T5,"Each stored note records its rule; unshown notes rebuild after a rule switch, shown notes keep theirs","Component: NoteScheduler, NoteStore
 Size: M
-Story S-08 Only this client's files are used
-Traces to: CAP-001.FR4@APP-heron (share, matched as for CAP-001.FR3); EPC-002.AC5. Components: FolderSource, ClientMatcher, NoteWindow, NoteStore, NoteScheduler. Rests on the design sections Folder matching and Client-call and client-match rules.",Task,S-08,5,CAP-001.FR4@APP-heron,CAP-001.FR3,EPC-002.AC5,,,,,,,
+Story: Only this client's files are used (S-08)",Task,S-08,5,CAP-001.FR4,CAP-001.FR3,EPC-002,,,,
 S-08-T6,"Match fixtures: substrings, similar names, affiliates, public-mail look-alikes","Component: ClientMatcher
 Size: S
-Story S-08 Only this client's files are used
-Traces to: CAP-001.FR4@APP-heron (share, matched as for CAP-001.FR3); EPC-002.AC5. Components: FolderSource, ClientMatcher, NoteWindow, NoteStore, NoteScheduler. Rests on the design sections Folder matching and Client-call and client-match rules.",Task,S-08,2,CAP-001.FR4@APP-heron,CAP-001.FR3,EPC-002.AC5,,,,,,,
-S-09,S-09 Content check,"Traces to: CAP-001.FR3@APP-heron (share, content rules); EPC-003.AC5; EPC-003.AC2 (no open point of its own). Components: ContentCheck, NoteWindow, NoteStore. Rests on the design sections Names in extracted text and Note building, and ADR-0001.
-Acceptance criteria:
+Story: Only this client's files are used (S-08)",Task,S-08,2,CAP-001.FR4,CAP-001.FR3,EPC-002,,,,
+S-09,Content check,"Acceptance criteria:
 - The note carries no remark about anyone's mood, tone or performance, whatever the records contain (EPC-003.AC5).
 - An open point appears only when a record or a folder file states it as open and the note adds no open point of its own, so a sentence that maps to no source span is dropped (EPC-003.AC2).
 - Design behavior, not an epic criterion: a sentence naming a person off the call's attendee list is dropped; the withheld count is shown by reason; settings can add terms but never remove the base list; the list version and the name-filter level are recorded on each stored note.
-Blocked by: S-03; G-006 (OQ-006, no owner for the term list and no DPO acceptance of a word list); G-007 (OQ-007, name filter not accepted against the DPO's rule); UNK-023 and UNK-024; UNK-025 for any test on real records (synthetic records do not wait on it). The language the name filter must handle is not recorded; the plan assumes English for the London pilot.
+
+What this story relies on:
+Written without the team's records, so what this story relies on is named by ID only: CAP-001.FR3.
+
+Size: L+M+M+M+S+S+S
+Blocked by: A note on screen ten minutes before a client call (walking skeleton, fake calendar) (S-03)
+Also waits on: S-03; G-006 (OQ-006, no owner for the term list and no DPO acceptance of a word list); G-007 (OQ-007, name filter not accepted against the DPO's rule); UNK-023 and UNK-024; UNK-025 for any test on real records (synthetic records do not wait on it). The language the name filter must handle is not recorded; the plan assumes English for the London pilot.
 Open for the design:
-- Open for `tech-design-grill`: the design says ""a change to how names are detected is a rebuild"". It does not say whether that means a new app build through IT's slot or a rebuild of unshown notes. This plan reads it as a new build, with unshown notes rebuilt after it. If the DPO's rule needs different detection and not just a different `strict` or `off` level, it is rework of the name-filter task and waits for a slot (see Not planned).",Story,,,CAP-001.FR3@APP-heron,EPC-003.AC5,EPC-003.AC2,needs-design,,,,,,S-03
+- Open for `tech-design-grill`: the design says ""a change to how names are detected is a rebuild"". It does not say whether that means a new app build through IT's slot or a rebuild of unshown notes. This plan reads it as a new build, with unshown notes rebuilt after it. If the DPO's rule needs different detection and not just a different `strict` or `off` level, it is rework of the name-filter task and waits for a slot (see Not planned).",Story,,,CAP-001.FR3,EPC-003,needs-design,,,,S-03
 S-09-T1,`check()`: span mapping and dropping sentences with no source,"Component: ContentCheck
 Size: M
-Story S-09 Content check
-Traces to: CAP-001.FR3@APP-heron (share, content rules); EPC-003.AC5; EPC-003.AC2 (no open point of its own). Components: ContentCheck, NoteWindow, NoteStore. Rests on the design sections Names in extracted text and Note building, and ADR-0001.",Task,S-09,5,CAP-001.FR3@APP-heron,EPC-003.AC5,EPC-003.AC2,,,,,,,
+Story: Content check (S-09)",Task,S-09,5,CAP-001.FR3,EPC-003,,,,,
 S-09-T2,"Term list: base list in the build, add-only additions from managed settings","Component: ContentCheck
 Size: M
-Story S-09 Content check
-Traces to: CAP-001.FR3@APP-heron (share, content rules); EPC-003.AC5; EPC-003.AC2 (no open point of its own). Components: ContentCheck, NoteWindow, NoteStore. Rests on the design sections Names in extracted text and Note building, and ADR-0001.",Task,S-09,5,CAP-001.FR3@APP-heron,EPC-003.AC5,EPC-003.AC2,,,,,,,
+Story: Content check (S-09)",Task,S-09,5,CAP-001.FR3,EPC-003,,,,,
 S-09-T3,"Name filter: sentences naming a person off the attendee list, `strict` by default, `off` with an allow-list","Component: ContentCheck
 Size: L
-Story S-09 Content check
-Traces to: CAP-001.FR3@APP-heron (share, content rules); EPC-003.AC5; EPC-003.AC2 (no open point of its own). Components: ContentCheck, NoteWindow, NoteStore. Rests on the design sections Names in extracted text and Note building, and ADR-0001.",Task,S-09,8,CAP-001.FR3@APP-heron,EPC-003.AC5,EPC-003.AC2,,,,,,,
+Story: Content check (S-09)",Task,S-09,8,CAP-001.FR3,EPC-003,,,,,
 S-09-T4,"Withheld count by reason (name, mood or tone, no source) to the Note view and Diagnostics","Component: ContentCheck, NoteWindow
 Size: S
-Story S-09 Content check
-Traces to: CAP-001.FR3@APP-heron (share, content rules); EPC-003.AC5; EPC-003.AC2 (no open point of its own). Components: ContentCheck, NoteWindow, NoteStore. Rests on the design sections Names in extracted text and Note building, and ADR-0001.",Task,S-09,2,CAP-001.FR3@APP-heron,EPC-003.AC5,EPC-003.AC2,,,,,,,
+Story: Content check (S-09)",Task,S-09,2,CAP-001.FR3,EPC-003,,,,,
 S-09-T5,Record the list version and filter level on each stored note,"Component: ContentCheck, NoteStore
 Size: S
-Story S-09 Content check
-Traces to: CAP-001.FR3@APP-heron (share, content rules); EPC-003.AC5; EPC-003.AC2 (no open point of its own). Components: ContentCheck, NoteWindow, NoteStore. Rests on the design sections Names in extracted text and Note building, and ADR-0001.",Task,S-09,2,CAP-001.FR3@APP-heron,EPC-003.AC5,EPC-003.AC2,,,,,,,
+Story: Content check (S-09)",Task,S-09,2,CAP-001.FR3,EPC-003,,,,,
 S-09-T6,Plumbing for `excluded_names` in `check()`; the policy is S-11,"Component: ContentCheck
 Size: S
-Story S-09 Content check
-Traces to: CAP-001.FR3@APP-heron (share, content rules); EPC-003.AC5; EPC-003.AC2 (no open point of its own). Components: ContentCheck, NoteWindow, NoteStore. Rests on the design sections Names in extracted text and Note building, and ADR-0001.",Task,S-09,2,CAP-001.FR3@APP-heron,EPC-003.AC5,EPC-003.AC2,,,,,,,
+Story: Content check (S-09)",Task,S-09,2,CAP-001.FR3,EPC-003,,,,,
 S-09-T7,"Labeled test set from synthetic or consenting records, scoring misses and false alarms","Component: ContentCheck
 Size: M
-Story S-09 Content check
-Traces to: CAP-001.FR3@APP-heron (share, content rules); EPC-003.AC5; EPC-003.AC2 (no open point of its own). Components: ContentCheck, NoteWindow, NoteStore. Rests on the design sections Names in extracted text and Note building, and ADR-0001.",Task,S-09,5,CAP-001.FR3@APP-heron,EPC-003.AC5,EPC-003.AC2,,,,,,,
-S-10,S-10 Last time and what's open (floor),"Traces to: CON-003; CAP-001.FR3@APP-heron (share), CAP-001.FR3@APP-heron (obligation of CON-003); EPC-003.AC1 (as excerpts; the short account is S-12), EPC-003.AC2, EPC-003.AC3, EPC-003.AC4, EPC-004.AC3. Components: NoteAssembler, RecordSource, NoteWindow. Rests on the design sections Call tool records and Note building, and ADR-0001.
-Acceptance criteria:
+Story: Content check (S-09)",Task,S-09,5,CAP-001.FR3,EPC-003,,,,,
+S-10,Last time and what's open (floor),"Acceptance criteria:
 - For a client call with an earlier call with the same client, the note gives an account of the most recent earlier call, drawn only from what the call tool left behind about it and from files in the chosen folder (EPC-003.AC1). The floor gives excerpts; whether excerpts meet ""short account"" is for the product owner (G-003). The model summary is S-12.
 - An open point appears only when a record or a folder file states it as open, and the note says which; the note adds no open point of its own (EPC-003.AC2).
 - When the most recent earlier call left nothing readable, the note says so and does not reach back to an older call (EPC-003.AC3).
 - Where a call tool leaves no readable record, Heron says so (EPC-003.AC4).
 - When what the call tool left behind cannot be read, the message says so (EPC-004.AC3).
-Blocked by: S-03, S-06, S-07, S-08, S-09; UNK-025 (Legal on reusing call records and naming client attendees; gates EPC-003); G-003 (OQ-003, product owner on excerpts as the ""short account""). With no adapter, the demo is the floor on folder files alone (R-1). Call tool adapters are not planned until UNK-008 and UNK-017 name the tools (see Not planned).",Story,,,CON-003,CAP-001.FR3@APP-heron,EPC-003.AC1,EPC-003.AC2,EPC-003.AC3,EPC-003.AC4,EPC-004.AC3,,,"S-03, S-06, S-07, S-08, S-09"
+
+What this story relies on:
+Written without the team's records, so what this story relies on is named by ID only: CON-003, CAP-001.FR3.
+
+Size: L+M+M+S+S+S
+Blocked by: A note on screen ten minutes before a client call (walking skeleton, fake calendar) (S-03), Earlier calls from the past calendar (S-06), Choose a folder (S-07), Only this client's files are used (S-08), Content check (S-09)
+Also waits on: S-03, S-06, S-07, S-08, S-09; UNK-025 (Legal on reusing call records and naming client attendees; gates EPC-003); G-003 (OQ-003, product owner on excerpts as the ""short account""). With no adapter, the demo is the floor on folder files alone (R-1). Call tool adapters are not planned until UNK-008 and UNK-017 name the tools (see Not planned).",Story,,,CON-003,CAP-001.FR3,EPC-003,EPC-004,,,"S-03, S-06, S-07, S-08, S-09"
 S-10-T1,"`RecordSource` port; every call resolves to ""none readable"" until an adapter exists","Component: RecordSource
 Size: S
-Story S-10 Last time and what's open (floor)
-Traces to: CON-003; CAP-001.FR3@APP-heron (share), CAP-001.FR3@APP-heron (obligation of CON-003); EPC-003.AC1 (as excerpts; the short account is S-12), EPC-003.AC2, EPC-003.AC3, EPC-003.AC4, EPC-004.AC3. Components: NoteAssembler, RecordSource, NoteWindow. Rests on the design sections Call tool records and Note building, and ADR-0001.",Task,S-10,2,CON-003,CAP-001.FR3@APP-heron,EPC-003.AC1,EPC-003.AC2,EPC-003.AC3,EPC-003.AC4,EPC-004.AC3,,,
+Story: Last time and what's open (floor) (S-10)",Task,S-10,2,CON-003,CAP-001.FR3,EPC-003,EPC-004,,,
 S-10-T2,"Pick the most recent earlier call from `earlier_calls` and `same_client`; the first-call case; a stub ""lookup incomplete"" outcome (see S-06)","Component: NoteAssembler
 Size: M
-Story S-10 Last time and what's open (floor)
-Traces to: CON-003; CAP-001.FR3@APP-heron (share), CAP-001.FR3@APP-heron (obligation of CON-003); EPC-003.AC1 (as excerpts; the short account is S-12), EPC-003.AC2, EPC-003.AC3, EPC-003.AC4, EPC-004.AC3. Components: NoteAssembler, RecordSource, NoteWindow. Rests on the design sections Call tool records and Note building, and ADR-0001.",Task,S-10,5,CON-003,CAP-001.FR3@APP-heron,EPC-003.AC1,EPC-003.AC2,EPC-003.AC3,EPC-003.AC4,EPC-004.AC3,,,
+Story: Last time and what's open (floor) (S-10)",Task,S-10,5,CON-003,CAP-001.FR3,EPC-003,EPC-004,,,
 S-10-T3,"Floor extraction of open points, only where a record or file states them as open, each labeled with its source","Component: NoteAssembler
 Size: L
-Story S-10 Last time and what's open (floor)
-Traces to: CON-003; CAP-001.FR3@APP-heron (share), CAP-001.FR3@APP-heron (obligation of CON-003); EPC-003.AC1 (as excerpts; the short account is S-12), EPC-003.AC2, EPC-003.AC3, EPC-003.AC4, EPC-004.AC3. Components: NoteAssembler, RecordSource, NoteWindow. Rests on the design sections Call tool records and Note building, and ADR-0001.",Task,S-10,8,CON-003,CAP-001.FR3@APP-heron,EPC-003.AC1,EPC-003.AC2,EPC-003.AC3,EPC-003.AC4,EPC-004.AC3,,,
+Story: Last time and what's open (floor) (S-10)",Task,S-10,8,CON-003,CAP-001.FR3,EPC-003,EPC-004,,,
 S-10-T4,"Floor account as excerpts, every sentence through `ContentCheck`","Component: NoteAssembler
 Size: M
-Story S-10 Last time and what's open (floor)
-Traces to: CON-003; CAP-001.FR3@APP-heron (share), CAP-001.FR3@APP-heron (obligation of CON-003); EPC-003.AC1 (as excerpts; the short account is S-12), EPC-003.AC2, EPC-003.AC3, EPC-003.AC4, EPC-004.AC3. Components: NoteAssembler, RecordSource, NoteWindow. Rests on the design sections Call tool records and Note building, and ADR-0001.",Task,S-10,5,CON-003,CAP-001.FR3@APP-heron,EPC-003.AC1,EPC-003.AC2,EPC-003.AC3,EPC-003.AC4,EPC-004.AC3,,,
+Story: Last time and what's open (floor) (S-10)",Task,S-10,5,CON-003,CAP-001.FR3,EPC-003,EPC-004,,,
 S-10-T5,"""Nothing readable"" and ""no record"" messages, with no reach back to an older call","Component: NoteAssembler
 Size: S
-Story S-10 Last time and what's open (floor)
-Traces to: CON-003; CAP-001.FR3@APP-heron (share), CAP-001.FR3@APP-heron (obligation of CON-003); EPC-003.AC1 (as excerpts; the short account is S-12), EPC-003.AC2, EPC-003.AC3, EPC-003.AC4, EPC-004.AC3. Components: NoteAssembler, RecordSource, NoteWindow. Rests on the design sections Call tool records and Note building, and ADR-0001.",Task,S-10,2,CON-003,CAP-001.FR3@APP-heron,EPC-003.AC1,EPC-003.AC2,EPC-003.AC3,EPC-003.AC4,EPC-004.AC3,,,
+Story: Last time and what's open (floor) (S-10)",Task,S-10,2,CON-003,CAP-001.FR3,EPC-003,EPC-004,,,
 S-10-T6,"Source labels in the note: a call record, or a file in the chosen folder","Component: NoteAssembler, NoteWindow
 Size: S
-Story S-10 Last time and what's open (floor)
-Traces to: CON-003; CAP-001.FR3@APP-heron (share), CAP-001.FR3@APP-heron (obligation of CON-003); EPC-003.AC1 (as excerpts; the short account is S-12), EPC-003.AC2, EPC-003.AC3, EPC-003.AC4, EPC-004.AC3. Components: NoteAssembler, RecordSource, NoteWindow. Rests on the design sections Call tool records and Note building, and ADR-0001.",Task,S-10,2,CON-003,CAP-001.FR3@APP-heron,EPC-003.AC1,EPC-003.AC2,EPC-003.AC3,EPC-003.AC4,EPC-004.AC3,,,
-S-11,S-11 Excluded people,"Traces to: CAP-001.FR2@APP-heron (share), CAP-001.FR3@APP-heron (share); EPC-001.AC5 and EPC-001.AC7 (in conflict with this story, see below); constraint CST-8. Components: PopulationFilter, ContentCheck, NoteStore, Diagnostics. Rests on the design section Excluded population.
-Acceptance criteria. No epic criterion covers this story, so these are the design's behavior:
+Story: Last time and what's open (floor) (S-10)",Task,S-10,2,CON-003,CAP-001.FR3,EPC-003,EPC-004,,,
+S-11,Excluded people,"Acceptance criteria. No epic criterion covers this story, so these are the design's behavior:
 - Excluded attendees are dropped from the people list, from past-entry matching and from the stored note.
 - A call whose only external attendees are excluded gets no note and the reason ""excluded attendee"".
 - An explicitly empty exclusion list means nobody is excluded; an absent list means it has not arrived and Heron fails closed.
 - The list matches on the primary address, all known aliases and the directory object ID.
 - A distribution list that cannot be expanded makes that call fail closed, with the reason ""list not expandable"".
 - Interim: a folder file or call record that names an excluded person is skipped and counted as withheld, with the reason ""names an excluded person"".
-Blocked by: S-02 (the list arrives in the same payload as the firm's domains); S-03 (the port and fixtures it builds against). It does not need S-05 to be built; checks of aliases, object IDs and list expansion against real Graph entries wait for S-05. G-008 (OQ-008, CISO and DPO, UNK-018 asked by 2026-11-01); G-005 for the payload. Rollout blocker: S-06, and the folder and record paths of S-07, S-08 and S-10, must not be enabled for real users before this story lands.
+
+What this story relies on:
+Written without the team's records, so what this story relies on is named by ID only: CAP-001.FR2, CAP-001.FR3.
+
+Size: M+M+S+S+S+S
+Blocked by: IT's settings decide which calls get a note (S-02), A note on screen ten minutes before a client call (walking skeleton, fake calendar) (S-03), Real calendar: sign in and poll (S-05), Earlier calls from the past calendar (S-06), Choose a folder (S-07), Only this client's files are used (S-08), Last time and what's open (floor) (S-10)
+Also waits on: It does not need S-05 to be built; checks of aliases, object IDs and list expansion against real Graph entries wait for S-05. G-008 (OQ-008, CISO and DPO, UNK-018 asked by 2026-11-01); G-005 for the payload. Rollout blocker: S-06, and the folder and record paths of S-07, S-08 and S-10, must not be enabled for real users before this story lands.
 Conflicts:
-- Conflict with an epic criterion: EPC-001.AC5 says everyone invited appears except those who declined. Dropping an excluded invitee from the list contradicts that as written. The policy is open as OQ-008 under UNK-018, so this story follows the design and the conflict goes upstream (see Not planned).",Story,,,CAP-001.FR2@APP-heron,CAP-001.FR3@APP-heron,EPC-001.AC5,EPC-001.AC7,conflict,,,,,"S-02, S-03, S-05, S-06, S-07, S-08, S-10"
+- Conflict with an epic criterion: EPC-001.AC5 says everyone invited appears except those who declined. Dropping an excluded invitee from the list contradicts that as written. The policy is open as OQ-008 under UNK-018, so this story follows the design and the conflict goes upstream (see Not planned).",Story,,,CAP-001.FR2,CAP-001.FR3,EPC-001,conflict,,,"S-02, S-03, S-05, S-06, S-07, S-08, S-10"
 S-11-T1,"`PopulationFilter.filter(entries)`: declared or absent list, fail closed","Component: PopulationFilter
 Size: M
-Story S-11 Excluded people
-Traces to: CAP-001.FR2@APP-heron (share), CAP-001.FR3@APP-heron (share); EPC-001.AC5 and EPC-001.AC7 (in conflict with this story, see below); constraint CST-8. Components: PopulationFilter, ContentCheck, NoteStore, Diagnostics. Rests on the design section Excluded population.",Task,S-11,5,CAP-001.FR2@APP-heron,CAP-001.FR3@APP-heron,EPC-001.AC5,EPC-001.AC7,,,,,,
+Story: Excluded people (S-11)",Task,S-11,5,CAP-001.FR2,CAP-001.FR3,EPC-001,,,,
 S-11-T2,"Match on primary address, aliases and directory object ID","Component: PopulationFilter
 Size: S
-Story S-11 Excluded people
-Traces to: CAP-001.FR2@APP-heron (share), CAP-001.FR3@APP-heron (share); EPC-001.AC5 and EPC-001.AC7 (in conflict with this story, see below); constraint CST-8. Components: PopulationFilter, ContentCheck, NoteStore, Diagnostics. Rests on the design section Excluded population.",Task,S-11,2,CAP-001.FR2@APP-heron,CAP-001.FR3@APP-heron,EPC-001.AC5,EPC-001.AC7,,,,,,
+Story: Excluded people (S-11)",Task,S-11,2,CAP-001.FR2,CAP-001.FR3,EPC-001,,,,
 S-11-T3,"Drop from the people list, past-entry matching and the stored note","Component: PopulationFilter, NoteStore
 Size: M
-Story S-11 Excluded people
-Traces to: CAP-001.FR2@APP-heron (share), CAP-001.FR3@APP-heron (share); EPC-001.AC5 and EPC-001.AC7 (in conflict with this story, see below); constraint CST-8. Components: PopulationFilter, ContentCheck, NoteStore, Diagnostics. Rests on the design section Excluded population.",Task,S-11,5,CAP-001.FR2@APP-heron,CAP-001.FR3@APP-heron,EPC-001.AC5,EPC-001.AC7,,,,,,
+Story: Excluded people (S-11)",Task,S-11,5,CAP-001.FR2,CAP-001.FR3,EPC-001,,,,
 S-11-T4,"Reasons ""excluded attendee"" and ""list not expandable""","Component: PopulationFilter
 Size: S
-Story S-11 Excluded people
-Traces to: CAP-001.FR2@APP-heron (share), CAP-001.FR3@APP-heron (share); EPC-001.AC5 and EPC-001.AC7 (in conflict with this story, see below); constraint CST-8. Components: PopulationFilter, ContentCheck, NoteStore, Diagnostics. Rests on the design section Excluded population.",Task,S-11,2,CAP-001.FR2@APP-heron,CAP-001.FR3@APP-heron,EPC-001.AC5,EPC-001.AC7,,,,,,
+Story: Excluded people (S-11)",Task,S-11,2,CAP-001.FR2,CAP-001.FR3,EPC-001,,,,
 S-11-T5,Interim skip of files and records naming an excluded person,"Component: ContentCheck
 Size: S
-Story S-11 Excluded people
-Traces to: CAP-001.FR2@APP-heron (share), CAP-001.FR3@APP-heron (share); EPC-001.AC5 and EPC-001.AC7 (in conflict with this story, see below); constraint CST-8. Components: PopulationFilter, ContentCheck, NoteStore, Diagnostics. Rests on the design section Excluded population.",Task,S-11,2,CAP-001.FR2@APP-heron,CAP-001.FR3@APP-heron,EPC-001.AC5,EPC-001.AC7,,,,,,
+Story: Excluded people (S-11)",Task,S-11,2,CAP-001.FR2,CAP-001.FR3,EPC-001,,,,
 S-11-T6,"Diagnostics counts for withheld, mixed and unexpandable calls","Component: Diagnostics
 Size: S
-Story S-11 Excluded people
-Traces to: CAP-001.FR2@APP-heron (share), CAP-001.FR3@APP-heron (share); EPC-001.AC5 and EPC-001.AC7 (in conflict with this story, see below); constraint CST-8. Components: PopulationFilter, ContentCheck, NoteStore, Diagnostics. Rests on the design section Excluded population.",Task,S-11,2,CAP-001.FR2@APP-heron,CAP-001.FR3@APP-heron,EPC-001.AC5,EPC-001.AC7,,,,,,
-S-12,S-12 Short account from the on-device model (behind a switch),"Traces to: CAP-001.FR3@APP-heron (share); EPC-003.AC1 (as written: a short account; the floor's excerpts are S-10); EPC-004.AC4 (the model never makes a note late). Components: Rewriter, NoteScheduler, ContentCheck. Rests on the design sections Note building, Keeping it running, and Rollback, kill switch and signing, and on ADR-0001. This story is independent of the others: the floor note stands without it.
-Acceptance criteria:
+Story: Excluded people (S-11)",Task,S-11,2,CAP-001.FR2,CAP-001.FR3,EPC-001,,,,
+S-12,Short account from the on-device model (behind a switch),"Acceptance criteria:
 - The note gives a short account of the most recent earlier call, drawn only from what the call tool left behind about it and from files in the chosen folder (EPC-003.AC1).
 - A note not ready by ten minutes before the call is shown as soon as it is ready, clearly marked as late, and not dropped (EPC-004.AC4).
 - Design behavior, not an epic criterion: the rewrite runs only if it can finish before T-10 and a shown note is never swapped in place; its output passes `ContentCheck` again; if the model is absent, too slow or fails the check, the floor text stands; `enabled=false` dominates and `model=false` means floor only; the weights are a separate hashed resource and a mismatch means floor only; memory stays within 500 MB with the model (C-1).
-Blocked by: S-09 and S-10; G-015 (OQ-015, no model, runtime or license chosen or checked; the license check is Legal's and is not a task here, see Not planned); G-003 (OQ-003, memory and build-time measurements); UNK-027 (pilot laptops); G-010 (the owner who runs the license check).",Story,,,CAP-001.FR3@APP-heron,EPC-003.AC1,EPC-004.AC4,,,,,,,"S-09, S-10"
+
+What this story relies on:
+Written without the team's records, so what this story relies on is named by ID only: CAP-001.FR3.
+
+Size: L+M+M+M+S+S+S+S+S
+Blocked by: Content check (S-09), Last time and what's open (floor) (S-10)
+Also waits on: S-09 and S-10; G-015 (OQ-015, no model, runtime or license chosen or checked; the license check is Legal's and is not a task here, see Not planned); G-003 (OQ-003, memory and build-time measurements); UNK-027 (pilot laptops); G-010 (the owner who runs the license check).",Story,,,CAP-001.FR3,EPC-003,EPC-004,,,,"S-09, S-10"
 S-12-T1,"Measure memory and build time on a pilot-class laptop and decide go or no-go; first task, a gate for the rest","Component: Rewriter
 Size: M
-Story S-12 Short account from the on-device model (behind a switch)
-Traces to: CAP-001.FR3@APP-heron (share); EPC-003.AC1 (as written: a short account; the floor's excerpts are S-10); EPC-004.AC4 (the model never makes a note late). Components: Rewriter, NoteScheduler, ContentCheck. Rests on the design sections Note building, Keeping it running, and Rollback, kill switch and signing, and on ADR-0001. This story is independent of the others: the floor note stands without it.",Task,S-12,5,CAP-001.FR3@APP-heron,EPC-003.AC1,EPC-004.AC4,,,,,,,
+Story: Short account from the on-device model (behind a switch) (S-12)",Task,S-12,5,CAP-001.FR3,EPC-003,EPC-004,,,,
 S-12-T2,"Smoke test: run the chosen runtime under the S-07 sandbox harness on Mac and on Windows, before the child process is built","Component: Rewriter
 Size: S
-Story S-12 Short account from the on-device model (behind a switch)
-Traces to: CAP-001.FR3@APP-heron (share); EPC-003.AC1 (as written: a short account; the floor's excerpts are S-10); EPC-004.AC4 (the model never makes a note late). Components: Rewriter, NoteScheduler, ContentCheck. Rests on the design sections Note building, Keeping it running, and Rollback, kill switch and signing, and on ADR-0001. This story is independent of the others: the floor note stands without it.",Task,S-12,2,CAP-001.FR3@APP-heron,EPC-003.AC1,EPC-004.AC4,,,,,,,
+Story: Short account from the on-device model (behind a switch) (S-12)",Task,S-12,2,CAP-001.FR3,EPC-003,EPC-004,,,,
 S-12-T3,`Rewriter` port and the declined path that falls back to the floor,"Component: Rewriter
 Size: S
-Story S-12 Short account from the on-device model (behind a switch)
-Traces to: CAP-001.FR3@APP-heron (share); EPC-003.AC1 (as written: a short account; the floor's excerpts are S-10); EPC-004.AC4 (the model never makes a note late). Components: Rewriter, NoteScheduler, ContentCheck. Rests on the design sections Note building, Keeping it running, and Rollback, kill switch and signing, and on ADR-0001. This story is independent of the others: the floor note stands without it.",Task,S-12,2,CAP-001.FR3@APP-heron,EPC-003.AC1,EPC-004.AC4,,,,,,,
+Story: Short account from the on-device model (behind a switch) (S-12)",Task,S-12,2,CAP-001.FR3,EPC-003,EPC-004,,,,
 S-12-T4,"Model child process: on demand, hard time limit, memory cap, input over a pipe, idle unload","Component: Rewriter
 Size: L
-Story S-12 Short account from the on-device model (behind a switch)
-Traces to: CAP-001.FR3@APP-heron (share); EPC-003.AC1 (as written: a short account; the floor's excerpts are S-10); EPC-004.AC4 (the model never makes a note late). Components: Rewriter, NoteScheduler, ContentCheck. Rests on the design sections Note building, Keeping it running, and Rollback, kill switch and signing, and on ADR-0001. This story is independent of the others: the floor note stands without it.",Task,S-12,8,CAP-001.FR3@APP-heron,EPC-003.AC1,EPC-004.AC4,,,,,,,
+Story: Short account from the on-device model (behind a switch) (S-12)",Task,S-12,8,CAP-001.FR3,EPC-003,EPC-004,,,,
 S-12-T5,"Child sandbox on Mac: no network, no keychain, no inherited handles (S if the S-07 harness generalizes, otherwise M)","Component: Rewriter
 Size: S
-Story S-12 Short account from the on-device model (behind a switch)
-Traces to: CAP-001.FR3@APP-heron (share); EPC-003.AC1 (as written: a short account; the floor's excerpts are S-10); EPC-004.AC4 (the model never makes a note late). Components: Rewriter, NoteScheduler, ContentCheck. Rests on the design sections Note building, Keeping it running, and Rollback, kill switch and signing, and on ADR-0001. This story is independent of the others: the floor note stands without it.",Task,S-12,2,CAP-001.FR3@APP-heron,EPC-003.AC1,EPC-004.AC4,,,,,,,
+Story: Short account from the on-device model (behind a switch) (S-12)",Task,S-12,2,CAP-001.FR3,EPC-003,EPC-004,,,,
 S-12-T6,"Child sandbox on Windows: same (S if the S-07 harness generalizes, otherwise M)","Component: Rewriter
 Size: S
-Story S-12 Short account from the on-device model (behind a switch)
-Traces to: CAP-001.FR3@APP-heron (share); EPC-003.AC1 (as written: a short account; the floor's excerpts are S-10); EPC-004.AC4 (the model never makes a note late). Components: Rewriter, NoteScheduler, ContentCheck. Rests on the design sections Note building, Keeping it running, and Rollback, kill switch and signing, and on ADR-0001. This story is independent of the others: the floor note stands without it.",Task,S-12,2,CAP-001.FR3@APP-heron,EPC-003.AC1,EPC-004.AC4,,,,,,,
+Story: Short account from the on-device model (behind a switch) (S-12)",Task,S-12,2,CAP-001.FR3,EPC-003,EPC-004,,,,
 S-12-T7,"Weights as a hashed resource: hash fixed in the signed build, checked before each start","Component: Rewriter
 Size: M
-Story S-12 Short account from the on-device model (behind a switch)
-Traces to: CAP-001.FR3@APP-heron (share); EPC-003.AC1 (as written: a short account; the floor's excerpts are S-10); EPC-004.AC4 (the model never makes a note late). Components: Rewriter, NoteScheduler, ContentCheck. Rests on the design sections Note building, Keeping it running, and Rollback, kill switch and signing, and on ADR-0001. This story is independent of the others: the floor note stands without it.",Task,S-12,5,CAP-001.FR3@APP-heron,EPC-003.AC1,EPC-004.AC4,,,,,,,
+Story: Short account from the on-device model (behind a switch) (S-12)",Task,S-12,5,CAP-001.FR3,EPC-003,EPC-004,,,,
 S-12-T8,Deadline-aware rewrite: only if it can finish before T-10,"Component: Rewriter, NoteScheduler
 Size: M
-Story S-12 Short account from the on-device model (behind a switch)
-Traces to: CAP-001.FR3@APP-heron (share); EPC-003.AC1 (as written: a short account; the floor's excerpts are S-10); EPC-004.AC4 (the model never makes a note late). Components: Rewriter, NoteScheduler, ContentCheck. Rests on the design sections Note building, Keeping it running, and Rollback, kill switch and signing, and on ADR-0001. This story is independent of the others: the floor note stands without it.",Task,S-12,5,CAP-001.FR3@APP-heron,EPC-003.AC1,EPC-004.AC4,,,,,,,
+Story: Short account from the on-device model (behind a switch) (S-12)",Task,S-12,5,CAP-001.FR3,EPC-003,EPC-004,,,,
 S-12-T9,Rewrite output through `ContentCheck` again,"Component: Rewriter, ContentCheck
 Size: S
-Story S-12 Short account from the on-device model (behind a switch)
-Traces to: CAP-001.FR3@APP-heron (share); EPC-003.AC1 (as written: a short account; the floor's excerpts are S-10); EPC-004.AC4 (the model never makes a note late). Components: Rewriter, NoteScheduler, ContentCheck. Rests on the design sections Note building, Keeping it running, and Rollback, kill switch and signing, and on ADR-0001. This story is independent of the others: the floor note stands without it.",Task,S-12,2,CAP-001.FR3@APP-heron,EPC-003.AC1,EPC-004.AC4,,,,,,,
-S-13,S-13 Keep it running and wind it down (shared),"Traces to: EPC-004.AC1 and CAP-001.FR5@APP-heron (share), through ""not saved"" and ""build failed""; otherwise the design's NFRs (retention, C-3) and its Rollback, kill switch and signing, Copies of note text and wind-down, Keeping it running, and Operations sections. No requirement row or epic criterion covers most of this story. Components: NoteStore, NoteScheduler, ManagedSettings, Diagnostics. The OS mechanisms (login item, scheduled task, uninstaller, key survival) are S-14 and S-15.
-Acceptance criteria. Design behavior, except where marked:
+Story: Short account from the on-device model (behind a switch) (S-12)",Task,S-12,2,CAP-001.FR3,EPC-003,EPC-004,,,,
+S-13,Keep it running and wind it down (shared),"Acceptance criteria. Design behavior, except where marked:
 - Every client call gets a note or a short message saying why there is none (EPC-004.AC1): a note that cannot be saved is still shown from memory, marked ""not saved"", and the write is retried with backoff; a call whose build fails twice is marked ""build failed"" with a reason code and skipped.
 - If the store will not open, Heron deletes and recreates it and resyncs; the tray says ""Heron reset its local data"" and the log counts resets.
 - A backup is taken before a migration, expires with the notes it holds, and a store found still marked ""migrating"" is restored from it.
@@ -441,128 +415,111 @@ Acceptance criteria. Design behavior, except where marked:
 - `enabled=false` stops display and polling and shows ""paused by IT""; `model=false` means floor only.
 - Restarts after a crash back off and stop after a limit; ""pause until tomorrow"" stops polling and both children.
 - The diagnostics export carries no call IDs, only each note's reference.
-Blocked by: S-02, S-03, S-04; G-004 (OQ-004, the DPO, Legal and the works council have not accepted the 30-day store, backup, logs and the erasure route; this can change retention values, not the build); G-010 (OQ-010, nobody owns the kill switch or pilot support). D-001 and D-002 stay under Not planned.",Story,,,EPC-004.AC1,CAP-001.FR5@APP-heron,,,,,,,,"S-02, S-03, S-04"
+
+What this story relies on:
+Written without the team's records, so what this story relies on is named by ID only: CAP-001.FR5.
+
+Size: L+M+M+M+M+M+M+S+S
+Blocked by: IT's settings decide which calls get a note (S-02), A note on screen ten minutes before a client call (walking skeleton, fake calendar) (S-03), Moves, cancels and late notes (S-04)
+Also waits on: S-02, S-03, S-04; G-004 (OQ-004, the DPO, Legal and the works council have not accepted the 30-day store, backup, logs and the erasure route; this can change retention values, not the build); G-010 (OQ-010, nobody owns the kill switch or pilot support). D-001 and D-002 stay under Not planned.",Story,,,EPC-004,CAP-001.FR5,,,,,"S-02, S-03, S-04"
 S-13-T1,"Open-failure reset path: delete, recreate, resync, tray message, reset count","Component: NoteStore
 Size: M
-Story S-13 Keep it running and wind it down (shared)
-Traces to: EPC-004.AC1 and CAP-001.FR5@APP-heron (share), through ""not saved"" and ""build failed""; otherwise the design's NFRs (retention, C-3) and its Rollback, kill switch and signing, Copies of note text and wind-down, Keeping it running, and Operations sections. No requirement row or epic criterion covers most of this story. Components: NoteStore, NoteScheduler, ManagedSettings, Diagnostics. The OS mechanisms (login item, scheduled task, uninstaller, key survival) are S-14 and S-15.",Task,S-13,5,EPC-004.AC1,CAP-001.FR5@APP-heron,,,,,,,,
+Story: Keep it running and wind it down (shared) (S-13)",Task,S-13,5,EPC-004,CAP-001.FR5,,,,,
 S-13-T2,"Version table, forward-only migrations, backup before migrating, restore from ""migrating""","Component: NoteStore
 Size: L
-Story S-13 Keep it running and wind it down (shared)
-Traces to: EPC-004.AC1 and CAP-001.FR5@APP-heron (share), through ""not saved"" and ""build failed""; otherwise the design's NFRs (retention, C-3) and its Rollback, kill switch and signing, Copies of note text and wind-down, Keeping it running, and Operations sections. No requirement row or epic criterion covers most of this story. Components: NoteStore, NoteScheduler, ManagedSettings, Diagnostics. The OS mechanisms (login item, scheduled task, uninstaller, key survival) are S-14 and S-15.",Task,S-13,8,EPC-004.AC1,CAP-001.FR5@APP-heron,,,,,,,,
+Story: Keep it running and wind it down (shared) (S-13)",Task,S-13,8,EPC-004,CAP-001.FR5,,,,,
 S-13-T3,"Encrypted backup beside the store, expiring with its notes","Component: NoteStore
 Size: S
-Story S-13 Keep it running and wind it down (shared)
-Traces to: EPC-004.AC1 and CAP-001.FR5@APP-heron (share), through ""not saved"" and ""build failed""; otherwise the design's NFRs (retention, C-3) and its Rollback, kill switch and signing, Copies of note text and wind-down, Keeping it running, and Operations sections. No requirement row or epic criterion covers most of this story. Components: NoteStore, NoteScheduler, ManagedSettings, Diagnostics. The OS mechanisms (login item, scheduled task, uninstaller, key survival) are S-14 and S-15.",Task,S-13,2,EPC-004.AC1,CAP-001.FR5@APP-heron,,,,,,,,
+Story: Keep it running and wind it down (shared) (S-13)",Task,S-13,2,EPC-004,CAP-001.FR5,,,,,
 S-13-T4,"`put` failure: show from memory marked ""not saved"", retry with backoff, write encrypted on recovery","Component: NoteStore, NoteScheduler
 Size: M
-Story S-13 Keep it running and wind it down (shared)
-Traces to: EPC-004.AC1 and CAP-001.FR5@APP-heron (share), through ""not saved"" and ""build failed""; otherwise the design's NFRs (retention, C-3) and its Rollback, kill switch and signing, Copies of note text and wind-down, Keeping it running, and Operations sections. No requirement row or epic criterion covers most of this story. Components: NoteStore, NoteScheduler, ManagedSettings, Diagnostics. The OS mechanisms (login item, scheduled task, uninstaller, key survival) are S-14 and S-15.",Task,S-13,5,EPC-004.AC1,CAP-001.FR5@APP-heron,,,,,,,,
+Story: Keep it running and wind it down (shared) (S-13)",Task,S-13,5,EPC-004,CAP-001.FR5,,,,,
 S-13-T5,"Start-up sweep by file age, temp cleanup, counts; `wind_down` purge","Component: NoteStore
 Size: M
-Story S-13 Keep it running and wind it down (shared)
-Traces to: EPC-004.AC1 and CAP-001.FR5@APP-heron (share), through ""not saved"" and ""build failed""; otherwise the design's NFRs (retention, C-3) and its Rollback, kill switch and signing, Copies of note text and wind-down, Keeping it running, and Operations sections. No requirement row or epic criterion covers most of this story. Components: NoteStore, NoteScheduler, ManagedSettings, Diagnostics. The OS mechanisms (login item, scheduled task, uninstaller, key survival) are S-14 and S-15.",Task,S-13,5,EPC-004.AC1,CAP-001.FR5@APP-heron,,,,,,,,
+Story: Keep it running and wind it down (shared) (S-13)",Task,S-13,5,EPC-004,CAP-001.FR5,,,,,
 S-13-T6,"Kill switch and `model` switch; tray shows ""paused by IT"", build number, snapshot time and active rule","Component: ManagedSettings
 Size: M
-Story S-13 Keep it running and wind it down (shared)
-Traces to: EPC-004.AC1 and CAP-001.FR5@APP-heron (share), through ""not saved"" and ""build failed""; otherwise the design's NFRs (retention, C-3) and its Rollback, kill switch and signing, Copies of note text and wind-down, Keeping it running, and Operations sections. No requirement row or epic criterion covers most of this story. Components: NoteStore, NoteScheduler, ManagedSettings, Diagnostics. The OS mechanisms (login item, scheduled task, uninstaller, key survival) are S-14 and S-15.",Task,S-13,5,EPC-004.AC1,CAP-001.FR5@APP-heron,,,,,,,,
+Story: Keep it running and wind it down (shared) (S-13)",Task,S-13,5,EPC-004,CAP-001.FR5,,,,,
 S-13-T7,"Build-failed-twice marking, crash restart backoff and stop limit, ""pause until tomorrow""","Component: NoteScheduler
 Size: M
-Story S-13 Keep it running and wind it down (shared)
-Traces to: EPC-004.AC1 and CAP-001.FR5@APP-heron (share), through ""not saved"" and ""build failed""; otherwise the design's NFRs (retention, C-3) and its Rollback, kill switch and signing, Copies of note text and wind-down, Keeping it running, and Operations sections. No requirement row or epic criterion covers most of this story. Components: NoteStore, NoteScheduler, ManagedSettings, Diagnostics. The OS mechanisms (login item, scheduled task, uninstaller, key survival) are S-14 and S-15.",Task,S-13,5,EPC-004.AC1,CAP-001.FR5@APP-heron,,,,,,,,
+Story: Keep it running and wind it down (shared) (S-13)",Task,S-13,5,EPC-004,CAP-001.FR5,,,,,
 S-13-T8,"Diagnostics export: note reference mapping, no call IDs, in-memory ring, failed-write count","Component: Diagnostics
 Size: M
-Story S-13 Keep it running and wind it down (shared)
-Traces to: EPC-004.AC1 and CAP-001.FR5@APP-heron (share), through ""not saved"" and ""build failed""; otherwise the design's NFRs (retention, C-3) and its Rollback, kill switch and signing, Copies of note text and wind-down, Keeping it running, and Operations sections. No requirement row or epic criterion covers most of this story. Components: NoteStore, NoteScheduler, ManagedSettings, Diagnostics. The OS mechanisms (login item, scheduled task, uninstaller, key survival) are S-14 and S-15.",Task,S-13,5,EPC-004.AC1,CAP-001.FR5@APP-heron,,,,,,,,
+Story: Keep it running and wind it down (shared) (S-13)",Task,S-13,5,EPC-004,CAP-001.FR5,,,,,
 S-13-T9,"Bill of materials for the CISO pack: every third-party component with version and license, generated from the build's lockfiles; the model and runtime entries are added by S-12 when chosen (G-015)","Component: all
 Size: S
-Story S-13 Keep it running and wind it down (shared)
-Traces to: EPC-004.AC1 and CAP-001.FR5@APP-heron (share), through ""not saved"" and ""build failed""; otherwise the design's NFRs (retention, C-3) and its Rollback, kill switch and signing, Copies of note text and wind-down, Keeping it running, and Operations sections. No requirement row or epic criterion covers most of this story. Components: NoteStore, NoteScheduler, ManagedSettings, Diagnostics. The OS mechanisms (login item, scheduled task, uninstaller, key survival) are S-14 and S-15.",Task,S-13,2,EPC-004.AC1,CAP-001.FR5@APP-heron,,,,,,,,
-S-14,S-14 Windows release,"Traces to: no requirement row or epic criterion; delivers CST-2 packaging and the design's release tests, and carries the window behavior while the screen is shared that S-03 deferred (G-013). Components: all, through packaging; SignIn / TokenStore, NoteStore, NoteWindow, NoteScheduler. Rests on the design sections Architecture overview, Web view boundary, Copies of note text and wind-down, Rollback, kill switch and signing, Keeping it running, and Operations.
-Acceptance criteria. Design behavior:
+Story: Keep it running and wind it down (shared) (S-13)",Task,S-13,2,EPC-004,CAP-001.FR5,,,,,
+S-14,Windows release,"Acceptance criteria. Design behavior:
 - A signed `.msi` installs through Intune; updates come only through IT's channel, with no self-updater.
 - The installer sets Heron to start at login and restart after a crash; the uninstaller deletes the data folder and the key.
 - The signing gate signs only an artifact that passed both web-view checks, with the result recorded against its hash.
 - Release tests on Windows: the web view runtime removed; a note shown during a presentation or Do Not Disturb; the app killed mid-parse and mid-rewrite leaves no temp file; no database file after sign-out, uninstall and re-image; a known note string searched for in the data and temp folders; the disk filled, the database file locked and the credential store locked at T-10; the lid closed for 10 minutes and the app killed mid-build; a malformed PDF and a malformed Word file do not loop the app; a worker trying the network, the credential store or a symlink is refused; a calendar title and a file containing script show as literal text; N+1 then N through a real Intune push; an update from a build signed with the old certificate to one signed with the renewed certificate reads the key; the diagnostics export holds no calendar IDs, names, text or paths.
 - A network-block test allows only Microsoft sign-in and calendar reads.
-Blocked by: S-03 to S-13 (the release tests need the real behavior); G-001 (DPAPI and worker-sandbox results); G-012 (OQ-012, key survival through IT's rollback, needs a managed laptop from the endpoint lead); G-005 (OQ-005, IT's January 18 slot and no recorded emergency route); G-013 (OQ-013, sharing behavior); G-010 (OQ-010, signing certificates and their renewal); G-004 (OQ-004, uninstall); UNK-027 (minimum OS and WebView2 versions). Ships independently of S-15.",Story,,,,,,,,,,,,"S-03, S-04, S-05, S-06, S-07, S-08, S-09, S-10, S-11, S-12, S-13, S-15"
+
+Size: L+M+M+M+M+M+M+S+S
+Blocked by: A note on screen ten minutes before a client call (walking skeleton, fake calendar) (S-03), Moves, cancels and late notes (S-04), Real calendar: sign in and poll (S-05), Earlier calls from the past calendar (S-06), Choose a folder (S-07), Only this client's files are used (S-08), Content check (S-09), Last time and what's open (floor) (S-10), Excluded people (S-11), Short account from the on-device model (behind a switch) (S-12), Keep it running and wind it down (shared) (S-13), Mac release (S-15)
+Also waits on: S-03 to S-13 (the release tests need the real behavior); G-001 (DPAPI and worker-sandbox results); G-012 (OQ-012, key survival through IT's rollback, needs a managed laptop from the endpoint lead); G-005 (OQ-005, IT's January 18 slot and no recorded emergency route); G-013 (OQ-013, sharing behavior); G-010 (OQ-010, signing certificates and their renewal); G-004 (OQ-004, uninstall); UNK-027 (minimum OS and WebView2 versions). Ships independently of S-15.",Story,,,,,,,,,"S-03, S-04, S-05, S-06, S-07, S-08, S-09, S-10, S-11, S-12, S-13, S-15"
 S-14-T1,"`.msi` packaging, start at login, restart after a crash","Component: packaging
 Size: M
-Story S-14 Windows release
-Traces to: no requirement row or epic criterion; delivers CST-2 packaging and the design's release tests, and carries the window behavior while the screen is shared that S-03 deferred (G-013). Components: all, through packaging; SignIn / TokenStore, NoteStore, NoteWindow, NoteScheduler. Rests on the design sections Architecture overview, Web view boundary, Copies of note text and wind-down, Rollback, kill switch and signing, Keeping it running, and Operations.",Task,S-14,5,,,,,,,,,,
+Story: Windows release (S-14)",Task,S-14,5,,,,,,,
 S-14-T2,Uninstaller deletes the data folder and key (final behavior waits on G-004),"Component: packaging, NoteStore
 Size: S
-Story S-14 Windows release
-Traces to: no requirement row or epic criterion; delivers CST-2 packaging and the design's release tests, and carries the window behavior while the screen is shared that S-03 deferred (G-013). Components: all, through packaging; SignIn / TokenStore, NoteStore, NoteWindow, NoteScheduler. Rests on the design sections Architecture overview, Web view boundary, Copies of note text and wind-down, Rollback, kill switch and signing, Keeping it running, and Operations.",Task,S-14,2,,,,,,,,,,
+Story: Windows release (S-14)",Task,S-14,2,,,,,,,
 S-14-T3,Signing pipeline and the gate that signs only an artifact that passed both web-view checks,"Component: packaging
 Size: M
-Story S-14 Windows release
-Traces to: no requirement row or epic criterion; delivers CST-2 packaging and the design's release tests, and carries the window behavior while the screen is shared that S-03 deferred (G-013). Components: all, through packaging; SignIn / TokenStore, NoteStore, NoteWindow, NoteScheduler. Rests on the design sections Architecture overview, Web view boundary, Copies of note text and wind-down, Rollback, kill switch and signing, Keeping it running, and Operations.",Task,S-14,5,,,,,,,,,,
+Story: Windows release (S-14)",Task,S-14,5,,,,,,,
 S-14-T4,"Certificate update test: old certificate to renewed, key still readable","Component: SignIn / TokenStore
 Size: M
-Story S-14 Windows release
-Traces to: no requirement row or epic criterion; delivers CST-2 packaging and the design's release tests, and carries the window behavior while the screen is shared that S-03 deferred (G-013). Components: all, through packaging; SignIn / TokenStore, NoteStore, NoteWindow, NoteScheduler. Rests on the design sections Architecture overview, Web view boundary, Copies of note text and wind-down, Rollback, kill switch and signing, Keeping it running, and Operations.",Task,S-14,5,,,,,,,,,,
+Story: Windows release (S-14)",Task,S-14,5,,,,,,,
 S-14-T5,"Window behavior while the screen is shared, from the S-01 result and the product owner's ruling","Component: NoteWindow, NoteScheduler
 Size: M
-Story S-14 Windows release
-Traces to: no requirement row or epic criterion; delivers CST-2 packaging and the design's release tests, and carries the window behavior while the screen is shared that S-03 deferred (G-013). Components: all, through packaging; SignIn / TokenStore, NoteStore, NoteWindow, NoteScheduler. Rests on the design sections Architecture overview, Web view boundary, Copies of note text and wind-down, Rollback, kill switch and signing, Keeping it running, and Operations.",Task,S-14,5,,,,,,,,,,
+Story: Windows release (S-14)",Task,S-14,5,,,,,,,
 S-14-T6,Network-block test on Windows,"Component: packaging
 Size: M
-Story S-14 Windows release
-Traces to: no requirement row or epic criterion; delivers CST-2 packaging and the design's release tests, and carries the window behavior while the screen is shared that S-03 deferred (G-013). Components: all, through packaging; SignIn / TokenStore, NoteStore, NoteWindow, NoteScheduler. Rests on the design sections Architecture overview, Web view boundary, Copies of note text and wind-down, Rollback, kill switch and signing, Keeping it running, and Operations.",Task,S-14,5,,,,,,,,,,
+Story: Windows release (S-14)",Task,S-14,5,,,,,,,
 S-14-T7,"Windows release test pack (the list above, apart from the Intune push)","Component: all
 Size: L
-Story S-14 Windows release
-Traces to: no requirement row or epic criterion; delivers CST-2 packaging and the design's release tests, and carries the window behavior while the screen is shared that S-03 deferred (G-013). Components: all, through packaging; SignIn / TokenStore, NoteStore, NoteWindow, NoteScheduler. Rests on the design sections Architecture overview, Web view boundary, Copies of note text and wind-down, Rollback, kill switch and signing, Keeping it running, and Operations.",Task,S-14,8,,,,,,,,,,
+Story: Windows release (S-14)",Task,S-14,8,,,,,,,
 S-14-T8,"Intune push test: install N+1 then N, read the key, restore the backup","Component: NoteStore
 Size: M
-Story S-14 Windows release
-Traces to: no requirement row or epic criterion; delivers CST-2 packaging and the design's release tests, and carries the window behavior while the screen is shared that S-03 deferred (G-013). Components: all, through packaging; SignIn / TokenStore, NoteStore, NoteWindow, NoteScheduler. Rests on the design sections Architecture overview, Web view boundary, Copies of note text and wind-down, Rollback, kill switch and signing, Keeping it running, and Operations.",Task,S-14,5,,,,,,,,,,
+Story: Windows release (S-14)",Task,S-14,5,,,,,,,
 S-14-T9,"Web view runtime check at launch, wake and show; report an old version in the tray","Component: NoteWindow
 Size: S
-Story S-14 Windows release
-Traces to: no requirement row or epic criterion; delivers CST-2 packaging and the design's release tests, and carries the window behavior while the screen is shared that S-03 deferred (G-013). Components: all, through packaging; SignIn / TokenStore, NoteStore, NoteWindow, NoteScheduler. Rests on the design sections Architecture overview, Web view boundary, Copies of note text and wind-down, Rollback, kill switch and signing, Keeping it running, and Operations.",Task,S-14,2,,,,,,,,,,
-S-15,S-15 Mac release,"Traces to: no requirement row or epic criterion; delivers CST-2 packaging and the design's release tests, and carries the window behavior while the screen is shared that S-03 deferred (G-013). Components: all, through packaging; SignIn / TokenStore, NoteStore, NoteWindow, NoteScheduler. Rests on the same design sections as S-14.
-Acceptance criteria. Design behavior, the Mac counterparts of S-14:
+Story: Windows release (S-14)",Task,S-14,2,,,,,,,
+S-15,Mac release,"Acceptance criteria. Design behavior, the Mac counterparts of S-14:
 - A signed `.pkg` installs through Jamf; updates come only through IT's channel, with no self-updater.
 - The installer sets Heron to start at login (a login item) and restart after a crash; the keychain item's access list names the signed Heron binary only; uninstall deletes the data folder and the key.
 - The signing gate signs only an artifact that passed both web-view checks, with the result recorded against its hash.
 - The release tests of S-14, run on Mac, with N+1 then N through a real Jamf push, and an update to a build signed with a renewed certificate under the same team ID that still reads the key (unverified in the design).
 - A network-block test allows only Microsoft sign-in and calendar reads.
-Blocked by: S-03 to S-13; G-001 (keychain and worker-sandbox results); G-012 (OQ-012, needs a managed Mac from the endpoint lead); G-005 (OQ-005); G-013 (OQ-013); G-010 (OQ-010, signing certificates and renewal); G-004 (OQ-004, uninstall); UNK-027. Ships independently of S-14.",Story,,,,,,,,,,,,"S-03, S-04, S-05, S-06, S-07, S-08, S-09, S-10, S-11, S-12, S-13, S-14"
+
+Size: L+M+M+M+M+M+M+S+S
+Blocked by: A note on screen ten minutes before a client call (walking skeleton, fake calendar) (S-03), Moves, cancels and late notes (S-04), Real calendar: sign in and poll (S-05), Earlier calls from the past calendar (S-06), Choose a folder (S-07), Only this client's files are used (S-08), Content check (S-09), Last time and what's open (floor) (S-10), Excluded people (S-11), Short account from the on-device model (behind a switch) (S-12), Keep it running and wind it down (shared) (S-13), Windows release (S-14)
+Also waits on: S-03 to S-13; G-001 (keychain and worker-sandbox results); G-012 (OQ-012, needs a managed Mac from the endpoint lead); G-005 (OQ-005); G-013 (OQ-013); G-010 (OQ-010, signing certificates and renewal); G-004 (OQ-004, uninstall); UNK-027. Ships independently of S-14.",Story,,,,,,,,,"S-03, S-04, S-05, S-06, S-07, S-08, S-09, S-10, S-11, S-12, S-13, S-14"
 S-15-T1,"`.pkg` packaging, login item, restart after a crash","Component: packaging
 Size: M
-Story S-15 Mac release
-Traces to: no requirement row or epic criterion; delivers CST-2 packaging and the design's release tests, and carries the window behavior while the screen is shared that S-03 deferred (G-013). Components: all, through packaging; SignIn / TokenStore, NoteStore, NoteWindow, NoteScheduler. Rests on the same design sections as S-14.",Task,S-15,5,,,,,,,,,,
+Story: Mac release (S-15)",Task,S-15,5,,,,,,,
 S-15-T2,Uninstall script run through Jamf: delete the data folder and key (final behavior waits on G-004; how uninstall is delivered under Jamf is not recorded),"Component: packaging, NoteStore
 Size: S
-Story S-15 Mac release
-Traces to: no requirement row or epic criterion; delivers CST-2 packaging and the design's release tests, and carries the window behavior while the screen is shared that S-03 deferred (G-013). Components: all, through packaging; SignIn / TokenStore, NoteStore, NoteWindow, NoteScheduler. Rests on the same design sections as S-14.",Task,S-15,2,,,,,,,,,,
+Story: Mac release (S-15)",Task,S-15,2,,,,,,,
 S-15-T3,Signing and notarization pipeline and the gate that signs only an artifact that passed both web-view checks,"Component: packaging
 Size: M
-Story S-15 Mac release
-Traces to: no requirement row or epic criterion; delivers CST-2 packaging and the design's release tests, and carries the window behavior while the screen is shared that S-03 deferred (G-013). Components: all, through packaging; SignIn / TokenStore, NoteStore, NoteWindow, NoteScheduler. Rests on the same design sections as S-14.",Task,S-15,5,,,,,,,,,,
+Story: Mac release (S-15)",Task,S-15,5,,,,,,,
 S-15-T4,"Certificate update test: old certificate to renewed under the same team ID, key still readable","Component: SignIn / TokenStore
 Size: M
-Story S-15 Mac release
-Traces to: no requirement row or epic criterion; delivers CST-2 packaging and the design's release tests, and carries the window behavior while the screen is shared that S-03 deferred (G-013). Components: all, through packaging; SignIn / TokenStore, NoteStore, NoteWindow, NoteScheduler. Rests on the same design sections as S-14.",Task,S-15,5,,,,,,,,,,
+Story: Mac release (S-15)",Task,S-15,5,,,,,,,
 S-15-T5,"Window behavior while the screen is shared, from the S-01 result and the product owner's ruling","Component: NoteWindow, NoteScheduler
 Size: M
-Story S-15 Mac release
-Traces to: no requirement row or epic criterion; delivers CST-2 packaging and the design's release tests, and carries the window behavior while the screen is shared that S-03 deferred (G-013). Components: all, through packaging; SignIn / TokenStore, NoteStore, NoteWindow, NoteScheduler. Rests on the same design sections as S-14.",Task,S-15,5,,,,,,,,,,
+Story: Mac release (S-15)",Task,S-15,5,,,,,,,
 S-15-T6,Network-block test on Mac,"Component: packaging
 Size: M
-Story S-15 Mac release
-Traces to: no requirement row or epic criterion; delivers CST-2 packaging and the design's release tests, and carries the window behavior while the screen is shared that S-03 deferred (G-013). Components: all, through packaging; SignIn / TokenStore, NoteStore, NoteWindow, NoteScheduler. Rests on the same design sections as S-14.",Task,S-15,5,,,,,,,,,,
+Story: Mac release (S-15)",Task,S-15,5,,,,,,,
 S-15-T7,"Mac release test pack (the S-14 list, apart from the Jamf push)","Component: all
 Size: L
-Story S-15 Mac release
-Traces to: no requirement row or epic criterion; delivers CST-2 packaging and the design's release tests, and carries the window behavior while the screen is shared that S-03 deferred (G-013). Components: all, through packaging; SignIn / TokenStore, NoteStore, NoteWindow, NoteScheduler. Rests on the same design sections as S-14.",Task,S-15,8,,,,,,,,,,
+Story: Mac release (S-15)",Task,S-15,8,,,,,,,
 S-15-T8,"Jamf push test: install N+1 then N, read the key, restore the backup","Component: NoteStore
 Size: M
-Story S-15 Mac release
-Traces to: no requirement row or epic criterion; delivers CST-2 packaging and the design's release tests, and carries the window behavior while the screen is shared that S-03 deferred (G-013). Components: all, through packaging; SignIn / TokenStore, NoteStore, NoteWindow, NoteScheduler. Rests on the same design sections as S-14.",Task,S-15,5,,,,,,,,,,
+Story: Mac release (S-15)",Task,S-15,5,,,,,,,
 S-15-T9,"WKWebView check at launch, wake and show; report an old version in the tray","Component: NoteWindow
 Size: S
-Story S-15 Mac release
-Traces to: no requirement row or epic criterion; delivers CST-2 packaging and the design's release tests, and carries the window behavior while the screen is shared that S-03 deferred (G-013). Components: all, through packaging; SignIn / TokenStore, NoteStore, NoteWindow, NoteScheduler. Rests on the same design sections as S-14.",Task,S-15,2,,,,,,,,,,
+Story: Mac release (S-15)",Task,S-15,2,,,,,,,

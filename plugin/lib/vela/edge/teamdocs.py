@@ -11,7 +11,7 @@ import pathlib
 from vela import breakdown
 
 DONE = ("complete", "complete-with-gaps")
-TICKET_FILES = ("tickets.csv", "tickets.md")
+TICKET_FILES = ("tickets.csv", "tickets.md", "tickets-jira.json")
 
 
 def meta_of(path):
@@ -60,3 +60,26 @@ def team_step(root, name=lambda app: app):
             steps.append((0, app, f"the {name(app)} team: their build plan is {STATUS_WORDS.get(mine[0].get('status'), mine[0].get('status'))} "
                                   f"and no tickets have been made from it yet, so write them (/vela:tickets)."))
     return min(steps)[2] if steps else None
+
+
+def design_questions_and_gap(root, plan_text):
+    """({OQ id: the design's entry} or None, why). `why` is "" when the design was read, else a plain phrase for the
+    flag: the plan names no tech design, the file it names is missing, or it couldn't be read. None is not "no
+    questions": tickets.check turns it into a flag for each question a story waits on, so a design that wasn't read is
+    never a ticket that quietly leaves its question out."""
+    from vela.explorer import design_data
+    meta, _, _ = breakdown.split_frontmatter(plan_text)
+    raw = meta.get("prereqs") if isinstance(meta, dict) else None
+    for entry in raw if isinstance(raw, list) else [raw]:
+        path = entry.get("path") if isinstance(entry, dict) else entry
+        if not (isinstance(path, str) and "tech-design" in path):
+            continue
+        full = pathlib.Path(root) / path
+        if not full.is_file():
+            return None, f"the design file the plan names ({path}) is missing"
+        try:
+            design = design_data.read_design(full)
+        except (OSError, UnicodeDecodeError, design_data.DesignError):
+            return None, f"the design file the plan names ({path}) couldn't be read"
+        return {q["id"]: q for q in design["open_questions"]}, ""
+    return None, "the plan names no tech design"

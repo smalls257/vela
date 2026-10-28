@@ -86,7 +86,20 @@ def test_the_example_story_in_the_plan_format_reads_without_problems():
                                            "| S-02 Switch on | CAP-005.FR1 | 1 M, 1 S | S-01 |\n\n## Stories\n\n" + story + "\n## Build order\n1. S-02: first\n")
     assert [p for p in problems if "S-02" in p and "S-01" not in p] == []
     only = stories[0]
+    from vela import ticketcopy
+    assert only.summary and only.ticket_stamp == breakdown.criteria_stamp(only.criteria)
+    assert ticketcopy.problems(only) == [] and [h for h, _ in only.ticket_groups] == ["Paying before the unlock", "When the check doesn't go through"]
     assert only.tracer and only.slice == "tracer" and only.done_when and only.fit.startswith("cannot tell") and len(only.criteria) == 3
+
+
+def test_breakdown_writes_the_ticket_copy_through_house_voice_and_keeps_the_criteria_word_for_word():
+    body = text(BREAKDOWN / "SKILL.md")
+    assert "**Ticket copy**" in body and "`Summary:`" in body and "`Ticket criteria`" in body
+    assert "the criteria themselves stay word for word" in body
+    fmt = text(BREAKDOWN / "PLAN-FORMAT.md")
+    for phrase in ("(covers AC1, AC3)", "ACn is the nth bullet under `Acceptance criteria:`", "4 or 5 plain sentences",
+                   "no IDs", "put the stamp it prints in the label", "until then"):
+        assert phrase in fmt, phrase
 
 
 # --- From tests/test_tracer_skills.py: The lead-side tracer guidance (S52, step 2): present in each skill, never a
@@ -161,3 +174,9 @@ def test_breakdown_leaves_what_tickets_check_reports_to_the_command():
 
 def test_breakdown_stays_under_its_word_cap():
     assert len(text(BREAKDOWN / "SKILL.md").split()) <= 1750  # 1,717 before the trim; 1,694 after
+
+
+def test_breakdown_says_where_the_first_stamp_comes_from_and_the_format_never_shows_a_placeholder():
+    body, fmt = text(BREAKDOWN / "SKILL.md"), text(BREAKDOWN / "PLAN-FORMAT.md")
+    assert "plain `Ticket criteria:` label" in body and "put the stamp it prints in the label" in body
+    assert "Ticket criteria (from <stamp>)" not in fmt and "never from this example" in fmt
