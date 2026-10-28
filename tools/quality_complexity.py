@@ -158,7 +158,11 @@ def _merge(first: Measure, other: Measure) -> Measure:
 def function_measures(path: str, source: str, rows: dict) -> list[Measure]:
     """One Measure per qualified function name. A def with no lizard row raises, never passes unmeasured."""
     merged: dict[str, Measure] = {}
-    for qualname, node in _defs(ast.parse(source)):
+    try:
+        tree = ast.parse(source)
+    except SyntaxError as exc:
+        raise MeasureError(f"{path} cannot be parsed ({exc}), so it cannot be measured") from exc
+    for qualname, node in _defs(tree):
         row = rows.get((path, node.lineno))
         if row is None:
             raise MeasureError(f"lizard did not measure {path}:{node.lineno} {qualname}")

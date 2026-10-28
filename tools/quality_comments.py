@@ -53,9 +53,12 @@ def _overlap(words: list[str], against: list[str]) -> float:
 
 # ---------------------------------------------------------------- what-comments
 
+def _tokens(source: str) -> list[tokenize.TokenInfo]:
+    return list(tokenize.generate_tokens(io.StringIO(source).readline))
+
+
 def _comment_tokens(source: str) -> list[tokenize.TokenInfo]:
-    tokens = tokenize.generate_tokens(io.StringIO(source).readline)
-    return [t for t in tokens if t.type == tokenize.COMMENT]
+    return [t for t in _tokens(source) if t.type == tokenize.COMMENT]
 
 
 def _full_line_blocks(source: str) -> list[list[tokenize.TokenInfo]]:
@@ -77,23 +80,34 @@ def _is_directive_or_banner(first_line: str) -> bool:
             or text.startswith(BANNER_STARTS + DIRECTIVE_STARTS))
 
 
-def _next_code_line(lines: list[str], after: int) -> str:
-    """The first line after 1-based line `after` that is neither blank nor a comment, or ''."""
-    for line in lines[after:]:
+def _next_code_line(lines: list[str], after: int) -> int:
+    """The 1-based number of the first line after line `after` that is neither blank nor a comment, or 0."""
+    for number, line in enumerate(lines[after:], start=after + 1):
         if line.strip() and not line.strip().startswith("#"):
-            return line
-    return ""
+            return number
+    return 0
+
+
+def _names_by_line(source: str) -> dict[int, str]:
+    """The identifiers and keywords on each line. Strings are left out: a why-comment often quotes the same
+    words as a message or pattern on the next line without restating what the code does."""
+    names: dict[int, list[str]] = {}
+    for tok in _tokens(source):
+        if tok.type == tokenize.NAME:
+            names.setdefault(tok.start[0], []).append(tok.string)
+    return {line: " ".join(words) for line, words in names.items()}
 
 
 def what_comments(path: str, source: str) -> list[Finding]:
     """Comment blocks whose words mostly repeat the next line of code."""
     lines = source.splitlines()
+    names = _names_by_line(source)
     found = []
     for block in _full_line_blocks(source):
         if _is_directive_or_banner(block[0].string):
             continue
         words = content_words(" ".join(t.string.lstrip("#") for t in block))
-        code = content_words(_next_code_line(lines, block[-1].start[0]))
+        code = content_words(names.get(_next_code_line(lines, block[-1].start[0]), ""))
         if len(words) >= MIN_COMMENT_WORDS and code and _overlap(words, code) >= WHAT_OVERLAP:
             found.append(Finding(path, block[0].start[0], "QG-CMT-WHAT",
                                  "this comment says what the next line does; say why, or delete it"))

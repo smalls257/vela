@@ -86,6 +86,16 @@ def _hooked_git(tokens):
     return None
 
 
+def _short_cluster(letters):
+    """(has -n, takes the next word as its value) for one run of short options such as `-am`."""
+    for at, letter in enumerate(letters):
+        if letter == "n":
+            return True, False
+        if letter in COMMIT_SHORT_VALUE_LETTERS:
+            return False, at == len(letters) - 1
+    return False, False
+
+
 def _commit_skips_hooks(args):
     """Whether `git commit <args>` carries -n (short for --no-verify). Reads only commit's own options: stops at
     --, and does not read the value of -m/-F/-C/-c/-t or of a long option as a flag."""
@@ -98,13 +108,10 @@ def _commit_skips_hooks(args):
         if token in COMMIT_LONG_VALUE_OPTIONS:
             i += 1
         elif re.fullmatch(r"-[A-Za-z]+", token):
-            letters = token[1:]
-            for at, letter in enumerate(letters):
-                if letter == "n":
-                    return True
-                if letter in COMMIT_SHORT_VALUE_LETTERS:
-                    i += 1 if at == len(letters) - 1 else 0
-                    break
+            has_n, takes_value = _short_cluster(token[1:])
+            if has_n:
+                return True
+            i += takes_value
     return False
 
 

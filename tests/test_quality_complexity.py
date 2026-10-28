@@ -52,6 +52,11 @@ def test_a_def_lizard_did_not_measure_is_an_error():
         quality_complexity.function_measures("plugin/lib/vela/x.py", SRC, only_lights)
 
 
+def test_an_unparseable_source_is_a_measure_error_naming_the_file():
+    with pytest.raises(quality_complexity.MeasureError, match="p.py"):
+        quality_complexity.function_measures("p.py", "def f(:\n", {})
+
+
 def test_two_defs_with_one_qualname_become_one_measure_at_the_maximum():
     src = "def f(a):\n    pass\n\n\nif True:\n    def f(a, b):\n        pass\n"
     rows = {("p.py", 1): {"ccn": 2, "nloc": 5, "params": 1}, ("p.py", 6): {"ccn": 1, "nloc": 9, "params": 2}}

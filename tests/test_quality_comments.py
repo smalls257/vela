@@ -21,6 +21,12 @@ def test_a_why_comment_that_shares_words_passes():
     assert quality_comments.what_comments("x.py", src) == []
 
 
+def test_a_why_comment_before_a_string_line_is_compared_with_code_only():
+    src = ("# a bare list means the vault has no roles yet, so the page names every handle it found\n"
+           "message = \"the vault has no roles yet, so the page names every handle it found\"\n")
+    assert quality_comments.what_comments("x.py", src) == []
+
+
 def test_banners_pass():
     assert quality_comments.what_comments("x.py", "# --- the cache key ---\ndef cache_key(text): pass\n") == []
 
