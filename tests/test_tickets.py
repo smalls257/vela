@@ -128,7 +128,7 @@ def test_a_slice_line_that_starts_with_another_word_is_a_problem():
 
 def check(root, text=None):
     text = text or plan_text(root)
-    return tickets.check(text, cli.load_vault(root), "", teamdocs.design_questions(root, text))
+    return tickets.check(text, cli.load_vault(root), "", teamdocs.design_questions_and_gap(root, text)[0])
 
 
 def test_the_heron_plan_is_held_against_its_vault_and_flags_only_what_a_person_should_look_at(vault):

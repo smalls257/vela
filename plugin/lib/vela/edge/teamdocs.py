@@ -83,8 +83,3 @@ def design_questions_and_gap(root, plan_text):
             return None, f"the design file the plan names ({path}) couldn't be read"
         return {q["id"]: q for q in design["open_questions"]}, ""
     return None, "the plan names no tech design"
-
-
-def design_questions(root, plan_text):
-    """{OQ id: the design's entry}, or None when the design wasn't read (design_questions_and_gap says why)."""
-    return design_questions_and_gap(root, plan_text)[0]

@@ -224,13 +224,26 @@ def totals(stories):
     return {"stories": len(stories), "built": len(built), "tasks": sum(len(s["tasks"]) for s in built), "points": sum(s["points"] for s in built), "bySize": by_size}
 
 
+def design_questions_for(plan_path, read):
+    """(questions, why) read the way the tool reads them (teamdocs.design_questions_and_gap), so "Copy as Jira CSV" and
+    the tool's file can't differ: the vault root is the plan's repo, three folders up from docs/plan/<file>."""
+    from vela.edge import teamdocs
+    try:
+        root = pathlib.Path(plan_path).resolve().parents[2]
+        text = pathlib.Path(plan_path).read_text(encoding="utf-8")
+    except (IndexError, OSError, UnicodeDecodeError):
+        return None, "the plan couldn't be read again for its design"
+    return teamdocs.design_questions_and_gap(root, text)
+
+
 def plan_entry(app_id, wrapped, known, design, tracer_slice="", vault=None):
     read, path = wrapped["read"], wrapped["path"]
     problems = list(read["problems"])
     order = read["order"]
     order_of = {o["id"]: i + 1 for i, o in enumerate(order)}
     ranked = sorted(read["stories"], key=lambda s: order_of.get(s.id, len(order) + 1))
-    questions = {q["id"]: q for q in design["open_questions"]} if design and "open_questions" in design else None  # None: the design wasn't read, which is not "no questions"
+    questions, _ = design_questions_for(path, read)
+    filed, _ = tickets.retire_pointers(read["stories"], [])  # the tool's rows are in file order, not build order
     stories = [story_entry(s, read["summary"], order_of, known, problems, tracer_slice) for s in ranked]
     if design and design["path"] not in breakdown_find.prereq_names(read["meta"]):
         problems.append(f"the plan's prereqs do not name the design doc {design['path']}, so it may be a plan for another design")
@@ -240,7 +253,7 @@ def plan_entry(app_id, wrapped, known, design, tracer_slice="", vault=None):
     return {"appId": app_id, "file": path.name, "slug": str(read["meta"].get("slug", "")), "status": str(read["meta"].get("status", "")), "gaps": gaps,
             "prereqs": breakdown_find.prereq_names(read["meta"]), "stories": stories, "order": order, "coverage": cover, "notPlanned": read["not_planned"],
             "totals": totals(stories), "problems": problems, "unresolved": unresolved, "ticketsHref": "",
-            "csv": tickets.csv_for(ranked, tickets.Context(ranked, vault, app_id, questions))}
+            "csv": tickets.csv_for(filed, tickets.Context(filed, vault, app_id, questions))}
 
 
 def inside(vault, keys, plans, designs):

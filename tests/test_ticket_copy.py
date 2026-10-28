@@ -174,7 +174,7 @@ def heron():
 
 
 def questions():
-    return teamdocs.design_questions(VAULT, plan_text())
+    return teamdocs.design_questions_and_gap(VAULT, plan_text())[0]
 
 
 def test_the_design_questions_are_read_from_the_design_the_plan_names():
@@ -187,7 +187,7 @@ def test_a_plan_whose_design_cannot_be_read_gives_none_not_an_empty_answer(tmp_p
     root = tmp_path / "v"
     shutil.copytree(VAULT, root)
     (root / "docs" / "tech-design" / "desktop-agent.md").unlink()
-    assert teamdocs.design_questions(root, plan_text()) is None
+    assert teamdocs.design_questions_and_gap(root, plan_text())[0] is None
 
 
 def test_each_contract_is_written_out_from_the_vault():
@@ -301,12 +301,12 @@ def test_rows_title_stories_by_name_and_label_them_as_the_mockup_shows():
 
 
 def test_the_keys_file_is_read_strictly():
-    assert tickets.read_keys("S-01 HERON-11\n# a note\n\nS-02: HERON-12\n", {"S-01", "S-02"}) == {"S-01": "HERON-11", "S-02": "HERON-12"}
+    assert tickets.read_keys("S-01 HERON-11\n# a note\n\nS-02: HERON-12\n", list(stories().values())) == {"S-01": "HERON-11", "S-02": "HERON-12"}
     import pytest
     with pytest.raises(tickets.TicketsError, match="line 1 of the keys file"):
-        tickets.read_keys("S-09 HERON-11\n", {"S-01"})
+        tickets.read_keys("S-99 HERON-11\n", list(stories().values()))
     with pytest.raises(tickets.TicketsError, match="line 1 of the keys file"):
-        tickets.read_keys("HERON-11\n", {"S-01"})
+        tickets.read_keys("HERON-11\n", list(stories().values()))
 
 
 from conftest import run  # noqa: E402
@@ -411,3 +411,55 @@ def test_the_design_that_was_not_read_says_why_in_plain_words(tmp_path):
     assert said == ["waits on OQ-005, but the plan names no tech design, so its ticket can't say what the question is"]
     code, out = run("tickets", "check", "--vault", str(root))
     assert code == 1 and "Story S-02 waits on OQ-005, but the design file the plan names" in out
+
+
+GOLDEN = FIXTURES / "heron-s02-ticket.txt"
+
+
+def test_the_vault_backed_csv_row_for_the_heron_consent_story_is_the_approved_shape():
+    found, ctx = context()
+    row = next(r for r in tickets.build_rows(found, ctx) if r["Issue Id"] == "S-02")
+    assert row["Description"] + "\n" == GOLDEN.read_text(encoding="utf-8")
+
+
+def test_the_page_reads_the_design_the_way_the_tool_does_so_its_csv_is_the_tools_file(tmp_path):
+    from vela.explorer import plan_data
+    import breakdown_to_tickets as b2t
+    root = tmp_path / "v"
+    shutil.copytree(VAULT, root)
+    problems = b2t.convert(root / "docs" / "plan" / PLAN.name, root / "out", root)
+    wrapped = plan_data.plans_for([f"APP-desktop-agent={root / 'docs' / 'plan' / PLAN.name}"])["APP-desktop-agent"]
+    entry = plan_data.plan_entry("APP-desktop-agent", wrapped, set(), None, "", cli.load_vault(root))
+    assert entry["csv"] == (root / "out" / "tickets.csv").read_bytes().decode("utf-8")
+    assert "Is the person told when Consent and identity is down" in entry["csv"] and problems
+
+
+def test_the_readme_says_when_a_plan_has_no_ticket_copy_and_when_only_some_do():
+    bare = plan_text().replace("Ticket criteria (from 7d05f2):", "Ticket criteria:")
+    none = breakdown.read(plan_text())
+    _, readme, _ = tickets.convert_text(plan_text(), "p.md")
+    assert "of 9 stories have a summary" in readme and "carry the plan's criteria as a flat list" in readme
+    stripped = "\n".join(l for l in plan_text().splitlines() if not l.startswith(("Summary:", "Ticket criteria", "- Switching", "- Each choice goes", "- A choice counts only", "- If a choice isn't", "- If a person never", "Choosing what", "Recording the", "When it doesn't go")))
+    _, readme, _ = tickets.convert_text(stripped, "p.md")
+    assert "None of the stories has ticket copy yet" in readme and "house voice" not in readme.split("## How")[0]
+
+
+def test_a_keys_file_naming_a_merged_story_or_a_story_twice_stops_the_write():
+    import pytest
+    found = list(stories().values())
+    merged = next(s.id for s in found if not s.built)
+    with pytest.raises(tickets.TicketsError, match="doesn't ticket"):
+        tickets.read_keys(f"{merged} HERON-9\n", found)
+    with pytest.raises(tickets.TicketsError, match="second time"):
+        tickets.read_keys("S-01 HERON-1\nS-01 HERON-2\n", found)
+
+
+def test_an_open_question_with_the_design_unread_says_so_and_a_bad_vault_is_a_plain_error(tmp_path):
+    import subprocess, sys
+    found, ctx = context()
+    ctx.questions = None
+    story = next(s for s in found if s.id == "S-02")
+    assert tickets.open_entries(story, ctx)[0][0] == "Not looked up: the plan's design wasn't read"
+    done = subprocess.run([sys.executable, str(REPO / "tools" / "breakdown_to_tickets.py"), "--breakdown", str(PLAN),
+                           "--out", str(tmp_path / "o"), "--vault", str(tmp_path / "nope")], capture_output=True, text=True)
+    assert done.returncode == 2 and "is not a folder" in done.stderr and "Traceback" not in done.stderr

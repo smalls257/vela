@@ -49,12 +49,16 @@ def convert(breakdown, out, vault_root=None):
     try:
         text = breakdown.read_text(encoding="utf-8")
         out.mkdir(parents=True, exist_ok=True)
+        if vault_root and not vault_root.is_dir():
+            raise BreakdownError(f"--vault {vault_root} is not a folder")
         vault = cli.load_vault(vault_root) if vault_root else None
         questions, gap = teamdocs.design_questions_and_gap(vault_root, text) if vault_root else (None, "")
         csv_body, readme, problems = tickets.convert_text(text, breakdown.name, vault, "", questions, design_gap=gap)
         with (out / "tickets.csv").open("w", encoding="utf-8", newline="") as handle:
             handle.write(csv_body)
         (out / "README.md").write_text(readme, encoding="utf-8")
+    except cli.ToolError as exc:
+        raise BreakdownError(f"cannot read the vault: {exc}") from exc
     except OSError as exc:
         raise BreakdownError(f"cannot read {breakdown} or write to {out}: {exc}") from exc
     return problems

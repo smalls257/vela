@@ -42,7 +42,7 @@ class TicketsError(Exception):
 
 README = """# Tickets from the work breakdown
 
-`tickets.csv` was written by `{tool}` from `{source}`. Each Story row is a `### S-NN` section of the plan and each Task row a row of its task table. A story's summary and its grouped acceptance criteria were written into the plan in the house voice, and vela checked that every one of the plan's criteria is still covered; the plan keeps its criteria word for word. What a story relies on (contracts and requirements) and what it still waits on (open questions) are copied by code from the vault and the design. {counts}{vault_note}
+`tickets.csv` was written by `{tool}` from `{source}`. Each Story row is a `### S-NN` section of the plan and each Task row a row of its task table. {copy_note} What a story relies on (contracts and requirements) and what it still waits on (open questions) are copied by code from the vault and the design. {counts}{vault_note}
 
 ## How each column is filled
 
@@ -84,9 +84,14 @@ def readme_text(source, stories, rows, problems, not_planned, tool=TOOL, with_va
     listed = [*not_ticketed(stories), *not_planned]
     notp = ("\n## Not ticketed\n\nThe breakdown lists these as deferred, merged or not planned, so they have no ticket:\n\n"
             + "\n".join(f"- {n}" for n in listed) + "\n") if listed else ""
+    lacking = [s for s in built if not ticketcopy.has_copy(s)]
+    copy_note = ("A story's summary and its grouped acceptance criteria were written into the plan in the house voice, and vela checked that every one of the plan's criteria is still covered; the plan keeps its criteria word for word."
+                 if not lacking else
+                 "None of the stories has ticket copy yet, so each ticket carries the plan's criteria as a flat list." if len(lacking) == len(built) else
+                 f"{len(built) - len(lacking)} of {len(built)} stories have a summary and grouped acceptance criteria, written into the plan in the house voice and checked against the plan's criteria; the other {len(lacking)} carry the plan's criteria as a flat list.")
     vault_note = "" if with_vault else " This file was written without the vault, so each ticket names what it relies on by ID only."
     return README.format(source=source, counts=counts, s=SIZE_POINTS["S"], m=SIZE_POINTS["M"], l=SIZE_POINTS["L"],
-                         problems=prob, not_planned=notp, tool=tool, vault_note=vault_note)
+                         problems=prob, not_planned=notp, tool=tool, vault_note=vault_note, copy_note=copy_note)
 
 
 def retire_pointers(stories, problems):
@@ -207,7 +212,8 @@ def open_entries(story, ctx):
     out = []
     for q in ticketrefs.still_open(ctx.vault, story, ctx.questions):
         if not q["found"]:
-            out.append(("Not found in the plan's design or the vault", q["id"], None, []))
+            unread = q["id"].startswith("OQ-") and ctx.questions is None
+            out.append(("Not looked up: the plan's design wasn't read" if unread else "Not found in the plan's design or the vault", q["id"], None, []))
             continue
         out.append((q["question"], q["id"], None, [("Until it's answered", q["until"] or "the plan doesn't say"),
                                                   (q["waits_label"], q["waits"] or "not written down")]))
@@ -352,15 +358,22 @@ def csv_for(stories, ctx):
     return csv_text(build_rows(stories, ctx))
 
 
-def read_keys(text, story_ids):
-    """{story ID: ticket key} from a keys file of `S-01 HERON-11` lines; a line that isn't one stops the write."""
+def read_keys(text, stories):
+    """{story ID: ticket key} from a keys file of `S-01 HERON-11` lines. A line that isn't one, a story the plan doesn't
+    ticket (deferred or merged) and a story named twice each stop the write."""
+    ticketed = {s.id for s in stories if s.built}
+    named = {s.id for s in stories}
     keys = {}
     for n, line in enumerate(text.splitlines(), 1):
         if not line.strip() or line.lstrip().startswith("#"):
             continue
         found = KEY_LINE.match(line)
-        if not found or found.group(1) not in story_ids:
+        if not found or found.group(1) not in named:
             raise TicketsError(f"line {n} of the keys file isn't 'S-nn KEY-n' for a story of this plan: {line.strip()!r}")
+        if found.group(1) not in ticketed:
+            raise TicketsError(f"line {n} of the keys file names {found.group(1)}, which the plan doesn't ticket (deferred or merged)")
+        if found.group(1) in keys:
+            raise TicketsError(f"line {n} of the keys file names {found.group(1)} a second time")
         keys[found.group(1)] = found.group(2)
     return keys
 

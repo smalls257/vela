@@ -2963,7 +2963,7 @@ def cmd_tickets(args, out):
         text = plan_path.read_text(encoding="utf-8")
         vault = load_vault(root)
         questions, design_gap = teamdocs.design_questions_and_gap(root, text)
-        keys = (tickets.read_keys(pathlib.Path(args.keys).read_text(encoding="utf-8"), {s.id for s in plan_reader.read(text)["stories"]})
+        keys = (tickets.read_keys(pathlib.Path(args.keys).read_text(encoding="utf-8"), plan_reader.read(text)["stories"])
                 if args.keys else {})
         findings = tickets.check(text, vault, args.app or "", questions, design_gap)
     except (OSError, UnicodeDecodeError, tickets.TicketsError) as exc:
