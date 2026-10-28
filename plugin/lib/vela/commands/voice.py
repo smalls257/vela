@@ -49,7 +49,7 @@ def register(sub):
         importlib.import_module(f"vela.commands.{name}").register_voice(each)
 
 
-def common(parser):
+def add_vault_flags(parser):
     parser.add_argument("--vault", default=".", help="vault root (default: current directory)")
     say.add_output_flags(parser)
 
@@ -60,7 +60,7 @@ def add_examples(each):
     which.add_argument("--type", choices=voiceplan.VOICE_TYPES, help="a voice type")
     which.add_argument("--page", help="a page; its voice type comes from house-voice's page-type table")
     which.add_argument("--key", help="a page id or page type, for a page with no file yet; the same table")
-    common(parser)
+    add_vault_flags(parser)
     parser.set_defaults(func=cmd_examples)
 
 
@@ -72,7 +72,7 @@ def add_plan(each):
     parser.add_argument("--adding", type=int, default=1, help="how many examples of the type are about to be stored")
     parser.add_argument("--from", dest="source_file", help="a passage file: also report its --- and generated lines "
                                                            "and its word count, so the owner is asked first")
-    common(parser)
+    add_vault_flags(parser)
     parser.set_defaults(func=cmd_plan)
 
 
@@ -88,7 +88,7 @@ def add_save(each):
     parser.add_argument("--page", help="a harvested paragraph: the page it came from")
     parser.add_argument("--harvested-from", help="a harvested paragraph: the full hash of the draft commit")
     parser.add_argument("--today", help="the `added` date, YYYY-MM-DD (default: today)")
-    common(parser)
+    add_vault_flags(parser)
     parser.set_defaults(func=cmd_save)
 
 
@@ -96,13 +96,13 @@ def add_harvest(each):
     harvest = each.add_parser("harvest", help="the owner's edits to merged session drafts")
     steps = harvest.add_subparsers(dest="harvest_step", required=True)
     listing = steps.add_parser("list", help="candidates from the last merged session PRs, draft and merged text")
-    common(listing)
+    add_vault_flags(listing)
     listing.set_defaults(func=cmd_harvest_list)
     decline = steps.add_parser("decline", help="record a declined paragraph, so it is not offered again")
     decline.add_argument("pr", type=int)
     decline.add_argument("page")
     decline.add_argument("hash")
-    common(decline)
+    add_vault_flags(decline)
     decline.set_defaults(func=cmd_harvest_decline)
 
 

@@ -29,14 +29,14 @@ def register(sub):
     verbs = top.add_subparsers(dest="companion_command", metavar="{session,explain,prepare}")
     verbs.required = True
     session = verbs.add_parser("session", help="what this session is about, what it decided, what's open and what's next")
-    common(session)
+    add_companion_flags(session)
     session.set_defaults(func=cmd_session)
     explain = verbs.add_parser("explain", help="a question about the plan, answered from vela's own numbers, with what the plan doesn't know")
     explain.add_argument("--view", choices=companionexplain.VIEWS, help="which view answers it (not needed with --last)")
     explain.add_argument("--about", default="", help="the flow or page it is about, by name (with --view flow or page)")
     explain.add_argument("--as", dest="as_handle", default="", metavar="@HANDLE", help="who is asking, when vela can't tell")
     explain.add_argument("--last", action="store_true", help="answer the last question asked again, with today's code and numbers")
-    common(explain)
+    add_companion_flags(explain)
     explain.set_defaults(func=cmd_explain)
     prepare = verbs.add_parser("prepare", help="make the plan digest the explain views read, without drawing the dashboard")
     prepare.add_argument("--vault", default=".", help="vault root (default: current directory)")
@@ -44,7 +44,7 @@ def register(sub):
     prepare.set_defaults(func=cmd_prepare)
 
 
-def common(parser):
+def add_companion_flags(parser):
     parser.add_argument("--vault", default=".", help="vault root (default: current directory)")
     parser.add_argument("--find-up", action="store_true", help="find the vault by walking up from --vault")
     parser.add_argument("--json", action="store_true", help="print the JSON")
