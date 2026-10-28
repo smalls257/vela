@@ -79,7 +79,7 @@ ul.chain li { border-left: 2px solid var(--rule-3); padding-left: 10px; }
 .big-q { font: 18px/1.45 var(--serif); color: var(--ink); margin: 6px 0 4px; }
 .steps-list { margin: 0; padding-left: 20px; display: grid; gap: 4px; font-size: 13px; }
 .step-link { all: unset; cursor: pointer; color: var(--ink-2); line-height: 1.4; display: block; padding: 3px 6px; border-radius: 6px; }
-.steps-box { max-height: 230px; overflow-y: auto; overscroll-behavior: contain; border-radius: 6px; }
+.steps-box { position: relative; overflow-y: auto; overscroll-behavior: contain; border-radius: 6px; }
 .steps-box:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
 .steps-box.more { -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 30px), transparent); mask-image: linear-gradient(to bottom, #000 calc(100% - 30px), transparent); }
 .steps-list li.cur .step-link { background: var(--deck); color: var(--ink); font-weight: 600; }

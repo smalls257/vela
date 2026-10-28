@@ -54,12 +54,6 @@ const Grills = (() => {
   const youOrName = (handle) => (isYou(handle) ? "you" : personName(handle));
 
   /* ------------------------------------------------------------ the prompt for Claude */
-  const SETTLE_PICKED = /\s*\(picked\)\s*$/i;
-  function settleLine(text) {
-    if (SETTLE_PICKED.test(text)) return `Proposed: ${text.replace(SETTLE_PICKED, "")}`;
-    const [what, why] = text.split(/:\s*rejected,?\s*/i);
-    return why !== undefined ? `Set aside: ${upFirst(what)}, because ${why.replace(/\.$/, "")}` : upFirst(text);
-  }
   const listWords = (names, cap = 4) => {
     const shown = names.slice(0, cap), more = names.length - shown.length;
     const all = more > 0 ? [...shown, `${more} more`] : shown;
@@ -70,7 +64,7 @@ const Grills = (() => {
      skill takes names, not IDs); the paragraph says what it settles, where it stands and what it holds up. */
   function promptBody(r) {
     const parts = [];
-    if (r.settles.length) parts.push(`It settles: ${listWords(r.settles.map((s) => settleLine(s).replace(/\.$/, "")), 3)}.`);
+    if (r.settles.length) parts.push(`It settles: ${listWords(r.settles.map((s) => s.replace(/\.$/, "")), 3)}.`);
     if (r.group === "said-yes") parts.push(`I said yes to this on ${dayYear(r.yes.date)}. Read my words back and confirm them before you decide.`);
     else if (r.group === "ready") parts.push("Nothing is in the way, so it's ready to decide.");
     else parts.push(`One thing is in the way: ${waitingSentence(r)} Start with a recap of that, then grill what is settled.`);
@@ -85,7 +79,7 @@ const Grills = (() => {
   const SETTLE_OPENS_WITH = (r) => `Settle ${r.name}.`;
   function settleBody(r) {
     const parts = [];
-    if (r.settles.length) parts.push(`It settles: ${listWords(r.settles.map((s) => settleLine(s).replace(/\.$/, "")), 3)}.`);
+    if (r.settles.length) parts.push(`It settles: ${listWords(r.settles.map((s) => s.replace(/\.$/, "")), 3)}.`);
     if (r.group === "said-yes") parts.push(`I said yes to this on ${dayYear(r.yes.date)}. Read it back to me before you write it.`);
     else if (r.group === "ready") parts.push("Nothing is in the way, so it's ready to decide.");
     else parts.push(`One thing is in the way: ${waitingSentence(r)} Ask me about it first.`);
@@ -194,7 +188,7 @@ const Grills = (() => {
     const chips = holdChips(r);
     return h("div", { class: "g-card" + (on ? " on" : ""), "data-grill": r.id, "data-group": r.group, "data-owner": r.owner.join(" "), onclick: open },
       h("button", { class: "g-open", type: "button", "aria-pressed": String(on), "aria-label": `${r.name}: ${pillText}. Show the details`, onclick: (ev) => { ev.stopPropagation(); open(); } }, head),
-      r.group !== "one-away" ? agreeBox(r) : null, ...needs,
+      agreeBox(r), ...needs,
       chips.length ? h("div", { class: "g-chips" }, chips) : null);
   }
 
@@ -351,7 +345,7 @@ const Grills = (() => {
     const ownerRows = [h("li", {}, listWords(r.owner.map((o) => (isYou(o) ? `You (${personName(o)})` : personName(o))), 3) || "Not recorded", ": runs it and decides ",
       h("button", { class: "linkish g-change", type: "button", title: "Copies a request for Claude, who sets it with a command", onclick: () => copy(changeOwnerPrompt(r), "the request") }, "(change)"))];
     return [head, h("div", { class: "p-body g-detail", "data-grill": r.id },
-      r.settles.length ? Panel.section("What the grill settles", null, bulletList(r.settles.map(settleLine))) : Panel.section("What the grill settles", null, Panel.empty("Not recorded: nothing says yet what this settles.")),
+      r.settles.length ? Panel.section("What the grill settles", null, bulletList(r.settles)) : Panel.section("What the grill settles", null, Panel.empty("Not recorded: nothing says yet what this settles.")),
       Panel.section("Where it stands", null, bulletList(standsLines(r))),
       Panel.section("What it holds up", r.holdsUp.length || null, r.holdsUp.length ? h("div", { class: "g-panelchips" }, r.holdsUp.map(chip)) : Panel.empty("Nothing is recorded as waiting on it.")),
       Panel.section("Owner", null, bulletList(ownerRows)),

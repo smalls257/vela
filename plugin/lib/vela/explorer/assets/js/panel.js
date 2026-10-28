@@ -12,8 +12,18 @@ const Panel = (() => {
     if (f.steps.length <= STEPS_SHOWN) return list;
     const box = h("div", { class: "steps-box", tabindex: "0", role: "region", "aria-label": `Steps, ${f.steps.length} in all` }, list);
     const fade = () => box.classList.toggle("more", box.scrollTop + box.clientHeight < box.scrollHeight - 1);
+    /* The box is as tall as its first STEPS_SHOWN steps, however long they wrap: measured from the list, again whenever the panel resizes. */
+    const size = () => {
+      const items = list.children;
+      if (!box.isConnected || items.length <= STEPS_SHOWN) return;
+      const last = items[STEPS_SHOWN - 1];
+      box.style.maxHeight = `${last.offsetTop + last.offsetHeight - list.offsetTop}px`;
+      fade();
+    };
     box.addEventListener("scroll", fade, { passive: true });
-    requestAnimationFrame(fade);
+    box.fit = size;  // markStep calls it once the box is on the page, so the height is right before anything scrolls
+    if (typeof ResizeObserver !== "undefined") new ResizeObserver(size).observe(list);
+    requestAnimationFrame(size);
     return box;
   }
   /* Mark the flow's current step in the panel and bring it into view inside the box. */
@@ -23,7 +33,13 @@ const Panel = (() => {
     const now = cur === undefined ? (typeof Flows !== "undefined" && Flows.st.key === key ? Flows.st.cur : -1) : cur;
     [...list.children].forEach((li, i) => { li.classList.toggle("cur", i === now); if (i === now) li.setAttribute("aria-current", "step"); else li.removeAttribute("aria-current"); });
     const here = list.children[now];
-    if (here) here.scrollIntoView({ block: "nearest" });
+    const box = list.closest(".steps-box");
+    if (box && box.fit) box.fit();
+    if (!box || !here) return;
+    /* only the box scrolls, never the panel around it */
+    const top = here.offsetTop - list.offsetTop, bottom = top + here.offsetHeight;
+    if (top < box.scrollTop) box.scrollTop = top;
+    else if (bottom > box.scrollTop + box.clientHeight) box.scrollTop = bottom - box.clientHeight;
   }
 
   function section(title, count, ...kids) {

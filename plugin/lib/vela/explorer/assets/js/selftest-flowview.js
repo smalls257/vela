@@ -82,6 +82,8 @@
       const box = $("#panel-body .steps-box"), list = $("#panel-body .steps-list");
       ok(!!box && box.scrollHeight > box.clientHeight + 4 && getComputedStyle(box).overflowY === "auto", "steps: a flow of 12 steps scrolls in a box", `steps: the long list does not scroll (${box ? box.scrollHeight + " in " + box.clientHeight : "no box"})`);
       ok(!!box && box.getAttribute("role") === "region" && box.tabIndex === 0 && box.getAttribute("aria-label") === "Steps, 12 in all" && !!$("#panel-body h3 .ct") , "steps: the box is a keyboard-reachable region named with its count", "steps: the box is not a labeled, focusable region");
+      const fifth = list.children[4].getBoundingClientRect(), sixth = list.children[5].getBoundingClientRect(), boxTop = box.getBoundingClientRect();
+      ok(Math.abs(boxTop.bottom - fifth.bottom) <= 2 && sixth.top >= boxTop.bottom - 1, "steps: the box ends at the bottom of the fifth step, however long the steps wrap", `steps: the box ends at ${Math.round(boxTop.bottom)}, the fifth step at ${Math.round(fifth.bottom)}`);
       box.dispatchEvent(new Event("scroll")); await tick();
       ok(!!box && box.classList.contains("more"), "steps: the fade shows while there is more below", "steps: no fade on a list with more below");
       box.scrollTop = box.scrollHeight; box.dispatchEvent(new Event("scroll")); await tick();

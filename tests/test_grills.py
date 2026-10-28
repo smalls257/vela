@@ -125,3 +125,42 @@ def test_a_contract_agrees_to_its_description_and_what_crosses_the_boundary():
     assert found["lead"].startswith("The Desktop agent reads the signed-in person's calendar entries")
     assert found["points"][0].startswith("Crosses the boundary: In: the agent's read request")
     assert found["details"] == [] and found["more"] == []
+
+
+# ------------------------------------------------------------------ reading the plan's words honestly
+
+class _Page:
+    def __init__(self, text):
+        self.text = text
+
+    def page_bullets(self, label):
+        return []
+
+
+def agrees_of_text(monkeypatch, text):
+    monkeypatch.setattr(grills, "_unit", lambda vault, ident: (None, _Page(text)))
+
+    class Plain:
+        plain = staticmethod(lambda s: s)
+    return grills.agrees(None, "APP-x", Plain())
+
+
+def test_it_does_not_lines_written_as_bullets_after_the_opening_are_found(monkeypatch):
+    found = agrees_of_text(monkeypatch, "# Till\n\nThe till takes payment in the shop.\n\n"
+                           "- It does not keep stock.\n- It doesn't send receipts: the shop does.\n- It is quick.\n\n## Later\n\n- It does not belong here.\n")
+    assert found["lead"] == "The till takes payment in the shop."
+    assert found["points"] == ["It does not keep stock.", "It doesn't send receipts: the shop does."]
+
+
+def test_it_does_not_sentences_in_the_opening_paragraph_are_still_found(monkeypatch):
+    found = agrees_of_text(monkeypatch, "# Till\n\nThe till takes payment. It prints a slip. It opens the drawer. It does not keep stock.\n")
+    assert found["points"] == ["It does not keep stock."]
+
+
+def test_a_sentence_is_not_cut_after_an_abbreviation():
+    kept_whole = ("Pay by card, e.g. Visa, or cash.", "Ask Dr. Reyes about it.", "Mr. Lee runs the U.S. branch.", "Open at 9 a.m. Shut at 5 p.m. daily.",
+                  "It is cheaper vs. the old till.", "That is, i.e. The Till, the one by the door.")
+    for text in kept_whole:
+        assert grills._sentences(text) == [text]
+    assert grills._sentences("Ask Dr. Reyes about it. Then go.") == ["Ask Dr. Reyes about it.", "Then go."]
+    assert grills._sentences("Stop. Go.") == ["Stop.", "Go."]

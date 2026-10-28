@@ -112,8 +112,9 @@
     for (const r of rows) {
       const c = $(`.g-card[data-grill="${r.id}"]`), box = c && $(".g-agrees", c);
       const said = r.agrees.lead || r.agrees.picked || r.agrees.choosing;
-      if (r.group === "one-away" || (!said && !box)) continue;  // a page with no opening paragraph has nothing of the plan's to copy, so no box
+      if (!said && !box) continue;  // a page with no opening paragraph has nothing of the plan's to copy, so no box
       if (!box || $(".g-agrees-lab", box).textContent !== "Settling this agrees that") { parts.push(`${r.name}: no box saying what settling agrees to`); continue; }
+      if (r.group === "one-away" && !(box.compareDocumentPosition($(".g-wait", c)) & Node.DOCUMENT_POSITION_FOLLOWING)) parts.push(`${r.name}: the Waiting on line is not below the box`);
       if (r.agrees.lead && !box.textContent.includes(r.agrees.lead)) parts.push(`${r.name}: the plan's words are not in the box`);
       const btn = $(".g-more-btn", box), list = $(".g-more-list", box);
       if (!!btn !== r.agrees.more.length > 0) parts.push(`${r.name}: the more-details button does not match what is left over`);

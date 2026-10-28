@@ -53,7 +53,7 @@ class Grill:
 
     def as_json(self):
         return {"id": self.id, "name": self.name, "kind": self.kind, "group": self.group, "state": self.state,
-                "since": self.since, "settles": list(self.settles), "agrees": self.agrees, "holdsUp": list(self.holds_up),
+                "since": self.since, "settles": [settle_line(x) for x in self.settles], "agrees": self.agrees, "holdsUp": list(self.holds_up),
                 "apps": list(self.apps), "sources": list(self.sources), "missing": self.missing,
                 "openQuestion": self.open_question,
                 "owner": list(self.owner), "ownerSet": self.owner_set, "join": list(self.join), "yes": self.yes}
@@ -148,8 +148,36 @@ def _plain_paragraphs(text):
             yield " ".join(paragraph.split())
 
 
+ABBREVIATIONS = frozenset(("e.g.", "i.e.", "dr.", "mr.", "mrs.", "ms.", "vs.", "u.s.", "u.k.", "a.m.", "p.m.", "st.", "approx.", "no.", "inc.", "ltd."))
+
+
 def _sentences(paragraph):
-    return re.split(r"(?<=[.!?])\s+(?=[A-Z\[])", paragraph)
+    """Split at sentence ends, but not after an abbreviation: "i.e. The" stays in one sentence (a cut there would
+    quote the plan as saying something it does not)."""
+    out = []
+    for piece in re.split(r"(?<=[.!?])\s+(?=[A-Z\[])", paragraph):
+        if out and out[-1].split()[-1].lower() in ABBREVIATIONS:
+            out[-1] = f"{out[-1]} {piece}"
+        else:
+            out.append(piece)
+    return out
+
+
+def _bullets_after_opening(text):
+    """The top-level bullets in the list that follows the page's opening paragraph, each as one line (wrapped lines
+    joined); [] when the opening is not followed by a list."""
+    body = re.sub(r"\A---\n.*?\n---\n", "", text, count=1, flags=re.S)
+    blocks = [b.strip("\n") for b in re.split(r"\n\s*\n", body) if b.strip()]
+    plain = [i for i, b in enumerate(blocks) if b.strip() and not b.strip().startswith(("#", "-", "|", "*", "<", "_", ">", "!", "```"))]
+    if not plain or plain[0] + 1 >= len(blocks) or not blocks[plain[0] + 1].startswith("- "):
+        return []
+    bullets = []
+    for line in blocks[plain[0] + 1].split("\n"):
+        if line.startswith("- "):
+            bullets.append(line[2:].strip())
+        elif line.startswith(" ") and line.strip() and not line.lstrip().startswith("- ") and bullets:
+            bullets[-1] += " " + line.strip()
+    return bullets
 
 
 def _opening(text, sentences=1):
@@ -178,6 +206,20 @@ def _detail_bullets(item):
     return [line[2:].strip() for line in _item_section(item) if line.startswith("- ") and not line.startswith("- **")]
 
 
+PICKED = re.compile(r"\s*\(picked\)\s*$", re.I)
+
+
+def settle_line(text):
+    """One option as a line of the settle prompt and panel: the pick is "Proposed: X", a rejected one "Set aside: X,
+    because why". The (picked) rule lives here so the page only draws it."""
+    if PICKED.search(text):
+        return f"Proposed: {PICKED.sub('', text)}"
+    parts = re.split(r":\s*rejected,?\s*", text, maxsplit=1, flags=re.I)
+    if len(parts) == 2:
+        return f"Set aside: {parts[0][:1].upper() + parts[0][1:]}, because {parts[1].rstrip('.')}"
+    return text[:1].upper() + text[1:]
+
+
 def _agrees_option_line(options):
     """{"picked", "setAside"} when one option is picked, else {"choosing": [...]} for two or more, else {}."""
     picked = [o for o in options if PICKED.search(o)]
@@ -185,9 +227,6 @@ def _agrees_option_line(options):
         return {"picked": PICKED.sub("", picked[0]), "setAside": len(options) - 1}
     names = [o.split(":")[0].strip() for o in options]
     return {"choosing": names} if len(names) > 1 else {}
-
-
-PICKED = re.compile(r"\s*\(picked\)\s*$", re.I)
 
 
 def agrees(vault, ident, resolver):
@@ -208,8 +247,9 @@ def agrees(vault, ident, resolver):
         paragraphs = list(_plain_paragraphs(page.text))
         shown = _sentences(paragraphs[0])[:OPENING_SENTENCES] if paragraphs else []
         out["lead"] = resolver.plain(" ".join(shown))
-        says = [x for p in paragraphs for x in _sentences(p) if DOES_NOT.match(x) and x not in shown]
-        out["points"] = [resolver.plain(x) for x in says[:DOES_NOT_CAP]]
+        written = paragraphs + _bullets_after_opening(page.text)
+        says = [x for p in written for x in _sentences(p) if DOES_NOT.match(x) and x not in shown]
+        out["points"] = [resolver.plain(x) for x in dict.fromkeys(says)][:DOES_NOT_CAP]
     out.update(_agrees_option_line(_options_of(item, page, resolver)))
     return out
 
