@@ -20,7 +20,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install test dependencies
-        run: python -m pip install "pytest>=8"
+        run: python -m pip install "pytest>=8" "lizard==1.21.3"
       - name: Run the suite
         run: python -m pytest -q -m "not browser"
   explorer-browser:
@@ -41,12 +41,16 @@ jobs:
         run: python -m pytest -q -m browser tests/test_explorer_browser.py
   gates:
     runs-on: ubuntu-latest
+    env:
+      GATE_BASE: origin/main
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
       - name: Install gate tools
-        run: python -m pip install "semgrep==1.157.0" "ruff==0.15.7"
+        run: python -m pip install "semgrep==1.157.0" "ruff==0.15.7" "lizard==1.21.3"
       - name: Gate (rules, sync, vault checks)
         run: .githooks/gate static

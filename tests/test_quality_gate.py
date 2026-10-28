@@ -126,3 +126,10 @@ def test_the_seeded_tree_is_green():
 def test_only_existing_python_files_with_a_layer_are_in_scope():
     named = ["tools/quality_gate.py", "README.md", "tools/missing.py", "tests/test_x.py"]
     assert quality_gate.choose_files(REPO, named) == ["tools/quality_gate.py"]
+
+
+def test_the_root_is_found_when_a_git_hook_has_set_git_dir(monkeypatch):
+    git_dir = subprocess.run(["git", "-C", str(REPO), "rev-parse", "--absolute-git-dir"], capture_output=True,
+                             text=True, check=True, timeout=30).stdout.strip()
+    monkeypatch.setenv("GIT_DIR", git_dir)
+    assert quality_gate.find_root() == REPO

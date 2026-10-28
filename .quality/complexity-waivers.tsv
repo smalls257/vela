@@ -2,9 +2,8 @@
 # Delete-only: a line may be removed (fix the code, then delete it) but never added or raised by hand.
 # Only the owner regenerates this file, and a reseed keeps every old expiry.
 # Regenerate: python3 tools/quality_seed.py --owner OWNER --reason TEXT
-# seeded 2026-10-27 at 51600738 by smalls257: pre-gate debt, measured on vela-next
+# seeded 2026-10-27 at 54d0e92f by smalls257: pre-gate debt, measured on vela-next
 .claude/hooks/gates.py::before_stop	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
-.claude/hooks/gates.py::lint	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
 .claude/hooks/gates.py::semgrep_ignores	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
 plugin/lib/vela/askwho.py::who_to_ask	ccn=19	smalls257	2027-04-27	over the cap when the gate arrived
 plugin/lib/vela/attention.py::hold	ccn=13	smalls257	2027-04-27	over the cap when the gate arrived

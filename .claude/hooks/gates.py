@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Claude Code hooks for this repo. One file, four entry points, wired in .claude/settings.json:
 
-  gates.py after-edit   PostToolUse on Edit|Write|MultiEdit: ruff + semgrep on the one file (about 1 s)
+  gates.py after-edit   PostToolUse on Edit|Write|MultiEdit: ruff + semgrep + the quality gate on the one file (about 1.5 s)
   gates.py guard-bash   PreToolUse on Bash: refuses commands that skip or disable the git hooks
   gates.py session-start SessionStart: warns when this clone has not set core.hooksPath to .githooks
-  gates.py before-stop  Stop and SubagentStop: semgrep on every changed file, CONVENTIONS sync, and the
+  gates.py before-stop  Stop and SubagentStop: ruff, semgrep and the quality gate on every changed file, CONVENTIONS sync, and the
                         tests named after changed vela modules (about 3 to 20 s)
   gates.py scannable    for .githooks/pre-commit: filters NUL-separated paths to the ones the gates lint
 
@@ -223,22 +223,58 @@ def run(argv, root, timeout):
     return done.returncode, done.stdout + done.stderr
 
 
-def lint(root, files):
-    """Findings for these repo-relative files as text lines; empty when clean."""
+def _start(argv, root):
+    return subprocess.Popen(argv, cwd=root, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=ENV)
+
+
+def _finish(proc):
+    """(exit code, output) of a process started by _start; one that outlives its minute is killed, then raised."""
+    try:
+        out, _ = proc.communicate(timeout=60)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        proc.communicate()
+        raise
+    return proc.returncode, out
+
+
+def _ruff_problems(root, py):
+    code, out = run(["ruff", "check", "--no-cache", "--quiet", "--output-format", "concise", "--config", "ruff.toml", *py], root, 30)
+    return out.splitlines() if code else []
+
+
+def _quality_problems(code, out):
+    """The quality gate's exit as problem lines. Exit 2 (it could not run) is a problem, not a raise, so a missing
+    lizard blocks the edit and the Stop instead of passing in silence."""
+    if code == 0:
+        return []
+    if code == 1:
+        return out.splitlines()
+    return ["quality gate could not run: " + out.strip()]
+
+
+def _require_tools():
     for tool in ("ruff", "semgrep"):
         if not shutil.which(tool):
             raise RuntimeError(f"{tool} is not installed, so the gate cannot run")
-    problems = []
+
+
+def _semgrep_problems(proc):
+    code, out = _finish(proc)
+    return [line for line in out.splitlines() if line.strip()] if code else []
+
+
+def lint(root, files):
+    """Findings for these repo-relative files as text lines; empty when clean. Semgrep and the quality gate run
+    side by side while ruff runs here, so the edit hook costs the slowest of them, not the sum."""
+    _require_tools()
     py = [f for f in files if f.endswith(".py") or f == "plugin/scripts/vela"]
-    if py:
-        code, out = run(["ruff", "check", "--no-cache", "--quiet", "--output-format", "concise", "--config", "ruff.toml", *py], root, 30)
-        if code:
-            problems += out.splitlines()
-    code, out = run(["semgrep", "scan", "--config", ".semgrep", "--metrics=off", "--disable-version-check",
-                     "--error", "--quiet", "--emacs", *files], root, 60)
-    if code:
-        problems += [line for line in out.splitlines() if line.strip()]
-    return problems
+    semgrep = _start(["semgrep", "scan", "--config", ".semgrep", "--metrics=off", "--disable-version-check",
+                      "--error", "--quiet", "--emacs", *files], root)
+    quality = _start([sys.executable, "tools/quality_gate.py", *py], root) if py else None
+    problems = _ruff_problems(root, py) if py else []
+    problems += _semgrep_problems(semgrep)
+    return problems + (_quality_problems(*_finish(quality)) if quality else [])
 
 
 def scannable(root, paths):

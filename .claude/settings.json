@@ -64,7 +64,11 @@
       "Edit(/.githooks/**)",
       "Edit(/.semgrep/**)",
       "Edit(/.semgrepignore)",
-      "Edit(/.claude/hooks/**)"
+      "Edit(/.claude/hooks/**)",
+      "Edit(/.quality/**)",
+      "Edit(/ruff.toml)",
+      "Edit(/tools/quality_*.py)",
+      "Bash(python3 tools/quality_seed.py*)"
     ],
     "deny": [
       "Bash(git push --no-verify *)",

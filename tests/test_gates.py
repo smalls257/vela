@@ -1,5 +1,6 @@
 """The gate hooks' decisions: what counts as bypassing the hooks, which tests a change needs, and when Stop blocks."""
 import importlib.util
+import json
 import pathlib
 
 import pytest
@@ -365,3 +366,29 @@ def test_ruff_config_selects_naming_and_comment_rules():
     for rule in ('"E9"', '"E722"', '"S506"', '"N"', '"ERA001"', '"PGH004"'):
         assert rule in text
     assert '"N818"' in text and "force-exclude = true" in text
+
+
+def test_quality_exit_codes_become_problems():
+    assert gates._quality_problems(0, "") == []
+    assert gates._quality_problems(1, "a.py:1: QG-CPX x\n") == ["a.py:1: QG-CPX x"]
+    assert gates._quality_problems(2, "lizard is not installed") == ["quality gate could not run: lizard is not installed"]
+
+
+def test_pre_commit_checks_the_waiver_file_before_its_early_exit():
+    text = (REPO / ".githooks/pre-commit").read_text(encoding="utf-8")
+    assert text.index("tools/quality_gate.py --staged") < text.index("[ ${#files[@]} -eq 0 ]")
+
+
+def test_gate_needs_lizard_and_runs_the_quality_stage():
+    text = (REPO / ".githooks/gate").read_text(encoding="utf-8")
+    assert "need lizard" in text and 'stage "quality gates" python3 tools/quality_gate.py --base' in text
+
+
+def test_the_owner_approves_waivers_caps_and_reseeds():
+    ask = json.loads((REPO / ".claude/settings.json").read_text(encoding="utf-8"))["permissions"]["ask"]
+    assert {"Edit(/.quality/**)", "Edit(/ruff.toml)", "Edit(/tools/quality_*.py)", "Bash(python3 tools/quality_seed.py*)"} <= set(ask)
+
+
+def test_ci_installs_lizard_for_the_tests_and_the_gate():
+    text = (REPO / ".github/workflows/tests.yml").read_text(encoding="utf-8")
+    assert text.count("lizard==1.21.3") == 2 and "fetch-depth: 0" in text

@@ -15,6 +15,7 @@ from __future__ import annotations
 import argparse
 import ast
 import datetime
+import os
 import pathlib
 import shutil
 import subprocess
@@ -39,9 +40,9 @@ class GateCannotRun(RuntimeError):
     pass
 
 
-def _run(argv: list[str], root: pathlib.Path, timeout: int) -> subprocess.CompletedProcess:
+def _run(argv: list[str], root: pathlib.Path, timeout: int, env: dict | None = None) -> subprocess.CompletedProcess:
     try:
-        return subprocess.run(argv, cwd=root, capture_output=True, text=True, timeout=timeout)
+        return subprocess.run(argv, cwd=root, capture_output=True, text=True, timeout=timeout, env=env)
     except OSError as exc:
         raise GateCannotRun(f"could not start {argv[0]}: {exc}") from exc
 
@@ -51,8 +52,10 @@ def _git(root: pathlib.Path, *args: str) -> subprocess.CompletedProcess:
 
 
 def find_root() -> pathlib.Path:
-    """The checkout this file belongs to, by git, so the caller's cwd cannot change what is judged."""
-    done = _git(pathlib.Path(__file__).resolve().parent, "rev-parse", "--show-toplevel")
+    """The checkout this file belongs to, by git, so the caller's cwd cannot change what is judged. A git hook
+    runs with GIT_DIR set, which makes the directory it asks from the work tree; drop that one variable here."""
+    env = {k: v for k, v in os.environ.items() if k not in ("GIT_DIR", "GIT_WORK_TREE")}
+    done = _run(["git", "rev-parse", "--show-toplevel"], pathlib.Path(__file__).resolve().parent, GIT_TIMEOUT, env)
     if done.returncode != 0:
         raise GateCannotRun(f"not a git checkout: {done.stderr.strip()}")
     return pathlib.Path(done.stdout.strip())
