@@ -210,7 +210,7 @@ def _waived(measure: Measure, layer: str, over: dict, waiver: Waiver, today: dat
     if waiver.expires < today:
         found.append(Finding(WAIVER_FILE, waiver.line, "QG-WAIVER",
                              f"waiver for {measure.key} (owner {waiver.owner}) expired on {waiver.expires.isoformat()}: "
-                             "fix it, or renew the date and reason in a reviewed commit"))
+                             "fix it, or ask the owner to renew it with python3 tools/quality_seed.py --renew KEY --until DATE --reason TEXT"))
     if not over:
         found.append(Finding(WAIVER_FILE, waiver.line, "QG-WAIVER",
                              f"{measure.key} meets its caps now: delete its line in {WAIVER_FILE}"))

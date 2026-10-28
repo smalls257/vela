@@ -2,8 +2,9 @@
 
 It exists so a function over its cap is a recorded, owned, expiring exception rather than a quiet one. Two
 Violations shape it:
-  Paper Tiger  - a green gate whose exceptions grow. The file is delete-only: `added_entries` finds any line a
-                 change adds or edits (a raised limit is an edited line), and only a reseed may add.
+  Paper Tiger  - a green gate whose exceptions grow. The file is delete-only: `changed_entries` finds any line a
+                 change adds or edits (a raised limit is an edited line), and the gate accepts one only if a seed
+                 of the same tree would have written it.
   Fossil Comments - a waiver for code that is gone, or a to-do comment whose date passed. Both expire by date.
 
 Format, one tab-separated line per entry: key, limits, owner, expires, reason.
@@ -11,6 +12,7 @@ Format, one tab-separated line per entry: key, limits, owner, expires, reason.
   limits   space-separated `metric=int`, only the metrics that were over their cap; the recorded value is a ceiling.
   expires  YYYY-MM-DD, the last day the waiver holds.
 Lines starting with `#` are comments; the one starting `# seeded ` records who seeded the file, when and from what.
+It is a label for people: no check trusts it.
 Blank lines and a trailing carriage return are ignored.
 """
 from __future__ import annotations
@@ -25,6 +27,7 @@ from quality_report import Finding
 WAIVER_FILE = ".quality/complexity-waivers.tsv"
 METRICS = ("ccn", "nloc", "params", "nesting", "lines")
 SEEDED_PREFIX = "# seeded "
+MAX_RENEWAL_DAYS = 366  # a seed puts the latest expiry 365 days out; a day more allows for a leap year
 DATED_TODO = re.compile(r"\b(TODO|FIXME|HACK)\(([^,()]+), (\d{4}-\d{2}-\d{2})\)")  # nosemgrep: todo-needs-owner-and-date -- the pattern names the marker words it looks for
 ISO_DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
 
@@ -55,7 +58,7 @@ def _parse_limits(field: str, fail) -> dict:
         metric, _, number = pair.partition("=")
         if metric not in METRICS:
             fail(f"unknown metric {metric!r}; use one of {', '.join(METRICS)}")
-        if not number.isdigit():
+        if not (number.isascii() and number.isdigit()):
             fail(f"{pair!r} is not metric=number")
         limits[metric] = int(number)
     if not limits:
@@ -102,18 +105,17 @@ def format_waivers(waivers: Iterable[Waiver], seeded: str) -> str:
 
 
 def seeded_line(text: str) -> str:
-    """The `# seeded ...` comment, or "" when the file has none."""
+    """The `# seeded ...` comment, or "" when the file has none. A label for people; no check reads it."""
     return next((line.rstrip("\r") for line in text.split("\n") if line.startswith(SEEDED_PREFIX)), "")
 
 
-def added_entries(base_text: str, head_text: str) -> list[str]:
-    """Entry lines in head that base does not have. A changed line counts as added, so a raised limit is caught.
-    A changed seeded line is a reseed, which the owner reviews as a whole, so it reports nothing."""
-    head_seed = seeded_line(head_text)
-    if head_seed and head_seed != seeded_line(base_text):
-        return []
+def changed_entries(base_text: str, head_text: str) -> list[Waiver]:
+    """Entries of head whose exact line base does not have. An edited line counts as changed, so a raised limit
+    or a pushed-out expiry is caught. The `# seeded` comment is never read: any writer can forge it, so the gate
+    proves a change by recomputing it from the tree (`quality_gate.unproduced_findings`)."""
     known = {line for _, line in _data_lines(base_text)}
-    return [line for _, line in _data_lines(head_text) if line not in known]
+    lines = dict(_data_lines(head_text))
+    return [w for w in parse_waivers(head_text).values() if lines[w.line] not in known]
 
 
 def expired(waivers: Iterable[Waiver], today: datetime.date) -> list[Waiver]:

@@ -8,7 +8,9 @@ refuses is Silent Fallback: a missing lizard, a missing or malformed waiver file
 base to check the waiver file against is exit 2 with the fix named, never a pass for a gate that did not run.
 
 With FILES it judges only those (the edit hook and pre-commit); without, the whole scope (the `static` gate and
-CI), which also needs a base to prove the waiver file only shrank. Edits to the waiver file are the owner's.
+CI), which also needs a base to prove the waiver file only shrank. With --staged and no FILES it judges no file, only
+the staged waiver file against HEAD. A changed waiver line must be one a seed of this tree would write, so edits to
+the waiver file are the owner's.
 """
 from __future__ import annotations
 
@@ -62,7 +64,7 @@ def find_root() -> pathlib.Path:
 
 
 def choose_files(root: pathlib.Path, files: list[str]) -> list[str]:
-    """The Python files in scope: the named ones that exist, or every tracked and untracked one."""
+    """The Python files in scope that sit in a layer: the named ones that exist, or every tracked and untracked one."""
     if not files:
         tracked = _git(root, "ls-files").stdout.split("\n")
         loose = _git(root, "ls-files", "--others", "--exclude-standard").stdout.split("\n")
@@ -81,13 +83,19 @@ def run_lizard(root: pathlib.Path, files: list[str]) -> dict:
     return quality_complexity.parse_lizard_csv(done.stdout)
 
 
-def read_waivers(root: pathlib.Path) -> dict:
-    path = root / quality_waivers.WAIVER_FILE
-    if not path.is_file():
-        raise GateCannotRun(f"{quality_waivers.WAIVER_FILE} is missing; restore it from git, or seed it with "
-                            "python3 tools/quality_seed.py --owner OWNER --reason TEXT")
+MISSING_WAIVER_FILE = (f"{quality_waivers.WAIVER_FILE} is missing; restore it with "
+                       f"`git checkout -- {quality_waivers.WAIVER_FILE}`. Do not reseed: that resets every expiry")
+
+
+def read_waivers(root: pathlib.Path, text: str | None = None) -> dict:
+    """The waivers, from `text` when the caller already holds the version to judge (the index, in --staged)."""
+    if text is None:
+        path = root / quality_waivers.WAIVER_FILE
+        text = path.read_text(encoding="utf-8") if path.is_file() else ""
+    if not text:
+        raise GateCannotRun(MISSING_WAIVER_FILE)
     try:
-        return quality_waivers.parse_waivers(path.read_text(encoding="utf-8"))
+        return quality_waivers.parse_waivers(text)
     except quality_waivers.WaiverFileError as exc:
         raise GateCannotRun(str(exc)) from exc
 
@@ -117,7 +125,7 @@ def scan(root: pathlib.Path, files: list[str]) -> tuple[list[quality_complexity.
 
 def dated_todo_findings(root: pathlib.Path, today: datetime.date) -> list[Finding]:
     # nosemgrep: todo-needs-owner-and-date -- the pattern names the marker words it searches for
-    done = _git(root, "grep", "-nE", r"(TODO|FIXME|HACK)\(", "--", ":!.semgrep")
+    done = _git(root, "grep", "-InE", r"(TODO|FIXME|HACK)\(", "--", ":!.semgrep")
     if done.returncode not in (0, 1):
         raise GateCannotRun(f"git grep failed: {done.stderr.strip()}")
     return quality_waivers.expired_todos([line for line in done.stdout.split("\n") if line], today)
@@ -143,11 +151,44 @@ def waiver_texts(root: pathlib.Path, staged: bool, base: str | None) -> tuple[st
     return _show(root, f"{merge_base}:{name}"), (root / name).read_text(encoding="utf-8")
 
 
-def added_waiver_findings(texts: tuple[str, str]) -> list[Finding]:
-    return [Finding(quality_waivers.WAIVER_FILE, 1, "QG-WAIVER",
-                    f"waiver line added outside a reseed: fix the code, or ask the owner to run python3 tools/quality_seed.py"
-                    f" ({line.split(chr(9))[0]})")
-            for line in quality_waivers.added_entries(*texts)]
+def over_cap_by_key(measures: list[quality_complexity.Measure]) -> dict:
+    """What a seed would record: each measure over its layer's caps, with the values that are over."""
+    found = {}
+    for measure in measures:
+        over = quality_complexity.over_caps(measure, quality_complexity.CAPS[quality_complexity.layer_of(measure.path)])
+        if over:
+            found[measure.key] = over
+    return found
+
+
+def unproduced_reason(waiver: quality_waivers.Waiver, produced: dict, today: datetime.date) -> str | None:
+    """Why a seed of this tree would not have written this line, or None when it would have."""
+    over = produced.get(waiver.key)
+    if over is None:
+        return "is not over its cap in this tree"
+    if waiver.limits != over:
+        return f"records {waiver.limits} where the tree measures {over}"
+    if waiver.expires > today + datetime.timedelta(days=quality_waivers.MAX_RENEWAL_DAYS):
+        return "expires more than a year out"
+    return None
+
+
+def unproduced_findings(root: pathlib.Path, texts: tuple[str, str], today: datetime.date) -> list[Finding]:
+    """A changed waiver line is accepted only when a seed of the whole tree would write it. Proving it beats
+    trusting the `# seeded` label, which anyone who can write the file can forge (Silent Fallback)."""
+    changed = quality_waivers.changed_entries(*texts)
+    if not changed:
+        return []
+    measures, _ = scan(root, choose_files(root, []))
+    produced = over_cap_by_key(measures)
+    found = []
+    for waiver in changed:
+        why = unproduced_reason(waiver, produced, today)
+        if why:
+            found.append(Finding(quality_waivers.WAIVER_FILE, waiver.line, "QG-WAIVER",
+                                 f"waiver line for {waiver.key} {why}, so a seed would not write it: delete the line, "
+                                 "or ask the owner to run python3 tools/quality_seed.py"))
+    return found
 
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
@@ -160,17 +201,24 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
+def _files_in_scope(root: pathlib.Path, args: argparse.Namespace) -> list[str]:
+    """--staged with no Python file staged checks no file: a docs-only commit is never failed by the whole tree's waivers."""
+    if args.staged and not args.files:
+        return []
+    return choose_files(root, args.files)
+
+
 def judge_tree(root: pathlib.Path, args: argparse.Namespace, today: datetime.date) -> list[Finding]:
-    files = choose_files(root, args.files)
-    waivers = read_waivers(root)
-    measures, findings = scan(root, files)
-    findings += quality_complexity.judge(measures, waivers, set(files), today)
-    if not args.files:
-        findings += dated_todo_findings(root, today)
     texts = waiver_texts(root, args.staged, args.base)
     if texts is None and not args.files:
         raise GateCannotRun(NO_BASE)
-    return findings + (added_waiver_findings(texts) if texts else [])
+    files = _files_in_scope(root, args)
+    waivers = read_waivers(root, texts[1] if args.staged else None)
+    measures, findings = scan(root, files)
+    findings += quality_complexity.judge(measures, waivers, set(files), today)
+    if not args.files and not args.staged:
+        findings += dated_todo_findings(root, today)
+    return findings + (unproduced_findings(root, texts, today) if texts else [])
 
 
 def main(argv: list[str], root: pathlib.Path | None = None) -> int:
@@ -178,7 +226,7 @@ def main(argv: list[str], root: pathlib.Path | None = None) -> int:
     today = args.today or datetime.date.today()
     try:
         findings = judge_tree(root or find_root(), args, today)
-    except (GateCannotRun, quality_complexity.MeasureError, subprocess.TimeoutExpired) as exc:
+    except (GateCannotRun, quality_complexity.MeasureError, subprocess.TimeoutExpired, UnicodeDecodeError) as exc:
         print(f"quality gate: could not run: {exc}", file=sys.stderr)
         return 2
     print("\n".join(render(findings)))

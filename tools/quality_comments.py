@@ -31,7 +31,7 @@ CODING_LINE = re.compile(r"coding[:=]")
 LIZARD_FORGIVE = re.compile(r"lizard\s*forgive")
 SUPPRESSION = re.compile(r"\b(noqa|nosemgrep)\b(.*)")
 NOQA_CODES = re.compile(r"\s*:?\s*[A-Z]+[0-9]+(?:\s*,\s*[A-Z]+[0-9]+)*")
-RULE_IDS = re.compile(r"\s*:?\s*[\w.\-]+(?:\s*,\s*[\w.\-]+)*")
+RULE_IDS = re.compile(r"\s*:?\s*[\w.][\w.\-]*(?:\s*,\s*[\w.][\w.\-]*)*")
 MIN_REASON_WORDS = 2
 
 
@@ -150,7 +150,10 @@ def _has_reason(comment: str) -> bool:
     hit = SUPPRESSION.search(comment)
     rest = hit.group(2)
     codes = NOQA_CODES if hit.group(1) == "noqa" else RULE_IDS
-    after_codes = rest[codes.match(rest).end():] if codes.match(rest) else rest
+    named = codes.match(rest)
+    if not named:  # a blanket suppression with only a reason after it still switches every rule off on the line
+        return False
+    after_codes = rest[named.end():]
     return len(re.findall(r"\w+", after_codes)) >= MIN_REASON_WORDS
 
 

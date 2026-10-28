@@ -2,7 +2,8 @@
 """Claude Code hooks for this repo. One file, four entry points, wired in .claude/settings.json:
 
   gates.py after-edit   PostToolUse on Edit|Write|MultiEdit: ruff + semgrep + the quality gate on the one file (about 1.5 s)
-  gates.py guard-bash   PreToolUse on Bash: refuses commands that skip or disable the git hooks
+  gates.py guard-bash   PreToolUse on Bash: refuses commands that skip or disable the git hooks, run the waiver seed or write .quality/
+  gates.py guard-edit   PreToolUse on Edit|Write|MultiEdit: refuses any edit under .quality/
   gates.py session-start SessionStart: warns when this clone has not set core.hooksPath to .githooks
   gates.py before-stop  Stop and SubagentStop: ruff, semgrep and the quality gate on every changed file, CONVENTIONS sync, and the
                         tests named after changed vela modules (about 3 to 20 s)
@@ -118,7 +119,7 @@ def _commit_skips_hooks(args):
 def _hooks_path_reason(tokens):
     """Why this command's core.hooksPath use moves the hooks away, or None."""
     # The setting itself, or -c core.hooksPath=...; the same words inside a quoted commit message are not it.
-    at = next((i for i, t in enumerate(tokens) if t == "core.hooksPath" or t.startswith("core.hooksPath=")), None)
+    at = next((i for i, t in enumerate(tokens) if t.lower() == "core.hookspath" or t.lower().startswith("core.hookspath=")), None)
     if at is None:
         return None
     # Reading it, or pointing it at .githooks, turns the gates on; anything else turns them off.
@@ -156,9 +157,59 @@ def bypass_reason(command):
     """Why `command` gets around the gates, or None. Pure."""
     for tokens in _segments(command):
         words = [t for t in tokens if "=" not in t or t.startswith("-")]
-        reason = _tooling_reason(tokens) or (_git_reason(tokens) if "git" in words else None)
+        reason = _tooling_reason(tokens) or _waiver_reason(tokens) or (_git_reason(tokens) if "git" in words else None)
         if reason:
             return reason
+    return None
+
+
+# The waiver file is delete-only, and only the owner adds to it. Under bypass-permissions mode no permission rule
+# prompts, so a hook deny is the one stop an agent meets. Same limit as above: text matching, not a sandbox.
+OWNER_SEED_COMMAND = "! python3 tools/quality_seed.py --owner OWNER --reason TEXT"
+WAIVER_REASON = ("touches the complexity waivers or runs the seed. Only the owner reseeds or renews them, from their own "
+                 f"terminal or by typing `{OWNER_SEED_COMMAND}` at the Claude prompt. Fix the code instead, or ask the owner")
+WAIVER_NAMES = re.compile(r"quality_seed|(^|\W)\.quality(/|$)|complexity-waivers", re.IGNORECASE)
+READ_ONLY_COMMANDS = {"cat", "head", "tail", "grep", "rg", "wc", "ls", "diff", "ruff", "echo", "printf"}
+READ_ONLY_GIT = {"add", "commit", "diff", "log", "show", "status", "ls-files", "blame", "grep", "rev-parse"}
+RESTORE_WAIVER_FILE = ["checkout", "--", ".quality/complexity-waivers.tsv"]
+
+
+def _redirects(tokens):
+    return any(t.lstrip("0123456789").startswith(">") for t in tokens)
+
+
+def _first_command(tokens):
+    """(command word, the words after it), skipping leading NAME=value words."""
+    rest = list(tokens)
+    while rest and "=" in rest[0] and not rest[0].startswith("-"):
+        rest.pop(0)
+    return (rest[0], rest[1:]) if rest else ("", [])
+
+
+def _git_only_reads(rest):
+    """Whether `git <rest>` reads or stages, or is the one-file restore of the waiver file from HEAD."""
+    i = 0
+    while i < len(rest) and rest[i].startswith("-"):
+        i += 2 if rest[i] in GIT_VALUE_OPTIONS else 1
+    rest = rest[i:]
+    return bool(rest) and (rest[0] in READ_ONLY_GIT or rest == RESTORE_WAIVER_FILE)
+
+
+def _only_reads(tokens):
+    """Whether this simple command can name the waiver file without changing it: a reader, a git read or stage, the
+    one-file restore, or pytest. Anything with a redirect or a command substitution is not."""
+    if _redirects(tokens) or any("$(" in t or "`" in t for t in tokens):
+        return False
+    command, rest = _first_command(tokens)
+    if command == "git":
+        return _git_only_reads(rest)
+    return command in READ_ONLY_COMMANDS or tokens[:3] == ["python3", "-m", "pytest"]
+
+
+def _waiver_reason(tokens):
+    """Why this simple command touches the waiver file or the seed, or None. Reading it is allowed."""
+    if any(WAIVER_NAMES.search(t) for t in tokens) and not _only_reads(tokens):
+        return WAIVER_REASON
     return None
 
 
@@ -314,6 +365,24 @@ def after_edit(event):
     return 0
 
 
+def waiver_edit_reason(path, root):
+    """Why editing `path` (absolute, or relative to the repo root) is refused, or None. Pure."""
+    rel = os.path.relpath(os.path.join(root, path), root)
+    if rel.split(os.sep)[0].casefold() == ".quality":
+        return ("edits .quality/, the delete-only complexity waivers. Only the owner reseeds or renews them, from their "
+                f"own terminal or by typing `{OWNER_SEED_COMMAND}` at the Claude prompt")
+    return None
+
+
+def guard_edit(event):
+    root = str(repo_root(event.get("cwd") or "."))
+    why = waiver_edit_reason(event.get("tool_input", {}).get("file_path", ""), root)
+    if why:
+        print(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny",
+                                                 "permissionDecisionReason": f"This edit {why}."}}))
+    return 0
+
+
 def guard_bash(event):
     command = event.get("tool_input", {}).get("command", "")
     why = bypass_reason(command)
@@ -369,8 +438,8 @@ def print_scannable(paths_in):
 
 
 def main(argv):
-    hooks = {"after-edit": after_edit, "guard-bash": guard_bash, "before-stop": before_stop,
-             "session-start": session_start}
+    hooks = {"after-edit": after_edit, "guard-bash": guard_bash, "guard-edit": guard_edit,
+             "before-stop": before_stop, "session-start": session_start}
     if argv[1:] == ["scannable"]:
         try:
             return print_scannable(sys.stdin.read())

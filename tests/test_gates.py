@@ -22,6 +22,11 @@ def test_commands_that_skip_the_hooks_are_named(command):
     assert gates.bypass_reason(command)
 
 
+@pytest.mark.parametrize("command", ["git config CORE.HOOKSPATH /dev/null"])
+def test_the_hooks_path_setting_is_case_insensitive(command):
+    assert gates.bypass_reason(command)
+
+
 @pytest.mark.parametrize("command", ["git push origin main", "git log -n 5", "git commit -m 'no -n here'",
                                      "python3 -m pytest -q", "ls .githooks"])
 def test_ordinary_commands_pass(command):
@@ -384,9 +389,47 @@ def test_gate_needs_lizard_and_runs_the_quality_stage():
     assert "need lizard" in text and 'stage "quality gates" python3 tools/quality_gate.py --base' in text
 
 
-def test_the_owner_approves_waivers_caps_and_reseeds():
-    ask = json.loads((REPO / ".claude/settings.json").read_text(encoding="utf-8"))["permissions"]["ask"]
-    assert {"Edit(/.quality/**)", "Edit(/ruff.toml)", "Edit(/tools/quality_*.py)", "Bash(python3 tools/quality_seed.py*)"} <= set(ask)
+@pytest.mark.parametrize("command", [
+    "python3 tools/quality_seed.py --owner x --reason y", "python3 ./tools/quality_seed.py --first",
+    "cd tools && python3 quality_seed.py", "PYTHONPATH=x python3 tools/quality_seed.py",
+    "echo x >> .quality/complexity-waivers.tsv", "echo x >.quality/complexity-waivers.tsv",
+    "cp other .quality/complexity-waivers.tsv", "mv other .quality/complexity-waivers.tsv",
+    "printf x | tee .quality/complexity-waivers.tsv", "sed -i s/a/b/ .quality/complexity-waivers.tsv",
+    "python3 -c \"open('.quality/complexity-waivers.tsv', 'a').write('x')\"", "cd .quality && echo hi > x",
+    "git checkout main -- .quality/complexity-waivers.tsv", 'git commit -m "$(python3 tools/quality_seed.py)"',
+])
+def test_an_agent_cannot_write_the_waivers_or_run_the_seed(command):
+    why = gates.bypass_reason(command)
+    assert why and "only the owner" in why.lower() and "! python3 tools/quality_seed.py" in why
+
+
+@pytest.mark.parametrize("command", [
+    "cat .quality/complexity-waivers.tsv", "grep -c ccn .quality/complexity-waivers.tsv", "ls .quality",
+    "git diff HEAD -- .quality/complexity-waivers.tsv", "git add .quality/complexity-waivers.tsv",
+    "git checkout -- .quality/complexity-waivers.tsv", "git commit -m 'explain quality_seed in the docs'",
+    "python3 tools/quality_gate.py --base main",
+])
+def test_reading_staging_and_restoring_the_waivers_is_allowed(command):
+    assert gates.bypass_reason(command) is None
+
+
+@pytest.mark.parametrize("path", [".quality/complexity-waivers.tsv", "/repo/.quality/x", "tools/../.quality/x",
+                                  ".Quality/x"])
+def test_no_edit_tool_may_touch_the_waiver_directory(path):
+    assert "Only the owner" in gates.waiver_edit_reason(path, "/repo")
+
+
+def test_other_edits_are_not_refused_by_the_waiver_guard():
+    assert gates.waiver_edit_reason("/repo/tools/quality_gate.py", "/repo") is None
+    assert gates.waiver_edit_reason("docs/.quality-notes.md", "/repo") is None
+
+
+def test_the_edit_guard_is_wired_before_edits_and_the_ask_rules_for_the_waivers_are_gone():
+    settings = json.loads((REPO / ".claude/settings.json").read_text(encoding="utf-8"))
+    guard = [h for h in settings["hooks"]["PreToolUse"] if h["matcher"] == "Edit|Write|MultiEdit"]
+    assert guard and "guard-edit" in guard[0]["hooks"][0]["command"]
+    ask = settings["permissions"]["ask"]
+    assert not [rule for rule in ask if "quality_seed" in rule or ".quality" in rule]  # bypass mode never prompts, so the hook is the stop
 
 
 def test_ci_installs_lizard_for_the_tests_and_the_gate():

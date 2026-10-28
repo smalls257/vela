@@ -32,12 +32,21 @@ def test_blank_and_crlf_lines_are_tolerated():
     assert len(quality_waivers.parse_waivers(HEAD + "\n" + LINE.replace("\n", "\r\n"))) == 1
 
 
-def test_an_added_or_raised_line_is_caught_but_a_reseed_is_not():
+def test_an_added_or_edited_line_is_changed_and_a_deleted_one_is_not():
     raised = LINE.replace("ccn=59", "ccn=61")
-    assert quality_waivers.added_entries(HEAD + LINE, HEAD + raised) == [raised.strip()]
-    assert quality_waivers.added_entries(HEAD + LINE, HEAD) == []  # deleting is fine
-    reseed = "# seeded 2026-11-03 at 1234abcd by smalls257: re-seed after easy-settle merged\n"
-    assert quality_waivers.added_entries(HEAD + LINE, reseed + raised) == []
+    assert [w.key for w in quality_waivers.changed_entries(HEAD + LINE, HEAD + raised)] == ["plugin/lib/vela/reading.py::style_problems"]
+    assert quality_waivers.changed_entries(HEAD + LINE, HEAD) == []
+    assert quality_waivers.changed_entries(HEAD + LINE, HEAD + LINE.replace("2027-04-27", "2027-05-01"))[0].expires == datetime.date(2027, 5, 1)
+
+
+def test_a_rewritten_seeded_line_does_not_hide_a_changed_entry():
+    forged = "# seeded 2026-10-28 at 1234abcd by smalls257: looks like a reseed\n"
+    assert len(quality_waivers.changed_entries(HEAD + LINE, forged + LINE.replace("ccn=59", "ccn=99"))) == 1
+
+
+def test_a_superscript_digit_is_a_malformed_limit_not_a_crash():
+    with pytest.raises(quality_waivers.WaiverFileError, match="not metric=number"):
+        quality_waivers.parse_waivers(HEAD + LINE.replace("ccn=59", "ccn=\u00b2"))
 
 
 def test_expired_waivers_and_todos():
