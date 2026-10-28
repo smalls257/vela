@@ -1,6 +1,6 @@
 /* Progress: where each app stands on the stage ladder, how complete the design is by vela's five measures,
    what is due when, and what still waits on someone. These are the numbers vela status and vela next compute
-   (progress.grid, progress.best, completeness.measure, override, handoff); the page only draws them. */
+   (progress.grid, progress.best, completeness.measure, handoff); the page only draws them. */
 const ProgressView = (() => {
   const MIX = ["inkling", "assumption", "fact", "decided"].map((s) => [s, `var(--mix-${s})`]);
   const { bx } = Legend;
@@ -18,8 +18,6 @@ const ProgressView = (() => {
   /* A handle as a person reads it (the vault's name for the role, else the handle in words), and a reason without its
      capture marks: the reader text rule, no @handles or ^c codes. Same rule as the decision log's person(). */
   const personOf = (t) => peopleWords(t);
-  const unmarked = (t) => String(t || "").replace(/\[\[([^\]|#]+)(?:#[^\]|]*)?(?:\\?\|([^\]]+))?\]\]/g, (m, target, label) => label || titleOf(target))
-    .replace(/\s*\^c\d+\b/g, "");
   function render(main) {
     const P = D.progress, sc = h("div", { class: "scroll pages" });
     main.append(h("div", { class: "view-head" }, h("div", {}, h("h1", {}, "Progress"),
@@ -58,12 +56,6 @@ const ProgressView = (() => {
     sc.append(tableCard);
     tableKey.paint();
     sc.append(dueChart());
-    const ov = h("section", { class: "card" });
-    if (P.overrides.length) ov.append(h("h2", { style: "margin-top:16px" }, "Rules skipped on purpose", h("span", { class: "sub" }, String(P.overrides.length))),
-      h("table", { class: "t" }, h("tr", {}, h("th", {}, "On"), h("th", {}, "Rule skipped"), h("th", {}, "By"), h("th", {}, "Reason")),
-        P.overrides.map((o) => h("tr", { class: "click", onclick: () => go(o.key, { reset: true }) }, h("td", {}, refChip(o.key)), h("td", { title: o.rules.join(", ") }, (o.skipped || o.rules).join(", ")),
-          h("td", {}, `${personOf(o.by)}, ${isDate(o.date) ? day(o.date) : o.date}`), h("td", { class: "authored" }, unmarked(o.reason))))));
-    if (P.overrides.length) sc.append(ov);
   }
   function handoff(x) {
     if (!x.manifest && !x.handedOff) return h("span", { class: "muted" }, "not handed to a team yet");
