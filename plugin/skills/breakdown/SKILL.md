@@ -10,9 +10,9 @@ Turn a finished design into stories and tasks, and show that nothing was left ou
 
 ## 1. Start
 
-Before your first question, read `voice/VOICE.md` if the vault has one, then `${CLAUDE_PLUGIN_ROOT}/references/CONVERSATION-VOICE.md`; write the plan's prose through `house-voice` (`${CLAUDE_PLUGIN_ROOT}/skills/house-voice/SKILL.md`, read as a file: only a person can start it). Acceptance criteria are never restyled. From `${CLAUDE_PLUGIN_ROOT}/references/START.md` follow "Plain names and a page a person can hold", "Relaying a command" and "The user may override any rule". When the terms slice or tracer first come up, define each once from `vela terms <word>`.
+Before your first question, read `voice/VOICE.md` if the vault has one, then `${CLAUDE_PLUGIN_ROOT}/references/CONVERSATION-VOICE.md`; write the plan's prose through `house-voice` (`${CLAUDE_PLUGIN_ROOT}/skills/house-voice/SKILL.md`, read as a file: only a person can start it). The plan's acceptance criteria are never restyled. From `${CLAUDE_PLUGIN_ROOT}/references/START.md` follow "Plain names and a page a person can hold", "Relaying a command" and "The user may override any rule". When the terms slice or tracer first come up, define each once from `vela terms <word>`.
 
-Then run `sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela freshness --for-lead`. If it exits 3, this copy is behind the shared plan, and every check below would read old pages: say what it printed in your words and offer to bring it up to date (`git switch main`, then `git pull --ff-only`) before you go on. If it fails, say in one plain sentence that you couldn't check, then go on.
+Then run `sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela freshness --for-lead`. If it exits 3, this copy is behind the shared plan, and every check below would read old pages: say what it printed in your words, bring it up to date (`git switch main`, then `git pull --ff-only`) and say so, then go on. If the pull stops on uncommitted vault-page changes, stop and say so. If it fails, say in one plain sentence that you couldn't check, then go on.
 
 A team session writes no session. Work on the branch `design/<slug>` (create it if it doesn't exist), commit after each agreed story with `vela team commit --about "<the story>"`, and say so. The plan is reviewed like the design. If the team has no review rule, say you are committing to a branch and let the team lead decide.
 
@@ -20,20 +20,20 @@ Check the prerequisites:
 
 1. `docs/tech-design/<slug>.md` exists with `status: complete` or `complete-with-gaps`. If not, say in one sentence what is missing and offer `/vela:design`; stop there. A plan on an unfinished design is a plan for work that will change.
 2. `docs/plan/<slug>-breakdown.md` may already exist. Read back its summary in words, ask whether to continue it or start again, and say what you didn't re-check. Stories already agreed stay as they are.
-3. Run `sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela handoff verify <APP-id> --for-lead` as `${CLAUDE_PLUGIN_ROOT}/references/TECH-DESIGN-FROM-VAULT.md` says. If the vault changed since the design, name what changed, by name, before the plan leans on it.
+3. Run `sh ${CLAUDE_PLUGIN_ROOT}/scripts/run-vela handoff verify <APP-id> --for-lead` as `${CLAUDE_PLUGIN_ROOT}/references/TECH-DESIGN-FROM-VAULT.md` says. If the vault changed since the design, name what changed before the plan leans on it.
 4. Read your app's slices' flow check from the handoff rather than running it again: `handoffs/<APP-id>.md`, under `## Flow checks when written`. If the handoff record has no `## Flow checks when written` section, run `vela check-slice <slice> --for-lead` once. If a slice is 'not fully checked' or has open findings, tell the team lead before you design against it.
 
 ## 2. Read what the plan stands on
 
-Read the design (`gaps` and `deferred` in its frontmatter, its Trace table, components, open questions) and its ADRs; then the app's vault pages, in the order `TECH-DESIGN-FROM-VAULT.md` gives under "What to read" (allocated rows, contracts, epic criteria, slices, `04b-releases.md`); then `CONTEXT.md` and the codebase, so tasks name real modules. When a fact is missing, look in this order before asking: this conversation, then the docs, then the code.
+Read the design (`gaps` and `deferred` in its frontmatter, its Trace table, components, open questions) and its ADRs; then the app's vault pages, in the order `TECH-DESIGN-FROM-VAULT.md` gives under "What to read" (allocated rows, contracts, epic criteria, slices, `04b-releases.md`); then `CONTEXT.md` and the codebase, so tasks name real modules. When a fact is missing, look in this conversation, then the docs, then the code, before asking.
 
 Build the coverage table before proposing a cut: every allocated requirement, contract, epic criterion and design component, with the stories that will cover it. An empty cell is work left out.
 
-Plan only around people the design or the vault names. A person who appears for the first time in the conversation is asked about ("You mentioned someone for the Mac build. Who is that, and are they on this team?") before any task is assigned to them or any capacity counts them.
+Plan only around people the design or the vault names. A person new to the conversation is asked about ("You mentioned someone for the Mac build. Who is that, and are they on this team?") before any task is assigned to them or any capacity counts them.
 
 ## 3. Find the tracer
 
-The tracer runs end to end through every app. This team's first story is its piece of that flow, with the other teams' sides stubbed, so the first thing built is something the whole initiative can see working. Later stories are vertical slices: each one delivers behavior someone can watch.
+The tracer runs end to end through every app. This team's first story is its piece of that flow, with the other teams' sides stubbed, so the first thing built is something the whole initiative can see working. Later stories are vertical slices, each delivering behavior someone can watch.
 
 Read it from its slice page, the one with no `**After:**` (usually `slices/SLC-001-*.md`): its `**Flows:**` and `## Not in this slice`. A vault with no slice pages names it on release one in `04b-releases.md`, as a `- **Tracer:**` bullet linking its flows, with an optional `- **Not in the tracer:**`.
 
@@ -43,17 +43,18 @@ A story that is a layer (a gate, a schema, a screen with nothing behind it) is f
 
 ## 4. Propose the cut, then walk it
 
-Read the proposed stories back in words, about four at a time: each one's name, what a person can see when it's done, and what it waits on. No IDs, no trace lines; those are in the file. For low-risk stories, "I'll take these four as proposed unless you want to look at one" saves a turn.
+Read the proposed stories back in words, about four at a time: name, what a person can see when it's done, what it waits on. No IDs, no trace lines; those are in the file. For low-risk stories, "I'll take these four unless you want to look at one" saves a turn.
 
 Then, for each agreed story, one question at a time with your recommendation and a one-line reason. Settle:
 
 - **Acceptance criteria.** Quote them word for word from the epic criterion or requirement the story traces to, one bullet each, and put every ID on the `Traces to:` line. A criterion from the design or the team (a target, a failure rule) is written as the design states it. `vela tickets check` checks the quotes again. A criterion the vault doesn't hold is never made up: it goes to the design as a question.
 - **Done when**: one plain sentence a tester could say aloud.
+- **Ticket copy**, once the criteria are agreed: a `Summary:` line and a `Ticket criteria` block, written through `house-voice` the way `PLAN-FORMAT.md` shows. They group, merge and reword the criteria for the ticket; the criteria themselves stay word for word. Write the copy under a plain `Ticket criteria:` label, run `tickets check`, and put the stamp it prints in the label.
 - **Tasks**, each sized `S` (up to about 2 days), `M` (3 to 5 days) or `L` (1 to 2 weeks) for one engineer. A task over `L` is split. Sizes are for ordering.
 - **What it waits on**: another story, a design question or deferral, an outside party. `Blocked by:` starts with `none` when nothing blocks it.
 - **Whether it fits before the next release date** in `04b-releases.md`: do the rough sum only from capacity the design or the team lead states, say it's rough and from their numbers, and write "cannot tell" with the missing number when one is missing.
 
-When a story's tasks come out vague, probe with a concrete edge case rather than the happy path: "A customer cancels an order with three line items, one already shipped. Which task handles the shipped line, which the refund, and which the order's status?" If no task owns an answer, the story is missing one. If the answer comes back general, restate the scenario more concretely until it isn't.
+When a story's tasks come out vague, probe with a concrete edge case, not the happy path: "A customer cancels an order with three line items, one already shipped. Which task handles the shipped line, which the refund, and which the order's status?" If no task owns an answer, the story is missing one. If the answer comes back general, make the scenario more concrete.
 
 Write each story into the plan as soon as it's agreed, and commit it with `vela team commit`. Stories deferred, held or split keep every field a built story has (`PLAN-FORMAT.md` gives their `Status:` lines); IDs are never renumbered or reused.
 

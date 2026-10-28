@@ -4,7 +4,7 @@ plan 2.2). Pure.
 The Violation this exists to prevent is a Leaky Narrative in the record START resumes from. Grill section 2 held the
 grammar in prose,
 
-    - <ID>: GATE-3 confirmed yes|no, status open|decided|off-agenda: UNK-xxx|off-agenda: GATE-n[, override: GATE-n]
+    - <ID>: GATE-3 confirmed yes|no, status open|decided|off-agenda: GATE-n[, override: GATE-n]
 
 and START's resume rule reads it back, so a line typed slightly wrong is an item a resumed grill silently skips. Here
 the line is written from fields and read back by the same pattern (`LINE`). Why each part:
@@ -12,27 +12,26 @@ the line is written from fields and read back by the same pattern (`LINE`). Why 
 - `GATE-3 confirmed yes` only on a yes on record: the capture `yes` passes the consent checks (a person's words, not a
   bare "ok", after the read-back of the agenda), because GATE-3 is the lead's explicit yes to the agenda, and a yes
   nobody can point at is no yes. Without `yes` the line says `no`.
-- `off-agenda: UNK-xxx` names the open unknown that holds the item (GATE-4), `off-agenda: GATE-n` the other gate it
-  failed, so the resumed grill knows what to ask before it comes back on.
+- `off-agenda: GATE-n` names the gate the item failed, so the resumed grill knows what to ask before it comes back on.
+  An open question under an item never takes it off the agenda: settling notes it (`Decided with open`).
 - `override: GATE-n` is the lead deciding it anyway; the item stays on the agenda with a status. The override bullet
   itself is the `override` kind's to write, on the item, where check reads it.
 
-An item already on the agenda has its line replaced, never a second line added. `vela add unknown --blocks X` calls
-`block` so an item a new unknown holds comes off the agenda in the same write (grill's "File each decision as its branch closes").
+An item already on the agenda has its line replaced, never a second line added.
 """
 import re
 
 from vela.decisions import consent, schema, textedit
 
 HEADING = "Agenda"
-STATUS = re.compile(r"^(?:open|decided|off-agenda: (?:UNK-\d+|GATE-\d))$")
+STATUS = re.compile(r"^(?:open|decided|off-agenda: GATE-\d)$")
 GATE = re.compile(r"^GATE-\d$")
 LINE = re.compile(r"^- (?P<id>[^\s:]+): GATE-3 confirmed (?P<yes>yes|no), status (?P<status>open|decided|off-agenda: "
-                  r"(?:UNK-\d+|GATE-\d))(?:, override: (?P<override>GATE-\d(?:, GATE-\d)*))?\s*$")
+                  r"GATE-\d)(?:, override: (?P<override>GATE-\d(?:, GATE-\d)*))?\s*$")
 
 SCHEMA = schema.KindSchema(
     fields={"id": "the item's ID, as the gate named it",
-            "status": "open, decided, off-agenda: UNK-nnn (the unknown that holds it) or off-agenda: GATE-n",
+            "status": "open, decided or off-agenda: GATE-n",
             "readback": "the capture where the agenda was read back",
             "yes": "the capture holding the lead's yes to the agenda (GATE-3); null when there is none yet",
             "override": "the gates the lead chose to decide it anyway, such as [\"GATE-5\"]"},
@@ -78,22 +77,6 @@ def set_line(record_text, ident, line):
     return textedit.insert_block(record_text, HEADING, [line], before=("Captures", "Changes"))
 
 
-def block(record_text, ident, unknown_id):
-    """The record with `ident` taken off the agenda for `unknown_id` (grill's "File each decision as its branch closes"), unless it is decided, already
-    off for another unknown, or the lead overrode GATE-4 for it. Unchanged when it isn't on the agenda."""
-    found = entries(record_text).get(ident)
-    if found is None or not now_blocked(found) or found["status"].startswith("off-agenda: UNK"):
-        return record_text
-    override = tuple(found["override"].split(", ")) if found["override"] else ()
-    return set_line(record_text, ident, format_line(ident, found["yes"] == "yes", f"off-agenda: {unknown_id}",
-                                                    override))
-
-
-def now_blocked(match):
-    """Whether a new unknown blocking this agenda item holds it up: it isn't decided and GATE-4 isn't overridden."""
-    return match["status"] != "decided" and "GATE-4" not in (match["override"] or "")
-
-
 def validate(item, vault, record):
     found = textedit.context_refusals(vault)
     if textedit.find(vault, str(item["id"])) is None:
@@ -103,8 +86,8 @@ def validate(item, vault, record):
                                       override="none: an agenda line names an item that exists"))
     if not STATUS.match(str(item.get("status") or "")):
         found.append(textedit.refusal("agenda-status", "I couldn't tell where that item stands on the agenda.",
-                                      f"status {item.get('status')!r} must be open, decided, off-agenda: UNK-nnn or "
-                                      "off-agenda: GATE-n.", override="none: pick one of the four"))
+                                      f"status {item.get('status')!r} must be open, decided or "
+                                      "off-agenda: GATE-n.", override="none: pick one of the three"))
     bad = [g for g in (item.get("override") or []) if not GATE.match(str(g))]
     if bad:
         found.append(textedit.refusal("agenda-override", "I couldn't tell which check you chose to set aside.",

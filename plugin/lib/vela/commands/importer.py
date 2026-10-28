@@ -52,18 +52,18 @@ def register(sub):
     add.add_argument("--source", action="append", default=[], help="the source it rests on (SRC-nn); twice for a clash")
     add.add_argument("--propose", required=True, help="the answer you'd give, in a line")
     add.add_argument("--why", required=True, help="why you'd give it, in a line")
-    common(add, cmd_add)
+    add_record_flags(add, cmd_add)
 
-    common(verbs.add_parser("next", help="the next batch of about four, or the open batch again"), cmd_next)
+    add_record_flags(verbs.add_parser("next", help="the next batch of about four, or the open batch again"), cmd_next)
 
     closer = verbs.add_parser("close", help="settle one item with the lead's answer")
     closer.add_argument("number", type=int, help="the item's number, as add printed it")
     closer.add_argument("--as", dest="outcome", required=True,
                         choices=sorted({o for outs in importqueue.OUTCOMES.values() for o in outs}))
     closer.add_argument("--how", default="", help="how it ended, in a line")
-    common(closer, cmd_close)
+    add_record_flags(closer, cmd_close)
 
-    common(verbs.add_parser("show", help="the read-back: what's settled, what's asked, what waits"), cmd_show)
+    add_record_flags(verbs.add_parser("show", help="the read-back: what's settled, what's asked, what waits"), cmd_show)
 
     wording = verbs.add_parser("wording", help="the lead's answer to the voice question, for every source or one")
     wording.add_argument("--as", dest="choice", required=True, choices=importqueue.WORDINGS,
@@ -71,15 +71,15 @@ def register(sub):
                               "sentences voiced; voice: all of it in the plan's voice")
     wording.add_argument("--yes", required=True, metavar="^cN", help="the capture of the lead's answer")
     wording.add_argument("--source", default=importqueue.ALL_SOURCES, help="one source (SRC-nn); default every source")
-    common(wording, cmd_wording)
+    add_record_flags(wording, cmd_wording)
 
     page = verbs.add_parser("page", help="stamp a page with the wording its sources take")
     page.add_argument("page", help="the page's path in the vault")
     page.add_argument("--source", action="append", default=[], help="a source the page draws on (SRC-nn); repeat")
-    common(page, cmd_page)
+    add_record_flags(page, cmd_page)
 
 
-def common(parser, func):
+def add_record_flags(parser, func):
     parser.add_argument("--vault", default=".", help="vault root (default: current directory)")
     parser.add_argument("--record", default="", metavar="ID", help="the open record, when several are open")
     say.add_output_flags(parser)
@@ -230,7 +230,10 @@ def cmd_wording(args, out):
         root, session = where
         if args.source != importqueue.ALL_SOURCES and unknown_sources([args.source], source_titles(root)):
             raise importqueue.QueueRefused(f"{args.source} isn't in the sources register")
-        answer = importqueue.set_wording(state, args.choice, lead_yes(root, session, args.yes), args.source)
+        yes = lead_yes(root, session, args.yes)
+        notes = (pathlib.Path(root) / privaterecord.private_path(session)).read_text(encoding="utf-8")  # lead_yes read it
+        cite = privaterecord.citation(session, privaterecord.part_of(notes), int(capture_number(yes)))
+        answer = importqueue.set_wording(state, args.choice, yes, args.source, cite)
         scope = "every source" if args.source == importqueue.ALL_SOURCES else args.source
         return [model_line(f"wording for {scope}: {answer['as']} ({answer['yes']})")], {"wording": state["wording"]}, "", ""
     return run(args, out, change)
@@ -262,15 +265,6 @@ def set_frontmatter(text, values):
     return "\n".join(lines)
 
 
-def wording_citation(root, session, yes):
-    """The lead's yes as a committed page cites it, `[[<session>]] c07` (`2.c07` from the second part). The part is
-    read from this machine's notes, which the yes was checked against."""
-    notes = sessiongit.private_text(root, session)
-    if notes is None:
-        raise importqueue.QueueRefused(str(sessiongit.PrivateMissing(session)))
-    return privaterecord.citation(session, privaterecord.part_of(notes), int(capture_number(yes)))
-
-
 def cmd_page(args, out):
     def change(state, where):
         root, session = where
@@ -282,10 +276,9 @@ def cmd_page(args, out):
         if not args.source or missing:
             raise importqueue.QueueRefused("give every source the page draws on (--source SRC-nn), each in the register"
                                            + (f"; {', '.join(missing)} isn't" if missing else ""))
-        choice, yes = importqueue.wording_for(state, args.source)
-        link = wording_citation(root, session, yes) if yes else None
+        choice, yes, link = importqueue.wording_for(state, args.source)
         text = path.read_text(encoding="utf-8")
-        after = set_frontmatter(text, {WORDING_KEY: choice, WORDING_YES_KEY: link})
+        after = set_frontmatter(text, {WORDING_KEY: choice, WORDING_YES_KEY: link or None})
         wrote = [sessiongit.write_text(root, rel, after)] if after != text else []
         said = {importqueue.KEEP: "keeps the documents' words as written",
                 importqueue.SPLIT: "quotes the documents' terms and voices its own sentences",

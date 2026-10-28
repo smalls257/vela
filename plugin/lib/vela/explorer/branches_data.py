@@ -414,7 +414,9 @@ def played(steps, names, answers, contract_titles, ended=True, outcomes=None, wo
         if s.get("tag") in QUIET_TAGS:
             i += 1
             continue
-        who = lambda n: names.get(n, n)  # noqa: E731
+        def who(n):
+            return names.get(n, n)
+
         if s.get("tag") == "end":
             said = ending_words(s, outcomes, words, settled)
             out.append({"kind": "end", "over": s.get("over", []), "differs": s["alt"], "short": f"It ends here: {said}."})

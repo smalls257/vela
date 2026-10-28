@@ -161,7 +161,7 @@ MODE_NAMES = {"dump": "Dump & Diverge", "discover": "Discover", "shape": "Shape"
 OWNER_ONLY = ("challenge", "answer")  # each opens or pushes to a pull request, which a published copy can't
 STALE_DAYS = 14  # START step 2: an open record older than this is said to be old
 NAMING_QUESTION = "What short name should this initiative go by? A few words, as you would say it to a colleague."
-_CHALLENGE_TITLE = re.compile(r"^\d{4}-\d{2}-\d{2}\b.*\bChallenge: (?P<id>\S+)$")
+_CHALLENGE_TITLE = re.compile(r"^(?:\[[^\]]+\] )?\d{4}-\d{2}-\d{2}\b.*\bChallenge: (?P<id>\S+)$")
 _NOT_SLUG = re.compile(r"[^a-z0-9]+")
 
 

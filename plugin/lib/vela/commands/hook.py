@@ -1,9 +1,8 @@
 """`vela hook session-start|said|bash|edit|post-edit`: what the plugin's hooks (`plugin/hooks/hooks.json`) run.
 
-`bash` and `edit` are PreToolUse hooks: they print a `permissionDecision` (deny, or ask before a push or a pull
-request) with the reason in plain words. The verdicts come from `hookverdict.py`, which judges paths by `guard.py`, so
-a hook holds no rule of its own (Distributed Monolith ruled out). `post-edit` is the PostToolUse quick check: it
-parses the one page just edited and hands the model what's broken on it, so a stray marker or a broken table is fixed
+`bash` and `edit` are PreToolUse hooks: they print a `permissionDecision` (deny a private path staged by hand) with the
+reason in plain words. The verdicts come from `hookverdict.py`, which judges paths by `guard.py`, so a hook holds no rule of its own (Distributed Monolith ruled
+out). `post-edit` is the PostToolUse quick check: it parses the one page just edited and hands the model what's broken on it, so a stray marker or a broken table is fixed
 now instead of at close. A full `vela check` per edit would cost seconds on every edit of a session (Computational
 Friction); the close runs it once. None of them is a gate: each rule is already refused by the CLI, which holds where
 hooks don't fire (Cowork).
@@ -45,7 +44,7 @@ def register(sub):
     said_hook = each.add_parser("said", help="UserPromptSubmit: append the person's message to .vela/said/ so `vela record "
                                              "add` can check a capture is words they typed; reads the hook JSON on stdin")
     said_hook.set_defaults(func=cmd_said)
-    for name, func, said in (("bash", cmd_bash, "PreToolUse on Bash: deny staging by hand, ask before a push or a PR"),
+    for name, func, said in (("bash", cmd_bash, "PreToolUse on Bash: deny a private path staged by hand"),
                              ("edit", cmd_edit, "PreToolUse on Edit/Write: deny a hand-moved state or an edit inside "
                                                 "a generated block"),
                              ("post-edit", cmd_post_edit, "PostToolUse on Edit/Write: the edited page's parse "
@@ -174,12 +173,9 @@ def vault_of(path):
     return None
 
 
-def answer(out, verdict, payload=None):
+def answer(out, verdict):
     """Print a PreToolUse decision. No verdict prints nothing, which leaves the call to the normal permission flow.
-    An "ask" is dropped when the person runs with bypassed permissions: they chose not to be prompted, so the hook
-    doesn't prompt either. A deny still denies: it guards the plan, not the person's attention."""
-    if verdict is not None and verdict.decision == "ask" and (payload or {}).get("permission_mode") == "bypassPermissions":
-        return 0
+    A deny guards the plan, not the person's attention."""
     if verdict is not None:
         print(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": verdict.decision,
                                                  "permissionDecisionReason": verdict.reason},
@@ -197,11 +193,11 @@ def cmd_bash(args, out):
     if toolkit_repo(folder):
         return 0
     if vault_for(folder) is not None:
-        return answer(out, hookverdict.bash_verdict(command), payload)
+        return answer(out, hookverdict.bash_verdict(command))
     roots = plan_roots_around(folder) if "git" in command else []
     if not roots:
         return 0
-    return answer(out, hookverdict.bash_verdict(command, str(folder.resolve()), roots, staged_in(folder, command)), payload)
+    return answer(out, hookverdict.bash_verdict(command, str(folder.resolve()), roots, staged_in(folder, command)))
 
 
 def staged_in(folder, command):

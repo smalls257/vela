@@ -27,10 +27,6 @@ def session_branch(scope, record_id):
     return f"session/{scope}/{record_id}" if scope else f"session/{record_id}"
 
 
-def dashboard_branch(scope, today):
-    return f"dashboard/{scope}/{today}" if scope else f"dashboard/{today}"
-
-
 def owns_session_branch(scope, branch):
     """True when a session branch's short name (`session/...`) is this plan's. A plan at the repo's root owns every
     session branch, as before. A plan in a subfolder owns `session/<plan>/...` and the old unscoped

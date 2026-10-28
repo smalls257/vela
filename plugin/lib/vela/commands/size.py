@@ -1,12 +1,13 @@
-"""`vela size [show | set <band> --because ^cN | clear | announce]`: the plan's size, and the lead's say over it.
+"""`vela size [show | set <band> [--because ^cN] | clear | announce]`: the plan's size, and the lead's say over it.
 
-The Violation this exists to prevent is a Black Box, then a Silent Fallback. A plan sized without telling the lead
-treats a two-app plan lightly with nobody having heard so; a size recorded with no reason on record is a choice
-nobody can trace. So the size is said once (`announce`, called at session start, on growth and at close), and `set`
-asks for the lead's reason as a capture first. Asking is never refusing: the lead may choose any band, and it goes on
-record with their words (exit 3 means the reason is wanted and nothing was written).
+The Violation this exists to prevent is a Black Box. A plan sized without telling the lead treats a two-app plan
+lightly with nobody having heard so; so the size is said once (`announce`, called at session start, on growth and at
+close). `set` takes the lead's reason as a capture when they gave one, and records `reason not given` when they did
+not: a size is never held up for a reason, and the record says plainly that none was given (not a made-up cite). The
+lead may choose any band. A `--because` that names no capture in the open session is still a stop (exit 3, nothing
+written): it is a mistaken reference, not a missing reason.
 
-Exit codes: 0 done; 3 the lead's reason, or a size to clear, is needed (nothing changed).
+Exit codes: 0 done; 3 a named capture is not in the open session, or a size to clear is needed (nothing changed).
 """
 import pathlib
 
@@ -64,24 +65,30 @@ def needs_reason(why, question):
                       lines=[say.Line(f"vela size: {why}; nothing was written.", plain=question)])
 
 
-def set_size(root, vault, args, today):
-    ask = "What's your reason for that size? Say it and I'll record it with your choice."
-    if not args.band:
-        raise SystemExit("vela size set: name a band: small, medium or large.")
-    if not args.because:
-        return needs_reason("the lead's reason is not on record (--because ^cN)", ask)
+def reason_ref(root, because):
+    """The committed citation for `because`, or the Result that says it is not a capture in the open session."""
+    ask = "Which of your words was that? Say it again and I'll record it with your choice."
     try:
         record, _ = sessiongit.open_record(root)
     except sessiongit.PrivateMissing as exc:
         return needs_reason(str(exc), ask)
-    if record is None or record.capture(args.because) is None:
-        return needs_reason(f"{args.because} is not a capture in the open session's notes", ask)
-    ref = privaterecord.citation(record.id, record.part, number_of(args.because))
+    if record is None or record.capture(because) is None:
+        return needs_reason(f"{because} is not a capture in the open session's notes", ask)
+    return privaterecord.citation(record.id, record.part, number_of(because))
+
+
+def set_size(root, vault, args, today):
+    if not args.band:
+        raise SystemExit("vela size set: name a band: small, medium or large.")
+    ref = reason_ref(root, args.because) if args.because else sizing.NO_REASON
+    if isinstance(ref, say.Result):
+        return ref
     choice = sizing.Choice(args.band, ref, today)
     text = (root / ".vela.yaml").read_text(encoding="utf-8")
     wrote = sessiongit.write_text(root, ".vela.yaml", sizing.config_with_choice(text, choice))
     return say.Result(NAME, wrote=[wrote], data={"band": args.band, "because": ref, "date": today}, lines=[say.Line(
-        f"vela size: set {args.band}, because {ref}.", plain=f"I've set this as a {args.band} plan, on your word.")])
+        f"vela size: set {args.band}, because {ref}.",
+        plain=f"I've set this as a {args.band} plan" + ("." if ref == sizing.NO_REASON else ", on your word."))])
 
 
 def clear_size(root):

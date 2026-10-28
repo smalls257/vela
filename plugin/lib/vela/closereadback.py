@@ -1,10 +1,10 @@
-"""The read-back at close: every sentence that goes on record in the lead's name, listed so the lead can keep, reword
-or cut it. Pure.
+"""The sentences that go on record in the lead's name, listed so the lead can keep, reword or cut them. Pure.
 
-The Violation this exists to prevent is a Silent Fallback in the record: a receipt's words, a Why line or a picked
-quote reads as something the lead said, and nobody asked them to look at the final wording. The lead's one read-back
-is their yes to all of their own lines at once, so the list has to be exactly the lines that leave the machine in their
-name, and a line changed after the yes has to reopen it (`digest`).
+The Violation this exists to prevent is a Silent Fallback in the record: a picked quote reads as something the lead
+said, and nobody asked them to look at the final wording. Close reads back only what the lead has not seen yet (`owed`):
+a Decision or Why line was settled with the lead in the room, so reading it back again is friction, while a picked
+quote leaves the machine in the pull request and they have not seen it as a line. A quote changed after the yes has to
+reopen it (`digest`). `sentences` still lists every line, so `--reword` and `--cut` can reach a settled one on request.
 
 What counts: a receipt that cites this record and part and carries the lead's words; the Why lines on the same
 item; and the quotes the lead picked (`.vela/close/<id>.quotes.json`, `{"quotes": [{"number", "words", "item"}]}`;
@@ -54,6 +54,11 @@ def sentences(vault, record_id, part, record_text, lead, picked):
         number = int(pick["number"])
         found.append(Sentence(pick.get("item") or f"^c{number:02d}", QUOTE, "", number, str(pick["words"])))
     return found
+
+
+def owed(found):
+    """The sentences close still reads back: the picked quotes. Settled Decision and Why lines are not read again."""
+    return [s for s in found if s.line == QUOTE]
 
 
 def _page_sentences(page, record_id, part, said, lead):

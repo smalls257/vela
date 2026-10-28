@@ -38,9 +38,9 @@ from vela.flowcheck import readers
 from vela.parse import FENCE, closes_fence
 
 from . import (asks_data, assets_inline, capdeps, branches_data, breakdown_find, design_data, design_find, draft_data, flows_data, grills_data, icons_data, inside_data, library_data, needs_data, onboard_data,
-               pages_data, panel_data, plan_data, roles_data, serve, slices_data, starts_data)
+               pages_data, panel_data, plan_data, reqs_data, roles_data, serve, slices_data, starts_data)
 from . import pins as pinning
-from .record import (HANDLE, LABELED_LINE, PROSE_LIMIT, Keys, dashboard_pages, inline_html,
+from .record import (HANDLE, LABELED_LINE, PROSE_LIMIT, Keys, inline_html,
                      plain, refs_in, title_of)
 
 HERE = pathlib.Path(__file__).resolve().parent
@@ -58,10 +58,10 @@ class ExplorerError(Exception):
 # The page's script and style, in load order: shared code first, one module per view, the boot last.
 JS_MODULES = ("core", "theme", "fx", "menus", "assets", "icons", "layout", "pan", "geometry", "capfocus", "diagrams", "search", "minimap", "reader", "viewer", "queue", "panel", "panelsize", "detailspanel", "motion", "view-map",
               "wires", "mapgroups", "releases", "slices", "flowkit", "flowpicker", "branches", "flowview", "lanegroups", "view-flows", "rehearse", "view-asks", "view-decisions", "view-library", "view-grills", "view-progress",
-              "view-trace", "capview", "sections", "needs", "roles", "onboard", "nav", "markdown", "ask", "inside", "plan", "drafts", "freshness", "main")
-SELFTEST_MODULES = ("selftest", "selftest-branches", "selftest-flowview", "selftest-qol", "selftest-inside", "selftest-onboard", "selftest-details", "selftest-library", "selftest-grills", "selftest-needs", "selftest-zoom", "selftest-capfocus", "selftest-capview", "selftest-diagrams")  # 120 KB of checks: bundled only when asked (`vela explore --selftest`), not shipped to every reader
+              "view-trace", "capview", "reqview", "sections", "needs", "roles", "onboard", "nav", "markdown", "ask", "inside", "plan", "drafts", "freshness", "main")
+SELFTEST_MODULES = ("selftest", "selftest-branches", "selftest-flowview", "selftest-qol", "selftest-inside", "selftest-onboard", "selftest-details", "selftest-library", "selftest-grills", "selftest-needs", "selftest-zoom", "selftest-capfocus", "selftest-capview", "selftest-reqview", "selftest-diagrams")  # 120 KB of checks: bundled only when asked (`vela explore --selftest`), not shipped to every reader
 CSS_MODULES = ("base", "menus", "nav", "panel", "compact", "map", "needs", "flows", "rehearse", "asks", "decisions", "pages", "reader", "roles", "onboard",
-               "releases", "slices", "capview", "branches", "ask", "inside", "plan", "pending", "drafts", "library", "grills", "themes", "plain")
+               "releases", "slices", "capview", "reqview", "branches", "ask", "inside", "plan", "pending", "drafts", "library", "grills", "themes", "plain")
 
 # The themes the page offers, first the default. Each is a palette in assets/css/themes.css (Console is base.css's
 # :root); the picker in the top bar lists them in this order and remembers the choice in the browser.
@@ -231,7 +231,7 @@ def settled_said(value):
 
 
 def override_said(bullet):
-    """An Override bullet as a reader says it: who skipped which check, when, and why, not "GATE-4 by @x on <ISO>".
+    """An Override bullet as a reader says it: who skipped which check, when, and why, not "E316 by @x on <ISO>".
     A malformed one is shown as written, so the checker's complaint about it still matches what the page shows."""
     o = override.parse(bullet.value, bullet.line)
     if o.problem:
@@ -423,24 +423,6 @@ def unknowns(vault, keys):
 
 # --------------------------------------------------------------------------- progress
 
-def recorded_overrides(vault, keys):
-    """Every override, by scope."""
-    recorded = []
-    for page in dashboard_pages(vault):
-        scopes = []
-        for bullet in page.bullets:
-            if bullet.label in schema.OVERRIDE_LABELS and not bullet.generated and bullet.item not in scopes:
-                scopes.append(bullet.item)
-        for scope in scopes:
-            key = scope if scope else keys.page(page)
-            behalf = override.on_behalf(page, scope)
-            for o in override.valid_overrides(page, scope):
-                recorded.append({"key": key, "rules": list(o.rules), "skipped": [attention.skipped_check(r) for r in o.rules],
-                                 "by": o.by, "date": o.date, "reason": keys.without_sessions(o.reason, page),
-                                 "confirmed": bool(behalf and behalf.confirmed_by)})
-    return recorded
-
-
 def handoff_status(vault, root, keys, app):
     path = root / "handoffs" / f"{app.id}.md"
     status = {"handedOff": schema.handed_off_label(app.meta), "manifest": "", "changed": 0, "added": 0,
@@ -473,11 +455,9 @@ def progress_data(vault, root, keys, today):
                      "subject": r.subject, "reason": said(r.reason) if r.reason else r.reason,
                      "handoff": handoff_status(vault, root, keys, r.app)})
     percent, shares = completeness.measure(vault)
-    recorded = recorded_overrides(vault, keys)
     best = progress.best(progress.grid(vault, today))
     return {"rows": rows, "stages": list(schema.STAGES), "percent": percent,
             "shares": [{"name": s.name, "done": s.done, "total": s.total} for s in shares],
-            "overrides": recorded,
             "next": {"app": keys.page(best.app), "mode": best.mode, "subject": best.subject, "reason": said(best.reason) if best.reason else best.reason} if best else None}
 
 
@@ -674,6 +654,7 @@ def extract(vault, root, today, pins_path=None, designs=None, seed=None, plans=N
     data["containers"] = inside_data.containers(vault, keys)
     data["designs"] = inside_data.inside(vault, keys, designs or {})
     data["plans"] = plan_data.inside(vault, keys, plans or {}, data["designs"])
+    data["requirements"] = reqs_data.extract(vault, keys, entities, data["designs"], data["plans"], blocked, data["asks"], today)
     data["insidePanel"] = panel_data.panels(vault, data)
     data["contractAnswers"] = panel_data.contract_answers(vault)
     data["themes"] = [{"id": i, "label": label, "say": say} for i, label, say in THEMES]
@@ -793,7 +774,9 @@ def relative_href(target, page_dir):
     (/tmp, /private), where the folders named below are the absolute path. Sibling folders such as ~/Code/vault and
     ~/Code/booking share a deep folder, so their link is kept."""
     target, page_dir, home = pathlib.Path(target).resolve(), pathlib.Path(page_dir).resolve(), pathlib.Path.home().resolve()
-    under_home = lambda p: p == home or home in p.parents  # noqa: E731
+    def under_home(p):
+        return p == home or home in p.parents
+
     if under_home(target) and not under_home(page_dir):
         return None
     if len(pathlib.Path(os.path.commonpath([target, page_dir])).parts) <= SHALLOW_SHARED_FOLDER:

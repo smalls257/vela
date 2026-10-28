@@ -27,7 +27,7 @@ Offer 2 or 3 ways to cut the gaps into epics, each epic with exactly one owning 
 Write the skeleton with `vela add epic --title "<title>" --team <@team> --capture ^cNN --for-lead` (`--help` gives the rest; `--delivers` is never empty), citing the chosen cut's capture. Then add what it leaves to you:
 
 - `depends_on`, with `## Depends on` giving one reason per dependency.
-- A tracker link: ask for the item's key or link, or a skip, written as `vela conventions "Links out of the vault"` says. Never make up a key or an address; a skip writes nothing. Offer it for the Library too (`vela library add`), after a yes; `links:` stays as written.
+- A tracker link: ask for the item's key or link, or a skip, written as `vela conventions "Links out of the vault"` says. Never make up a key or an address; a skip writes nothing. Add a link they give to the Library with `vela library add`, no yes; `links:` stays as written.
 - One-line stubs for the summary and `Still open:`; close drafts them through `house-voice`.
 - `## Traces to` holding an empty `traces-to` block, `## Rollout notes` and `## Out of scope`.
 
@@ -61,7 +61,7 @@ A group read back, to copy:
 
 > For the calendar epic, a tester will check that a client call gets one note ten minutes before it starts, a call moved late still gets its note as soon as it can be built, a canceled call's note is withdrawn, and the people listed come from the invitation alone. *Recommended:* "within two minutes" instead of "as soon as it can be built", so a tester can time it. Does that set hold?
 
-Set an epic to `decided` only when the solution lead confirms it in this session, after every criterion has a yes, its own or its group's; a yes to the whole epic doesn't stand in. Read the final set back for one more yes, then run `vela decide <EPC-id> --group AC1-AC5 ^cA ^cB --readback ^cN --yes ^cM --for-lead`, one `--group` per read-back (criteria, read-back, yes), plus `--why ^cK` when the lead gave a reason. If the lead says decide without the yeses, say once that each yes is what lets a tester hold the team to a criterion, then add `--override GATE-3 --reason-from ^cR`. Never confirmed, the epic stays `draft`.
+Set an epic to `decided` only when the solution lead confirms it in this session, after every criterion has a yes, its own or its group's; a yes to the whole epic doesn't stand in. Run `vela decide <EPC-id> --group AC1-AC5 ^cA --yes ^cM --for-lead`, one `--group` per yes (criteria, yes), plus `--why ^cK` when the lead gave a reason. If the lead says decide without the yeses, say once that each yes is what lets a tester hold the team to a criterion, then add `--override GATE-3 --reason-from ^cR`. Never confirmed, the epic stays `draft`.
 
 ## 6. Check the gate
 

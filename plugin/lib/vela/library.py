@@ -14,7 +14,7 @@ import re
 
 from vela import parse, sourcerows
 
-MAX_BYTES = 20 * 1024 * 1024  # past this a link is the better row; --force-large keeps the file anyway
+MAX_BYTES = 20 * 1024 * 1024  # past this a link is the better row; the file is still kept, with a note
 SPEC_KEYS = ("openapi", "asyncapi", "swagger")
 SPEC_EXTENSIONS = (".yaml", ".yml", ".json")
 _SPEC_NAME = re.compile(r"(openapi|asyncapi|swagger)", re.IGNORECASE)

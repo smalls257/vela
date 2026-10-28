@@ -51,6 +51,14 @@ def staged_paths_in_repo(root):
     return _fields(_ok(root, "diff", "--cached", "--name-only", "-z", "--no-renames", "--diff-filter=d"))
 
 
+def committed_paths_since(root, since):
+    """Every path any commit in `since..HEAD` added or changed anywhere in the repository, repository-relative. Not the
+    net difference: a private file added in one commit and removed in the next is still in the history a push sends.
+    Deletions are left out, as in `staged_paths_in_repo`."""
+    return sorted(set(_fields(_ok(root, "log", "--name-only", "--format=", "-z", "--no-renames", "--diff-filter=d",
+                                  f"{since}..HEAD"))))
+
+
 def stage(root, paths):
     """`git add` exactly these paths (a deleted one is staged as deleted). Never a folder, `.`, `-A` or `-u`."""
     if paths:

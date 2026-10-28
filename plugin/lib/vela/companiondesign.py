@@ -56,7 +56,7 @@ def next_section(doc_text):
     return {"text": design_data.TITLES[missing[0]], "id": "", "source": "design order", "left_after": len(missing) - 1}
 
 
-def decided_rows(doc_rel, doc_text, record, label):
+def decided_rows(doc_rel, doc_text, record):
     """One row per Decisions bullet that a decision capture names; a bullet no capture names is not decided."""
     captures = [c for c in closegate.captures(record).values() if c.tag == "decision"]
     rows = []
@@ -64,7 +64,7 @@ def decided_rows(doc_rel, doc_text, record, label):
         for capture in captures:
             if designchoice.names_choice(capture.words, line):
                 rows.append({"id": "", "name": designchoice.plain_choice(line), "from": "", "to": "decided",
-                             "label": label, "capture": int(capture.n), "page": doc_rel})
+                             "capture": int(capture.n), "page": doc_rel})
                 break
     return rows
 
@@ -89,14 +89,13 @@ def build(branch, record, doc_text, design, doc_rel, touched, today, now, stub_d
     """The design session's panel. `touched` is None when git could not say, and the panel then says so."""
     slug = design["frontmatter"]["slug"] or doc_rel.rsplit("/", 1)[-1][:-3]
     day = record_day(record) or stub_date
-    label = companionsession.LABEL_TODAY if day == today else companionsession.LABEL_SESSION
     summary = first_paragraph(design["summary"]["text"])
     session = {"id": slug, "title": f"Design: {app_name(design, slug)}", "modes": ["design"], "opened": day,
                "branch": branch, "start_commit": ""}
     warnings = [] if touched is not None else ["I couldn't tell which pages this design changed."]
     return {"version": companionsession.VERSION, "kind": "session", "as_of": companionsession.as_of(today, now),
             "capture": companionsession.highest_capture(record), "notes": "read", "session": session,
-            "about": summary, "decided": decided_rows(doc_rel, doc_text, record, label), "said_yes": [],
+            "about": summary, "decided": decided_rows(doc_rel, doc_text, record), "said_yes": [],
             "open": open_rows(design), "agenda": [], "next": next_section(doc_text),
             "touched": touched_rows(touched) if touched is not None else None, "diagram": None, "band": "",
             "files": dict(companionsession.FILES), "vault": "", "warnings": warnings}

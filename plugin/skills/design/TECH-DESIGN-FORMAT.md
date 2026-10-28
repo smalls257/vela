@@ -70,7 +70,8 @@ A reader opens the doc to learn what the app does and what shapes it, in under a
 <one line on the rule every call shares, such as how it fails>
 
 ### <Component> public surface
-- <operation: payload shape, errors>
+- <operation: its method and path, or its operation or message name; request and response fields; errors>
+- Spec: <the spec file in the vault's Library, or who writes it and by when, as an open question, or "none: this section is the record">
 - On failure: <what the component does when its call fails or is slow>
 
 ## Integration points
@@ -135,7 +136,7 @@ The explorer reads this doc by its headings, bullets and tables, and lists anyth
 - Each `###` under `## Components` is a component and has all five bullets. A note about several components, such as how a rule is enforced inside one process, goes under `## Architecture overview` as its own `###`.
 - Every component has a Responsibility-matrix row, and every matrix row names a component.
 - `Depends on` names other components, or systems exactly as the Integration points table names them in its System column, such as "Consent and identity (CON-003)". An operating-system facility the app relies on, such as a key store, is an integration point too.
-- Each `###` under `## API contracts` is `<Component> public surface` for a component of this design. A rule every call shares is the line above the first `###`; what one call does on failure is an `On failure:` bullet under its component.
+- Each `###` under `## API contracts` is `<Component> public surface` for a component of this design. A rule every call shares is the line above the first `###`; what one call does on failure is an `On failure:` bullet under its component. Each operation names its method and path (or its operation or message name), its request and response fields and its errors. A `Spec:` bullet says where the spec is: a file in the Library, an open question naming who writes it and by when (ask the team lead, with your recommendation), or `none` with the reason when the lead says this section is the record.
 - Every trace target has a row of the Trace table, one row per target. In a vault the targets are those `TECH-DESIGN-FROM-VAULT.md` lists; a criterion met by running the service rather than by a component names `Operations`. IDs mentioned elsewhere in the doc are not traces.
 - In a vault every component names its Container, so a reader can zoom from the vault's containers to the components inside them.
 - Team ADRs are linked, never cited bare: `ADR-NNNN` is also the vault's own pattern. A vault ADR is cited with its initiative and commit, as `INI-002 ADR-0002 @ <sha>`.

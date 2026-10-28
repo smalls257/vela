@@ -9,7 +9,7 @@ so a link opens its target inside the explorer, not as a file.
 import html
 import re
 
-from vela import readability, reading
+from vela import allocation, readability, reading
 from vela.parse import closes_fence, protect_link_pipes
 from vela.viewer import body_of
 
@@ -234,6 +234,7 @@ SECTIONS = (  # (id, label, the section's own page path, a test for the pages li
     ("context", "Context and scope", "03-context-and-scope.md", None),
     ("strategy", "Strategy", "04-solution-strategy.md", None),
     ("capabilities", "Capabilities", "04a-capability-delta.md", lambda p: p.type == "capability"),
+    ("requirements", "Requirements", "", None),  # no page of its own: the requirements are items on the capability pages, and the section is a view of them
     ("releases", "Releases", "04b-releases.md", None),
     ("slices", "Slices", "slices/", lambda p: p.type == "slice"),  # no page of its own: each slice is one
     ("apps", "Apps", "05-building-blocks/05-building-blocks.md", lambda p: p.type == "app-building-blocks"),
@@ -249,10 +250,15 @@ SECTIONS = (  # (id, label, the section's own page path, a test for the pages li
 
 def sections(vault, keys, has_library=False):
     by_path = {p.path: p for p in vault.pages}
+    wanted = [r.id for r in allocation.requirements(vault)]
     out = []
     for sid, label, path, member in SECTIONS:
         if sid == "library" and not has_library:
             continue  # an empty register is not a place to go
+        if sid == "requirements":
+            if wanted:  # a vault with no functional requirements has nothing to check, so no place to go
+                out.append({"id": sid, "label": label, "page": "", "path": path, "title": "Every requirement, and whether it is met so far", "children": wanted})
+            continue
         page = by_path.get(path)
         children = sorted((p for p in vault.pages if member and member(p)), key=lambda p: (p.id or p.name))
         out.append({"id": sid, "label": label, "page": keys.page(page) if page else "", "path": path,

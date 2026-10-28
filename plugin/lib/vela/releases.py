@@ -9,7 +9,8 @@ the initiative: apps that are not new, and contracts whose change is not new.
 import re
 from dataclasses import dataclass, field
 
-from vela import allocation, schema
+from vela import allocation, criteria, schema
+from vela.reading import TRACE_LINE
 
 PAGE_ID = "releases"
 HEADER = ("Delivers", "Criteria", "Note")
@@ -167,16 +168,24 @@ def reach(vault, release):
     return apps, contracts
 
 
-def criteria_count(requirement):
-    """How many acceptance criteria a requirement lists: the plain bullets under its heading, after its facts."""
+def requirement_criteria(requirement):
+    """[(text, trace ids)] for each acceptance criterion a requirement lists, in order: the plain bullets under its
+    heading, after its facts. An indented `- Trace:` line belongs to the bullet above it and is not a criterion."""
     lines = requirement.page.text.split("\n")
-    count = 0
+    found = []
     for line in lines[requirement.line:]:
         if line.startswith("#"):
             break
         if re.match(r"^- (?!\*\*[^*]+:\*\*)", line):
-            count += 1
-    return count
+            found.append((line[2:].strip(), []))
+        elif found and TRACE_LINE.match(line):
+            found[-1][1].extend(i for i in criteria.parse_trace(TRACE_LINE.match(line)["ids"]).ids if i not in found[-1][1])
+    return [(text, tuple(ids)) for text, ids in found]
+
+
+def criteria_count(requirement):
+    """How many acceptance criteria a requirement lists."""
+    return len(requirement_criteria(requirement))
 
 
 def snapshots(vault):

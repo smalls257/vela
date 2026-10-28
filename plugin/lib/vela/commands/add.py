@@ -11,8 +11,8 @@ write one item at a time while the lead is talking, and drafting a file for one 
 IDs come from vela next-id, so an open session branch never hands out the same number twice": this command reads
 `main` and every session branch (`edge/idgit.py`) and says the ID it took, so nothing is numbered by hand.
 
-`vela add unknown --blocks X` also takes each agenda item the unknown now holds up off the agenda, and says which
-(grill's "File each decision as its branch closes": "take that item off the agenda ... re-run GATE-4 for every other agenda item it blocks").
+`vela add unknown --blocks X` also says which agenda items the unknown now holds up. They stay on the agenda; settling
+one notes the open question.
 
 A missing `--owner` is the lead's handle (`.vela/handle`, as `vela whoami` keeps it): never asked for.
 
@@ -184,10 +184,10 @@ def report(item, ident, written, blocks, view, reader):
                               "There's no date to ask it by yet. Do you want one?"))
     if blocks:
         names = [textedit.name_of(view, b) for b in blocks]
-        lines.append(say.Line(f"now blocks on the agenda: {', '.join(blocks)} (off the agenda until it is answered, "
-                              "unless the lead overrides GATE-4)",
-                              plain=f"It holds up {apply_command.join(names)}, so I've taken "
-                                    f"{'it' if len(names) == 1 else 'them'} off the agenda until it's answered."))
+        lines.append(say.Line(f"now blocks on the agenda: {', '.join(blocks)} (they stay on it; settling notes the question)",
+                              plain=f"It holds up {apply_command.join(names)}. "
+                                    f"{'It stays' if len(names) == 1 else 'They stay'} on the agenda, and settling "
+                                    f"{'it' if len(names) == 1 else 'them'} notes the question as still open."))
     notices = add.notices(item)
     lines += [say.Line(n) for n in notices]
     if reader:

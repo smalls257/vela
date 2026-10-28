@@ -169,7 +169,6 @@ def as_data(found, record_id, reader):
     return {"record": record_id, "reader_copy": reader, "count": found.count,
             "paragraphs": [p.as_json() for p in found.paragraphs],
             "done": [p.as_json() for p in found.done],
-            "readback": [r.__dict__ for r in found.readback],
             "long_lists": [x.as_json() for x in found.long_lists],
             "split": found.split.as_json() if found.split else None,
             "judgment": list(found.judgment), "kept_wording": list(found.kept)}
@@ -185,8 +184,6 @@ def default_lines(found, record_id, reader, review=None):
     if found.done:
         where = ", ".join(f"{d.page} > {d.heading}" for d in found.done)
         out.append(say.Line(f"already written this session, facts unchanged since ({len(found.done)}): {where}"))
-    for r in found.readback:
-        out.append(say.Line(f"read back: {r.item} {r.name} ({r.before} -> decided), {r.page} > {r.heading}"))
     for x in found.long_lists:
         out.append(say.Line(f"list over seven: {x.page} > {x.heading}: {x.count} entries; the few that matter first, "
                             "the rest under ## Also open (n)"))
@@ -232,9 +229,6 @@ def lead_lines(found, vault, resolver, review=None):
     out = [say.Line(head, plain=head)]
     for p in found.paragraphs:
         text = resolver.plain(f"{p.title}, {place(p, vault, resolver)}: {plain_why(p, resolver)}.")
-        out.append(say.Line(text, plain=text))
-    for r in found.readback:
-        text = f"I'll read {r.name} back to its owner, since it was decided today."
         out.append(say.Line(text, plain=text))
     for x in found.long_lists:
         text = resolver.plain(f"{x.title} lists {x.count} things under {x.heading}; I'll put the few that matter "

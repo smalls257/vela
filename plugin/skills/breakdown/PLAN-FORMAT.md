@@ -42,6 +42,7 @@ prereqs:
 ```markdown
 ### S-02 Unlock a bike, with the payment checked
 - **Tracer:** yes
+Summary: When a rider scans a dock, the Rider app checks their payment before it asks the dock to unlock the bike. The rider picks the card on file or a new card, and can't unlock without one. The app records which check it used, and a check the payment service doesn't confirm counts as declined, so the bike stays locked. This is the rider's part of the tracer, and it comes after the store.
 Traces to: CAP-005.FR1@APP-rider-app, CON-003, CON-004, EPC-032.AC1, EPC-032.AC2
 Components: PaymentGate, UnlockRequester, TripView
 Slice: tracer
@@ -50,13 +51,19 @@ Acceptance criteria:
 - When a rider scans a dock, the app checks their card before it asks for the unlock, and records which check it used.
 - When a rider scans a dock, they are offered the card on file or a new card as two separate choices, and cannot unlock without one.
 - A check not confirmed by the payment service counts as declined (design, Failure behavior).
+Ticket criteria (from 0cf812):
+Paying before the unlock:
+- Scanning a dock offers the card on file or a new card, and the bike unlocks only with one of them. (covers AC2)
+- The app checks the card before it asks for the unlock, and records which check it used. (covers AC1)
+When the check doesn't go through:
+- If the payment service doesn't confirm the check, it counts as declined and the bike stays locked. (covers AC3)
 
 | Task | Size | Component |
 |---|---|---|
 | `Approval` type constructible only inside the module, and the Card check | S | PaymentGate |
 | Durable outbox with confirmed and unconfirmed state | M | UnlockRequester |
 
-Blocked by: S-01 (store). The wording shown when the payment service is down waits on OQ-005.
+Blocked by: S-01 (store). The wording shown when the payment service is down waits on OQ-005; until then the app shows nothing and logs.
 Release fit: cannot tell for 2027-02-02. Sizes add to at most 14 days for one engineer, and the design names two app engineers but not how many days each has before 2027-02-02.
 ```
 
@@ -66,5 +73,10 @@ Release fit: cannot tell for 2027-02-02. Sizes add to at most 14 days for one en
 - `Release fit:` starts with the release date from `04b-releases.md` when the story's requirements are on a release, and says `cannot tell` with the missing number, or a rough sum "from your numbers". A story on no release names no date.
 - `Blocked by:` is `none` (with an optional note after it), or story IDs, design questions (`OQ-nnn`), deferrals (`D-nnn`), vault unknowns (`UNK-nnn`) and outside parties.
 - `Status:` is absent for a story that will be built. `Status: deferred (date). reason` keeps every other field, with tasks when they were sized. `Status: held` keeps tasks and appears in Ticket waves. `Status: merged into S-05 on <date>. reason` is the whole section of a story folded into another; its ID is retired, not reused. A split story is `S-07a` and `S-07b`, each with its own fields, in the summary and the order.
+- `Summary:` is one line of 4 or 5 plain sentences, written through `house-voice`: what the story delivers, for whom, and where it fits (its slice, what comes before it). It has no IDs; vela adds them as suffixes and labels.
+- `Ticket criteria (from 0cf812):` is the ticket's copy of the acceptance criteria; the six hex digits are a stamp, and they come from `vela tickets check`, never from this example or your head. Write the copy under a plain `Ticket criteria:` label, run the check, and put the stamp it prints in the label. It has short headings, each ending in a colon, with bullets under them. Merge criteria that overlap, split one that says two things, and reword them in the house voice, with no IDs. Each bullet ends `(covers AC1, AC3)`: ACn is the nth bullet under `Acceptance criteria:`, counted from 1, and every criterion is covered at least once. The acceptance criteria above it stay word for word; only this copy is reworded.
+- `vela tickets check` prints the label to write for any story whose copy has no stamp, a stamp it can't read or the wrong one. The stamp changes whenever an acceptance criterion changes, and the check then flags the copy as out of date: rewrite the lines, then write the new stamp. A label that starts `Ticket criteria` but isn't written this way is flagged by name; its lines are still read as ticket copy and never join the acceptance criteria.
+- A story with no ticket copy still gets a ticket, with its criteria as a flat list, and the check flags it.
+- When `Blocked by:` names an open question (`OQ-nnn`, `UNK-nnn`), the same sentence says what the story does until then: "waits on OQ-005; until then the app shows nothing and logs", or "hold the ceremony until OQ-009 is answered; use a throwaway certificate meanwhile". The ticket shows it under "Still open". A sentence that says the story does not wait ("Not blocked by OQ-007", "OQ-005 is not planned: the app shows nothing and logs") is kept as a note and the question is not listed as open. Every `Blocked by:` sentence reaches the ticket in your words; none is dropped.
 - A task row is three filled cells. Sizes are `S`, `M` or `L`.
-- Keep prose under a story to the lines above. A free sentence the reader cannot place is reported as unread.
+- Keep prose under a story to the lines above, including the ticket copy. A free sentence the reader can't place is reported as unread.

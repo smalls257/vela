@@ -6,7 +6,7 @@ import datetime
 import re
 
 from vela import allocation, cases, deferrals, flows, handoffwarn, links, override, parse, pending, privaterecord, progress, questions, receipts, readability, readload, releases, render, schema, sizing, slices, sourcerows, trace, wording
-from vela.model import Finding, blocked_units, decided_goal_rows, goal_rows_at, meta_line
+from vela.model import Finding, blocked_units, decided_goal_rows, decided_with_open, goal_rows_at, meta_line
 
 
 def check(vault, today, gate=None, items=(), app=None):
@@ -820,10 +820,7 @@ def release_rules(vault, today):
                          f"{problem or ', '.join(f'AC{n}' for n in over)} of {row.requirement}, which lists {count} criteria.",
                          "Write all, or ACn for the nth acceptance criterion under the requirement.")
     delivered = {row.requirement for r in found for row in r.rows}
-    left_out = {i: (left, "Not in the tracer") for left in found[0].not_in_tracer for i in left.ids}
-    for s in slices.read_slices(vault) if slices.on_pages(vault) else ():
-        for left in s.not_in:
-            left_out.update({i: (left, f"the slice {s.id}, in what it leaves out,") for i in left.ids if i not in left_out})
+    left_out = slices.left_out(vault)
     for req in allocation.due(vault):
         if req.id not in delivered:
             why, where = left_out.get(req.id, (None, ""))
@@ -1163,7 +1160,7 @@ def _gate_four(vault):
             continue
         for link in unknown.facts["Blocks"].links:
             for unit_id, state, page, line in blocked_units(vault, link, unknown.page):
-                if state != "decided":
+                if state != "decided" or unknown.id in decided_with_open(vault, unit_id):
                     continue
                 back = "set it to reopened" if page.meta.get("type") == "epic" else "set it back to assumption"
                 yield _f(page, line, "E316", f"{unit_id} is decided, but open unknown {unknown.id} blocks it.",

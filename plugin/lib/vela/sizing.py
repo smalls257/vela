@@ -42,10 +42,13 @@ class Signal:
     words: str   # "two apps", "one capability", "one release"
 
 
+NO_REASON = "reason not given"  # the lead set a size and said nothing about why; the record says so, not a made-up cite
+
+
 @dataclass(frozen=True)
 class Choice:
     band: str
-    because: str   # a committed capture reference, "[[<session>]] c14"
+    because: str   # a committed capture reference, "[[<session>]] c14", or NO_REASON when the lead gave none
     date: str      # YYYY-MM-DD
 
 
@@ -128,7 +131,7 @@ def read_choice(config):
     day = raw["date"].isoformat() if isinstance(raw["date"], datetime.date) else str(raw["date"])
     if band not in schema.SIZE_BANDS:
         raise ValueError(f"band {band!r} is not small, medium or large")
-    if not privaterecord.CITATION.fullmatch(because):
+    if because != NO_REASON and not privaterecord.CITATION.fullmatch(because):
         raise ValueError(f"because {because!r} is not a capture reference such as [[2026-10-02-grill-a]] c14")
     try:
         if not _DAY.match(day):

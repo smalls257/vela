@@ -15,8 +15,8 @@ The rules, each with the reason the skills gave:
 - **Blocks** links each item it blocks by its heading (an open unknown that lists an item stops it being decided), or
   names an owed question's copy ID as written (an E805 deferral blocks the question). An unknown that blocks nothing
   has no `**Blocks:**` line: the missing line is the state, not a sentinel word.
-- **The agenda follows** (grill's "File each decision as its branch closes"): every agenda item it blocks comes off the agenda, `off-agenda: UNK-nnn`,
-  unless the lead overrode GATE-4 for it, and `now_blocks` says which so the CLI can tell the lead by name.
+- **The agenda is untouched.** An item the unknown blocks stays on it, and settling the item notes the question
+  (`Decided with open`). `now_blocks` names those items so the CLI can tell the lead by name.
 - **No second copy of an open question** (a Silent Fallback of the ledger: two owners chase one answer, and the page
   counts one question twice). A new question whose words overlap an open one's by `SAME_QUESTION` or more is
   refused with the existing question's name, and the fix is to add to it. `different_because` is the override: the
@@ -197,13 +197,11 @@ def apply(item, vault, record):
     if item.get("capture"):
         text = textedit.add_change(text, ident, "-", "open", textedit.capture_link(record.id, item["capture"]))
         text = textedit.mark_if_unmarked(text, item["capture"], textedit.keep_mark(PAGE, heading, ident, "open"))
-    for blocked in now_blocks(dict(item, id=ident), text):
-        text = agenda.block(text, blocked, ident)
     return [Write(path, page)] + textedit.record_writes(record, vault, text)
 
 
 def now_blocks(item, record_text):
-    """The agenda items this unknown holds up: on the agenda, not decided, GATE-4 not overridden."""
+    """The agenda items this unknown holds up: on the agenda and not decided. They stay on it."""
     on = agenda.entries(record_text)
     return [ident for ident in (str(b).strip() for b in item.get("blocks") or [])
-            if ident in on and agenda.now_blocked(on[ident])]
+            if ident in on and on[ident]["status"] != "decided"]
