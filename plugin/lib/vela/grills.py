@@ -39,6 +39,7 @@ class Grill:
     group: str
     state: str
     since: dict  # {"date", "session", "title", "kept"}; {} when no session names it
+    agrees: dict  # what settling agrees to, in the plan's words; see `agrees`
     settles: tuple  # plain sentences: the options on the table, else what the item says it is
     holds_up: tuple  # IDs of the epics, slices and apps that wait on it
     apps: tuple  # IDs of the apps it sits on (for the App filter)
@@ -52,7 +53,7 @@ class Grill:
 
     def as_json(self):
         return {"id": self.id, "name": self.name, "kind": self.kind, "group": self.group, "state": self.state,
-                "since": self.since, "settles": list(self.settles), "holdsUp": list(self.holds_up),
+                "since": self.since, "settles": [settle_line(x) for x in self.settles], "agrees": self.agrees, "holdsUp": list(self.holds_up),
                 "apps": list(self.apps), "sources": list(self.sources), "missing": self.missing,
                 "openQuestion": self.open_question,
                 "owner": list(self.owner), "ownerSet": self.owner_set, "join": list(self.join), "yes": self.yes}
@@ -117,15 +118,21 @@ def default_owners(vault, ident):
     return own or (_handles(page.meta.get("owner")) if page is not None else ())
 
 
+def _options_of(item, page, resolver):
+    """The options Shape put on the table, in the plan's words: ["Keep it in the shop (picked)", "x: rejected, why"], or []."""
+    bullet = (item.facts.get(schema.OPTIONS_LABEL) if item is not None else None) or (
+        next(iter(page.page_bullets(schema.OPTIONS_LABEL)), None) if page is not None else None)
+    if bullet is None:
+        return []
+    return [resolver.plain(o.strip().rstrip(".")) for o in OPTIONS_SPLIT.split(bullet.value.strip()) if o.strip()]
+
+
 def settles(vault, ident, resolver):
     """What the grill would settle, in sentences: the options Shape put on the table, else what the item says it is."""
     item, page = _unit(vault, ident)
-    bullet = (item.facts.get(schema.OPTIONS_LABEL) if item is not None else None) or (
-        next(iter(page.page_bullets(schema.OPTIONS_LABEL)), None) if page is not None else None)
-    if bullet is not None:
-        options = [resolver.plain(o.strip().rstrip(".")) for o in OPTIONS_SPLIT.split(bullet.value.strip()) if o.strip()]
-        if options:
-            return tuple(options)
+    options = _options_of(item, page, resolver)
+    if options:
+        return tuple(options)
     crossing = item.fact("Crosses the boundary") if item is not None else ""
     if crossing:
         return (resolver.plain(crossing),)
@@ -133,15 +140,118 @@ def settles(vault, ident, resolver):
     return (resolver.plain(opening),) if opening else ()
 
 
-def _opening(text):
-    """The first sentence of a page's first plain paragraph, or "": what the page says it is, when nothing lists options."""
+def _plain_paragraphs(text):
     body = re.sub(r"\A---\n.*?\n---\n", "", text, count=1, flags=re.S)
     for paragraph in re.split(r"\n\s*\n", body):
         paragraph = paragraph.strip()
         if paragraph and not paragraph.startswith(("#", "-", "|", "*", "<", "_", ">", "!", "```")):
-            sentence = re.split(r"(?<=[.!?])\s", " ".join(paragraph.split()), maxsplit=1)[0]
-            return sentence[:240]
+            yield " ".join(paragraph.split())
+
+
+ABBREVIATIONS = frozenset(("e.g.", "i.e.", "dr.", "mr.", "mrs.", "ms.", "vs.", "u.s.", "u.k.", "a.m.", "p.m.", "st.", "approx.", "no.", "inc.", "ltd."))
+
+
+def _sentences(paragraph):
+    """Split at sentence ends, but not after an abbreviation: "i.e. The" stays in one sentence (a cut there would
+    quote the plan as saying something it does not)."""
+    out = []
+    for piece in re.split(r"(?<=[.!?])\s+(?=[A-Z\[])", paragraph):
+        if out and out[-1].split()[-1].lower() in ABBREVIATIONS:
+            out[-1] = f"{out[-1]} {piece}"
+        else:
+            out.append(piece)
+    return out
+
+
+def _bullets_after_opening(text):
+    """The top-level bullets in the list that follows the page's opening paragraph, each as one line (wrapped lines
+    joined); [] when the opening is not followed by a list."""
+    body = re.sub(r"\A---\n.*?\n---\n", "", text, count=1, flags=re.S)
+    blocks = [b.strip("\n") for b in re.split(r"\n\s*\n", body) if b.strip()]
+    plain = [i for i, b in enumerate(blocks) if b.strip() and not b.strip().startswith(("#", "-", "|", "*", "<", "_", ">", "!", "```"))]
+    if not plain or plain[0] + 1 >= len(blocks) or not blocks[plain[0] + 1].startswith("- "):
+        return []
+    bullets = []
+    for line in blocks[plain[0] + 1].split("\n"):
+        if line.startswith("- "):
+            bullets.append(line[2:].strip())
+        elif line.startswith(" ") and line.strip() and not line.lstrip().startswith("- ") and bullets:
+            bullets[-1] += " " + line.strip()
+    return bullets
+
+
+def _opening(text, sentences=1):
+    """The first `sentences` sentences of a page's first plain paragraph (all of it when `sentences` is None), or "":
+    what the page says it is, when nothing lists options."""
+    for paragraph in _plain_paragraphs(text):
+        if sentences is None:
+            return paragraph
+        return " ".join(_sentences(paragraph)[:sentences]) if sentences > 1 else _sentences(paragraph)[0][:240]
     return ""
+
+
+OPENING_SENTENCES, DOES_NOT_CAP, DETAILS_SHOWN = 3, 3, 2
+DOES_NOT = re.compile(r"It (?:does not|doesn't)\b")
+
+
+def _item_section(item):
+    """The item's section below its heading: up to the next heading at level 3 or above."""
+    lines = item.page.text.split("\n")
+    later = [h.line for h in item.page.headings if h.line > item.line and h.level <= 3]
+    return lines[item.line:(later[0] - 1) if later else len(lines)]
+
+
+def _detail_bullets(item):
+    """The requirement's own detail bullets (top level, not a **Label:** fact), in the plan's words."""
+    return [line[2:].strip() for line in _item_section(item) if line.startswith("- ") and not line.startswith("- **")]
+
+
+PICKED = re.compile(r"\s*\(picked\)\s*$", re.I)
+
+
+def settle_line(text):
+    """One option as a line of the settle prompt and panel: the pick is "Proposed: X", a rejected one "Set aside: X,
+    because why". The (picked) rule lives here so the page only draws it."""
+    if PICKED.search(text):
+        return f"Proposed: {PICKED.sub('', text)}"
+    parts = re.split(r":\s*rejected,?\s*", text, maxsplit=1, flags=re.I)
+    if len(parts) == 2:
+        return f"Set aside: {parts[0][:1].upper() + parts[0][1:]}, because {parts[1].rstrip('.')}"
+    return text[:1].upper() + text[1:]
+
+
+def _agrees_option_line(options):
+    """{"picked", "setAside"} when one option is picked, else {"choosing": [...]} for two or more, else {}."""
+    picked = [o for o in options if PICKED.search(o)]
+    if picked:
+        return {"picked": PICKED.sub("", picked[0]), "setAside": len(options) - 1}
+    names = [o.split(":")[0].strip() for o in options]
+    return {"choosing": names} if len(names) > 1 else {}
+
+
+def agrees(vault, ident, resolver):
+    """What settling the item agrees to, copied from the plan: {"lead", "points", "details", "more", "page", plus
+    "picked"/"setAside" or "choosing" when options sit on the table}. A requirement gives its statement and its first
+    two detail bullets (the rest in "more"); a contract its description and what crosses the boundary; a page its
+    opening and the "It does not" sentences it states; "page" is True when the whole page is there to read."""
+    item, page = _unit(vault, ident)
+    out = {"lead": "", "points": [], "details": [], "more": [], "page": item is None and page is not None}
+    if item is not None:
+        out["lead"] = resolver.plain(_opening("\n".join(_item_section(item)), None))
+        if item.kind == "contract" and item.fact("Crosses the boundary"):
+            out["points"] = [f"Crosses the boundary: {resolver.plain(item.fact('Crosses the boundary'))}"]
+        if item.kind == "requirement":
+            details = [resolver.plain(d) for d in _detail_bullets(item)]
+            out["details"], out["more"] = details[:DETAILS_SHOWN], details[DETAILS_SHOWN:]
+    elif page is not None:
+        paragraphs = list(_plain_paragraphs(page.text))
+        shown = _sentences(paragraphs[0])[:OPENING_SENTENCES] if paragraphs else []
+        out["lead"] = resolver.plain(" ".join(shown))
+        written = paragraphs + _bullets_after_opening(page.text)
+        says = [x for p in written for x in _sentences(p) if DOES_NOT.match(x) and x not in shown]
+        out["points"] = [resolver.plain(x) for x in dict.fromkeys(says)][:DOES_NOT_CAP]
+    out.update(_agrees_option_line(_options_of(item, page, resolver)))
+    return out
 
 
 def since(vault, ident, state, sessions):
@@ -239,6 +349,7 @@ def waiting(vault, verdicts, today):
         found.append(Grill(
             id=ident, name=verdict.name, kind=item.kind if item is not None else page.type, group=group, state=state,
             since=since(vault, ident, state, sessions), settles=settles(vault, ident, resolver),
+            agrees=agrees(vault, ident, resolver),
             holds_up=holds_up(vault, ident), apps=apps_of(vault, ident), sources=sources_of(vault, ident),
             missing=missing_thing(vault, verdict, run_by, resolver) if group == ONE_AWAY else {},
             open_question=open_question_of(vault, verdict, run_by, resolver),

@@ -77,3 +77,13 @@ def test_a_vault_with_nothing_waiting_has_an_empty_list(tmp_path):
     shutil.copytree(REPO / "examples" / "unified-booking", root)
     data = build.extract(cli.load_vault(root), root, TODAY)
     assert data["grills"] == {"rows": [], "people": [], "problems": []}
+
+
+def test_every_row_carries_what_settling_agrees_to_with_no_id_in_it(tmp_path):
+    _, rows = extract(tmp_path)
+    for ident, row in rows.items():
+        said = row["agrees"]
+        assert set(said) >= {"lead", "points", "details", "more", "page"}, ident
+        words = " ".join([said["lead"], *said["points"], *said["details"], *said["more"], said.get("picked", ""), *said.get("choosing", [])])
+        assert not IDLIKE.search(words), (ident, words)
+    assert rows["EPC-039"]["agrees"]["page"] is True and rows["CON-001"]["agrees"]["page"] is False

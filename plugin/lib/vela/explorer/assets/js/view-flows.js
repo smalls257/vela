@@ -362,6 +362,7 @@ const Flows = (() => {
     if (App.view !== "flows") { showView("flows"); }
     else if (changed || !player || !player.canvas.isConnected) rerender();
     else { player.pause(); player.go(st.cur); }
+    Panel.markStep(key, st.cur);
     history.replaceState(null, "", `#flows&open=${encodeURIComponent(key)}${st.cur >= 0 ? `&step=${st.cur + 1}` : ""}${Branches.hashPart(key)}${FlowView.hashPart(key)}`);
   }
   function clipNote() {
@@ -473,6 +474,7 @@ const Flows = (() => {
   }
   /* A step picked in the panel, then the play head moved (arrow keys, scrub, Play): the panel follows to the new step. */
   function followStep(p) {
+    if (p.key === st.key) Panel.markStep(p.key, p.cur);
     const top = App.trail[App.trail.length - 1] || "";
     if (!PlanDetails.isStep(top) || p.key !== st.key) return;
     if (p.cur < 0) { DetailsPanel.clear(); return; }

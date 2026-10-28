@@ -3,6 +3,45 @@
    capability and question lists the flows that cross it, each with a Present button. */
 const Panel = (() => {
   const body = () => $("#panel-body");
+  /* The flow's steps. Past STEPS_SHOWN they sit in a scrolling box that can be reached by keyboard, with a soft fade at
+     the bottom edge while there is more below, so a long flow stays on the screen. A short list is a plain list. */
+  const STEPS_SHOWN = 5;
+  function stepsList(k, f) {
+    const list = h("ol", { class: "steps-list", "data-flow": k }, f.steps.map((st, i) => h("li", {},
+      h("button", { class: "step-link", type: "button", onclick: () => { if (App.view !== "flows") showView("flows"); Flows.select(k, i); } }, h("span", { html: st.html })))));
+    if (f.steps.length <= STEPS_SHOWN) return list;
+    const box = h("div", { class: "steps-box", tabindex: "0", role: "region", "aria-label": `Steps, ${f.steps.length} in all` }, list);
+    const fade = () => box.classList.toggle("more", box.scrollTop + box.clientHeight < box.scrollHeight - 1);
+    /* The box is as tall as its first STEPS_SHOWN steps, however long they wrap: measured from the list, again whenever the panel resizes. */
+    const size = () => {
+      const items = list.children;
+      if (!box.isConnected || items.length <= STEPS_SHOWN) return;
+      const last = items[STEPS_SHOWN - 1];
+      box.style.maxHeight = `${last.offsetTop + last.offsetHeight - list.offsetTop}px`;
+      fade();
+    };
+    box.addEventListener("scroll", fade, { passive: true });
+    box.fit = size;  // markStep calls it once the box is on the page, so the height is right before anything scrolls
+    if (typeof ResizeObserver !== "undefined") new ResizeObserver(size).observe(list);
+    requestAnimationFrame(size);
+    return box;
+  }
+  /* Mark the flow's current step in the panel and bring it into view inside the box. */
+  function markStep(key, cur) {
+    const list = body() && body().querySelector(`.steps-list[data-flow="${CSS.escape(key)}"]`);
+    if (!list) return;
+    const now = cur === undefined ? (typeof Flows !== "undefined" && Flows.st.key === key ? Flows.st.cur : -1) : cur;
+    [...list.children].forEach((li, i) => { li.classList.toggle("cur", i === now); if (i === now) li.setAttribute("aria-current", "step"); else li.removeAttribute("aria-current"); });
+    const here = list.children[now];
+    const box = list.closest(".steps-box");
+    if (box && box.fit) box.fit();
+    if (!box || !here) return;
+    /* only the box scrolls, never the panel around it */
+    const top = here.offsetTop - list.offsetTop, bottom = top + here.offsetHeight;
+    if (top < box.scrollTop) box.scrollTop = top;
+    else if (bottom > box.scrollTop + box.clientHeight) box.scrollTop = bottom - box.clientHeight;
+  }
+
   function section(title, count, ...kids) {
     const content = kids.flat().filter(Boolean);
     if (!content.length) return null;
@@ -301,8 +340,8 @@ const Panel = (() => {
     } else if (e.kind === "flow") {
       const f = FLOW[k];
       out.push(whyLit(k), prose(e));
-      out.push(section("Steps", f.steps.length, f.steps.length ? h("ol", { class: "steps-list" }, f.steps.map((st, i) => h("li", {},
-        h("button", { class: "step-link", onclick: () => { if (App.view !== "flows") showView("flows"); Flows.select(k, i); } }, h("span", { html: st.html }))))) : empty("No steps written for this flow yet.")));
+      out.push(section("Steps", f.steps.length, f.steps.length ? stepsList(k, f) : empty("No steps written for this flow yet.")));
+      Promise.resolve().then(() => markStep(k));
       const qs = [...new Set([...f.unknowns, ...f.steps.flatMap((st) => st.unknowns.map((p) => p.id))])];
       out.push(section("Questions on this flow", qs.length, qs.length ? h("ul", { class: "mini-list" }, qs.map((id) => unknownLine(id))) : null));
       out.push(section("Apps and outside services in it", flowStations(f).length, flowStations(f).map((x) => refChip(x))));
@@ -337,5 +376,5 @@ const Panel = (() => {
   }
   /* What holds a page or app up, for a page's "What's waiting" tab: why it is lit, then the questions that block it. */
   const waitingFor = (key) => [whyLit(key), heldBy(key)].filter(Boolean);
-  return { render, section, keyNodes, waitingFor, empty, homeNodes: home };
+  return { render, section, markStep, keyNodes, waitingFor, empty, homeNodes: home };
 })();

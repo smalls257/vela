@@ -39,9 +39,16 @@ html.plain .grills-badge { box-shadow: inset 0 0 0 1px rgba(0,0,0,.25); }
 .g-row { display: flex; justify-content: space-between; align-items: start; gap: 10px; }
 .g-t { font-weight: 600; font-size: 14.5px; color: var(--ink); line-height: 1.3; }
 .g-m { color: var(--ink-3); font-size: 12.5px; margin-top: 1px; }
-.g-owner { margin-top: 5px; color: var(--ink-3); font-size: 12.5px; }
+.g-owner { color: var(--ink-3); }
 .g-owner b { color: var(--ink); font-weight: 600; }
 .g-owner b.g-asked { color: var(--unexamined-text); }
+.g-agrees { margin-top: 10px; padding: 9px 12px; border-left: 3px solid var(--focus); background: var(--deck-3); border-radius: 0 6px 6px 0; font-size: 13.5px; color: var(--ink-2); line-height: 1.45; }
+.g-agrees-lab { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; font-weight: 600; color: var(--ink-3); margin-bottom: 4px; }
+.g-agrees-list, .g-more-list { margin: 6px 0 0; padding-left: 18px; font-size: 13px; }
+.g-more-list[hidden] { display: none; }
+.g-more-row, .g-opt { margin-top: 6px; }
+.g-opt b { color: var(--ink); font-weight: 600; }
+.g-agrees .linkish { font-size: 12.5px; }
 .g-need { margin-top: 7px; font-size: 13.5px; color: var(--ink-2); line-height: 1.45; }
 .g-need b { color: var(--ink); font-weight: 600; }
 .g-need b.g-wait { color: var(--caution-text); }
