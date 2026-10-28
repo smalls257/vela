@@ -25,7 +25,7 @@ from quality_report import Finding
 WAIVER_FILE = ".quality/complexity-waivers.tsv"
 METRICS = ("ccn", "nloc", "params", "nesting", "lines")
 SEEDED_PREFIX = "# seeded "
-DATED_TODO = re.compile(r"\b(TODO|FIXME|HACK)\(([^,()]+), (\d{4}-\d{2}-\d{2})\)")  # nosemgrep: todo-needs-owner-and-reason -- the pattern names the marker words it looks for
+DATED_TODO = re.compile(r"\b(TODO|FIXME|HACK)\(([^,()]+), (\d{4}-\d{2}-\d{2})\)")  # nosemgrep: todo-needs-owner-and-date -- the pattern names the marker words it looks for
 ISO_DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
 
 

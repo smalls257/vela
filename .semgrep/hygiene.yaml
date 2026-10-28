@@ -1,13 +1,14 @@
 rules:
-  # Forensic Coding. An ownerless TODO is a note nobody will act on; in two months it is a Fossil Comment.
-  - id: todo-needs-owner-and-reason
+  # Forensic Coding. An ownerless, undated TODO is a note nobody will act on; in two months it is a Fossil Comment.
+  # The date is its expiry: tools/quality_gate.py fails the day after.
+  - id: todo-needs-owner-and-date
     languages: [generic]
     severity: WARNING
     message: >-
-      Write TODO(owner): what and why, or open an issue and link it. A bare TODO becomes a Fossil Comment.
+      Write TODO(owner, YYYY-MM-DD): what and why. The date is when it expires; the quality gate fails the day after.
     paths:
       include: ["*.py", "*.js", "*.sh", "/plugin/scripts/vela", "/.githooks/*"]
-    pattern-regex: \b(TODO|FIXME|HACK)\b(?!\([\w.@-]+\):)
+    pattern-regex: \b(TODO|FIXME|HACK)\b(?!\([\w.@-]+, \d{4}-\d{2}-\d{2}\):)
   # Black Box. A git or tool call with no timeout hangs the CLI or the simulator with no signal.
   # cli.git() and cli.git_strict() set timeouts; new calls must too.
   - id: subprocess-needs-timeout

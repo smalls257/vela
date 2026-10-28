@@ -1,0 +1,546 @@
+# Complexity waivers: functions and files that were over their caps when the quality gate arrived.
+# Delete-only: a line may be removed (fix the code, then delete it) but never added or raised by hand.
+# Only the owner regenerates this file, and a reseed keeps every old expiry.
+# Regenerate: python3 tools/quality_seed.py --owner OWNER --reason TEXT
+# seeded 2026-10-27 at 51600738 by smalls257: pre-gate debt, measured on vela-next
+.claude/hooks/gates.py::before_stop	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+.claude/hooks/gates.py::lint	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+.claude/hooks/gates.py::semgrep_ignores	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/askwho.py::who_to_ask	ccn=19	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/attention.py::hold	ccn=13	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/attention.py::lights	ccn=46 nloc=57	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/boundarycover.py::_share	ccn=14	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/breakdown.py::cross_check	ccn=13	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/breakdown.py::story_problems	ccn=24	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/breakdown.py::take_story_line	ccn=22	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/capture.py::counts	ccn=14	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/cases.py::_row	ccn=20	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/catalog.py::_entry	ccn=40 nloc=65	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/catalog.py::_mention_groups	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/catalog.py::_mention_reasons	ccn=19	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/catalog.py::_word_list	ccn=13	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/catalog.py::parse_catalog	ccn=25	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/catalog.py::parse_kinds	ccn=25	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/catalog.py::parse_trigger	ccn=26	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/cli.py	lines=3298	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/cli.py::build_parser	nloc=219	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/cli.py::changed_pages	ccn=17	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/cli.py::changes_walk	ccn=14	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/cli.py::check_changed_slices	params=8	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/cli.py::check_for_lead	ccn=12 params=7	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/cli.py::check_summary	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/cli.py::cmd_check	ccn=15	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/cli.py::cmd_check_diagrams	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/cli.py::cmd_check_slice	ccn=24 nloc=62	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/cli.py::cmd_explore	ccn=17 nesting=4	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/cli.py::cmd_export	ccn=23	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/cli.py::cmd_findings	ccn=25	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/cli.py::cmd_handoff	ccn=21 nloc=52	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/cli.py::cmd_proposals_review	ccn=23 nloc=54	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/cli.py::cmd_propose	ccn=29 nloc=57	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/cli.py::cmd_publish	ccn=21	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/cli.py::cmd_questions	ccn=17	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/cli.py::cmd_style	ccn=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/cli.py::cmd_tickets	ccn=18	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/cli.py::cmd_voicecheck	ccn=13	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/cli.py::handoff_verify_result	ccn=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/cli.py::initiative_step	ccn=19	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/cli.py::load_config	ccn=14	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/cli.py::print_digest	ccn=17	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/cli.py::print_review	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/cli.py::published_copy	params=9	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/cli.py::range_pairs	ccn=14	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/cli.py::reopen_workspace	params=7	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/closedrafts.py	lines=529	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/closedrafts.py::item_facts	ccn=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/closedrafts.py::paragraph	ccn=16	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/closedrafts.py::ref_skipped	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/closedrafts.py::section_range	ccn=13	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/closegate.py	lines=715	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/closegate.py::decision_bullets	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/closegate.py::judge_change	params=7	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/closegate.py::override_scopes	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/closegate.py::receipt_problems	ccn=18	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/closereadback.py::_capture_of	ccn=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/closereadback.py::_page_sentences	ccn=17	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/closestate.py::record	params=7	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/commands/add.py::report	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/commands/apply.py::file_decision	params=7	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/commands/check.py::fix	ccn=24 nloc=62	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/commands/close_drafts.py::default_lines	ccn=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/commands/close_finish.py::Finish.__init__	params=10	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/commands/close_gate.py::answer_words	ccn=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/commands/close_push.py	lines=511	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/commands/close_push.py::find_session	ccn=15	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/commands/close_push.py::write_pr_number	params=7	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/commands/close_readback.py::pick	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/commands/close_readback.py::reword	params=7	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/commands/close_stage.py::cmd_close_stage	ccn=22 nloc=52	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/commands/close_stage.py::lead_summary	ccn=14	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/commands/close_stage.py::report	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/commands/close_sync.py::_merge	ccn=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/commands/decide.py::file_item	ccn=16	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/commands/decide.py::item_from	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/commands/decide.py::report	params=7	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/commands/decide.py::run	ccn=14	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/commands/epics.py::cmd_lint	ccn=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/commands/epics.py::fix_shape	ccn=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/commands/grill.py::problem	ccn=13	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/commands/importer.py::cmd_page.<locals>.change	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/commands/importer.py::set_frontmatter	ccn=14	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/commands/map.py::cmd_add.<locals>.change	ccn=16	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/commands/marks.py::report	ccn=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/commands/new.py::folder_refusal	ccn=14	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/commands/new.py::make_plan	ccn=12 params=7	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/commands/new.py::started	params=9	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/commands/onboard.py::cmd_path_set	ccn=17	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/commands/private_records.py	lines=534	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/commands/private_records.py::apply_split	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/commands/proposals_commit.py::cmd_proposals_commit	ccn=25	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/commands/prose.py::replace	ccn=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/commands/questions.py::cmd_questions	ccn=21	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/commands/questions.py::existence	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/commands/questions.py::lead_digest	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/commands/record.py::open_record	ccn=15	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/commands/releases.py::brief_data	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/commands/releases.py::brief_lines	ccn=17	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/commands/reviewers.py::_check_args	ccn=17	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/commands/reviewers.py::default_lines	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/commands/reviewers.py::prepare	ccn=22 nloc=59	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/commands/session.py	lines=1168	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/commands/session.py::move_to_own_branch	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/commands/session.py::open_record	params=10	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/commands/session.py::overdue_questions	ccn=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/commands/session.py::refuse_request	ccn=13	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/commands/session.py::resume	params=8	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/commands/session.py::start_in_repo	params=7	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/commands/session.py::start_on_challenge	ccn=12 params=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/commands/session.py::start_owner	ccn=15 params=7	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/commands/session.py::write_state	params=7	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/commands/team.py::cmd_team_commit	ccn=13	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/commands/team.py::person_yes_words	ccn=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/commands/voice.py	lines=523	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/commands/voice.py::collect	ccn=13	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/commands/voice.py::examples_result	ccn=13	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/commands/voice.py::field_problem	ccn=14	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/commands/voice.py::page_offers	params=7	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/commands/voice.py::save_result	ccn=13	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/commands/voice.py::store	ccn=13	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/commands/voice_settle.py::settle	ccn=14	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/commands/voice_settle.py::settle_result	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/commands/where.py::cmd_probe	ccn=13	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/companionblocks.py::bars_block	ccn=25	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/companionblocks.py::explain_sections	ccn=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/companionblocks.py::row	params=8	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/companionchart.py::drawing	ccn=21	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/companiondesign.py::build	params=9	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/companionexplain.py::view_stuck	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/companionrender.py::block_text	ccn=20	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/companionseen.py::since_line	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/companionsvg.py::sequence	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/conventions.py::near	ccn=15	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/criteria.py::_headed	params=8	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/criteria.py::_numbered	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/criteria.py::read	ccn=24	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/decisions/add_adr.py::validate	ccn=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/decisions/add_contract.py::validate	ccn=15	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/decisions/add_cut.py::validate	ccn=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/decisions/add_epic.py::validate	ccn=17	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/decisions/add_source.py::_library_refusals	ccn=16	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/decisions/add_source.py::validate	ccn=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/decisions/add_subject.py::validate	ccn=15	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/decisions/add_unknown.py::validate	ccn=14	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/decisions/agenda.py::validate	ccn=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/decisions/decide_writes.py	lines=513	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/decisions/decide_writes.py::options_refusals	ccn=15	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/decisions/decide_writes.py::record_after	params=7	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/decisions/ledger_rows.py	lines=523	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/decisions/ledger_rows.py::evidence	ccn=19	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/decisions/marks.py::_keep_refusals	ccn=17	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/decisions/marks.py::validate	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/decisions/override.py::validate	ccn=17	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/decisions/settled.py::settled_ids	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/decisions/textedit.py::add_history	ccn=19	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/decisions/textedit.py::refusal	params=7	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/deferrals.py::prose_lines	ccn=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/designchoice.py::acknowledged_gaps	ccn=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/designchoice.py::choice_lines	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/diagrams.py::app_graph	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/diagrams.py::context_graph	ccn=13	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/diagrams.py::flowchart	ccn=15	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/diagrams.py::others_edges	ccn=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/edge/atomic.py::write_all_atomic	ccn=9	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/edge/companionstore.py::design_session	ccn=14	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/edge/companionstore.py::page_index	ccn=13	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/edge/companionstore.py::touched	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/edge/companionstore.py::write_forms	params=7	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/edge/copies.py::_read_folder_files	ccn=9	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/edge/copies.py::_read_zip_files	ccn=13	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/edge/copies.py::_zip_stamp	nesting=4	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/edge/copies.py::read_tree	ccn=9	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/edge/flowstore.py::changed_files	ccn=23 nloc=45	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/edge/ghcli.py::pr_create	params=6	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/edge/hostprobe.py::gather	params=9	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/edge/hostprobe.py::hooks_row	ccn=10	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/edge/hostprobe.py::stance	ccn=9	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/edge/machine.py::hook_facts	ccn=13	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/edge/machine.py::installed_launcher	ccn=16	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/edge/proposals.py::_from_zip	ccn=17	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/edge/proposals.py::write	ccn=9	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/edge/proposals.py::written_against	ccn=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/edge/replays.py::apply	ccn=9 params=6	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/edge/teamdocs.py::design_questions_and_gap	ccn=10	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/edge/teamdocs.py::team_step	ccn=14	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/edge/vaultgit.py::role_facts	ccn=9	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/epicslint.py::_convert	ccn=14	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/epicslint.py::fix_shape	ccn=14	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/asks_data.py::adr_tree	ccn=17	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/asks_data.py::decision_state	ccn=14	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/asks_data.py::decisions	ccn=61 nloc=69	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/asks_data.py::history_groups	ccn=16	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/assets_inline.py::bundle	ccn=29 nloc=70	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/branches_data.py	lines=720	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/branches_data.py::Walker.call	ccn=25	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/branches_data.py::Walker.choose	ccn=25 params=7	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/branches_data.py::Walker.node	ccn=18	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/branches_data.py::Walker.ordered	ccn=16 params=7	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/branches_data.py::flow_branches	ccn=56 nloc=73	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/branches_data.py::limits_for	ccn=19	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/branches_data.py::plain_invariant	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/branches_data.py::plain_invariant.<locals>.pos	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/branches_data.py::played	ccn=29 nloc=55 params=7	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/branches_data.py::state_words	ccn=13	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/breakdown_find.py::discover	ccn=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/build.py	lines=976	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/build.py::app_details	ccn=23	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/build.py::extract	ccn=27 nloc=73 params=9	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/build.py::generate	params=7	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/build.py::lights_data	ccn=13	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/build.py::link_sources	ccn=18	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/build.py::map_nodes	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/build.py::paragraphs	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/build.py::search_index	ccn=21	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/build.py::system_map	ccn=15	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/build.py::unknowns	ccn=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/design_data.py	lines=980	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/design_data.py::_adrs	ccn=13	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/design_data.py::_boundaries	ccn=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/design_data.py::_check_components	ccn=13	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/design_data.py::_check_status	ccn=15	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/design_data.py::_context	ccn=15	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/design_data.py::_data_model	ccn=16	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/design_data.py::_diagrams	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/design_data.py::_er_diagram	ccn=16	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/design_data.py::_read_adr	ccn=16	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/design_data.py::_split_sections	ccn=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/design_data.py::_table	ccn=17	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/design_data.py::_trace	ccn=28	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/design_data.py::_vault_link	ccn=25	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/design_data.py::resolve	ccn=15	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/design_data.py::stepper_reads	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/design_data.py::trace_targets	ccn=13	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/design_find.py::Look.vault_docs	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/flows_data.py::Drawing.pair	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/flows_data.py::flow_record	ccn=62 nloc=69 params=10 nesting=5	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/flows_data.py::inferred	ccn=17	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/flows_data.py::journey	ccn=15	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/flows_data.py::lane_of	ccn=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/flows_data.py::lanes_of	ccn=13	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/flows_data.py::message	ccn=22	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/icons_data.py::choose	ccn=13	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/inside_data.py::attach	ccn=18	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/inside_data.py::containers	ccn=29	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/inside_data.py::flowchart	ccn=14	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/inside_data.py::integration_stubs	ccn=16	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/library_data.py::format_of	ccn=16	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/pages_data.py::Renderer.list_block	ccn=19	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/pages_data.py::Renderer.render	ccn=27 nloc=87	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/pages_data.py::sections	ccn=15	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/panel_data.py::contract_details	ccn=27	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/panel_data.py::depends_text	ccn=13	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/panel_data.py::panels	ccn=21	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/panel_data.py::stub_lines	ccn=17	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/panel_data.py::summary	ccn=31	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/pins.py::ideal_layout	ccn=39 nloc=52	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/pins.py::nearest_free	ccn=14	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/pins.py::pinned	ccn=31	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/pins.py::validate	ccn=19	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/plan_data.py::blockers_of	ccn=23	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/plan_data.py::coverage	ccn=37	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/plan_data.py::plan_entry	ccn=14	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/plan_data.py::story_entry	ccn=24	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/reqs_data.py::Reads.__init__	params=9	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/reqs_data.py::designed_check	ccn=15	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/reqs_data.py::extract	params=8	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/reqs_data.py::lede	ccn=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/reqs_data.py::row_of	ccn=22	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/reqs_data.py::stories_check	ccn=23	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/reqs_data.py::stories_entry	ccn=20	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/roles_data.py::capabilities_by_app	ccn=13	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/roles_data.py::failure	ccn=13	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/roles_data.py::release_data	ccn=24 nesting=5	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/serve.py	lines=639	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/serve.py::Handler.do_GET	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/serve.py::Server.__init__	params=9	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/serve.py::apply_pins	ccn=13	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/serve.py::events_from	ccn=22	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/serve.py::parse_ask	ccn=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/serve.py::serve	params=9	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/slices_data.py::extract	ccn=23	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/starts_data.py::guess	ccn=34	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/starts_data.py::record	ccn=15	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/starts_data.py::tie_steps	ccn=14	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/explorer/vault_files.py::resolve	ccn=16	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/__init__.py::apply_overrides	ccn=20	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/__init__.py::check_catalog	params=8	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/__init__.py::check_slice	params=8	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/__init__.py::limits	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/__init__.py::plan_runs	ccn=13	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/__init__.py::resolve_slice	ccn=13	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/build.py	lines=699	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/build.py::Builder.add_invariant_entities	ccn=12 nesting=6	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/build.py::Builder.answer_from_contract	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/build.py::Builder.branches	ccn=36	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/build.py::Builder.build	ccn=18	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/build.py::Builder.call	ccn=22 nloc=54	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/build.py::Builder.compile_handler	params=9	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/build.py::Builder.handler_for	params=8	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/build.py::Builder.resolve_emits	ccn=16	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/build.py::Builder.resolve_table	ccn=19	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/build.py::Builder.seq	ccn=16	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/build.py::Builder.target	params=9	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/build.py::Builder.used_ids	ccn=16 nesting=6	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/build.py::_always_replies	ccn=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/build.py::_collect_replies	ccn=13	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/changed.py::Line.words	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/changed.py::check_slices	ccn=15 params=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/changed.py::lead_summary	ccn=16	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/explore.py::explore	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/findings.py::SliceResult.lead_line	ccn=14	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/impact.py::_changes	ccn=15	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/impact.py::_flow_chains	ccn=23 params=8	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/impact.py::_problems	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/impact.py::_slice_chains	params=7	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/impact.py::_untouched	ccn=19	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/impact.py::reach	ccn=36 nloc=53 nesting=5	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/impact.py::unplaced	ccn=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/mermaid.py::_Parser.opening_alt	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/mermaid.py::_Parser.statement	ccn=15	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/mermaid.py::tokenize	ccn=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/properties.py	lines=548	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/properties.py::_given_hint	ccn=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/properties.py::_stuck_finding	ccn=12 params=8	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/properties.py::cause_words	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/properties.py::check_await	ccn=15	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/properties.py::check_branches	ccn=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/properties.py::event_findings	ccn=19 nesting=5	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/properties.py::event_usable	ccn=14	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/properties.py::judge_graph	ccn=36 nloc=89	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/properties.py::loose_ends	ccn=19	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/properties.py::outcomes	ccn=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/properties.py::unused_cases	ccn=26	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/readers.py	lines=604	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/readers.py::_merge_events	ccn=21	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/readers.py::_read_asyncapi	ccn=17	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/readers.py::_read_event_sections	ccn=16	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/readers.py::_read_operation	ccn=15	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/readers.py::read_catalog	ccn=18	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/readers.py::read_entity	ccn=36	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/readers.py::read_yaml_retries	ccn=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/record.py::canonical	ccn=14	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/render.py::Renderer.describe	ccn=35 nloc=72 params=9	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/semantics.py	lines=555	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/semantics.py::Semantics.__init__	ccn=28	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/semantics.py::Semantics.apply	params=7	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/semantics.py::Semantics.call_steps	ccn=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/semantics.py::Semantics.deliver	ccn=14	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/semantics.py::Semantics.effects	params=7	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/semantics.py::Semantics.not_final	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/semantics.py::Semantics.observe	params=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/semantics.py::Semantics.part_way	ccn=14	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/semantics.py::Semantics.reply_steps	ccn=13	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/semantics.py::Semantics.step	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/semantics.py::Semantics.timer_steps	ccn=15	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/standing.py::standing	ccn=15	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flowcheck/verdicts.py::state	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flows.py::lanes_named	ccn=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flows.py::passes_through	ccn=13	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/flows.py::steps	ccn=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/freshness.py::owner_report	params=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/freshness.py::reader_report	ccn=14	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/gates.py::option_reason	ccn=18	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/gates.py::report	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/gates.py::verdict	ccn=17	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/grillowners.py::_entry	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/grillowners.py::replace_block	ccn=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/grills.py::_bullets_after_opening	ccn=15	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/grills.py::agrees	ccn=14	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/grills.py::apps_of	ccn=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/grills.py::holds_up	ccn=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/grills.py::waiting	ccn=16	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/handoff.py::handoff_list	ccn=22	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/handoff.py::read	ccn=20	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/handoff.py::slice_entry	ccn=13	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/handoffpreview.py::_grouped_checklist	ccn=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/handoffpreview.py::grouped_gaps	ccn=13	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/hookverdict.py::_Reader.read	ccn=30 nloc=52	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/hookverdict.py::_Reader.substitution	ccn=15	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/hookverdict.py::_unwrap	ccn=20	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/hookverdict.py::bash_verdict	ccn=18	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/hookverdict.py::commit_stages	ccn=14 nesting=5	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/ladder.py::missing	ccn=37	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/ledger.py::parse_row	ccn=15	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/ledger.py::split_evidence	ccn=16	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/library.py::spec_version	ccn=15	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/library.py::stored_name	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/library.py::type_of_url	ccn=13	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/links.py::of_page	ccn=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/markrules.py	lines=531	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/markrules.py::_ledger_row	params=8	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/markrules.py::plan	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/markrules.py::review_rows	ccn=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/mergeplan.py::hunks	ccn=17	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/onboardmodules.py	lines=583	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/onboardmodules.py::approach	ccn=16	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/onboardmodules.py::dates	ccn=16	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/onboardmodules.py::make	ccn=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/onboardmodules.py::open_questions	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/onboardmodules.py::release_items	ccn=16	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/onboardmodules.py::risks	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/onboardmodules.py::standing	ccn=36	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/onboardmodules.py::touches	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/onboardpath.py::make	ccn=18	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/onboardtune.py::_read_bullet	ccn=18	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/onboardtune.py::parse	ccn=13	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/override.py::_rule_problem	ccn=15	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/override.py::apply	ccn=22	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/override.py::grammar_findings	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/override.py::on_behalf	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/override.py::parse_override	ccn=13	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/override.py::unit_lines	ccn=14	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/parse.py::_parse_body	ccn=30 nloc=80	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/parse.py::split_frontmatter	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/prbody.py::owner_fields	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/privaterecord.py::new_stub	params=7	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/progress.py::suggest	ccn=36	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/proposal.py::render_markdown	ccn=15	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/prosereplace.py::paragraph_at	ccn=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/prosereplace.py::with_entry	ccn=13	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/publish.py::build_stamp	params=9	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/query.py::find	ccn=19	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/query.py::refs	ccn=15	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/questions.py	lines=1148	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/questions.py::_copy_problem	ccn=22	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/questions.py::_covers	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/questions.py::_evidence_problems	ccn=23	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/questions.py::_related	ccn=19	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/questions.py::_row_findings	ccn=15	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/questions.py::_section_links	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/questions.py::digest	ccn=30	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/questions.py::epics_gate	ccn=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/questions.py::listing	ccn=20	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/questions.py::load_bearing_assumptions	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/questions.py::owed	ccn=15	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/questions.py::recommends_no	ccn=14	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/questions.py::stats	ccn=16	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/questions.py::subjects	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/questions.py::untyped_mentions	ccn=17	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/readability.py::_regions	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/reading.py::arrange	ccn=42 nloc=72	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/reading.py::fold_item_details	ccn=15	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/reading.py::not_started	ccn=18	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/reading.py::style_problems	ccn=59 nloc=80	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/readload.py::_joined	ccn=15	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/readload.py::counts	ccn=18	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/readload.py::name_words	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/readload.py::paragraphs	ccn=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/readload.py::repeated_phrases	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/readload.py::template_opening_findings	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/records.py::append	ccn=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/records.py::capture_line	ccn=13	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/recordsplit.py::_strip_held_words	ccn=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/releases.py::releases	ccn=28	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/releases.py::snapshots	ccn=14 nesting=5	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/render.py::allocation_block	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/render.py::render_page	ccn=13	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/render.py::undisposed_questions	ccn=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/render.py::where_it_stands	ccn=23	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/replay.py::_settle	ccn=14	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/replay.py::plan	ccn=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/review.py::_check_counts	ccn=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/review.py::answer_markdown	params=8	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/review.py::check_decisions	ccn=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/review.py::groups_for	ccn=18	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/review.py::parse_note	ccn=16	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/review.py::parse_patch	ccn=15	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/reviewprep.py::area_packet_text	params=8	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/reviewprep.py::with_digest_shown	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/reviews.py::_check_finding	ccn=21	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/reviews.py::merge	ccn=27 nloc=51	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/reviews.py::on_decided	ccn=14	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/rules.py	lines=1474	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/rules.py::_enum_findings	ccn=38 nloc=53	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/rules.py::_id_findings	ccn=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/rules.py::_library_rows	ccn=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/rules.py::_rows	params=7	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/rules.py::_slice_milestone_rules	ccn=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/rules.py::_slice_page_rules	ccn=14	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/rules.py::_slice_progress_rules	ccn=13	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/rules.py::allocation_rules	ccn=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/rules.py::block_rules	ccn=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/rules.py::case_table_rules	ccn=15	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/rules.py::certainty_rules	ccn=19	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/rules.py::check	ccn=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/rules.py::concern_rules	ccn=21	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/rules.py::contract_rules	ccn=13	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/rules.py::decided_units	ccn=13	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/rules.py::domain_rules	ccn=17	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/rules.py::duplicate_rules	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/rules.py::freshness_rules	ccn=22	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/rules.py::link_field_rules	ccn=16	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/rules.py::link_rules	ccn=20 nesting=5	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/rules.py::page_state_rules	ccn=22	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/rules.py::reference_rules	ccn=19	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/rules.py::release_rules	ccn=21	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/rules.py::short_of	ccn=13	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/rules.py::slice_rules	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/rules.py::stale_mention_rules	ccn=26	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/rules.py::subject_rules	ccn=27	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/rules.py::table_rules	ccn=12 nesting=5	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/rules.py::unknown_rules	ccn=20	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/say.py::lead_lines	ccn=16	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/say.py::waiver_line	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/schema.py	lines=586	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/search.py::search	ccn=19	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/search.py::sections	ccn=16	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/secretscan.py::_line_hits	ccn=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/sizing.py::announcement	ccn=15	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/slices.py::_with_joins	nesting=5	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/slices.py::next_step	ccn=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/ticketcopy.py::line_problems	ccn=14	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/tickets.py	lines=701	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/tickets.py::check	ccn=16	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/tickets.py::check_coverage	ccn=13	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/tickets.py::check_slices	ccn=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/tickets.py::check_story	ccn=17	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/tickets.py::check_tracer	ccn=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/tickets.py::convert_text	params=8	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/tickets.py::read_keys	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/tickets.py::readme_text	ccn=12 params=7	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/tickets.py::requirements_of	ccn=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/tickets.py::retire_pointers	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/tickets.py::ticket_markdown	ccn=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/tickets.py::ticket_plain	ccn=12	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/tickets.py::vault_sentence	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/topicmap.py::_kind_moves	ccn=15	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/topicmap.py::moves	ccn=16	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/trace.py::_t4	ccn=14	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/untrusted.py::verdict	ccn=21	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/viewer.py	lines=573	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/viewer.py::link_problems	ccn=13	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/voiceplan.py::added_hunks	ccn=13	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/voiceplan.py::example_fields	params=7	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/voiceplan.py::plan	ccn=19	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/voiceplan.py::reading_order	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+plugin/lib/vela/voicescore.py::reference	ccn=11	smalls257	2027-04-27	over the cap when the gate arrived
+tools/flowcheck_bench.py::synthetic_slice	ccn=20 params=7	smalls257	2027-04-27	over the cap when the gate arrived
