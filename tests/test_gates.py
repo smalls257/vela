@@ -43,6 +43,26 @@ def test_dash_n_skips_hooks_only_on_commit(command):
     assert gates.bypass_reason(command) is None
 
 
+@pytest.mark.parametrize("command", [
+    "python3 -m pytest -q -n auto tests/test_gates.py\ngit commit -m 'x'",
+    "git commit -m x\npython3 -m pytest -n 4",
+    "git add a.py && git commit -m x && python3 -m pytest -n auto",
+    "git commit -m \"$(cat <<'EOF'\nfix the -n parse\nEOF\n)\"\npython3 -m pytest -n auto",
+    "git commit -m -n",            # git takes "-n" as the message
+    "git commit -F msg.txt -- -n",  # after --, a pathspec
+])
+def test_dash_n_outside_git_commit_options_passes(command):
+    assert gates.bypass_reason(command) is None
+
+
+@pytest.mark.parametrize("command", [
+    "git commit -m x -n", "git commit -nm x", "git commit -am x -n", "git -C repo commit -n -m x",
+    "python3 -m pytest -n auto\ngit commit -n -m x", "git commit \\\n  -n -m x", "ls\ngit push --no-verify",
+])
+def test_dash_n_on_git_commit_still_skips_the_hooks(command):
+    assert gates.bypass_reason(command) == "skips the git hooks"
+
+
 @pytest.mark.parametrize("command", ["git config core.hooksPath .githooks", "git config --get core.hooksPath"])
 def test_turning_the_hooks_on_or_reading_the_setting_passes(command):
     assert gates.bypass_reason(command) is None
