@@ -60,12 +60,6 @@ const Grills = (() => {
     const [what, why] = text.split(/:\s*rejected,?\s*/i);
     return why !== undefined ? `Set aside: ${upFirst(what)}, because ${why.replace(/\.$/, "")}` : upFirst(text);
   }
-  /* One line for a card: the option on the table and how many were set aside, or the one thing the item says it is. */
-  function settleSummary(r) {
-    const picked = r.settles.find((s) => SETTLE_PICKED.test(s)), others = r.settles.filter((s) => s !== picked);
-    if (!picked) return settleLine(r.settles[0]).replace(/\.$/, "");
-    return `${settleLine(picked)}${others.length ? `. ${plural(others.length, "other option")} set aside` : ""}`;
-  }
   const listWords = (names, cap = 4) => {
     const shown = names.slice(0, cap), more = names.length - shown.length;
     const all = more > 0 ? [...shown, `${more} more`] : shown;
@@ -140,7 +134,7 @@ const Grills = (() => {
   function ownerLine(r) {
     const asked = isAsked(r);
     const joined = r.join.map(youOrName);
-    return h("div", { class: "g-owner" }, "Owner: ", h("b", {}, listWords(r.owner.map(youOrName), 3) || "not recorded"),
+    return h("span", { class: "g-owner" }, "Owner: ", h("b", {}, listWords(r.owner.map(youOrName), 3) || "not recorded"),
       r.ownerSet ? h("span", { class: "muted", title: "Someone set the grill's owner; it isn't the item's own owner" }, " (set for this grill)") : null,
       joined.length ? ` · with ${listWords(joined)}` : null, asked ? [" · ", h("b", { class: "g-asked" }, "you're asked to join")] : null);
   }
@@ -155,17 +149,52 @@ const Grills = (() => {
     return out;
   }
 
+  /* The box that opens a card: what settling it agrees to, in the plan's own words (vela.grills.agrees copied them; this
+     only lays them out). A requirement's extra details sit behind a button, and a page links to itself in the panel. */
+  function optionLine(a) {
+    if (a.picked) {
+      const left = a.setAside ? ` (${a.setAside === 1 ? "one other option was" : `${a.setAside} other options were`} set aside)` : "";
+      return h("div", { class: "g-opt" }, h("b", {}, "Option picked: "), a.picked, left ? h("span", { class: "muted" }, left) : null);
+    }
+    return a.choosing ? h("div", { class: "g-opt" }, h("b", {}, "Choosing between: "), a.choosing.join(", ")) : null;
+  }
+  function moreDetails(a) {
+    if (!a.more.length) return null;
+    const rest = h("ul", { class: "g-more-list", hidden: "" }, a.more.map((d) => h("li", {}, d)));
+    const word = `+${plural(a.more.length, "more detail")}`;
+    const btn = h("button", { class: "linkish g-more-btn", type: "button", "aria-expanded": "false", onclick: (ev) => {
+      ev.stopPropagation();
+      const open = rest.hidden;
+      rest.hidden = !open;
+      btn.setAttribute("aria-expanded", String(open));
+      btn.textContent = open ? "Show fewer details" : word;
+    } }, word);
+    return [rest, h("div", { class: "g-more-row" }, btn)];
+  }
+  function agreeBox(r) {
+    const a = r.agrees;
+    if (!a || !(a.lead || a.picked || a.choosing)) return null;
+    const wholePage = a.page ? h("div", { class: "g-more-row" }, h("button", { class: "linkish g-whole", type: "button", "data-ref-chip": r.key,
+      onclick: (ev) => { ev.stopPropagation(); DetailsPanel.show(r.key, { reset: true, quiet: true }); } }, "Read the whole page")) : null;
+    const bullets = [...a.points, ...a.details];
+    return h("div", { class: "g-agrees" }, h("div", { class: "g-agrees-lab" }, "Settling this agrees that"),
+      a.lead ? h("div", { class: "g-agrees-lead" }, a.lead) : null,
+      bullets.length ? h("ul", { class: "g-agrees-list" }, bullets.map((b) => h("li", {}, b))) : null,
+      moreDetails(a), optionLine(a), wholePage);
+  }
+
   function card(r) {
     const [pillText, tone] = pillOf(r), key = keyOf(r), on = st.open === key;
     const open = () => select(key);
-    const body = [h("div", { class: "g-row" }, h("div", {}, h("div", { class: "g-t" }, r.name), h("div", { class: "g-m" }, contextLine(r))),
-      h("span", { class: `g-pill ${tone}` }, pillText)), ownerLine(r)];
-    if (r.group !== "one-away" && r.settles.length) body.push(h("div", { class: "g-need" }, h("b", {}, "Settles: "), settleSummary(r)));
-    if (r.group === "one-away") body.push(h("div", { class: "g-need" }, h("b", { class: "g-wait" }, r.missing.question ? "Waiting on: " : "In the way: "), waitingSentence(r)));
-    if (r.openQuestion && r.openQuestion.question) body.push(h("div", { class: "g-need g-openq" }, h("b", {}, "Still open: "), `${answerWords(r.openQuestion)}. Settling it notes that.`));
+    const head = h("div", { class: "g-row" }, h("div", {}, h("div", { class: "g-t" }, r.name), h("div", { class: "g-m" }, contextLine(r), " · ", ownerLine(r))),
+      h("span", { class: `g-pill ${tone}` }, pillText));
+    const needs = [];
+    if (r.group === "one-away") needs.push(h("div", { class: "g-need" }, h("b", { class: "g-wait" }, r.missing.question ? "Waiting on: " : "In the way: "), waitingSentence(r)));
+    if (r.openQuestion && r.openQuestion.question) needs.push(h("div", { class: "g-need g-openq" }, h("b", {}, "Still open: "), `${answerWords(r.openQuestion)}. Settling it notes that.`));
     const chips = holdChips(r);
     return h("div", { class: "g-card" + (on ? " on" : ""), "data-grill": r.id, "data-group": r.group, "data-owner": r.owner.join(" "), onclick: open },
-      h("button", { class: "g-open", type: "button", "aria-pressed": String(on), "aria-label": `${r.name}: ${pillText}. Show the details`, onclick: (ev) => { ev.stopPropagation(); open(); } }, ...body),
+      h("button", { class: "g-open", type: "button", "aria-pressed": String(on), "aria-label": `${r.name}: ${pillText}. Show the details`, onclick: (ev) => { ev.stopPropagation(); open(); } }, head),
+      r.group !== "one-away" ? agreeBox(r) : null, ...needs,
       chips.length ? h("div", { class: "g-chips" }, chips) : null);
   }
 

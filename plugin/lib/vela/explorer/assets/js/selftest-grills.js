@@ -107,7 +107,25 @@
       const q = r.openQuestion && r.openQuestion.question ? r.openQuestion : null, line = $(".g-openq", c);
       if (q && (!line || !line.textContent.includes(q.question.replace(/\?$/, "")) || (q.due && !line.textContent.includes(day(q.due))))) parts.push(`${r.name}: its open question is not on the card`);
       if (!q && line) parts.push(`${r.name}: a card says an open question that is not there`);
-      if (IDLIKE.test([".g-t", ".g-owner", ".g-need"].map((q) => ($(q, c) ? $(q, c).textContent : "")).join(" "))) parts.push(`${r.name}: an ID or handle shows`);
+      if (IDLIKE.test([".g-t", ".g-owner", ".g-need", ".g-agrees"].map((q) => ($(q, c) ? $(q, c).textContent : "")).join(" "))) parts.push(`${r.name}: an ID or handle shows`);
+    }
+    for (const r of rows) {
+      const c = $(`.g-card[data-grill="${r.id}"]`), box = c && $(".g-agrees", c);
+      const said = r.agrees.lead || r.agrees.picked || r.agrees.choosing;
+      if (r.group === "one-away" || (!said && !box)) continue;  // a page with no opening paragraph has nothing of the plan's to copy, so no box
+      if (!box || $(".g-agrees-lab", box).textContent !== "Settling this agrees that") { parts.push(`${r.name}: no box saying what settling agrees to`); continue; }
+      if (r.agrees.lead && !box.textContent.includes(r.agrees.lead)) parts.push(`${r.name}: the plan's words are not in the box`);
+      const btn = $(".g-more-btn", box), list = $(".g-more-list", box);
+      if (!!btn !== r.agrees.more.length > 0) parts.push(`${r.name}: the more-details button does not match what is left over`);
+      if (btn) {
+        if (list.querySelectorAll("li").length !== r.agrees.more.length || btn.textContent !== `+${plural(r.agrees.more.length, "more detail")}`) parts.push(`${r.name}: the count on the button is not the number held back`);
+        if (btn.tagName !== "BUTTON" || !list.hidden) parts.push(`${r.name}: the extra details are not behind a button`);
+        btn.click();
+        if (list.hidden || btn.getAttribute("aria-expanded") !== "true") parts.push(`${r.name}: the button does not show the extra details`);
+        btn.click();
+      }
+      if (r.agrees.page !== !!$(".g-whole", box)) parts.push(`${r.name}: the whole-page link does not match the kind of item`);
+      if (/^Settles: /.test(c.textContent) || c.textContent.includes("Settles:")) parts.push(`${r.name}: the old Settles line is still there`);
     }
     ok(!parts.length, "grills: each card has an owner line; a said-yes card shows no words, a one-away card says what it waits on and by when, and a card with an open question under it names it", `grills: ${parts.join("; ")}`);
 

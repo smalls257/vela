@@ -3,11 +3,13 @@
 The Violation these tests guard is a Distributed Monolith between the gate, the lead's kept yes and the owner: a
 dashboard that asked each in its own way would list a grill the gate refuses or lose a yes the lead gave.
 """
+from pathlib import Path
+
 import yaml
 
 from conftest import edit
 from grills_vault import TODAY, make
-from vela import cli, gates, grillowners, grills
+from vela import cli, gates, grillowners, grills, say
 
 
 def load(tmp_path, config_extra=None):
@@ -80,3 +82,46 @@ def test_an_owner_entry_that_cannot_be_read_is_named_and_left_out(tmp_path):
     assert found == {} and len(problems) == 2
     assert "CON-010" in problems[0] and "not a handle" in problems[0]
     assert "CON-011" in problems[1]
+
+
+# ------------------------------------------------------------------ what settling agrees to (the Heron plan)
+
+HERON = Path(__file__).parent / "fixtures" / "team-skills" / "heron-plan"
+
+
+def heron_agrees(ident):
+    vault = cli.load_vault(HERON)
+    return grills.agrees(vault, ident, say.Resolver(vault))
+
+
+def test_a_requirement_agrees_to_its_statement_and_its_first_two_details_and_counts_the_rest():
+    found = heron_agrees("CAP-001.FR1")
+    assert found["lead"].startswith("Where a meeting has a Teams transcript that Heron is allowed to read, Heron reads it")
+    assert found["lead"].endswith("when a note is thin for that reason.")
+    assert found["details"] == ["Heron reads a transcript only if the organizer turned transcripts on and the tenant administrators have approved reading them.",
+                                "Heron reads a transcript only for a person who was in that meeting and has switched Heron on, and stops reading once they withdraw."]
+    assert len(found["more"]) == 3 and found["more"][-1] == "Heron reads no transcript of a meeting the person was not in."
+    assert "Trace" not in " ".join(found["details"] + found["more"]), "a nested Trace line is not a detail"
+    assert found["page"] is False and "picked" not in found
+
+
+def test_a_page_agrees_to_its_opening_and_the_it_does_not_sentences_it_states():
+    found = heron_agrees("APP-desktop-agent")
+    assert found["lead"].startswith("The Desktop agent runs on a person's own laptop.") and found["lead"].count(". ") <= 2
+    assert found["points"][0] == "It does not write the digest or the prep note: the Summarizer does."
+    assert all(p.startswith("It does not") for p in found["points"]) and found["page"] is True
+    assert "[[" not in found["lead"] + " ".join(found["points"]), "links read as names"
+
+
+def test_an_option_picked_says_how_many_others_were_set_aside_and_no_pick_lists_the_choice():
+    found = heron_agrees("APP-summarizer")
+    assert found["picked"] == "Three apps" and found["setAside"] >= 1 and "choosing" not in found
+    assert grills._agrees_option_line(["A: rejected, no", "B: rejected, no"]) == {"choosing": ["A", "B"]}
+    assert grills._agrees_option_line(["Only one"]) == {}
+
+
+def test_a_contract_agrees_to_its_description_and_what_crosses_the_boundary():
+    found = heron_agrees("CON-001")
+    assert found["lead"].startswith("The Desktop agent reads the signed-in person's calendar entries")
+    assert found["points"][0].startswith("Crosses the boundary: In: the agent's read request")
+    assert found["details"] == [] and found["more"] == []
