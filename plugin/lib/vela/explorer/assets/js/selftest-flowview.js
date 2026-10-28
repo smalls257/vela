@@ -69,6 +69,32 @@
     [stage.style.flex, stage.style.height, stage.style.minHeight] = keep;
   }
 
+  /* The panel's Steps list: a long flow scrolls in a box you can reach by keyboard, a short one stays a plain list, and the
+     current step is marked and kept in view. Each flow's steps are swapped for a copy of 12 and then of 3 so both cases run on any vault. */
+  async function stepsBox(ok) {
+    const f = D.flows[0], real = FLOW[f.key].steps, one = real[0];
+    const withSteps = async (n, then) => {
+      FLOW[f.key].steps = Array.from({ length: n }, (_, i) => ({ ...one, html: `Step number ${i + 1} of the copy` }));
+      showView("lights"); DetailsPanel.show(f.key, { reset: true }); await tick();
+      try { await then(); } finally { FLOW[f.key].steps = real; }
+    };
+    await withSteps(12, async () => {
+      const box = $("#panel-body .steps-box"), list = $("#panel-body .steps-list");
+      ok(!!box && box.scrollHeight > box.clientHeight + 4 && getComputedStyle(box).overflowY === "auto", "steps: a flow of 12 steps scrolls in a box", `steps: the long list does not scroll (${box ? box.scrollHeight + " in " + box.clientHeight : "no box"})`);
+      ok(!!box && box.getAttribute("role") === "region" && box.tabIndex === 0 && box.getAttribute("aria-label") === "Steps, 12 in all" && !!$("#panel-body h3 .ct") , "steps: the box is a keyboard-reachable region named with its count", "steps: the box is not a labeled, focusable region");
+      box.dispatchEvent(new Event("scroll")); await tick();
+      ok(!!box && box.classList.contains("more"), "steps: the fade shows while there is more below", "steps: no fade on a list with more below");
+      box.scrollTop = box.scrollHeight; box.dispatchEvent(new Event("scroll")); await tick();
+      ok(!box.classList.contains("more"), "steps: the fade goes at the bottom", "steps: the fade stays at the bottom");
+      box.scrollTop = 0; Panel.markStep(f.key, 10); await tick();
+      const cur = $("li.cur", list), at = cur && cur.getBoundingClientRect(), edge = box.getBoundingClientRect();
+      ok(!!cur && cur.getAttribute("aria-current") === "step" && at.top >= edge.top - 1 && at.bottom <= edge.bottom + 1, "steps: the current step is marked and scrolled into view", "steps: the current step is not marked or not in view");
+      ok(list.querySelectorAll("button.step-link").length === 12, "steps: every step is still a button", "steps: the step buttons changed");
+    });
+    await withSteps(3, async () => {
+      ok(!$("#panel-body .steps-box") && !!$("#panel-body ol.steps-list"), "steps: a flow of 3 steps stays a plain list", "steps: a short list got a scrolling box");
+    });
+  }
   async function starts(ok) {
     const withStarts = D.flows.filter((f) => f.starts), without = D.flows.filter((f) => !f.starts);
     for (const f of without.slice(0, 8)) {
@@ -557,7 +583,7 @@
       if (D.flows.length) {
         showView("flows");
         const hadHash = [...HASH.entries()];
-        for (const part of [pinned, starts, folding, hiding, fitting, grouping, groupFits, arrowsAndLanes]) await part(ok);
+        for (const part of [pinned, stepsBox, starts, folding, hiding, fitting, grouping, groupFits, arrowsAndLanes]) await part(ok);
         for (const k of [...HASH.keys()]) HASH.delete(k);
         hadHash.forEach(([k, v]) => HASH.append(k, v));
       }

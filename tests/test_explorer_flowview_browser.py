@@ -103,7 +103,8 @@ def test_the_selftest_walks_the_pinned_row_the_starts_and_the_folds_at_both_size
     page = staged(tmp_path)
     for viewport in ("1600,1000", "800,600"):
         lines = _check_selftest_in_chrome(chrome_path, page, f"booking with starts flows at {viewport}", viewport)
-        for want in ("ok pin: a short stage makes", "ok pin: a click on a pinned name still opens", "ok pin: a shadow falls under the pinned row", "ok pin: the saved clip draws the flow whole",
+        for want in ("ok steps: a flow of 12 steps scrolls in a box", "ok steps: the box is a keyboard-reachable region", "ok steps: the fade shows while", "ok steps: the fade goes at the bottom",
+                     "ok steps: the current step is marked", "ok steps: every step is still a button", "ok steps: a flow of 3 steps stays a plain list", "ok pin: a short stage makes", "ok pin: a click on a pinned name still opens", "ok pin: a shadow falls under the pinned row", "ok pin: the saved clip draws the flow whole",
                      "ok starts: 3 flows with one way in show no Starts from", 'ok starts, FLO-010: "Starts from" in the header row', "ok starts, FLO-010: picking",
                      "ok starts, FLO-010: Next skips the steps of the start not picked", "ok starts, FLO-010: the arrow keys move between the starts",
                      "ok starts, FLO-010: a click on a Start tag picks that start", "ok starts, FLO-010: pressing the picked start again goes back to Either", "ok starts, FLO-010: a link naming the start opens with it picked",
