@@ -348,3 +348,20 @@ def test_gate_all_lists_every_waiting_item_with_the_ready_ones_first(ub):
 def test_gate_all_refuses_a_named_item_and_a_non_decide_gate(ub):
     assert run("check", "--vault", str(ub), "--gate", "decide", "--all", "--item", "CON-001")[0] == 2
     assert run("check", "--vault", str(ub), "--gate", "shape", "--all")[0] == 2
+
+
+RUFF_CALLERS = [".githooks/pre-commit", ".githooks/gate", ".claude/hooks/gates.py"]
+
+
+@pytest.mark.parametrize("caller", RUFF_CALLERS)
+def test_every_ruff_caller_reads_the_one_config(caller):
+    text = (REPO / caller).read_text(encoding="utf-8")
+    ruff_lines = [line for line in text.splitlines() if "ruff" in line and "check" in line]
+    assert ruff_lines and all("ruff.toml" in line and "--select" not in line for line in ruff_lines), ruff_lines
+
+
+def test_ruff_config_selects_naming_and_comment_rules():
+    text = (REPO / "ruff.toml").read_text(encoding="utf-8")
+    for rule in ('"E9"', '"E722"', '"S506"', '"N"', '"ERA001"', '"PGH004"'):
+        assert rule in text
+    assert '"N818"' in text and "force-exclude = true" in text

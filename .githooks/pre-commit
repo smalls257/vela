@@ -24,7 +24,7 @@ status=0
 py=()
 for f in "${files[@]}"; do case "$f" in *.py|plugin/scripts/vela) py+=("$f");; esac; done
 if [ ${#py[@]} -gt 0 ]; then
-  ruff check --no-cache --quiet --select E9,F63,F7,F82,E722,S506 --extend-exclude .semgrep "${py[@]}" || status=1
+  ruff check --no-cache --quiet --config ruff.toml "${py[@]}" || status=1
 fi
 semgrep scan --config .semgrep --metrics=off --disable-version-check --error --quiet "${files[@]}" || status=1
 [ $status -ne 0 ] && echo "pre-commit: fix the findings above, or mark a deliberate one '# nosemgrep: <rule-id> -- <why>'." >&2

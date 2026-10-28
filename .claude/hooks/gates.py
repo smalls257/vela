@@ -223,8 +223,7 @@ def lint(root, files):
     problems = []
     py = [f for f in files if f.endswith(".py") or f == "plugin/scripts/vela"]
     if py:
-        code, out = run(["ruff", "check", "--no-cache", "--quiet", "--output-format", "concise",
-                         "--select", "E9,F63,F7,F82,E722,S506", "--extend-exclude", ".semgrep", *py], root, 30)
+        code, out = run(["ruff", "check", "--no-cache", "--quiet", "--output-format", "concise", "--config", "ruff.toml", *py], root, 30)
         if code:
             problems += out.splitlines()
     code, out = run(["semgrep", "scan", "--config", ".semgrep", "--metrics=off", "--disable-version-check",

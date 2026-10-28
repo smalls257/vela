@@ -218,8 +218,8 @@ def test_close_turns_a_deferral_into_a_question_with_an_owner_and_a_date():
 
 
 def test_close_stages_what_render_rewrote():
-    # close stages through `vela close finish`, which runs `close stage --close`, whose allow-list includes what render
-    # rewrote (tests/test_close_stage.py)
+    # close stages through vela close finish, which runs close stage --close; that command's allow-list includes what
+    # render rewrote, as tests/test_close_stage.py pins.
     assert "vela close finish" in CLOSE_SKILL and "close stage --close" in closefinish.__doc__
 
 
