@@ -13,10 +13,10 @@ OTHER_DECISION = f'- **Decision:** [[{RID}]] c01, @priya: "Yes, one till API for
 DECIDED = "- **State:** decided\n{decision}\n- **Tested by:** the stock read test on both sides"
 
 
-def receipt_only_session(tmp_path, decision_line=OTHER_DECISION, reopen=False):
+def receipt_only_session(tmp_path, decision_line=OTHER_DECISION, reopen=False, existing=None):
     """Part 2 of a session: the notes hold no Changes row for CON-002. With `reopen`, the page was already decided at
-    the branch point and the working tree sets it back to an assumption."""
-    vault = make_vault(tmp_path)
+    the branch point and the working tree sets it back to an assumption. `existing` is a vault already made."""
+    vault = existing or make_vault(tmp_path)
     page = vault / STOCK
     decided = DECIDED.format(decision=decision_line or "- **Note:** none").replace("- **Note:** none\n", "")
     if reopen:
@@ -123,4 +123,31 @@ def test_a_receipt_from_before_the_branch_point_is_not_this_sessions_yes(tmp_pat
 def test_a_new_receipt_that_cites_another_session_is_not_this_sessions_yes(tmp_path):
     other = OTHER_DECISION.replace(RID, "2026-09-01-grill-old")
     vault = receipt_only_session(tmp_path, decision_line=other)
+    assert [p for p in gate(vault) if p["kind"] == "consent"]
+
+
+FIRST = "2026-10-19-grill-till"
+
+
+def test_an_earlier_session_on_this_branch_is_not_asked_again(tmp_path):
+    """Two sessions on one branch, the first not merged yet: the first one's decisions are new since the branch point
+    but cite the first session. Its receipt is still the lead's yes; the second close must not ask for it again."""
+    first = OTHER_DECISION.replace(RID, FIRST)
+    vault = receipt_only_session(tmp_path, decision_line=first)
+    stub = privaterecord.render_stub({"id": FIRST, "type": "session", "title": "Till grill", "date": "2026-10-19",
+                                      "modes": ["grill"], "status": "closed", "captures_sha256": {1: "c" * 64}})
+    (vault / privaterecord.stub_path(FIRST)).write_text(stub, encoding="utf-8")
+    assert not [p for p in gate(vault) if p["kind"] == "consent"]
+
+
+def test_a_receipt_citing_a_session_already_on_main_is_still_asked(tmp_path):
+    """A session that was merged before the branch point closed long ago: a new receipt citing it is not a yes here."""
+    vault = make_vault(tmp_path)
+    old = privaterecord.render_stub({"id": FIRST, "type": "session", "title": "Till grill", "date": "2026-10-19",
+                                     "modes": ["grill"], "status": "closed", "captures_sha256": {1: "c" * 64}})
+    (vault / "sessions").mkdir(exist_ok=True)
+    (vault / privaterecord.stub_path(FIRST)).write_text(old, encoding="utf-8")
+    git(vault, "add", "sessions")
+    git(vault, "commit", "-q", "-m", "An older session, merged")
+    vault = receipt_only_session(tmp_path, decision_line=OTHER_DECISION.replace(RID, FIRST), existing=vault)
     assert [p for p in gate(vault) if p["kind"] == "consent"]

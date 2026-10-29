@@ -56,7 +56,6 @@ plugin/lib/vela/closedrafts.py::paragraph	ccn=16	smalls257	2027-06-26	over the c
 plugin/lib/vela/closedrafts.py::ref_skipped	ccn=11	smalls257	2027-09-30	over the cap when the gate arrived
 plugin/lib/vela/closedrafts.py::section_range	ccn=13	smalls257	2027-08-11	over the cap when the gate arrived
 plugin/lib/vela/closegate.py	lines=715	smalls257	2027-07-22	over the cap when the gate arrived
-plugin/lib/vela/closegate.py::decision_bullets	ccn=11	smalls257	2027-10-01	over the cap when the gate arrived
 plugin/lib/vela/closegate.py::judge_change	params=7	smalls257	2027-09-19	over the cap when the gate arrived
 plugin/lib/vela/closegate.py::override_scopes	ccn=11	smalls257	2027-10-01	over the cap when the gate arrived
 plugin/lib/vela/closegate.py::receipt_problems	ccn=18	smalls257	2027-06-10	over the cap when the gate arrived
