@@ -5,7 +5,7 @@ it, and had to open a page to learn what was decided (Sensor). `vela decide` wri
 for every settle, so the record already holds the answer; a settle whose row is in another part's notes (another
 machine) is still on the page as a Decision receipt naming this session, so that is read too.
 """
-from vela import closegate, say
+from vela import closegate, receiptyes, say
 
 DECIDED = closegate.CONSENT_STATE
 
@@ -19,7 +19,7 @@ def settled_ids(record_text, vault=None, record_id=""):
             found.append(row.item)
     if vault is not None and record_id:
         for item, state in sorted(closegate.states(vault).items()):
-            receipt = closegate.receipt_of(vault, item) if state == DECIDED else None
+            receipt = receiptyes.receipt_of(vault, item) if state == DECIDED else None
             if receipt is not None and receipt.record == record_id and item not in found:
                 found.append(item)
     return found

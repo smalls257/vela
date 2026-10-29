@@ -21,9 +21,9 @@ item naming `QUOTED_YES_RULE`, with their reason. The gate then lets the change 
 hides it.
 
 A change into `decided` also passes on the item's newest `**Decision:**` receipt when it names a person, cites this
-session (any part) and was written since the branch point: the yes may have been given in another part of the session,
-on another machine, in notes this one cannot read, and the gate does not tell machines apart (if the lead settles, the
-lead settles). A receipt already on the page at the branch point is an earlier decision, not this session's yes. A hand-set `decided` with neither a row nor a receipt is still
+session (any part) or an earlier, unmerged one opened on this branch, and was written since the branch point: the yes
+may be in another part, on another machine, or asked at that earlier session's close (if the lead settles, the lead
+settles). A receipt already there at the branch point, or citing a session not opened on this branch, is not a yes. A hand-set `decided` with neither a row nor a receipt is still
 asked about, and a receipt naming Claude is never a yes. A change out of `decided` with no row here is not asked:
 reopening is the lead's own move and its row may be in other notes.
 
@@ -34,7 +34,7 @@ bookkeeping, which close is meant to spare them.
 import re
 from dataclasses import dataclass, replace
 
-from vela import override, privaterecord, say, schema
+from vela import override, privaterecord, receiptyes, say, schema
 from vela.schema import QUOTED_YES_RULE
 from vela.said import confirmed, is_unverified
 
@@ -190,48 +190,6 @@ def overrides_for(vault, item):
     return [o for o in override.valid_overrides(*scope) if QUOTED_YES_RULE in o.rules]
 
 
-def decision_bullets(vault, item):
-    """[(page, bullet)] for the item's (or the page's) `**Decision:**` line."""
-    found = vault.item(item)
-    if found is not None:
-        every = [found.facts.get("Decision")] + [b for kept, b in found.repeats if b.label == "Decision"]
-        return [(found.page, b) for b in sorted(filter(None, every), key=lambda b: b.line)]
-    pages = vault.by_id.get(item) or []
-    return [(pages[0], b) for b in pages[0].bullets if b.label == "Decision" and not b.item and not b.generated] if pages else []
-
-
-def newest_receipt(vault, item_id):
-    """(bullet, receipt) for the item's or page's newest `**Decision:**` bullet, or (None, None). A reopened item keeps
-    its old bullet, so the newest one is the decision that counts."""
-    from vela import receipts
-    for _, bullet in reversed(decision_bullets(vault, item_id)):
-        found = receipts.parse_decision(bullet.value)
-        if found is not None:
-            return bullet, found
-    return None, None
-
-
-def receipt_of(vault, item_id):
-    """The parsed newest `**Decision:**` bullet of an item or page, or None."""
-    return newest_receipt(vault, item_id)[1]
-
-
-def is_new_since(vault, before, item_id, bullet):
-    """Whether `bullet` was written after the branch point. With no `before` (a reader copy) nothing is old."""
-    if before is None:
-        return True
-    page = next((pg for pg, b in decision_bullets(vault, item_id) if b is bullet), None)
-    old = before.page(page.name) if page is not None else None
-    return old is None or ("Decision", bullet.value) not in {(b.label, b.value) for b in old.bullets}
-
-
-def receipt_is_a_yes(receipt):
-    """A receipt is a yes when it names a person; a bare link names no one, and Claude's own summary is never one."""
-    if receipt is None or not receipt.who.lstrip("@"):  # a bare `[[record]]` link names no one
-        return False
-    return not receipt.who.lstrip("@").lower().startswith("claude")
-
-
 def judge_change(change, rows, said, vault, record_name, part=1, before=None):
     """(Problem or None, Consent or None) for one change into or out of decided."""
     allowed = overrides_for(vault, change.item)
@@ -265,14 +223,15 @@ def judge_change(change, rows, said, vault, record_name, part=1, before=None):
 def judge_without_a_row(change, vault, record_name="", before=None):
     """This part's notes hold no Changes row: the yes may be in another part of this session. Out of `decided` is the
     lead's own move and is not asked; into it passes on a receipt that names a person, cites this session (any part)
-    and was written since the branch point. An older receipt is a past decision, not this session's yes."""
+    or an earlier one on this branch, and was written since the branch point. An older receipt is a past decision."""
     if change.after != CONSENT_STATE:
         return None, Consent(change.item, change.name, f"{change.before} to {change.after}", "", "")
-    bullet, receipt = newest_receipt(vault, change.item)
-    if not (receipt_is_a_yes(receipt) and receipt.record == record_name and is_new_since(vault, before, change.item, bullet)):
+    yes = receiptyes.branch_yes(vault, before, change.item, record_name)
+    if yes is None:
         return Problem(f"You haven't said yes to {moving(change)} yet.",
                        f"{change.item}: {change.before} -> {change.after} has no ## Changes row and no new Decision "
-                       "receipt for this session naming a person", kind=CONSENT), None
+                       "receipt naming a person for this session or an earlier one on this branch", kind=CONSENT), None
+    bullet, receipt = yes
     return None, Consent(change.item, change.name, f"{change.before} to {change.after}", receipt.words or "", bullet.value)
 
 
