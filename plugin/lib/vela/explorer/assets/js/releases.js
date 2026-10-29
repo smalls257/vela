@@ -244,10 +244,10 @@ const Releases = (() => {
     const apps = Object.keys(SB.apps).filter((k) => (SA.apps[k] || "exists") !== (SB.apps[k] || "exists"));
     const cons = Object.keys(SB.contracts).filter((c) => SA.contracts[c] !== SB.contracts[c]);
     const delivered = SB.delivers.filter((r) => !SA.delivers.includes(r));
-    diff.append(h("h3", {}, `From ${st.a === 0 ? "today" : SA.fromChange ? "the end state" : "release " + st.a} to ${st.b === 0 ? "today" : SB.fromChange ? "the end state" : "release " + st.b}`),
+    diff.append(...[h("h3", {}, `From ${st.a === 0 ? "today" : SA.fromChange ? "the end state" : "release " + st.a} to ${st.b === 0 ? "today" : SB.fromChange ? "the end state" : "release " + st.b}`),
       apps.length ? h("div", { class: "rc-row" }, h("span", { class: "rc-l" }, "Apps"), h("span", {}, apps.map((k) => refChip(k, h("span", { class: "rid" }, `${STATUS_WORD[SA.apps[k] || "exists"]} → ${STATUS_WORD[SB.apps[k] || "exists"]}`))))) : h("div", { class: "muted small" }, "No app's status differs."),
       cons.length ? h("div", { class: "rc-row" }, h("span", { class: "rc-l" }, "Contracts"), h("span", {}, cons.map((c) => refChip(c, h("span", { class: "rid" }, `${STATUS_WORD[SA.contracts[c]] || SA.contracts[c]} → ${STATUS_WORD[SB.contracts[c]] || SB.contracts[c]}`))))) : null,
-      delivered.length ? h("div", { class: "rc-row" }, h("span", { class: "rc-l" }, "Delivered between"), h("span", {}, delivered.map((r) => refChip(r)))) : null);
+      delivered.length ? h("div", { class: "rc-row" }, h("span", { class: "rc-l" }, "Delivered between"), h("span", {}, delivered.map((r) => refChip(r)))) : null].filter(Boolean));  // native append prints a null as "null"
     wrap.append(KEY.el(), diff);
     wrap.drawMaps = () => { drawMap(A.box, st.a, { max: 0.8, key: "releases-a" }); drawMap(B.box, st.b, { max: 0.8, key: "releases-b" }); };
     return wrap;

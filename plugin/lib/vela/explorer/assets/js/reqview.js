@@ -153,7 +153,9 @@ const ReqView = (() => {
     head(main, "focus", "Everything one requirement touches, in the order the work goes: who carries it, what it goes through, when it ships, how it's built. A red dashed box is a gap.");
     const sc = h("div", { class: "scroll pages rv-scroll" });
     main.append(sc);
-    sc.append(hero(r), h("div", { class: "rv-cols" }, carriedColumn(r), goesThroughColumn(r), releaseColumn(r), epicColumn(r), designColumn(r), storyColumn(r)), missing(r), holding(r), legend());
+    // native append prints a list as "[object HTMLHeadingElement],..." and a part with nothing to show as "null"
+    const parts = [hero(r), h("div", { class: "rv-cols" }, carriedColumn(r), goesThroughColumn(r), releaseColumn(r), epicColumn(r), designColumn(r), storyColumn(r)), missing(r), holding(r), legend()];
+    sc.append(...parts.flat().filter(Boolean));
   }
 
   /* ------------------------------------------------------------ render */
