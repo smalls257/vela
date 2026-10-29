@@ -10,4 +10,4 @@ Install, in Claude Code:
 2. `/plugin install vela@vela`
 3. Ask Claude to run `vela doctor`.
 
-Built from source commit c1df98b1e (vela 0.6.1).
+Built from source commit 88ee0cd76 (vela 0.6.2).

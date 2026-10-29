@@ -9,6 +9,13 @@ if sys.version_info < (3, 9):
     print("vela: needs Python 3.9 or later. On a Mac: brew install python@3.12", file=sys.stderr)
     sys.exit(2)
 
+# Windows opens the standard streams in the console's code page (cp1252 in the US), which has no ✔ and no name
+# outside Western Europe: the companion panel's JSON crashed mid-print. vela's files are UTF-8 and Claude Code reads
+# hook and panel output as UTF-8, so the streams are too, on every machine.
+for _stream in (sys.stdin, sys.stdout, sys.stderr):
+    if hasattr(_stream, "reconfigure"):
+        _stream.reconfigure(encoding="utf-8")
+
 
 def cache_home():
     """The user's cache folder, never ~/.claude: $XDG_CACHE_HOME, else ~/Library/Caches on a Mac, %LOCALAPPDATA% on
