@@ -24,8 +24,19 @@ let processRuns = 0  // every answer a test gives to process.run goes through `r
 const ran = (stdout: unknown, exitCode = 0) => (processRuns += 1, { exitCode, stdout: JSON.stringify(stdout), stderr: '', isStdoutTruncated: false, isStderrTruncated: false })
 const WRITE = { tool: 'Bash', command: 'sh /p/scripts/run-vela decide CON-007 --yes ^c12' } as never
 
+// A Mac or Linux box: no Windows variables, and /bin/sh is a file. Every test that isn't about Windows starts here.
+const answered = new WeakSet<object>()
+function unixShell(on: unknown) {
+  if (answered.has(on as object)) return
+  answered.add(on as object)
+  const hook = on as (name: string, fn: (...input: never[]) => unknown) => void
+  hook('env.get', () => ({ value: undefined }))
+  hook('fs.stat', (_h: never, e: never) => ((e as unknown as { path: string }).path === '/bin/sh' ? { value: { kind: 'file', size: 1, mtimeMs: 0 } } : { deny: 'no such file' }))
+}
+const unixClock = (on: Parameters<typeof mock.clock>[0]) => { unixShell(on); return mock.clock(on) }
+
 test('vela is started through the shell by its full path, never a bare name', async ($, on) => {
-  const clock = mock.clock(on)
+  const clock = unixClock(on)
   const argvs: string[][] = []
   on('process.run', (_$, e) => { argvs.push([...(e as { argv: string[] }).argv]); return { value: ran(SESSION) } })
   on('tool.call', () => ({ result: 'ok' }))
@@ -36,7 +47,7 @@ test('vela is started through the shell by its full path, never a bare name', as
 })
 
 test("when vela can't start, the band says vela's own reason", async ($, on) => {
-  const clock = mock.clock(on)
+  const clock = unixClock(on)
   on('process.run', () => ({ value: { exitCode: 2, stdout: '', stderr: 'vela: no Python 3.9 or later found as python3, python or py on the PATH.\n', isStdoutTruncated: false, isStderrTruncated: false } }))
   on('tool.call', () => ({ result: 'ok' }))
   await $.tool.call(WRITE)
@@ -46,7 +57,7 @@ test("when vela can't start, the band says vela's own reason", async ($, on) => 
 })
 
 test("a vela call's result comes back before vela's refresh finishes", async ($, on) => {
-  const clock = mock.clock(on)
+  const clock = unixClock(on)
   let release: (v: unknown) => void = () => {}
   let started = 0
   on('process.run', () => { started += 1; return new Promise((resolve) => { release = (v) => resolve({ value: v }) }) })
@@ -60,7 +71,7 @@ test("a vela call's result comes back before vela's refresh finishes", async ($,
 })
 
 test('a burst of writes costs one vela run', async ($, on) => {
-  const clock = mock.clock(on)
+  const clock = unixClock(on)
   let runs = 0
   on('process.run', () => { runs += 1; return { value: ran(SESSION) } })
   on('ui.open', () => ({ value: { isPlaced: true } }))
@@ -71,7 +82,7 @@ test('a burst of writes costs one vela run', async ($, on) => {
 })
 
 test('other commands never run vela', async ($, on) => {
-  const clock = mock.clock(on)
+  const clock = unixClock(on)
   let runs = 0
   on('process.run', () => { runs += 1; return { value: ran({}) } })
   on('tool.call', () => ({ result: 'ok' }))
@@ -81,7 +92,7 @@ test('other commands never run vela', async ($, on) => {
 })
 
 test("vela's own failure line is shown in the band, never hidden", async ($, on) => {
-  const clock = mock.clock(on)
+  const clock = unixClock(on)
   const why = "I can't read this session's notes on this machine."
   on('process.run', () => ({ value: ran({ notes: 'unreadable', warnings: [why] }, 2) }))
   on('tool.call', () => ({ result: 'ok' }))
@@ -92,7 +103,7 @@ test("vela's own failure line is shown in the band, never hidden", async ($, on)
 })
 
 test('the band is the text vela wrote when no pane is showing', async ($, on) => {
-  const clock = mock.clock(on)
+  const clock = unixClock(on)
   on('process.run', () => ({ value: ran(SESSION) }))
   on('ui.open', () => ({ value: { isPlaced: false, reason: 'unasked below 144 columns' } }))
   on('tool.call', () => ({ result: 'ok' }))
@@ -119,7 +130,7 @@ async function paneAfterWrite($: never, on: never, found: unknown = RICH, surfac
 }
 
 test('the pane draws the card, the next chip, section rows and bars from the blocks', async ($, on) => {
-  const clock = mock.clock(on)
+  const clock = unixClock(on)
   const { mount } = await paneAfterWrite($ as never, on as never)
   await clock.advance(1000)
   const pane = await mount() as never as Mounted
@@ -138,7 +149,7 @@ test('the pane draws the card, the next chip, section rows and bars from the blo
 })
 
 test('the diagram is the widest drawing that fits the pane', async ($, on) => {
-  const clock = mock.clock(on)
+  const clock = unixClock(on)
   const { mount } = await paneAfterWrite($ as never, on as never, RICH, 'terminal', 64)
   await clock.advance(1000)
   const wide = await mount() as never as { find: (q: unknown) => Promise<unknown> }
@@ -147,7 +158,7 @@ test('the diagram is the widest drawing that fits the pane', async ($, on) => {
 })
 
 test('the diagram falls back to 48 columns in a narrow pane', async ($, on) => {
-  const clock = mock.clock(on)
+  const clock = unixClock(on)
   const { mount } = await paneAfterWrite($ as never, on as never, RICH, 'terminal', 50)
   await clock.advance(1000)
   const narrow = await mount() as never as { find: (q: unknown) => Promise<unknown> }
@@ -155,7 +166,7 @@ test('the diagram falls back to 48 columns in a narrow pane', async ($, on) => {
 })
 
 test('the desktop draws the picture vela wrote instead of the characters', async ($, on) => {
-  const clock = mock.clock(on)
+  const clock = unixClock(on)
   const withSvg = { ...RICH, diagram: { svg: '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"></svg>' } }
   const { mount } = await paneAfterWrite($ as never, on as never, withSvg, 'desktop')
   await clock.advance(1000)
@@ -165,7 +176,7 @@ test('the desktop draws the picture vela wrote instead of the characters', async
 })
 
 test('its only buttons fold sections; a press hides the rows and sends nothing', async ($, on) => {
-  const clock = mock.clock(on)
+  const clock = unixClock(on)
   const sent: string[] = []
   ;(on as never as (n: string, f: (...a: never[]) => unknown) => void)('prompt.submit', () => { sent.push('prompt'); return {} })
   const { mount } = await paneAfterWrite($ as never, on as never)
@@ -184,7 +195,7 @@ test('its only buttons fold sections; a press hides the rows and sends nothing',
 })
 
 test('the band draws vela\'s spans in their tones', async ($, on) => {
-  const clock = mock.clock(on)
+  const clock = unixClock(on)
   on('process.run', () => ({ value: ran(RICH) }))
   on('ui.open', () => ({ value: { isPlaced: false, reason: 'unasked below 144 columns' } }))
   on('ui.toast', () => ({ value: undefined }))
@@ -201,6 +212,7 @@ const START = (cwd: string) => ({ cwd, surface: 'terminal' } as never)
 const DONE = { reason: 'answer', answer: 'done', turnId: 't1', durationMs: 1000 } as never
 function bare(on: (...a: never[]) => unknown, onToast: () => void = () => {}) {
   const hook = on as unknown as (name: string, fn: (...input: never[]) => unknown) => void
+  unixShell(on)
   hook('command.register', () => ({ value: undefined }))
   hook('session.start', (_h: never, e: never) =>  ({ cwd: (e as { cwd: string }).cwd }))
   hook('turn.complete', () => ({ text: 'done' }))
@@ -208,7 +220,7 @@ function bare(on: (...a: never[]) => unknown, onToast: () => void = () => {}) {
 }
 
 test('the plan pane opens when the person asks and is not reopened by later turns', async ($, on) => {
-  const clock = mock.clock(on)
+  const clock = unixClock(on)
   let opens = 0
   bare(on)
   on('fs.exists', () => ({ value: true }))
@@ -225,7 +237,7 @@ test('the plan pane opens when the person asks and is not reopened by later turn
 })
 
 test('a folder with no plan above it never starts vela, on a turn or at the start', async ($, on) => {
-  const clock = mock.clock(on)
+  const clock = unixClock(on)
   let runs = 0
   bare(on)
   on('fs.exists', () => ({ value: false }))
@@ -238,7 +250,7 @@ test('a folder with no plan above it never starts vela, on a turn or at the star
 })
 
 test('a folder with a plan above it refreshes after a turn', async ($, on) => {
-  const clock = mock.clock(on)
+  const clock = unixClock(on)
   let runs = 0
   const looked: string[] = []
   bare(on)
@@ -256,7 +268,7 @@ test('a folder with a plan above it refreshes after a turn', async ($, on) => {
 })
 
 test('a survey keeps the band', async ($, on) => {
-  const clock = mock.clock(on)
+  const clock = unixClock(on)
   bare(on)
   on('ui.render', (h: never, input: never) => { const { Box, Text } = (h as { ui: { resolve: (e: never) => { Box: (p: unknown) => unknown, Text: (p: unknown) => unknown } } }).ui.resolve(input); return Box({ children: [Text({ children: ['the engine band'] })] }) })
   on('process.run', () => ({ value: ran(SESSION) }))
@@ -269,7 +281,7 @@ test('a survey keeps the band', async ($, on) => {
 })
 
 test('a pane that cannot be placed says once that the panel is ready, never silently absent', async ($, on) => {
-  const clock = mock.clock(on)
+  const clock = unixClock(on)
   let toasts = 0
   bare(on, () => { toasts += 1 })
   on('process.run', () => ({ value: ran(SESSION) }))
@@ -328,7 +340,7 @@ test('a path with a hash, a question mark, a space and a percent sign stays one 
 })
 
 test('a JSON of another version is never a blank pane: vela\'s sentence is shown', async ($, on) => {
-  const clock = mock.clock(on)
+  const clock = unixClock(on)
   const logs: string[] = []
   ;(on as never as (n: string, f: (...a: never[]) => unknown) => void)('ui.log', (_h: never, e: never) => { logs.push((e as unknown as { text: string }).text); return { value: undefined } })
   on('process.run', () => ({ value: ran({ ...SESSION, version: 1, blocks: undefined }) }))
@@ -347,7 +359,7 @@ test("a plan question vela can't answer shows vela's message in the plan pane", 
 })
 
 test('a block type the mod does not know is skipped and logged once', async ($, on) => {
-  const clock = mock.clock(on)
+  const clock = unixClock(on)
   const logs: string[] = []
   ;(on as never as (n: string, f: (...a: never[]) => unknown) => void)('ui.log', (_h: never, e: never) => { logs.push((e as unknown as { text: string }).text); return { value: undefined } })
   const odd = { ...RICH, blocks: [{ type: 'hologram' }, ...BLOCKS] }
@@ -361,7 +373,7 @@ test('a block type the mod does not know is skipped and logged once', async ($, 
 })
 
 test('names in wide characters are padded by cells, and the link holds no blanks', async ($, on) => {
-  const clock = mock.clock(on)
+  const clock = unixClock(on)
   const rows = [
     { mark: '✔', tone: 'good', name: '漢字', id: '', note: '', chip: null, sub: null, page: 'a.md' },
     { mark: '✔', tone: 'good', name: 'abcd', id: '', note: 'x', chip: null, sub: null, page: null },
@@ -376,7 +388,7 @@ test('names in wide characters are padded by cells, and the link holds no blanks
 })
 
 test('the folded-lane words show under the drawing that folded them', async ($, on) => {
-  const clock = mock.clock(on)
+  const clock = unixClock(on)
   const { mount } = await paneAfterWrite($ as never, on as never, RICH, 'terminal', 50)
   await clock.advance(1000)
   const pane = await mount() as never as Mounted
@@ -384,7 +396,7 @@ test('the folded-lane words show under the drawing that folded them', async ($, 
 })
 
 test('the lit map has no drawing, so the terminal says it in words and the desktop draws the picture', async ($, on) => {
-  const clock = mock.clock(on)
+  const clock = unixClock(on)
   const map = { type: 'diagram', title: 'Where the questions sit', id: '', alt: 'Apps with open questions: Booking (warning).', svg: true, drawings: {}, folded: {} }
   const found = { ...RICH, blocks: [map], diagram: { kind: 'map', svg: '<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"></svg>' } }
   const term = await paneAfterWrite($ as never, on as never, found)
@@ -406,4 +418,54 @@ test('asked for with nothing open, the pane says why instead of staying shut', a
   expect(opens).toBe(1)
   const pane = await $.ui.mount({ plugin: 'vela', surface: 'terminal', component: 'Pane', requestId: 'vela-session', props: PANE_PROPS(64) } as never) as never as Mounted
   expect(await leaf(pane, WHY)).toBeDefined()
+})
+
+test('a Windows vault links as file:///C:/..., never with its backslashes or drive colon encoded', async ($, on) => {
+  bare(on)
+  const pane = await planPane($ as never, on as never, { ...STUCK, vault: 'C:\\Users\\x\\My Plan' })
+  const links = await pane.findAll({ type: 'Link' })
+  expect(links[0].props.href).toBe('file:///C:/Users/x/My%20Plan/dashboard.html#asks')
+})
+
+test('on Windows, with no /bin/sh, vela is started through Git for Windows\' bash', async ($, on) => {
+  const clock = mock.clock(on)
+  const hook = on as never as (n: string, f: (...a: never[]) => unknown) => void
+  const argvs: string[][] = []
+  hook('env.get', (_h: never, e: never) => ({ value: (e as unknown as { name: string }).name === 'ProgramFiles' ? 'C:\\Program Files' : undefined }))
+  hook('fs.stat', (_h: never, e: never) => {
+    const path = (e as unknown as { path: string }).path
+    // a Mac resolves a C: path against its own folder, so the test matches its end
+    return path.endsWith('C:\\Program Files\\Git\\bin\\bash.exe') ? { value: { kind: 'file', size: 1, mtimeMs: 0 } } : { deny: 'no such file' }
+  })
+  on('process.run', (_$, e) => { argvs.push([...(e as { argv: string[] }).argv]); return { value: ran(SESSION) } })
+  on('tool.call', () => ({ result: 'ok' }))
+  await $.tool.call(WRITE)
+  await clock.advance(500)
+  expect(argvs[0][0]).toBe('C:\\Program Files\\Git\\bin\\bash.exe')
+})
+
+test('with no shell anywhere, the band says how to get one instead of running nothing silently', async ($, on) => {
+  const clock = mock.clock(on)
+  const hook = on as never as (n: string, f: (...a: never[]) => unknown) => void
+  let runs = 0
+  hook('env.get', () => ({ value: undefined }))
+  hook('fs.stat', () => ({ deny: 'no such file' }))
+  on('process.run', () => { runs += 1; return { value: ran(SESSION) } })
+  on('tool.call', () => ({ result: 'ok' }))
+  await $.tool.call(WRITE)
+  await clock.advance(1000)
+  expect(runs).toBe(0)
+  const band = await $.ui.mount({ plugin: 'vela', surface: 'terminal', component: 'AbovePrompt', props: { hasSurvey: false, isWorking: false, maxRows: 10 } as never })
+  expect(await band.find({ type: 'Text', text: /install Git for Windows/ })).toBeDefined()
+})
+
+test('a Python crash is said by its last line, not "Traceback (most recent call last):"', async ($, on) => {
+  const clock = unixClock(on)
+  const stderr = 'Traceback (most recent call last):\n  File "vela", line 1, in <module>\nUnicodeEncodeError: \'charmap\' codec can\'t encode character\n'
+  on('process.run', () => ({ value: { exitCode: 1, stdout: '', stderr, isStdoutTruncated: false, isStderrTruncated: false } }))
+  on('tool.call', () => ({ result: 'ok' }))
+  await $.tool.call(WRITE)
+  await clock.advance(1000)
+  const band = await $.ui.mount({ plugin: 'vela', surface: 'terminal', component: 'AbovePrompt', props: { hasSurvey: false, isWorking: false, maxRows: 10 } as never })
+  expect(await band.find({ type: 'Text', text: /vela crashed: UnicodeEncodeError/ })).toBeDefined()
 })

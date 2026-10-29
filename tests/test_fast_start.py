@@ -101,3 +101,13 @@ def test_two_versions_at_one_path_get_separate_bytecode_caches(tmp_path):
         assert done.returncode == 0, done.stdout
     cache = next((tmp_path / "home").rglob("pycache"))
     assert {"1.0.0", "1.0.1"} <= {child.name for child in cache.iterdir()}
+
+
+def test_a_windows_code_page_never_breaks_the_output(tmp_path):
+    from companion_vault import TODAY, grill_session
+    root = grill_session(tmp_path)
+    env = {**os.environ, "PYTHONIOENCODING": "cp1252"}  # what a US Windows machine opens the streams in
+    done = subprocess.run([sys.executable, str(SCRIPT), "companion", "session", "--json", "--vault", str(root),
+                           "--today", TODAY, "--now", "10:41"], capture_output=True, env=env, timeout=60)
+    assert done.returncode == 0, done.stderr.decode("utf-8", "replace")
+    assert "✔" in done.stdout.decode("utf-8")

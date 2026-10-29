@@ -17,8 +17,11 @@ const WRITES_PLAN = /scripts\/(run-)?vela\b/
 const BLOCKS_VERSION = 2  // the JSON version this mod draws; vela bumps it when the blocks change shape
 const EXPLAINS_PLAN = /companion explain/
 // A mod's process.run looks no command up on PATH (Claude Code refuses a bare `sh` as "not found or in an unsafe
-// location"), so the shell is named by its full path; /bin/sh is on every Mac and Linux.
-const SHELL = '/bin/sh'
+// location"), so the shell is named by its full path. /bin/sh is on every Mac and Linux. Windows has none, and cmd
+// answered `'\bin\sh' is not recognized`; there Claude Code itself runs on Git for Windows' bash, so the panel looks
+// where Claude Code does: CLAUDE_CODE_GIT_BASH_PATH, then Git's machine-wide and per-user installs.
+const UNIX_SHELL = '/bin/sh'
+const GIT_BASH = '\\Git\\bin\\bash.exe'
 
 // What the last refresh stored. Drawing reads these and starts nothing.
 let session = null
@@ -29,6 +32,7 @@ let planWanted = false  // keep the plan panel's text current
 let planNeedsOpen = false  // open its pane once, when the person asks; a person's close ends it until they ask again
 let toldNotPlaced = false
 let startCwd = ''
+let shell // undefined = not looked for yet; '' = none found
 let inVault // undefined = not looked at yet, true or false once looked at; a vela tool call clears it
 let sessionOpened = false
 let sessionAsked = false  // the person typed /vela-companion: with nothing to show, the pane says why instead of staying shut
@@ -68,11 +72,49 @@ function jsonOf(text) {
   return found !== null && typeof found === 'object' ? found : { unreadable: 'not an object' }
 }
 
+// The shells worth trying, in order; a Windows variable that's unset drops its place rather than guessing a drive.
+async function shellCandidates($) {
+  const named = await $.env.get('CLAUDE_CODE_GIT_BASH_PATH')
+  const machine = await $.env.get('ProgramFiles')
+  const machine32 = await $.env.get('ProgramFiles(x86)')
+  const user = await $.env.get('LOCALAPPDATA')
+  return [named, UNIX_SHELL, machine && machine + GIT_BASH, machine32 && machine32 + GIT_BASH, user && `${user}\\Programs${GIT_BASH}`].filter(Boolean)
+}
+
+// The first shell that is a file, looked for once per load.
+async function shellOf($) {
+  if (shell !== undefined) return shell
+  shell = ''
+  for (const path of await shellCandidates($)) {
+    const found = await $.fs.stat(path).catch(() => null)
+    if (found && found.kind === 'file') {
+      shell = path
+      break
+    }
+  }
+  return shell
+}
+
+// What a failed run printed, said in one line: a Python traceback's last line names the error, its first only says
+// "Traceback (most recent call last):".
+function whyOf(stderr) {
+  const lines = String(stderr || '').trim().split('\n').map((l) => l.trim()).filter(Boolean)
+  if (lines.length === 0) return ''
+  return lines[0].startsWith('Traceback') ? `vela crashed: ${lines[lines.length - 1]}` : lines[0]
+}
+
+const NO_SHELL = "vela's panel can't find a shell to start vela. On Windows, install Git for Windows, or set CLAUDE_CODE_GIT_BASH_PATH to its bash.exe."
+
 async function runVela($, args) {
-  const done = await $.process.run([SHELL, `${$.plugin.root}/scripts/run-vela`, 'companion', ...args, '--json', '--find-up'], { timeoutMs: VELA_TIMEOUT_MS })
+  const sh = await shellOf($)
+  if (!sh) return { code: 2, text: '', found: null, why: NO_SHELL, failed: true }
+  const done = await $.process.run([sh, `${$.plugin.root}/scripts/run-vela`, 'companion', ...args, '--json', '--find-up'], { timeoutMs: VELA_TIMEOUT_MS })
   const parsed = jsonOf(done.stdout)
-  const why = parsed.unreadable ? (String(done.stderr || '').trim().split('\n')[0] || parsed.unreadable) : ''  // vela says why on stderr
-  return { code: done.exitCode, text: done.stdout, found: parsed.unreadable ? null : parsed, why }
+  const why = parsed.unreadable ? (whyOf(done.stderr) || parsed.unreadable) : ''  // vela says why on stderr
+  // vela's own "nothing to draw" (exit 1) always prints its sentence; a crash exits 1 too, with nothing on stdout and
+  // a traceback on stderr, and read as "no session" it closed the panel without a word.
+  const failed = done.exitCode !== 0 && !String(done.stdout || '').trim() && Boolean(whyOf(done.stderr))
+  return { code: done.exitCode, text: done.stdout, found: parsed.unreadable ? null : parsed, why, failed }
 }
 
 // Whether this JSON is one the mod can draw: the version it knows, with blocks. Anything else is never drawn as an empty
@@ -120,12 +162,16 @@ const padTo = (text, width) => text + padding(text, width)
 
 // A page link: the vault's file, so a click opens it where the terminal opens files. Each path segment is encoded on its
 // own, so a `#`, `?` or `%` in the vault's path stays part of the path; only the fragment vela names (`dashboard.html#asks`)
-// is the URL's.
+// is the URL's. A Windows vault (`C:\Users\x\plan`) splits on its backslashes too, and its drive stays `C:` after a
+// slash (`file:///C:/Users/...`): encoded, `%5C` and `%3A` made every link a file Windows couldn't find.
+const DRIVE = /^[A-Za-z]:$/
 function pageHref(vault, page) {
   const at = page.indexOf('#')
   const path = at < 0 ? page : page.slice(0, at)
   const fragment = at < 0 ? '' : `#${encodeURI(page.slice(at + 1))}`
-  return 'file://' + [...vault.split('/'), ...path.split('/')].map(encodeURIComponent).join('/') + fragment
+  const segments = [...vault.split(/[\\/]/), ...path.split(/[\\/]/)]
+  const encoded = segments.map((part, index) => (index === 0 && DRIVE.test(part) ? part : encodeURIComponent(part)))
+  return (DRIVE.test(segments[0]) ? 'file:///' : 'file://') + encoded.join('/') + fragment
 }
 
 function spanOf(el, span, vault) {
@@ -290,6 +336,11 @@ function firstLine(done) {
 
 async function refreshSession($) {
   const done = await runVela($, ['session'])
+  if (done.failed) {
+    problem = done.why
+    if (sessionAsked) views.session = messageView(done.why)
+    return
+  }
   if (done.found && done.code !== 1 && !drawable(done.found)) {
     // a JSON this mod can't draw is said in vela's words, never drawn as a blank pane
     session = null
@@ -334,6 +385,11 @@ async function refreshSession($) {
 async function refreshPlan($) {
   if (!planWanted) return
   const done = await runVela($, ['explain', '--last'])
+  if (done.failed) {
+    views.plan = messageView(done.why)
+    await openPlanOnce($)
+    return
+  }
   if (!done.found) return
   if (done.code !== 0 || !drawable(done.found)) {
     // vela's sentence (nothing asked yet, an older answer it can't redraw) goes in the pane the person asked for
