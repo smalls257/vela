@@ -1,0 +1,20 @@
+rules:
+  # Silent Fallback. Native append, prepend, before, after and replaceChildren print a null as the word "null" and an
+  # array as "[object HTMLDivElement],...": the Requirements page showed both to a reader (fix ledger E154). h() drops
+  # empties and flattens lists, so a part that may be empty goes inside h(), or the list is filtered before it's spread.
+  - id: dom-append-may-print-null
+    languages: [javascript]
+    severity: ERROR
+    message: >-
+      This passes a part that can be null or false to a native DOM insert, which prints it as "null" or "false".
+      Put the parts inside h(), or spread them filtered: el.append(...[a, b ? c : null].filter(Boolean)).
+    paths:
+      include: ["/plugin/**/*.js"]
+    patterns:
+      - pattern-either:
+          - pattern: '$EL.$M(..., $C ? $A : null, ...)'
+          - pattern: '$EL.$M(..., $C ? null : $A, ...)'
+          - pattern: '$EL.$M(..., $C && $A, ...)'
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^(append|prepend|before|after|replaceChildren)$

@@ -30,7 +30,7 @@ const Freshness = (() => {
     box.textContent = "";
     if (!text) return;
     const when = st.error ? `couldn't check just now; this is from ${stamp(st.report)}, when the page was built` : st.live ? "checked just now" : st.report.checked_at ? `from ${stamp(st.report)}, when the page was built` : "";
-    box.append(h("span", { class: "fresh-text" }, text), when ? h("span", { class: "fresh-when" }, ` (${when})`) : null);
+    box.append(...[h("span", { class: "fresh-text" }, text), when ? h("span", { class: "fresh-when" }, ` (${when})`) : null].filter(Boolean));  // native append prints a null as "null"
     box.title = st.error ? `Couldn't reach the plan helper (${st.error}). The banner may be out of date; reload to try again.` : "";
     box.dataset.state = st.report.state;
   }

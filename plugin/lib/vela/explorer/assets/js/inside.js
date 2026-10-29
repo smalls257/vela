@@ -1100,7 +1100,7 @@ const Inside = (() => {
       svg.style.width = W + "px";
       lg.paint();
       const view = h("div", { class: "seq-frame" }, h("div", { class: "in-scroll" }, svg));
-      box.append(view, lg.el(), ctl, n ? h("div", { class: "seq-now" }, `${cur + 1}. `, prose(describe(seq.steps[cur], seq))) : null);
+      box.append(...[view, lg.el(), ctl, n ? h("div", { class: "seq-now" }, `${cur + 1}. `, prose(describe(seq.steps[cur], seq))) : null].filter(Boolean));  // native append prints a null as "null"
       Pan.attach(box, { key: "seq-" + id, svg: () => box.querySelector("svg.seq"), scrollOnly: true, frame: view });
     }
     draw();

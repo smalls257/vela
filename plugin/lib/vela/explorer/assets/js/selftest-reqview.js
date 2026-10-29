@@ -90,6 +90,13 @@
     function isReq(k) { return ReqView.isReq(k); }
     const q = $("#main .rv-cols ~ .rv-before, #main .rv-before");
     ok(r.checks.every((c) => c.v === "yes") ? !q : !!q && $$("li", q).length === r.checks.filter((c) => c.v !== "yes").length, "requirements focus: it lists what is missing, one line for each check not met", "requirements focus: the missing list is wrong");
+    const stray = [];
+    for (const each of ROWS) {
+      go(each.key); await tick();
+      const walk = document.createTreeWalker($("#main"), NodeFilter.SHOW_TEXT);
+      for (let n = walk.nextNode(); n; n = walk.nextNode()) if (/\[object \w+\]|^\s*null\s*$/.test(n.nodeValue)) stray.push(`${each.id}: ${n.nodeValue.slice(0, 60)}`);
+    }
+    ok(!stray.length, `requirements focus: none of the ${ROWS.length} requirements shows "null" or "[object ...]"`, `requirements focus: stray text ${stray.slice(0, 3).join(" | ")}`);
     Nav.open("capabilities"); await tick();
     go(r.key); await tick();
     ok(App.view === "reqs" && Nav.st.child === r.key && !!$("#main .rv-hero"), "requirements: a requirement chip on another page opens the Requirements section on that requirement", `requirements: chip landed on ${App.view}, child ${Nav.st.child}`);
